@@ -187,7 +187,8 @@ def make_temp_env(*packages, **kwargs):
             run_command(Commands.CREATE, prefix, *packages, **kwargs)
             yield prefix
         finally:
-            rmtree(prefix, ignore_errors=True)
+            pass
+#            rmtree(prefix, ignore_errors=True)
 
 @contextmanager
 def make_temp_package_cache():
@@ -314,16 +315,16 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'python=2')
 
                 # regression test for #4513
-                run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/not-a-channel")
-                stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json")
+                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.continuum.io/pkgs/not-a-channel")
+                stdout, stderr = run_command(Commands.SEARCH, prefix, "python", "--json")
                 packages = json.loads(stdout)
                 assert len(packages) >= 1
 
-                stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json --envs")
+                stdout, stderr = run_command(Commands.SEARCH, prefix, "python", "--json", "--envs")
                 envs_result = json.loads(stdout)
                 assert any(match['location'] == prefix for match in envs_result)
 
-                stdout, stderr = run_command(Commands.SEARCH, prefix, "python --envs")
+                stdout, stderr = run_command(Commands.SEARCH, prefix, "python", "--envs")
                 assert prefix in stdout
 
     def test_run_preserves_arguments(self):
@@ -396,7 +397,7 @@ class IntegrationTests(TestCase):
             assert context.safety_checks is SafetyChecks.enabled
 
             with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.INSTALL, prefix, '-c conda-test spiffy-test-app=0.5')
+                run_command(Commands.INSTALL, prefix, '-c', 'conda-test', 'spiffy-test-app=0.5')
 
             error_message = text_type(exc.value)
             message1 = dals("""
@@ -414,7 +415,7 @@ class IntegrationTests(TestCase):
             reload_config(prefix)
             assert context.safety_checks is SafetyChecks.warn
 
-            stdout, stderr = run_command(Commands.INSTALL, prefix, '-c conda-test spiffy-test-app=0.5')
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '-c', 'conda-test', 'spiffy-test-app=0.5')
             assert message1 in stderr
             assert message2 in stderr
             assert package_is_installed(prefix, "spiffy-test-app=0.5")
@@ -425,7 +426,7 @@ class IntegrationTests(TestCase):
             reload_config(prefix)
             assert context.safety_checks is SafetyChecks.disabled
 
-            stdout, stderr = run_command(Commands.INSTALL, prefix, '-c conda-test spiffy-test-app=0.5')
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '-c', 'conda-test', 'spiffy-test-app=0.5')
             assert message1 not in stderr
             assert message2 not in stderr
             assert package_is_installed(prefix, "spiffy-test-app=0.5")
@@ -451,7 +452,7 @@ class IntegrationTests(TestCase):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
 
-            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json --dry-run", use_exception_handler=True)
+            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5", "--json", "--dry-run", use_exception_handler=True)
             assert_json_parsable(stdout)
 
             # regression test for #5825
@@ -460,14 +461,14 @@ class IntegrationTests(TestCase):
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json")
+            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5", "--json")
             assert_json_parsable(stdout)
             assert not stderr
             json_obj = json.loads(stdout)
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask=0.10 --json')
+            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask=0.10', '--json')
             assert_json_parsable(stdout)
             assert not stderr
             assert package_is_installed(prefix, 'flask=0.10.1')
@@ -480,14 +481,14 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'flask=0.10.1')
             assert package_is_installed(prefix, 'python=3')
 
-            stdout, stderr = run_command(Commands.UPDATE, prefix, 'flask --json')
+            stdout, stderr = run_command(Commands.UPDATE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
             assert not package_is_installed(prefix, 'flask=0.10.1')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
-            stdout, stderr = run_command(Commands.REMOVE, prefix, 'flask --json')
+            stdout, stderr = run_command(Commands.REMOVE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
             assert not package_is_installed(prefix, 'flask=0.*')
@@ -499,13 +500,13 @@ class IntegrationTests(TestCase):
             dist_dump = json_obj['actions']['UNLINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr = run_command(Commands.LIST, prefix, '--revisions --json')
+            stdout, stderr = run_command(Commands.LIST, prefix, '--revisions', '--json')
             assert not stderr
             json_obj = json.loads(stdout)
             assert len(json_obj) == 5
             assert json_obj[4]["rev"] == 4
 
-            stdout, stderr = run_command(Commands.INSTALL, prefix, '--revision 0', '--json')
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '--revision', '0', '--json')
             assert_json_parsable(stdout)
             assert not stderr
             assert not package_is_installed(prefix, 'flask')
@@ -523,7 +524,7 @@ class IntegrationTests(TestCase):
     def test_conda_update_package_not_installed(self):
         with make_temp_env() as prefix:
             with pytest.raises(PackageNotInstalledError):
-                run_command(Commands.UPDATE, prefix, "sqlite openssl")
+                run_command(Commands.UPDATE, prefix, "sqlite", "openssl")
 
             with pytest.raises(CondaError) as conda_error:
                 run_command(Commands.UPDATE, prefix, "conda-forge::*")
@@ -599,7 +600,7 @@ class IntegrationTests(TestCase):
             with make_temp_env("--override-channels python") as prefix:
                 assert prefix
 
-        stdout, stderr = run_command(Commands.SEARCH, None, "--override-channels -c conda-test flask --json")
+        stdout, stderr = run_command(Commands.SEARCH, None, "--override-channels", "-c", "conda-test", "flask", "--json")
         assert not stderr
         assert len(json.loads(stdout)["flask"]) < 3
         assert json.loads(stdout)["flask"][0]["noarch"] == "python"
@@ -628,7 +629,8 @@ class IntegrationTests(TestCase):
     def test_strict_channel_priority(self):
         stdout, stderr = run_command(
             Commands.CREATE, "/",
-            "-c conda-forge -c defaults python=3.6 fiona --strict-channel-priority --dry-run --json",
+            "-c", "conda-forge", "-c", "defaults", "python=3.6", "fiona",
+            "--strict-channel-priority", "--dry-run", "--json",
             use_exception_handler=True
         )
         assert not stderr
@@ -764,7 +766,7 @@ class IntegrationTests(TestCase):
             # install tarball with full path, outside channel
             tar_new_path = join(prefix, flask_fname)
             copyfile(tar_old_path, tar_new_path)
-            run_command(Commands.INSTALL, prefix, '"%s"' % tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
             assert package_is_installed(prefix, 'flask=0')
 
             # regression test for #2626
@@ -772,7 +774,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask=0.10.1')
             tar_new_path = relpath(tar_new_path)
-            run_command(Commands.INSTALL, prefix, '"%s"' % tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
             assert package_is_installed(prefix, 'flask=0')
 
             # regression test for #2886 (part 2 of 2)
@@ -891,7 +893,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous')
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'pytz --prune')
+            run_command(Commands.INSTALL, prefix, 'pytz', '--prune')
 
             assert not package_is_installed(prefix, 'itsdangerous')
             assert package_is_installed(prefix, 'pytz')
@@ -903,14 +905,14 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'readline')
             assert package_is_installed(prefix, 'python')
 
-            run_command(Commands.REMOVE, prefix, 'readline --force-remove')
+            run_command(Commands.REMOVE, prefix, 'readline', '--force-remove')
             assert not package_is_installed(prefix, 'readline')
             assert package_is_installed(prefix, 'python')
 
     def test_install_force_reinstall_flag(self):
         with make_temp_env("python") as prefix:
             stdout, stderr = run_command(Commands.INSTALL, prefix,
-                                         "--json --dry-run --force-reinstall python",
+                                         "--json", "--dry-run", "--force-reinstall", "python",
                                          use_exception_handler=True)
             output_obj = json.loads(stdout.strip())
             unlink_actions = output_obj['actions']['UNLINK']
@@ -941,7 +943,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "flask==0.12")
             assert package_is_installed(prefix, "jinja2=2.8")
 
-            run_command(Commands.INSTALL, prefix, "flask --update-deps")
+            run_command(Commands.INSTALL, prefix, "flask", "--update-deps")
             assert package_is_installed(prefix, "python=3.6")
             assert package_is_installed(prefix, "flask>0.12")
             assert package_is_installed(prefix, "jinja2>2.8")
@@ -952,7 +954,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "flask==0.12")
             assert package_is_installed(prefix, "jinja2=2.8")
 
-            run_command(Commands.INSTALL, prefix, "flask --only-deps")
+            run_command(Commands.INSTALL, prefix, "flask", "--only-deps")
             assert package_is_installed(prefix, "python=3.6")
             assert package_is_installed(prefix, "flask==0.12")
             assert package_is_installed(prefix, "jinja2=2.8")
@@ -966,7 +968,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "flask==0.12")
             assert package_is_installed(prefix, "jinja2=2.8")
 
-            run_command(Commands.INSTALL, prefix, "flask python=3.6 --update-deps --only-deps")
+            run_command(Commands.INSTALL, prefix, "flask", "python=3.6", "--update-deps", "--only-deps")
             assert package_is_installed(prefix, "python=3.6")
             assert package_is_installed(prefix, "flask==0.12")
             assert package_is_installed(prefix, "jinja2>2.8")
@@ -977,7 +979,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "bleach=2")
             with pytest.raises(UnsatisfiableError):
                 run_command(Commands.INSTALL, prefix,
-                            "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
+                            "conda-forge::tensorflow>=1.4", "--dry-run", "--freeze-installed")
 
     @pytest.mark.xfail(on_win, reason="nomkl not present on windows",
                        strict=True)
@@ -1003,7 +1005,7 @@ class IntegrationTests(TestCase):
             numpy_prec = PrefixData(prefix).get("numpy")
             assert "nomkl" in numpy_prec.build
 
-            run_command(Commands.INSTALL, prefix, "nomkl --prune")
+            run_command(Commands.INSTALL, prefix, "nomkl", "--prune")
             assert not package_is_installed(prefix, "mkl")
             assert not package_is_installed(prefix, "mkl_fft")
             assert not package_is_installed(prefix, "mkl_random")
@@ -1037,7 +1039,7 @@ class IntegrationTests(TestCase):
             for param_name in documented_parameter_names:
                 assert re.search(r'^# # %s \(' % param_name, stdout, re.MULTILINE), param_name
 
-            stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe --json")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe", "--json")
             assert not stderr
             json_obj = json.loads(stdout.strip())
             assert len(json_obj) >= 42
@@ -1048,13 +1050,13 @@ class IntegrationTests(TestCase):
                 assert not stderr
                 assert 'envvars' in stdout.strip()
 
-                stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources --json")
+                stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources", "--json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
                 assert json_obj['envvars'] == {'quiet': True}
                 assert json_obj['cmd_line'] == {'json': True}
 
-            run_command(Commands.CONFIG, prefix, "--set changeps1 false")
+            run_command(Commands.CONFIG, prefix, "--set", "changeps1", "false")
             with pytest.raises(CondaError):
                 run_command(Commands.CONFIG, prefix, "--write-default")
 
@@ -1067,7 +1069,7 @@ class IntegrationTests(TestCase):
             for param_name in documented_parameter_names:
                 assert re.search(r'^# %s \(' % param_name, data, re.MULTILINE), param_name
 
-            stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe --json")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe", "--json")
             assert not stderr
             json_obj = json.loads(stdout.strip())
             assert len(json_obj) >= 42
@@ -1078,7 +1080,7 @@ class IntegrationTests(TestCase):
                 assert not stderr
                 assert 'envvars' in stdout.strip()
 
-                stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources --json")
+                stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources", "--json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
                 assert json_obj['envvars'] == {'quiet': True}
@@ -1086,7 +1088,7 @@ class IntegrationTests(TestCase):
 
     def test_conda_config_validate(self):
         with make_temp_env() as prefix:
-            run_command(Commands.CONFIG, prefix, "--set ssl_verify no")
+            run_command(Commands.CONFIG, prefix, "--set", "ssl_verify no")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--validate")
             assert not stdout
             assert not stderr
@@ -1108,8 +1110,8 @@ class IntegrationTests(TestCase):
 
     def test_rpy_search(self):
         with make_temp_env("python=3.5") as prefix:
-            run_command(Commands.CONFIG, prefix, "--add channels https://repo.anaconda.com/pkgs/free")
-            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
             json_obj = json_loads(stdout)
             assert 'defaults' not in json_obj['channels']
@@ -1123,7 +1125,7 @@ class IntegrationTests(TestCase):
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
             # add r channel
-            run_command(Commands.CONFIG, prefix, "--add channels r")
+            run_command(Commands.CONFIG, prefix, "--add", "channels", "r")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
             json_obj = json_loads(stdout)
             assert 'r' in json_obj['channels']
@@ -1134,10 +1136,10 @@ class IntegrationTests(TestCase):
 
     def test_clone_offline_multichannel_with_untracked(self):
         with make_temp_env("python=3.5") as prefix:
-            run_command(Commands.CONFIG, prefix, "--add channels https://repo.anaconda.com/pkgs/free")
-            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
 
-            run_command(Commands.INSTALL, prefix, "-c conda-test flask")
+            run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask")
 
             touch(join(prefix, 'test.file'))  # untracked file
             with make_temp_env("--clone '%s'" % prefix, "--offline") as clone_prefix:
@@ -1163,7 +1165,7 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, "pytz=2015.7")
             assert package_is_installed(prefix, "pytz")
 
-            run_command(Commands.UPDATE, prefix, "--all --no-pin")
+            run_command(Commands.UPDATE, prefix, "--all", "--no-pin")
             assert package_is_installed(prefix, "python=2.7")
             assert not package_is_installed(prefix, "itsdangerous=0.23")
 
@@ -1193,7 +1195,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous=0.23')
             assert not package_is_installed(prefix, 'flask')
 
-            run_command(Commands.INSTALL, prefix, '--update-deps python=2 flask')
+            run_command(Commands.INSTALL, prefix, '--update-deps', 'python=2', 'flask')
             assert package_is_installed(prefix, 'python=2')
             assert not package_is_installed(prefix, 'itsdangerous=0.23')
             assert package_is_installed(prefix, 'itsdangerous')
@@ -1280,7 +1282,7 @@ class IntegrationTests(TestCase):
         assert not isfile(shortcut_file)
 
         # set condarc shortcuts: False
-        run_command(Commands.CONFIG, prefix, "--set shortcuts false")
+        run_command(Commands.CONFIG, prefix, "--set", "shortcuts", "false")
         stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
         json_obj = json_loads(stdout)
         assert json_obj['rc_path'] == join(prefix, 'condarc')
@@ -1307,8 +1309,8 @@ class IntegrationTests(TestCase):
             prefix = make_temp_prefix(str(uuid4())[:7])
 
             # set packages
-            run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
-            run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
+            run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
+            run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "flask")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
             assert yml_obj['create_default_packages'] == ['flask', 'pip']
@@ -1330,8 +1332,8 @@ class IntegrationTests(TestCase):
             prefix = make_temp_prefix(str(uuid4())[:7])
 
             # set packages
-            run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
-            run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
+            run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
+            run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "flask")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
             assert yml_obj['create_default_packages'] == ['flask', 'pip']
@@ -1388,15 +1390,15 @@ class IntegrationTests(TestCase):
 
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
         with make_temp_env("python") as prefix:
-            run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
-            run_command(Commands.RUN, prefix, "python -m pip install itsdangerous")
+            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
+            run_command(Commands.RUN, prefix, "python", "-m", "pip", "install", "itsdangerous")
 
             PrefixData._cache_.clear()
             stdout, stderr = run_command(Commands.LIST, prefix)
             assert 'itsdangerous' in stdout
             assert not stderr
 
-            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask --dry-run --json',
+            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask', '--dry-run', '--json',
                                          use_exception_handler=True)
             json_obj = json.loads(stdout)
             print(json_obj)
@@ -1417,17 +1419,17 @@ class IntegrationTests(TestCase):
         # 3. conda list shows new six and deletes old conda record
         # 4. probably need to purge something with the history file too?
         with make_temp_env("six=1.9 pip=9.0.3 python=3.5") as prefix:
-            run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
+            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
-            output, _ = run_command(Commands.RUN, prefix, "python -m pip freeze")
+            output, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.9.0" in pkgs
 
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
 
-            output, err = run_command(Commands.RUN, prefix, "python -m pip install -U six==1.10")
+            output, err = run_command(Commands.RUN, prefix, "python", "-m", "pip", "install", "-U", "six==1.10")
             assert "Successfully installed six-1.10.0" in ensure_text_type(output)
             PrefixData._cache_.clear()
             stdout, stderr = run_command(Commands.LIST, prefix, "--json")
@@ -1445,7 +1447,7 @@ class IntegrationTests(TestCase):
                 "version": "1.10.0",
             }
             assert package_is_installed(prefix, "six=1.10.0")
-            output, err = run_command(Commands.RUN, prefix, "python -m pip freeze")
+            output, err = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.10.0" in pkgs
 
@@ -1536,21 +1538,21 @@ class IntegrationTests(TestCase):
                 "version": "1.10.0"
             }
 
-            stdout, stderr = run_command(Commands.INSTALL, prefix, "six --satisfied-skip-solve")
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "six", "--satisfied-skip-solve")
             assert not stderr
             assert "All requested packages already installed." in stdout
 
             stdout, stderr = run_command(Commands.INSTALL, prefix, "six")
             assert not stderr
             assert package_is_installed(prefix, "six>=1.11")
-            output, err = run_command(Commands.RUN, prefix, "python -m pip freeze")
+            output, err = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             six_record = next(PrefixData(prefix).query("six"))
             assert "six==%s" % six_record.version in pkgs
 
             assert len(glob(join(prefix, "conda-meta", "six-*.json"))) == 1
 
-            output, err = run_command(Commands.RUN, prefix, "python -m pip install -U six==1.10")
+            output, err = run_command(Commands.RUN, prefix, "python", "-m", "pip", "install", "-U", "six==1.10")
             print(output)
             assert "Successfully installed six-1.10.0" in ensure_text_type(output)
             PrefixData._cache_.clear()
@@ -1565,11 +1567,11 @@ class IntegrationTests(TestCase):
 
     def test_conda_pip_interop_conda_editable_package(self):
         with make_temp_env("python=2.7 pip", use_restricted_unicode=on_win) as prefix:
-            run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
+            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
-            output, err = run_command(Commands.RUN, prefix, "python -m pip install -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
+            output, err = run_command(Commands.RUN, prefix, "python", "-m", "pip", "install", "-e", "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
             print(output)
             assert isfile(join("src", "urllib3", "urllib3", "__init__.py"))
             PrefixData._cache_.clear()
@@ -1601,7 +1603,7 @@ class IntegrationTests(TestCase):
             }
 
             # the unmanageable urllib3 should prevent a new requests from being installed
-            stdout, stderr = run_command(Commands.INSTALL, prefix, "requests --dry-run --json",
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "requests", "--dry-run", "--json",
                                          use_exception_handler=True)
             assert not stderr
             json_obj = json_loads(stdout)
@@ -1612,7 +1614,7 @@ class IntegrationTests(TestCase):
             assert VersionOrder(link_dists[0]["version"]) < VersionOrder("2.16")
 
             # should already be satisfied
-            stdout, stderr = run_command(Commands.INSTALL, prefix, "urllib3 -S")
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "urllib3", "-S")
             assert "All requested packages already installed." in stdout
 
             # should raise an error
@@ -1620,7 +1622,7 @@ class IntegrationTests(TestCase):
                 # TODO: This raises PackagesNotFoundError, but the error should really explain
                 #       that we can't install urllib3 because it's already installed and
                 #       unmanageable. The error should suggest trying to use pip to uninstall it.
-                stdout, stderr = run_command(Commands.INSTALL, prefix, "urllib3=1.20 --dry-run")
+                stdout, stderr = run_command(Commands.INSTALL, prefix, "urllib3=1.20", "--dry-run")
 
             # Now install a manageable urllib3.
             output = check_output(PYTHON_BINARY + " -m pip install -U urllib3==1.20",
@@ -1652,7 +1654,7 @@ class IntegrationTests(TestCase):
             }
 
             # we should be able to install an unbundled requests that upgrades urllib3 in the process
-            stdout, stderr = run_command(Commands.INSTALL, prefix, "requests=2.18 --json")
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "requests=2.18", "--json")
             assert package_is_installed(prefix, "requests")
             assert package_is_installed(prefix, "urllib3>=1.21")
             assert not stderr
@@ -1665,7 +1667,7 @@ class IntegrationTests(TestCase):
     def test_conda_pip_interop_compatible_release_operator(self):
         # Regression test for #7776
         with make_temp_env("pip=10 six=1.9 appdirs", use_restricted_unicode=on_win) as prefix:
-            run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
+            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
             assert package_is_installed(prefix, "six=1.9")
             assert package_is_installed(prefix, "appdirs>=1.4.3")
@@ -1692,7 +1694,7 @@ class IntegrationTests(TestCase):
             assert "fs                        2.1.0                    pypi_0    pypi" in stdout
 
             with pytest.raises(DryRunExit):
-                run_command(Commands.INSTALL, prefix, "agate=1.6 --dry-run")
+                run_command(Commands.INSTALL, prefix, "agate=1.6", "--dry-run")
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
@@ -1735,7 +1737,7 @@ class IntegrationTests(TestCase):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal"
-            run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
+            run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
             assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
@@ -1766,8 +1768,8 @@ class IntegrationTests(TestCase):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/kalefranz"
-            run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
-            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
+            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
             assert yml_obj['channels'] == [channel_url]
@@ -1785,8 +1787,8 @@ class IntegrationTests(TestCase):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
-            run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
-            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
+            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
 
@@ -1804,7 +1806,7 @@ class IntegrationTests(TestCase):
         prefix = ''
 
         # make sure we have something in the index cache
-        stdout, stderr = run_command(Commands.INFO, prefix, "flask --json")
+        stdout, stderr = run_command(Commands.INFO, prefix, "flask", "--json")
         assert "flask" in json_loads(stdout)
         index_cache_dir = create_cache_dir()
         assert glob(join(index_cache_dir, "*.json"))
@@ -1840,7 +1842,7 @@ class IntegrationTests(TestCase):
 
                 SubdirData._cache_.clear()
                 mock_method.side_effect = side_effect
-                stdout, stderr = run_command(Commands.INFO, prefix, "flask --json")
+                stdout, stderr = run_command(Commands.INFO, prefix, "flask", "--json")
                 assert mock_method.called
 
             # Next run with --use-index-cache and make sure it actually hits the cache
@@ -1922,7 +1924,7 @@ class IntegrationTests(TestCase):
                 assert pkgs_dir_has_tarball('openssl-')
 
                 # Then, remove the tarball but keep the extracted directory around
-                run_command(Commands.CLEAN, prefix, '--tarballs --yes')
+                run_command(Commands.CLEAN, prefix, '--tarballs', '--yes')
                 assert not pkgs_dir_has_tarball('openssl-')
 
             with make_temp_env() as prefix:
@@ -1930,7 +1932,7 @@ class IntegrationTests(TestCase):
                 # We expect that the tarball does not appear again because we simply
                 # linked the package from the extracted directory. If the tarball
                 # appeared again, we decided to re-download the package for some reason.
-                run_command(Commands.INSTALL, prefix, 'openssl --offline')
+                run_command(Commands.INSTALL, prefix, 'openssl', '--offline')
                 assert not pkgs_dir_has_tarball('openssl-')
 
     def test_clean_tarballs_and_packages(self):
@@ -1943,10 +1945,10 @@ class IntegrationTests(TestCase):
                 assert any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
 
                 # --json flag is regression test for #5451
-                run_command(Commands.CLEAN, prefix, "--packages --yes --json")
+                run_command(Commands.CLEAN, prefix, "--packages", "--yes", "--json")
 
                 # --json flag is regression test for #5451
-                run_command(Commands.CLEAN, prefix, "--tarballs --yes --json")
+                run_command(Commands.CLEAN, prefix, "--tarballs", "--yes", "--json")
 
                 pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
                 pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
@@ -1955,7 +1957,7 @@ class IntegrationTests(TestCase):
                 assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
                 assert not any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
 
-            run_command(Commands.CLEAN, prefix, "--packages --yes")
+            run_command(Commands.CLEAN, prefix, "--packages", "--yes")
 
             pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
             pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
@@ -2002,7 +2004,7 @@ class IntegrationTests(TestCase):
         with env_var('CONDA_ROOT_PREFIX', prefix, reset_context):
             with env_var('CONDA_PKGS_DIRS', ','.join(pkgs_dirs), reset_context):
                 with make_temp_env(prefix=prefix):
-                    stdout, stderr = run_command(Commands.INSTALL, prefix, "conda conda-build")
+                    stdout, stderr = run_command(Commands.INSTALL, prefix, "conda", "conda-build")
                     assert package_is_installed(prefix, "conda")
                     assert package_is_installed(prefix, "pycosat")
                     assert package_is_installed(prefix, "conda-build")
@@ -2121,8 +2123,8 @@ class IntegrationTests(TestCase):
             conda_version = result.stdout.strip()[6:]
             assert conda_version == "4.5.0"
 
-            result, stderr = run_command(Commands.RUN, prefix,
-                                         "python -m conda init " + ("cmd.exe --dev" if on_win else "--dev"),
+            args = ["python", "-m", "conda", "init"] + ["cmd.exe", "--dev"] if on_win else ["--dev"]
+            result, stderr = run_command(Commands.RUN, prefix, args,
                                          workdir=dirname(CONDA_PACKAGE_ROOT))
 
             result = subprocess_call("%s --version" % join(prefix, conda_exe))
@@ -2177,7 +2179,7 @@ class IntegrationTests(TestCase):
 
                 # undo the conda downgrade in the env (using our current outer conda version)
                 PrefixData._cache_.clear()
-                run_command(Commands.INSTALL, prefix, "--rev 2")
+                run_command(Commands.INSTALL, prefix, "--rev","2")
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "conda=4.5.12")
 
@@ -2217,7 +2219,7 @@ class IntegrationTests(TestCase):
             pkgs_dir = join(prefix, 'pkgs')
             with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
                 assert context.pkgs_dirs == (pkgs_dir,)
-                run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
+                run_command(Commands.INSTALL, prefix, "-c", "conda-forge", "toolz", "cytoolz")
                 assert package_is_installed(prefix, 'toolz')
 
     def test_remove_spellcheck(self):
@@ -2308,7 +2310,7 @@ class PrivateEnvIntegrationTests(TestCase):
         prefix_specified.__get__ = Mock(return_value=False)
 
         # >> simple progression install then uninstall <<
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
         assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
@@ -2319,7 +2321,7 @@ class PrivateEnvIntegrationTests(TestCase):
         json_d = json.loads(stdout)
         assert json_d['YABBA-DABBA'] == 'doo'
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "uses-spiffy-test-app")
         assert not package_is_installed(self.prefix, "uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
 
@@ -2337,7 +2339,7 @@ class PrivateEnvIntegrationTests(TestCase):
         prefix_specified.__get__ = Mock(return_value=False)
 
         # >> install uses-spiffy-test-app, uninstall spiffy-test-app <<
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
@@ -2363,10 +2365,10 @@ class PrivateEnvIntegrationTests(TestCase):
         prefix_specified.__get__ = Mock(return_value=False)
 
         # >> install spiffy-test-app 1.0, then update <<
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app=1")
         assert package_is_installed(self.prefix, "spiffy-test-app")
 
-        run_command(Commands.UPDATE, self.prefix, "-c conda-test spiffy-test-app")
+        run_command(Commands.UPDATE, self.prefix, "-c", "conda-test", "spiffy-test-app")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
 
@@ -2378,7 +2380,7 @@ class PrivateEnvIntegrationTests(TestCase):
         prefix_specified.__get__ = Mock(return_value=False)
 
         # >> install spiffy-test-app, then remove from preferred env <<
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
 
         run_command(Commands.REMOVE, self.preferred_env_prefix, "spiffy-test-app")
@@ -2392,10 +2394,10 @@ class PrivateEnvIntegrationTests(TestCase):
         prefix_specified.__get__ = Mock(return_value=False)
 
         # >> install spiffy-test-app 1.0, then install spiffy-test-app 2.0 <<
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app=1")
         assert package_is_installed(self.prefix, "spiffy-test-app")
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=2")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app=2")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
 
@@ -2407,10 +2409,10 @@ class PrivateEnvIntegrationTests(TestCase):
         prefix_specified.__get__ = Mock(return_value=False)
 
         # >> install spiffy-test-app 2.0, then spiffy-test-app 1.0 <<
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app=1")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
         assert package_is_installed(self.prefix, "spiffy-test-app")
 
@@ -2420,13 +2422,13 @@ class PrivateEnvIntegrationTests(TestCase):
 
         # install spiffy-test-app 2.0, then uses-spiffy-test-app 1.0,
         #   which should suck spiffy-test-app back to the root prefix
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
         assert not package_is_installed(self.prefix, "uses-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app=1")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "uses-spiffy-test-app=1")
         assert package_is_installed(self.prefix, "spiffy-test-app-2")
         assert package_is_installed(self.prefix, "uses-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
@@ -2437,12 +2439,12 @@ class PrivateEnvIntegrationTests(TestCase):
         prefix_specified.__get__ = Mock(return_value=False)
 
         # install uses-spiffy-test-app 2.0, then spiffy-test-app 1.0,
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
         assert not isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app=1")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app=2")
         assert package_is_installed(self.prefix, "spiffy-test-app=1")
@@ -2452,7 +2454,7 @@ class PrivateEnvIntegrationTests(TestCase):
     def test_install_base_1_dep_2_together(self, prefix_specified):
         prefix_specified.__get__ = Mock(return_value=False)
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1 uses-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app=1", "uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app=2")
         assert package_is_installed(self.prefix, "spiffy-test-app-1")
@@ -2461,13 +2463,13 @@ class PrivateEnvIntegrationTests(TestCase):
     def test_a2(self, prefix_specified):
         prefix_specified.__get__ = Mock(return_value=False)
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app=2")
         assert not isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "needs-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app=2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
@@ -2492,12 +2494,12 @@ class PrivateEnvIntegrationTests(TestCase):
     def test_b2(self, prefix_specified):
         prefix_specified.__get__ = Mock(return_value=False)
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app uses-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app", "uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
         assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-tes", "needs-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
         assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app=2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
@@ -2508,12 +2510,12 @@ class PrivateEnvIntegrationTests(TestCase):
     def test_c2(self, prefix_specified):
         prefix_specified.__get__ = Mock(return_value=False)
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "needs-spiffy-test-app")
         assert package_is_installed(self.prefix, "spiffy-test-app=2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=2")  # nothing to do
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app=2")  # nothing to do
         assert package_is_installed(self.prefix, "spiffy-test-app=2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
@@ -2522,12 +2524,12 @@ class PrivateEnvIntegrationTests(TestCase):
     def test_d2(self, prefix_specified):
         prefix_specified.__get__ = Mock(return_value=False)
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
         assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
-        run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
+        run_command(Commands.INSTALL, self.prefix, "-c", "conda-test", "needs-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app=2")
         assert package_is_installed(self.prefix, "spiffy-test-app=2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
