@@ -627,22 +627,23 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win and context.subdir == "win-32", reason="conda-forge doesn't do win-32")
     def test_strict_channel_priority(self):
-        stdout, stderr = run_command(
-            Commands.CREATE, "/",
-            "-c", "conda-forge", "-c", "defaults", "python=3.6", "fiona",
-            "--strict-channel-priority", "--dry-run", "--json",
-            use_exception_handler=True
-        )
-        assert not stderr
-        json_obj = json_loads(stdout)
-        channel_groups = groupby("channel",json_obj["actions"]["LINK"])
-        channel_groups = sorted(list(channel_groups))
-        # conda-forge should be the only channel in the solution on unix
-        # fiona->gdal->libgdal->m2w64-xz brings in pkgs/msys2 on win
-        if on_win:
-            assert channel_groups == ["conda-forge", "pkgs/msys2"]
-        else:
-            assert channel_groups == ["conda-forge"]
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(
+                Commands.CREATE, prefix,
+                "-c", "conda-forge", "-c", "defaults", "python=3.6", "fiona",
+                "--strict-channel-priority", "--dry-run", "--json",
+                use_exception_handler=True
+            )
+            assert not stderr
+            json_obj = json_loads(stdout)
+            channel_groups = groupby("channel",json_obj["actions"]["LINK"])
+            channel_groups = sorted(list(channel_groups))
+            # conda-forge should be the only channel in the solution on unix
+            # fiona->gdal->libgdal->m2w64-xz brings in pkgs/msys2 on win
+            if on_win:
+                assert channel_groups == ["conda-forge", "pkgs/msys2"]
+            else:
+                assert channel_groups == ["conda-forge"]
 
     def test_strict_resolve_get_reduced_index(self):
         channels = (Channel("defaults"),)
