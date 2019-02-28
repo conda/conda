@@ -77,11 +77,11 @@ class IntegrationTests(TestCase):
 
                 run_command(Commands.CREATE, env_name, support_file('example/environment_pinned.yml'))
                 assert exists(python_path)
-                assert package_is_installed(prefix, 'flask=0.9')
+                assert package_is_installed(prefix, 'flask=0.12.2')
 
                 run_command(Commands.UPDATE, env_name, support_file('example/environment_pinned_updated.yml'))
-                assert package_is_installed(prefix, 'flask=0.10.1')
-                assert not package_is_installed(prefix, 'flask=0.9')
+                assert package_is_installed(prefix, 'flask=1.0.2')
+                assert not package_is_installed(prefix, 'flask=0.12.2')
 
     def test_create_advanced_pip(self):
         with make_temp_envs_dir() as envs_dir:
