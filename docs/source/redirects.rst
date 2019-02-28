@@ -44,6 +44,5 @@ Redirects
    using/pkgs
    using/test-drive
    using/using
-   commands/index
    configuration
    api/index
