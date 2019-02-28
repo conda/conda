@@ -19,6 +19,10 @@ from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
 
+from tests.test_create import make_temp_prefix
+from os.path import join
+from shutil import rmtree
+
 try:
     from unittest.mock import patch
 except ImportError:
@@ -155,19 +159,27 @@ class DefaultConfigChannelTests(TestCase):
         ]
 
     def test_channel_name_subdir_only(self):
-        channel = Channel('pkgs/free/win-64')
-        assert channel.scheme == "https"
-        assert channel.location == "repo.anaconda.com"
-        assert channel.platform == 'win-64' == channel.subdir
-        assert channel.name == 'pkgs/free'
+        prefix = make_temp_prefix()
+        condarc = join(prefix, 'condarc')
+        with open(condarc, 'a') as condarcf:
+            condarcf.write("default_channels:\n")
+            for c in list(DEFAULT_CHANNELS):
+                condarcf.write('  - ' + c + '\n')
+        with env_var('CONDARC', condarc, reset_context):
+            channel = Channel('pkgs/free/win-64')
+            assert channel.scheme == "https"
+            assert channel.location == "repo.anaconda.com"
+            assert channel.platform == 'win-64' == channel.subdir
+            assert channel.name == 'pkgs/free'
 
-        assert channel.base_url == 'https://repo.anaconda.com/pkgs/free'
-        assert channel.canonical_name == 'defaults'
-        assert channel.url() == 'https://repo.anaconda.com/pkgs/free/win-64'
-        assert channel.urls() == [
-            'https://repo.anaconda.com/pkgs/free/win-64',
-            'https://repo.anaconda.com/pkgs/free/noarch',
-        ]
+            assert channel.base_url == 'https://repo.anaconda.com/pkgs/free'
+            assert channel.canonical_name == 'defaults'
+            assert channel.url() == 'https://repo.anaconda.com/pkgs/free/win-64'
+            assert channel.urls() == [
+                'https://repo.anaconda.com/pkgs/free/win-64',
+                'https://repo.anaconda.com/pkgs/free/noarch',
+            ]
+        rmtree(prefix, ignore_errors=True)
 
 
 class AnacondaServerChannelTests(TestCase):
