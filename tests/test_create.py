@@ -198,8 +198,7 @@ def make_temp_env(*packages, **kwargs):
             run_command(Commands.CREATE, prefix, *packages, **kwargs)
             yield prefix
         finally:
-            pass
-#            rmtree(prefix, ignore_errors=True)
+            rmtree(prefix, ignore_errors=True)
 
 @contextmanager
 def make_temp_package_cache():
