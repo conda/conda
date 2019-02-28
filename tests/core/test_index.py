@@ -9,12 +9,15 @@ import pytest
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems
-from conda.common.io import env_var
+from conda.common.io import env_vars
 from conda.core.index import check_whitelist, get_index, get_reduced_index
 from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from tests.core.test_repodata import platform_in_record
+from tests.test_create import make_temp_prefix
+from os.path import join
+from shutil import rmtree
 
 try:
     from unittest.mock import patch
@@ -31,7 +34,14 @@ def test_check_whitelist():
         'conda-forge',
         'https://beta.conda.anaconda.org/conda-test'
     )
-    with env_var('CONDA_WHITELIST_CHANNELS', ','.join(whitelist), reset_context):
+    prefix = make_temp_prefix()
+    condarc = join(prefix, 'condarc')
+    with open(condarc, 'a') as condarcf:
+        condarcf.write("default_channels:\n")
+        for c in list(DEFAULT_CHANNELS):
+            condarcf.write('  - ' + c + '\n')
+    with env_vars({'CONDA_WHITELIST_CHANNELS': ','.join(whitelist),
+                   'CONDARC': condarc}, reset_context):
         with pytest.raises(ChannelNotAllowed):
             get_index(("conda-canary",))
 
@@ -43,7 +53,7 @@ def test_check_whitelist():
         check_whitelist(("https://conda.anaconda.org/conda-forge/linux-64",))
 
     check_whitelist(("conda-canary",))
-
+    rmtree(prefix, ignore_errors=True)
 
 
 @pytest.mark.integration
