@@ -103,13 +103,13 @@ checksums are available for
 
 Download the installer file and before installing verify it as follows:
 
-* macOS: In iTerm or a Terminal window enter ``md5 filename`` or ``shasum -a 256 filename``.
+* macOS: In iTerm or a terminal window enter ``md5 filename`` or ``shasum -a 256 filename``.
 
   .. note::
      Replace ``filename`` with the actual path and name of the
      downloaded installer file.
 
-* Linux: In a Terminal window enter ``md5sum filename`` or ``sha256sum filename``.
+* Linux: In a terminal window enter ``md5sum filename`` or ``sha256sum filename``.
 
   .. note::
      Replace ``filename`` with the actual path and name of the
@@ -153,6 +153,6 @@ Download the installer file and before installing verify it as follows:
 
            Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
 
-       .. note::
-          In both commands, replace ``C:\path\to\file.ext`` with
-          the actual path, filename and extension.
+        .. note::
+           In both commands, replace ``C:\path\to\file.ext`` with
+           the actual path, filename and extension.
