@@ -45,7 +45,9 @@ def run_command(command, *arguments, **kwargs):
     Args:
         command: one of the Commands.X
         *arguments: instructions you would normally pass to the conda comamnd on the command line
-                    see below for examples
+                    see below for examples. Be very careful to delimit arguements exactly as you
+                    want them to be delivered. No 'combine then split at spaces' or other information
+                    destroying processing gets performed on the arguments.
         **kwargs: special instructions for programmatic overrides
           use_exception_handler: defaults to False.  False will let the code calling
               `run_command` handle all exceptions.  True won't raise when an exception
@@ -64,9 +66,9 @@ def run_command(command, *arguments, **kwargs):
         stdout, stderr are either strings, None or the corresponding file-like function argument.
 
     Examples:
-        >>  run_command(Commands.CREATE, "-n newenv python=3 flask", use_exception_handler=True)
-        >>  run_command(Commands.CREATE, "-n newenv", "python=3", "flask")
-        >>  run_command(Commands.CREATE, ["-n newenv", "python=3", "flask"], search_path=())
+        >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask", use_exception_handler=True)
+        >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")
+        >>  run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
 
 
     """
