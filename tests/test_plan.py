@@ -1497,7 +1497,7 @@ def test_pinned_specs():
             fh.write("\n")
 
         with env_var('CONDA_PREFIX', td, reset_context):
-            run_command(Commands.CONFIG, "--env --add pinned_packages requests=2.13")
+            run_command(Commands.CONFIG, "--env", "--add", "pinned_packages", "requests=2.13")
             with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_2), reset_context):
                 pinned_specs = get_pinned_specs(td)
                 expected = specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1

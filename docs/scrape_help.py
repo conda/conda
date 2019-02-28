@@ -160,12 +160,12 @@ def generate_man(command):
     while not manpage and retries:
         manpage = run_command([
             'help2man',
-            '--name', 'conda %s' % command,
+            '--name', 'conda', command,
             '--section', '1',
             '--source', 'Anaconda, Inc.',
             '--version-string', conda_version,
             '--no-info',
-            'conda %s' % command,
+            'conda', 'command',
         ])
         retries -= 1
 
