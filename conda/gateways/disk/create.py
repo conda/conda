@@ -14,7 +14,7 @@ import tarfile
 import tempfile
 
 from . import mkdir_p
-from .delete import rm_rf
+from .delete import rm_rf, path_is_clean
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
@@ -163,7 +163,13 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
         destination_directory = tarball_full_path[:-8]
     log.debug("extracting %s\n  to %s", tarball_full_path, destination_directory)
 
-    assert not lexists(destination_directory), destination_directory
+    # the most common reason this happens is due to hard-links, windows thinks
+    #    files in the package cache are in-use. rm_rf should have moved them to
+    #    have a .conda_trash extension though, so it's ok to just write into
+    #    the same existing folder.
+    if not path_is_clean(destination_directory):
+        log.debug("package folder {} was not empty, but we're writing there."
+                  .format(destination_directory))
 
     with open(tarball_full_path, 'rb') as fileobj:
         if progress_update_callback:
