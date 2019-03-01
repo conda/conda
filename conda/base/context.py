@@ -1082,6 +1082,85 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     return context
 
 
+class ContextStackObject(object):
+
+    def __init__(self, search_path=SEARCH_PATH, argparse_args=None):
+        self.set_value(search_path, argparse_args)
+
+    def set_value(self, search_path=SEARCH_PATH, argparse_args=None):
+        self.search_path = search_path
+        self.argparse_args = argparse_args
+
+    def apply(self):
+        reset_context(self.search_path, self.argparse_args)
+
+
+class ContextStack(object):
+
+    def __init__(self):
+        self._stack = [ContextStackObject() for _ in range(3)]
+        self._stack_idx = 0
+        self._last_search_path = None
+        self._last_argparse_args = None
+
+    def push(self, search_path, argparse_args):
+        self._stack_idx+=1
+        old_len = len(self._stack)
+        if self._stack_idx >= old_len:
+            self._stack.extend([ContextStackObject() for _ in range(old_old)])
+        self._stack[self._stack_idx].set_value(search_path, argparse_args)
+        self.apply()
+
+    def apply(self):
+        if (self._last_search_path != self._stack[self._stack_idx].search_path or
+            self._last_argparse_args != self._stack[self._stack_idx].argparse_args):
+            # Expensive:
+            self._stack[self._stack_idx].apply()
+            self._last_search_path = self._stack[self._stack_idx].search_path
+            self._last_argparse_args = self._stack[self._stack_idx].argparse_args
+
+    def pop(self):
+        self._stack_idx-=1
+        self._stack[self._stack_idx].apply()
+
+    def replace(self, search_path, argparse_args):
+        self._stack[self._stack_idx].set_value(search_path, argparse_args)
+        self._stack[self._stack_idx].apply()
+
+
+context_stack = ContextStack()
+
+
+def stack_context(pushing, search_path=SEARCH_PATH, argparse_args=None):
+    if pushing:
+        # Fast
+        context_stack.push(search_path, argparse_args)
+    else:
+        # Slow
+        context_stack.pop()
+
+
+# Default means "The configuration when there are no condarc files present". It is
+# all the settings and defaults that are built in to the code and *not* the default
+# value of search_path=SEARCH_PATH. It means search_path=().
+def stack_context_default(pushing, argparse_args=None):
+    return stack_context(pushing, search_path=(), argparse_args=argparse_args)
+
+# This is potentially a lot faster than stack_default_context since there is no
+# large 'reset to the config as specified in the condarc search path' costs.
+def replace_context(pushing, search_path=SEARCH_PATH, argparse_args=None):
+    return context_stack.replace(search_path, argparse_args)
+
+def replace_context_default(pushing, argparse_args=None):
+    return context_stack.replace(search_path=(), argparse_args=argparse_args)
+
+# Tests that want to only declare 'I support the project-wide default for how to
+# manage stacking of contexts'. Tests that are known to be careful with context
+# can use `replace_context_with_default` which might be faster, though it should
+# be a stated goal to set conda_tests_ctxt_mgmt_def_pol to replace_context_default
+# and not to stack_context_default.
+conda_tests_ctxt_mgmt_def_pol = replace_context_default
+
 @memoize
 def _get_cpu_info():
     # DANGER: This is rather slow
