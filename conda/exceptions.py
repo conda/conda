@@ -689,7 +689,7 @@ class SpecsConfigurationConflictError(CondaError):
         """).format(
             requested_specs_formatted=dashlist(requested_specs, 4),
             pinned_specs_formatted=dashlist(pinned_specs, 4),
-            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+            pinned_specs_path=join(prefix, 'conda-meta', 'pinned'),
         )
         super(SpecsConfigurationConflictError, self).__init__(
             message, requested_specs=requested_specs, pinned_specs=pinned_specs, prefix=prefix,

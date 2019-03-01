@@ -7,7 +7,7 @@ from tempfile import gettempdir
 from unittest import TestCase
 
 from conda._vendor.auxlib.ish import dals
-from conda.base.constants import APP_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS
+from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import Context, context, reset_context
 from conda.common.compat import odict, text_type
 from conda.common.configuration import YamlRawParameter
@@ -18,10 +18,11 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
+from tests.test_utils import make_default_conda_config
 
 from tests.test_create import make_temp_prefix
 from os.path import join
-from shutil import rmtree
+import os
 
 try:
     from unittest.mock import patch
@@ -35,7 +36,7 @@ class DefaultConfigChannelTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        reset_context()
+        reset_context(())
         cls.platform = context.subdir
         cls.DEFAULT_URLS = ['https://repo.anaconda.com/pkgs/main/%s' % cls.platform,
                             'https://repo.anaconda.com/pkgs/main/noarch',
@@ -97,34 +98,36 @@ class DefaultConfigChannelTests(TestCase):
         assert ccc1 is ccc
 
     def test_default_channel(self):
-        dc = Channel('defaults')
-        assert dc.canonical_name == 'defaults'
-        assert dc.urls() == self.DEFAULT_URLS
-        assert dc.subdir is None
-        assert text_type(dc) == 'defaults'
+        with make_default_conda_config():
+            dc = Channel('defaults')
+            assert dc.canonical_name == 'defaults'
+            assert dc.urls() == self.DEFAULT_URLS
+            assert dc.subdir is None
+            assert text_type(dc) == 'defaults'
 
-        dc = Channel('defaults/win-32')
-        assert dc.canonical_name == 'defaults'
-        assert dc.subdir == 'win-32'
-        assert dc.urls()[0] == 'https://repo.anaconda.com/pkgs/main/win-32'
-        assert dc.urls()[1] == 'https://repo.anaconda.com/pkgs/main/noarch'
-        assert dc.urls()[2].endswith('/win-32')
+            dc = Channel('defaults/win-32')
+            assert dc.canonical_name == 'defaults'
+            assert dc.subdir == 'win-32'
+            assert dc.urls()[0] == 'https://repo.anaconda.com/pkgs/main/win-32'
+            assert dc.urls()[1] == 'https://repo.anaconda.com/pkgs/main/noarch'
+            assert dc.urls()[2].endswith('/win-32')
 
     def test_url_channel_w_platform(self):
-        channel = Channel('https://repo.anaconda.com/pkgs/free/osx-64')
+        with make_default_conda_config():
+            channel = Channel('https://repo.anaconda.com/pkgs/free/osx-64')
 
-        assert channel.scheme == "https"
-        assert channel.location == "repo.anaconda.com"
-        assert channel.platform == 'osx-64' == channel.subdir
-        assert channel.name == 'pkgs/free'
+            assert channel.scheme == "https"
+            assert channel.location == "repo.anaconda.com"
+            assert channel.platform == 'osx-64' == channel.subdir
+            assert channel.name == 'pkgs/free'
 
-        assert channel.base_url == 'https://repo.anaconda.com/pkgs/free'
-        assert channel.canonical_name == 'defaults'
-        assert channel.url() == 'https://repo.anaconda.com/pkgs/free/osx-64'
-        assert channel.urls() == [
-            'https://repo.anaconda.com/pkgs/free/osx-64',
-            'https://repo.anaconda.com/pkgs/free/noarch',
-        ]
+            assert channel.base_url == 'https://repo.anaconda.com/pkgs/free'
+            assert channel.canonical_name == 'defaults'
+            assert channel.url() == 'https://repo.anaconda.com/pkgs/free/osx-64'
+            assert channel.urls() == [
+                'https://repo.anaconda.com/pkgs/free/osx-64',
+                'https://repo.anaconda.com/pkgs/free/noarch',
+            ]
 
     def test_bare_channel_http(self):
         url = "http://conda-01"
@@ -159,13 +162,7 @@ class DefaultConfigChannelTests(TestCase):
         ]
 
     def test_channel_name_subdir_only(self):
-        prefix = make_temp_prefix()
-        condarc = join(prefix, 'condarc')
-        with open(condarc, 'a') as condarcf:
-            condarcf.write("default_channels:\n")
-            for c in list(DEFAULT_CHANNELS):
-                condarcf.write('  - ' + c + '\n')
-        with env_var('CONDARC', condarc, reset_context):
+        with make_default_conda_config():
             channel = Channel('pkgs/free/win-64')
             assert channel.scheme == "https"
             assert channel.location == "repo.anaconda.com"
@@ -179,7 +176,6 @@ class DefaultConfigChannelTests(TestCase):
                 'https://repo.anaconda.com/pkgs/free/win-64',
                 'https://repo.anaconda.com/pkgs/free/noarch',
             ]
-        rmtree(prefix, ignore_errors=True)
 
 
 class AnacondaServerChannelTests(TestCase):
@@ -192,7 +188,7 @@ class AnacondaServerChannelTests(TestCase):
           - https://conda.anaconda.org
           - http://10.2.3.4:7070/conda
         """)
-        reset_context()
+        reset_context(())
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
@@ -344,7 +340,7 @@ class CustomConfigChannelTests(TestCase):
           - http://192.168.0.15:8080/pkgs/pro
           - http://192.168.0.15:8080/pkgs/msys2
         """)
-        reset_context()
+        reset_context(())
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
