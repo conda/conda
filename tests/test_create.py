@@ -318,7 +318,7 @@ class IntegrationTests(TestCase):
 
     def test_install_python2_and_search(self):
         with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("python=2") as prefix:
+            with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
                 assert exists(join(prefix, PYTHON_BINARY))
                 assert package_is_installed(prefix, 'python=2')
 
