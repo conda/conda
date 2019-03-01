@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from conda._vendor.auxlib.collection import AttrDict
 from conda.base.constants import PREFIX_MAGIC_FILE
-from conda.base.context import context, reset_context
+from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes, register_env, \
@@ -62,7 +62,7 @@ class EnvsManagerUnitTests(TestCase):
 
     def test_prefix_cli_flag(self):
         envs_dirs = (join(self.prefix, 'first-envs-dir'), join(self.prefix, 'seconds-envs-dir'))
-        with env_var('CONDA_ENVS_DIRS', os.pathsep.join(envs_dirs), reset_context):
+        with env_var('CONDA_ENVS_DIRS', os.pathsep.join(envs_dirs), conda_tests_ctxt_mgmt_def_pol):
 
             # even if prefix doesn't exist, it can be a target prefix
             reset_context((), argparse_args=AttrDict(prefix='./blarg', func='create'))

@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from pprint import pprint
 
 from conda._vendor.auxlib.decorators import memoize
-from conda.base.context import reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import CyclicalDependencyError
 from conda.models.match_spec import MatchSpec
@@ -628,7 +628,7 @@ def test_windows_sort_orders_2():
     # This test makes sure the windows-specific parts of _toposort_prepare_graph
     # are behaving correctly.
 
-    with env_var('CONDA_ALLOW_CYCLES', 'false', reset_context):
+    with env_var('CONDA_ALLOW_CYCLES', 'false', conda_tests_ctxt_mgmt_def_pol):
         old_on_win = conda.models.prefix_graph.on_win
         conda.models.prefix_graph.on_win = False
         try:
@@ -754,7 +754,7 @@ def test_sort_without_prep():
         )
         assert nodes == order
 
-        with env_var('CONDA_ALLOW_CYCLES', 'false', reset_context):
+        with env_var('CONDA_ALLOW_CYCLES', 'false', conda_tests_ctxt_mgmt_def_pol):
             records, specs = get_windows_conda_build_record_set()
             with pytest.raises(CyclicalDependencyError):
                 graph = PrefixGraph(records, specs)

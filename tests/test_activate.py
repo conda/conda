@@ -16,7 +16,7 @@ from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
     PowerShellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
 from conda.base.constants import ROOT_ENV_NAME
-from conda.base.context import context, reset_context
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
     string_types
 from conda.common.io import captured, env_var, env_vars
@@ -85,7 +85,7 @@ class ActivatorUnitTests(TestCase):
         pass
 
     def test_PS1(self):
-        with env_var("CONDA_CHANGEPS1", "yes", reset_context):
+        with env_var("CONDA_CHANGEPS1", "yes", conda_tests_ctxt_mgmt_def_pol):
             activator = PosixActivator()
             assert activator._prompt_modifier('/dont/matter', ROOT_ENV_NAME) == '(%s) ' % ROOT_ENV_NAME
 
@@ -93,7 +93,7 @@ class ActivatorUnitTests(TestCase):
             assert instructions['export_vars']['CONDA_PROMPT_MODIFIER'] == '(%s) ' % ROOT_ENV_NAME
 
     def test_PS1_no_changeps1(self):
-        with env_var("CONDA_CHANGEPS1", "no", reset_context):
+        with env_var("CONDA_CHANGEPS1", "no", conda_tests_ctxt_mgmt_def_pol):
             activator = PosixActivator()
             assert activator._prompt_modifier('/dont/matter', 'root') == ''
 
@@ -263,7 +263,7 @@ class ActivatorUnitTests(TestCase):
                 'CONDA_PREFIX': old_prefix,
                 'PATH': old_path,
                 'CONDA_ENV_PROMPT': '({default_env})',
-            }, reset_context):
+            }, conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_activate(td)
                 new_path = activator.pathsep_join(activator._replace_prefix_in_path(old_prefix, td))
@@ -337,7 +337,7 @@ class ActivatorUnitTests(TestCase):
                 'CONDA_PREFIX': old_prefix,
                 'PATH': old_path,
                 'CONDA_ENV_PROMPT': '({default_env})',
-            }, reset_context):
+            }, conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_stack(td)
                 new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
@@ -464,7 +464,7 @@ class ActivatorUnitTests(TestCase):
                     'CONDA_PREFIX': td,
                     'CONDA_STACKED_2': 'true',
                     'PATH': starting_path,
-                }, reset_context):
+                }, conda_tests_ctxt_mgmt_def_pol):
                     activator = PosixActivator()
                     builder = activator.build_deactivate()
 
@@ -516,7 +516,7 @@ class ActivatorUnitTests(TestCase):
                 'CONDA_PREFIX_1': old_prefix,
                 'CONDA_PREFIX': td,
                 'PATH': new_path,
-            }, reset_context):
+            }, conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_deactivate()
 
