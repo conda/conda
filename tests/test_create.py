@@ -1427,7 +1427,12 @@ class IntegrationTests(TestCase):
         # 2. pip install -U six
         # 3. conda list shows new six and deletes old conda record
         # 4. probably need to purge something with the history file too?
-        with make_temp_env("six=1.9", "pip=9.0.3", "python=3.5") as prefix:
+        # Python 3.5 and PIP are not unicode-happy on Windows:
+        #   File "C:\Users\builder\AppData\Local\Temp\f903_固ō한ñђáγßê家ôç_35\lib\site-packages\pip\_vendor\urllib3\util\ssl_.py", line 313, in ssl_wrap_socket
+        #     context.load_verify_locations(ca_certs, ca_cert_dir)
+        #   TypeError: cafile should be a valid filesystem path
+        with make_temp_env("six=1.9", "pip=9.0.3", "python=3.5",
+                           use_restricted_unicode=on_win) as prefix:
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
