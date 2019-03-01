@@ -1580,7 +1580,7 @@ class IntegrationTests(TestCase):
             assert not glob(join(prefix, sp_dir, "six*"))
 
     def test_conda_pip_interop_conda_editable_package(self):
-        with make_temp_env("python=2.7", "pip", use_restricted_unicode=on_win) as prefix:
+        with make_temp_env("python=2.7", "pip", "git", use_restricted_unicode=on_win) as prefix:
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
 
