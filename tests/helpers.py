@@ -15,7 +15,7 @@ from uuid import uuid4
 
 from conda import cli
 from conda._vendor.auxlib.decorators import memoize
-from conda.base.context import context, reset_context
+from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
 from conda.core.subdir_data import SubdirData, make_feature_record
@@ -166,7 +166,7 @@ def get_index_r_1(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -192,7 +192,7 @@ def get_index_r_2(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-2/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -217,7 +217,7 @@ def get_index_r_4(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-4/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -243,7 +243,7 @@ def get_index_r_5(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-5/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", reset_context):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd

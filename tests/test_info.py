@@ -5,7 +5,7 @@ import json
 import pytest
 import sys
 
-from conda.base.context import context, reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.cli.python_api import Commands, run_command
 from conda.common.io import env_var
 from tests.helpers import assert_equals, assert_in
@@ -64,7 +64,7 @@ def test_get_info_dict(cli_install_mock):
     # This test patches conda.cli.install.install to throw an artificial exception.
     # What we're looking for here is the proper behavior for how error reports work with
     # collecting `conda info` in this situation.
-    with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
+    with env_var('CONDA_REPORT_ERRORS', 'false', conda_tests_ctxt_mgmt_def_pol):
         out, err, _ = run_command(Commands.CREATE, "-n", "blargblargblarg", "blarg", "--dry-run", "--json",
                                   use_exception_handler=True)
         assert cli_install_mock.call_count == 1

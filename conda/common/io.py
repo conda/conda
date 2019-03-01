@@ -114,35 +114,17 @@ class CaptureTarget(Enum):
 
 
 @contextmanager
-def env_var(name, value, callback=None):
-    # NOTE: will likely want to call reset_context() when using this function, so pass
-    #       it as callback
-    name, value = str(name), str(value)
-    saved_env_var = os.environ.get(name)
-    try:
-        os.environ[name] = value
-        if callback:
-            callback()
-        yield
-    finally:
-        if saved_env_var:
-            os.environ[name] = saved_env_var
-        else:
-            del os.environ[name]
-        if callback:
-            callback()
+def env_vars(var_map=None, callback=None):
 
+    if var_map is None:
+        var_map = {}
 
-@contextmanager
-def env_vars(var_map, callback=None):
-    # NOTE: will likely want to call reset_context() when using this function, so pass
-    #       it as callback
     saved_vars = {str(name): os.environ.get(name, NULL) for name in var_map}
     try:
         for name, value in iteritems(var_map):
             os.environ[str(name)] = str(value)
         if callback:
-            callback()
+            callback(True)
         yield
     finally:
         for name, value in iteritems(saved_vars):
@@ -151,7 +133,19 @@ def env_vars(var_map, callback=None):
             else:
                 os.environ[name] = value
         if callback:
-            callback()
+            callback(False)
+
+@contextmanager
+def env_var(name, value, callback=None):
+    d = dict({name: value})
+    with env_vars(d, callback=callback) as es:
+        yield es
+
+@contextmanager
+def env_unmodified(callback=None):
+    with env_vars(callback=callback) as es:
+        yield es
+
 
 
 @contextmanager

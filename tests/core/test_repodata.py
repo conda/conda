@@ -6,7 +6,7 @@ from unittest import TestCase
 
 import pytest
 
-from conda.base.context import context, reset_context
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
@@ -32,11 +32,11 @@ class GetRepodataIntegrationTests(TestCase):
 
     def test_get_index_no_platform_with_offline_cache(self):
         import conda.core.subdir_data
-        with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
+        with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', conda_tests_ctxt_mgmt_def_pol):
             with patch.object(conda.core.subdir_data, 'read_mod_and_etag') as read_mod_and_etag:
                 read_mod_and_etag.return_value = {}
                 channel_urls = ('https://repo.anaconda.com/pkgs/pro',)
-                with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
+                with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', conda_tests_ctxt_mgmt_def_pol):
                     this_platform = context.subdir
                     index = get_index(channel_urls=channel_urls, prepend=False)
                     for dist, record in iteritems(index):
@@ -50,7 +50,7 @@ class GetRepodataIntegrationTests(TestCase):
         # supplement_index_from_cache on CI?
 
         for unknown in (None, False, True):
-            with env_var('CONDA_OFFLINE', 'yes', reset_context):
+            with env_var('CONDA_OFFLINE', 'yes', conda_tests_ctxt_mgmt_def_pol):
                 with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     index2 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
                     assert all(index2.get(k) == rec for k, rec in iteritems(index))
@@ -58,7 +58,7 @@ class GetRepodataIntegrationTests(TestCase):
                     assert remote_request.call_count == 0
 
         for unknown in (False, True):
-            with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
+            with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', conda_tests_ctxt_mgmt_def_pol):
                 with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     remote_request.side_effect = Response304ContentUnchanged()
                     index3 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
