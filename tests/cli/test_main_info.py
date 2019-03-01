@@ -18,7 +18,7 @@ def test_info_root():
     assert not stderr
     assert isdir(stdout.strip())
 
-    stdout, stderr, rc = run_command(Commands.INFO, "--root --json")
+    stdout, stderr, rc = run_command(Commands.INFO, "--root", "--json")
     assert rc == 0
     assert not stderr
     json_obj = json.loads(stdout.strip())

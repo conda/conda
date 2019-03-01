@@ -7,14 +7,14 @@ from unittest import TestCase
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import context
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems
+from conda.common.io import env_vars
 from conda.core.index import check_whitelist, get_index, get_reduced_index
 from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from tests.core.test_repodata import platform_in_record
-from tests.test_utils import make_default_conda_config
 
 try:
     from unittest.mock import patch
@@ -23,15 +23,13 @@ except ImportError:
 
 log = getLogger(__name__)
 
-
 def test_check_whitelist():
-    # get_index(channel_urls=(), prepend=True, platform=None, use_local=False, use_cache=False, unknown=None, prefix=None)
     whitelist = (
         'defaults',
         'conda-forge',
         'https://beta.conda.anaconda.org/conda-test'
     )
-    with make_default_conda_config({'CONDA_WHITELIST_CHANNELS': ','.join(whitelist)}):
+    with env_vars({'CONDA_WHITELIST_CHANNELS': ','.join(whitelist)}, conda_tests_ctxt_mgmt_def_pol):
         with pytest.raises(ChannelNotAllowed):
             get_index(("conda-canary",))
 

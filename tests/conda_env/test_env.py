@@ -6,7 +6,7 @@ import unittest
 from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
-from conda.base.context import reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_load
 from conda.install import on_win
@@ -358,7 +358,7 @@ class SaveExistingEnvTestCase(unittest.TestCase):
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
                 'CONDA_PIP_INTEROP_ENABLED': 'true',
-            }, reset_context):
+            }, conda_tests_ctxt_mgmt_def_pol):
                 env_name = str(uuid4())[:8]
                 prefix = join(envs_dir, env_name)
                 python_path = join(prefix, PYTHON_BINARY)
@@ -371,7 +371,7 @@ class SaveExistingEnvTestCase(unittest.TestCase):
 
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
-            }, reset_context):
+            }, conda_tests_ctxt_mgmt_def_pol):
                 # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
                 run_command(Commands.EXPORT, env_name, out_file)
                 with open(out_file) as f:

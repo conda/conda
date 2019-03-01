@@ -19,9 +19,8 @@ import os
 from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 from random import sample
 import re
-from shlex import split
 from shutil import copyfile, rmtree
-from subprocess import check_call, CalledProcessError, check_output, Popen, PIPE
+from subprocess import check_call, check_output, Popen, PIPE
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
@@ -36,11 +35,10 @@ from conda._vendor.auxlib.entity import EntityEncoder
 from conda._vendor.auxlib.ish import dals
 from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks, \
     PREFIX_MAGIC_FILE
-from conda.base.context import Context, context, reset_context
+from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
-from conda.common.compat import PY2, iteritems, itervalues, text_type, ensure_text_type
-from conda.common.constants import CONDA_TEMP_EXTENSION
+from conda.common.compat import iteritems, text_type, ensure_text_type
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -208,7 +206,7 @@ def make_temp_package_cache():
     touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
 
     try:
-        with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
+        with env_var('CONDA_PKGS_DIRS', pkgs_dir, conda_tests_ctxt_mgmt_def_pol):
             assert context.pkgs_dirs == (pkgs_dir,)
             yield pkgs_dir
     finally:
@@ -319,7 +317,7 @@ class IntegrationTests(TestCase):
         PackageCacheData.clear()
 
     def test_install_python2_and_search(self):
-        with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', reset_context):
+        with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', conda_tests_ctxt_mgmt_def_pol):
             with make_temp_env("python=2") as prefix:
                 assert exists(join(prefix, PYTHON_BINARY))
                 assert package_is_installed(prefix, 'python=2')
@@ -602,7 +600,7 @@ class IntegrationTests(TestCase):
 
     def test_override_channels(self):
         with pytest.raises(OperationNotAllowed):
-            with env_var('CONDA_OVERRIDE_CHANNELS_ENABLED', 'no', reset_context):
+            with env_var('CONDA_OVERRIDE_CHANNELS_ENABLED', 'no', conda_tests_ctxt_mgmt_def_pol):
                 with make_temp_env("--override-channels", "python") as prefix:
                     assert prefix
 
@@ -660,7 +658,7 @@ class IntegrationTests(TestCase):
         specs = (MatchSpec("anaconda"),)
         index = get_reduced_index(None, channels, context.subdirs, specs)
         r = Resolve(index, channels=channels)
-        with env_var("CONDA_CHANNEL_PRIORITY", "strict", reset_context):
+        with env_var("CONDA_CHANNEL_PRIORITY", "strict", conda_tests_ctxt_mgmt_def_pol):
             reduced_index = r.get_reduced_index(specs)
             channel_name_groups = {
                 name: {prec.channel.name for prec in group}
@@ -843,7 +841,7 @@ class IntegrationTests(TestCase):
     @patch('conda.core.link.hardlink_supported', side_effect=lambda x, y: False)
     def test_allow_softlinks(self, hardlink_supported_mock):
         hardlink_supported_mock._result_cache.clear()
-        with env_var("CONDA_ALLOW_SOFTLINKS", "true", reset_context):
+        with env_var("CONDA_ALLOW_SOFTLINKS", "true", conda_tests_ctxt_mgmt_def_pol):
             with make_temp_env("pip") as prefix:
                 assert islink(join(prefix, get_python_site_packages_short_path(
                     get_python_version_for_prefix(prefix)), 'pip', '__init__.py'))
@@ -1031,7 +1029,7 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(clone_prefix, 'flask=0.10.1')
                 assert package_is_installed(clone_prefix, 'python')
 
-            with env_var('CONDA_DISALLOWED_PACKAGES', 'python', reset_context):
+            with env_var('CONDA_DISALLOWED_PACKAGES', 'python', conda_tests_ctxt_mgmt_def_pol):
                 with pytest.raises(DisallowedPackageError) as exc:
                     with make_temp_env('--clone', prefix, '--offline'):
                         pass
@@ -1056,7 +1054,7 @@ class IntegrationTests(TestCase):
             assert len(json_obj) >= 42
             assert 'description' in json_obj[0]
 
-            with env_var('CONDA_QUIET', 'yes', reset_context):
+            with env_var('CONDA_QUIET', 'yes', conda_tests_ctxt_mgmt_def_pol):
                 stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources")
                 assert not stderr
                 assert 'envvars' in stdout.strip()
@@ -1086,7 +1084,7 @@ class IntegrationTests(TestCase):
             assert len(json_obj) >= 42
             assert 'description' in json_obj[0]
 
-            with env_var('CONDA_QUIET', 'yes', reset_context):
+            with env_var('CONDA_QUIET', 'yes', conda_tests_ctxt_mgmt_def_pol):
                 stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources")
                 assert not stderr
                 assert 'envvars' in stdout.strip()
@@ -1875,7 +1873,7 @@ class IntegrationTests(TestCase):
         try:
             with make_temp_env() as prefix:
                 pkgs_dir = join(prefix, 'pkgs')
-                with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
+                with env_var('CONDA_PKGS_DIRS', pkgs_dir, conda_tests_ctxt_mgmt_def_pol):
                     with make_temp_channel(['flask-0.10.1']) as channel:
                         # Clear the index cache.
                         index_cache_dir = create_cache_dir()
@@ -2003,7 +2001,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
     def test_disallowed_packages(self):
-        with env_var('CONDA_DISALLOWED_PACKAGES', 'sqlite&flask', reset_context):
+        with env_var('CONDA_DISALLOWED_PACKAGES', 'sqlite&flask', conda_tests_ctxt_mgmt_def_pol):
             with make_temp_env() as prefix:
                 with pytest.raises(CondaMultiError) as exc:
                     run_command(Commands.INSTALL, prefix, 'python')
@@ -2014,8 +2012,8 @@ class IntegrationTests(TestCase):
     def test_dont_remove_conda_1(self):
         pkgs_dirs = context.pkgs_dirs
         prefix = make_temp_prefix()
-        with env_var('CONDA_ROOT_PREFIX', prefix, reset_context):
-            with env_var('CONDA_PKGS_DIRS', ','.join(pkgs_dirs), reset_context):
+        with env_var('CONDA_ROOT_PREFIX', prefix, conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_PKGS_DIRS', ','.join(pkgs_dirs), conda_tests_ctxt_mgmt_def_pol):
                 with make_temp_env(prefix=prefix):
                     _, _ = run_command(Commands.INSTALL, prefix, "conda", "conda-build")
                     assert package_is_installed(prefix, "conda")
@@ -2041,8 +2039,8 @@ class IntegrationTests(TestCase):
         # regression test for #6904
         pkgs_dirs = context.pkgs_dirs
         prefix = make_temp_prefix()
-        with env_var('CONDA_ROOT_PREFIX', prefix, reset_context):
-            with env_var('CONDA_PKGS_DIRS', ','.join(pkgs_dirs), reset_context):
+        with env_var('CONDA_ROOT_PREFIX', prefix, conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_PKGS_DIRS', ','.join(pkgs_dirs), conda_tests_ctxt_mgmt_def_pol):
                 with make_temp_env(prefix=prefix):
                     stdout, stderr = run_command(Commands.INSTALL, prefix, "conda")
                     assert package_is_installed(prefix, "conda")
@@ -2167,7 +2165,7 @@ class IntegrationTests(TestCase):
         with env_vars({
                 "CONDA_AUTO_UPDATE_CONDA": "false",
                 "CONDA_ALLOW_CONDA_DOWNGRADES": "true"
-        }, reset_context):
+        }, conda_tests_ctxt_mgmt_def_pol):
             with make_temp_env("conda=4.5.12", "python=%s" % sys.version_info[0],
                                name='_' + str(uuid4())[:8]) as prefix:  # rev 0
                 conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
@@ -2231,7 +2229,7 @@ class IntegrationTests(TestCase):
     def test_toolz_cytoolz_package_cache_regression(self):
         with make_temp_env("python=3.5") as prefix:
             pkgs_dir = join(prefix, 'pkgs')
-            with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
+            with env_var('CONDA_PKGS_DIRS', pkgs_dir, conda_tests_ctxt_mgmt_def_pol):
                 assert context.pkgs_dirs == (pkgs_dir,)
                 run_command(Commands.INSTALL, prefix, "-c", "conda-forge", "toolz", "cytoolz")
                 assert package_is_installed(prefix, 'toolz')

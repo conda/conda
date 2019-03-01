@@ -1146,13 +1146,14 @@ def stack_context(pushing, search_path=SEARCH_PATH, argparse_args=None):
 def stack_context_default(pushing, argparse_args=None):
     return stack_context(pushing, search_path=(), argparse_args=argparse_args)
 
-# This is potentially a lot faster than stack_default_context since there is no
-# large 'reset to the config as specified in the condarc search path' costs.
+
 def replace_context(pushing, search_path=SEARCH_PATH, argparse_args=None):
     return context_stack.replace(search_path, argparse_args)
 
+
 def replace_context_default(pushing, argparse_args=None):
     return context_stack.replace(search_path=(), argparse_args=argparse_args)
+
 
 # Tests that want to only declare 'I support the project-wide default for how to
 # manage stacking of contexts'. Tests that are known to be careful with context
