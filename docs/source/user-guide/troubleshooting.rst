@@ -87,7 +87,8 @@ List of known bad software that installs Intel libraries to C:\Windows\System32:
 * ASIO4ALL, by Michael Tippach
 
 If you find others, please let us know. If you're on this list and you want to
-fix things, let us know.
+fix things, let us know. In either case, the conda issue tracker at
+https://github.com/conda/conda/issues is the best way to reach us.
 
 SSL connection errors
 =====================
