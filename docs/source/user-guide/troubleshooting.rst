@@ -6,17 +6,174 @@ Troubleshooting
    :local:
    :depth: 1
 
-SSL connection errors
-=====================
+Numpy MKL library load failed
+=============================
+
+Error messages like
+
+    Intel MKL FATAL ERROR: Cannot load mkl_intel_thread.dll
+
+or
+
+    The ordinal 241 could not be located in the the dynamic link library
 
 Cause
 -----
+
+Numpy is unable to load the correct MKL or Intel OpenMP runtime libraries. This
+is almost always caused by one of two things:
+
+  1. The environment with numpy has not been activated.
+  2. Another software vendor has installed MKL or Intel OpenMP (libiomp5md.dll)
+     files into the C:\Windows\System32 folder. These files are being loaded
+     before Anaconda's and they're not compatible.
+
+Solution
+--------
+
+If you are not activating your environments, start with doing that. There's more
+info at :ref:`Activating environments <activate-env>`. If you are still stuck, you need to consider
+more drastic measures.
+
+  1. Remove any MKL-related files from C:\Windows\System32. We recommend
+     renaming them to add .bak to the filename to effectively hide them. Observe
+     if any other software breaks. Try moving the DLL files alongside the .exe of
+     the software that broke. If it works again, you can keep things in the
+     moved state - Anaconda doesn't need MKL in System32, and no other software should need it either. If
+     you identify software that is installing software here, please contact the
+     creators of that software. Inform them that their practice of installing
+     MKL to a global location is fragile and is breaking other people's software
+     and wasting a lot of time. See the list of guilty parties below.
+  2. You may try a special DLL loading mode that Anaconda builds into Python.
+     This changes the DLL search path from system32 first to system32 as another
+     entry on PATH, allowing libraries in your conda environment to be found
+     before the libraries in system32. Control of this feature is done with
+     environment variables. Only python builds beyond these builds will react to
+     these environment variables:
+
+       * Python 2.7.15 build 14
+       * Python 3.6.8 build 7
+       * Python 3.7.2 build 8
+
+     To update Python from the defaults channel::
+
+       conda update -c defaults python
+
+     .. note::
+        Anaconda has built special patches into its builds of Python to enable
+        this functionality. If you get your Python package from somewhere else
+        (e.g. conda-forge), these flags may not do anything.
+
+     Control environment variables:
+
+       * `CONDA_DLL_SEARCH_MODIFICATION_ENABLE`
+       * `CONDA_DLL_SEARCH_MODIFICATION_DEBUG`
+       * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_WINDOWS_DIRECTORY`
+       * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_CWD`
+
+     To set variables on Windows, you may use either the CLI (Anaconda prompt, for example) or a Windows GUI.
+
+       * CLI: https://superuser.com/questions/79612/setting-and-getting-windows-environment-variables-from-the-command-prompt/79614
+       * GUI: http://www.dowdandassociates.com/blog/content/howto-set-an-environment-variable-in-windows-gui/
+
+     These should be set to a value of `1` to enable them.  For example, in an anaconda prompt terminal::
+
+       set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
+
+
+List of known bad software that installs Intel libraries to C:\Windows\System32:
+
+* Amplitube, by IK Multimedia
+* ASIO4ALL, by Michael Tippach
+
+If you find others, please let us know. If you're on this list and you want to
+fix things, let us know.
+
+SSL connection errors
+=====================
+
+This is a broad umbrella of errors with many causes. Here are some we've seen.
+
+CondaHTTPError: HTTP 000 CONNECTION FAILED
+------------------------------------------
+
+If you're on Windows and you see this error, look a little further down in the
+error text. Do you see something like this?::
+
+    SSLError(MaxRetryError('HTTPSConnectionPool(host=\'repo.anaconda.com\', port=443): Max retries exceeded with url: /pkgs/r/win-32/repodata.json.bz2 (Caused by SSLError("Can\'t connect to HTTPS URL because the SSL module is not available."))'))
+
+The key part there is the last bit::
+
+    Caused by SSLError("Can\'t connect to HTTPS URL because the SSL module is not available.")
+
+Conda is having problems because it can't find the OpenSSL libraries that it needs.
+
+Cause
+~~~~~
+
+You may observe this error cropping up after a conda update. More recent
+versions of conda and more recent builds of Python are more strict about
+requiring activation of environments. We're working on better error messages for
+them, but here's the story for now. Windows relies on the PATH environment
+variable as the way to locate libraries that are not in the immediate folder,
+and also not in the C:\Windows\System32 folder. Searching for libraries in the
+PATH folders goes from left to right. If you choose to put Anaconda's folders on
+PATH, there are several of them:
+
+  * (install root)
+  * (install root)/Library/mingw-w64/bin
+  * (install root)/Library/usr/bin
+  * (install root)/Library/bin
+  * (install root)/Scripts
+  * (install root)/bin
+  * (install root)/condabin
+
+Early installers for Anaconda put these on PATH. That was ultimately fragile
+because Anaconda isn't the only software on the system. If other software had
+similarly named executables or libraries, and came earlier on PATH, Anaconda
+could break. On the flip side, Anaconda could break other software if Anaconda
+were earlier in the PATH order and shadowed any other executables or libraries.
+To make this easier, we began recommending "activation" instead of modifying
+PATH. Activation is a tool where conda sets your PATH, and also runs any custom
+package scripts which are often used to set additional environment variables
+that are necessary for software to run (e.g. JAVA_HOME). Because activation runs
+only in a local terminal session (as opposed to the permanent PATH entry), it is
+safe to put Anaconda's PATH entries first. That means that Anaconda's libraries
+get higher priority when you're running Anaconda, but Anaconda doesn't interfere
+with other software when you're not running Anaconda.
+
+Anaconda's Python interpreter included a patch for a long time that added the
+(install root)/Library/bin folder to that Python's PATH. Unfortunately, this
+interfered with reasoning about PATH at all when using that Python interpreter.
+We removed that patch in Python 3.7.0, and we regret that this has caused
+problems for people who are not activating their environments and who otherwise
+do not have the proper entries on PATH. We're experimenting with approaches that
+will allow our executables to be less dependent on PATH and more self-aware of
+their needed library load paths. For now, though, the only solutions to this
+problem are to manage PATH properly.
+
+Our humble opinion is that activation is the easiest way to ensure that things
+work. See more information on activation in :ref:`Activating environments
+<activate-env>`.
+
+Solution
+~~~~~~~~
+
+Use "Anaconda Prompt" or shells opened from Anaconda Navigator. If you use a GUI
+IDE and you see this error, ask the developers of your IDE to add activation for
+conda environments.
+
+SSL certificate errors
+----------------------
+
+Cause
+~~~~~
 
 Installing packages may produce a "connection failed" error if you do not have
 the certificates for a secure connection to the package repository.
 
 Solution
---------
+~~~~~~~~
 
 Pip can use the ``--trusted-host`` option to indicate that the URL of the
 repository is trusted::
@@ -32,7 +189,7 @@ Conda has three similar options.
        Networking Options:
          -k, --insecure        Allow conda to perform "insecure" SSL connections and
                                transfers. Equivalent to setting 'ssl_verify' to
-                               'false'.
+                               'False'.
 
 #. The configuration option ``ssl_verify`` can be set to ``False``.
 
@@ -41,8 +198,8 @@ Conda has three similar options.
        # # ssl_verify (bool, str)
        # #   aliases: verify_ssl
        # #   Conda verifies SSL certificates for HTTPS requests, just like a web
-       # #   browser. By default, SSL verification is enabled, and conda operations
-       # #   will fail if a required url's certificate cannot be verified. Setting
+       # #   browser. By default, SSL verification is enabled and conda operations
+       # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
        # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
        # #   to a directory containing certificates of trusted CA.
@@ -69,7 +226,7 @@ Conda has three similar options.
        # #   aliases: verify_ssl
        # #   Conda verifies SSL certificates for HTTPS requests, just like a web
        # #   browser. By default, SSL verification is enabled, and conda operations
-       # #   will fail if a required url's certificate cannot be verified. Setting
+       # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
        # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
        # #   to a directory containing certificates of trusted CA.
@@ -78,7 +235,7 @@ Conda has three similar options.
 
    Your network administrator can give you a certificate bundle for your
    network's firewall. Then ``ssl_verify`` can be set to the path of that
-   certificate authority (CA) bundle, and package installation operations will
+   certificate authority (CA) bundle and package installation operations will
    complete without connection errors.
 
    When using ``conda config``, the user's conda configuration file at
@@ -108,10 +265,10 @@ Solution
 Set a less restrictive ``umask`` before calling conda commands.
 Conda was intended as a user space tool, but often users need to
 use it in a global environment. One place this can go awry is
-with restrictive file permissions.  Conda creates links when you
+with restrictive file permissions. Conda creates links when you
 install files that have to be read by others on the system.
 
-To give yourself full permissions for files and directories, but
+To give yourself full permissions for files and directories but
 prevent the group and other users from having access:
 
 #. Before installing, set the ``umask`` to ``007``.
@@ -152,7 +309,7 @@ Cause
 If you are trying to fix conda problems without removing the
 current installation and you try to reinstall Miniconda or
 Anaconda to fix it, you get an error message that Miniconda
-or Anaconda is already installed, and you cannot continue.
+or Anaconda is already installed and you cannot continue.
 
 Solution
 ----------
@@ -184,7 +341,7 @@ for your operating system from the `Miniconda download page
 Conda reports that a package is installed, but it appears not to be
 ===================================================================
 
-Sometimes conda claims that a package is already installed, but
+Sometimes conda claims that a package is already installed but
 it does not appear to be, for example, a Python package that
 gives ImportError.
 
@@ -231,7 +388,7 @@ or PYTHONHOME variables. The command ``conda info -a`` displays
 the values of these environment variables.
 
 * To unset these environment variables temporarily for the
-  current Terminal session, run ``unset PYTHONPATH``.
+  current terminal session, run ``unset PYTHONPATH``.
 
 * To unset them permanently, check for lines in the files:
 
