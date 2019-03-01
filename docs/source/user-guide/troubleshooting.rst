@@ -76,6 +76,11 @@ more drastic measures.
        * CLI: https://superuser.com/questions/79612/setting-and-getting-windows-environment-variables-from-the-command-prompt/79614
        * GUI: http://www.dowdandassociates.com/blog/content/howto-set-an-environment-variable-in-windows-gui/
 
+     These should be set to a value of `1` to enable them.  For example, in an anaconda prompt terminal::
+
+       set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
+
+
 List of known bad software that installs Intel libraries to C:\Windows\System32:
 
 * Amplitube, by IK Multimedia
