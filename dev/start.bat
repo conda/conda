@@ -9,6 +9,13 @@
     @SET "pyver=%~2"
 )
 
+@ECHO unset some variables that get in the way
+set CONDA_BAT=
+set CONDA_EXE=
+set CONDA_SHLVL=
+set PYTHONPATH=
+set PYTHONHOME=
+
 @IF EXIST "dev-init.bat" @GOTO :INIT_BUILD
 @IF EXIST "%devenv%\conda-meta\history" @GOTO :ALREADY_INSTALLED
 @ECHO Downloading Miniconda%pyver%-latest-Windows-x86_64.exe as miniconda.exe
