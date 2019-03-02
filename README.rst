@@ -44,6 +44,31 @@ Conda is a part of the `Anaconda Distribution <https://repo.anaconda.com>`_.
 Use `Miniconda <https://conda.io/miniconda.html>`_ to bootstrap a minimal installation
 that only includes conda and its dependencies.
 
+If you\'re on MacOS, you can install Conda easily through Homebrew Cask. You can install through
+miniconda (minimal installation) or anaconda (bulk installation):
+
+.. code-block:: bash
+
+	# If using miniconda:
+	$ brew cask miniconda
+
+	# If using anaconda:
+	$ brew cask anaconda
+
+Then, you need to add miniconda (or anaconda) to your path by adding this line to your 
+.bash_profile script in your home directory (may need to create new file):
+
+.. code-block:: bash
+	
+	# Open .bash_profile script file:
+	$ vim ~/.bash_profile
+
+	# If using miniconda, add line to script:
+	$ export PATH=/usr/local/miniconda3/bin:"$PATH"
+
+	# If using anaconda, add line to script:
+	$ export PATH=/usr/local/anaconda3/bin:"$PATH"
+
 
 Getting Started
 ---------------
