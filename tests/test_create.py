@@ -671,20 +671,24 @@ class IntegrationTests(TestCase):
 
     def test_list_with_pip_no_binary(self):
         from conda.exports import rm_rf as _rm_rf
+        # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
+        # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
+        # We elect to test the more complex of the two options.
         with make_temp_env("python=3.7", "pip") as prefix:
-            check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==0.10.1",
-                       cwd=prefix, shell=True)
-            PrefixData._cache_.clear()
-            stdout, stderr = run_command(Commands.LIST, prefix)
-            stdout_lines = stdout.split('\n')
-            assert any(line.endswith("pypi") for line in stdout_lines
-                       if line.lower().startswith("flask"))
+            with env_var("PYTHONUTF8", "1", conda_tests_ctxt_mgmt_def_pol):
+                check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==0.10.1",
+                           cwd=prefix, shell=True)
+                PrefixData._cache_.clear()
+                stdout, stderr = run_command(Commands.LIST, prefix)
+                stdout_lines = stdout.split('\n')
+                assert any(line.endswith("pypi") for line in stdout_lines
+                           if line.lower().startswith("flask"))
 
-            # regression test for #5847
-            #   when using rm_rf on a directory
-            assert prefix in PrefixData._cache_
-            _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")))
-            assert prefix not in PrefixData._cache_
+                # regression test for #5847
+                #   when using rm_rf on a directory
+                assert prefix in PrefixData._cache_
+                _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")))
+                assert prefix not in PrefixData._cache_
 
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
