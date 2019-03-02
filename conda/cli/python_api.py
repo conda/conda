@@ -80,8 +80,8 @@ def run_command(command, *arguments, **kwargs):
     p = generate_parser()
 
     # I am not convinced we want to do any list, map, escape_for_winpath stuff here
-    arguments = [command] + list(map(win_path_double_escape, arguments))
-    from subprocess import list2cmdline
+    arguments = list(arguments)
+    arguments.insert(0, command)
 
     args = p.parse_args(arguments)
     args.yes = True  # always skip user confirmation, force setting context.always_yes
@@ -89,6 +89,7 @@ def run_command(command, *arguments, **kwargs):
         search_path=configuration_search_path,
         argparse_args=args,
     )
+    from subprocess import list2cmdline
     log.debug("executing command >>>  conda %s", list2cmdline(arguments))
     try:
         with argv(['python_api'] + arguments), captured(stdout, stderr) as c:
