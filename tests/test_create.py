@@ -159,9 +159,8 @@ def run_command(command, prefix, *arguments, **kwargs):
         arguments.extend(["-y", "-q"])
 
     # I am not convinced we want to do any list, map, escape_for_winpath stuff here
-    arguments = [command] + list(map(escape_for_winpath, arguments))
     from subprocess import list2cmdline
-
+    arguments.insert(0, command)
     workdir = kwargs.get("workdir")
 
     args = p.parse_args(arguments)
@@ -573,7 +572,7 @@ class IntegrationTests(TestCase):
             assert not isfile(join(prefix, pyc_file))
 
     def test_noarch_python_package_reinstall_on_pyver_change(self):
-        with make_temp_env("-c", "conda-test", "itsdangerous", "python=3") as prefix:
+        with make_temp_env("-c", "conda-test", "itsdangerous", "python=3", use_restricted_unicode=on_win) as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             assert py_ver.startswith('3')
             sp_dir = get_python_site_packages_short_path(py_ver)
@@ -672,7 +671,7 @@ class IntegrationTests(TestCase):
 
     def test_list_with_pip_no_binary(self):
         from conda.exports import rm_rf as _rm_rf
-        with make_temp_env("python=3.5", "pip") as prefix:
+        with make_temp_env("python=3.7", "pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==0.10.1",
                        cwd=prefix, shell=True)
             PrefixData._cache_.clear()
@@ -689,7 +688,7 @@ class IntegrationTests(TestCase):
 
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
-        with make_temp_env("python=3.6", "pip") as prefix:
+        with make_temp_env("python=3.7", "pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
                        cwd=prefix, shell=True)
             PrefixData._cache_.clear()
@@ -1987,11 +1986,11 @@ class IntegrationTests(TestCase):
             assert isdir(prefix)
             assert isfile(os.path.join(prefix, 'tempfile.txt'))
             with pytest.raises(DirectoryNotACondaEnvironmentError):
-                run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
+                run_command(Commands.INSTALL, prefix, "python=3.7.2", "--mkdir")
 
             run_command(Commands.CREATE, prefix)
-            run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
-            assert package_is_installed(prefix, "python=3.5.2")
+            run_command(Commands.INSTALL, prefix, "python=3.7.2", "--mkdir")
+            assert package_is_installed(prefix, "python=3.7.2")
 
             rm_rf(prefix, clean_empty_parents=True)
             assert path_is_clean(prefix)
