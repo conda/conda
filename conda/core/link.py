@@ -238,7 +238,7 @@ class UnlinkLinkTransaction(object):
         assert not context.dry_run
 
         try:
-            self._execute(self.prefix_action_groups)
+            self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 
@@ -524,13 +524,13 @@ class UnlinkLinkTransaction(object):
         return exceptions
 
     @classmethod
-    def _execute(cls, prefix_action_groups):
-        groups = list(interleave(itervalues(prefix_action_groups)))
+    def _execute(cls, all_action_groups):
         # unlink unlink_action_groups and unregister_action_groups
-        unlink_actions = tuple(groups[0] + groups[1])
+        unlink_actions = tuple(
+            group for group in all_action_groups if group.type in ("unlink", "unregister"))
         # link unlink_action_groups and register_action_groups
-        link_actions = tuple(groups[2] + groups[3])
-        all_action_groups = tuple(concat(groups))
+        link_actions = tuple(
+            group for group in all_action_groups if group.type in ("link", "register"))
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             try:
                 with Spinner("Executing transaction", not context.verbosity and not context.quiet,
