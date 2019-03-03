@@ -753,11 +753,11 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix2, 'flask')
 
     def test_tarball_install_and_bad_metadata(self):
-        with make_temp_env("python", "flask=0.10.1", "--json") as prefix:
-            assert package_is_installed(prefix, 'flask==0.10.1')
+        with make_temp_env("python=3.7.2", "flask=1.0.2", "--json") as prefix:
+            assert package_is_installed(prefix, 'flask==1.0.2')
             flask_data = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask==0.10.1')
+            assert not package_is_installed(prefix, 'flask==1.0.2')
             assert package_is_installed(prefix, 'python')
 
             flask_fname = flask_data['fn']
@@ -767,32 +767,32 @@ class IntegrationTests(TestCase):
 
             with pytest.raises(DryRunExit):
                 run_command(Commands.INSTALL, prefix, tar_old_path, "--dry-run")
-                assert not package_is_installed(prefix, 'flask=0.*')
+                assert not package_is_installed(prefix, 'flask=1.*')
 
             # regression test for #2886 (part 1 of 2)
             # install tarball from package cache, default channel
             run_command(Commands.INSTALL, prefix, tar_old_path)
-            assert package_is_installed(prefix, 'flask=0.*')
+            assert package_is_installed(prefix, 'flask=1.*')
 
             # regression test for #2626
             # install tarball with full path, outside channel
             tar_new_path = join(prefix, flask_fname)
             copyfile(tar_old_path, tar_new_path)
             run_command(Commands.INSTALL, prefix, tar_new_path)
-            assert package_is_installed(prefix, 'flask=0')
+            assert package_is_installed(prefix, 'flask=1')
 
             # regression test for #2626
             # install tarball with relative path, outside channel
             run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask=0.10.1')
+            assert not package_is_installed(prefix, 'flask=1.0.2')
             tar_new_path = relpath(tar_new_path)
             run_command(Commands.INSTALL, prefix, tar_new_path)
-            assert package_is_installed(prefix, 'flask=0')
+            assert package_is_installed(prefix, 'flask=1')
 
             # regression test for #2886 (part 2 of 2)
             # install tarball from package cache, local channel
             run_command(Commands.REMOVE, prefix, 'flask', '--json')
-            assert not package_is_installed(prefix, 'flask=0')
+            assert not package_is_installed(prefix, 'flask=1')
             run_command(Commands.INSTALL, prefix, tar_old_path)
             # The last install was from the `local::` channel
             assert package_is_installed(prefix, 'flask')
