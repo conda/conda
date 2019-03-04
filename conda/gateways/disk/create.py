@@ -175,6 +175,11 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
         if progress_update_callback:
             fileobj = ProgressFileWrapper(fileobj, progress_update_callback)
         with tarfile.open(fileobj=fileobj) as tar_file:
+            for member in tar_file.getmembers():
+                if (os.path.isabs(member.name) or
+                        not os.path.realpath(member.name).startswith(os.getcwd())):
+                    sys.exit("tarball {} contains unsafe path: {}.  Erroring out."
+                             .format(tarball_full_path, member.name))
             try:
                 tar_file.extractall(path=destination_directory)
             except EnvironmentError as e:
