@@ -2129,18 +2129,28 @@ class IntegrationTests(TestCase):
             rm_rf(prefix)
 
     def test_init_dev_and_NoBaseEnvironmentError(self):
-        # this specific python version is named so that the test suite uses an
+        # This specific python version is named so that the test suite uses an
         # old python build that still hacks 'Library/bin' into PATH. Really, we
         # should run all of these conda commands through run_command(RUN) which
         # would wrap them with activation.
-        with make_temp_env("conda=4.5.0", "python=3.6.7", name='_' + str(uuid4())[:8]) as prefix:
+
+        # We pass --copy because otherwise the call to conda init --dev will overwrite
+        # the following files in the package cache:
+        # Library/bin/conda.bat
+        # Scripts/activate.bat
+        # Scripts/conda-env-script.py
+        # Scripts/conda-script.py
+        # .. and from then onwards, that conda package is corrupt in the cache (oh, and
+        # this test fails).
+        with make_temp_env("conda=4.5.13", "python=3.6.7", "git", "--copy", name='_' + str(uuid4())[:8]) as prefix:
             conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
             result = subprocess_call_with_clean_env("%s --version" % (conda_exe), path=prefix)
             assert result.rc == 0
             assert not result.stderr
             assert result.stdout.startswith("conda ")
             conda_version = result.stdout.strip()[6:]
-            assert conda_version == "4.5.0"
+            assert conda_version == "4.5.13"
+
             args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
 
             result, stderr = run_command(Commands.RUN, prefix,
