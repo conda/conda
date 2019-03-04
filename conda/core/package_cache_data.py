@@ -432,7 +432,7 @@ class UrlsData(object):
     def add_url(self, url):
         with open(self.urls_txt_path, 'ab') as fh:
             linefeed = u'\r\n' if platform == 'win32' else u'\n'
-            fh.write(bytes(url + linefeed, encoding='utf-8'))
+            fh.write(bytes(url + linefeed).encode('utf-8'))
         self._urls_data.insert(0, url)
 
     @memoizemethod
