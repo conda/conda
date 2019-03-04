@@ -11,7 +11,6 @@ from .main import generate_parser
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
 from ..common.io import CaptureTarget, argv, captured
-from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
 
@@ -46,8 +45,8 @@ def run_command(command, *arguments, **kwargs):
         command: one of the Commands.X
         *arguments: instructions you would normally pass to the conda comamnd on the command line
                     see below for examples. Be very careful to delimit arguements exactly as you
-                    want them to be delivered. No 'combine then split at spaces' or other information
-                    destroying processing gets performed on the arguments.
+                    want them to be delivered. No 'combine then split at spaces' or other
+                    information destroying processing gets performed on the arguments.
         **kwargs: special instructions for programmatic overrides
           use_exception_handler: defaults to False.  False will let the code calling
               `run_command` handle all exceptions.  True won't raise when an exception
@@ -66,7 +65,8 @@ def run_command(command, *arguments, **kwargs):
         stdout, stderr are either strings, None or the corresponding file-like function argument.
 
     Examples:
-        >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask", use_exception_handler=True)
+        >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask",
+                        use_exception_handler=True)
         >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")
         >>  run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
 

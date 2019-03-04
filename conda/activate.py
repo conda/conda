@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 from glob import glob
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normpath
+from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
 import re
 import sys
 from tempfile import NamedTemporaryFile
@@ -725,7 +725,6 @@ class CmdExeActivator(_Activator):
     def _hook_preamble(self):
         if on_win:
             return '@chcp 65001'
-
 
 
 class FishActivator(_Activator):

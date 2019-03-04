@@ -1107,20 +1107,20 @@ class ContextStack(object):
         self._stack_idx+=1
         old_len = len(self._stack)
         if self._stack_idx >= old_len:
-            self._stack.extend([ContextStackObject() for _ in range(old_old)])
+            self._stack.extend([ContextStackObject() for _ in range(old_len)])
         self._stack[self._stack_idx].set_value(search_path, argparse_args)
         self.apply()
 
     def apply(self):
-        if (self._last_search_path != self._stack[self._stack_idx].search_path or
-            self._last_argparse_args != self._stack[self._stack_idx].argparse_args):
+        if self._last_search_path != self._stack[self._stack_idx].search_path or \
+           self._last_argparse_args != self._stack[self._stack_idx].argparse_args:
             # Expensive:
             self._stack[self._stack_idx].apply()
             self._last_search_path = self._stack[self._stack_idx].search_path
             self._last_argparse_args = self._stack[self._stack_idx].argparse_args
 
     def pop(self):
-        self._stack_idx-=1
+        self._stack_idx -= 1
         self._stack[self._stack_idx].apply()
 
     def replace(self, search_path, argparse_args):
