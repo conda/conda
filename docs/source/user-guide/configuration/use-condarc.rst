@@ -72,7 +72,7 @@ EXAMPLE: To set the auto_update_conda option to ``False``, run::
   conda config --set auto_update_conda False
 
 For a complete list of conda config commands, see the
-:doc:`command reference <../../commands/conda-config>`. The same list
+:doc:`command reference <../../commands/config>`. The same list
 is available at the terminal or Anaconda Prompt by running
 ``conda config --help``.
 
