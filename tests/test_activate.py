@@ -730,7 +730,6 @@ class ShellWrapperUnitTests(TestCase):
         @SET "CONDA_PYTHON_EXE=%(sys_executable)s"
         @SET "CONDA_SHLVL=1"
         @SET "PATH=%(new_path)s"
-        @SET "PYTHONIOENCODING=%(PYTHONIOENCODING)s"
         @CALL "%(activate1)s"
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
@@ -738,7 +737,6 @@ class ShellWrapperUnitTests(TestCase):
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat')),
-            'PYTHONIOENCODING': PYTHONIOENCODING,
             'conda_exe': activator.path_conversion(context.conda_exe),
         }
 
@@ -1568,7 +1566,7 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
 
             shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
-            shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=60)
             shell.assert_env_var('errorlevel', '0', True)
             # TODO: assert that reactivate worked correctly
 

@@ -2140,16 +2140,18 @@ class IntegrationTests(TestCase):
         # Scripts/activate.bat
         # Scripts/conda-env-script.py
         # Scripts/conda-script.py
-        # .. and from then onwards, that conda package is corrupt in the cache (oh, and
-        # this test fails).
-        with make_temp_env("conda=4.5.13", "python=3.6.7", "git", "--copy", name='_' + str(uuid4())[:8]) as prefix:
+        # .. and from then onwards, that conda package is corrupt in the cache.
+        # Note: We were overwriting some *old* conda package with files from this latest
+        #       source code. Urgh.
+        conda_v = "4.5.13"
+        with make_temp_env("conda="+conda_v, "python=3.6.7", "git", "--copy", name='_' + str(uuid4())[:8]) as prefix:
             conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
             result = subprocess_call_with_clean_env("%s --version" % (conda_exe), path=prefix)
             assert result.rc == 0
             assert not result.stderr
             assert result.stdout.startswith("conda ")
             conda_version = result.stdout.strip()[6:]
-            assert conda_version == "4.5.13"
+            assert conda_version == conda_v
 
             args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
 
