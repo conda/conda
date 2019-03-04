@@ -21,6 +21,3 @@
 @DEL /F /Q "%_TEMP_SCRIPT_PATH%"
 @SET _TEMP_SCRIPT_PATH=
 @SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
-@REM We do not unconditionally remove the first two characters as PYTHONIOENCODING could
-@REM be set to just a number (old conda, other tooling).
-@IF DEFINED PYTHONIOENCODING chcp %PYTHONIOENCODING:cp=% > NUL
