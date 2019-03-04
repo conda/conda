@@ -9,7 +9,7 @@
     @SET "pyver=%~2"
 )
 
-@ECHO unset some variables that get in the way
+@REM Unset some variables that get in the way
 set CONDA_BAT=
 set CONDA_EXE=
 set CONDA_SHLVL=
@@ -29,6 +29,7 @@ conda install -y defaults::git
 :ALREADY_INSTALLED
 call %devenv%\Scripts\activate.bat
 
+@REM Unset some variables that get in the way
 set CONDA_BAT=
 set CONDA_EXE=
 set CONDA_SHLVL=

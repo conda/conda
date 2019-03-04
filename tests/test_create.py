@@ -89,7 +89,7 @@ def subprocess_call_with_clean_env(command, path=None, stdin=None, raise_on_erro
     # Any of these env vars are likely to mess the whole thing up.
     # This has been seen to be the case with PYTHONPATH.
     env = os.environ.copy()
-    for key in ('PYTHONPATH', 'CONDA_ROOT', 'CONDA_PROMPT_MODIFIER',
+    for key in ('PYTHONPATH', 'PYTHONHOME', 'CONDA_ROOT', 'CONDA_PROMPT_MODIFIER',
                 'CONDA_PYTHON_EXE', 'CONDA_EXE', 'CONDA_DEFAULT_ENV'):
         if key in env:
             del env[key]
