@@ -980,7 +980,10 @@ def print_conda_exception(exc_val, exc_tb=None):
         if rc == 0:
             stderrlog.error("\n%s\n", exc_val)
         else:
-            stderrlog.error("\n%r\n", exc_val)
+            u_exc_val = unicode(exc_val)
+            r_exc_val = repr(exc_val)
+            # s_exc_val = str(exc_val)
+            stderrlog.error("\n%r\n", unicode(exc_val))
 
 
 def _format_exc(exc_val=None, exc_tb=None):

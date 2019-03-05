@@ -776,7 +776,8 @@ class UnlinkLinkTransaction(object):
                                                           download_urls, stp.remove_specs,
                                                           stp.update_specs)
             change_report_str = self._change_report_str(change_report)
-            print(change_report_str)
+            #import pdb; pdb.set_trace()
+            print(change_report_str.encode('utf-8'))
 
         return legacy_action_groups
 

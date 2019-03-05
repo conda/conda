@@ -237,3 +237,5 @@ def ensure_fs_path_encoding(value):
         return value.decode(FILESYSTEM_ENCODING)
     except AttributeError:
         return value
+    except UnicodeEncodeError:
+        return value
