@@ -186,7 +186,11 @@ class RawParameter(object):
     def __init__(self, source, key, raw_value):
         self.source = source
         self.key = key
-        self._raw_value = raw_value
+        try:
+#            import pdb; pdb.set_trace()
+            self._raw_value = unicode(raw_value.decode('utf-8'))
+        except:
+            self._raw_value = raw_value
 
     def __repr__(self):
         return text_type(vars(self))
