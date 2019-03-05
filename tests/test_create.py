@@ -54,7 +54,7 @@ from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllow
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
     DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError
 from conda.gateways.anaconda_client import read_binstar_tokens
-from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.create import mkdir_p, extract_tarball
 from conda.gateways.disk.delete import rm_rf, path_is_clean
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
@@ -2506,3 +2506,12 @@ class PrivateEnvIntegrationTests(TestCase):
         assert package_is_installed(self.prefix, "spiffy-test-app=2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
+
+
+@pytest.mark.integration
+def test_tar_traversal_errors_out():
+    # test tar traversal exploits: https://github.com/jwilk/traversal-archives
+    tar_folder = join(dirname(__file__), 'data', 'tar_traversal')
+    for fn in ('absolute1.tar', 'absolute2.tar', 'relative0.tar', 'relative2.tar'):
+        with pytest.raises(SystemExit):
+            extract_tarball(join(tar_folder, fn))
