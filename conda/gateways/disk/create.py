@@ -27,7 +27,7 @@ from ...common.compat import ensure_binary, on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import (BasicClobberError, CaseInsensitiveFileSystemError, CondaOSError,
-                           maybe_raise)
+                           maybe_raise, CondaFileIOError)
 from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
@@ -175,11 +175,12 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
         if progress_update_callback:
             fileobj = ProgressFileWrapper(fileobj, progress_update_callback)
         with tarfile.open(fileobj=fileobj) as tar_file:
-            for member in tar_file.getmembers():
-                if (os.path.isabs(member.name) or
-                        not os.path.realpath(member.name).startswith(os.getcwd())):
-                    sys.exit("tarball {} contains unsafe path: {}.  Erroring out."
-                             .format(tarball_full_path, member.name))
+            if context.safety_checks:
+                for member in tar_file.getmembers():
+                    if (os.path.isabs(member.name) or
+                            not os.path.realpath(member.name).startswith(os.getcwd())):
+                        raise CondaFileIOError(tarball_full_path,
+                                               "contains unsafe path: {}".format(member.name))
             try:
                 tar_file.extractall(path=destination_directory)
             except EnvironmentError as e:

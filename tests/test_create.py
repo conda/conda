@@ -52,7 +52,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError
+    DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError, CondaFileIOError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p, extract_tarball
 from conda.gateways.disk.delete import rm_rf, path_is_clean
@@ -2513,5 +2513,5 @@ def test_tar_traversal_errors_out():
     # test tar traversal exploits: https://github.com/jwilk/traversal-archives
     tar_folder = join(dirname(__file__), 'data', 'tar_traversal')
     for fn in ('absolute1.tar', 'absolute2.tar', 'relative0.tar', 'relative2.tar'):
-        with pytest.raises(SystemExit):
+        with pytest.raises(CondaFileIOError):
             extract_tarball(join(tar_folder, fn))
