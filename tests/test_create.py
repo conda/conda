@@ -1025,7 +1025,7 @@ class IntegrationTests(TestCase):
                 stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources --json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
-                assert json_obj['envvars'] == {'quiet': True}
+                assert "quiet" in json_obj['envvars'] and json_obj['envvars']["quiet"] == True
                 assert json_obj['cmd_line'] == {'json': True}
 
             run_command(Commands.CONFIG, prefix, "--set changeps1 false")
