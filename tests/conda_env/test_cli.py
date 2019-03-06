@@ -1,12 +1,11 @@
 import json
 import os
-from os.path import join
-from shlex import split
 import tempfile
 import unittest
 
 import pytest
 
+from conda._vendor.auxlib.compat import shlex_split_unicode
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.conda_argparse import do_call
@@ -96,7 +95,7 @@ def run_env_command(command, prefix, *arguments):
         command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
     else:
         command_line = " --help "
-    args = p.parse_args(split(command_line))
+    args = p.parse_args(shlex_split_unicode(command_line))
     context._set_argparse_args(args)
 
     with captured() as c:

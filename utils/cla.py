@@ -63,11 +63,11 @@ for git_id in missing_gid_ids:
     print("ERROR: git id missing:", git_id)
 
 
-print()
+print('')
 print("missing signatures", len(missing_signatures_stats))
 print("total commits", sum(x[0] for x in missing_signatures_stats.values()))
 print("total additions", sum(x[1] for x in missing_signatures_stats.values()))
-print()
+print('')
 
 for git_id in sorted(missing_signatures_stats, key=lambda x: (missing_signatures_stats[x][0], missing_signatures_stats[x][1]), reverse=True):
     print("\n===============================================================")

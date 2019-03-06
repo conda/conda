@@ -56,7 +56,7 @@ class CondaError(Exception):
 
     def __str__(self):
         try:
-            return text_type(self.message % self._kwargs)
+            return (self.message % self._kwargs).encode('utf-8')
         except Exception:
             debug_message = "\n".join((
                 "class: " + self.__class__.__name__,
@@ -93,7 +93,7 @@ class CondaMultiError(CondaError):
                          for e in self.errors) + '\n'
 
     def __str__(self):
-        return '\n'.join(text_type(e) for e in self.errors) + '\n'
+        return str('\n').join(str(e) for e in self.errors) + str('\n')
 
     def dump_map(self):
         return dict(exception_type=text_type(type(self)),

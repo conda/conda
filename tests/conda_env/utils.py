@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from contextlib import contextmanager
 from tempfile import mkdtemp
-from shlex import split
+from conda._vendor.auxlib.compat import shlex_split_unicode
 
 from conda.gateways.disk.delete import rm_rf
 
@@ -45,5 +45,5 @@ def run_command(command, env_name, *arguments):
     arguments = list(map(escape_for_winpath, arguments))
     command_line = "{0} -n {1} -f {2}".format(command, env_name, " ".join(arguments))
 
-    args = p.parse_args(split(command_line))
+    args = p.parse_args(shlex_split_unicode(command_line))
     do_call_conda_env(args, p)

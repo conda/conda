@@ -544,7 +544,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     if paths is None:
         return None
     from subprocess import CalledProcessError, PIPE, Popen
-    from shlex import split
+    from conda._vendor.auxlib.compat import shlex_split_unicode
     command = 'cygpath --path -f -'
 
     single_path = isinstance(paths, string_types)
@@ -554,7 +554,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
         joined = joined.encode('utf-8')
 
     try:
-        p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        p = Popen(shlex_split_unicode(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
     except EnvironmentError as e:
         if e.errno != ENOENT:
             raise

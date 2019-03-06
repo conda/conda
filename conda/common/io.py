@@ -119,11 +119,10 @@ def env_vars(var_map=None, callback=None):
     if var_map is None:
         var_map = {}
 
-    saved_vars = {str(name): str(os.environ.get(str(name), NULL)) for name in var_map}
+    saved_vars = {name: os.environ.get(name, NULL) for name in var_map}
     try:
         for name, value in iteritems(var_map):
-            # import pdb; pdb.set_trace()
-            os.environ[str(name)] = bytes(value.encode('utf-8'))
+            os.environ[str(name)] = value.encode('utf-8')
         if callback:
             callback(True)
         yield
@@ -138,8 +137,10 @@ def env_vars(var_map=None, callback=None):
 
 @contextmanager
 def env_var(name, value, callback=None):
-    from conda.compat import ensure_fs_path_encoding
-    d = dict({name: ensure_fs_path_encoding(value)})
+# Maybe, but in env_vars, not here:
+#    from conda.compat import ensure_fs_path_encoding
+#    d = dict({name: ensure_fs_path_encoding(value)})
+    d = dict({name: value})
     with env_vars(d, callback=callback) as es:
         yield es
 

@@ -18,12 +18,12 @@ from .delete import rm_rf, path_is_clean
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
-from ..subprocess import subprocess_call
+from ..subprocess import subprocess_call_with_clean_env
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
-from ...common.compat import ensure_binary, on_win
+from ...common.compat import ensure_binary, ensure_text_type, on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import (BasicClobberError, CaseInsensitiveFileSystemError, CondaOSError,
@@ -83,15 +83,10 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
     }
 
     if python_full_path is not None:
-        shebang = '#!%s\n' % python_full_path
-        if hasattr(shebang, 'encode'):
-            shebang = shebang.encode()
+        shebang = ensure_text_type('#!%s\n' % python_full_path)
 
         from ...core.portability import replace_long_shebang  # TODO: must be in wrong spot
         shebang = replace_long_shebang(FileMode.text, shebang)
-
-        if hasattr(shebang, 'decode'):
-            shebang = shebang.decode()
     else:
         shebang = None
 
@@ -372,9 +367,9 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, pr
         #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
         if int(py_ver[0]) >= 3 and int(py_ver.split('.')[1]) > 5:
             command.extend(["-j", "0"])
-        command = '"%s" ' % python_exe_full_path + " ".join(command)
+        command.insert(0, python_exe_full_path)
         log.trace(command)
-        result = subprocess_call(command, raise_on_error=False, path=prefix)
+        result = subprocess_call_with_clean_env(command, raise_on_error=False, path=prefix)
     finally:
         os.remove(filename)
 
