@@ -29,6 +29,8 @@ from .._vendor.auxlib.logz import NullHandler
 from .._vendor.auxlib.type_coercion import boolify
 from .._vendor.tqdm import tqdm
 
+from ..common.compat import ensure_text_type
+
 log = getLogger(__name__)
 
 
@@ -122,7 +124,7 @@ def env_vars(var_map=None, callback=None):
     saved_vars = {name: os.environ.get(name, NULL) for name in var_map}
     try:
         for name, value in iteritems(var_map):
-            os.environ[str(name)] = value.encode('utf-8')
+            os.environ[ensure_text_type(name)] = ensure_text_type(value)
         if callback:
             callback(True)
         yield
@@ -224,7 +226,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
 @contextmanager
 def argv(args_list):
     saved_args = sys.argv
-    sys.argv = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg) for arg in args_list]
+    sys.argv = args_list
     try:
         yield
     finally:

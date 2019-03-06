@@ -163,7 +163,8 @@ def run_command(command, prefix, *arguments, **kwargs):
     cap_args = tuple() if not kwargs.get("no_capture") else (None, None)
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % list2cmdline(arguments), file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
-        with argv(['python_api'] + arguments), captured(*cap_args) as c:
+        arguments_bytes = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg) for arg in arguments]
+        with argv(['python_api'] + arguments_bytes), captured(*cap_args) as c:
             with temp_chdir(workdir):
                 if use_exception_handler:
                     conda_exception_handler(do_call, args, p)
