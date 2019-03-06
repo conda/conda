@@ -25,6 +25,6 @@ def execute(args, parser):
     stdout, stderr = process.communicate()
     if process.returncode != 0:
         log = getLogger(__name__)
-        log.error("Subprocess for 'conda run' command failed.  Stderr was:\n{}".format(stderr))
+        log.error("Subprocess for 'conda run {}' command failed.  Stderr was:\n{}".format(call, stderr))
     if script_caller is not None:
         rm_rf(script_caller)

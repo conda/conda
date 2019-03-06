@@ -224,7 +224,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
 @contextmanager
 def argv(args_list):
     saved_args = sys.argv
-    sys.argv = args_list
+    sys.argv = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg) for arg in args_list]
     try:
         yield
     finally:
