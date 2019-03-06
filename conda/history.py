@@ -324,7 +324,7 @@ class History(object):
             print('%s  (rev %d)' % (date, i))
             for line in pretty_content(content):
                 print('    %s' % line)
-            print()
+            print('')
 
     def object_log(self):
         result = []

@@ -75,7 +75,7 @@ from logging import getLogger
 from os import getenv, listdir, remove
 from os.path import abspath, dirname, expanduser, isdir, isfile, join
 from re import compile
-from shlex import split
+from conda._vendor.auxlib.compat import shlex_split_unicode
 from subprocess import CalledProcessError, PIPE, Popen
 import sys
 
@@ -89,7 +89,7 @@ GIT_DESCRIBE_REGEX = compile(r"(?:[_-a-zA-Z]*)"
 
 def call(command, path=None, raise_on_error=True):
     path = sys.prefix if path is None else abspath(path)
-    p = Popen(split(command), cwd=path, stdout=PIPE, stderr=PIPE)
+    p = Popen(shlex_split_unicode(command), cwd=path, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
     log.debug("{0} $  {1}\n"

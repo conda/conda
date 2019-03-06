@@ -12,10 +12,7 @@ from collections import OrderedDict
 
 from concurrent.futures import ThreadPoolExecutor
 
-try:
-    from shlex import quote
-except ImportError:
-    from pipes import quote
+from pipes import quote
 
 import sys
 import json

@@ -55,6 +55,15 @@ def test_text_translations():
 
 # Some stuff I was playing with, env_unmodified(conda_tests_ctxt_mgmt_def_pol)
 # is what I ended up with instead.
+#
+# I do maintain however, that all of:
+# env_{var,vars,unmodified} and make_temp_env must be combined into one function
+#
+# .. because as things stand, they are frequently nested but they can and do
+# conflict with each other. For example make_temp_env calls reset_context()
+# which will break our ContextStack (which is currently unused, but will be
+# later I hope).
+
 # @contextmanager
 # def make_default_conda_config(env=dict({})):
 #     prefix = make_temp_prefix()

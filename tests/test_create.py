@@ -56,7 +56,7 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf, path_is_clean
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
-from conda.gateways.subprocess import subprocess_call
+from conda.gateways.subprocess import subprocess_call_with_clean_env
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.models.version import VersionOrder
@@ -77,23 +77,17 @@ PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
 UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
+
+# We basically do not work at all with Unicode on Python 2 still!
+if sys.version_info[0] == 2:
+    UNICODE_CHARACTERS = UNICODE_CHARACTERS_RESTRICTED
+
 # When testing for bugs, you may want to change this to a _,
 # for example to see if a bug is related to spaces in prefixes.
 SPACER_CHARACTER = '_'
 
 def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
-
-
-def subprocess_call_with_clean_env(command, path=None, stdin=None, raise_on_error=True):
-    # Any of these env vars are likely to mess the whole thing up.
-    # This has been seen to be the case with PYTHONPATH.
-    env = os.environ.copy()
-    for key in ('PYTHONPATH', 'PYTHONHOME', 'CONDA_ROOT', 'CONDA_PROMPT_MODIFIER',
-                'CONDA_PYTHON_EXE', 'CONDA_EXE', 'CONDA_DEFAULT_ENV'):
-        if key in env:
-            del env[key]
-    return subprocess_call(command, env=env, path=path, stdin=stdin, raise_on_error=raise_on_error)
 
 
 def make_temp_prefix(name=None, use_restricted_unicode=False):
@@ -176,7 +170,7 @@ def run_command(command, prefix, *arguments, **kwargs):
                 else:
                     do_call(args, p)
     print(c.stderr, file=sys.stderr)
-    print(c.stdout, file=sys.stderr)
+    print(c.stdout, file=sys.stderr)  # Really? not sys.stdout?
     if command is Commands.CONFIG:
         reload_config(prefix)
     return c.stdout, c.stderr
@@ -191,6 +185,9 @@ def make_temp_env(*packages, **kwargs):
     with disable_logger('fetch'), disable_logger('dotupdate'):
         try:
             # try to clear any config that's been set by other tests
+            # CAUTION :: This does not partake in the context stack management code
+            #            of env_{var,vars,unmodified} and, when used in conjunction
+            #            with that code, this *must* be called first.
             reset_context([os.path.join(prefix+os.sep, 'condarc')])
             run_command(Commands.CREATE, prefix, *packages, **kwargs)
             yield prefix
@@ -316,8 +313,8 @@ class IntegrationTests(TestCase):
         PackageCacheData.clear()
 
     def test_install_python2_and_search(self):
-        with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
+        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
+            with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', conda_tests_ctxt_mgmt_def_pol):
                 assert exists(join(prefix, PYTHON_BINARY))
                 assert package_is_installed(prefix, 'python=2')
 
@@ -599,8 +596,8 @@ class IntegrationTests(TestCase):
 
     def test_override_channels(self):
         with pytest.raises(OperationNotAllowed):
-            with env_var('CONDA_OVERRIDE_CHANNELS_ENABLED', 'no', conda_tests_ctxt_mgmt_def_pol):
-                with make_temp_env("--override-channels", "python") as prefix:
+            with make_temp_env("--override-channels", "python") as prefix:
+                with env_var('CONDA_OVERRIDE_CHANNELS_ENABLED', 'no', conda_tests_ctxt_mgmt_def_pol):
                     assert prefix
 
         with pytest.raises(CommandArgumentError):
@@ -1115,8 +1112,9 @@ class IntegrationTests(TestCase):
                     run_command(Commands.CONFIG, prefix, "--validate")
 
                 assert len(exc.value.errors) == 2
-                assert "must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs" in str(exc.value)
-                assert "default_python value 'anaconda' not of the form '[23].[0-9]'" in str(exc.value)
+                str_exc_value = str(exc.value)
+                assert str("must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs") in str_exc_value
+                assert str("default_python value 'anaconda' not of the form '[23].[0-9]'") in str_exc_value
             finally:
                 reset_context()
 
@@ -2009,8 +2007,8 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
     def test_disallowed_packages(self):
-        with env_var('CONDA_DISALLOWED_PACKAGES', 'sqlite&flask', conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env() as prefix:
+        with make_temp_env() as prefix:
+            with env_var('CONDA_DISALLOWED_PACKAGES', 'sqlite&flask', conda_tests_ctxt_mgmt_def_pol):
                 with pytest.raises(CondaMultiError) as exc:
                     run_command(Commands.INSTALL, prefix, 'python')
             exc_val = exc.value.errors[0]
@@ -2020,53 +2018,57 @@ class IntegrationTests(TestCase):
     def test_dont_remove_conda_1(self):
         pkgs_dirs = context.pkgs_dirs
         prefix = make_temp_prefix()
-        with env_var('CONDA_ROOT_PREFIX', prefix, conda_tests_ctxt_mgmt_def_pol):
-            with env_var('CONDA_PKGS_DIRS', ','.join(pkgs_dirs), conda_tests_ctxt_mgmt_def_pol):
-                with make_temp_env(prefix=prefix):
-                    _, _ = run_command(Commands.INSTALL, prefix, "conda", "conda-build")
-                    assert package_is_installed(prefix, "conda")
-                    assert package_is_installed(prefix, "pycosat")
-                    assert package_is_installed(prefix, "conda-build")
+        with make_temp_env(prefix=prefix):
+            with env_vars({
+                'CONDA_ROOT_PREFIX': prefix,
+                'CONDA_PKGS_DIRS': ','.join(pkgs_dirs)
+            }, conda_tests_ctxt_mgmt_def_pol):
+                _, _ = run_command(Commands.INSTALL, prefix, "conda", "conda-build")
+                assert package_is_installed(prefix, "conda")
+                assert package_is_installed(prefix, "pycosat")
+                assert package_is_installed(prefix, "conda-build")
 
-                    with pytest.raises(CondaMultiError) as exc:
-                        run_command(Commands.REMOVE, prefix, 'conda')
+                with pytest.raises(CondaMultiError) as exc:
+                    run_command(Commands.REMOVE, prefix, 'conda')
 
-                    assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-                    assert package_is_installed(prefix, "conda")
-                    assert package_is_installed(prefix, "pycosat")
+                assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+                assert package_is_installed(prefix, "conda")
+                assert package_is_installed(prefix, "pycosat")
 
-                    with pytest.raises(CondaMultiError) as exc:
-                        run_command(Commands.REMOVE, prefix, 'pycosat')
+                with pytest.raises(CondaMultiError) as exc:
+                    run_command(Commands.REMOVE, prefix, 'pycosat')
 
-                    assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-                    assert package_is_installed(prefix, "conda")
-                    assert package_is_installed(prefix, "pycosat")
-                    assert package_is_installed(prefix, "conda-build")
+                assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+                assert package_is_installed(prefix, "conda")
+                assert package_is_installed(prefix, "pycosat")
+                assert package_is_installed(prefix, "conda-build")
 
     def test_dont_remove_conda_2(self):
         # regression test for #6904
         pkgs_dirs = context.pkgs_dirs
         prefix = make_temp_prefix()
-        with env_var('CONDA_ROOT_PREFIX', prefix, conda_tests_ctxt_mgmt_def_pol):
-            with env_var('CONDA_PKGS_DIRS', ','.join(pkgs_dirs), conda_tests_ctxt_mgmt_def_pol):
-                with make_temp_env(prefix=prefix):
-                    stdout, stderr = run_command(Commands.INSTALL, prefix, "conda")
-                    assert package_is_installed(prefix, "conda")
-                    assert package_is_installed(prefix, "pycosat")
+        with make_temp_env(prefix=prefix):
+            with env_vars({
+                'CONDA_ROOT_PREFIX': prefix,
+                'CONDA_PKGS_DIRS': ','.join(pkgs_dirs)
+            }, conda_tests_ctxt_mgmt_def_pol):
+                _, _ = run_command(Commands.INSTALL, prefix, "conda")
+                assert package_is_installed(prefix, "conda")
+                assert package_is_installed(prefix, "pycosat")
 
-                    with pytest.raises(CondaMultiError) as exc:
-                        run_command(Commands.REMOVE, prefix, 'pycosat')
+                with pytest.raises(CondaMultiError) as exc:
+                    run_command(Commands.REMOVE, prefix, 'pycosat')
 
-                    assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-                    assert package_is_installed(prefix, "conda")
-                    assert package_is_installed(prefix, "pycosat")
+                assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+                assert package_is_installed(prefix, "conda")
+                assert package_is_installed(prefix, "pycosat")
 
-                    with pytest.raises(CondaMultiError) as exc:
-                        run_command(Commands.REMOVE, prefix, 'conda')
+                with pytest.raises(CondaMultiError) as exc:
+                    run_command(Commands.REMOVE, prefix, 'conda')
 
-                    assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-                    assert package_is_installed(prefix, "conda")
-                    assert package_is_installed(prefix, "pycosat")
+                assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+                assert package_is_installed(prefix, "conda")
+                assert package_is_installed(prefix, "pycosat")
 
     def test_force_remove(self):
         with make_temp_env() as prefix:
@@ -2183,11 +2185,11 @@ class IntegrationTests(TestCase):
         # version of conda and other packages in that environment.
         # Make sure we can flip back and forth.
         with env_vars({
-                "CONDA_AUTO_UPDATE_CONDA": "false",
-                "CONDA_ALLOW_CONDA_DOWNGRADES": "true"
+            "CONDA_AUTO_UPDATE_CONDA": "false",
+            "CONDA_ALLOW_CONDA_DOWNGRADES": "true"
         }, conda_tests_ctxt_mgmt_def_pol):
             with make_temp_env("conda=4.5.12", "python=%s" % sys.version_info[0],
-                               name='_' + str(uuid4())[:8]) as prefix:  # rev 0
+                           name='_' + str(uuid4())[:8]) as prefix:  # rev 0
                 conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
                 assert package_is_installed(prefix, "conda")
 

@@ -14,6 +14,8 @@ from .test_create import Commands, package_is_installed, get_conda_list_tuple, \
 class PriorityIntegrationTests(TestCase):
 
     def test_channel_order_channel_priority_true(self):
+        # This is broken, make_temp_env will reset the context. We get away with it, but really
+        # we need a function that does both these at the same time.
         with env_var("CONDA_PINNED_PACKAGES", "python=3.5", conda_tests_ctxt_mgmt_def_pol):
             with make_temp_env("pycosat==0.6.1") as prefix:
                 assert package_is_installed(prefix, 'python=3.5')

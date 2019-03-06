@@ -7,22 +7,17 @@ from collections import namedtuple
 from logging import getLogger
 import os
 from os.path import abspath
-from shlex import split as shlex_split
-from subprocess import CalledProcessError, PIPE, Popen
+from conda._vendor.auxlib.compat import shlex_split_unicode
 import sys
+from subprocess import CalledProcessError, PIPE, Popen
 
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
 from .._vendor.auxlib.ish import dals
-from ..common.compat import ensure_binary, ensure_text_type, iteritems, on_win, string_types
+from ..common.compat import ensure_binary, ensure_text_type, iteritems, string_types
 
 log = getLogger(__name__)
 Response = namedtuple('Response', ('stdout', 'stderr', 'rc'))
-
-
-def _split_on_unix(command):
-    # I guess windows doesn't like shlex.split
-    return command if on_win else shlex_split(command)
 
 
 def _format_output(command_str, cwd, rc, stdout, stderr):
@@ -43,10 +38,12 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     """
     env = {str(k): str(v) for k, v in iteritems(os.environ if env is None else env)}
     cwd = sys.prefix if path is None else abspath(path)
+    from conda.compat import isiterable
+    if not isiterable(command):
+        command = shlex_split_unicode(command)
     command_str = command if isinstance(command, string_types) else ' '.join(command)
-    command_arg = _split_on_unix(command) if isinstance(command, string_types) else command
     log.debug("executing>> %s", command_str)
-    p = Popen(command_arg, cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+    p = Popen(command, cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
     ACTIVE_SUBPROCESSES.add(p)
     stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
     stdout, stderr = p.communicate(input=stdin)
@@ -60,3 +57,14 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
         log.trace(_format_output(command_str, cwd, rc, stdout, stderr))
 
     return Response(ensure_text_type(stdout), ensure_text_type(stderr), int(rc))
+
+
+def subprocess_call_with_clean_env(command, path=None, stdin=None, raise_on_error=True):
+    # Any of these env vars are likely to mess the whole thing up.
+    # This has been seen to be the case with PYTHONPATH.
+    env = os.environ.copy()
+    for key in ('PYTHONPATH', 'PYTHONHOME', 'CONDA_ROOT', 'CONDA_PROMPT_MODIFIER',
+                'CONDA_PYTHON_EXE', 'CONDA_EXE', 'CONDA_DEFAULT_ENV'):
+        if key in env:
+            del env[key]
+    return subprocess_call(command, env=env, path=path, stdin=stdin, raise_on_error=raise_on_error)

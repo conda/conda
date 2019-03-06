@@ -245,7 +245,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         print("\nThe following empty environments will be CREATED:\n")
         print(actions['PREFIX'])
 
-    print()
+    print('')
 
 
 def add_unlink(actions, dist):
