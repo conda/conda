@@ -4,7 +4,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from shlex import split
 
 from .conda_argparse import do_call
 from .main import generate_parser

@@ -59,7 +59,19 @@ if PY3:  # pragma: py2 no cover
         JSONDecodeError = ValueError
 elif PY2:  # pragma: py3 no cover
     from collections import Mapping, Sequence
-    from cStringIO import StringIO
+    # We cannot use cStringIO if we ever hope to print Unicode.
+    # https://docs.python.org/2.7/library/stringio.html
+    # Unlike the memory files implemented by the StringIO module, those provided
+    # by this module are not able to accept Unicode strings that cannot be encoded
+    # as plain ASCII strings.
+    # print(io.StringIO(u'fooáßñ固').read())
+    # fooáßñ固
+    # vs:
+    # print(cStringIO.StringIO(u'fooáßñ固').read())
+    # Traceback (most recent call last):
+    #   File "<stdin>", line 1, in <module>
+    # UnicodeEncodeError: 'ascii' codec can't encode characters in position 3-6: ordinal not in range(128)
+    from io import StringIO
     from itertools import izip as zip, izip_longest as zip_longest
     JSONDecodeError = ValueError
 

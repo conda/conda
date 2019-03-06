@@ -9,6 +9,7 @@ import os
 from os.path import dirname, join, abspath
 import re
 from shlex import split
+from conda._vendor.auxlib.compat import shlex_split_unicode
 import sys
 from tempfile import gettempdir
 from uuid import uuid4
@@ -95,7 +96,7 @@ def assert_in(a, b, output=""):
 def run_inprocess_conda_command(command, disallow_stderr=True):
     # anything that uses this function is an integration test
     reset_context(())
-    with argv(split(command)), captured(disallow_stderr) as c:
+    with argv(shlex_split_unicode(command)), captured(disallow_stderr) as c:
         initialize_logging()
         try:
             exit_code = cli.main()

@@ -51,7 +51,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
 
     if verbose:
         print("Will remove the following tarballs:")
-        print()
+        print('')
 
         for pkgs_dir in pkgs_dirs:
             print(pkgs_dir)
@@ -60,10 +60,10 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
             for fn in pkgs_dirs[pkgs_dir]:
                 size = getsize(join(pkgs_dir, fn))
                 print(fmt % (fn, human_bytes(size)))
-            print()
+            print('')
         print('-' * 51)  # From 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
-        print()
+        print('')
 
     if not context.json or not context.always_yes:
         confirm_yn()
@@ -156,14 +156,14 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
         for pkgs_dir in pkgs_dirs:
             print(pkgs_dir)
             print('-' * len(pkgs_dir))
-            print()
+            print('')
             fmt = "%-40s %10s"
             for pkg, pkgsize in zip(pkgs_dirs[pkgs_dir], pkgsizes[pkgs_dir]):
                 print(fmt % (pkg, human_bytes(pkgsize)))
-            print()
+            print('')
         print('-' * 51)  # 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
-        print()
+        print('')
 
     if not context.json or not context.always_yes:
         confirm_yn()

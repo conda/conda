@@ -18,9 +18,6 @@ log = getLogger(__name__)
 TRACE = 5  # TRACE LOG LEVEL
 VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
 
-UTF8Writer = codecs.getwriter('utf8')
-sys.stdout = UTF8Writer(sys.stdout)
-
 class TokenURLFilter(Filter):
     TOKEN_URL_PATTERN = re.compile(
         r'(|https?://)'  # \1  scheme
