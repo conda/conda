@@ -8,3 +8,4 @@ radon
 responses
 codecov==2.0.5
 pexpect
+conda-build
