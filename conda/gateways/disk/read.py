@@ -78,7 +78,6 @@ def compute_md5sum(file_full_path):
 
 
 def compute_sha256sum(file_full_path):
-    print(file_full_path.encode('utf-8'))
     return _digest_path('sha256', file_full_path)
 
 
