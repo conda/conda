@@ -181,7 +181,7 @@ build_docs: &build_docs
     - checkout
     - run:
         command: |
-          pip install -r utils/requirements-docs.txt
+          pip3 install -r utils/requirements-docs.txt
           cd docs
           make html
 
