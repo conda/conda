@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 import collections
 from itertools import chain
+import sys
 
 from ._vendor.five import WhateverIO as StringIO, with_metaclass
 from ._vendor.six import (PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types,
@@ -37,9 +38,15 @@ def isiterable(obj):
 # lost. We can escape it, then escape the escapes then call shlex.split() then un-escape that.
 def shlex_split_unicode(to_split, posix=True):
     # shlex.split does its own un-escaping that we must counter.
-    e_to_split = to_split.encode('unicode-escape').replace(b'\\', b'\\\\')
+    if sys.version_info.major == 2:
+        e_to_split = to_split.encode('unicode-escape').replace(b'\\', b'\\\\')
+    else:
+        e_to_split = to_split.replace('\\', '\\\\')
     splits = split(e_to_split, posix=posix)
-    return [bytes(s).decode('unicode-escape') for s in splits]
+    if sys.version_info.major == 2:
+        return [bytes(s).decode('unicode-escape') for s in splits]
+    else:
+        return splits
 
 
 '''
