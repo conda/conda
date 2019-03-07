@@ -106,7 +106,7 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-        ClobberError: The package 'Groot' cannot be installed due to a
+        KnownPackageClobberError: The package 'Groot' cannot be installed due to a
         path collision for 'some/where/on/goodwin.ave'.
         This path already exists in the target prefix, and it won't be removed by
         an uninstall action in this transaction. The path appears to be coming from
