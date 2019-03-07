@@ -9,13 +9,13 @@ import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
 import re
 import sys
-from tempfile import NamedTemporaryFile
 from textwrap import dedent
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CondaError
 from ._vendor.toolz import concatv, drop
+from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
@@ -72,10 +72,10 @@ class _Activator(object):
         if ext is None:
             return self.command_join.join(commands)
         elif ext:
-            with NamedTemporaryFile('w+b', suffix=ext, delete=False) as tf:
+            with Utf8NamedTemporaryFile('w+', suffix=ext, delete=False) as tf:
                 # the default mode is 'w+b', and universal new lines don't work in that mode
                 # command_join should account for that
-                tf.write(ensure_binary(self.command_join.join(commands)))
+                tf.write(self.command_join.join(commands))
             return tf.name
         else:
             raise NotImplementedError()

@@ -117,9 +117,9 @@ def test_permission_file():
         Test when lock cannot be created due to permission
         Make sure no exception raised
     """
-    import tempfile
+    from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
     from conda.common.compat import text_type
-    with tempfile.NamedTemporaryFile(mode='r') as f:
+    with Utf8NamedTemporaryFile(mode='r') as f:
         if not isinstance(f.name, text_type):
             return
         with FileLock(f.name) as lock:

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import codecs
 from errno import EACCES, ELOOP, EPERM
 from io import open
 from logging import getLogger
@@ -62,9 +63,9 @@ if __name__ == '__main__':
 
 def write_as_json_to_file(file_path, obj):
     log.trace("writing json to file %s", file_path)
-    with open(file_path, str('wb')) as fo:
+    with codecs.open(file_path, mode='wb', encoding='utf-8') as fo:
         json_str = json_dump(obj)
-        fo.write(ensure_binary(json_str))
+        fo.write(json_str)
 
 
 def create_python_entry_point(target_full_path, python_full_path, module, func):
@@ -81,18 +82,18 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
         'func': func,
         'import_name': import_name,
     }
-
+    from conda.common.io import encode_for_env_var
     if python_full_path is not None:
-        shebang = ensure_text_type('#!%s\n' % python_full_path)
+        shebang = u'#!%s\n' % python_full_path
 
         from ...core.portability import replace_long_shebang  # TODO: must be in wrong spot
         shebang = replace_long_shebang(FileMode.text, shebang)
     else:
         shebang = None
 
-    with open(target_full_path, str('w')) as fo:
+    with codecs.open(target_full_path, mode='wb', encoding='utf-8') as fo:
         if shebang is not None:
-            fo.write(shebang)
+            fo.write(shebang.decode('utf-8'))
         fo.write(pyscript)
 
     if shebang is not None:
@@ -330,11 +331,12 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             log.trace("hard linking %s => %s", src, dst)
             link(src, dst)
         except (IOError, OSError) as e:
-            log.debug("%r", e)
-            log.debug("hard-link failed. falling back to copy\n"
-                      "  error: %r\n"
-                      "  src: %s\n"
-                      "  dst: %s", e, src, dst)
+#            log.debug("%r", e)
+#            log.debug("hard-link failed. falling back to copy\n"
+#                      "  error: %r\n"
+#                      "  src: %s\n"
+#                      "  dst: %s", e, src, dst)
+
             copy(src, dst)
     elif link_type == LinkType.softlink:
         _do_softlink(src, dst)

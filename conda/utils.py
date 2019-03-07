@@ -9,12 +9,13 @@ import re
 import sys
 
 from ._vendor.auxlib.decorators import memoize
+from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .common.compat import on_win
+
 from .common.path import win_path_to_unix
 from .common.url import path_to_url
 from os.path import abspath, join
 from os import environ
-import tempfile
 
 log = logging.getLogger(__name__)
 
@@ -266,10 +267,9 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, command):
     if on_win:
         comspec = environ[str('COMSPEC')]
         conda_bat = env.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
-        with tempfile.NamedTemporaryFile(
-                mode='w', prefix=tmp_prefix, suffix='.bat', delete=False) as fh:
-            fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n"
-                     .encode('utf-8'))
+        with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix,
+                                    suffix='.bat', delete=False) as fh:
+            fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
             fh.write('@chcp 65001>NUL\n')
             fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix).encode('utf-8'))
             # while helpful for debugging, this gets in the way of running wrapped commands where
@@ -283,12 +283,11 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, command):
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
         conda_exe = env.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))
         # If we ditched Python 2, we could use `encoding='utf-8'`
-        with tempfile.NamedTemporaryFile(
-                mode='w', prefix=tmp_prefix, delete=False) as fh:
-            fh.write("eval \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n"
-                     .format(conda_exe).encode('utf-8')),
-            fh.write("conda activate \"{0}\"\n".format(prefix).encode('utf-8')),
-            fh.write(command.encode('utf-8'))
+        with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
+            fh.write(u"eval \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n"
+                     .format(conda_exe))
+            fh.write(u"conda activate \"{0}\"\n".format(prefix))
+            fh.write(u"{0}".format(command))
             script_caller = fh.name
         command_args = [shell_path, "-x", script_caller]
 

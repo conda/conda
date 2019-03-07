@@ -2175,7 +2175,7 @@ class IntegrationTests(TestCase):
 
             if not on_win:
                 # Windows has: Fatal Python error: failed to get random numbers to initialize Python
-                result = subprocess_call("%s install python" % (conda_exe), env={"SHLVL": "1"},
+                result = subprocess_call_with_clean_env("%s install python" % (conda_exe), env={"SHLVL": "1"},
                                          raise_on_error=False)
                 assert result.rc == 1
                 assert "NoBaseEnvironmentError: This conda installation has no default base environment." in result.stderr

@@ -1,6 +1,6 @@
 import json
 import os
-import tempfile
+from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 import unittest
 
 import pytest
@@ -277,7 +277,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         snowflake, e,  = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
+        with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
@@ -309,7 +309,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         snowflake, e = run_conda_command(Commands.LIST, test_env_name_2, "-e")
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
+        with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
             env_txt.write(snowflake)
             env_txt.flush()
             env_txt.close()
@@ -337,7 +337,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         check1, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
+        with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
@@ -355,7 +355,7 @@ class NewIntegrationTests(unittest.TestCase):
             run_env_command(Commands.ENV_CREATE, 'i_do_not_exist.yml')
 
     def test_invalid_extensions(self):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".ymla", delete=False) as env_yaml:
+        with Utf8NamedTemporaryFile(mode="w", suffix=".ymla", delete=False) as env_yaml:
             with self.assertRaises(EnvironmentFileExtensionNotValid):
                 run_env_command(Commands.ENV_CREATE, env_yaml.name)
 

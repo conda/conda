@@ -5,8 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from contextlib import contextmanager
 from os import unlink
-from tempfile import NamedTemporaryFile
-
+from .._vendor.auxlib.compat import Utf8NamedTemporaryFile
 
 @contextmanager
 def temporary_content_in_file(content, suffix=""):
@@ -14,12 +13,12 @@ def temporary_content_in_file(content, suffix=""):
     fh = None
     path = None
     try:
-        fh = NamedTemporaryFile(mode="w", delete=False, suffix=suffix)
-        path = fh.name
-        fh.write(content)
-        fh.flush()
-        fh.close()
-        yield path
+        with Utf8NamedTemporaryFile(mode="w", delete=False, suffix=suffix) as fh:
+            path = fh.name
+            fh.write(content)
+            fh.flush()
+            fh.close()
+            yield path
     finally:
         if fh is not None:
             fh.close()
