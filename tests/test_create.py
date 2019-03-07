@@ -56,7 +56,7 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf, path_is_clean
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
-from conda.gateways.subprocess import subprocess_call_with_clean_env
+from conda.gateways.subprocess import subprocess_call, subprocess_call_with_clean_env
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.models.version import VersionOrder
@@ -2175,7 +2175,7 @@ class IntegrationTests(TestCase):
 
             if not on_win:
                 # Windows has: Fatal Python error: failed to get random numbers to initialize Python
-                result = subprocess_call_with_clean_env("%s install python" % (conda_exe), env={"SHLVL": "1"},
+                result = subprocess_call("%s install python" % (conda_exe), env={"SHLVL": "1"},
                                          raise_on_error=False)
                 assert result.rc == 1
                 assert "NoBaseEnvironmentError: This conda installation has no default base environment." in result.stderr
