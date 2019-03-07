@@ -54,7 +54,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "TooManyArgumentsError:  Got 5 arguments (g, r, o, o, t) but expected 2."
+        assert c.stderr.strip() == u"TooManyArgumentsError:  Got 5 arguments (g, r, o, o, t) but expected 2."
 
     def test_TooFewArgumentsError(self):
         expected = 5
@@ -78,7 +78,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "TooFewArgumentsError:  Got 2 arguments but expected 5."
+        assert c.stderr.strip() == u"TooFewArgumentsError:  Got 2 arguments but expected 5."
 
     def test_BasicClobberError(self):
         source_path = "some/path/on/goodwin.ave"
@@ -89,11 +89,13 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
+        msg = dals("""
         ClobberError: Conda was asked to clobber an existing path.
           source path: some/path/on/goodwin.ave
           target path: some/path/to/wright.st
         """).strip()
+        msg = msg.decode('utf-8') if hasattr(msg, 'decode') else msg
+        assert c.stderr.strip() == msg
 
     def test_KnownPackageClobberError(self):
         target_path = "some/where/on/goodwin.ave"
@@ -105,13 +107,15 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
+        msg = dals("""
         ClobberError: The package 'Groot' cannot be installed due to a
         path collision for 'some/where/on/goodwin.ave'.
         This path already exists in the target prefix, and it won't be removed by
         an uninstall action in this transaction. The path appears to be coming from
         the package 'Liquid', which is already installed in the prefix.
         """).strip()
+        msg = msg.decode('utf-8') if hasattr(msg, 'decode') else msg
+        assert c.stderr.strip() == msg
 
     def test_UnknownPackageClobberError(self):
         target_path = "siebel/center/for/c.s"
@@ -122,13 +126,15 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
+        msg = dals("""
         ClobberError: The package 'Groot' cannot be installed due to a
         path collision for 'siebel/center/for/c.s'.
         This path already exists in the target prefix, and it won't be removed
         by an uninstall action in this transaction. The path is one that conda
         doesn't recognize. It may have been created by another package manager.
         """).strip()
+        msg = msg.decode('utf-8') if hasattr(msg, 'decode') else msg
+        assert c.stderr.strip() == msg
 
     def test_SharedLinkPathClobberError(self):
         target_path = "some/where/in/shampoo/banana"
@@ -139,11 +145,13 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
+        msg = dals("""
         ClobberError: This transaction has incompatible packages due to a shared path.
           packages: G, r, o, o, t
           path: 'some/where/in/shampoo/banana'
         """).strip()
+        msg = msg.decode('utf-8') if hasattr(msg, 'decode') else msg
+        assert c.stderr.strip() == msg
 
     def test_CondaFileNotFoundError(self):
         filename = "Groot"
@@ -164,7 +172,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "PathNotFoundError: Groot"
+        assert c.stderr.strip() == u"PathNotFoundError: Groot"
 
     def test_DirectoryNotFoundError(self):
         directory = "Groot"
@@ -186,7 +194,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "DirectoryNotFoundError: Groot"
+        assert c.stderr.strip() == u"DirectoryNotFoundError: Groot"
 
     def test_MD5MismatchError(self):
         url = "https://download.url/path/to/file.tar.bz2"
@@ -214,13 +222,15 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
+        msg = dals("""
         MD5MismatchError: Conda detected a mismatch between the expected content and downloaded content
         for url 'https://download.url/path/to/file.tar.bz2'.
           download saved to: /some/path/on/disk/another-name.tar.bz2
           expected md5 sum: abc123
           actual md5 sum: deadbeef
         """).strip()
+        msg = msg.decode('utf-8') if hasattr(msg, 'decode') else msg
+        assert c.stderr.strip() == msg
 
     def test_PackageNotFoundError(self):
         package = "Potato"
@@ -240,10 +250,12 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
+        msg = dals("""
         PackagesNotFoundError: The following packages are missing from the target environment:
           - Potato
         """).strip()
+        msg = msg.decode('utf-8') if hasattr(msg, 'decode') else msg
+        assert c.stderr.strip() == msg
 
     def test_CondaRevisionError(self):
         message = "Potato"
@@ -264,7 +276,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "CondaRevisionError: Potato."
+        assert c.stderr.strip() == u"CondaRevisionError: Potato."
 
     def test_CondaKeyError(self):
         key = "Potato"
@@ -287,7 +299,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "CondaKeyError: 'Potato': Potato is not a key."
+        assert c.stderr.strip() == u"CondaKeyError: 'Potato': Potato is not a key."
 
     def test_CondaHTTPError(self):
         msg = "Potato"
@@ -317,12 +329,14 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert dals("""
+        msg = dals("""
                 CondaHTTPError: HTTP Potato COULD NOT CONNECT for url <https://download.url/path/to/Potato.tar.gz>
                 Elapsed: 1.24
 
                 Potato
-                """).strip() in c.stderr.strip()
+                """).strip()
+        msg = msg.decode('utf-8') if hasattr(msg, 'decode') else msg
+        assert msg in c.stderr.strip()
 
     def test_CommandNotFoundError_simple(self):
         cmd = "instate"
@@ -343,8 +357,8 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == ("CommandNotFoundError: No command 'conda instate'.\n"
-                                    "Did you mean 'conda install'?")
+        assert c.stderr.strip() == (u"CommandNotFoundError: No command 'conda instate'.\n"
+                                    u"Did you mean 'conda install'?")
 
     def test_CommandNotFoundError_conda_build(self):
         cmd = "build"
@@ -365,7 +379,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == ("CommandNotFoundError: To use 'conda build', install conda-build.")
+        assert c.stderr.strip() == u"CommandNotFoundError: To use 'conda build', install conda-build."
 
     @patch('requests.post', side_effect=(
             AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
@@ -469,7 +483,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
+        msg = dals("""
         BinaryPrefixReplacementError: Refusing to replace mismatched data length in binary file.
           path: some/where/by/boneyard/creek
           placeholder: save/my/spot/in/374
@@ -477,3 +491,5 @@ class ExceptionTests(TestCase):
           original data Length: 1404
           new data length: 1104
         """).strip()
+        msg = msg.decode('utf-8') if hasattr(msg, 'decode') else msg
+        assert c.stderr.strip() == msg
