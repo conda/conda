@@ -50,6 +50,30 @@ def shlex_split_unicode(to_split, posix=True):
 
 
 '''
+def shlex_split_unicode(to_split, posix=True):
+    if isinstance(to_split, string_types):
+        t=string_types[0]
+    elif isinstance(to_split, binary_type):
+        t=binary_type
+    to_split = ensure_text_type(to_split)
+    e_to_split = to_split.encode('ascii', 'backslashreplace').replace(b'\\', b'\\\\')
+    try:
+        e_to_split = str(e_to_split, 'ascii')
+    except:
+        pass
+    splits = split(e_to_split, posix=posix)
+    if t == binary_type:
+        res = [s.encode('unicode-escape') for s in splits]
+    else:
+        if sys.version_info[0] == 2:
+            res = [s.decode('unicode-escape') for s in splits]
+        else:
+            res = [bytes(s, 'ascii').decode('unicode-escape') for s in splits]
+    for r in res:
+        assert isinstance(r, t)
+    return res
+
+
 from contextlib import contextmanager
 import sys
 
