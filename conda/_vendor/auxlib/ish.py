@@ -8,7 +8,8 @@ log = getLogger(__name__)
 
 def dals(string):
     """dedent and left-strip"""
-    return dedent(string).lstrip()
+    out = dedent(string).lstrip()
+    return out.decode('utf-8') if hasattr(out, 'decode') else out
 
 
 def _get_attr(obj, attr_name, aliases=()):
