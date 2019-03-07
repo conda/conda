@@ -1492,21 +1492,12 @@ def test_pinned_specs():
             fh.write("\n".join(specs_str_1))
             fh.write("\n")
 
-        print(os.environ['CONDA_PREFIX'])
         with env_var('CONDA_PREFIX', td, conda_tests_ctxt_mgmt_def_pol):
-            print(os.environ['CONDA_PREFIX'])
             run_command(Commands.CONFIG, "--env", "--add", "pinned_packages", "requests=2.13")
             condarc = join(td, '.condarc')
             with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_2), partial(stack_context, search_path=(condarc,))):#conda_tests_ctxt_mgmt_def_pol):
-                print(os.environ['CONDA_PREFIX'])
-                print(os.environ['CONDA_PINNED_PACKAGES'])
                 pinned_specs = get_pinned_specs(td)
                 expected = specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1
-
-                print(expected)
-                print(pinned_specs)
-                print(specs_str_1)
-
                 assert pinned_specs == expected
                 assert pinned_specs != specs_str_1 + ("requests 2.13",) + specs_str_2
 

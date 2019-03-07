@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+import codecs
 import collections
 from itertools import chain
 import sys
@@ -12,6 +13,8 @@ StringIO, with_metaclass = StringIO, with_metaclass
 PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types = PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types  # NOQA
 text_type, wraps = text_type, wraps
 from shlex import split
+from functools import partial
+from tempfile import NamedTemporaryFile, template
 
 try:
     from collections import OrderedDict as odict  # NOQA
@@ -47,6 +50,30 @@ def shlex_split_unicode(to_split, posix=True):
         return [bytes(s).decode('unicode-escape') for s in splits]
     else:
         return splits
+
+
+def utf8_writer(fp):
+    if sys.version_info[0] < 3:
+        return codecs.getwriter('utf-8')(fp)
+    else:
+        return fp
+
+
+if sys.version_info[0] < 3:
+    def Utf8NamedTemporaryFile(mode='w+b', bufsize=-1, suffix="",
+                               prefix=template, dir=None, delete=True):
+        return codecs.getwriter('utf-8')(NamedTemporaryFile(mode=mode, bufsize=bufsize, suffix=suffix,
+                                 prefix=template, dir=None, delete=delete))
+else:
+    def Utf8NamedTemporaryFile(mode='w+b', buffering=-1, newline=None,
+                               suffix=None, prefix=None, dir=None, delete=True):
+        encoding = None
+        if not 'b' in mode:
+            encoding = 'utf-8'
+        return NamedTemporaryFile(mode=mode, buffering=buffering, encoding=encoding,
+                                  newline=newline, suffix=suffix, prefix=prefix,
+                                  dir=dir, delete=delete)
+
 
 
 '''

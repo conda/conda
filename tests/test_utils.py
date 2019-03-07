@@ -1,19 +1,6 @@
-from contextlib import contextmanager
-
 from conda import utils
-from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import context, reset_context, stack_context_default
-from conda.common.io import env_vars
 from conda.common.path import win_path_to_unix
-from conda.common.compat import odict
-from conda.common.configuration import YamlRawParameter
-from conda.common.serialize import yaml_load
-from conda.models.channel import Channel
-
 from .helpers import assert_equals
-from .test_create import make_temp_prefix
-from os.path import join
-from shutil import rmtree
 
 SOME_PREFIX = "/some/prefix"
 SOME_FILES = ["a", "b", "c"]
@@ -54,6 +41,17 @@ def test_text_translations():
     assert_equals(test_unix_text, win_path_to_unix(test_win_text))
 
 # Some stuff I was playing with, env_unmodified(conda_tests_ctxt_mgmt_def_pol)
+# from contextlib import contextmanager
+# from conda.base.constants import DEFAULT_CHANNELS
+# from conda.base.context import context, reset_context, stack_context_default
+# from conda.common.io import env_vars
+# from conda.common.compat import odict
+# from conda.common.configuration import YamlRawParameter
+# from conda.common.serialize import yaml_load
+# from conda.models.channel import Channel
+# from .test_create import make_temp_prefix
+# from os.path import join
+# from shutil import rmtree
 # is what I ended up with instead.
 #
 # I do maintain however, that all of:
