@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import codecs
 from errno import EACCES, ENOENT, EPERM
 from functools import reduce
 from logging import getLogger
@@ -430,9 +431,9 @@ class UrlsData(object):
         return iter(self._urls_data)
 
     def add_url(self, url):
-        with open(self.urls_txt_path, 'ab') as fh:
-            linefeed = u'\r\n' if platform == 'win32' else u'\n'
-            fh.write(bytes(url + linefeed).encode('utf-8'))
+        with codecs.open(self.urls_txt_path, mode='ab', encoding='utf-8') as fh:
+            linefeed = '\r\n' if platform == 'win32' else '\n'
+            fh.write(url + linefeed)
         self._urls_data.insert(0, url)
 
     @memoizemethod
