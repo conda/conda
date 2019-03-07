@@ -122,9 +122,9 @@ def env_vars(var_map=None, callback=None):
         var_map = {}
 
     saved_vars = {name: os.environ.get(name, NULL) for name in var_map}
+    for name, value in iteritems(var_map):
+        os.environ[str(name)] = str(value)
     try:
-        for name, value in iteritems(var_map):
-            os.environ[ensure_text_type(name)] = ensure_text_type(value)
         if callback:
             callback(True)
         yield
