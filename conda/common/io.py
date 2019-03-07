@@ -127,7 +127,7 @@ def encode_for_env_var(value):
         try:
             return bytes(value, encoding='utf-8')
         except:
-            return bytes(value)
+            return value.encode('utf-8')
     return str(value)
 
 
