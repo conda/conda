@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import codecs
 from functools import partial
 import logging  # lgtm [py/import-and-import-from]
 from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger

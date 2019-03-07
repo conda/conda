@@ -143,18 +143,18 @@ def env_vars(var_map=None, callback=None):
 
 @contextmanager
 def env_var(name, value, callback=None):
-# Maybe, but in env_vars, not here:
-#    from conda.compat import ensure_fs_path_encoding
-#    d = dict({name: ensure_fs_path_encoding(value)})
+    # Maybe, but in env_vars, not here:
+    #    from conda.compat import ensure_fs_path_encoding
+    #    d = dict({name: ensure_fs_path_encoding(value)})
     d = dict({name: value})
     with env_vars(d, callback=callback) as es:
         yield es
+
 
 @contextmanager
 def env_unmodified(callback=None):
     with env_vars(callback=callback) as es:
         yield es
-
 
 
 @contextmanager

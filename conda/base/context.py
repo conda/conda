@@ -1104,7 +1104,7 @@ class ContextStack(object):
         self._last_argparse_args = None
 
     def push(self, search_path, argparse_args):
-        self._stack_idx+=1
+        self._stack_idx += 1
         old_len = len(self._stack)
         if self._stack_idx >= old_len:
             self._stack.extend([ContextStackObject() for _ in range(old_len)])
