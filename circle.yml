@@ -15,7 +15,8 @@ main_test: &main_test
     - run:
         name: unit tests
         command: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) ]]; then
+          diff_or=$(git diff origin/master --name-only)
+          if [[ $(echo $diff_or | wc -l) == $(echo $diff_or | grep docs | wc -l) && $(echo $diff_or | grep docs) ]]; then
             echo "Only docs changed detected, skipping tests"
           else
             echo "local_repodata_ttl: 1800" >> ~/.condarc
@@ -26,7 +27,8 @@ main_test: &main_test
     - run:
         name: integration tests
         command: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) ]]; then
+          diff_or=$(git diff origin/master --name-only)
+          if [[ $(echo $diff_or | wc -l) == $(echo $diff_or | grep docs | wc -l) && $(echo $diff_or | grep docs) ]]; then
             echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
@@ -35,7 +37,14 @@ main_test: &main_test
           fi
     - run:
         name: upload codecov
-        command: /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
+        command: |
+          diff_or=$(git diff origin/master --name-only)
+          if [[ $(echo $diff_or | wc -l) == $(echo $diff_or | grep docs | wc -l) && $(echo $diff_or | grep docs) ]]; then
+            echo "No codecov report to upload"
+          else
+            /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
+            echo "No codecov report to upload"
+          fi
 
 
 conda_build_test: &conda_build_test
@@ -129,7 +138,8 @@ conda_build_test: &conda_build_test
           # test_overlinking_detection package doesn't have configure
           # test_python_line_up_with_compiled_lib because older CB honors run_exports.yaml and not run_exports.json
         command: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) ]]; then
+          diff_or=$(git diff origin/master --name-only)
+          if [[ $(echo $diff_or | wc -l) == $(echo $diff_or | grep docs | wc -l) && $(echo $diff_or | grep docs) ]]; then
             echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
@@ -157,8 +167,9 @@ conda_build_test: &conda_build_test
           # test_setuptools_test_requirements upstream changes that affect 'conda skeleton'
           # rpm-libX11-devel returns 404 error
         command: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) ]]; then
-            echo "Only docs changed detected, skipping tests"
+          diff_or=$(git diff origin/master --name-only)
+          if [[ $(echo $diff_or | wc -l) == $(echo $diff_or | grep docs | wc -l) && $(echo $diff_or | grep docs) ]]; then
+              echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
             cd ~/conda-build
