@@ -38,7 +38,7 @@ from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FI
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
-from conda.common.compat import iteritems, text_type, ensure_text_type
+from conda.common.compat import iteritems, text_type, ensure_text_type, string_types
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -628,7 +628,7 @@ class IntegrationTests(TestCase):
             stdout = revision_output[0]
             stderr = revision_output[1]
             assert stderr == ''
-            self.assertIsInstance(stdout, str)
+            self.assertIsInstance(stdout, string_types)
 
     @pytest.mark.skipif(on_win and context.subdir == "win-32", reason="conda-forge doesn't do win-32")
     def test_strict_channel_priority(self):
