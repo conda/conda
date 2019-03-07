@@ -5,10 +5,12 @@
 @IF [%1]==[activate]   "%~dp0_conda_activate" %*
 @IF [%1]==[deactivate] "%~dp0_conda_activate" %*
 
-@setlocal
-@for %%B in (%~dp0.) do @set PATH=%%~dpB;%%~dpBLibrary\mingw-w64\bin;%%~dpBLibrary\usr\bin;%%~dpBLibrary\bin;%%~dpBScripts;%%~dpBbin;%PATH%
+@SETLOCAL
+@FOR %%A IN ("%~dp0\.") DO @SET _sysp=%%~dpA
+@SET _sysp=%_sysp:~0,-1%
+@SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
 @CALL "%CONDA_EXE%" %*
-@endlocal
+@ENDLOCAL
 
 @IF %errorlevel% NEQ 0 EXIT /B %errorlevel%
 
