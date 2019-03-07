@@ -187,7 +187,6 @@ class RawParameter(object):
         self.source = source
         self.key = key
         try:
-#            import pdb; pdb.set_trace()
             self._raw_value = unicode(raw_value.decode('utf-8'))
         except:
             self._raw_value = raw_value
