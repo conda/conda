@@ -115,6 +115,22 @@ class CaptureTarget(Enum):
     STDOUT = -2
 
 
+# Want bytes encoded as utf-8 for both names and values.
+def encode_for_env_var(value):
+    if isinstance(value, str):
+        return value
+    if sys.version_info[0] == 2:
+        _unicode = unicode
+    else:
+        _unicode = str
+    if isinstance(value, (str, _unicode)):
+        try:
+            return bytes(value, encoding='utf-8')
+        except:
+            return bytes(value)
+    return str(value)
+
+
 @contextmanager
 def env_vars(var_map=None, callback=None):
 
@@ -123,7 +139,7 @@ def env_vars(var_map=None, callback=None):
 
     new_var_map = {}
     for name, value in iteritems(var_map):
-        new_var_map[str(ensure_binary(name))] = str(ensure_binary(value))
+        new_var_map[encode_for_env_var(name)] = encode_for_env_var(value)
     saved_vars = {}
     for name, value in iteritems(new_var_map):
         saved_vars[name] = os.environ.get(name, NULL)
