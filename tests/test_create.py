@@ -597,8 +597,8 @@ class IntegrationTests(TestCase):
 
     def test_override_channels(self):
         with pytest.raises(OperationNotAllowed):
-            with make_temp_env("--override-channels", "python") as prefix:
-                with env_var('CONDA_OVERRIDE_CHANNELS_ENABLED', 'no', conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_OVERRIDE_CHANNELS_ENABLED', 'no', conda_tests_ctxt_mgmt_def_pol):
+                with make_temp_env("--override-channels", "python") as prefix:
                     assert prefix
 
         with pytest.raises(CommandArgumentError):
@@ -2018,11 +2018,11 @@ class IntegrationTests(TestCase):
     def test_dont_remove_conda_1(self):
         pkgs_dirs = context.pkgs_dirs
         prefix = make_temp_prefix()
-        with make_temp_env(prefix=prefix):
-            with env_vars({
-                'CONDA_ROOT_PREFIX': prefix,
-                'CONDA_PKGS_DIRS': ','.join(pkgs_dirs)
-            }, conda_tests_ctxt_mgmt_def_pol):
+        with env_vars({
+            'CONDA_ROOT_PREFIX': prefix,
+            'CONDA_PKGS_DIRS': ','.join(pkgs_dirs)
+        }, conda_tests_ctxt_mgmt_def_pol):
+            with make_temp_env(prefix=prefix):
                 _, _ = run_command(Commands.INSTALL, prefix, "conda", "conda-build")
                 assert package_is_installed(prefix, "conda")
                 assert package_is_installed(prefix, "pycosat")
