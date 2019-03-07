@@ -277,7 +277,7 @@ def execute(args, parser):
         if context.json:
             stdout_json({'root_prefix': context.root_prefix})
         else:
-            print(context.root_prefix)
+            print('{}'.format(context.root_prefix))
         return
 
     if args.packages:
