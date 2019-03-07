@@ -29,7 +29,7 @@ from .._vendor.auxlib.logz import NullHandler
 from .._vendor.auxlib.type_coercion import boolify
 from .._vendor.tqdm import tqdm
 
-from ..common.compat import ensure_text_type
+from ..common.compat import ensure_binary
 
 log = getLogger(__name__)
 
@@ -121,9 +121,13 @@ def env_vars(var_map=None, callback=None):
     if var_map is None:
         var_map = {}
 
-    saved_vars = {name: os.environ.get(name, NULL) for name in var_map}
+    new_var_map = {}
     for name, value in iteritems(var_map):
-        os.environ[str(name)] = str(value)
+        new_var_map[str(ensure_binary(name))] = str(ensure_binary(value))
+    saved_vars = {}
+    for name, value in iteritems(new_var_map):
+        saved_vars[name] = os.environ.get(name, NULL)
+        os.environ[name] = value
     try:
         if callback:
             callback(True)
@@ -131,9 +135,9 @@ def env_vars(var_map=None, callback=None):
     finally:
         for name, value in iteritems(saved_vars):
             if value is NULL:
-                del os.environ[str(name)]
+                del os.environ[name]
             else:
-                os.environ[str(name)] = value
+                os.environ[name] = value
         if callback:
             callback(False)
 
