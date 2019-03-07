@@ -42,17 +42,17 @@ class CondaError(Exception):
         self._caused_by = caused_by
         super(CondaError, self).__init__(message)
 
-    if sys.version_info[0] > 2:
-        def __repr__(self):
-            return '%s: %s' % (self.__class__.__name__, text_type(self))
-    else:
-
-        def __unicode__(self):
-            res = u'%s: %s' % (self.__class__.__name__, self.message % self._kwargs)
-            return res
-
-        def __repr__(self):
-            return self.__unicode__().encode('utf-8')
+# If we add __unicode__ to CondaError then we must also add it to all classes that
+# inherit from it if they have their own __repr__ (and may __str__) function.
+#    if sys.version_info[0] > 2:
+    def __repr__(self):
+        return '%s: %s' % (self.__class__.__name__, text_type(self))
+#    else:
+#        def __unicode__(self):
+#            res = u'%s: %s' % (self.__class__.__name__, self.message % self._kwargs)
+#            return res
+#        def __repr__(self):
+#            return self.__unicode__().encode('utf-8')
 
     def __str__(self):
         try:

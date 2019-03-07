@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import os
 import os.path as op
+from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 import tempfile
 from conda_env.pip_util import pip_subprocess
 
@@ -30,11 +31,11 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
     requirements = None
     try:
         # Generate the temporary requirements file
-        requirements = tempfile.NamedTemporaryFile(mode='w',
-                                                   prefix='condaenv.',
-                                                   suffix='.requirements.txt',
-                                                   dir=pip_workdir,
-                                                   delete=False)
+        requirements = Utf8NamedTemporaryFile(mode='w',
+                                              prefix='condaenv.',
+                                              suffix='.requirements.txt',
+                                              dir=pip_workdir,
+                                              delete=False)
         requirements.write('\n'.join(specs))
         requirements.close()
         # pip command line...

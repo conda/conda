@@ -84,13 +84,14 @@ class ExceptionTests(TestCase):
         source_path = "some/path/on/goodwin.ave"
         target_path = "some/path/to/wright.st"
         exc = BasicClobberError(source_path, target_path, context)
+        t = repr(exc)
         with env_var("CONDA_PATH_CONFLICT", "prevent", conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-        BasicClobberError: Conda was asked to clobber an existing path.
+        ClobberError: Conda was asked to clobber an existing path.
           source path: some/path/on/goodwin.ave
           target path: some/path/to/wright.st
         """).strip()
@@ -106,7 +107,7 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-        KnownPackageClobberError: The package 'Groot' cannot be installed due to a
+        ClobberError: The package 'Groot' cannot be installed due to a
         path collision for 'some/where/on/goodwin.ave'.
         This path already exists in the target prefix, and it won't be removed by
         an uninstall action in this transaction. The path appears to be coming from
@@ -123,7 +124,7 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-        UnknownPackageClobberError: The package 'Groot' cannot be installed due to a
+        ClobberError: The package 'Groot' cannot be installed due to a
         path collision for 'siebel/center/for/c.s'.
         This path already exists in the target prefix, and it won't be removed
         by an uninstall action in this transaction. The path is one that conda
@@ -140,7 +141,7 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-        SharedLinkPathClobberError: This transaction has incompatible packages due to a shared path.
+        ClobberError: This transaction has incompatible packages due to a shared path.
           packages: G, r, o, o, t
           path: 'some/where/in/shampoo/banana'
         """).strip()

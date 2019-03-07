@@ -1,5 +1,5 @@
 from os.path import exists, join
-import tempfile
+from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from unittest import TestCase
 
 from conda.gateways.disk.delete import rm_rf
@@ -19,7 +19,7 @@ class ExportIntegrationTests(TestCase):
 
             output, error = run_command(Commands.LIST, prefix, "-e")
 
-            with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
+            with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                 env_txt.write(output)
                 env_txt.flush()
                 env_txt.close()
@@ -48,7 +48,7 @@ class ExportIntegrationTests(TestCase):
             self.assertIn("conda-forge", output)
             
             try:
-                with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
+                with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                     env_txt.write(output)
                     env_txt.close()
                     prefix2 = make_temp_prefix()
@@ -79,7 +79,7 @@ class ExportIntegrationTests(TestCase):
             urls1 = set(url for url in output.split() if url.startswith("http"))
 
             try:
-                with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
+                with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                     env_txt.write(output)
                     env_txt.close()
                     prefix2 = make_temp_prefix()

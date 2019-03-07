@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from contextlib import contextmanager
-from tempfile import NamedTemporaryFile
+from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 
 from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
@@ -27,7 +27,7 @@ from conda.gateways.disk.delete import rm_rf
 @contextmanager
 def make_temp_condarc(value=None):
     try:
-        tempfile = NamedTemporaryFile(suffix='.yml', delete=False)
+        tempfile = Utf8NamedTemporaryFile(suffix='.yml', delete=False)
         tempfile.close()
         temp_path = tempfile.name
         if value:
@@ -448,7 +448,7 @@ def test_set_rc_string():
         reset_context([rc])
         assert context.ssl_verify is False
 
-        with NamedTemporaryFile() as tf:
+        with Utf8NamedTemporaryFile() as tf:
             stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
                                                       '--set', 'ssl_verify', tf.name)
             assert stdout == ''

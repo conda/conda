@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from tempfile import NamedTemporaryFile
+from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from unittest import TestCase
 import warnings
 
@@ -53,7 +53,7 @@ class CondaSessionTests(TestCase):
     def test_local_file_adapter_200(self):
         test_path = None
         try:
-            with NamedTemporaryFile(delete=False) as fh:
+            with Utf8NamedTemporaryFile(delete=False) as fh:
                 test_path = fh.name
                 fh.write(ensure_binary('{"content": "file content"}'))
 
