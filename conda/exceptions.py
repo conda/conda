@@ -977,7 +977,7 @@ def print_conda_exception(exc_val, exc_tb=None):
         logger.info("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
-        stderrlog.error("\n%s\n", exc_val)
+        stderrlog.error("\n%r\n", exc_val)
 
 
 def _format_exc(exc_val=None, exc_tb=None):
