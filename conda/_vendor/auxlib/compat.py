@@ -37,7 +37,7 @@ def isiterable(obj):
 # lost. We can escape it, then escape the escapes then call shlex.split() then un-escape that.
 def shlex_split_unicode(to_split, posix=True):
     # shlex.split does its own un-escaping that we must counter.
-    e_to_split = to_split.replace('\\', '\\\\').encode('unicode-escape')
+    e_to_split = to_split.encode('unicode-escape').replace(b'\\', b'\\\\')
     splits = split(e_to_split, posix=posix)
     return [bytes(s).decode('unicode-escape') for s in splits]
 
