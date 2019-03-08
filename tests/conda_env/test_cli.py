@@ -124,7 +124,9 @@ def run_conda_command(command, prefix, *arguments):
     else:  # CREATE
         command_line = "{0} -y -q -n {1} {2}".format(command, prefix, " ".join(arguments))
 
-    args = p.parse_args(split(command_line))
+    from conda._vendor.auxlib.compat import shlex_split_unicode
+    commands = shlex_split_unicode(command_line)
+    args = p.parse_args(commands)
     context._set_argparse_args(args)
     with captured() as c:
         do_call(args, p)
@@ -341,9 +343,9 @@ class NewIntegrationTests(unittest.TestCase):
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
-            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+            o, e = run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
-            run_env_command(Commands.ENV_CREATE, env_yaml.name)
+            o, e = run_env_command(Commands.ENV_CREATE, env_yaml.name)
             self.assertTrue(env_is_created(test_env_name_2))
 
         # check explicit that we have same file
