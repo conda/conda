@@ -36,14 +36,15 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """
-    env = {str(k): str(v) for k, v in iteritems(os.environ if env is None else env)}
+    from conda.common.io import encode_for_env_var
+    env = {encode_for_env_var(k): encode_for_env_var(v) for k, v in iteritems(os.environ if env is None else env)}
     cwd = sys.prefix if path is None else abspath(path)
     from conda.compat import isiterable
     if not isiterable(command):
         command = shlex_split_unicode(command)
     command_str = command if isinstance(command, string_types) else ' '.join(command)
     log.debug("executing>> %s", command_str)
-    p = Popen(command, cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+    p = Popen([encode_for_env_var(c) for c in command], cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
     ACTIVE_SUBPROCESSES.add(p)
     stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
     stdout, stderr = p.communicate(input=stdin)
@@ -56,15 +57,25 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     if log.isEnabledFor(TRACE):
         log.trace(_format_output(command_str, cwd, rc, stdout, stderr))
 
-    return Response(ensure_text_type(stdout), ensure_text_type(stderr), int(rc))
+    return Response(stdout, stderr, int(rc))
 
 
-def subprocess_call_with_clean_env(command, path=None, stdin=None, raise_on_error=True):
+def _subprocess_clean_env(env, clean_python=True, clean_conda=True):
+    dels = []
+    if clean_python:
+        dels.extend(('PYTHONPATH', 'PYTHONHOME'))
+    if clean_conda:
+        dels.extend(('CONDA_ROOT', 'CONDA_PROMPT_MODIFIER',
+                     'CONDA_PYTHON_EXE', 'CONDA_EXE', 'CONDA_DEFAULT_ENV'))
+    for key in dels:
+        if key in env:
+            del env[key]
+
+
+def subprocess_call_with_clean_env(command, path=None, stdin=None,raise_on_error=True,
+                                   clean_python=True, clean_conda=True):
     # Any of these env vars are likely to mess the whole thing up.
     # This has been seen to be the case with PYTHONPATH.
     env = os.environ.copy()
-    for key in ('PYTHONPATH', 'PYTHONHOME', 'CONDA_ROOT', 'CONDA_PROMPT_MODIFIER',
-                'CONDA_PYTHON_EXE', 'CONDA_EXE', 'CONDA_DEFAULT_ENV'):
-        if key in env:
-            del env[key]
+    _subprocess_clean_env(env, clean_python, clean_conda)
     return subprocess_call(command, env=env, path=path, stdin=stdin, raise_on_error=raise_on_error)
