@@ -1022,6 +1022,8 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
         return True
 
     env = os.environ.copy()
+    from conda.gateways.subprocess import _subprocess_clean_env
+    _subprocess_clean_env(env)
 
     if action == 'pre-link':  # pragma: no cover
         # old no-arch support; deprecated
