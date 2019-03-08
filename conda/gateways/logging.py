@@ -68,7 +68,7 @@ class StdStreamHandler(StreamHandler):
             stream.write(msg)
             stream.write(terminator)
             self.flush()
-        except Exception:
+        except Exception as e:
             self.handleError(record)
 
 
