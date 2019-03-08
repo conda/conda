@@ -9,7 +9,11 @@ from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
-from functools import wraps
+from functools import partial, wraps
+import sys
+if sys.version_info[0] > 2:
+    # Not used at present.
+    from io import BytesIO
 from itertools import cycle
 import json
 import logging  # lgtm [py/import-and-import-from]
@@ -17,7 +21,6 @@ from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join
 import signal
-import sys
 from threading import Event, Thread
 from time import sleep, time
 
@@ -207,17 +210,48 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
     # >>> c.stdout
     # 'hello world!\n'
     # """
+    def write_wrapper(self, to_write):
+        # This may have to deal with a *lot* of text.
+        if hasattr(self, 'mode') and 'b' in self.mode:
+            wanted = bytes
+        elif sys.version_info[0] == 3 and isinstance(self, BytesIO):
+            wanted = bytes
+        else:
+            if sys.version_info[0] == 2:
+                wanted = unicode
+            else:
+                wanted = str
+        if not isinstance(to_write, wanted):
+            if hasattr(to_write, 'decode'):
+                decoded = to_write.decode('utf-8')
+                self.old_write(decoded)
+            elif hasattr(to_write, 'encode'):
+                b = to_write.encode('utf-8')
+                self.old_write(b)
+        else:
+            self.old_write(to_write)
+
     class CapturedText(object):
         pass
+    import codecs
+    # sys.stdout.write(u'unicode out')
+    # sys.stdout.write(bytes('bytes out', encoding='utf-8'))
+    # sys.stdout.write(str('str out'))
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
     if stdout == CaptureTarget.STRING:
-        sys.stdout = outfile = StringIO()
+        outfile = StringIO()
+        outfile.old_write = outfile.write
+        outfile.write = partial(write_wrapper, outfile)
+        sys.stdout = outfile
     else:
         outfile = stdout
         if outfile is not None:
             sys.stdout = outfile
     if stderr == CaptureTarget.STRING:
-        sys.stderr = errfile = StringIO()
+        errfile = StringIO()
+        errfile.old_write = errfile.write
+        errfile.write = partial(write_wrapper, errfile)
+        sys.stderr = errfile
     elif stderr == CaptureTarget.STDOUT:
         sys.stderr = errfile = outfile
     else:
