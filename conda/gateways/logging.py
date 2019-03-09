@@ -83,17 +83,12 @@ class StdStreamHandler(StreamHandler):
             stream.write(msg)
             stream.write(terminator)
             self.flush()
-        except Exception as e:
-            import traceback
-            print(e)
-            tb_list = traceback.extract_tb(sys.exc_info()[2])
-            tb_list = traceback.format_list(tb_list)
-            for elt in tb_list:
-                log.warning("WHATTHE3 :: {}".format(elt))
+        except Exception:
             self.handleError(record)
+
     '''
 
-    # Taken from Python 2's stdlib.
+    # Updated Python 2.7.15's stdlib, with terminator and unicode support.
     def emit(self, record):
         """
         Emit a record.
