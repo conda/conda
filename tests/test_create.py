@@ -23,6 +23,7 @@ from shutil import copyfile, rmtree
 from subprocess import check_call, check_output, Popen, PIPE
 import sys
 from tempfile import gettempdir
+from textwrap import dedent
 from unittest import TestCase
 from uuid import uuid4
 
@@ -2184,9 +2185,35 @@ class IntegrationTests(TestCase):
                 # When we run `conda run -p prefix python -m conda init` we are explicitly wishing to run the
                 # old Python 3.6.7 in prefix, but against the development sources of conda. Those are found
                 # via `workdir=conda_dev_srcdir`.
+                #
+                # This was beyond complicated to deal with and led to adding a new 'dev' flag which modifies
+                # what the script wrappers emit for `CONDA_EXE`.
+                #
+                # Normal mode: CONDA_EXE=[join(prefix,'bin','conda')]
+                #    Dev mode: CONDA_EXE=[join(root.prefix+'bin'+'python'), '-m', 'conda']
+                #
+                # When you next need to debug this stuff (and you will), the following may help you:
+                #
+
+                '''
+                log.warning("IMPORTANT :: conde run_command activation information (dev mode)")
+                env_path_etc, errs_etc = run_command(Commands.RUN, prefix, dedent(
+                    """
+                    declare -f
+                    env | sort
+                    which conda
+                    cat $(which conda)
+                    echo $PATH
+                    conda info
+                    """), dev=True, workdir=conda_dev_srcdir)
+                log.warning(env_path_etc)
+                log.warning(errs_etc)
+                log.warning("ENDOFIMPORTANT :: conde run_command activation information (dev mode)")
+                '''
 
                 # Before we do that, let's test that the conda we expect to be running in that scenario is the
                 # conda that actually runs (and the same thing for Python)
+                #
                 conda__file__, stderr = run_command(Commands.RUN, prefix,
                     "python", "-c", dedent(
                     '''
