@@ -288,7 +288,7 @@ def quote_for_shell(arguments, shell=None):
         return ' '.join(quoted)
 
 
-def wrap_subprocess_call(on_win, root_prefix, prefix, arguments):
+def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, arguments):
     tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
     multiline = False
@@ -308,7 +308,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, arguments):
             if multiline:
                 # No point silencing the first line. If that's what's wanted then
                 # it needs doing for each line and the caller may as well do that.
-                fh.write(u"{0}\n".format(arguments))
+                fh.write(u"{0}\n".format(arguments[0]))
             else:
                 fh.write("@{0}\n".format(quote_for_shell(arguments)))
             fh.write('@chcp %CONDA_OLD_CHCP%>NUL\n')
@@ -316,13 +316,19 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, arguments):
         command_args = [comspec, '/d', '/c', script_caller]
     else:
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
-        conda_exe = environ.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))
+        # During tests, we sometimes like to have a temp env with e.g. an old python in it
+        # and have it run tests against the very latest development sources. For that to
+        # work we need extra smarts here, we want it to be instead:
+        if dev_mode:
+            conda_exe = [abspath(join(root_prefix, 'bin', 'python')), '-m', 'conda']
+        else:
+            conda_exe = [environ.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))]
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
-            fh.write(u"echo \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n"
-                     .format(conda_exe))
-            fh.write(u"eval \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n"
-                     .format(conda_exe))
-            fh.write(u"conda activate \"{0}\"\n".format(prefix))
+            # fh.write(u">&2 echo \"$({0})\"\n"
+            #          .format(quote_for_shell(conda_exe+['shell.posix', 'hook'])))
+            fh.write(u"eval \"$({0})\"\n"
+                     .format(quote_for_shell(conda_exe+['shell.posix', 'hook'])))
+            fh.write(u"conda activate {0}\n".format(quote_for_shell((prefix,))))
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
