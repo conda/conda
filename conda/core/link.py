@@ -1058,7 +1058,10 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
         return True
     finally:
         if script_caller is not None:
-            rm_rf(script_caller)
+            if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+                rm_rf(script_caller)
+            else:
+                log.info('CONDA_TEST_SAVE_TEMPS :: retaining run_script {}'.format(script_caller))
 
 
 def messages(prefix):
