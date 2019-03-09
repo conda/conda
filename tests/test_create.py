@@ -16,7 +16,7 @@ import json
 from json import loads as json_loads
 from logging import DEBUG, INFO, getLogger
 import os
-from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
+from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 from random import sample
 import re
 from shutil import copyfile, rmtree
@@ -90,7 +90,23 @@ def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
 
-def make_temp_prefix(name=None, use_restricted_unicode=False):
+def _get_temp_prefix(name=None, use_restricted_unicode=False):
+    import conftest
+    if conftest.get_tmpdir():
+        tmpdir = conftest.get_tmpdir()
+    else:
+        tmpdir = gettempdir()
+    if use_restricted_unicode:
+        random_unicode = ''.join(sample(UNICODE_CHARACTERS_RESTRICTED, len(UNICODE_CHARACTERS_RESTRICTED)))
+    else:
+        random_unicode = ''.join(sample(UNICODE_CHARACTERS, len(UNICODE_CHARACTERS)))
+    tmpdir_name = os.environ.get("CONDA_TEST_TMPDIR_NAME",
+                                 (str(uuid4())[:4] + SPACER_CHARACTER + random_unicode) if name is None else name)
+    prefix = join(tmpdir, tmpdir_name)
+    return prefix
+
+
+def make_temp_prefix(name=None, use_restricted_unicode=False, _temp_prefix=None):
     '''
     When the env. you are creating will be used to install Python 2.7 on Windows
     only a restricted amount of Unicode will work, and probably only those chars
@@ -99,17 +115,21 @@ def make_temp_prefix(name=None, use_restricted_unicode=False):
     that the current codepage needs to be able to handle 'sys.prefix' otherwise
     ntpath will fall over.
     '''
+    if not _temp_prefix:
+        _temp_prefix = _get_temp_prefix(name=name,
+                                        use_restricted_unicode=use_restricted_unicode)
+    os.makedirs(_temp_prefix)
+    assert isdir(_temp_prefix)
+    return _temp_prefix
 
-    tempdir = gettempdir()
-    if use_restricted_unicode:
-        random_unicode = ''.join(sample(UNICODE_CHARACTERS_RESTRICTED, len(UNICODE_CHARACTERS_RESTRICTED)))
-    else:
-        random_unicode = ''.join(sample(UNICODE_CHARACTERS, len(UNICODE_CHARACTERS)))
-    dirpath = (str(uuid4())[:4] + SPACER_CHARACTER + random_unicode) if name is None else name
-    prefix = join(tempdir, dirpath)
-    os.makedirs(prefix)
-    assert isdir(prefix)
-    return prefix
+
+def FORCE_temp_prefix(name=None, use_restricted_unicode=False):
+    _temp_prefix = _get_temp_prefix(name=name,
+                                    use_restricted_unicode=use_restricted_unicode)
+    rm_rf(_temp_prefix)
+    os.makedirs(_temp_prefix)
+    assert isdir(_temp_prefix)
+    return _temp_prefix
 
 
 class Commands:
@@ -152,8 +172,6 @@ def run_command(command, prefix, *arguments, **kwargs):
     if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
         arguments.extend(["-y", "-q"])
 
-    # I am not convinced we want to do any list, map, escape_for_winpath stuff here
-    from subprocess import list2cmdline
     arguments.insert(0, command)
     workdir = kwargs.get("workdir")
 
@@ -161,6 +179,8 @@ def run_command(command, prefix, *arguments, **kwargs):
     context._set_argparse_args(args)
     init_loggers(context)
     cap_args = tuple() if not kwargs.get("no_capture") else (None, None)
+    # list2cmdline is not exact, but it is only informational.
+    from subprocess import list2cmdline
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % list2cmdline(arguments), file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         arguments_bytes = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg) for arg in arguments]
@@ -193,7 +213,10 @@ def make_temp_env(*packages, **kwargs):
             run_command(Commands.CREATE, prefix, *packages, **kwargs)
             yield prefix
         finally:
-            rmtree(prefix, ignore_errors=True)
+            if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+                rmtree(prefix, ignore_errors=True)
+            else:
+                log.info('CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {}'.format(prefix))
 
 @contextmanager
 def make_temp_package_cache():
@@ -255,8 +278,8 @@ def make_temp_channel(packages):
         yield channel
 
 def create_temp_location():
-    tempdirdir = gettempdir()
-    dirname = str(uuid4())[:8]
+    tempdirdir = os.environ.get("CONDA_TEST_TMPDIR", gettempdir())
+    dirname = os.environ.get("CONDA_TEST_TMPDIR_NAME", str(uuid4())[:8])
     return join(tempdirdir, dirname)
 
 
@@ -2147,39 +2170,95 @@ class IntegrationTests(TestCase):
         # Note: We were overwriting some *old* conda package with files from this latest
         #       source code. Urgh.
         conda_v = "4.5.13"
-        with make_temp_env("conda="+conda_v, "python=3.6.7", "git", "--copy", name='_' + str(uuid4())[:8]) as prefix:
-            conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
-            result = subprocess_call_with_clean_env("%s --version" % (conda_exe), path=prefix)
-            assert result.rc == 0
-            assert not result.stderr
-            assert result.stdout.startswith("conda ")
-            conda_version = result.stdout.strip()[6:]
-            assert conda_version == conda_v
+        python_v = "3.6.7"
+        with make_temp_env("conda="+conda_v, "python="+python_v, "git", "--copy",
+                           name='_' + 'bananas') as prefix:
+            #         conda_bat = env.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
+            #        conda_exe = env.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))
+            # These are queried, preferentially in `wrap_subprocess_call` so we set them to what is required.
+            conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
 
-            args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
+            # Should we be using conda_dev_srcdir here instead of sys.prefix? Perhaps, but the scripts are
+            # in the wrong location until they get installed (the shell folder). We could copy them I suppose?
+            if on_win:
+                env_var_name = 'CONDA_BAT'
+                # env_var_value = abspath(join(conda_dev_srcdir, 'shell', 'condabin', 'conda.bat'))
+                env_var_value = abspath(join(sys.prefix, 'condabin', 'conda.bat'))
+            else:
+                env_var_name = 'CONDA_EXE'
+                env_var_value = abspath(join(sys.prefix, 'bin', 'conda'))
+            with env_var(env_var_name, env_var_value, conda_tests_ctxt_mgmt_def_pol):
+                conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
+                result = subprocess_call_with_clean_env("%s --version" % (conda_exe), path=prefix)
+                assert result.rc == 0
+                assert not result.stderr
+                assert result.stdout.startswith("conda ")
+                conda_version = result.stdout.strip()[6:]
+                assert conda_version == conda_v
 
-            result, stderr = run_command(Commands.RUN, prefix,
-                                         *args,
-                                         workdir=dirname(CONDA_PACKAGE_ROOT))
+                # When we run `conda run -p prefix python -m conda init` we are explicitly wishing to run the
+                # old Python 3.6.7 in prefix, but against the development sources of conda. Those are found
+                # via `workdir=conda_dev_srcdir`.
 
-            result = subprocess_call_with_clean_env("%s --version" % (conda_exe))
-            assert result.rc == 0
-            assert not result.stderr
-            assert result.stdout.startswith("conda ")
-            conda_version = result.stdout.strip()[6:]
-            assert conda_version == CONDA_VERSION
+                # Before we do that, let's test that the conda we expect to be running in that scenario is the
+                # conda that actually runs (and the same thing for Python)
+                conda__file__, stderr = run_command(Commands.RUN, prefix,
+"python", "-c",
+'''
+import conda, os, sys
+sys.stdout.write(os.path.abspath(conda.__file__))
+''',
+                                               workdir=conda_dev_srcdir)
+                assert dirname(dirname(conda__file__)) == conda_dev_srcdir
 
-            rm_rf(join(prefix, 'conda-meta', 'history'))
+                log.warning("CRITICAL :: CONDA ACTIVATE FAILURE INFORMATION")
+                env_path_etc, errs_etc = run_command(Commands.RUN, prefix,
+'''
+env | sort
+which conda
+cat $(which conda)
+echo $PATH
+conda info
+''', workdir=conda_dev_srcdir)
+                log.warning("CRITICAL :: CONDA ACTIVATE FAILURE INFORMATION")
+                log.warning(env_path_etc)
+                log.warning(errs_etc)
+                log.warning("ENDOFCRITICAL :: CONDA ACTIVATE FAILURE INFORMATION")
 
-            result = subprocess_call_with_clean_env("%s info -a" % (conda_exe))
-            print(result.stdout)
+                python_v2, _ = run_command(Commands.RUN, prefix,
+"python", "-c",
+'''
+import os, sys
+sys.stdout.write(str(sys.version_info[0]) + '.' +
+                 str(sys.version_info[1]) + '.' +
+                 str(sys.version_info[2]))
+''', workdir=conda_dev_srcdir)
+                assert python_v2 == python_v
 
-            if not on_win:
-                # Windows has: Fatal Python error: failed to get random numbers to initialize Python
-                result = subprocess_call("%s install python" % (conda_exe), env={"SHLVL": "1"},
-                                         raise_on_error=False)
-                assert result.rc == 1
-                assert "NoBaseEnvironmentError: This conda installation has no default base environment." in result.stderr
+                args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
+
+                result, stderr = run_command(Commands.RUN, prefix,
+                                             *args,
+                                             workdir=conda_dev_srcdir)
+
+                result = subprocess_call_with_clean_env("%s --version" % conda_exe)
+                assert result.rc == 0
+                assert not result.stderr
+                assert result.stdout.startswith("conda ")
+                conda_version = result.stdout.strip()[6:]
+                assert conda_version == CONDA_VERSION
+
+                rm_rf(join(prefix, 'conda-meta', 'history'))
+
+                result = subprocess_call_with_clean_env("%s info -a" % conda_exe)
+                print(result.stdout)
+
+                if not on_win:
+                    # Windows has: Fatal Python error: failed to get random numbers to initialize Python
+                    result = subprocess_call("%s install python" % (conda_exe), env={"SHLVL": "1"},
+                                             raise_on_error=False)
+                    assert result.rc == 1
+                    assert "NoBaseEnvironmentError: This conda installation has no default base environment." in result.stderr
 
     def test_conda_downgrade(self):
         # Create an environment with the current conda under test, but include an earlier
