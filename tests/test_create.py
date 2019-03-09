@@ -156,6 +156,8 @@ def temp_chdir(target_dir):
 
 def run_command(command, prefix, *arguments, **kwargs):
     use_exception_handler = kwargs.get('use_exception_handler', False)
+    dev = kwargs.get('dev', False)
+    workdir = kwargs.get("workdir")
     arguments = list(arguments)
     p = generate_parser()
 
@@ -170,7 +172,8 @@ def run_command(command, prefix, *arguments, **kwargs):
         arguments.extend(["-y", "-q"])
 
     arguments.insert(0, command)
-    workdir = kwargs.get("workdir")
+    if dev:
+        arguments.insert(1, '--dev')
 
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
@@ -2165,24 +2168,11 @@ class IntegrationTests(TestCase):
         #       source code. Urgh.
         conda_v = "4.5.13"
         python_v = "3.6.7"
-        with make_temp_env("conda="+conda_v, "python="+python_v, "git", "--copy",
-                           name='_' + 'bananas') as prefix:
-            #         conda_bat = env.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
-            #        conda_exe = env.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))
-            # These are queried, preferentially in `wrap_subprocess_call` so we set them to what is required.
+        with make_temp_env(("conda="+conda_v, "python="+python_v, "git", "--copy",
+                           name='_' + str(uuid4())[:8]) as prefix:
             conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
-
-            # Should we be using conda_dev_srcdir here instead of sys.prefix? Perhaps, but the scripts are
-            # in the wrong location until they get installed (the shell folder). We could copy them I suppose?
-            if on_win:
-                env_var_name = 'CONDA_BAT'
-                # env_var_value = abspath(join(conda_dev_srcdir, 'shell', 'condabin', 'conda.bat'))
-                env_var_value = abspath(join(sys.prefix, 'condabin', 'conda.bat'))
-            else:
-                env_var_name = 'CONDA_EXE'
-                env_var_value = abspath(join(sys.prefix, 'bin', 'conda'))
-            with env_var(env_var_name, env_var_value, conda_tests_ctxt_mgmt_def_pol):
-                conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
+            conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
+            with env_var('CONDA_BAT' if on_win else 'CONDA_EXE', conda_exe, conda_tests_ctxt_mgmt_def_pol):
                 result = subprocess_call_with_clean_env("%s --version" % (conda_exe), path=prefix)
                 assert result.rc == 0
                 assert not result.stderr
@@ -2197,43 +2187,28 @@ class IntegrationTests(TestCase):
                 # Before we do that, let's test that the conda we expect to be running in that scenario is the
                 # conda that actually runs (and the same thing for Python)
                 conda__file__, stderr = run_command(Commands.RUN, prefix,
-"python", "-c",
-'''
-import conda, os, sys
-sys.stdout.write(os.path.abspath(conda.__file__))
-''',
-                                               workdir=conda_dev_srcdir)
+                    "python", "-c", dedent(
+                    '''
+                    import conda, os, sys
+                    sys.stdout.write(os.path.abspath(conda.__file__))
+                    '''), dev=True, workdir=conda_dev_srcdir)
                 assert dirname(dirname(conda__file__)) == conda_dev_srcdir
 
-                log.warning("CRITICAL :: CONDA ACTIVATE FAILURE INFORMATION")
-                env_path_etc, errs_etc = run_command(Commands.RUN, prefix,
-'''
-env | sort
-which conda
-cat $(which conda)
-echo $PATH
-conda info
-''', workdir=conda_dev_srcdir)
-                log.warning("CRITICAL :: CONDA ACTIVATE FAILURE INFORMATION")
-                log.warning(env_path_etc)
-                log.warning(errs_etc)
-                log.warning("ENDOFCRITICAL :: CONDA ACTIVATE FAILURE INFORMATION")
-
                 python_v2, _ = run_command(Commands.RUN, prefix,
-"python", "-c",
-'''
-import os, sys
-sys.stdout.write(str(sys.version_info[0]) + '.' +
-                 str(sys.version_info[1]) + '.' +
-                 str(sys.version_info[2]))
-''', workdir=conda_dev_srcdir)
+                    "python", "-c", dedent(
+                    '''
+                    import os, sys
+                    sys.stdout.write(str(sys.version_info[0]) + '.' +
+                                     str(sys.version_info[1]) + '.' +
+                                     str(sys.version_info[2]))
+                    '''), dev=True, workdir=conda_dev_srcdir)
                 assert python_v2 == python_v
 
                 args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
 
                 result, stderr = run_command(Commands.RUN, prefix,
                                              *args,
-                                             workdir=conda_dev_srcdir)
+                                             dev=True, workdir=conda_dev_srcdir)
 
                 result = subprocess_call_with_clean_env("%s --version" % conda_exe)
                 assert result.rc == 0
@@ -2249,7 +2224,7 @@ sys.stdout.write(str(sys.version_info[0]) + '.' +
 
                 if not on_win:
                     # Windows has: Fatal Python error: failed to get random numbers to initialize Python
-                    result = subprocess_call("%s install python" % (conda_exe), env={"SHLVL": "1"},
+                    result = subprocess_call("%s install python" % conda_exe, env={"SHLVL": "1"},
                                              raise_on_error=False)
                     assert result.rc == 1
                     assert "NoBaseEnvironmentError: This conda installation has no default base environment." in result.stderr
