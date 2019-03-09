@@ -2177,7 +2177,7 @@ class IntegrationTests(TestCase):
         #       source code. Urgh.
         conda_v = "4.5.13"
         python_v = "3.6.7"
-        with make_temp_env(("conda="+conda_v, "python="+python_v, "git", "--copy",
+        with make_temp_env("conda="+conda_v, "python="+python_v, "git", "--copy",
                            name='_' + str(uuid4())[:8]) as prefix:
             conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
             conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
