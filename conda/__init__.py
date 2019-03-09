@@ -7,9 +7,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from os.path import dirname
 import sys
+# This hack is from http://kmike.ru/python-with-strings-attached/
+# It is needed ro prevent str() conversion of %r. Against general
+# advice, we return `unicode` from various things on Python 2,
+# in particular the `__repr__` and `__str__` of our exceptions.
+if sys.version_info[0] == 2:
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
 from ._vendor.auxlib.packaging import get_version
-from .common.compat import text_type
+from .common.compat import text_type, iteritems
+
 
 __all__ = (
     "__name__", "__version__", "__author__", "__email__", "__license__", "__summary__", "__url__",
@@ -31,6 +39,10 @@ if os.getenv('CONDA_ROOT') is None:
 
 CONDA_PACKAGE_ROOT = dirname(__file__)
 
+def another_to_unicode(val):
+    if isinstance(val, basestring) and not isinstance(val, unicode):
+        return unicode(val, encoding='utf-8')
+    return val
 
 class CondaError(Exception):
     return_code = 1
@@ -43,23 +55,29 @@ class CondaError(Exception):
         super(CondaError, self).__init__(message)
 
 # If we add __unicode__ to CondaError then we must also add it to all classes that
-# inherit from it if they have their own __repr__ (and may __str__) function.
-#    if sys.version_info[0] > 2:
-    def __repr__(self):
-        return '%s: %s' % (self.__class__.__name__, text_type(self))
-#    else:
-#        def __unicode__(self):
-#            res = u'%s: %s' % (self.__class__.__name__, self.message % self._kwargs)
-#            return res
-#        def __repr__(self):
-#            return self.__unicode__().encode('utf-8')
+# inherit from it if they have their own __repr__ (and maybe __str__) function.
+    if sys.version_info[0] > 2:
+        def __repr__(self):
+            return '%s: %s' % (self.__class__.__name__, text_type(self))
+    else:
+
+        # We must return unicode here.
+        def __unicode__(self):
+            new_kwargs = dict()
+            for k, v in iteritems(self._kwargs):
+                new_kwargs[another_to_unicode(k)] = another_to_unicode(v)
+            new_message = another_to_unicode(self.message)
+            res = '%s: %s' % (self.__class__.__name__, new_message % new_kwargs)
+            return res
+
+        def __repr__(self):
+            return self.__unicode__()
 
     def __str__(self):
+
         try:
-            if sys.version_info[0] == 2:
-                return (self.message % self._kwargs).encode('utf-8')
-            else:
-                return (self.message % self._kwargs)
+            u = self.__unicode__().encode('utf-8')
+            return u
         except Exception:
             debug_message = "\n".join((
                 "class: " + self.__class__.__name__,
@@ -90,10 +108,17 @@ class CondaMultiError(CondaError):
         super(CondaMultiError, self).__init__(None)
 
     def __repr__(self):
-        return '\n'.join(text_type(e)
-                         if isinstance(e, EnvironmentError) and not isinstance(e, CondaError)
-                         else repr(e)
-                         for e in self.errors) + '\n'
+        errs = []
+        for e in self.errors:
+            if isinstance(e, EnvironmentError) and not isinstance(e, CondaError):
+                errs.append(text_type(e))
+            else:
+                # We avoid Python casting this back to a str()
+                # by using e.__repr__() instead of repr(e)
+                # https://github.com/scrapy/cssselect/issues/34
+                errs.append(e.__repr__())
+        res = '\n'.join(errs)
+        return res
 
     def __str__(self):
         return str('\n').join(str(e) for e in self.errors) + str('\n')
