@@ -52,12 +52,14 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     if hasattr(stderr, "decode"): stderr = stderr.decode('utf-8')
     rc = p.returncode
     ACTIVE_SUBPROCESSES.remove(p)
+    if (raise_on_error and rc != 0) or log.isEnabledFor(TRACE):
+        formatted_output = _format_output(command_str, cwd, rc, stdout, stderr)
     if raise_on_error and rc != 0:
-        log.info(_format_output(command_str, cwd, rc, stdout, stderr))
+        log.info(formatted_output)
         raise CalledProcessError(rc, command,
-                                 output=_format_output(command_str, cwd, rc, stdout, stderr))
+                                 output=formatted_output)
     if log.isEnabledFor(TRACE):
-        log.trace(_format_output(command_str, cwd, rc, stdout, stderr))
+        log.trace(formatted_output)
 
     return Response(stdout, stderr, int(rc))
 
