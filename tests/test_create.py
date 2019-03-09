@@ -202,8 +202,16 @@ def run_command(command, prefix, *arguments, **kwargs):
 def make_temp_env(*packages, **kwargs):
     name = kwargs.pop('name', None)
     use_restricted_unicode = kwargs.pop('use_restricted_unicode', False)
-    prefix = kwargs.pop('prefix', None) or make_temp_prefix(name, use_restricted_unicode)
-    assert isdir(prefix), prefix
+
+    prefix = (kwargs.pop('prefix', None) or
+                   _get_temp_prefix(name=name,
+                                    use_restricted_unicode=use_restricted_unicode))
+    clean_prefix = kwargs.pop('clean_prefix', None)
+    if clean_prefix:
+        if os.path.exists(prefix):
+            rm_rf(prefix)
+    if not isdir(prefix):
+        make_temp_prefix(name, use_restricted_unicode, prefix)
     with disable_logger('fetch'), disable_logger('dotupdate'):
         try:
             # try to clear any config that's been set by other tests
