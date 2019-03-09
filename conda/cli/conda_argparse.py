@@ -1012,6 +1012,17 @@ def configure_parser_run(sub_parsers):
     )
 
     p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains"
+             "the root of conda development sources.  This is mainly for use"
+             "during tests where we test new conda source against old Python"
+             "versions.",
+        dest="dev",
+        default=NULL,
+    )
+
+    p.add_argument(
         'executable_call',
         nargs=REMAINDER,
         help="Executable name, with additional arguments to be passed to the executable "
