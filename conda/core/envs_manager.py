@@ -17,8 +17,10 @@ from ..gateways.disk.test import is_conda_environment
 
 log = getLogger(__name__)
 
-
-USER_ENVIRONMENTS_TXT_FILE = expand(join('~', '.conda', 'environments.txt'))
+# If you want to have a better time while testing `conda`, you should set CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE
+# to `/dev/null`.
+USER_ENVIRONMENTS_TXT_FILE = environ.get('CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE',
+                                         expand(join('~', '.conda', 'environments.txt')))
 
 
 def register_env(location):

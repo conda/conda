@@ -92,10 +92,7 @@ def escape_for_winpath(p):
 
 def _get_temp_prefix(name=None, use_restricted_unicode=False):
     import conftest
-    if conftest.get_tmpdir():
-        tmpdir = conftest.get_tmpdir()
-    else:
-        tmpdir = gettempdir()
+    tmpdir = conftest.get_tmpdir() or gettempdir()
     if use_restricted_unicode:
         random_unicode = ''.join(sample(UNICODE_CHARACTERS_RESTRICTED, len(UNICODE_CHARACTERS_RESTRICTED)))
     else:
@@ -278,9 +275,7 @@ def make_temp_channel(packages):
         yield channel
 
 def create_temp_location():
-    tempdirdir = os.environ.get("CONDA_TEST_TMPDIR", gettempdir())
-    dirname = os.environ.get("CONDA_TEST_TMPDIR_NAME", str(uuid4())[:8])
-    return join(tempdirdir, dirname)
+    return _get_temp_prefix()
 
 
 @contextmanager

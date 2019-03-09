@@ -21,6 +21,8 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import yield_lines
 from conda.gateways.disk.update import touch
 
+import pytest
+
 try:
     from unittest.mock import patch
 except ImportError:
@@ -43,6 +45,10 @@ class EnvsManagerUnitTests(TestCase):
         assert not lexists(self.prefix)
 
     def test_register_unregister_location_env(self):
+        if (not os.path.exists(USER_ENVIRONMENTS_TXT_FILE)
+            or USER_ENVIRONMENTS_TXT_FILE == os.devnull):
+            pytest.skip('USER_ENVIRONMENTS_TXT_FILE {} does not exist'.format(USER_ENVIRONMENTS_TXT_FILE))
+
         gascon_location = join(self.prefix, 'gascon')
         touch(join(gascon_location, PREFIX_MAGIC_FILE), mkdir=True)
         assert gascon_location not in list_all_known_prefixes()
