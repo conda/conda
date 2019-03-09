@@ -67,11 +67,11 @@ class CondaError(Exception):
             for k, v in iteritems(self._kwargs):
                 new_kwargs[another_to_unicode(k)] = another_to_unicode(v)
             new_message = another_to_unicode(self.message)
-            res = '%s: %s' % (self.__class__.__name__, new_message % new_kwargs)
+            res = '%s' % (new_message % new_kwargs)
             return res
 
         def __repr__(self):
-            return self.__unicode__()
+            return '%s: %s' % (self.__class__.__name__, self.__unicode__())
 
     def __str__(self):
 

@@ -155,7 +155,7 @@ class ClobberError(CondaError):
 
     def __repr__(self):
         clz_name = "ClobberWarning" if self.path_conflict == PathConflict.warn else "ClobberError"
-        return '%s: %s\n' % (clz_name, text_type(self))
+        return '%s: %s\n' % (clz_name, self)
 
 
 class BasicClobberError(ClobberError):
