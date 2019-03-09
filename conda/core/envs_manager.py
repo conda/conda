@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EACCES
 from logging import getLogger
-from os import environ, listdir
+from os import devnull, environ, listdir
 from os.path import dirname, isdir, isfile, join, normpath
 
 from .prefix_data import PrefixData
@@ -26,7 +26,8 @@ USER_ENVIRONMENTS_TXT_FILE = environ.get('CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE'
 def register_env(location):
     location = normpath(location)
 
-    if "placehold_pl" in location or "skeleton_" in location:
+    if ("placehold_pl" in location or "skeleton_" in location
+       or USER_ENVIRONMENTS_TXT_FILE == devnull):
         # Don't record envs created by conda-build.
         return
 
