@@ -76,8 +76,10 @@ class CondaError(Exception):
     def __str__(self):
 
         try:
-            u = self.__unicode__().encode('utf-8')
-            return u
+            if sys.version_info[0] > 2:
+                return text_type(self.message % self._kwargs)
+            else:
+                return self.__unicode__().encode('utf-8')
         except Exception:
             debug_message = "\n".join((
                 "class: " + self.__class__.__name__,
