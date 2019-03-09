@@ -192,7 +192,7 @@ def run_command(command, prefix, *arguments, **kwargs):
                 else:
                     do_call(args, p)
     print(c.stderr, file=sys.stderr)
-    print(c.stdout, file=sys.stderr)  # Really? not sys.stdout?
+    print(c.stdout, file=sys.stdout)
     if command is Commands.CONFIG:
         reload_config(prefix)
     return c.stdout, c.stderr
