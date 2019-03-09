@@ -4,6 +4,14 @@
 [[ -z $2 ]] && echo "ERROR :: Usage: run_tests.sh test_dir_or_file log_location <keyword>" && exit 2
 [[ ! -d $2 ]] && echo "ERROR :: log_location must be an existing dir" && exit 3
 
+if [[ $(uname) == Darwin ]]; then
+  PF=D
+elif [[ $(uname) == Linux ]]; then
+  PF=L
+else
+  PF=W
+fi
+
 PYVER=$(python -c "
 import os, sys
 sys.stdout.write(str(sys.version_info[0]) + '.' +
@@ -14,13 +22,23 @@ echo "PYVER: ${PYVER}"
 
 # .. if pytest-xdist is installed ..?
 JOBS="-n=8"
-JOBS=""
+JOBS=
 
-_BASETEMP=${HOME}/conda.tmp.${PYVER}
+# This stuff exists to make sure hardlinks
+# get used and shared VM folders do not
+# in *my* dev setup!
+if [[ ${PF} == D ]]; then
+  _BASETEMP=${HOME}/conda.tmp.${PYVER}
+elif [[ ${PF} == L ]]; then
+  _BASETEMP=/opt/conda.tmp.${PYVER}
+else
+  _BASETEMP=${HOME}/conda.tmp.${PYVER}
+fi
+
 rm -rf ${_BASETEMP}
 set -x
 TESTDIR_NO_SLASH=${1////-}
-TESTDIR_LOG_FNAME_BIT=$(echo ${TESTDIR_NO_SLASH} | sed 's|\.py||g')
+TESTDIR_LOG_FNAME_BIT=${PF}-$(echo ${TESTDIR_NO_SLASH} | sed 's|\.py||g')
 KEYWORD=$3
 [[ -n ${KEYWORD} ]] && TESTDIR_LOG_FNAME_BIT="${TESTDIR_LOG_FNAME_BIT}-${KEYWORD}"
 declare -a _EXTRA_ARGS
