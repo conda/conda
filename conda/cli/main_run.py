@@ -23,11 +23,13 @@ def execute(args, parser):
     from conda.gateways.subprocess import _subprocess_clean_env
     _subprocess_clean_env(env, clean_python=True, clean_conda=True)
     process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE, env=env)
-    for line in process.stdout:
-        sys.stdout.write(line.decode('utf-8'))
     stdout, stderr = process.communicate()
     if hasattr(stdout, "decode"): stdout = stdout.decode('utf-8')
     if hasattr(stderr, "decode"): stderr = stderr.decode('utf-8')
+    if stdout:
+        sys.stdout.write(stdout)
+    if stderr:
+        sys.stderr.write(stderr)
     if process.returncode != 0:
         log = getLogger(__name__)
         log.error("Subprocess for 'conda run {}' command failed.  Stderr was:\n{}"
