@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EACCES
 from logging import getLogger
-from os import listdir
+from os import environ, listdir
 from os.path import dirname, isdir, isfile, join, normpath
 
 from .prefix_data import PrefixData

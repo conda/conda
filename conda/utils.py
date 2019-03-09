@@ -237,6 +237,7 @@ def hashsum_file(path, mode='md5'):  # pragma: no cover
             h.update(chunk)
     return h.hexdigest()
 
+from subprocess import list2cmdline
 
 @memoize
 def sys_prefix_unfollowed():
@@ -260,13 +261,42 @@ def sys_prefix_unfollowed():
     return unfollowed
 
 
-def wrap_subprocess_call(on_win, root_prefix, prefix, command):
-    env = environ.copy()
+def quote_for_shell(arguments, shell=None):
+    if not shell:
+        shell = 'cmd.exe' if on_win else 'bash'
+    if shell == 'cmd.exe':
+        return list2cmdline(arguments)
+    else:
+        # If any multiline argument gets mixed with any other argument (which is true if we've
+        # arrived in this function) then we just quote it. This assumes something like:
+        # ['python', '-c', 'a\nmultiline\nprogram\n']
+        # It may make sense to allow specifying a replacement character for '\n' too? e.g. ';'
+        quoted = []
+        # This could all be replaced with some regex wizardry but that is less readable and
+        # for code like this, readability is very important.
+        for arg in arguments:
+            quote = None
+            if '"' in arg:
+                quote = "'"
+            elif "'" in arg:
+                quote = '"'
+            elif (not ' ' in arg and not '\n' in arg):
+                quote = ''
+            else:
+                quote = '"'
+            quoted.append(quote + arg + quote)
+        return ' '.join(quoted)
+
+
+def wrap_subprocess_call(on_win, root_prefix, prefix, arguments):
     tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
+    multiline = False
+    if len(arguments)==1 and '\n' in arguments[0]:
+        multiline = True
     if on_win:
         comspec = environ[str('COMSPEC')]
-        conda_bat = env.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
+        conda_bat = environ.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix,
                                     suffix='.bat', delete=False) as fh:
             fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
@@ -275,19 +305,33 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, command):
             # while helpful for debugging, this gets in the way of running wrapped commands where
             #    we care about the output.
             # fh.write('echo "PATH: %PATH%\n')
-            fh.write("@" + command.encode('utf-8') + '\n')
+            if multiline:
+                # No point silencing the first line. If that's what's wanted then
+                # it needs doing for each line and the caller may as well do that.
+                fh.write(u"{0}\n".format(arguments))
+            else:
+                fh.write("@{0}\n".format(quote_for_shell(arguments)))
             fh.write('@chcp %CONDA_OLD_CHCP%>NUL\n')
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
     else:
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
-        conda_exe = env.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))
-        # If we ditched Python 2, we could use `encoding='utf-8'`
+        conda_exe = environ.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
+            fh.write(u"echo \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n"
+                     .format(conda_exe))
             fh.write(u"eval \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n"
                      .format(conda_exe))
             fh.write(u"conda activate \"{0}\"\n".format(prefix))
-            fh.write(u"{0}".format(command))
+            if multiline:
+                # The ' '.join() is pointless since mutliline is only True when there's 1 arg
+                # still, if that were to change this would prevent breakage.
+                fh.write(u"{0}\n".format(' '.join(arguments)))
+            elif len(arguments)==1:
+
+                fh.write(u"{0}\n".format(arguments))
+            else:
+                fh.write(u"{0}\n".format(quote_for_shell(arguments)))
             script_caller = fh.name
         command_args = [shell_path, "-x", script_caller]
 
