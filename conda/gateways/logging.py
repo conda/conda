@@ -12,10 +12,20 @@ import sys
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
 from ..common.io import attach_stderr_handler
+from ..common.compat import string_types
 
 log = getLogger(__name__)
 TRACE = 5  # TRACE LOG LEVEL
 VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
+
+if sys.version_info[0] == 2:
+    def another_to_unicode(val):
+        if isinstance(val, basestring) and not isinstance(val, unicode):
+            return unicode(val, encoding='utf-8')
+        return val
+else:
+    def another_to_unicode(val):
+        return val
 
 class TokenURLFilter(Filter):
     TOKEN_URL_PATTERN = re.compile(
@@ -41,10 +51,10 @@ class TokenURLFilter(Filter):
         not happening until now.
         '''
 
-        record.msg = self.TOKEN_REPLACE(record.msg)
-        new_args = tuple(self.TOKEN_REPLACE(unicode(arg, encoding='utf-8'))
-                         if not isinstance(arg, unicode)
-                         else self.TOKEN_REPLACE(arg) for arg in record.args)
+        record.msg = another_to_unicode(self.TOKEN_REPLACE(record.msg))
+        new_args = tuple(self.TOKEN_REPLACE(another_to_unicode(arg))
+                        if isinstance(arg, string_types) else arg
+                         for arg in record.args)
         record.msg = record.msg % new_args
         record.args = None
         return True
