@@ -102,7 +102,7 @@ class _Activator(object):
             builder.append(fsrc.read())
         if auto_activate_base is None and context.auto_activate_base or auto_activate_base:
             builder.append("conda activate base\n")
-        return "\n".join(builder)
+        return "\n" + "\n".join(builder)
 
     def execute(self):
         # return value meant to be written to stdout
