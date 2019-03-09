@@ -32,7 +32,21 @@ class TokenURLFilter(Filter):
     TOKEN_REPLACE = partial(TOKEN_URL_PATTERN.sub, r'\1\2\3/t/<TOKEN>/')
 
     def filter(self, record):
+        '''
+        Since Python 2's getMessage() is incapable of handling any
+        strings that are not unicode when it interpolates the message
+        with the arguments, we fix that here by doing it ourselves.
+
+        At the same time we replace tokens in the arguments which was
+        not happening until now.
+        '''
+
         record.msg = self.TOKEN_REPLACE(record.msg)
+        new_args = tuple(self.TOKEN_REPLACE(unicode(arg, encoding='utf-8'))
+                         if not isinstance(arg, unicode)
+                         else self.TOKEN_REPLACE(arg) for arg in record.args)
+        record.msg = record.msg % new_args
+        record.args = None
         return True
 
 
@@ -56,6 +70,7 @@ class StdStreamHandler(StreamHandler):
             return getattr(sys, self.sys_stream)
         return super(StdStreamHandler, self).__getattribute__(attr)
 
+    '''
     def emit(self, record):
         # in contrast to the Python 2.7 StreamHandler, this has no special Unicode handling;
         # however, this backports the Python >=3.2 terminator attribute and additionally makes it
@@ -69,6 +84,65 @@ class StdStreamHandler(StreamHandler):
             stream.write(terminator)
             self.flush()
         except Exception as e:
+            import traceback
+            print(e)
+            tb_list = traceback.extract_tb(sys.exc_info()[2])
+            tb_list = traceback.format_list(tb_list)
+            for elt in tb_list:
+                log.warning("WHATTHE3 :: {}".format(elt))
+            self.handleError(record)
+    '''
+
+    # Taken from Python 2's stdlib.
+    def emit(self, record):
+        """
+        Emit a record.
+
+        If a formatter is specified, it is used to format the record.
+        The record is then written to the stream with a trailing newline.  If
+        exception information is present, it is formatted using
+        traceback.print_exception and appended to the stream.  If the stream
+        has an 'encoding' attribute, it is used to determine how to do the
+        output to the stream.
+        """
+
+        try:
+            unicode
+            _unicode = True
+        except NameError:
+            _unicode = False
+
+        try:
+            msg = self.format(record)
+            stream = self.stream
+            fs = "%s\n"
+            if not _unicode:  # if no unicode support...
+                stream.write(fs % msg)
+            else:
+                try:
+                    if (isinstance(msg, unicode) and
+                            getattr(stream, 'encoding', None)):
+                        ufs = u'%s\n'
+                        try:
+                            stream.write(ufs % msg)
+                        except UnicodeEncodeError:
+                            # Printing to terminals sometimes fails. For example,
+                            # with an encoding of 'cp1251', the above write will
+                            # work if written to a stream opened or wrapped by
+                            # the codecs module, but fail when writing to a
+                            # terminal even when the codepage is set to cp1251.
+                            # An extra encoding step seems to be needed.
+                            stream.write((ufs % msg).encode(stream.encoding))
+                    else:
+                        stream.write(fs % msg)
+                except UnicodeError:
+                    stream.write(fs % msg.encode("UTF-8"))
+            terminator = getattr(record, "terminator", self.terminator)
+            stream.write(terminator)
+            self.flush()
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
             self.handleError(record)
 
 
