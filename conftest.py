@@ -45,7 +45,7 @@ def set_tmpdir(tmpdir):
     if not tmpdir:
         return tmpdir_in_use
     td = tmpdir.strpath
-    print("Setting testing tmpdir (via CONDA_TEST_TMPDIR) to {}".format(td))
+    # print("Setting testing tmpdir (via CONDA_TEST_TMPDIR) to {}".format(td))
     # I do not think setting env. vars so much is sensible, even in tests.
     # .. to make sure this never gets misconstrued for just the dirname. It
     # is the full path to a tmpdir with additions to it by py.test including
