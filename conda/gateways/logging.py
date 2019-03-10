@@ -52,11 +52,12 @@ class TokenURLFilter(Filter):
         '''
 
         record.msg = another_to_unicode(self.TOKEN_REPLACE(record.msg))
-        new_args = tuple(self.TOKEN_REPLACE(another_to_unicode(arg))
-                        if isinstance(arg, string_types) else arg
-                         for arg in record.args)
-        record.msg = record.msg % new_args
-        record.args = None
+        if record.args:
+            new_args = tuple(self.TOKEN_REPLACE(another_to_unicode(arg))
+                            if isinstance(arg, string_types) else arg
+                             for arg in record.args)
+            record.msg = record.msg % new_args
+            record.args = None
         return True
 
 
