@@ -221,6 +221,13 @@ class IntegrationTests(unittest.TestCase):
         """
         create_env(environment_1)
         env_name = 'smoke-gh-254'
+
+        # It might be the case that you need to run this test more than once!
+        try:
+            run_env_command(Commands.ENV_REMOVE, env_name)
+        except:
+            pass
+
         try:
             run_env_command(Commands.ENV_CREATE, 'environment.yml', "-n",
                             env_name)
