@@ -78,7 +78,6 @@ def run_command(command, *arguments, **kwargs):
     stderr = kwargs.pop('stderr', STRING)
     p = generate_parser()
 
-    # I am not convinced we want to do any list, map, escape_for_winpath stuff here
     arguments = list(arguments)
     arguments.insert(0, command)
 
@@ -98,12 +97,6 @@ def run_command(command, *arguments, **kwargs):
             else:
                 return_code = do_call(args, p)
     except Exception as e:
-        import sys, traceback
-        print(e)
-        tb_list = traceback.extract_tb(sys.exc_info()[2])
-        tb_list = traceback.format_list(tb_list)
-        for elt in tb_list:
-            log.warning("WHATTHE2 :: {}".format(elt))
         log.debug("\n  stdout: %s\n  stderr: %s", c.stdout, c.stderr)
         e.stdout, e.stderr = c.stdout, c.stderr
         raise e
