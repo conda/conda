@@ -21,8 +21,9 @@ from conda.common.compat import on_win
 
 
 def pip_subprocess(args, prefix, env=None, cwd=None):
-    script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix,
-                                                       prefix, ' '.join(['pip'] + args))
+    script_caller, command_args = wrap_subprocess_call(
+                                      on_win, context.root_prefix, prefix, False, False, ['pip'] + args
+                                  )
     process = subprocess.Popen(command_args,
                                cwd=cwd or prefix,
                                universal_newlines=True,
