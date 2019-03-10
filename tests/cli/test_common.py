@@ -49,8 +49,9 @@ def test_check_non_admin_enabled_true():
 
 class ConfirmTests(TestCase):
 
-    @patch("sys.stdin.readline", side_effect=('blah\n', 'y\n'))
-    def test_confirm_yn_yes(self, stdin_mock):
+    import StringIO
+    @patch('sys.stdin', StringIO.StringIO('blah\ny\n'))
+    def test_confirm_yn_yes(self):
         args = AttrDict({
             'dry_run': False,
         })
@@ -60,8 +61,8 @@ class ConfirmTests(TestCase):
         assert choice is True
         assert "Invalid choice" in c.stdout
 
-    @patch("sys.stdin.readline", return_value='n\n')
-    def test_confirm_yn_no(self, stdin_mock):
+    @patch('sys.stdin', StringIO.StringIO('n\n'))
+    def test_confirm_yn_no(self):
         args = AttrDict({
             'dry_run': False,
         })
