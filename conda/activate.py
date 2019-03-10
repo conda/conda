@@ -393,7 +393,17 @@ class _Activator(object):
         }
 
     def _get_starting_path_list(self):
-        path = self.environ.get('PATH', '')
+        # For isolation, running the conda test suite *without* env. var. inheritance
+        # every so often is a good idea. We should probably make this a pytest fixture
+        # along with one that tests both hardlink-only and copy-only, but before that
+        # conda's testsuite needs to be a lot faster!
+        clean_paths = {'darwin': '/usr/bin:/bin:/usr/sbin:/sbin',
+                       # You may think 'let us do something more clever here and interpolate
+                       # `%windir%`' but the point here is the the whole env. is cleaned out
+                       'win32': 'C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\'}
+        path = self.environ.get('PATH',
+                                clean_paths[sys.platform] if sys.platform in clean_paths else
+                                '/usr/bin')
         path_split = path.split(os.pathsep)
         if on_win:
             # We used to prepend sys.prefix\Library\bin to PATH on startup but not anymore.

@@ -1144,13 +1144,21 @@ class InteractiveShell(object):
         'cmd.exe': {
             'activator': 'cmd.exe',
             'init_command': 'set "CONDA_SHLVL=" '
-                            '&& @CALL conda\\shell\\condabin\\conda_hook.bat '
-                            '&& set "CONDA_EXE={}"'.format(join(sys.prefix, "Scripts", "conda.exe")),
+                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat '
+                            '&& set "CONDA_EXE={}"'.format(CONDA_PACKAGE_ROOT,
+                                                           join(sys.prefix, "Scripts", "conda.exe")),
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
             'activator': 'csh',
-            'init_command': 'source conda/shell/etc/profile.d/conda.csh',
+            # Trying to use -x with `tcsh` on `macOS` results in some problems:
+            # This error from `PyCharm`:
+            # BrokenPipeError: [Errno 32] Broken pipe (writing to self.proc.stdin).
+            # .. and this one from the `macOS` terminal:
+            # pexpect.exceptions.EOF: End Of File (EOF).
+            # 'args': ('-x',),
+            'init_command': 'set _CONDA_EXE=\"{CPR}/shell/bin/conda\"; '
+                            'source {CPR}/shell/etc/profile.d/conda.csh; '.format(CPR=CONDA_PACKAGE_ROOT),
             'print_env_var': 'echo "$%s"',
         },
         'tcsh': {
@@ -1187,7 +1195,8 @@ class InteractiveShell(object):
             setattr(self, key, value)
         self.activator = activator_map[shell_vals['activator']]()
         self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
-        self.args = self.shells[shell_name].get('args', "")
+        self.args = list(self.shells[base_shell].get('args', []))
+        self.args.extend(self.shells[shell_name].get('args', []))
 
     def __enter__(self):
         from pexpect.popen_spawn import PopenSpawn
