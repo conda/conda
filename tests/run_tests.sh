@@ -28,7 +28,7 @@ JOBS=
 # get used and shared VM folders do not
 # in *my* dev setup!
 if [[ ${PF} == D ]]; then
-  _BASETEMP=${HOME}/conda.tmp.${PYVER}
+  _BASETEMP=/opt/conda.tmp.${PYVER}
 elif [[ ${PF} == L ]]; then
   _BASETEMP=/opt/conda.tmp.${PYVER}
 else
