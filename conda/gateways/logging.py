@@ -121,14 +121,14 @@ class StdStreamHandler(StreamHandler):
         try:
             msg = self.format(record)
             stream = self.stream
-            fs = "%s\n"
+            fs = "%s"
             if not _unicode:  # if no unicode support...
                 stream.write(fs % msg)
             else:
                 try:
                     if (isinstance(msg, unicode) and
                             getattr(stream, 'encoding', None)):
-                        ufs = u'%s\n'
+                        ufs = u'%s'
                         try:
                             stream.write(ufs % msg)
                         except UnicodeEncodeError:
@@ -146,9 +146,10 @@ class StdStreamHandler(StreamHandler):
             terminator = getattr(record, "terminator", self.terminator)
             stream.write(terminator)
             self.flush()
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
+        # How does conda handle Ctrl-C? Find out..
+        # except (KeyboardInterrupt, SystemExit):
+        #     raise
+        except Exception:
             self.handleError(record)
 
 
