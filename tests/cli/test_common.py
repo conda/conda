@@ -11,7 +11,7 @@ from pytest import raises
 from conda._vendor.auxlib.collection import AttrDict
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import check_non_admin
-from conda.common.compat import on_win
+from conda.common.compat import on_win, StringIO
 from conda.common.io import captured, env_var
 from conda.exceptions import CondaSystemExit, DryRunExit, OperationNotAllowed
 
@@ -49,8 +49,7 @@ def test_check_non_admin_enabled_true():
 
 class ConfirmTests(TestCase):
 
-    import StringIO
-    @patch('sys.stdin', StringIO.StringIO('blah\ny\n'))
+    @patch('sys.stdin', StringIO('blah\ny\n'))
     def test_confirm_yn_yes(self):
         args = AttrDict({
             'dry_run': False,
@@ -61,7 +60,7 @@ class ConfirmTests(TestCase):
         assert choice is True
         assert "Invalid choice" in c.stdout
 
-    @patch('sys.stdin', StringIO.StringIO('n\n'))
+    @patch('sys.stdin', StringIO('n\n'))
     def test_confirm_yn_no(self):
         args = AttrDict({
             'dry_run': False,
