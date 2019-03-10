@@ -28,11 +28,15 @@ JOBS=
 # get used and shared VM folders do not
 # in *my* dev setup!
 if [[ ${PF} == D ]]; then
-  _BASETEMP=/opt/conda.tmp.${PYVER}
+  _BASETEMP="--basetemp=/opt/conda.tmp.${PYVER}"
 elif [[ ${PF} == L ]]; then
-  _BASETEMP=/opt/conda.tmp.${PYVER}
+# Has stopped working on linux, fails to mkdir this dir
+# even though it tried to rm -rf it first. Seems racey
+# to be deleting this folder at all.
+#  _BASETEMP="--basetemp=/opt/conda.tmp.${PYVER}"
+  echo "WARNING :: *Not* using `--basetemp=` on Linux, it is likely that hardlinks will not be used."
 else
-  _BASETEMP=${HOME}/conda.tmp.${PYVER}
+  _BASETEMP="--basetemp=${HOME}/conda.tmp.${PYVER}"
 fi
 
 rm -rf ${_BASETEMP}
@@ -55,7 +59,7 @@ CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE=/dev/null \
     ${JOBS} \
     -vvv \
     --durations=0 \
-    --basetemp=${_BASETEMP} \
+    ${_BASETEMP} \
     "${_EXTRA_ARGS[@]}" \
     ${1} 2>&1 \
   > >(tee -a ${LOG}.stdout) 2> >(tee -a ${LOG}.stderr >&2)
