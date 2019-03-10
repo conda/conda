@@ -1017,6 +1017,15 @@ def configure_parser_run(sub_parsers):
     )
 
     p.add_argument(
+        "--debug-wrapper-scripts",
+        action=NullCountAction,
+        help="When this is set, where implemented, the shell wrapper scripts"
+             "will echo to stderr a lot of debugging information.",
+        dest="debug_wrapper_scripts",
+        default=NULL,
+    )
+
+    p.add_argument(
         'executable_call',
         nargs=REMAINDER,
         help="Executable name, with additional arguments to be passed to the executable "

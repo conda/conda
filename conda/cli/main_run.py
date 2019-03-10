@@ -18,7 +18,8 @@ def execute(args, parser):
     prefix = args.prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
     env = os.environ.copy()
 
-    script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix, args.dev, call)
+    script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix,
+                                                       args.dev, args.debug_wrapper_scripts, call)
     env = os.environ.copy()
     from conda.gateways.subprocess import _subprocess_clean_env
     _subprocess_clean_env(env, clean_python=True, clean_conda=True)
