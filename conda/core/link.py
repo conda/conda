@@ -1120,17 +1120,7 @@ def messages(prefix):
         if isfile(path):
             with open(path) as fi:
                 m = fi.read().decode('utf-8')
-                boits = m.encode('utf-8')
-                print(m.encode('utf-8')) #, file=sys.stderr if context.json else sys.stdout)
+                print(m.encode('utf-8'), file=sys.stderr if context.json else sys.stdout)
                 return m
-    except Exception as e:
-        import traceback
-        print(e)
-        tb_list = traceback.extract_tb(sys.exc_info()[2])
-        tb_list = traceback.format_list(tb_list)
-        for elt in tb_list:
-            log.warning("WHATTHE3 :: {}".format(elt))
-        raise e
-
     finally:
         rm_rf(path)
