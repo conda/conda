@@ -288,7 +288,7 @@ def quote_for_shell(arguments, shell=None):
         return ' '.join(quoted)
 
 
-def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, arguments):
+def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments):
     tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
     multiline = False
@@ -324,11 +324,18 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, arguments):
         else:
             conda_exe = [environ.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))]
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
-            # fh.write(u">&2 echo \"$({0})\"\n"
-            #          .format(quote_for_shell(conda_exe+['shell.posix', 'hook'])))
+            hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook'])
+            if debug_wrapper_scripts:
+                fh.write(u">&2 echo '*** environment before ***'\n"
+                         u">&2 env\n")
+                fh.write(u">&2 echo \"$({0})\"\n"
+                         .format(hook_quoted))
             fh.write(u"eval \"$({0})\"\n"
-                     .format(quote_for_shell(conda_exe+['shell.posix', 'hook'])))
+                     .format(hook_quoted))
             fh.write(u"conda activate {0}\n".format(quote_for_shell((prefix,))))
+            if debug_wrapper_scripts:
+                fh.write(u">&2 echo '*** environment after ***'\n"
+                         u">&2 env\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.

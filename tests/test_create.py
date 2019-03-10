@@ -159,6 +159,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     use_exception_handler = kwargs.get('use_exception_handler', False)
     dev = kwargs.get('dev', False)
     workdir = kwargs.get("workdir")
+    debug = kwargs.get("debug_wrapper_scripts", False)
     arguments = list(arguments)
     p = generate_parser()
 
@@ -175,6 +176,8 @@ def run_command(command, prefix, *arguments, **kwargs):
     arguments.insert(0, command)
     if dev:
         arguments.insert(1, '--dev')
+    if debug:
+        arguments.insert(1, '--debug-wrapper-scripts')
 
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
@@ -192,7 +195,7 @@ def run_command(command, prefix, *arguments, **kwargs):
                 else:
                     do_call(args, p)
     print(c.stderr, file=sys.stderr)
-    print(c.stdout, file=sys.stdout)
+    print(c.stdout, file=sys.stderr)
     if command is Commands.CONFIG:
         reload_config(prefix)
     return c.stdout, c.stderr
@@ -1616,9 +1619,11 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
 
+            conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
             # install an "editable" urllib3 that cannot be managed
-            output, err = run_command(Commands.RUN, prefix, "python", "-m", "pip", "install", "-e", "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
-            print(output)
+            output, err = run_command(Commands.RUN, prefix,
+                                      "python", "-m", "pip", "install", "-e",
+                                          "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
             assert isfile(join(prefix, "src", "urllib3", "urllib3", "__init__.py"))
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "urllib3")
