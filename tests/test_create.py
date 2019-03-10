@@ -76,8 +76,10 @@ stderr_log_level(TEST_LOG_LEVEL, 'conda')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
-UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
-UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
+# UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
+# UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
+UNICODE_CHARACTERS = u"12345678abcdef"
+UNICODE_CHARACTERS_RESTRICTED = UNICODE_CHARACTERS
 
 # We basically do not work at all with Unicode on Python 2 still!
 if sys.version_info[0] == 2:
