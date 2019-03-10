@@ -24,8 +24,8 @@ def execute(args, parser):
     _subprocess_clean_env(env, clean_python=True, clean_conda=True)
     process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE, env=env)
     stdout, stderr = process.communicate()
-    if hasattr(stdout, "decode"): stdout = stdout.decode('utf-8', errors='ignore')
-    if hasattr(stderr, "decode"): stderr = stderr.decode('utf-8', errors='ignore')
+    if hasattr(stdout, "decode"): stdout = stdout.decode('utf-8', errors='replace')
+    if hasattr(stderr, "decode"): stderr = stderr.decode('utf-8', errors='replace')
     if stdout:
         sys.stdout.write(stdout)
     if stderr:
