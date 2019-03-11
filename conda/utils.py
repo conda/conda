@@ -301,16 +301,19 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
         conda_bat = environ.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix,
                                     suffix='.bat', delete=False) as fh:
+            if debug_wrapper_scripts:
+                fh.write('echo *** environment before *** 1>&2\n')
+                fh.write('SET 1>&2\n')
             fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
             fh.write('@chcp 65001>NUL\n')
-            fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix).encode('utf-8'))
-            # while helpful for debugging, this gets in the way of running wrapped commands where
-            #    we care about the output.
-            # fh.write('echo "PATH: %PATH%\n')
+            fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix))
+            if debug_wrapper_scripts:
+                fh.write('echo *** environment after *** 1>&2\n')
+                fh.write('SET 1>&2\n')
             if multiline:
                 # No point silencing the first line. If that's what's wanted then
                 # it needs doing for each line and the caller may as well do that.
-                fh.write(u"{0}\n".format(arguments[0]))
+                fh.write("{0}\n".format(arguments[0]))
             else:
                 fh.write("@{0}\n".format(quote_for_shell(arguments)))
             fh.write('@chcp %CONDA_OLD_CHCP%>NUL\n')
