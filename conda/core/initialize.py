@@ -103,7 +103,8 @@ def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt, reve
         if not context.dry_run:
             run_plan_elevated(plan1)
 
-    plan2 = make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt, reverse=reverse)
+    plan2 = make_initialize_plan(conda_prefix, shells, for_user, for_system,
+                                 anaconda_prompt, reverse=reverse)
     run_plan(plan2)
     if not context.dry_run:
         run_plan_elevated(plan2)
@@ -414,7 +415,8 @@ def make_install_plan(conda_prefix):
     return plan
 
 
-def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt, reverse=False):
+def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt,
+                         reverse=False):
     plan = make_install_plan(conda_prefix)
     shells = set(shells)
     if shells & {'bash', 'zsh'}:
@@ -963,16 +965,30 @@ def init_fish_user(target_path, conda_prefix, reverse):
 
     rc_original_content = rc_content
 
+    conda_init_comment = "# commented out by conda initialize"
+    conda_initialize_content = _config_fish_content(conda_prefix)
     if reverse:
-        raise NotImplementedError
-    else:
-        conda_initialize_content = _config_fish_content(conda_prefix)
+        # uncomment any lines that were commented by prior conda init run
+        rc_content = re.sub(
+            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            r"\1",
+            rc_content,
+            flags=re.MULTILINE,
+        )
 
+        # remove any conda init sections added
+        rc_content = re.sub(
+            r"^\s*" + CONDA_INITIALIZE_RE_BLOCK,
+            "",
+            rc_content,
+            flags=re.DOTALL | re.MULTILINE
+        )
+    else:
         if not on_win:
             rc_content = re.sub(
                 r"^[ \t]*?(set -gx PATH ([\'\"]?).*?%s\/bin\2 [^\n]*?\$PATH)"
                 r"" % basename(conda_prefix),
-                r"# \1  # commented out by conda initialize",
+                r"# \1  {}".format(conda_init_comment),
                 rc_content,
                 flags=re.MULTILINE,
             )
@@ -980,13 +996,13 @@ def init_fish_user(target_path, conda_prefix, reverse):
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conf\.d\/conda\.fish.*?)\n"
             r"(conda activate.*?)$",
-            r"# \1  # commented out by conda initialize\n# \2  # commented out by conda initialize",
+            r"# \1  {0}\n# \2  {0}".format(conda_init_comment),
             rc_content,
             flags=re.MULTILINE,
         )
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conda\.d\/conda\.fish.*?)$",
-            r"# \1  # commented out by conda initialize",
+            r"# \1  {}".format(conda_init_comment),
             rc_content,
             flags=re.MULTILINE,
         )
@@ -1159,7 +1175,9 @@ def init_sh_system(target_path, conda_prefix, reverse=False):
     else:
         conda_sh_system_contents = ""
     if reverse:
-        raise NotImplementedError
+        if exists(conda_sh_system_path):
+            os.remove(conda_sh_system_path)
+            return Result.MODIFIED
     else:
         conda_sh_contents = _bashrc_content(conda_prefix, 'posix')
         if conda_sh_system_contents != conda_sh_contents:
@@ -1174,8 +1192,7 @@ def init_sh_system(target_path, conda_prefix, reverse=False):
                 with open(conda_sh_system_path, 'w') as fh:
                     fh.write(conda_sh_contents)
             return Result.MODIFIED
-        else:
-            return Result.NO_CHANGE
+    return Result.NO_CHANGE
 
 
 def _read_windows_registry(target_path):  # pragma: no cover
@@ -1235,8 +1252,8 @@ def init_cmd_exe_registry(target_path, conda_prefix, reverse=False):
 
     hook_path = '"%s"' % join(conda_prefix, 'condabin', 'conda_hook.bat')
     if reverse:
-        # we can't just reset it to None and remove it, because there may be other contents here.  We need to strip
-        #   out our part, and if there's nothing left, remove the key.
+        # we can't just reset it to None and remove it, because there may be other contents here.
+        #   We need to strip out our part, and if there's nothing left, remove the key.
         # Break up string by parts joined with "&"
         autorun_parts = prev_value.split('&')
         new_value = " & ".join(part.strip() for part in autorun_parts if hook_path not in part)
@@ -1323,11 +1340,11 @@ def init_powershell_user(target_path, conda_prefix, reverse):
 
     if reverse:
         profile_content = re.sub(r"\#region conda initialize.*\#endregion",
-               "",
-               profile_content,
-               count=1,
-               flags=re.DOTALL | re.MULTILINE
-            )
+                                 "",
+                                 profile_content,
+                                 count=1,
+                                 flags=re.DOTALL | re.MULTILINE
+                                 )
     else:
         # Find what content we need to add.
         conda_initialize_content = _powershell_profile_content(conda_prefix)
@@ -1335,16 +1352,13 @@ def init_powershell_user(target_path, conda_prefix, reverse):
         if "#region conda initialize" not in profile_content:
             profile_content += "\n{}\n".format(conda_initialize_content)
         else:
-            profile_content = re.sub(
-                r"\#region conda initialize.*\#endregion",
-                "__CONDA_REPLACE_ME_123__",
-                profile_content,
-                count=1,
-                flags=re.DOTALL | re.MULTILINE
-            ).replace(
-                "__CONDA_REPLACE_ME_123__",
-                conda_initialize_content
-            )
+            profile_content = re.sub(r"\#region conda initialize.*\#endregion",
+                                     "__CONDA_REPLACE_ME_123__",
+                                     profile_content,
+                                     count=1,
+                                     flags=re.DOTALL | re.MULTILINE
+                                     ).replace("__CONDA_REPLACE_ME_123__",
+                                               conda_initialize_content)
 
     if profile_content != profile_original_content:
         if context.verbosity:

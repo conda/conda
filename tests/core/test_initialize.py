@@ -860,6 +860,7 @@ class InitializeTests(TestCase):
             print(reversed_content)
             assert reversed_content == expected_reversed_content
 
+    @pytest.mark.skipif(not on_win, reason="win-only test")
     def test_init_cmd_exe_registry(self):
         def _read_windows_registry_mock(target_path, value=None):
             if not value:
@@ -942,8 +943,4 @@ class InitializeTests(TestCase):
             assert content[-1] == '# <<< conda initialize <<<'
 
             init_sh_system(target_path, conda_prefix, reverse=True)
-            with open(target_path) as fh:
-                content = fh.read().strip().splitlines()
-            assert '# >>> conda initialize >>>' not in content
-            assert "# !! Contents within this block are managed by 'conda init' !!" not in content
-            assert '# <<< conda initialize <<<' not in content
+            assert not isfile(target_path)
