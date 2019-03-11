@@ -71,9 +71,10 @@ if on_win:
 
 log = getLogger(__name__)
 
-CONDA_INITIALIZE_RE_BLOCK = (r"^# >>> conda initialize >>>(?:\n|\r\n)"
-                             r"([\s\S]*?)"
-                             r"# <<< conda initialize <<<(?:\n|\r\n)?")
+CONDA_INITIALIZE_RE_BLOCK = (
+    r"^# >>> conda initialize >>>(?:\n|\r\n)"
+    r"([\s\S]*?)"
+    r"# <<< conda initialize <<<(?:\n|\r\n)?")
 
 class Result:
     NEEDS_SUDO = "needs sudo"
@@ -94,7 +95,7 @@ def install(conda_prefix):
     return 0
 
 
-def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt):
+def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt, reverse=False):
     plan1 = []
     if os.getenv('CONDA_PIP_UNINITIALIZED') == 'true':
         plan1 = make_install_plan(conda_prefix)
@@ -102,7 +103,7 @@ def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt):
         if not context.dry_run:
             run_plan_elevated(plan1)
 
-    plan2 = make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt)
+    plan2 = make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt, reverse=reverse)
     run_plan(plan2)
     if not context.dry_run:
         run_plan_elevated(plan2)
@@ -413,7 +414,7 @@ def make_install_plan(conda_prefix):
     return plan
 
 
-def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt):
+def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt, reverse=False):
     plan = make_install_plan(conda_prefix)
     shells = set(shells)
     if shells & {'bash', 'zsh'}:
@@ -425,6 +426,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'target_path': bashrc_path,
                     'conda_prefix': conda_prefix,
                     'shell': 'bash',
+                    'reverse': reverse,
                 },
             })
 
@@ -436,6 +438,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'target_path': zshrc_path,
                     'conda_prefix': conda_prefix,
                     'shell': 'zsh',
+                    'reverse': reverse,
                 },
             })
 
@@ -445,6 +448,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                 'kwargs': {
                     'target_path': '/etc/profile.d/conda.sh',
                     'conda_prefix': conda_prefix,
+                    'reverse': reverse,
                 },
             })
 
@@ -456,16 +460,23 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                 'kwargs': {
                     'target_path': config_fish_path,
                     'conda_prefix': conda_prefix,
+                    'reverse': reverse,
                 },
             })
         if for_system:
             raise NotImplementedError()
 
-    if 'tcsh' in shells:
-        if for_user:
-            raise NotImplementedError()
-        if for_system:
-            raise NotImplementedError()
+    if 'tcsh' in shells and for_user:
+        tcshrc_path = expand(join('~', '.tcshrc'))
+        plan.append({
+            'function': init_sh_user.__name__,
+            'kwargs': {
+                'target_path': tcshrc_path,
+                'conda_prefix': conda_prefix,
+                'shell': 'tcsh',
+                'reverse': reverse,
+            },
+        })
 
     if 'powershell' in shells:
         if for_user:
@@ -498,7 +509,8 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'function': init_powershell_user.__name__,
                     'kwargs': {
                         'target_path': config_path,
-                        'conda_prefix': conda_prefix
+                        'conda_prefix': conda_prefix,
+                        'reverse': reverse,
                     }
                 })
 
@@ -510,6 +522,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'target_path': 'HKEY_CURRENT_USER\\Software\\Microsoft\\'
                                    'Command Processor\\AutoRun',
                     'conda_prefix': conda_prefix,
+                    'reverse': reverse,
                 },
             })
         if for_system:
@@ -519,6 +532,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'target_path': 'HKEY_LOCAL_MACHINE\\Software\\Microsoft\\'
                                    'Command Processor\\AutoRun',
                     'conda_prefix': conda_prefix,
+                    'reverse': reverse,
                 },
             })
             # it would be nice to enable this on a user-level basis, but unfortunately, it is
@@ -536,6 +550,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                 'kwargs': {
                     'target_path': join(conda_prefix, 'condabin', 'Anaconda Prompt.lnk'),
                     'conda_prefix': conda_prefix,
+                    'reverse': reverse,
                 },
             })
             if on_win:
@@ -548,6 +563,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                 'kwargs': {
                     'target_path': join(desktop_dir, "Anaconda Prompt.lnk"),
                     'conda_prefix': conda_prefix,
+                    'reverse': reverse,
                 },
             })
 
@@ -734,10 +750,11 @@ def make_entry_point_exe(target_path, conda_prefix):
     return Result.MODIFIED
 
 
-def install_anaconda_prompt(target_path, conda_prefix):
+def install_anaconda_prompt(target_path, conda_prefix, reverse):
     # target_path: join(conda_prefix, 'condabin', 'Anaconda Prompt.lnk')
     # target: join(os.environ["HOMEPATH"], "Desktop", "Anaconda Prompt.lnk")
     icon_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda_icon.ico')
+    target = join(os.environ["HOMEPATH"], "Desktop", "Anaconda Prompt.lnk")
 
     args = (
         '/K',
@@ -747,6 +764,7 @@ def install_anaconda_prompt(target_path, conda_prefix):
     # The API for the call to 'create_shortcut' has 3
     # required arguments (path, description, filename)
     # and 4 optional ones (args, working_dir, icon_path, icon_index).
+    result = Result.NO_CHANGE
     if not context.dry_run:
         create_shortcut(
             "%windir%\\System32\\cmd.exe",
@@ -756,8 +774,12 @@ def install_anaconda_prompt(target_path, conda_prefix):
             '' + expanduser('~'),
             '' + icon_path,
         )
-    # TODO: need to make idempotent / support NO_CHANGE
-    return Result.MODIFIED
+        result = Result.MODIFIED
+    if reverse:
+        if os.path.isfile(target):
+            os.remove(target)
+            result = Result.MODIFIED
+    return result
 
 
 def _install_file(target_path, file_content):
@@ -932,7 +954,7 @@ def _config_fish_content(conda_prefix):
     return conda_initialize_content
 
 
-def init_fish_user(target_path, conda_prefix):
+def init_fish_user(target_path, conda_prefix, reverse):
     # target_path: ~/.config/config.fish
     user_rc_path = target_path
 
@@ -941,43 +963,46 @@ def init_fish_user(target_path, conda_prefix):
 
     rc_original_content = rc_content
 
-    conda_initialize_content = _config_fish_content(conda_prefix)
+    if reverse:
+        raise NotImplementedError
+    else:
+        conda_initialize_content = _config_fish_content(conda_prefix)
 
-    if not on_win:
+        if not on_win:
+            rc_content = re.sub(
+                r"^[ \t]*?(set -gx PATH ([\'\"]?).*?%s\/bin\2 [^\n]*?\$PATH)"
+                r"" % basename(conda_prefix),
+                r"# \1  # commented out by conda initialize",
+                rc_content,
+                flags=re.MULTILINE,
+            )
+
         rc_content = re.sub(
-            r"^[ \t]*?(set -gx PATH ([\'\"]?).*?%s\/bin\2 [^\n]*?\$PATH)"
-            r"" % basename(conda_prefix),
+            r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conf\.d\/conda\.fish.*?)\n"
+            r"(conda activate.*?)$",
+            r"# \1  # commented out by conda initialize\n# \2  # commented out by conda initialize",
+            rc_content,
+            flags=re.MULTILINE,
+        )
+        rc_content = re.sub(
+            r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conda\.d\/conda\.fish.*?)$",
             r"# \1  # commented out by conda initialize",
             rc_content,
             flags=re.MULTILINE,
         )
 
-    rc_content = re.sub(
-        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conf\.d\/conda\.fish.*?)\n"
-        r"(conda activate.*?)$",
-        r"# \1  # commented out by conda initialize\n# \2  # commented out by conda initialize",
-        rc_content,
-        flags=re.MULTILINE,
-    )
-    rc_content = re.sub(
-        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conda\.d\/conda\.fish.*?)$",
-        r"# \1  # commented out by conda initialize",
-        rc_content,
-        flags=re.MULTILINE,
-    )
+        replace_str = "__CONDA_REPLACE_ME_123__"
+        rc_content = re.sub(
+            CONDA_INITIALIZE_RE_BLOCK,
+            replace_str,
+            rc_content,
+            flags=re.MULTILINE,
+        )
+        # TODO: maybe remove all but last of replace_str, if there's more than one occurrence
+        rc_content = rc_content.replace(replace_str, conda_initialize_content)
 
-    replace_str = "__CONDA_REPLACE_ME_123__"
-    rc_content = re.sub(
-        CONDA_INITIALIZE_RE_BLOCK,
-        replace_str,
-        rc_content,
-        flags=re.MULTILINE,
-    )
-    # TODO: maybe remove all but last of replace_str, if there's more than one occurrence
-    rc_content = rc_content.replace(replace_str, conda_initialize_content)
-
-    if "# >>> conda initialize >>>" not in rc_content:
-        rc_content += '\n%s\n' % conda_initialize_content
+        if "# >>> conda initialize >>>" not in rc_content:
+            rc_content += '\n%s\n' % conda_initialize_content
 
     if rc_content != rc_original_content:
         if context.verbosity:
@@ -1031,7 +1056,7 @@ def _bashrc_content(conda_prefix, shell):
     return conda_initialize_content
 
 
-def init_sh_user(target_path, conda_prefix, shell):
+def init_sh_user(target_path, conda_prefix, shell, reverse=False):
     # target_path: ~/.bash_profile
     user_rc_path = target_path
 
@@ -1041,57 +1066,75 @@ def init_sh_user(target_path, conda_prefix, shell):
     rc_original_content = rc_content
 
     conda_initialize_content = _bashrc_content(conda_prefix, shell)
+    conda_init_comment = "# commented out by conda initialize"
 
-    if not on_win:
+    if reverse:
+        # uncomment any lines that were commented by prior conda init run
         rc_content = re.sub(
-            r"^[ \t]*?(export PATH=[\'\"].*?%s\/bin:\$PATH[\'\"])"
-            r"" % basename(conda_prefix),
-            r"# \1  # commented out by conda initialize",
+            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            r"\1",
             rc_content,
             flags=re.MULTILINE,
         )
 
-    rc_content = re.sub(
-        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)\n"
-        r"(conda activate.*?)$",
-        r"# \1  # commented out by conda initialize\n# \2  # commented out by conda initialize",
-        rc_content,
-        flags=re.MULTILINE,
-    )
-    rc_content = re.sub(
-        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)$",
-        r"# \1  # commented out by conda initialize",
-        rc_content,
-        flags=re.MULTILINE,
-    )
-
-    if on_win:
+        # remove any conda init sections added
         rc_content = re.sub(
-            r"^[ \t]*^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*Scripts[/\\]activate.*?)$",
-            r"# \1  # commented out by conda initialize",
+            r"^\s*" + CONDA_INITIALIZE_RE_BLOCK,
+            "",
             rc_content,
-            flags=re.MULTILINE,
+            flags=re.DOTALL | re.MULTILINE
         )
     else:
+        if not on_win:
+            rc_content = re.sub(
+                r"^[ \t]*?(export PATH=[\'\"].*?%s\/bin:\$PATH[\'\"])"
+                r"" % basename(conda_prefix),
+                r"# \1  {}".format(conda_init_comment),
+                rc_content,
+                flags=re.MULTILINE,
+            )
+
         rc_content = re.sub(
-            r"^[ \t]*^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*bin/activate.*?)$",
-            r"# \1  # commented out by conda initialize",
+            r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)\n"
+            r"(conda activate.*?)$",
+            r"# \1  {0}\n# \2  {0}".format(conda_init_comment),
+            rc_content,
+            flags=re.MULTILINE,
+        )
+        rc_content = re.sub(
+            r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)$",
+            r"# \1  {}".format(conda_init_comment),
             rc_content,
             flags=re.MULTILINE,
         )
 
-    replace_str = "__CONDA_REPLACE_ME_123__"
-    rc_content = re.sub(
-        CONDA_INITIALIZE_RE_BLOCK,
-        replace_str,
-        rc_content,
-        flags=re.MULTILINE,
-    )
-    # TODO: maybe remove all but last of replace_str, if there's more than one occurrence
-    rc_content = rc_content.replace(replace_str, conda_initialize_content)
+        if on_win:
+            rc_content = re.sub(
+                r"^[ \t]*^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*Scripts[/\\]activate.*?)$",
+                r"# \1  # commented out by conda initialize",
+                rc_content,
+                flags=re.MULTILINE,
+            )
+        else:
+            rc_content = re.sub(
+                r"^[ \t]*^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*bin/activate.*?)$",
+                r"# \1  # commented out by conda initialize",
+                rc_content,
+                flags=re.MULTILINE,
+            )
 
-    if "# >>> conda initialize >>>" not in rc_content:
-        rc_content += '\n%s\n' % conda_initialize_content
+        replace_str = "__CONDA_REPLACE_ME_123__"
+        rc_content = re.sub(
+            CONDA_INITIALIZE_RE_BLOCK,
+            replace_str,
+            rc_content,
+            flags=re.MULTILINE,
+        )
+        # TODO: maybe remove all but last of replace_str, if there's more than one occurrence
+        rc_content = rc_content.replace(replace_str, conda_initialize_content)
+
+        if "# >>> conda initialize >>>" not in rc_content:
+            rc_content += '\n%s\n' % conda_initialize_content
 
     if rc_content != rc_original_content:
         if context.verbosity:
@@ -1106,7 +1149,7 @@ def init_sh_user(target_path, conda_prefix, shell):
         return Result.NO_CHANGE
 
 
-def init_sh_system(target_path, conda_prefix):
+def init_sh_system(target_path, conda_prefix, reverse=False):
     # target_path: '/etc/profile.d/conda.sh'
     conda_sh_system_path = target_path
 
@@ -1115,21 +1158,24 @@ def init_sh_system(target_path, conda_prefix):
             conda_sh_system_contents = fh.read()
     else:
         conda_sh_system_contents = ""
-    conda_sh_contents = _bashrc_content(conda_prefix, 'posix')
-    if conda_sh_system_contents != conda_sh_contents:
-        if context.verbosity:
-            print('\n')
-            print(target_path)
-            print(make_diff(conda_sh_contents, conda_sh_system_contents))
-        if not context.dry_run:
-            if lexists(conda_sh_system_path):
-                rm_rf(conda_sh_system_path)
-            mkdir_p(dirname(conda_sh_system_path))
-            with open(conda_sh_system_path, 'w') as fh:
-                fh.write(conda_sh_contents)
-        return Result.MODIFIED
+    if reverse:
+        raise NotImplementedError
     else:
-        return Result.NO_CHANGE
+        conda_sh_contents = _bashrc_content(conda_prefix, 'posix')
+        if conda_sh_system_contents != conda_sh_contents:
+            if context.verbosity:
+                print('\n')
+                print(target_path)
+                print(make_diff(conda_sh_contents, conda_sh_system_contents))
+            if not context.dry_run:
+                if lexists(conda_sh_system_path):
+                    rm_rf(conda_sh_system_path)
+                mkdir_p(dirname(conda_sh_system_path))
+                with open(conda_sh_system_path, 'w') as fh:
+                    fh.write(conda_sh_contents)
+            return Result.MODIFIED
+        else:
+            return Result.NO_CHANGE
 
 
 def _read_windows_registry(target_path):  # pragma: no cover
@@ -1178,7 +1224,7 @@ def _write_windows_registry(target_path, value_value, value_type):  # pragma: no
         winreg.CloseKey(key)
 
 
-def init_cmd_exe_registry(target_path, conda_prefix):
+def init_cmd_exe_registry(target_path, conda_prefix, reverse=False):
     # HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor\AutoRun
     # HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun
 
@@ -1188,20 +1234,27 @@ def init_cmd_exe_registry(target_path, conda_prefix):
         value_type = winreg.REG_EXPAND_SZ
 
     hook_path = '"%s"' % join(conda_prefix, 'condabin', 'conda_hook.bat')
-    replace_str = "__CONDA_REPLACE_ME_123__"
-    new_value = re.sub(
-        r'(\"[^\"]*?conda[-_]hook\.bat\")',
-        replace_str,
-        prev_value,
-        count=1,
-        flags=re.IGNORECASE | re.UNICODE,
-    )
-    new_value = new_value.replace(replace_str, hook_path)
-    if hook_path not in new_value:
-        if new_value:
-            new_value += ' & ' + hook_path
-        else:
-            new_value = hook_path
+    if reverse:
+        # we can't just reset it to None and remove it, because there may be other contents here.  We need to strip
+        #   out our part, and if there's nothing left, remove the key.
+        # Break up string by parts joined with "&"
+        autorun_parts = prev_value.split('&')
+        new_value = " & ".join(part.strip() for part in autorun_parts if hook_path not in part)
+    else:
+        replace_str = "__CONDA_REPLACE_ME_123__"
+        new_value = re.sub(
+            r'(\"[^\"]*?conda[-_]hook\.bat\")',
+            replace_str,
+            prev_value,
+            count=1,
+            flags=re.IGNORECASE | re.UNICODE,
+        )
+        new_value = new_value.replace(replace_str, hook_path)
+        if hook_path not in new_value:
+            if new_value:
+                new_value += ' & ' + hook_path
+            else:
+                new_value = hook_path
 
     if prev_value != new_value:
         if context.verbosity:
@@ -1252,7 +1305,7 @@ def _powershell_profile_content(conda_prefix):
 
     return conda_powershell_module
 
-def init_powershell_user(target_path, conda_prefix):
+def init_powershell_user(target_path, conda_prefix, reverse):
     # target_path: $PROFILE
     profile_path = target_path
 
@@ -1266,24 +1319,32 @@ def init_powershell_user(target_path, conda_prefix):
 
     profile_original_content = profile_content
 
-    # Find what content we need to add.
-    conda_initialize_content = _powershell_profile_content(conda_prefix)
-
     # TODO: comment out old ipmos and Import-Modules.
 
-    if "#region conda initialize" not in profile_content:
-        profile_content += "\n{}\n".format(conda_initialize_content)
+    if reverse:
+        profile_content = re.sub(r"\#region conda initialize.*\#endregion",
+               "",
+               profile_content,
+               count=1,
+               flags=re.DOTALL | re.MULTILINE
+            )
     else:
-        re.sub(
-            r"\#region conda initialize.*\#endregion",
-            "__CONDA_REPLACE_ME_123__",
-            profile_content,
-            count=1,
-            flags=re.DOTALL | re.MULTILINE
-        ).replace(
-            "__CONDA_REPLACE_ME_123__",
-            conda_initialize_content
-        )
+        # Find what content we need to add.
+        conda_initialize_content = _powershell_profile_content(conda_prefix)
+
+        if "#region conda initialize" not in profile_content:
+            profile_content += "\n{}\n".format(conda_initialize_content)
+        else:
+            profile_content = re.sub(
+                r"\#region conda initialize.*\#endregion",
+                "__CONDA_REPLACE_ME_123__",
+                profile_content,
+                count=1,
+                flags=re.DOTALL | re.MULTILINE
+            ).replace(
+                "__CONDA_REPLACE_ME_123__",
+                conda_initialize_content
+            )
 
     if profile_content != profile_original_content:
         if context.verbosity:
