@@ -10,7 +10,7 @@ import sys
 
 from ._vendor.auxlib.decorators import memoize
 from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
-from .common.compat import on_win
+from .common.compat import on_win, isiterable
 
 from .common.path import win_path_to_unix
 from .common.url import path_to_url
@@ -292,6 +292,8 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
     tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
     multiline = False
+    if not isiterable(arguments):
+        arguments = (arguments,)
     if len(arguments)==1 and '\n' in arguments[0]:
         multiline = True
     if on_win:

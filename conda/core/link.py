@@ -998,6 +998,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             """) % prec.dist_str())
 
     script_caller = None
+    from conda.utils import quote_for_shell
     if on_win:
         try:
             comspec = os.environ[str('COMSPEC')]
@@ -1005,18 +1006,16 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             log.info("failed to run %s for %s due to COMSPEC KeyError", action, prec.dist_str())
             return False
         if activate:
-            command = '@CALL \"{0}\"\n'.format(path)
             script_caller, command_args = wrap_subprocess_call(
-                on_win, context.root_prefix, prefix, False, False, command
+                on_win, context.root_prefix, prefix, False, False, ('@CALL', path)
             )
         else:
             command_args = [comspec, '/d', '/c', path]
     else:
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
         if activate:
-            command = ". \"{}\"\n".format(path)
             script_caller, command_args = wrap_subprocess_call(
-                on_win, context.root_prefix, prefix, False, False, command
+                on_win, context.root_prefix, prefix, False, False, (".", path)
             )
         else:
             shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
@@ -1070,7 +1069,8 @@ def messages(prefix):
     try:
         if isfile(path):
             with open(path) as fi:
-                m = fi.read().decode('utf-8')
+                m = fi.read()
+                if hasattr(m, "decode"): m = m.decode('utf-8')
                 print(m.encode('utf-8'), file=sys.stderr if context.json else sys.stdout)
                 return m
     finally:
