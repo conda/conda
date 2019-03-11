@@ -1204,12 +1204,15 @@ class InteractiveShell(object):
         # remove all CONDA_ env vars
         # this ensures that PATH is shared with any msys2 bash shell, rather than starting fresh
         os.environ["MSYS2_PATH_TYPE"] = "inherit"
+        os.environ["CHERE_INVOKING"] = "1"
         env = {str(k): str(v) for k, v in iteritems(os.environ)}
         remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
         for var_name in remove_these:
             del env[var_name]
-
-        p = PopenSpawn("{} {}".format(self.shell_name, self.args) if self.args else self.shell_name,
+        # WSL gets in the way (even when MSYS2 is at the front of PATH)
+        shell_name = self.shell_name
+#        shell_name = "C:\\opt\\conda\\Library\\usr\\bin\\bash.exe"
+        p = PopenSpawn("{} {}".format(shell_name, self.args) if self.args else shell_name,
                        timeout=12, maxread=2000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
                        codec_errors='strict')
@@ -1594,8 +1597,12 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '0\r')
 
     @pytest.mark.skipif(not which('bash'), reason='bash not installed')
+    @pytest.mark.skipif(on_win and not which('bash').startswith(sys.prefix), reason='bash not installed in {}'.format(sys.prefix))
     def test_bash_activate_error(self):
         with InteractiveShell('bash') as shell:
+            if on_win:
+                shell.sendline("uname -o")
+                shell.expect('Msys|Cygwin')
             shell.sendline("conda activate environment-not-found-doesnt-exist")
             shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
             shell.assert_env_var('CONDA_SHLVL', '0')
