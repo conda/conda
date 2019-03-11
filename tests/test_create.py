@@ -230,7 +230,7 @@ def make_temp_env(*packages, **kwargs):
             if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
                 rmtree(prefix, ignore_errors=True)
             else:
-                log.info('CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {}'.format(prefix))
+                log.warning('CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {}'.format(prefix))
 
 @contextmanager
 def make_temp_package_cache():

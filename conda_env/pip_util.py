@@ -37,7 +37,7 @@ def pip_subprocess(args, prefix, env=None, cwd=None):
         if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
             rm_rf(script_caller)
         else:
-            log.info('CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {}'.format(script_caller))
+            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {}'.format(script_caller))
     if process.returncode != 0:
         raise CondaEnvException("Pip subcommand failed with \n"
                                 "output: {}\nerror: {}".format(stdout, stderr))
