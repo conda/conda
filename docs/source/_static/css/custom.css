@@ -1,0 +1,83 @@
+@import url("theme.css");
+
+.wy-nav-content {
+    padding: 1.618em 3.236em;
+    height: 100%;
+    max-width: 1500px;
+    /* max-width: 800px; */
+    margin: auto;
+    background-color: #ffffff;
+}
+
+.wy-side-nav-search {
+    /*background color of the top search bar*/
+    background-color: #43B02A;
+}
+
+.wy-nav-side {
+/* This relates to the entire color of the sidebar */
+   background-color:#EEEEEE;
+}
+
+.wy-menu a:hover {
+    /*background color of text upon hovering*/
+    background: #c9c9c9
+}
+
+.wy-menu-vertical li.on a:hover,.wy-menu-vertical li.current>a:hover {
+    /*background color of text upon hovering an open list*/
+    background: #c9c9c9
+}
+
+.wy-menu-vertical {
+    /* text color of expanded menu items in the sidebar */
+    color:#414042;
+}
+
+.section h1 {
+    /*header 1 text color */
+    color: #047704;
+ }
+  
+.rst-content .toctree-wrapper p.caption, h2, h3, h4, h5, h6, legend {
+    /*text color of rst content and subheads*/
+    color: #414042;
+}
+
+.wy-menu-vertical a {
+    /* Text color of toc */
+    color: #025C02;
+}
+
+.wy-nav-content-wrap {
+    /* background color of wrap around main content*/
+    background-color: white;
+}
+
+.section-title {
+    /*text color of section titles*/
+    color:#078E07;
+}
+
+.rst-content pre.literal-block, .rst-content div[class^='highlight'] pre, .rst-content .linenodiv pre {
+    /*color of code blocks*/
+    background-color: #EEEEEE
+}
+
+h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend {
+    /*font formats*/
+    font-family: "Proxima Nova","Helvetica","Arial",sans-serif;
+}
+.wy-menu-vertical li.toctree-l1.current>a {
+    /*text color of toctree*/
+    color: #025C02;
+}
+
+.toctree-l1:hover {
+    background-color: #EEEEEE;
+}
+
+.wy-nav-top {
+    /*color of nav at top when the window is narrow*/
+    background: #43B02A;
+}
