@@ -9,6 +9,7 @@ NOTE: This modules used to in conda, as conda/pip.py
 from __future__ import absolute_import, print_function
 
 import json
+from logging import getLogger
 import os
 import re
 import subprocess
@@ -18,6 +19,9 @@ from conda.base.context import context
 from conda.utils import wrap_subprocess_call
 from conda.gateways.disk.delete import rm_rf
 from conda.common.compat import on_win
+
+
+log = getLogger(__name__)
 
 
 def pip_subprocess(args, prefix, env=None, cwd=None):
@@ -30,7 +34,10 @@ def pip_subprocess(args, prefix, env=None, cwd=None):
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     stdout, stderr = process.communicate()
     if script_caller is not None:
-        rm_rf(script_caller)
+        if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+            rm_rf(script_caller)
+        else:
+            log.info('CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {}'.format(script_caller))
     if process.returncode != 0:
         raise CondaEnvException("Pip subcommand failed with \n"
                                 "output: {}\nerror: {}".format(stdout, stderr))
