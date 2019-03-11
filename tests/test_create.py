@@ -260,7 +260,6 @@ def make_temp_channel(packages):
         run_command(Commands.REMOVE, prefix, *package_names)
         for package in packages:
             assert not package_is_installed(prefix, package.replace('-', '='))
-        assert package_is_installed(prefix, 'python')
 
     repodata = {'info': {}, 'packages': {}}
     tarfiles = {}
