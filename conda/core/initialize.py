@@ -1339,7 +1339,7 @@ def init_powershell_user(target_path, conda_prefix, reverse):
     # TODO: comment out old ipmos and Import-Modules.
 
     if reverse:
-        profile_content = re.sub(r"\#region conda initialize.*\#endregion",
+        profile_content = re.sub(r"\s*\#region conda initialize.*\#endregion",
                                  "",
                                  profile_content,
                                  count=1,
