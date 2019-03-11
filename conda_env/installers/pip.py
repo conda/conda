@@ -52,7 +52,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
             if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
                 os.remove(requirements.name)
             else:
-                log.info('CONDA_TEST_SAVE_TEMPS :: retaining pip requirements.txt {}'.format(requirements.name))
+                log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip requirements.txt {}'.format(requirements.name))
 
 
 
