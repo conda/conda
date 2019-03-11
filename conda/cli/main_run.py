@@ -40,4 +40,4 @@ def execute(args, parser):
             rm_rf(script_caller)
         else:
             log = getLogger(__name__)
-            log.info('CONDA_TEST_SAVE_TEMPS :: retaining main_run script_caller {}'.format(script_caller))
+            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining main_run script_caller {}'.format(script_caller))
