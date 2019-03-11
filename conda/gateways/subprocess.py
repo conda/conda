@@ -48,8 +48,8 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     ACTIVE_SUBPROCESSES.add(p)
     stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
     stdout, stderr = p.communicate(input=stdin)
-    if hasattr(stdout, "decode"): stdout = stdout.decode('utf-8')
-    if hasattr(stderr, "decode"): stderr = stderr.decode('utf-8')
+    if hasattr(stdout, "decode"): stdout = stdout.decode('utf-8', errors='replace')
+    if hasattr(stderr, "decode"): stderr = stderr.decode('utf-8', errors='replace')
     rc = p.returncode
     ACTIVE_SUBPROCESSES.remove(p)
     if (raise_on_error and rc != 0) or log.isEnabledFor(TRACE):

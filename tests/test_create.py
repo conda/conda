@@ -777,7 +777,6 @@ class IntegrationTests(TestCase):
                 os.makedirs(conda_bld_sub)
             tar_bld_path = join(conda_bld_sub, basename(tar_path))
             copyfile(tar_path, tar_bld_path)
-            # CondaFileNotFoundError: '/home/travis/virtualenv/python2.7.9/conda-bld/linux-64/flask-0.10.1-py27_2.tar.bz2'.
             run_command(Commands.INSTALL, prefix, tar_bld_path)
             assert package_is_installed(prefix, 'flask')
 
@@ -1627,7 +1626,7 @@ class IntegrationTests(TestCase):
                                       "python", "-m", "pip", "install", "-e",
                                           "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
                                       workdir=conda_dev_srcdir)
-            assert isfile(join(prefix, "src", "urllib3", "urllib3", "__init__.py"))
+            assert isfile(join(conda_dev_srcdir, "src", "urllib3", "urllib3", "__init__.py"))
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "urllib3")
             urllib3_record = next(PrefixData(prefix).query("urllib3"))
@@ -2333,7 +2332,7 @@ class IntegrationTests(TestCase):
     def test_post_link_run_in_env(self):
         test_pkg = '_conda_test_env_activated_when_post_link_executed'
         # a non-unicode name must be provided here as activate.d scripts
-        # are not execuated on windows, see https://github.com/conda/conda/issues/8241
+        # are not executed on windows, see https://github.com/conda/conda/issues/8241
         with make_temp_env(test_pkg, '-c', 'conda-test') as prefix:
             assert package_is_installed(prefix, test_pkg)
 
