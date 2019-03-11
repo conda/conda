@@ -18,6 +18,7 @@ from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
+from tests.test_utils import is_prefix_activated_PATHwise
 
 
 def disable_dotlog():
@@ -83,6 +84,14 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'flask=1.0.2')
                 assert not package_is_installed(prefix, 'flask=0.12.2')
 
+
+    # This test will not run from an unactivated conda in an IDE. You *will* get complaints about being unable
+    # to load the SSL module. Never try to test conda from outside an activated env. Maybe this should be a
+    # session fixture with autouse=True so we just refuse to run the testsuite in that case?!
+    @pytest.mark.skipif(not is_prefix_activated_PATHwise(),
+                        reason="You are running `pytest` outside of proper activation. "
+                               "The entries necessary for conda to operate correctly "
+                               "are not on PATH.  Please use `conda activate`")
     def test_create_advanced_pip(self):
         with make_temp_envs_dir() as envs_dir:
             with env_vars({
@@ -94,7 +103,7 @@ class IntegrationTests(TestCase):
                 python_path = join(prefix, PYTHON_BINARY)
 
                 run_command(Commands.CREATE, env_name,
-                            support_file('advanced-pip/environment.yml'))
+                            support_file(join('advanced-pip', 'environment.yml')))
                 assert exists(python_path)
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, 'argh', pip=True)
