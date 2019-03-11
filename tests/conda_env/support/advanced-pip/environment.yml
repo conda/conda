@@ -24,6 +24,6 @@ dependencies:
     # Use another requirements file.
     # Note that here also we can use relative paths.
     # pip will be run from the environment file directory, if provided.
-    - -r another-project-requirements.txt
+    - -r file:another-project-requirements.txt
 
     # Anything else that pip requirement files allows should work seamlessly...
