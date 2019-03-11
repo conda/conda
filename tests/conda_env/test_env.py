@@ -13,6 +13,8 @@ from conda.install import on_win
 
 from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
+from tests.test_utils import is_prefix_activated_PATHwise
+
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 
@@ -352,6 +354,13 @@ class EnvironmentSaveTestCase(unittest.TestCase):
 
 
 class SaveExistingEnvTestCase(unittest.TestCase):
+    # This test will not run from an unactivated conda in an IDE. You *will* get complaints about being unable
+    # to load the SSL module. Never try to test conda from outside an activated env. Maybe this should be a
+    # session fixture with autouse=True so we just refuse to run the testsuite in that case?!
+    @unittest.skipIf(not is_prefix_activated_PATHwise(),
+                      "You are running `pytest` outside of proper activation. "
+                      "The entries necessary for conda to operate correctly "
+                      "are not on PATH.  Please use `conda activate`")
     def test_create_advanced_pip(self):
         with make_temp_envs_dir() as envs_dir:
             with env_vars({

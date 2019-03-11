@@ -1213,7 +1213,7 @@ class InteractiveShell(object):
         shell_name = self.shell_name
 #        shell_name = "C:\\opt\\conda\\Library\\usr\\bin\\bash.exe"
         p = PopenSpawn("{} {}".format(shell_name, self.args) if self.args else shell_name,
-                       timeout=12, maxread=2000, searchwindowsize=None,
+                       timeout=12, maxread=5000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
                        codec_errors='strict')
 
@@ -1597,7 +1597,11 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '0\r')
 
     @pytest.mark.skipif(not which('bash'), reason='bash not installed')
-    @pytest.mark.skipif(on_win and not which('bash').startswith(sys.prefix), reason='bash not installed in {}'.format(sys.prefix))
+    @pytest.mark.skipif(on_win and
+                        which('bash') and
+                        which('bash').startswith(sys.prefix), reason='bash installed from m2-bash in prefix {}. '
+                                                                     'This is not currently supported. Use upstream'
+                                                                     'MSYS2 and have it be on PATH'.format(sys.prefix))
     def test_bash_activate_error(self):
         with InteractiveShell('bash') as shell:
             if on_win:
