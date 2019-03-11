@@ -1195,7 +1195,9 @@ class InteractiveShell(object):
             setattr(self, key, value)
         self.activator = activator_map[shell_vals['activator']]()
         self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
-        self.args = list(self.shells[base_shell].get('args', []))
+        self.args = []
+        if base_shell:
+            self.args.extend(self.shells[base_shell].get('args', []))
         self.args.extend(self.shells[shell_name].get('args', []))
 
     def __enter__(self):
