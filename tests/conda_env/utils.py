@@ -42,8 +42,16 @@ def run_command(command, env_name, *arguments):
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     parser_config[command](sub_parsers)
 
-    arguments = list(map(escape_for_winpath, arguments))
-    command_line = "{0} -n {1} -f {2}".format(command, env_name, " ".join(arguments))
-
-    args = p.parse_args(shlex_split_unicode(command_line))
+    # There is no point in splitting and then unsplitting according
+    # to the rules of an assumed shell when a list of distinct args
+    # was explicitly passed.
+    pre_args = [command, "-n", env_name, "-f"]
+    if isinstance(arguments, tuple):
+        arguments = list(arguments)
+    if isinstance(arguments, list):
+        args = pre_args + arguments
+    else:
+        arguments = list(map(escape_for_winpath, arguments))
+        args = pre_args + shlex_split_unicode(" ".join(arguments))
+    args = p.parse_args(args)
     do_call_conda_env(args, p)
