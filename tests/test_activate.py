@@ -27,6 +27,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 import pytest
 from tests.helpers import tempdir
+from tests.test_create import Commands, run_command
 
 try:
     from unittest.mock import patch
@@ -34,6 +35,7 @@ except ImportError:
     from mock import patch
 
 log = getLogger(__name__)
+
 
 
 if on_win:
@@ -1173,7 +1175,7 @@ class InteractiveShell(object):
         # powershell, pwsh, or pwsh-preview.
         'powershell': {
             'activator': 'powershell',
-            'args': '-NoProfile -NoLogo',
+            'args': ('-NoProfile', '-NoLogo'),
             'init_command': 'python -m conda "shell.powershell" "hook" | Out-String | Invoke-Expression',
             'print_env_var': '$Env:%s',
             'exit_cmd': 'exit'
@@ -1197,8 +1199,8 @@ class InteractiveShell(object):
         self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
         self.args = []
         if base_shell:
-            self.args.extend(self.shells[base_shell].get('args', []))
-        self.args.extend(self.shells[shell_name].get('args', []))
+            self.args.extend(list(self.shells[base_shell].get('args', [])))
+        self.args.extend(list(self.shells[shell_name].get('args', [])))
 
     def __enter__(self):
         from pexpect.popen_spawn import PopenSpawn
@@ -1211,10 +1213,8 @@ class InteractiveShell(object):
         remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
         for var_name in remove_these:
             del env[var_name]
-        # WSL gets in the way (even when MSYS2 is at the front of PATH)
-        shell_name = self.shell_name
-#        shell_name = "C:\\opt\\conda\\Library\\usr\\bin\\bash.exe"
-        p = PopenSpawn("{} {}".format(shell_name, self.args) if self.args else shell_name,
+        from conda.utils import quote_for_shell
+        p = PopenSpawn(quote_for_shell([self.shell_name] + self.args),
                        timeout=12, maxread=5000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
                        codec_errors='strict')
@@ -1269,20 +1269,26 @@ class InteractiveShell(object):
             print(self.p.after)
             raise
 
-    def get_env_var(self, env_var):
+    def get_env_var(self, env_var, default=None):
         if self.shell_name == 'cmd.exe':
             self.sendline("@echo %%%s%%" % env_var)
             self.expect("@echo %%%s%%\r\n([^\r]*)\r" % env_var)
             value = self.p.match.groups()[0]
-            return ensure_text_type(value).strip()
+        elif self.shell_name == 'powershell':
+            self.sendline(self.print_env_var % env_var)
+            # The \r\n\( is the newline after the env var and the start of the prompt.
+            # If we knew the active env we could add that in as well as the closing )
+            self.expect(r'\$Env:{}\r\n([^\r]*)(\r\n)+\('.format(env_var))
+            value = self.p.match.groups()[0]
         else:
-            self.sendline('echo get_var_start')
+            self.sendline('get_var_start')
             self.sendline(self.print_env_var % env_var)
             self.sendline('echo get_var_end')
             self.expect('get_var_start(.*)get_var_end')
             value = self.p.match.groups()[0]
-            return ensure_text_type(value).strip()
-
+        if value is None:
+            return default
+        return ensure_text_type(value).strip()
 
 def which_powershell():
     r"""
@@ -1306,7 +1312,6 @@ def which_powershell():
     posh = which('pwsh-preview')
     if posh:
         return 'pwsh-preview', posh
-
 
 @pytest.mark.integration
 class ShellWrapperIntegrationTests(TestCase):
@@ -1336,27 +1341,39 @@ class ShellWrapperIntegrationTests(TestCase):
         mkdir_p(join(self.prefix3, 'conda-meta'))
         touch(join(self.prefix3, 'conda-meta', 'history'))
 
+        # We can engineer ourselves out of having `git` on PATH if we install
+        # it via conda, so, when we have no git on PATH, install this. Yes it
+        # is variable, but at least it is not slow.
+        if not which('git') or which('git').startswith(sys.prefix):
+            log.warning("Installing `git` into {} because during these tests"
+                         "`conda` uses `git` to get its version, and the git"
+                         "found on `PATH` on this system seems to be part of"
+                         "a conda env. They stack envs which means that the"
+                         "the original sys.prefix conda env falls off of it."
+                        .format(sys.prefix))
+            run_command(Commands.INSTALL, self.prefix3, "git")
+
     def tearDown(self):
         rm_rf(self.prefix)
 
     def basic_posix(self, shell):
         num_paths_added = len(tuple(PosixActivator()._get_path_dirs(self.prefix)))
         shell.assert_env_var('CONDA_SHLVL', '0')
-        PATH0 = shell.get_env_var('PATH').strip(':')
+        PATH0 = shell.get_env_var('PATH', '').strip(':')
         assert any(p.endswith("condabin") for p in PATH0.split(":"))
 
         shell.sendline('conda activate base')
         # shell.sendline('env | sort')
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
-        PATH1 = shell.get_env_var('PATH').strip(':')
+        PATH1 = shell.get_env_var('PATH', '').strip(':')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         shell.sendline('conda activate "%s"' % self.prefix)
         # shell.sendline('env | sort')
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
-        PATH2 = shell.get_env_var('PATH').strip(':')
+        PATH2 = shell.get_env_var('PATH', '').strip(':')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
 
         shell.sendline('env | sort | grep CONDA')
@@ -1373,17 +1390,18 @@ class ShellWrapperIntegrationTests(TestCase):
         PATH3 = shell.get_env_var('PATH').strip(':')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
-        shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
-        shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
+        shell.sendline('conda install -yq proj4=5.2.0')
+        shell.expect('Executing transaction: ...working... done.*\n', timeout=60)
         shell.assert_env_var('?', '0', True)
+
+        shell.sendline('proj')
+        shell.expect(r'.*Rel. 5.2.0.*')
+
         # TODO: assert that reactivate worked correctly
 
-        shell.sendline('sqlite3 -version')
-        shell.expect(r'3\.21\..*\n')
-
-        # conda run integration test
-        shell.sendline('conda run sqlite3 -version')
-        shell.expect(r'3\.21\..*\n')
+        # conda run integration test, hmm, which prefix though?
+        shell.sendline('conda run proj')
+        shell.expect(r'.*Rel. 5.2.0.*')
 
         # regression test for #6840
         shell.sendline('conda install --blah')
@@ -1541,20 +1559,20 @@ class ShellWrapperIntegrationTests(TestCase):
             assert 'charizard' in PATH
 
             print('## [PowerShell integration] Installing.')
-            shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
-            shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
+            shell.sendline('conda install -yq proj4=5.2.0')
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=600)
             shell.sendline('$LASTEXITCODE')
             shell.expect('0')
             # TODO: assert that reactivate worked correctly
 
             print('## [PowerShell integration] Checking installed version.')
-            shell.sendline('sqlite3 -version')
-            shell.expect(r'3\.21\..*')
+            shell.sendline('proj')
+            shell.expect(r'.*Rel. 5.2.0.*')
 
             # conda run integration test
             print('## [PowerShell integration] Checking conda run.')
-            shell.sendline('conda run sqlite3 -version')
-            shell.expect(r'3\.21\..*')
+            shell.sendline('conda run proj')
+            shell.expect(r'.*Rel. 5.2.0.*')
 
             print('## [PowerShell integration] Deactivating')
             shell.sendline('conda deactivate')
@@ -1579,17 +1597,24 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '2\r')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
 
-            shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+            # TODO: Make a dummy package and release it (somewhere?)
+            #       should be a relatively light package, but also
+            #       one that has activate.d or deactivate.d scripts.
+            #       More imporant than size or script though, it must
+            #       not require an old or incompatible version of any
+            #       library critical to the correct functioning of
+            #       Python (e.g. OpenSSL).
+            shell.sendline('conda install -yq proj4=5.2.0')
             shell.expect('Executing transaction: ...working... done.*\n', timeout=60)
             shell.assert_env_var('errorlevel', '0', True)
             # TODO: assert that reactivate worked correctly
 
-            shell.sendline('sqlite3 -version')
-            shell.expect(r'3\.21\..*\n')
+            shell.sendline('proj')
+            shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
             # conda run integration test
-            shell.sendline('conda run sqlite3 -version')
-            shell.expect(r'3\.21\..*\n')
+            shell.sendline('conda run proj')
+            shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '1\r')
