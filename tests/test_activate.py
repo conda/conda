@@ -1281,7 +1281,7 @@ class InteractiveShell(object):
             self.expect(r'\$Env:{}\r\n([^\r]*)(\r\n)+\('.format(env_var))
             value = self.p.match.groups()[0]
         else:
-            self.sendline('get_var_start')
+            self.sendline('echo get_var_start')
             self.sendline(self.print_env_var % env_var)
             self.sendline('echo get_var_end')
             self.expect('get_var_start(.*)get_var_end')
@@ -1395,13 +1395,13 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('?', '0', True)
 
         shell.sendline('proj')
-        shell.expect(r'.*Rel. 5.2.0.*')
+        shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
         # TODO: assert that reactivate worked correctly
 
         # conda run integration test, hmm, which prefix though?
         shell.sendline('conda run proj')
-        shell.expect(r'.*Rel. 5.2.0.*')
+        shell.expect(r'.*Rel\. 5\.2\.0,.*', timeout=100000)
 
         # regression test for #6840
         shell.sendline('conda install --blah')
@@ -1567,12 +1567,12 @@ class ShellWrapperIntegrationTests(TestCase):
 
             print('## [PowerShell integration] Checking installed version.')
             shell.sendline('proj')
-            shell.expect(r'.*Rel. 5.2.0.*')
+            shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
             # conda run integration test
             print('## [PowerShell integration] Checking conda run.')
             shell.sendline('conda run proj')
-            shell.expect(r'.*Rel. 5.2.0.*')
+            shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
             print('## [PowerShell integration] Deactivating')
             shell.sendline('conda deactivate')
