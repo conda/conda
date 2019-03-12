@@ -1047,7 +1047,6 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             """) % prec.dist_str())
 
     script_caller = None
-    from conda.utils import quote_for_shell
     if on_win:
         try:
             comspec = os.environ[str('COMSPEC')]
