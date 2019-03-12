@@ -54,7 +54,7 @@ def test_text_translations():
 def get_conda_prefixes_on_PATH():
     '''
     :return: A tuple of:
-               A list of conda prefixes found on PATH in the order in which they appear
+               A list of conda prefixes found on PATH in the order in which they appear.
                A list of the suffixes that determine a conda prefix on this platform.
     '''
 
