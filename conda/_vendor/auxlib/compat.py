@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 import codecs
 import collections
 from itertools import chain
+import os
 import sys
 
 from ._vendor.five import WhateverIO as StringIO, with_metaclass
@@ -62,11 +63,15 @@ def utf8_writer(fp):
 if sys.version_info[0] < 3:
     def Utf8NamedTemporaryFile(mode='w+b', bufsize=-1, suffix="",
                                prefix=template, dir=None, delete=True):
+        if 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+            delete = False
         return codecs.getwriter('utf-8')(NamedTemporaryFile(mode=mode, bufsize=bufsize, suffix=suffix,
                                  prefix=template, dir=None, delete=delete))
 else:
     def Utf8NamedTemporaryFile(mode='w+b', buffering=-1, newline=None,
                                suffix=None, prefix=None, dir=None, delete=True):
+        if 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+            delete = False
         encoding = None
         if not 'b' in mode:
             encoding = 'utf-8'

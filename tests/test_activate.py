@@ -1232,6 +1232,9 @@ class InteractiveShell(object):
             'PYTHONPATH': CONDA_PACKAGE_ROOT,
             'PATH': PATH,
         }
+        for ev in ('CONDA_TEST_SAVE_TEMPS', 'CONDA_TEST_TMPDIR', 'CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE'):
+            if ev in os.environ: env[ev] = os.environ[ev]
+
         for name, val in iteritems(env):
             p.sendline(self.activator.export_var_tmpl % (name, val))
 
