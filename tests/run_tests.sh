@@ -28,18 +28,25 @@ JOBS=
 # get used and shared VM folders do not
 # in *my* dev setup!
 if [[ ${PF} == D ]]; then
-  _BASETEMP="--basetemp=/opt/conda.tmp.${PYVER}"
+  _BASETEMP="/opt/conda.tmp.${PYVER}"
 elif [[ ${PF} == L ]]; then
 # Has stopped working on linux, fails to mkdir this dir
 # even though it tried to rm -rf it first. Seems racey
 # to be deleting this folder at all.
-#  _BASETEMP="--basetemp=/opt/conda.tmp.${PYVER}"
+#  _BASETEMP="/opt/conda.tmp.${PYVER}"
   echo "WARNING :: *Not* using `--basetemp=` on Linux, it is likely that hardlinks will not be used."
 else
-  _BASETEMP="--basetemp=${HOME}/conda.tmp.${PYVER}"
+  _BASETEMP="${HOME}/conda.tmp.${PYVER}"
 fi
 
-rm -rf ${_BASETEMP}
+# For when sharing code between OSes (due to being mounted to different paths)
+find . -name '*.pyc' -exec rm {} \;
+
+if [[ -n "${_BASETEMP}" ]]; then
+  rm -rf "${_BASETEMP}"
+  _BASETEMP="--basetemp=${_BASETEMP}"
+fi
+
 set -x
 TESTDIR_NO_SLASH=${1////-}
 TESTDIR_LOG_FNAME_BIT=${PF}-$(echo ${TESTDIR_NO_SLASH} | sed 's|\.py||g')
