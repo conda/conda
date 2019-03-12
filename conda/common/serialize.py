@@ -17,7 +17,7 @@ log = getLogger(__name__)
 def get_yaml():
     try:
         import ruamel_yaml as yaml
-    except ImportError:  # pragma: no cover
+    except (ImportError, ModuleNotFoundError):  # pragma: no cover
         try:
             import ruamel.yaml as yaml
         except ImportError:
