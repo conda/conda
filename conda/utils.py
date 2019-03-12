@@ -345,11 +345,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
                 fh.write(u"{0}\n".format(' '.join(arguments)))
-            elif len(arguments)==1:
-
-                fh.write(u"{0}\n".format(arguments))
-            else:
-                fh.write(u"{0}\n".format(quote_for_shell(arguments)))
+            fh.write(u"{0}\n".format(quote_for_shell(arguments)))
             script_caller = fh.name
         command_args = [shell_path, "-x", script_caller]
 
