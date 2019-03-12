@@ -34,7 +34,7 @@ elif [[ ${PF} == L ]]; then
 # even though it tried to rm -rf it first. Seems racey
 # to be deleting this folder at all.
 #  _BASETEMP="/opt/conda.tmp.${PYVER}"
-  echo "WARNING :: *Not* using `--basetemp=` on Linux, it is likely that hardlinks will not be used."
+  echo "WARNING :: *Not* using '--basetemp=' on Linux, it is likely that hardlinks will not be used."
 else
   _BASETEMP="${HOME}/conda.tmp.${PYVER}"
 fi
