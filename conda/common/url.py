@@ -10,7 +10,7 @@ from os.path import abspath, expanduser
 import re
 import socket
 
-from .compat import input, on_win
+from .compat import input, on_win, text_type
 from .path import split_filename
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.urllib3.exceptions import LocationParseError
@@ -33,17 +33,76 @@ except ImportError:  # pragma: py3 no cover
     from urlparse import urlunparse as stdlib_urlparse, urljoin  # NOQA
 
 
-log = getLogger(__name__)
+def hex_octal_to_int(ho):
+    ho = ord(ho)
+    o0 = ord('0')
+    o9 = ord('9')
+    oA = ord('A')
+    oF = ord('F')
+    res = ho - o0 if ho >= o0 and ho <= o9 else (ho - oA + 10) if ho >= oA and ho <= oF else None
+    return res
+
+
+@memoize
+def percent_decode(path):
+
+    # This is not fast so avoid when we can.
+    if not '%' in path:
+        return path
+    ranges = []
+    for m in re.finditer(r'(%[0-9A-F]{2})', path):
+        ranges.append((m.start(), m.end()))
+    if not len(ranges):
+        return path
+
+    # Sorry! Correctness is more important than speed. Use a map + lambda eventually.
+    result = b''
+    skips = 0
+    for i, c in enumerate(path):
+        if skips > 0:
+            skips -= 1
+            continue
+        c = c.encode('ascii')
+        emit = c
+        if c == b'%':
+            for r in ranges:
+                if i == r[0]:
+                    import struct
+                    emit = struct.pack("B", hex_octal_to_int(path[i+1])*16 + hex_octal_to_int(path[i+2]))
+                    skips = 2
+                    break
+        if emit:
+            result += emit
+    return text_type(result)
+
+
+file_scheme = 'file://'
+def url_to_path(url):
+    assert url.startswith(file_scheme), "{} is not a file-scheme URL".format(url)
+    return percent_decode(url[len(file_scheme):])
 
 
 @memoize
 def path_to_url(path):
     if not path:
         raise ValueError('Not allowed: %r' % path)
-    if path.startswith('file:/'):
+    if path.startswith('file://'):
+        try:
+            path.decode('ascii')
+        except UnicodeDecodeError:
+            raise ValueError('Non-ascii not allowed for things claiming to be URLs: %r' % path)
         return path
     path = abspath(expanduser(path))
-    url = urljoin('file:', pathname2url(path))
+    percent_encode = lambda s: "".join(["%%%02X" % ord(c) , c][c < "{" and c.isalnum() or c in "!'()*-._/\\"] for c in s)
+    # We do not use urljoin here because we want to take our own
+    # *very* explicit control of how paths get encoded into URLs.
+    # We should not follow any RFCs on how to encode and decode
+    # them we just need to make sure we can represent them in a
+    # way that will not cause problems for whatever amount of
+    # urllib processing we *do* need to do on them (which should
+    # be none anyway, but I doubt that is the case!)
+    url = file_scheme + percent_encode(path.decode('unicode-escape'))
+    # url = urljoin('file:', pathname2url(path))
     return url
 
 

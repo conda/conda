@@ -60,7 +60,6 @@ def paths_equal(path1, path2):
     else:
         return abspath(path1) == abspath(path2)
 
-
 @memoize
 def url_to_path(url):
     """Convert a file:// URL to a path.
@@ -72,7 +71,9 @@ def url_to_path(url):
     if not url.startswith("file://"):  # pragma: no cover
         raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
     _, netloc, path, _, _ = urlsplit(url)
-    path = unquote(path)
+    # path = unquote(path)
+    from .url import percent_decode
+    path = percent_decode(path)
     if netloc not in ('', 'localhost', '127.0.0.1', '::1'):
         if not netloc.startswith('\\\\'):
             # The only net location potentially accessible is a Windows UNC path
