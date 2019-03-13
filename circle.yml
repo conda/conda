@@ -21,7 +21,8 @@ main_test: &main_test
             echo "local_repodata_ttl: 1800" >> ~/.condarc
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
             conda info
-            py.test $ADD_COV -m "not integration and not installed"
+            py.test $ADD_COV tests/test_create.py -vvv -s
+            # -m "not integration and not installed"
           fi
     - run:
         name: integration tests
@@ -30,7 +31,8 @@ main_test: &main_test
             echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-            py.test $ADD_COV --cov-append -m "integration and not installed" -v
+            py.test $ADD_COV --cov-append tests/test_create.py -vvv -s
+# -m "integration and not installed" -v
             python -m conda.common.io
           fi
     - run:
