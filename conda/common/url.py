@@ -101,7 +101,7 @@ def path_to_url(path):
     # way that will not cause problems for whatever amount of
     # urllib processing we *do* need to do on them (which should
     # be none anyway, but I doubt that is the case!)
-    url = file_scheme + percent_encode(path.decode('unicode-escape'))
+    url = file_scheme + percent_encode(path.decode('unicode-escape') if hasattr(path, 'decode') else path)
     # url = urljoin('file:', pathname2url(path))
     return url
 
