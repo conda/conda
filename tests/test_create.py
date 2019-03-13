@@ -44,7 +44,7 @@ from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
 from conda.common.serialize import yaml_load, json_dump
-from conda.common.url import path_to_url
+from conda.common.url import path_to_url, url_to_path
 from conda.core.index import get_reduced_index
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
@@ -797,6 +797,13 @@ class IntegrationTests(TestCase):
     def test_install_tarball_from_local_channel(self):
         # Regression test for #2812
         # install from local channel
+
+        path = u'/private/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/pytest-of-rdonnelly/pytest-16/test_install_tarball_from_loca0/c352_çñßôêá'
+        url = path_to_url(path)
+        path2 = url_to_path(url)
+        assert path == path2
+        assert type(path) == type(path2)
+
         with make_temp_env() as prefix, make_temp_channel(["flask-0.10.1"]) as channel:
             run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.10.1', '--json')
             assert package_is_installed(prefix, channel + '::' + 'flask')
