@@ -10,7 +10,7 @@ from os.path import basename, dirname, getsize, join, isdir
 import re
 from uuid import uuid4
 
-from .envs_manager import USER_ENVIRONMENTS_TXT_FILE, register_env, unregister_env
+from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 from .. import CondaError
@@ -918,7 +918,8 @@ class RegisterEnvironmentLocationAction(PathAction):
         self._execute_successful = False
 
     def verify(self):
-        touch(USER_ENVIRONMENTS_TXT_FILE, mkdir=True, sudo_safe=True)
+        user_environments_txt_file = get_user_environments_txt_file()
+        touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
         self._verified = True
 
     def execute(self):
