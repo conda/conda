@@ -204,8 +204,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     init_loggers(context)
     cap_args = tuple() if not kwargs.get("no_capture") else (None, None)
     # list2cmdline is not exact, but it is only informational.
-    from subprocess import list2cmdline
-    print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % list2cmdline(arguments), file=sys.stderr)
+    print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % ' '.join(arguments), file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         arguments_bytes = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg) for arg in arguments]
         with argv(['python_api'] + arguments_bytes), captured(*cap_args) as c:
@@ -1162,7 +1161,7 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe", "--json")
             assert not stderr
             json_obj = json.loads(stdout.strip())
-            assert len(json_obj) >= 42
+            assert len(json_obj) >= 55
             assert 'description' in json_obj[0]
 
             with env_var('CONDA_QUIET', 'yes', conda_tests_ctxt_mgmt_def_pol):

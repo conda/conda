@@ -244,10 +244,18 @@ def ensure_unicode(value):
         return value
 
 
+# No, no, no. If we are to have a function such as this,
+# it should only be used at the very lowest levels, when
+# interacting with modules that write to the file-system,
+# As it happens, Python handles all of this for us anyway.
+# def ensure_fs_path_encoding(value):
+#     try:
+#         return value.decode(FILESYSTEM_ENCODING)
+#     except AttributeError:
+#         return value
+#     except UnicodeEncodeError:
+#         return value
+
 def ensure_fs_path_encoding(value):
-    try:
-        return value.decode(FILESYSTEM_ENCODING)
-    except AttributeError:
-        return value
-    except UnicodeEncodeError:
-        return value
+    return value
+

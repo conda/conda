@@ -191,7 +191,7 @@ function Expand-CondaSubcommands() {
         | Where-Object { $_ -like "$Filter*" } `
         | Sort-Object `
         | Write-Output;
-    
+
 }
 
 function TabExpansion($line, $lastWord) {
