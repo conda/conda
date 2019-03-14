@@ -187,7 +187,8 @@ class RawParameter(object):
         self.source = source
         self.key = key
         try:
-            self._raw_value = unicode(raw_value.decode('utf-8'))
+            # ignore flake8 on this because it finds an error on py3 even though it is guarded
+            self._raw_value = unicode(raw_value.decode('utf-8'))  # NOQA
         except:
             self._raw_value = raw_value
 

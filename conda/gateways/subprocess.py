@@ -102,7 +102,7 @@ def _subprocess_clean_env(env, clean_python=True, clean_conda=True):
             del env[key]
 
 
-def subprocess_call_with_clean_env(command, path=None, stdin=None,raise_on_error=True,
+def subprocess_call_with_clean_env(command, path=None, stdin=None, raise_on_error=True,
                                    clean_python=True, clean_conda=True):
     # Any of these env vars are likely to mess the whole thing up.
     # This has been seen to be the case with PYTHONPATH.

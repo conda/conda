@@ -32,8 +32,6 @@ from .._vendor.auxlib.logz import NullHandler
 from .._vendor.auxlib.type_coercion import boolify
 from .._vendor.tqdm import tqdm
 
-from ..common.compat import ensure_binary
-
 log = getLogger(__name__)
 
 
@@ -199,8 +197,9 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         elif sys.version_info[0] == 3 and isinstance(self, BytesIO):
             wanted = bytes
         else:
+            # ignore flake8 on this because it finds an error on py3 even though it is guarded
             if sys.version_info[0] == 2:
-                wanted = unicode
+                wanted = unicode  # NOQA
             else:
                 wanted = str
         if not isinstance(to_write, wanted):
@@ -215,7 +214,6 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
 
     class CapturedText(object):
         pass
-    import codecs
     # sys.stdout.write(u'unicode out')
     # sys.stdout.write(bytes('bytes out', encoding='utf-8'))
     # sys.stdout.write(str('str out'))
