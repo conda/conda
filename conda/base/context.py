@@ -749,6 +749,7 @@ class Context(Configuration):
             'allow_conda_downgrades',
             'add_pip_as_python_dependency',
             'debug',
+            'dev',
             'default_python',
             'enable_private_envs',
             'error_upload_url',  # should remain undocumented

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import codecs
 from getpass import getpass
 from logging import getLogger
 import os
@@ -18,19 +19,10 @@ from .._vendor.urllib3.util.url import Url, parse_url
 
 try:  # pragma: py2 no cover
     # Python 3
-    from urllib.parse import (quote, quote_plus, unquote, unquote_plus,  # NOQA
-                              urlunparse as stdlib_urlparse, urljoin)  # NOQA
-    # Importing urllib.request is exceptionally slow in Python 3.
-    # Copy pathname2url's implementation directly instead:
-    if os.name == 'nt':
-        from nturl2path import pathname2url  # NOQA
-    else:
-        def pathname2url(pathname):
-            return quote(pathname)
+    from urllib.parse import (quote, quote_plus, unquote, unquote_plus)
 except ImportError:  # pragma: py3 no cover
     # Python 2
-    from urllib import quote, quote_plus, unquote, unquote_plus, pathname2url  # NOQA
-    from urlparse import urlunparse as stdlib_urlparse, urljoin  # NOQA
+    from urllib import (quote, quote_plus, unquote, unquote_plus)
 
 
 def hex_octal_to_int(ho):
@@ -55,7 +47,8 @@ def percent_decode(path):
     if not len(ranges):
         return path
 
-    # Sorry! Correctness is more important than speed. Use a map + lambda eventually.
+    # Sorry! Correctness is more important than speed at the moment.
+    # Should use a map + lambda eventually.
     result = b''
     skips = 0
     for i, c in enumerate(path):
@@ -73,7 +66,7 @@ def percent_decode(path):
                     break
         if emit:
             result += emit
-    return text_type(result)
+    return codecs.utf_8_decode(result)[0]
 
 
 file_scheme = 'file://'
@@ -93,16 +86,25 @@ def path_to_url(path):
             raise ValueError('Non-ascii not allowed for things claiming to be URLs: %r' % path)
         return path
     path = abspath(expanduser(path))
-    percent_encode = lambda s: "".join(["%%%02X" % ord(c) , c][c < "{" and c.isalnum() or c in "!'()*-._/\\"] for c in s)
     # We do not use urljoin here because we want to take our own
     # *very* explicit control of how paths get encoded into URLs.
-    # We should not follow any RFCs on how to encode and decode
-    # them we just need to make sure we can represent them in a
+    #   We should not follow any RFCs on how to encode and decode
+    # them, we just need to make sure we can represent them in a
     # way that will not cause problems for whatever amount of
     # urllib processing we *do* need to do on them (which should
-    # be none anyway, but I doubt that is the case!)
-    url = file_scheme + percent_encode(path.decode('unicode-escape') if hasattr(path, 'decode') else path)
-    # url = urljoin('file:', pathname2url(path))
+    # be none anyway, but I doubt that is the case). I have gone
+    # for ASCII and % encoding of everything not alphanumeric or
+    # not in `!'()*-._/\\`. This should be pretty save.
+    #
+    # To avoid risking breaking the internet, this code only runs
+    # for `file://` URLs.
+    #
+    percent_encode = lambda s: "".join(["%%%02X" % ord(c), c]
+                                       [c < "{" and c.isalnum() or c in "!'()*-._/\\"]
+                                       for c in s)
+    url = file_scheme + percent_encode((path.decode('unicode-escape')
+                                        if hasattr(path, 'decode')
+                                        else bytes(path, "utf-8").decode('unicode-escape')))
     return url
 
 
