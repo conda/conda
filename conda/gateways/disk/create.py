@@ -24,7 +24,7 @@ from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
-from ...common.compat import ensure_binary, ensure_text_type, on_win
+from ...common.compat import on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import (BasicClobberError, CaseInsensitiveFileSystemError, CondaOSError,
@@ -82,7 +82,6 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
         'func': func,
         'import_name': import_name,
     }
-    from conda.common.io import encode_for_env_var
     if python_full_path is not None:
         shebang = u'#!%s\n' % python_full_path
 
@@ -331,11 +330,11 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             log.trace("hard linking %s => %s", src, dst)
             link(src, dst)
         except (IOError, OSError) as e:
-#            log.debug("%r", e)
-#            log.debug("hard-link failed. falling back to copy\n"
-#                      "  error: %r\n"
-#                      "  src: %s\n"
-#                      "  dst: %s", e, src, dst)
+            log.debug("%r", e)
+            log.debug("hard-link failed. falling back to copy\n"
+                      "  error: %r\n"
+                      "  src: %s\n"
+                      "  dst: %s", e, src, dst)
 
             copy(src, dst)
     elif link_type == LinkType.softlink:

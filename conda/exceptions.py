@@ -972,7 +972,7 @@ def print_conda_exception(exc_val, exc_tb=None):
     elif context.json:
         if isinstance(exc_val, DryRunExit):
             return
-        logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
+        logger = getLogger('conda.stdout' if rc else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
         logger.info("%s\n" % exc_json)
     else:

@@ -5,13 +5,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import codecs
 from getpass import getpass
-from logging import getLogger
-import os
 from os.path import abspath, expanduser
 import re
 import socket
 
-from .compat import input, on_win, text_type
+from .compat import input, on_win
 from .path import split_filename
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.urllib3.exceptions import LocationParseError
@@ -22,7 +20,7 @@ try:  # pragma: py2 no cover
     from urllib.parse import (quote, quote_plus, unquote, unquote_plus)
 except ImportError:  # pragma: py3 no cover
     # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus)
+    from urllib import (quote, quote_plus, unquote, unquote_plus)  # NOQA
 
 
 def hex_octal_to_int(ho):
@@ -39,7 +37,7 @@ def hex_octal_to_int(ho):
 def percent_decode(path):
 
     # This is not fast so avoid when we can.
-    if not '%' in path:
+    if '%' not in path:
         return path
     ranges = []
     for m in re.finditer(r'(%[0-9A-F]{2})', path):
@@ -61,7 +59,8 @@ def percent_decode(path):
             for r in ranges:
                 if i == r[0]:
                     import struct
-                    emit = struct.pack("B", hex_octal_to_int(path[i+1])*16 + hex_octal_to_int(path[i+2]))
+                    emit = struct.pack(
+                        "B", hex_octal_to_int(path[i+1])*16 + hex_octal_to_int(path[i+2]))
                     skips = 2
                     break
         if emit:

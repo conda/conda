@@ -619,8 +619,6 @@ class UnlinkLinkTransaction(object):
                            'pre-unlink' if is_unlink else 'pre-link',
                            target_prefix)
             for axn_idx, action in enumerate(axngroup.actions):
-#                if axn_idx == 14 and pkg_idx == 14:
-#                    print("Debug this")
                 action.execute()
         except Exception as e:  # this won't be a multi error
             # reverse this package
@@ -1105,20 +1103,21 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
         return True
     finally:
         if script_caller is not None:
-            if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+            if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
                 rm_rf(script_caller)
             else:
-                log.warning('CONDA_TEST_SAVE_TEMPS :: retaining run_script {}'.format(script_caller))
+                log.warning('CONDA_TEST_SAVE_TEMPS :: retaining run_script {}'
+                            .format(script_caller))
 
 
 def messages(prefix):
-    from conda.common.io import encode_for_env_var
     path = join(prefix, '.messages.txt')
     try:
         if isfile(path):
             with open(path) as fi:
                 m = fi.read()
-                if hasattr(m, "decode"): m = m.decode('utf-8')
+                if hasattr(m, "decode"):
+                    m = m.decode('utf-8')
                 print(m.encode('utf-8'), file=sys.stderr if context.json else sys.stdout)
                 return m
     finally:

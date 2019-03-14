@@ -12,7 +12,8 @@ import sys
 # advice, we return `unicode` from various things on Python 2,
 # in particular the `__repr__` and `__str__` of our exceptions.
 if sys.version_info[0] == 2:
-    reload(sys)
+    # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
+    reload(sys)  # NOQA
     sys.setdefaultencoding('utf-8')
 
 from ._vendor.auxlib.packaging import get_version
@@ -40,8 +41,9 @@ if os.getenv('CONDA_ROOT') is None:
 CONDA_PACKAGE_ROOT = dirname(__file__)
 
 def another_to_unicode(val):
-    if isinstance(val, basestring) and not isinstance(val, unicode):
-        return unicode(val, encoding='utf-8')
+    # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
+    if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
+        return unicode(val, encoding='utf-8')  # NOQA
     return val
 
 class CondaError(Exception):

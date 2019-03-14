@@ -90,7 +90,8 @@ def run_command(command, *arguments, **kwargs):
     from subprocess import list2cmdline
     log.debug("executing command >>>  conda %s", list2cmdline(arguments))
     try:
-        arguments_bytes = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg) for arg in arguments]
+        arguments_bytes = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg)
+                           for arg in arguments]
         with argv(['python_api'] + arguments_bytes), captured(stdout, stderr) as c:
             if use_exception_handler:
                 return_code = conda_exception_handler(do_call, args, p)

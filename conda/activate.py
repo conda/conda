@@ -400,7 +400,7 @@ class _Activator(object):
         clean_paths = {'darwin': '/usr/bin:/bin:/usr/sbin:/sbin',
                        # You may think 'let us do something more clever here and interpolate
                        # `%windir%`' but the point here is the the whole env. is cleaned out
-                       'win32': 'C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\'}
+                       'win32': 'C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\'}  # NOQA
         path = self.environ.get('PATH',
                                 clean_paths[sys.platform] if sys.platform in clean_paths else
                                 '/usr/bin')
