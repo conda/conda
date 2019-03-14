@@ -62,7 +62,6 @@ fi
 LOG=${2}/${TESTDIR_LOG_FNAME_BIT}-${PYVER}${JOBS//=/-}.$(date +%Y-%m-%d.%H%M%S).log
 
 CONDA_TEST_SAVE_TEMPS=1 \
-CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE=/dev/null \
   pytest \
     ${JOBS} \
     -vvv \
