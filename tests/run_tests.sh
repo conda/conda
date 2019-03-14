@@ -2,7 +2,8 @@
 
 [[ -z $1 ]] && echo "ERROR :: Usage: run_tests.sh test_dir_or_file log_location <keyword>" && exit 1
 [[ -z $2 ]] && echo "ERROR :: Usage: run_tests.sh test_dir_or_file log_location <keyword>" && exit 2
-[[ ! -d $2 ]] && echo "ERROR :: log_location must be an existing dir" && exit 3
+[[ ! -f $1 ]] && [[ ! -d $1 ]] && echo "ERROR :: test_dir_or_file must be an existing file or dir" && exit 3
+[[ ! -d $2 ]] && echo "ERROR :: log_location must be an existing dir" && exit 4
 
 if [[ $(uname) == Darwin ]]; then
   PF=D

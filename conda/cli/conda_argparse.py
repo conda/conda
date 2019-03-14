@@ -551,6 +551,15 @@ def configure_parser_create(sub_parsers):
         action="store_true",
         help=SUPPRESS,
     )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+             "This is mainly for use during tests where we test new conda source "
+             "against old Python versions.",
+        dest="dev",
+        default=NULL,
+    )
     p.set_defaults(func='.main_create.execute')
 
 
@@ -756,6 +765,15 @@ def configure_parser_install(sub_parsers):
         default=NULL,
         help="Allow clobbering of overlapping file paths within packages, "
              "and suppress related warnings.",
+    )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+             "This is mainly for use during tests where we test new conda source "
+             "against old Python versions.",
+        dest="dev",
+        default=NULL,
     )
     p.set_defaults(func='.main_install.execute')
 
@@ -968,6 +986,15 @@ def configure_parser_remove(sub_parsers, name='remove'):
         action="store",
         nargs='*',
         help="Package names to %s from the environment." % name,
+    )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+             "This is mainly for use during tests where we test new conda source "
+             "against old Python versions.",
+        dest="dev",
+        default=NULL,
     )
 
     p.set_defaults(func='.main_remove.execute')
