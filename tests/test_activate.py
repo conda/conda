@@ -1404,7 +1404,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
         # conda run integration test, hmm, which prefix though?
         shell.sendline('conda run proj')
-        shell.expect(r'.*Rel\. 5\.2\.0,.*', timeout=100000)
+        shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
         # regression test for #6840
         shell.sendline('conda install --blah')

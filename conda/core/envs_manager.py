@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import EACCES
 from logging import getLogger
 from os import devnull, environ, listdir
-from os.path import dirname, isdir, isfile, join, normpath
+from os.path import dirname, isabs, isdir, isfile, join, normpath
 
 from .prefix_data import PrefixData
 from ..base.context import context
@@ -17,33 +17,33 @@ from ..gateways.disk.test import is_conda_environment
 
 log = getLogger(__name__)
 
-# If you want to have a better time while testing `conda`, you should set CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE
-# to `/dev/null`.
-USER_ENVIRONMENTS_TXT_FILE = environ.get('CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE',
-                                         expand(join('~', '.conda', 'environments.txt')))
+# The idea is to mock this to return '/dev/null' (or some temp file) instead.
+def get_user_environments_txt_file(userhome='~'):
+    return expand(join(userhome, '.conda', 'environments.txt'))
 
 
 def register_env(location):
+    user_environments_txt_file = get_user_environments_txt_file()
     location = normpath(location)
 
     if ("placehold_pl" in location or "skeleton_" in location
-       or USER_ENVIRONMENTS_TXT_FILE == devnull):
+       or user_environments_txt_file == devnull):
         # Don't record envs created by conda-build.
         return
 
-    if location in yield_lines(USER_ENVIRONMENTS_TXT_FILE):
+    if location in yield_lines(user_environments_txt_file):
         # Nothing to do. Location is already recorded in a known environments.txt file.
         return
 
     try:
-        with open(USER_ENVIRONMENTS_TXT_FILE, 'a') as fh:
+        with open(user_environments_txt_file, 'a') as fh:
             fh.write(ensure_text_type(location))
             fh.write('\n')
     except EnvironmentError as e:
         if e.errno == EACCES:
             log.warn("Unable to register environment. Path not writable.\n"
                      "  environment location: %s\n"
-                     "  registry file: %s", location, USER_ENVIRONMENTS_TXT_FILE)
+                     "  registry file: %s", location, user_environments_txt_file)
         else:
             raise
 
@@ -58,7 +58,7 @@ def unregister_env(location):
                 #   then don't unregister
                 return
 
-    _clean_environments_txt(USER_ENVIRONMENTS_TXT_FILE, location)
+    _clean_environments_txt(get_user_environments_txt_file(), location)
 
 
 def list_all_known_prefixes():
@@ -66,7 +66,7 @@ def list_all_known_prefixes():
     if on_win:
         home_dir_dir = dirname(expand('~'))
         for home_dir in listdir(home_dir_dir):
-            environments_txt_file = join(home_dir_dir, home_dir, '.conda', 'environments.txt')
+            environments_txt_file = get_user_environments_txt_file(join(home_dir_dir, home_dir))
             if isfile(environments_txt_file):
                 all_env_paths.update(_clean_environments_txt(environments_txt_file))
     else:

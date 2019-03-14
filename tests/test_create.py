@@ -7,10 +7,12 @@ from datetime import datetime
 import fnmatch
 from glob import glob
 
+from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from conda._vendor.toolz.itertoolz import groupby
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.resolve import Resolve
+
 from itertools import chain
 import json
 from json import loads as json_loads
@@ -402,23 +404,35 @@ class IntegrationTests(TestCase):
         PackageCacheData.clear()
 
     def test_install_python2_and_search(self):
-        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
-            with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', conda_tests_ctxt_mgmt_def_pol):
-                assert exists(join(prefix, PYTHON_BINARY))
-                assert package_is_installed(prefix, 'python=2')
+        with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
+            log.warning("Creating empty temporary environment txt file {}".format(env_txt))
+            environment_txt = env_txt.name
 
-                # regression test for #4513
-                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.continuum.io/pkgs/not-a-channel")
-                stdout, stderr = run_command(Commands.SEARCH, prefix, "python", "--json")
-                packages = json.loads(stdout)
-                assert len(packages) >= 1
+        with patch('conda.core.envs_manager.get_user_environments_txt_file',
+                   return_value=environment_txt) as _:
+            environment_txt
+            with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
+#                from conda.core.envs_manager import get_USER_ENVIRONMENTS_TXT_FILE
+#                bah = get_USER_ENVIRONMENTS_TXT_FILE()
+                with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', conda_tests_ctxt_mgmt_def_pol):
+                    assert exists(join(prefix, PYTHON_BINARY))
+                    assert package_is_installed(prefix, 'python=2')
 
-                stdout, stderr = run_command(Commands.SEARCH, prefix, "python", "--json", "--envs")
-                envs_result = json.loads(stdout)
-                assert any(match['location'] == prefix for match in envs_result)
+                    run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.continuum.io/pkgs/not-a-channel")
 
-                stdout, stderr = run_command(Commands.SEARCH, prefix, "python", "--envs")
-                assert prefix in stdout
+                    # regression test for #4513
+                    run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.continuum.io/pkgs/not-a-channel")
+                    stdout, stderr = run_command(Commands.SEARCH, prefix, "python", "--json")
+                    packages = json.loads(stdout)
+                    assert len(packages) == 1
+
+                    stdout, stderr = run_command(Commands.SEARCH, prefix, "python", "--json", "--envs")
+                    envs_result = json.loads(stdout)
+                    assert any(match['location'] == prefix for match in envs_result)
+
+                    stdout, stderr = run_command(Commands.SEARCH, prefix, "python", "--envs")
+                    assert prefix in stdout
+        os.unlink(environment_txt)
 
     def test_run_preserves_arguments(self):
         with make_temp_env('python=3') as prefix:
