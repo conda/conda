@@ -201,6 +201,7 @@ class Context(Configuration):
     always_copy = PrimitiveParameter(False, aliases=('copy',))
     always_yes = PrimitiveParameter(None, aliases=('yes',), element_type=(bool, NoneType))
     debug = PrimitiveParameter(False)
+    dev = PrimitiveParameter(False)
     dry_run = PrimitiveParameter(False)
     error_upload_url = PrimitiveParameter(ERROR_UPLOAD_URL)
     force = PrimitiveParameter(False)

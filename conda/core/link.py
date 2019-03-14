@@ -1055,7 +1055,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             return False
         if activate:
             script_caller, command_args = wrap_subprocess_call(
-                on_win, context.root_prefix, prefix, False, False, ('@CALL', path)
+                on_win, context.root_prefix, prefix, context.dev, False, ('@CALL', path)
             )
         else:
             command_args = [comspec, '/d', '/c', path]
@@ -1063,7 +1063,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
         if activate:
             script_caller, command_args = wrap_subprocess_call(
-                on_win, context.root_prefix, prefix, False, False, (".", path)
+                on_win, context.root_prefix, prefix, context.dev, False, (".", path)
             )
         else:
             shell_path = 'sh' if 'bsd' in sys.platform else 'bash'

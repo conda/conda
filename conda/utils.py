@@ -329,23 +329,27 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
         else:
             conda_exe = [environ.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))]
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
+            if dev_mode:
+                from conda.core.initialize import CONDA_PACKAGE_ROOT
+                fh.write(">&2 export CONDA_DEV=1\n")
+                fh.write(">&2 export PYTHONPATH=" + dirname(CONDA_PACKAGE_ROOT) + "\n")
             hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook'])
             if debug_wrapper_scripts:
-                fh.write(u">&2 echo '*** environment before ***'\n"
-                         u">&2 env\n")
-                fh.write(u">&2 echo \"$({0})\"\n"
+                fh.write(">&2 echo '*** environment before ***'\n"
+                         ">&2 env\n")
+                fh.write(">&2 echo \"$({0})\"\n"
                          .format(hook_quoted))
-            fh.write(u"eval \"$({0})\"\n"
+            fh.write("eval \"$({0})\"\n"
                      .format(hook_quoted))
-            fh.write(u"conda activate {0}\n".format(quote_for_shell((prefix,))))
+            fh.write("conda activate {0}\n".format(quote_for_shell((prefix,))))
             if debug_wrapper_scripts:
-                fh.write(u">&2 echo '*** environment after ***'\n"
-                         u">&2 env\n")
+                fh.write(">&2 echo '*** environment after ***'\n"
+                         ">&2 env\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
-                fh.write(u"{0}\n".format(' '.join(arguments)))
-            fh.write(u"{0}\n".format(quote_for_shell(arguments)))
+                fh.write("{0}\n".format(' '.join(arguments)))
+            fh.write("{0}\n".format(quote_for_shell(arguments)))
             script_caller = fh.name
         command_args = [shell_path, "-x", script_caller]
 
