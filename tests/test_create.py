@@ -61,7 +61,7 @@ from conda.gateways.subprocess import subprocess_call, subprocess_call_with_clea
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.models.version import VersionOrder
-from conda.utils import on_win
+from conda.utils import massage_arguments, on_win
 
 try:
     from unittest.mock import Mock, patch
@@ -158,6 +158,10 @@ def temp_chdir(target_dir):
 
 
 def run_command(command, prefix, *arguments, **kwargs):
+
+    assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
+    arguments = massage_arguments(arguments)
+
     use_exception_handler = kwargs.get('use_exception_handler', False)
     # These commands require 'dev' mode to be enabled during testing because
     # they end up calling run_script() in link.py and that uses wrapper scripts for e.g. activate.
@@ -174,9 +178,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     dev = kwargs.get('dev', True if command_defaults_to_dev else False)
     workdir = kwargs.get("workdir")
     debug = kwargs.get("debug_wrapper_scripts", False)
-    assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
-    assert not any([isiterable(arg) for arg in arguments]), "run_command() arguments members must not be iterable"
-    arguments = list(arguments)
+
     p = generate_parser()
 
     if command is Commands.CONFIG:
