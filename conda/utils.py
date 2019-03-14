@@ -9,7 +9,7 @@ import re
 import sys
 
 from ._vendor.auxlib.decorators import memoize
-from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from ._vendor.auxlib.compat import shlex_split_unicode, string_types, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
 
 from .common.path import win_path_to_unix
@@ -288,12 +288,43 @@ def quote_for_shell(arguments, shell=None):
         return ' '.join(quoted)
 
 
+# Ensures arguments are a tuple or a list. Strings are converted
+# by shlex_split_unicode() which is bad; we warn about it or else
+# we assert (and fix the code).
+def massage_arguments(arguments, errors='assert'):
+
+    # For reference and in-case anything breaks ..
+    # .. one of the places (run_command in conda_env/utils.py) this
+    # gets called from used to do this too:
+    #
+    #    def escape_for_winpath(p):
+    #        return p.replace('\\', '\\\\')
+    #
+    #    if not isinstance(arguments, list):
+    #        arguments = list(map(escape_for_winpath, arguments))
+
+    if isinstance(arguments, string_types):
+        if errors == 'assert':
+            # This should be something like 'conda programming bug', it is an assert
+            assert False, 'Please ensure arguments are not strings'
+        else:
+            arguments = shlex_split_unicode(arguments)
+            log.warning("Please ensure arguments is not a string; used `shlex_split_unicode()` on it")
+
+    if not isiterable(arguments):
+        arguments = (arguments,)
+
+    assert not any([isiterable(arg) for arg in arguments]), "Individual arguments must not be iterable"
+    arguments = list(arguments)
+
+    return arguments
+
+
 def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments):
+    arguments = massage_arguments(arguments)
     tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
     multiline = False
-    if not isiterable(arguments):
-        arguments = (arguments,)
     if len(arguments)==1 and '\n' in arguments[0]:
         multiline = True
     if on_win:

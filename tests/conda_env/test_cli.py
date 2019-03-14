@@ -5,15 +5,14 @@ import unittest
 
 import pytest
 
-from conda._vendor.auxlib.compat import shlex_split_unicode
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser
 from conda.common.io import captured
 from conda.core.envs_manager import list_all_known_prefixes
-from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
+from conda.utils import massage_arguments
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import EnvironmentFileExtensionNotValid, EnvironmentFileNotFound
 from conda_env.yaml import load as yaml_load
@@ -76,26 +75,25 @@ def run_env_command(command, prefix, *arguments):
         prefix: The prefix, for remove and create
         *arguments: The extra arguments
     """
-    p = create_parser()
-    prefix = escape_for_winpath(prefix)
 
-    if arguments:
-        arguments = list(map(escape_for_winpath, arguments))
+    arguments = massage_arguments(arguments)
+    arguments.insert(0, command)
 
     if command is Commands.ENV_EXPORT:
-        command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
+        arguments[1:1] = ['-n', prefix]
     elif command is Commands.ENV_CREATE: # CREATE
-        if prefix :
-            command_line = "{0} -f {1} {2}".format(command, prefix, " ".join(arguments))
+        if prefix:
+            arguments[1:1] = ['-f', prefix]
         else:
-            command_line = "{0} {1}".format(command, " ".join(arguments))
+            arguments[1:1] = [prefix]
     elif command is Commands.ENV_REMOVE:  # REMOVE
-        command_line = "{0} --yes -n {1} {2}".format(command, prefix, " ".join(arguments))
+        arguments[1:1] = ['--yes', '-n', prefix]
     elif command is Commands.ENV_UPDATE:
-        command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
+        arguments[1:1] = ['-n', prefix]
     else:
         command_line = " --help "
-    args = p.parse_args(shlex_split_unicode(command_line))
+    p = create_parser()
+    args = p.parse_args(arguments)
     context._set_argparse_args(args)
 
     with captured() as c:
@@ -271,9 +269,15 @@ class NewIntegrationTests(unittest.TestCase):
     """
 
     def setUp(self):
+        # It *can* happen that this does not remove the env directory and then
+        # the CREATE fails. Keep your eyes out! We could use rm_rf, but do we
+        # know which conda install we're talking about? Now? Forever? I'd feel
+        # safer adding an `rm -rf` if we had a `Commands.ENV_NAME_TO_PREFIX` to
+        # tell us which folder to remove.
         run_env_command(Commands.ENV_REMOVE, test_env_name_2)
 
     def tearDown(self):
+        pass
         run_env_command(Commands.ENV_REMOVE, test_env_name_2)
 
     def test_env_export(self):
