@@ -108,7 +108,7 @@ def run_conda_command(command, prefix, *arguments):
     """
         Run conda command,
     Args:
-        command: conda create , list, info
+        command: conda create, list, info
         prefix: The prefix or the name of environment
         *arguments: Extra arguments
     """
@@ -284,7 +284,7 @@ class NewIntegrationTests(unittest.TestCase):
         run_conda_command(Commands.CREATE, test_env_name_2, "flask")
         assert env_is_created(test_env_name_2)
 
-        snowflake, e,  = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
+        snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
 
         with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)

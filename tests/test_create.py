@@ -39,7 +39,7 @@ from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FI
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
-from conda.common.compat import iteritems, text_type, ensure_text_type, string_types
+from conda.common.compat import ensure_text_type, isiterable, iteritems, string_types, text_type
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -161,14 +161,21 @@ def run_command(command, prefix, *arguments, **kwargs):
     use_exception_handler = kwargs.get('use_exception_handler', False)
     # These commands require 'dev' mode to be enabled during testing because
     # they end up calling run_script() in link.py and that uses wrapper scripts for e.g. activate.
-    # This means that, in these scripts, conda is executed via: sys.prefix/bin/python -m conda
+    # Setting `dev` means that, in these scripts, conda is executed via:
+    #   `sys.prefix/bin/python -m conda` (or the Windows equivalent).
     # .. and the source code for `conda` is put on `sys.path` via `PYTHONPATH` (a bit gross but
-    # less so than always requiring `cwd` to be the root of the conda source tree).
-    # If you do not want that to happen for some test, pass dev=False as a kwarg.
+    # less so than always requiring `cwd` to be the root of the conda source tree in every case).
+    # If you do not want this to happen for some test you must pass dev=False as a kwarg, though
+    # for nearly all tests, you want to make sure you are running *this* conda and not some old
+    # conda (it was random which you'd get depending on the initial values of PATH and PYTHONPATH
+    # - and likely more variables - before `dev` came along). Setting CONDA_EXE is not enough
+    # either because in the 4.5 days that would just run whatever Python was found first on PATH.
     command_defaults_to_dev = command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.RUN)
     dev = kwargs.get('dev', True if command_defaults_to_dev else False)
     workdir = kwargs.get("workdir")
     debug = kwargs.get("debug_wrapper_scripts", False)
+    assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
+    assert not any([isiterable(arg) for arg in arguments]), "run_command() arguments members must not be iterable"
     arguments = list(arguments)
     p = generate_parser()
 
@@ -805,11 +812,13 @@ class IntegrationTests(TestCase):
         # Regression test for #2812
         # install from local channel
 
-        path = u'/private/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/pytest-of-rdonnelly/pytest-16/test_install_tarball_from_loca0/c352_çñßôêá'
-        url = path_to_url(path)
-        path2 = url_to_path(url)
-        assert path == path2
-        assert type(path) == type(path2)
+        # path = u'/private/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/pytest-of-rdonnelly/pytest-16/test_install_tarball_from_loca0/c352_çñßôêá'
+        # path = u'/çñ'
+        # url = path_to_url(path)
+        # assert url == u'file:///%C3%A7%C3%B1'
+        # path2 = url_to_path(url)
+        # assert path == path2
+        # assert type(path) == type(path2)
 
         with make_temp_env() as prefix, make_temp_channel(["flask-0.10.1"]) as channel:
             run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.10.1', '--json')

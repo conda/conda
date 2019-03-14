@@ -35,6 +35,14 @@ def execute(args, parser):
 
     if args.all and path_is_clean(prefix):
         # full environment removal was requested, but environment doesn't exist anyway
+
+        # .. but you know what? Other code might fall over if we try to create an env
+        # in the same place, so let's at least try to remove it.
+        try:
+            rm_rf(prefix, clean_empty_parents=True)
+        except:
+            log.warning("Failed rm_rf() of partially existent env {}".format(prefix))
+
         return 0
 
     if args.all:
