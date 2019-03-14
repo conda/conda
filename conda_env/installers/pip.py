@@ -6,7 +6,6 @@ from __future__ import absolute_import
 import os
 import os.path as op
 from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
-import tempfile
 from conda_env.pip_util import pip_subprocess
 from logging import getLogger
 
@@ -49,11 +48,11 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         # Win/Appveyor does not like it if we use context manager + delete=True.
         # So we delete the temporary file in a finally block.
         if requirements is not None and op.isfile(requirements.name):
-            if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+            if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
                 os.remove(requirements.name)
             else:
-                log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip requirements.txt {}'.format(requirements.name))
-
+                log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip requirements.txt {}'
+                            .format(requirements.name))
 
 
 # Conform to Installers API

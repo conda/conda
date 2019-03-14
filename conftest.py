@@ -53,7 +53,3 @@ def set_tmpdir(tmpdir):
     assert os.sep in td
     os.environ['CONDA_TEST_TMPDIR'] = td
     tmpdir_in_use = td
-
-
-#@pytest.fixture(autouse=True)
-#def tmpdir_name():

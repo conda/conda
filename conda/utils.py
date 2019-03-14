@@ -16,6 +16,7 @@ from .common.path import win_path_to_unix
 from .common.url import path_to_url
 from os.path import abspath, join
 from os import environ
+from subprocess import list2cmdline
 
 log = logging.getLogger(__name__)
 
@@ -237,7 +238,6 @@ def hashsum_file(path, mode='md5'):  # pragma: no cover
             h.update(chunk)
     return h.hexdigest()
 
-from subprocess import list2cmdline
 
 @memoize
 def sys_prefix_unfollowed():
@@ -275,12 +275,11 @@ def quote_for_shell(arguments, shell=None):
         # This could all be replaced with some regex wizardry but that is less readable and
         # for code like this, readability is very important.
         for arg in arguments:
-            quote = None
             if '"' in arg:
                 quote = "'"
             elif "'" in arg:
                 quote = '"'
-            elif (not ' ' in arg and not '\n' in arg):
+            elif not any(_ in arg for _ in (' ', '\n')):
                 quote = ''
             else:
                 quote = '"'
@@ -309,12 +308,13 @@ def massage_arguments(arguments, errors='assert'):
             assert False, 'Please ensure arguments are not strings'
         else:
             arguments = shlex_split_unicode(arguments)
-            log.warning("Please ensure arguments is not a string; used `shlex_split_unicode()` on it")
+            log.warning("Please ensure arguments is not a string; "
+                        "used `shlex_split_unicode()` on it")
 
     if not isiterable(arguments):
         arguments = (arguments,)
 
-    assert not any([isiterable(arg) for arg in arguments]), "Individual arguments must not be iterable"
+    assert not any([isiterable(arg) for arg in arguments]), "Individual arguments must not be iterable"  # NOQA
     arguments = list(arguments)
 
     return arguments
@@ -325,7 +325,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
     tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
     multiline = False
-    if len(arguments)==1 and '\n' in arguments[0]:
+    if len(arguments) == 1 and '\n' in arguments[0]:
         multiline = True
     if on_win:
         comspec = environ[str('COMSPEC')]

@@ -20,8 +20,9 @@ VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
 
 if sys.version_info[0] == 2:
     def another_to_unicode(val):
-        if isinstance(val, basestring) and not isinstance(val, unicode):
-            return unicode(val, encoding='utf-8')
+        # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
+        if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
+            return unicode(val, encoding='utf-8')  # NOQA
         return val
 else:
     def another_to_unicode(val):
@@ -54,7 +55,7 @@ class TokenURLFilter(Filter):
         record.msg = another_to_unicode(self.TOKEN_REPLACE(record.msg))
         if record.args:
             new_args = tuple(self.TOKEN_REPLACE(another_to_unicode(arg))
-                            if isinstance(arg, string_types) else arg
+                             if isinstance(arg, string_types) else arg
                              for arg in record.args)
             record.msg = record.msg % new_args
             record.args = None
@@ -126,7 +127,7 @@ class StdStreamHandler(StreamHandler):
                 stream.write(fs % msg)
             else:
                 try:
-                    if (isinstance(msg, unicode) and
+                    if (isinstance(msg, unicode) and  # NOQA
                             getattr(stream, 'encoding', None)):
                         ufs = u'%s'
                         try:
