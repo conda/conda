@@ -84,8 +84,6 @@ def run_env_command(command, prefix, *arguments):
     elif command is Commands.ENV_CREATE: # CREATE
         if prefix:
             arguments[1:1] = ['-f', prefix]
-        else:
-            arguments[1:1] = [prefix]
     elif command is Commands.ENV_REMOVE:  # REMOVE
         arguments[1:1] = ['--yes', '-n', prefix]
     elif command is Commands.ENV_UPDATE:
@@ -170,7 +168,7 @@ class IntegrationTests(unittest.TestCase):
         exist.
         '''
         try:
-            run_env_command(Commands.ENV_CREATE, None, '--file not_a_file.txt')
+            run_env_command(Commands.ENV_CREATE, None, '--file', 'not_a_file.txt')
         except Exception as e:
             self.assertIsInstance(e, EnvironmentFileNotFound)
 
