@@ -339,7 +339,7 @@ class YamlRawParameter(RawParameter):
 
     @classmethod
     def make_raw_parameters_from_file(cls, filepath):
-        with open(filepath.encode('utf-8'), 'r') as fh:
+        with open(filepath, 'r') as fh:
             try:
                 ruamel_yaml = yaml_load(fh)
             except ScannerError as err:

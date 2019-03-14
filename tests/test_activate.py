@@ -1608,7 +1608,7 @@ class ShellWrapperIntegrationTests(TestCase):
             #       library critical to the correct functioning of
             #       Python (e.g. OpenSSL).
             shell.sendline('conda install -yq proj4=5.2.0')
-            shell.expect('Executing transaction: ...working... done.*\n', timeout=60)
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=200)
             shell.assert_env_var('errorlevel', '0', True)
             # TODO: assert that reactivate worked correctly
 

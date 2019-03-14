@@ -1,0 +1,2 @@
+*.sh text eol=lf
+*.psm1 text eol=lf
