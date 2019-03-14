@@ -77,7 +77,7 @@ def list_all_known_prefixes():
         else:
             search_dirs = (expand('~'),)
         for home_dir in search_dirs:
-            environments_txt_file = join(home_dir, '.conda', 'environments.txt')
+            environments_txt_file = get_user_environments_txt_file(home_dir)
             if isfile(environments_txt_file):
                 all_env_paths.update(_clean_environments_txt(environments_txt_file))
 
