@@ -12,35 +12,17 @@ import json
 from logging import getLogger
 import os
 import re
-import subprocess
 
 from .exceptions import CondaEnvException
-from conda.base.context import context
-from conda.utils import wrap_subprocess_call
-from conda.gateways.disk.delete import rm_rf
-from conda.common.compat import on_win
+from conda.cli.python_api import run_command, Commands
 
 
 log = getLogger(__name__)
 
 
-def pip_subprocess(args, prefix, env=None, cwd=None):
-    script_caller, command_args = wrap_subprocess_call(
-        on_win, context.root_prefix, prefix, False, False, ['pip'] + args)
-    process = subprocess.Popen(command_args,
-                               cwd=cwd or prefix,
-                               universal_newlines=True,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    stdout, stderr = process.communicate()
-    if script_caller is not None:
-        if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
-            rm_rf(script_caller)
-        else:
-            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {}'
-                        .format(script_caller))
-    if process.returncode != 0:
-        raise CondaEnvException("Pip subcommand failed with \n"
-                                "output: {}\nerror: {}".format(stdout, stderr))
+def pip_subprocess(args, prefix, cwd):
+    run_args = ['-p', prefix, 'pip'] + args
+    stdout, stderr, rc = run_command(Commands.RUN, *run_args, cwd=cwd, stdout=None, stderr=None)
     return stdout, stderr
 
 

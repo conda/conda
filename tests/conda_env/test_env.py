@@ -366,11 +366,8 @@ class SaveExistingEnvTestCase(unittest.TestCase):
         with make_temp_envs_dir() as envs_dir:
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
-                'CONDA_PIP_INTEROP_ENABLED': 'true',
             }, conda_tests_ctxt_mgmt_def_pol):
                 env_name = str(uuid4())[:8]
-                prefix = join(envs_dir, env_name)
-                python_path = join(prefix, PYTHON_BINARY)
                 run_command(Commands.CREATE, env_name,
                             support_file('pip_argh.yml'))
                 out_file = join(envs_dir, 'test_env.yaml')

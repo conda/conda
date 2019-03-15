@@ -15,6 +15,7 @@ def execute(args, parser):
     on_win = sys.platform == "win32"
 
     call = args.executable_call
+    cwd = args.cwd
     prefix = args.prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
 
     script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix,
@@ -22,7 +23,8 @@ def execute(args, parser):
     env = os.environ.copy()
     from conda.gateways.subprocess import _subprocess_clean_env
     _subprocess_clean_env(env, clean_python=True, clean_conda=True)
-    process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE, env=env)
+    process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE,
+                    env=env, cwd=cwd)
     stdout, stderr = process.communicate()
     if hasattr(stdout, "decode"):
         stdout = stdout.decode('utf-8', errors='replace')
