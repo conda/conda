@@ -645,6 +645,12 @@ def configure_parser_init(sub_parsers):
         help=SUPPRESS,
         default=NULL,
     )
+    setup_type_group.add_argument(
+        "--reverse",
+        action="store_true",
+        help="Undo past effects of conda init.",
+        default=NULL,
+    )
 
     p.add_argument(
         'shells',

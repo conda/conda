@@ -73,14 +73,14 @@ class InitializeTests(TestCase):
                         "function": "make_entry_point_exe",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\conda.exe"
+                            "target_path": "/darwin\\Scripts\\conda.exe",
                         }
                     },
                     {
                         "function": "make_entry_point_exe",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\conda-env.exe"
+                            "target_path": "/darwin\\Scripts\\conda-env.exe",
                         }
                     },
                     {
@@ -181,14 +181,14 @@ class InitializeTests(TestCase):
                         "function": "install_conda_sh",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\etc\\profile.d\\conda.sh"
+                            "target_path": "/darwin\\etc\\profile.d\\conda.sh",
                         }
                     },
                     {
                         "function": "install_conda_fish",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish"
+                            "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish",
                         }
                     },
                     {
@@ -759,6 +759,27 @@ class InitializeTests(TestCase):
             print(new_content)
             assert new_content == expected_new_content
 
+            expected_reversed_content = dals("""
+            export PATH="/some/other/conda/bin:$PATH"
+            export PATH="%(prefix)s/bin:$PATH"
+            export PATH="%(prefix)s/bin:$PATH"
+            
+            . etc/profile.d/conda.sh
+            . etc/profile.d/coda.sh
+            . /somewhere/etc/profile.d/conda.sh
+            source /etc/profile.d/conda.sh
+            
+            source %(prefix)s/etc/profile.d/conda.sh
+            """) % {
+                'prefix': win_path_backout(abspath(conda_temp_prefix)),
+            }
+
+            init_sh_user(target_path, conda_temp_prefix, 'bash', reverse=True)
+            with open(target_path) as fh:
+                reversed_content = fh.read()
+            print(reversed_content)
+            assert reversed_content == expected_reversed_content
+
     @pytest.mark.skipif(not on_win, reason="windows-only test")
     def test_init_sh_user_windows(self):
         with tempdir() as conda_temp_prefix:
@@ -819,9 +840,32 @@ class InitializeTests(TestCase):
 
             assert new_content == expected_new_content
 
+            expected_reversed_content = dals("""
+            source /c/conda/Scripts/activate root
+            . $(cygpath 'c:\\conda\\Scripts\\activate') root
+            
+            . etc/profile.d/conda.sh
+            . etc/profile.d/coda.sh
+            . /somewhere/etc/profile.d/conda.sh
+            source /etc/profile.d/conda.sh
+            
+            source %(prefix)s/etc/profile.d/conda.sh
+            """) % {
+                'prefix': win_path_ok(abspath(conda_prefix)),
+            }
+
+            init_sh_user(target_path, conda_temp_prefix, 'bash', reverse=True)
+            with open(target_path) as fh:
+                reversed_content = fh.read()
+            print(reversed_content)
+            assert reversed_content == expected_reversed_content
+
+    @pytest.mark.skipif(not on_win, reason="win-only test")
     def test_init_cmd_exe_registry(self):
-        def _read_windows_registry_mock(target_path):
-            return 'echo hello & "yada\\yada\\conda_hook.bat" & echo "world"', None
+        def _read_windows_registry_mock(target_path, value=None):
+            if not value:
+                value = "yada\\yada\\conda_hook.bat"
+            return 'echo hello & "{}" & echo "world"'.format(value), None
 
         from conda.core import initialize
         orig_read_windows_registry = initialize._read_windows_registry
@@ -841,6 +885,23 @@ class InitializeTests(TestCase):
 
         expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat\" & echo \"world\""
         assert c.stdout.strip().splitlines()[-1][1:] == expected
+
+        # test the reverse (remove the key)
+        initialize._read_windows_registry = lambda x: _read_windows_registry_mock(x, value=join(conda_prefix, 'condabin', 'conda_hook.bat'))
+        initialize.join = ntpath.join
+        try:
+            target_path = r'HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun'
+            conda_prefix = "c:\\Users\\Lars\\miniconda"
+            with env_var('CONDA_DRY_RUN', 'true', reset_context):
+                with captured() as c:
+                    initialize.init_cmd_exe_registry(target_path, conda_prefix, reverse=True)
+        finally:
+            initialize._read_windows_registry = orig_read_windows_registry
+            initialize.join = orig_join
+
+        expected = "echo hello & echo \"world\""
+        assert c.stdout.strip().splitlines()[-1][1:] == expected
+
 
     @pytest.mark.skipif(not on_win, reason="win-only test")
     def test_init_enable_long_path(self):
@@ -880,3 +941,6 @@ class InitializeTests(TestCase):
             assert content[0] == '# >>> conda initialize >>>'
             assert content[1] == "# !! Contents within this block are managed by 'conda init' !!"
             assert content[-1] == '# <<< conda initialize <<<'
+
+            init_sh_system(target_path, conda_prefix, reverse=True)
+            assert not isfile(target_path)
