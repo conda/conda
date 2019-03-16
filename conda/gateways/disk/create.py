@@ -19,7 +19,7 @@ from .delete import rm_rf, path_is_clean
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
-from ..subprocess import subprocess_call_with_clean_env
+from ..subprocess import subprocess_call_with_clean_env, subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PACKAGE_CACHE_MAGIC_FILE

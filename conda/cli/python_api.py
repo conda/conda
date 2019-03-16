@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from .conda_argparse import do_call
+from ..compat import encode_arguments
 from .main import generate_parser
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
@@ -90,8 +91,7 @@ def run_command(command, *arguments, **kwargs):
     from subprocess import list2cmdline
     log.debug("executing command >>>  conda %s", list2cmdline(arguments))
     try:
-        arguments_bytes = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg) for arg in arguments]
-        with argv(['python_api'] + arguments_bytes), captured(stdout, stderr) as c:
+        with argv(['python_api'] + encode_arguments(arguments)), captured(stdout, stderr) as c:
             if use_exception_handler:
                 return_code = conda_exception_handler(do_call, args, p)
             else:

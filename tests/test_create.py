@@ -41,7 +41,8 @@ from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FI
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
-from conda.common.compat import ensure_text_type, isiterable, iteritems, string_types, text_type
+from conda.common.compat import (ensure_text_type, iteritems, string_types, text_type,
+                                 encode_arguments)
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -84,8 +85,8 @@ UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
 # UNICODE_CHARACTERS_RESTRICTED = UNICODE_CHARACTERS
 
 # We basically do not work at all with Unicode on Python 2 still!
-if sys.version_info[0] == 2:
-    UNICODE_CHARACTERS = UNICODE_CHARACTERS_RESTRICTED
+# if sys.version_info[0] == 2:
+#     UNICODE_CHARACTERS = UNICODE_CHARACTERS_RESTRICTED
 
 # When testing for bugs, you may want to change this to a _,
 # for example to see if a bug is related to spaces in prefixes.
@@ -206,8 +207,8 @@ def run_command(command, prefix, *arguments, **kwargs):
     # list2cmdline is not exact, but it is only informational.
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % ' '.join(arguments), file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
-        arguments_bytes = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg) for arg in arguments]
-        with argv(['python_api'] + arguments_bytes), captured(*cap_args) as c:
+        arguments = encode_arguments(arguments)
+        with argv(['python_api'] + arguments), captured(*cap_args) as c:
             with temp_chdir(workdir):
                 if use_exception_handler:
                     conda_exception_handler(do_call, args, p)
@@ -773,8 +774,13 @@ class IntegrationTests(TestCase):
         # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
         # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
         # We elect to test the more complex of the two options.
-        with make_temp_env("python=3.7", "pip") as prefix:
-            with env_var("PYTHONUTF8", "1", conda_tests_ctxt_mgmt_def_pol):
+        py_ver = "3.7"
+        with make_temp_env("python="+py_ver, "pip") as prefix:
+            evs = dict({"PYTHONUTF8": "1"})
+            # This test does not activate the env.
+            if on_win:
+                evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
+            with env_vars(evs, conda_tests_ctxt_mgmt_def_pol):
                 check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==0.10.1",
                            cwd=prefix, shell=True)
                 PrefixData._cache_.clear()
@@ -786,29 +792,35 @@ class IntegrationTests(TestCase):
                 # regression test for #5847
                 #   when using rm_rf on a directory
                 assert prefix in PrefixData._cache_
-                _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")))
+                _rm_rf(join(prefix, get_python_site_packages_short_path(py_ver)))
                 assert prefix not in PrefixData._cache_
 
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
-        with make_temp_env("python=3.7", "pip") as prefix:
-            check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
-                       cwd=prefix, shell=True)
-            PrefixData._cache_.clear()
-            stdout, stderr = run_command(Commands.LIST, prefix)
-            stdout_lines = stdout.split('\n')
-            assert any(line.endswith("pypi") for line in stdout_lines
-                       if line.lower().startswith("flask"))
+        py_ver = "3.7"
+        with make_temp_env("python="+py_ver, "pip") as prefix:
+            evs = dict({"PYTHONUTF8": "1"})
+            # This test does not activate the env.
+            if on_win:
+                evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
+            with env_vars(evs, conda_tests_ctxt_mgmt_def_pol):
+                check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
+                           cwd=prefix, shell=True)
+                PrefixData._cache_.clear()
+                stdout, stderr = run_command(Commands.LIST, prefix)
+                stdout_lines = stdout.split('\n')
+                assert any(line.endswith("pypi") for line in stdout_lines
+                           if line.lower().startswith("flask"))
 
-            # regression test for #3433
-            run_command(Commands.INSTALL, prefix, "python=3.5")
-            assert package_is_installed(prefix, 'python=3.5')
+                # regression test for #3433
+                run_command(Commands.INSTALL, prefix, "python=3.5")
+                assert package_is_installed(prefix, 'python=3.5')
 
-            # regression test for #5847
-            #   when using rm_rf on a file
-            assert prefix in PrefixData._cache_
-            _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
-            assert prefix not in PrefixData._cache_
+                # regression test for #5847
+                #   when using rm_rf on a file
+                assert prefix in PrefixData._cache_
+                _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
+                assert prefix not in PrefixData._cache_
 
         # regression test for #5980, related to #5847
         with make_temp_env() as prefix:
@@ -826,15 +838,22 @@ class IntegrationTests(TestCase):
     def test_install_tarball_from_local_channel(self):
         # Regression test for #2812
         # install from local channel
+        '''
+        path = u'/private/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/pytest-of-rdonnelly/pytest-16/test_install_tarball_from_loca0/c352_çñßôêá'
+        if on_win:
+            path = u'C:\\çñ'
+            percy = u'file:///C:/%C3%A7%C3%B1'
+        else:
+            path = u'/çñ'
+            percy = 'file:///%C3%A7%C3%B1'
 
-        # path = u'/private/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/pytest-of-rdonnelly/pytest-16/test_install_tarball_from_loca0/c352_çñßôêá'
-        # path = u'/çñ'
-        # url = path_to_url(path)
-        # assert url == u'file:///%C3%A7%C3%B1'
-        # path2 = url_to_path(url)
-        # assert path == path2
-        # assert type(path) == type(path2)
-
+        url = path_to_url(path)
+        assert url == percy
+        path2 = url_to_path(url)
+        assert path == path2
+        assert type(path) == type(path2)
+        # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
+        '''
         with make_temp_env() as prefix, make_temp_channel(["flask-0.10.1"]) as channel:
             run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.10.1', '--json')
             assert package_is_installed(prefix, channel + '::' + 'flask')
@@ -1254,19 +1273,65 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
 
+
+    def _test_compile_pyc(self, use_sys_python=False):
+        log.warning("wtf")
+        with env_vars({
+            "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
+        }, conda_tests_ctxt_mgmt_def_pol):
+            packages = []
+            if use_sys_python:
+                py_ver = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
+            else:
+                py_ver = '3.7'
+                packages.append('python=' + py_ver)
+            with make_temp_env(*packages, use_restricted_unicode=False) as prefix:
+                if use_sys_python:
+                    python_binary = sys.executable
+                else:
+                    python_binary = join(prefix, 'python.exe' if on_win else 'bin/python')
+                assert os.path.isfile(python_binary), "Cannot even find Python"
+                spdir = join('Lib', 'site-packages') if on_win else join('lib', 'python', py_ver)
+                # Bad pun on itsdangerous.
+                py_full_paths = (join(prefix, spdir, 'isitsafe.py'),)
+                pyc_full_paths = (join(prefix, spdir, '__pycache__', 'isitsafe.pyc'),)
+                try:
+                    from os import makedirs
+                    makedirs(dirname(py_full_paths[0]))
+                    makedirs(dirname(pyc_full_paths[0]))
+                except:
+                    pass
+                with open(py_full_paths[0], 'w') as fpy:
+                    fpy.write("__version__ = 1.0")
+                    fpy.close()
+                from conda.gateways.disk.create import compile_multiple_pyc
+                compile_multiple_pyc(python_binary, py_full_paths, pyc_full_paths, prefix, py_ver)
+
+
+    def test_compile_pyc_sys_python(self):
+        return self._test_compile_pyc(use_sys_python=True)
+
+    def test_compile_pyc_new_python(self):
+        return self._test_compile_pyc(use_sys_python=False)
+
     def test_clone_offline_multichannel_with_untracked(self):
-        with make_temp_env("python=3.5") as prefix:
-            run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+        with env_vars({
+            "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
+        }, conda_tests_ctxt_mgmt_def_pol):
+            # This test will use python=3.6 in the prefix. That is used to compile flask's pycs.
+            with make_temp_env("python=3.7", use_restricted_unicode=True) as prefix:
 
-            run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask")
+                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
 
-            touch(join(prefix, 'test.file'))  # untracked file
-            with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
-                assert context.offline
-                assert package_is_installed(clone_prefix, 'python=3.5')
-                assert package_is_installed(clone_prefix, 'flask=0.11.1=py_0')
-                assert isfile(join(clone_prefix, 'test.file'))  # untracked file
+                run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask")
+
+                touch(join(prefix, 'test.file'))  # untracked file
+                with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+                    assert context.offline
+                    assert package_is_installed(clone_prefix, 'python=3.7')
+                    assert package_is_installed(clone_prefix, 'flask=0.11.1=py_0')
+                    assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
     def test_package_pinning(self):
         with make_temp_env("python=2.7", "itsdangerous=0.23", "pytz=2015.7") as prefix:
@@ -1509,9 +1574,9 @@ class IntegrationTests(TestCase):
             assert "not-a-real-package" in error
 
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
-        with make_temp_env("python") as prefix:
-            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-            run_command(Commands.RUN, prefix, "python", "-m", "pip", "install", "itsdangerous")
+        with make_temp_env("python=3", use_restricted_unicode=False) as prefix:
+            pip_ioo, pip_ioe = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
+            pip_o, pip_e = run_command(Commands.RUN, prefix, "python", "-m", "pip", "install", "itsdangerous")
 
             PrefixData._cache_.clear()
             output, error = run_command(Commands.LIST, prefix)
@@ -2273,7 +2338,7 @@ class IntegrationTests(TestCase):
             # Commands.RUN here, but on Unix we'll be fine.
             python_exe = join(prefix, 'python.exe') if on_win else join(prefix, 'bin', 'python')
             conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
-            py_co = [python_exe, conda_exe]
+            py_co = [python_exe, "-m", "conda"]
             with env_var('CONDA_BAT' if on_win else 'CONDA_EXE', conda_exe, conda_tests_ctxt_mgmt_def_pol):
                 result = subprocess_call_with_clean_env(py_co + ["--version"], path=prefix)
                 assert result.rc == 0
@@ -2371,16 +2436,17 @@ class IntegrationTests(TestCase):
         # Make sure we can flip back and forth.
         with env_vars({
             "CONDA_AUTO_UPDATE_CONDA": "false",
-            "CONDA_ALLOW_CONDA_DOWNGRADES": "true"
+            "CONDA_ALLOW_CONDA_DOWNGRADES": "true",
+            "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
         }, conda_tests_ctxt_mgmt_def_pol):
-            # py_ver = sys.version_info[0]
-            py_ver = 3
-            with make_temp_env("conda=4.5.12", "python=%s" % py_ver,
-                           name='_' + str(uuid4())[:8]) as prefix:  # rev 0
+            # py_ver = str(sys.version_info[0])
+            py_ver = "3"
+            with make_temp_env("conda=4.5.12", "python=" + py_ver, use_restricted_unicode=True,
+                               name = '_' + str(uuid4())[:8]) as prefix:  # rev 0
                 # See comment in test_init_dev_and_NoBaseEnvironmentError.
                 python_exe = join(prefix, 'python.exe') if on_win else join(prefix, 'bin', 'python')
                 conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
-                py_co = [python_exe, conda_exe]
+                py_co = [python_exe, "-m", "conda"]
                 assert package_is_installed(prefix, "conda=4.5.12")
 
                 # runs our current version of conda to install into the foreign env
@@ -2413,7 +2479,7 @@ class IntegrationTests(TestCase):
                 assert not package_is_installed(prefix, "itsdangerous")
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "conda=4.5.12")
-                assert package_is_installed(prefix, "python=%s" % py_ver)
+                assert package_is_installed(prefix, "python=" + py_ver)
 
                 result = subprocess_call_with_clean_env(py_co + ["info", "--json"])
                 conda_info = json.loads(result.stdout)

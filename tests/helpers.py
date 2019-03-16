@@ -97,8 +97,7 @@ def run_inprocess_conda_command(command, disallow_stderr=True):
     # anything that uses this function is an integration test
     reset_context(())
     # May want to do this to command:
-    arguments_bytes = [(arg.encode('utf-8') if hasattr(arg, 'encode') else arg) for arg in shlex_split_unicode(command)]
-    with argv(arguments_bytes), captured(disallow_stderr) as c:
+    with argv(encode_arguments(shlex_split_unicode(command))), captured(disallow_stderr) as c:
         initialize_logging()
         try:
             exit_code = cli.main()

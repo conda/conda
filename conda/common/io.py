@@ -24,7 +24,7 @@ import signal
 from threading import Event, Thread
 from time import sleep, time
 
-from .compat import StringIO, iteritems, on_win
+from .compat import StringIO, iteritems, on_win, encode_environment
 from .constants import NULL
 from .path import expand
 from .._vendor.auxlib.decorators import memoizemethod
@@ -118,31 +118,13 @@ class CaptureTarget(Enum):
     STDOUT = -2
 
 
-# Want bytes encoded as utf-8 for both names and values.
-def encode_for_env_var(value):
-    if isinstance(value, str):
-        return value
-    if sys.version_info[0] == 2:
-        _unicode = unicode
-    else:
-        _unicode = str
-    if isinstance(value, (str, _unicode)):
-        try:
-            return bytes(value, encoding='utf-8')
-        except:
-            return value.encode('utf-8')
-    return str(value)
-
-
 @contextmanager
 def env_vars(var_map=None, callback=None):
 
     if var_map is None:
         var_map = {}
 
-    new_var_map = {}
-    for name, value in iteritems(var_map):
-        new_var_map[encode_for_env_var(name)] = encode_for_env_var(value)
+    new_var_map = encode_environment(var_map)
     saved_vars = {}
     for name, value in iteritems(new_var_map):
         saved_vars[name] = os.environ.get(name, NULL)

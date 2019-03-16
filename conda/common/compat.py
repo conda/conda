@@ -19,6 +19,37 @@ PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
+# Control some tweakables that will be removed finally.
+ENCODE_ENVIRONMENT=True
+ENCODE_ARGS=False
+
+# Want bytes encoded as utf-8 for both names and values.
+def encode_for_env_var(value):
+    if isinstance(value, str):
+        return value
+    if sys.version_info[0] == 2:
+        _unicode = unicode
+    else:
+        _unicode = str
+    if isinstance(value, (str, _unicode)):
+        try:
+            return bytes(value, encoding='utf-8')
+        except:
+            return value.encode('utf-8')
+    return str(value)
+
+
+def encode_environment(env):
+    if ENCODE_ENVIRONMENT:
+        env = {encode_for_env_var(k): encode_for_env_var(v) for k, v in iteritems(env)}
+    return env
+
+
+def encode_arguments(arguments):
+    if ENCODE_ARGS:
+        arguments = {encode_for_env_var(arg) for arg in arguments}
+    return arguments
+
 
 # #############################
 # equivalent commands
@@ -189,7 +220,9 @@ def _init_stream_encoding(stream):
         return stream
     from codecs import getwriter
     from locale import getpreferredencoding
-    encoding = getpreferredencoding()
+    # No no no.
+    # encoding = getpreferredencoding()
+    encoding = 'UTF-8'
     try:
         writer_class = getwriter(encoding)
     except LookupError:
