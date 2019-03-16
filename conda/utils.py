@@ -329,15 +329,36 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
         multiline = True
     if on_win:
         comspec = environ[str('COMSPEC')]
-        conda_bat = environ.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
+        if dev_mode:
+            from conda import CONDA_PACKAGE_ROOT
+            conda_bat = abspath(join(root_prefix, 'condabin', 'conda.bat'))
+            conda_bat = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
+        else:
+            conda_bat = environ.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix,
                                     suffix='.bat', delete=False) as fh:
+            fh.write("@SET PYTHONIOENCODING=utf-8\n")
+            fh.write("@SET PYTHONUTF8=1\n")
+            fh.write("@chcp 65001 > NUL\n")
+            if dev_mode:
+                from conda.core.initialize import CONDA_PACKAGE_ROOT
+                fh.write("@SET CONDA_DEV=1\n")
+                # In dev mode, conda is really:
+                # 'python -m conda'
+                # *with* PYTHONPATH set.
+                fh.write("@SET PYTHONPATH=" + dirname(CONDA_PACKAGE_ROOT) + "\n")
+                fh.write("@SET \"CONDA_EXE={}\"\n".format(sys.executable))
+                fh.write("@SET _CE_M=-m\n")
+                fh.write("@SET _CE_CONDA=conda\n")
             if debug_wrapper_scripts:
                 fh.write('echo *** environment before *** 1>&2\n')
                 fh.write('SET 1>&2\n')
-            fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
-            fh.write('@chcp 65001>NUL\n')
+            # Not sure there is any point in backing this up, nothing will get called with it reset
+            # after all!
+            # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
+            # fh.write('@chcp 65001>NUL\n')
             fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix))
+            fh.write("@IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
                 fh.write('echo *** environment after *** 1>&2\n')
                 fh.write('SET 1>&2\n')
@@ -346,8 +367,8 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                 # it needs doing for each line and the caller may as well do that.
                 fh.write("{0}\n".format(arguments[0]))
             else:
-                fh.write("@{0}\n".format(quote_for_shell(arguments)))
-            fh.write('@chcp %CONDA_OLD_CHCP%>NUL\n')
+                fh.write("{0}\n".format(quote_for_shell(arguments)))
+            # fh.write('@chcp %CONDA_OLD_CHCP%>NUL\n')
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
     else:
