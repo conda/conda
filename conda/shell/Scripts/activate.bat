@@ -20,7 +20,7 @@
     @GOTO :End
 )
 
-@CALL "%%~dp0..\condabin\conda.bat" activate %*
+@CALL "%~dp0..\condabin\conda.bat" activate %*
 
 :End
 @set _args1_first=
