@@ -17,7 +17,7 @@ from uuid import uuid4
 from conda import cli
 from conda._vendor.auxlib.decorators import memoize
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems, itervalues
+from conda.common.compat import iteritems, itervalues, encode_arguments
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
 from conda.core.subdir_data import SubdirData, make_feature_record
 from conda.gateways.disk.delete import rm_rf
