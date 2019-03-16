@@ -29,6 +29,7 @@ from conda.gateways.disk.update import touch
 import pytest
 from tests.helpers import tempdir
 from tests.test_create import Commands, run_command
+from conda._vendor.auxlib.decorators import memoize
 
 try:
     from unittest.mock import patch
