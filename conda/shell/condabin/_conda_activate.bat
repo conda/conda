@@ -8,16 +8,16 @@
     @SET "PROMPT=%CONDA_PS1_BACKUP%"
     @SET CONDA_PS1_BACKUP=
 :FIXUP43
-
-@SETLOCAL enabledelayedexpansion
-@FOR %%A in ("%%~dp0\.") DO @SET _sysp=%%~dpA
+@REM This really does matter.
+@chcp 65001 > NUL
+@FOR %%A in ("%~dp0\.") DO @SET _sysp=%%~dpA
 @SET _sysp=%_sysp:~0,-1%
 @SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
-@FOR /F "delims=" %%i IN ('@CALL "%CONDA_EXE%" shell.cmd.exe %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
+@FOR /F "delims=" %%i IN ('@CALL "%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
 @ENDLOCAL & @SET "_TEMP_SCRIPT_PATH=%_TEMP_SCRIPT_PATH%"
 @IF "%_TEMP_SCRIPT_PATH%"=="" @EXIT /B 1
 @IF NOT "%CONDA_PROMPT_MODIFIER%" == "" @CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
 @CALL "%_TEMP_SCRIPT_PATH%"
-@DEL /F /Q "%_TEMP_SCRIPT_PATH%"
+@if "%CONDA_TEST_SAVE_TEMPS%"=="" @DEL /F /Q "%_TEMP_SCRIPT_PATH%"
 @SET _TEMP_SCRIPT_PATH=
 @SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
