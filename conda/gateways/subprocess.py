@@ -32,6 +32,31 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
     """) % (command_str, cwd, rc, stdout, stderr)
 
 
+
+
+import subprocess
+from conda.gateways.disk.delete import rm_rf
+from conda.common.compat import on_win
+from conda.base.context import context
+
+def any_subprocess(args, prefix, env=None, cwd=None):
+    script_caller, command_args = wrap_subprocess_call(
+                                      on_win, context.root_prefix, prefix, context.dev, False, args
+    )
+    process = subprocess.Popen(command_args,
+                               cwd=cwd or prefix,
+                               universal_newlines=False,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    stdout, stderr = process.communicate()
+    if script_caller is not None:
+        if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+            rm_rf(script_caller)
+        else:
+            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {}'.format(script_caller))
+    return stdout, stderr, process.returncode
+
+
+
 def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True):
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.

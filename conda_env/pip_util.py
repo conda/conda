@@ -24,21 +24,10 @@ from conda.common.compat import on_win
 log = getLogger(__name__)
 
 
+from conda.gateways.subprocess import any_subprocess
 def pip_subprocess(args, prefix, env=None, cwd=None):
-    script_caller, command_args = wrap_subprocess_call(
-                                      on_win, context.root_prefix, prefix, False, False, ['pip'] + args
-                                  )
-    process = subprocess.Popen(command_args,
-                               cwd=cwd or prefix,
-                               universal_newlines=True,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    stdout, stderr = process.communicate()
-    if script_caller is not None:
-        if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
-            rm_rf(script_caller)
-        else:
-            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {}'.format(script_caller))
-    if process.returncode != 0:
+    stdout, stderr, rc = any_subprocess(args=['pip'] + args, prefix=prefix, env=env, cwd=cwd)
+    if rc != 0:
         raise CondaEnvException("Pip subcommand failed with \n"
                                 "output: {}\nerror: {}".format(stdout, stderr))
     return stdout, stderr
