@@ -9,6 +9,7 @@ import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
+from conda import __version__ as conda_version
 
 from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
@@ -55,6 +56,25 @@ POP_THESE = (
     'prompt',
 )
 
+@memoize
+def bash_unsupported_because():
+    bash = which('bash')
+    if not bash:
+        return 'bash was not found on PATH'
+    if not on_win:
+        return None
+    from subprocess import check_output
+    output = check_output(bash + ' --version')
+    if 'Microsoft' in output:
+        return 'WSL/bash is not yet supported'
+    if bash.startswith(sys.prefix):
+        return ('MSYS2 bash installed from m2-bash in prefix {}.\n'
+                'Please use upstream MSYS2 and have it on PATH. This\n'
+                'is unsupportable due to Git-for-Windows conflicts.'.format(sys.prefix))
+
+
+def bash_unsupported():
+    return True if bash_unsupported_because() else False
 
 class ActivatorUnitTests(TestCase):
 
@@ -1143,6 +1163,9 @@ class InteractiveShell(object):
             'base_shell': 'posix',  # inheritance implemented in __init__
             'init_command': 'env | sort && eval "$(python -m conda \"shell.zsh\" \"hook\")"',
         },
+        # It should be noted here that we use the latest hook with whatever conda.exe is installed
+        # in sys.prefix (and we will activate all of those PATH entries).  We will set PYTHONPATH
+        # though, so there is that.  What I'm getting at is that this is a huge mixup and a mess.
         'cmd.exe': {
             'activator': 'cmd.exe',
             'init_command': 'set "CONDA_SHLVL=" '
@@ -1229,7 +1252,7 @@ class InteractiveShell(object):
         self.original_path = PATH
         env = {
             'CONDA_AUTO_ACTIVATE_BASE': 'false',
-            'PYTHONPATH': CONDA_PACKAGE_ROOT,
+            'PYTHONPATH': dirname(CONDA_PACKAGE_ROOT),
             'PATH': PATH,
         }
         for ev in ('CONDA_TEST_SAVE_TEMPS', 'CONDA_TEST_TMPDIR', 'CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE'):
@@ -1365,6 +1388,9 @@ class ShellWrapperIntegrationTests(TestCase):
         PATH0 = shell.get_env_var('PATH', '').strip(':')
         assert any(p.endswith("condabin") for p in PATH0.split(":"))
 
+        shell.sendline("conda --version")
+        shell.p.expect_exact("conda " + conda_version)
+
         shell.sendline('conda activate base')
         # shell.sendline('env | sort')
         shell.assert_env_var('PS1', '(base).*')
@@ -1403,7 +1429,7 @@ class ShellWrapperIntegrationTests(TestCase):
         # TODO: assert that reactivate worked correctly
 
         # conda run integration test, hmm, which prefix though?
-        shell.sendline('conda run proj')
+        shell.sendline('conda run --dev proj')
         shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
         # regression test for #6840
@@ -1461,7 +1487,7 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' in PATH4
         assert PATH4 == PATH2
 
-    @pytest.mark.skipif(not which('bash'), reason='bash not installed')
+    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
             self.basic_posix(shell)
@@ -1477,6 +1503,8 @@ class ShellWrapperIntegrationTests(TestCase):
             self.basic_posix(shell)
 
     def basic_csh(self, shell):
+        shell.sendline("conda --version")
+        shell.p.expect_exact("conda " + conda_version)
         shell.assert_env_var('CONDA_SHLVL', '0')
         shell.sendline('conda activate base')
         shell.assert_env_var('prompt', '(base).*')
@@ -1549,6 +1577,8 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '1\r?')
             PATH = shell.get_env_var('PATH')
             assert 'charizard' in PATH
+            shell.sendline("conda --version")
+            shell.p.expect_exact("conda " + conda_version)
             shell.sendline('conda activate "%s"' % self.prefix)
             shell.assert_env_var('CONDA_SHLVL', '2\r?')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
@@ -1574,7 +1604,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
             # conda run integration test
             print('## [PowerShell integration] Checking conda run.')
-            shell.sendline('conda run proj')
+            shell.sendline('conda run --dev proj')
             shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
             print('## [PowerShell integration] Deactivating')
@@ -1608,7 +1638,7 @@ class ShellWrapperIntegrationTests(TestCase):
             #       library critical to the correct functioning of
             #       Python (e.g. OpenSSL).
             shell.sendline('conda install -yq proj4=5.2.0')
-            shell.expect('Executing transaction: ...working... done.*\n', timeout=200)
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=2000)
             shell.assert_env_var('errorlevel', '0', True)
             # TODO: assert that reactivate worked correctly
 
@@ -1616,7 +1646,10 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
             # conda run integration test
-            shell.sendline('conda run proj')
+            # Without --dev, on Windows we run the wrong conda as CONDA_EXE
+            # comes from the sys prefix. It is a mess, but --dev helps.
+            shell.sendline('conda run --dev proj')
+
             shell.expect(r'.*Rel\. 5\.2\.0,.*')
 
             shell.sendline('conda deactivate')
@@ -1626,12 +1659,7 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '0\r')
 
-    @pytest.mark.skipif(not which('bash'), reason='bash not installed')
-    @pytest.mark.skipif(on_win and
-                        which('bash') and
-                        which('bash').startswith(sys.prefix), reason='bash installed from m2-bash in prefix {}. '
-                                                                     'This is not currently supported. Use upstream'
-                                                                     'MSYS2 and have it be on PATH'.format(sys.prefix))
+    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_bash_activate_error(self):
         with InteractiveShell('bash') as shell:
             if on_win:
@@ -1649,18 +1677,21 @@ class ShellWrapperIntegrationTests(TestCase):
         with InteractiveShell('cmd.exe') as shell:
             shell.sendline("conda activate environment-not-found-doesnt-exist")
             shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
-            shell.assert_env_var('errorlevel', '1\r')
+            shell.assert_env_var('errorlevel', '1')
 
             shell.sendline("conda activate -h blah blah")
             shell.expect('usage: conda activate')
 
-    @pytest.mark.skipif(not which('bash'), reason='bash not installed')
+    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_legacy_activate_deactivate_bash(self):
         with InteractiveShell('bash') as shell:
             shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT)
             shell.sendline("source activate \"%s\"" % self.prefix2)
             PATH = shell.get_env_var("PATH")
             assert 'charizard' in PATH
+
+            shell.sendline("conda --version")
+            shell.p.expect_exact("conda " + conda_version)
 
             shell.sendline("source activate \"%s\"" % self.prefix3)
             PATH = shell.get_env_var("PATH")
@@ -1678,16 +1709,21 @@ class ShellWrapperIntegrationTests(TestCase):
         with InteractiveShell('cmd.exe') as shell:
             shell.sendline("echo off")
 
-            shell.sendline("SET \"PATH=%s\\shell\\Scripts;%%PATH%%\"" % CONDA_PACKAGE_ROOT)
+            PATH = "%s\\shell\\Scripts;%%PATH%%" % CONDA_PACKAGE_ROOT
+
+            shell.sendline("SET \"PATH=" + PATH + "\"")
             shell.sendline("activate \"%s\"" % self.prefix2)
             PATH = shell.get_env_var("PATH")
             assert 'charizard' in PATH
 
-            shell.sendline("activate \"%s\"" % self.prefix3)
+            shell.sendline("conda --version")
+            shell.p.expect_exact("conda " + conda_version)
+
+            shell.sendline("activate.bat \"%s\"" % self.prefix3)
             PATH = shell.get_env_var("PATH")
             assert 'venusaur' in PATH
 
-            shell.sendline("deactivate")
+            shell.sendline("deactivate.bat")
             PATH = shell.get_env_var("PATH")
             assert 'charizard' in PATH
 
