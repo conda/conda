@@ -613,13 +613,6 @@ def configure_parser_init(sub_parsers):
     )
 
     p.add_argument(
-        "--dev",
-        action="store_true",
-        help=SUPPRESS,
-        default=NULL,
-    )
-
-    p.add_argument(
         "--all",
         action="store_true",
         help="Initialize all currently available shells.",
