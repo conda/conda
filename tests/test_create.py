@@ -1275,7 +1275,6 @@ class IntegrationTests(TestCase):
 
 
     def _test_compile_pyc(self, use_sys_python=False):
-        log.warning("wtf")
         with env_vars({
             "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
         }, conda_tests_ctxt_mgmt_def_pol):
