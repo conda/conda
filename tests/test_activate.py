@@ -1240,7 +1240,7 @@ class InteractiveShell(object):
         from conda.utils import quote_for_shell
         p = PopenSpawn(quote_for_shell([self.shell_name] + self.args),
                        timeout=12, maxread=5000, searchwindowsize=None,
-                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
+                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding='utf-8',
                        codec_errors='strict')
 
         # set state for context

@@ -82,7 +82,6 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
         'func': func,
         'import_name': import_name,
     }
-    from conda.common.io import encode_for_env_var
     if python_full_path is not None:
         shebang = u'#!%s\n' % python_full_path
 

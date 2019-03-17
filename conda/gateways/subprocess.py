@@ -14,7 +14,7 @@ from subprocess import CalledProcessError, PIPE, Popen
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
 from .._vendor.auxlib.ish import dals
-from ..common.compat import ensure_binary, ensure_text_type, iteritems, string_types
+from ..common.compat import ensure_binary, ensure_text_type, iteritems, string_types, encode_arguments
 
 log = getLogger(__name__)
 Response = namedtuple('Response', ('stdout', 'stderr', 'rc'))
@@ -61,15 +61,15 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """
-    from conda.common.io import encode_for_env_var
-    env = {encode_for_env_var(k): encode_for_env_var(v) for k, v in iteritems(os.environ if env is None else env)}
+    from conda.compat import encode_environment
+    env = encode_environment(env if env else os.environ)
     cwd = sys.prefix if path is None else abspath(path)
     from conda.compat import isiterable
     if not isiterable(command):
         command = shlex_split_unicode(command)
     command_str = command if isinstance(command, string_types) else ' '.join(command)
     log.debug("executing>> %s", command_str)
-    p = Popen([encode_for_env_var(c) for c in command], cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+    p = Popen(encode_arguments(command), cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
     ACTIVE_SUBPROCESSES.add(p)
     stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
     stdout, stderr = p.communicate(input=stdin)
