@@ -167,10 +167,10 @@ from io import open as io_open  # NOQA
 
 def open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True):
     if 'b' in mode:
-        return io_open(ensure_fs_path_encoding(file), str(mode), buffering=buffering,
+        return io_open(file, str(mode), buffering=buffering,
                        errors=errors, newline=newline, closefd=closefd)
     else:
-        return io_open(ensure_fs_path_encoding(file), str(mode), buffering=buffering,
+        return io_open(file, str(mode), buffering=buffering,
                        encoding=encoding or 'utf-8', errors=errors, newline=newline,
                        closefd=closefd)
 
@@ -279,7 +279,7 @@ def ensure_unicode(value):
 
 def ensure_fs_path_encoding(value):
     try:
-        return value.decode(FILESYSTEM_ENCODING)
+        return value.encode(FILESYSTEM_ENCODING)
     except AttributeError:
         return value
     except UnicodeEncodeError:
