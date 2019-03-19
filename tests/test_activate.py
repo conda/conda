@@ -1254,9 +1254,7 @@ class InteractiveShell(object):
         # set state for context
         joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
         PATH = joiner(self.activator.path_conversion(concatv(
-            (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
-            (dirname(which(self.shell_name)),),
         )))
         self.original_path = PATH
         env = {
