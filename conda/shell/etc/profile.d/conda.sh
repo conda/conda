@@ -22,21 +22,21 @@ __conda_activate() {
     \local cmd="$1"
     shift
     \local ask_conda
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" shell.posix "$cmd" "$@")" || \return $?
+    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix "$cmd" "$@")" || \return $?
     \eval "$ask_conda"
     __conda_hashr
 }
 
 __conda_reactivate() {
     \local ask_conda
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" shell.posix reactivate)" || \return $?
+    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix reactivate)" || \return $?
     \eval "$ask_conda"
     __conda_hashr
 }
 
 conda() {
     if [ "$#" -lt 1 ]; then
-        "$CONDA_EXE"
+        "$CONDA_EXE" $_CE_M $_CE_CONDA
     else
         \local cmd="$1"
         shift
