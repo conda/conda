@@ -1328,7 +1328,7 @@ class IntegrationTests(TestCase):
                 touch(join(prefix, 'test.file'))  # untracked file
                 with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
                     assert context.offline
-                    assert package_is_installed(clone_prefix, 'python=3.7')
+                    assert package_is_installed(clone_prefix, 'python=3.6')
                     assert package_is_installed(clone_prefix, 'flask=0.11.1=py_0')
                     assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
