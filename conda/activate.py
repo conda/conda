@@ -580,21 +580,44 @@ class _Activator(object):
 
     def _prompt_modifier(self, prefix, conda_default_env):
         if context.changeps1:
-            old_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER', '')
-            old_env = old_prompt_modifier.rstrip().strip('(').rstrip(')')
+            base_env_name = basename(context.root_prefix)
+
+            # Get current environment and prompt stack
+            env_stack = []
+            prompt_stack = []
+            old_shlvl = int(self.environ.get('CONDA_SHLVL').rstrip())
+            for i in xrange(1, old_shlvl+1):
+                if i == old_shlvl:
+                    env_i = basename(self.environ.get('CONDA_PREFIX', ''))
+                else:
+                    env_i = basename(self.environ.get('CONDA_PREFIX_{}'.format(i), '').rstrip())
+                stacked_i = bool(self.environ.get('CONDA_STACKED_{}'.format(i), '').rstrip())
+                env_stack.append(env_i)
+                if not stacked_i:
+                    prompt_stack = prompt_stack[0:-1]
+                prompt_stack.append(env_i)
+            env_stack = [ROOT_ENV_NAME if env == base_env_name else env for env in env_stack]
+
+            # Modify prompt stack according to pending operation
             deactivate = getattr(self, '_deactivate', False)
             reactivate = getattr(self, '_reactivate', False)
             if deactivate:
-                old_shlvl = int(self.environ.get('CONDA_SHLVL').rstrip())
-                stack = self.environ.get('CONDA_STACKED_{}'.format(old_shlvl), '').rstrip()
-                if stack:
-                    conda_default_env = old_env.rpartition(',')[0]
+                prompt_stack = prompt_stack[0:-1]
+                env_stack = env_stack[0:-1]
+                stacked = bool(self.environ.get('CONDA_STACKED_{}'.format(old_shlvl), '').rstrip())
+                if not stacked and env_stack:
+                    prompt_stack.append(env_stack[-1])
             elif reactivate:
-                conda_default_env = old_env
+                pass
             else:
                 stack = getattr(self, 'stack', False)
-                if stack:
-                    conda_default_env = '{},{}'.format(old_env, conda_default_env)
+                if not stack:
+                    prompt_stack = prompt_stack[0:-1]
+                prompt_stack.append(conda_default_env)
+            prompt_stack = [ROOT_ENV_NAME if pt == base_env_name else pt for pt in prompt_stack]
+
+            conda_default_env = ','.join(prompt_stack)
+
             return context.env_prompt.format(
                 default_env=conda_default_env,
                 prefix=prefix,
