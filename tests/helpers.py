@@ -100,7 +100,7 @@ def run_inprocess_conda_command(command, disallow_stderr=True):
     with argv(encode_arguments(shlex_split_unicode(command))), captured(disallow_stderr) as c:
         initialize_logging()
         try:
-            exit_code = cli.main()
+            exit_code = cli.main(*sys.argv)
         except SystemExit:
             pass
     print(c.stderr, file=sys.stderr)
