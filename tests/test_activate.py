@@ -1156,7 +1156,7 @@ class InteractiveShell(object):
     shells = {
         'posix': {
             'activator': 'posix',
-            'init_command': 'env | sort && eval "$(python -m conda shell.posix hook)"',
+            'init_command': 'env | sort && mount && which {0} && {0} -V && echo "$({0} -m conda shell.posix hook)" && eval "$({0} -m conda shell.posix hook)"'.format('/c/Users/rdonnelly/mc/python.exe'), # sys.executable.replace('\\', '/')),
             'print_env_var': 'echo "$%s"',
         },
         'bash': {
@@ -1398,14 +1398,32 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline("conda --version")
         shell.p.expect_exact("conda " + conda_version)
 
+        CONDA_EXE = shell.get_env_var('CONDA_EXE')
+        _CE_M = shell.get_env_var('_CE_M')
+
         shell.sendline('conda activate base')
+
+        CONDA_EXE2 = shell.get_env_var('CONDA_EXE')
+        _CE_M2 = shell.get_env_var('_CE_M')
+
         # shell.sendline('env | sort')
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH', '').strip(':')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
+        CONDA_EXE = shell.get_env_var('CONDA_EXE')
+        _CE_M = shell.get_env_var('_CE_M')
+
+        log.debug("activating ..")
         shell.sendline('conda activate "%s"' % self.prefix)
+
+        CONDA_EXE2 = shell.get_env_var('CONDA_EXE')
+        _CE_M2 = shell.get_env_var('_CE_M')
+
+        assert CONDA_EXE != CONDA_EXE2, "conda exe changed by activation procedure\n:From\n{}\nto:\n{}".\
+            format(CONDA_EXE, CONDA_EXE2)
+
         # shell.sendline('env | sort')
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
