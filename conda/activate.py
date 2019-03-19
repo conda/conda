@@ -585,8 +585,8 @@ class _Activator(object):
             # Get current environment and prompt stack
             env_stack = []
             prompt_stack = []
-            old_shlvl = int(self.environ.get('CONDA_SHLVL').rstrip())
-            for i in xrange(1, old_shlvl+1):
+            old_shlvl = int(self.environ.get('CONDA_SHLVL', '').rstrip())
+            for i in range(1, old_shlvl+1):
                 if i == old_shlvl:
                     env_i = basename(self.environ.get('CONDA_PREFIX', ''))
                 else:
