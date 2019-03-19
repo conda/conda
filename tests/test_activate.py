@@ -1241,7 +1241,12 @@ class InteractiveShell(object):
         for var_name in remove_these:
             del env[var_name]
         from conda.utils import quote_for_shell
-        p = PopenSpawn(quote_for_shell([self.shell_name] + self.args),
+        # 1. shell='cmd.exe' is deliberate. We are not, at this time, running bash, we
+        #    are launching it (from `cmd.exe` most likely).
+        # 2. For some reason, passing just self.shell_name (which is `bash`) runs WSL
+        #    bash instead of MSYS2's, even when MSYS2 appears before System32 on PATH.
+        shell_found = which(self.shell_name) or self.shell_name
+        p = PopenSpawn(quote_for_shell([shell_found] + self.args, shell='cmd.exe'),
                        timeout=12, maxread=5000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding='utf-8',
                        codec_errors='strict')
@@ -1256,7 +1261,7 @@ class InteractiveShell(object):
         self.original_path = PATH
         env = {
             'CONDA_AUTO_ACTIVATE_BASE': 'false',
-            'PYTHONPATH': dirname(CONDA_PACKAGE_ROOT),
+            'PYTHONPATH': self.activator.path_conversion(dirname(CONDA_PACKAGE_ROOT)),
             'PATH': PATH,
         }
         for ev in ('CONDA_TEST_SAVE_TEMPS', 'CONDA_TEST_TMPDIR', 'CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE'):
