@@ -45,16 +45,24 @@ conda() {
                 __conda_activate "$cmd" "$@"
                 ;;
             install|update|upgrade|remove|uninstall)
-                "$CONDA_EXE" "$cmd" "$@" && __conda_reactivate
+                "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@" && __conda_reactivate
                 ;;
-            *) "$CONDA_EXE" "$cmd" "$@" ;;
+            *) "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@" ;;
         esac
     fi
 }
 
 if [ -z "${CONDA_SHLVL+x}" ]; then
     \export CONDA_SHLVL=0
-    PATH="$(dirname "$(dirname "$CONDA_EXE")")/condabin:${PATH:-}"
+    if [ "${_CE_CONDA+x}" == "condax" ]; then
+        if [ "${PATH+x}" == "x" ]; then
+            PATH="$(dirname "$CONDA_EXE")/condabin"
+        else
+            PATH="$(dirname "$(dirname "$CONDA_EXE")")/condabin:${PATH}"
+        fi
+    else
+        PATH="$(dirname "$(dirname "$CONDA_EXE")")/condabin:${PATH:-}"
+    fi
     \export PATH
 
     # We're not allowing PS1 to be unbound. It must at least be set.
