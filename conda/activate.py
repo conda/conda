@@ -559,7 +559,15 @@ def native_path_to_unix(paths):  # pragma: unix no cover
         return None
     from subprocess import CalledProcessError, PIPE, Popen
     from conda._vendor.auxlib.compat import shlex_split_unicode
-    command = 'cygpath --path -f -'
+    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
+    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
+    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
+    # different points in the Windows filesystem.  We do our path conversions with one and
+    # expect the results to work with the other.  It does not.
+    from .common.path import which
+    bash = which('bash')
+    command = os.path.join(dirname(bash), 'cygpath') if bash else 'cygpath'
+    command += ' --path -f -'
 
     single_path = isinstance(paths, string_types)
     joined = paths if single_path else ("%s" % os.pathsep).join(paths)
