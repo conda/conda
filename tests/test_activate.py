@@ -60,18 +60,23 @@ POP_THESE = (
 @memoize
 def bash_unsupported_because():
     bash = which('bash')
+    reason = None
     if not bash:
-        return 'bash was not found on PATH'
-    if not on_win:
-        return None
-    from subprocess import check_output
-    output = check_output(bash + ' --version')
-    if 'Microsoft' in output:
-        return 'WSL/bash is not yet supported'
-    if bash.startswith(sys.prefix):
-        return ('MSYS2 bash installed from m2-bash in prefix {}.\n'
-                'Please use upstream MSYS2 and have it on PATH. This\n'
-                'is unsupportable due to Git-for-Windows conflicts.'.format(sys.prefix))
+        reason = 'bash: was not found on PATH'
+    elif on_win:
+        from subprocess import check_output
+        output = check_output(bash + ' -c ' + '"uname -v"')
+        if b'Microsoft' in output:
+            reason = 'bash: WSL is not yet supported. Pull requests welcome.'
+        else:
+            output = check_output(bash + ' --version')
+            if b'msys' not in output and 'bcygwin' not in output:
+                reason = 'bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{}\n'.format(output)
+            elif bash.startswith(sys.prefix):
+                reason = ('bash: MSYS2 bash installed from m2-bash in prefix {}.\n'
+                          'This is unsupportable due to Git-for-Windows conflicts.\n'
+                          'Please use upstream MSYS2 and have it on PATH.  .'.format(sys.prefix))
+    return reason
 
 
 def bash_unsupported():
@@ -1155,6 +1160,8 @@ class InteractiveShell(object):
             'print_env_var': 'echo "$%s"',
         },
         'bash': {
+            # MSYS2's login scripts handle mounting the filesystem. Without it, /c is /cygdrive.
+            'args': ['-l'] if on_win else [],
             'base_shell': 'posix',  # inheritance implemented in __init__
         },
         'dash': {
