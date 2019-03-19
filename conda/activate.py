@@ -354,6 +354,7 @@ class _Activator(object):
         }
 
     def build_deactivate(self):
+        self._deactivate = True
         # query environment
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
@@ -427,6 +428,7 @@ class _Activator(object):
         }
 
     def build_reactivate(self):
+        self._reactivate = True
         conda_prefix = self.environ.get('CONDA_PREFIX')
         conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
         if not conda_prefix or conda_shlvl < 1:
@@ -578,6 +580,21 @@ class _Activator(object):
 
     def _prompt_modifier(self, prefix, conda_default_env):
         if context.changeps1:
+            old_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER', '')
+            old_env = old_prompt_modifier.rstrip().strip('(').rstrip(')')
+            deactivate = getattr(self, '_deactivate', False)
+            reactivate = getattr(self, '_reactivate', False)
+            if deactivate:
+                old_shlvl = int(self.environ.get('CONDA_SHLVL').rstrip())
+                stack = self.environ.get('CONDA_STACKED_{}'.format(old_shlvl), '').rstrip()
+                if stack:
+                    conda_default_env = old_env.rpartition(',')[0]
+            elif reactivate:
+                conda_default_env = old_env
+            else:
+                stack = getattr(self, 'stack', False)
+                if stack:
+                    conda_default_env = '{},{}'.format(old_env, conda_default_env)
             return context.env_prompt.format(
                 default_env=conda_default_env,
                 prefix=prefix,
