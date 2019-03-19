@@ -1222,16 +1222,12 @@ class InteractiveShell(object):
     def __init__(self, shell_name):
         self.shell_name = shell_name
         base_shell = self.shells[shell_name].get('base_shell')
-        shell_vals = self.shells.get(base_shell, {})
+        shell_vals = self.shells.get(base_shell, {}).copy()
         shell_vals.update(self.shells[shell_name])
         for key, value in iteritems(shell_vals):
             setattr(self, key, value)
         self.activator = activator_map[shell_vals['activator']]()
         self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
-        self.args = []
-        if base_shell:
-            self.args.extend(list(self.shells[base_shell].get('args', [])))
-        self.args.extend(list(self.shells[shell_name].get('args', [])))
 
     def __enter__(self):
         from pexpect.popen_spawn import PopenSpawn
