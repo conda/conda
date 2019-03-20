@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import OrderedDict
+
 from errno import ENOENT
 from logging import getLogger
 import os
@@ -28,6 +30,8 @@ from ..common.configuration import (Configuration, ConfigurationLoadError, MapPa
 from ..common.os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
+
+from .. import CONDA_PACKAGE_ROOT
 
 try:
     os.getcwd()
@@ -476,10 +480,31 @@ class Context(Configuration):
         return abspath(sys.prefix)
 
     @property
+    # This is deprecated, please use conda_exe_vars_dict instead.
     def conda_exe(self):
         bin_dir = 'Scripts' if on_win else 'bin'
         exe = 'conda.exe' if on_win else 'conda'
         return join(self.conda_prefix, bin_dir, exe)
+
+    @property
+    def conda_exe_vars_dict(self):
+        '''
+        An OrderedDict so the vars can refer to each other if necessary.
+        None means unset it.
+        '''
+
+        if context.dev:
+            return OrderedDict({'CONDA_EXE': sys.executable,
+                                'PYTHONPATH': os.path.dirname(CONDA_PACKAGE_ROOT)+':{}'.format(
+                                    os.environ['PYTHONPATH'] if 'PYTHONPATH' in os.environ else ''),
+                                '_CE_M': '-m',
+                                '_CE_CONDA': 'conda'})
+        else:
+            bin_dir = 'Scripts' if on_win else 'bin'
+            exe = 'conda.exe' if on_win else 'conda'
+            return OrderedDict({'CONDA_EXE': os.path.join(sys.prefix, bin_dir, exe),
+                                '_CE_M': None,
+                                '_CE_CONDA': None})
 
     @memoizedproperty
     def channel_alias(self):

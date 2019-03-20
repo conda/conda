@@ -95,7 +95,7 @@ def _subprocess_clean_env(env, clean_python=True, clean_conda=True):
         dels.extend(('PYTHONPATH', 'PYTHONHOME'))
     if clean_conda:
         dels.extend(('CONDA_ROOT', 'CONDA_PROMPT_MODIFIER',
-                     'CONDA_PYTHON_EXE', 'CONDA_EXE', 'CONDA_DEFAULT_ENV'))
+                     'CONDA_EXE', 'CONDA_DEFAULT_ENV'))
     for key in dels:
         if key in env:
             del env[key]

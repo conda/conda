@@ -383,9 +383,10 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
             if dev_mode:
                 from conda.core.initialize import CONDA_PACKAGE_ROOT
-                fh.write(">&2 export CONDA_DEV=1\n")
                 fh.write(">&2 export PYTHONPATH=" + dirname(CONDA_PACKAGE_ROOT) + "\n")
-            hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook'])
+                hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook', '--dev'])
+            else:
+                hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook'])
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment before ***'\n"
                          ">&2 env\n")

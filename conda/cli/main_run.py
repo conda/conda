@@ -23,7 +23,6 @@ def execute(args, parser):
 
     call = args.executable_call
     prefix = args.prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
-    env = os.environ.copy()
 
     script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix,
                                                        args.dev, args.debug_wrapper_scripts, call)
