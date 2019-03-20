@@ -580,8 +580,6 @@ class _Activator(object):
 
     def _prompt_modifier(self, prefix, conda_default_env):
         if context.changeps1:
-            base_env_name = self._default_env(context.root_prefix)
-
             # Get current environment and prompt stack
             env_stack = []
             prompt_stack = []
@@ -590,7 +588,8 @@ class _Activator(object):
                 if i == old_shlvl:
                     env_i = self._default_env(self.environ.get('CONDA_PREFIX', ''))
                 else:
-                    env_i = self._default_env(self.environ.get('CONDA_PREFIX_{}'.format(i), '').rstrip())
+                    env_i = self._default_env(
+                            self.environ.get('CONDA_PREFIX_{}'.format(i), '').rstrip())
                 stacked_i = bool(self.environ.get('CONDA_STACKED_{}'.format(i), '').rstrip())
                 env_stack.append(env_i)
                 if not stacked_i:
