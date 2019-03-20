@@ -1313,6 +1313,10 @@ class IntegrationTests(TestCase):
     def test_compile_pyc_new_python(self):
         return self._test_compile_pyc(use_sys_python=False)
 
+    def test_conda_run(self):
+        prefix = make_temp_prefix(str(uuid4())[:7])
+        run_command(Commands.RUN, prefix, 'echo', '\"hello\"')
+
     def test_clone_offline_multichannel_with_untracked(self):
         with env_vars({
             "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
@@ -1573,9 +1577,9 @@ class IntegrationTests(TestCase):
             assert "not-a-real-package" in error
 
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
-        with make_temp_env("python=3", use_restricted_unicode=False) as prefix:
+        with make_temp_env("python=3", "pip", use_restricted_unicode=False) as prefix:
             pip_ioo, pip_ioe = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-            pip_o, pip_e = run_command(Commands.RUN, prefix, "python", "-m", "pip", "install", "itsdangerous")
+            pip_o, pip_e = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous", debug_wrapper_scripts=True)
 
             PrefixData._cache_.clear()
             output, error = run_command(Commands.LIST, prefix)
