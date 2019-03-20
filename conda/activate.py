@@ -580,7 +580,7 @@ class _Activator(object):
 
     def _prompt_modifier(self, prefix, conda_default_env):
         if context.changeps1:
-            base_env_name = basename(context.root_prefix)
+            base_env_name = self._default_env(context.root_prefix)
 
             # Get current environment and prompt stack
             env_stack = []
@@ -588,15 +588,14 @@ class _Activator(object):
             old_shlvl = int(self.environ.get('CONDA_SHLVL', '0').rstrip())
             for i in range(1, old_shlvl+1):
                 if i == old_shlvl:
-                    env_i = basename(self.environ.get('CONDA_PREFIX', ''))
+                    env_i = self._default_env(self.environ.get('CONDA_PREFIX', ''))
                 else:
-                    env_i = basename(self.environ.get('CONDA_PREFIX_{}'.format(i), '').rstrip())
+                    env_i = self._default_env(self.environ.get('CONDA_PREFIX_{}'.format(i), '').rstrip())
                 stacked_i = bool(self.environ.get('CONDA_STACKED_{}'.format(i), '').rstrip())
                 env_stack.append(env_i)
                 if not stacked_i:
                     prompt_stack = prompt_stack[0:-1]
                 prompt_stack.append(env_i)
-            env_stack = [ROOT_ENV_NAME if env == base_env_name else env for env in env_stack]
 
             # Modify prompt stack according to pending operation
             deactivate = getattr(self, '_deactivate', False)
@@ -614,7 +613,6 @@ class _Activator(object):
                 if not stack:
                     prompt_stack = prompt_stack[0:-1]
                 prompt_stack.append(conda_default_env)
-            prompt_stack = [ROOT_ENV_NAME if pt == base_env_name else pt for pt in prompt_stack]
 
             conda_default_env = ','.join(prompt_stack)
 
