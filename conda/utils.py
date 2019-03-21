@@ -378,15 +378,16 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
         # work we need extra smarts here, we want it to be instead:
         if dev_mode:
             conda_exe = [abspath(join(root_prefix, 'bin', 'python')), '-m', 'conda']
+            dev_arg = '--dev'
+            dev_args = [dev_arg]
         else:
             conda_exe = [environ.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))]
+            dev_args = []
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
             if dev_mode:
                 from conda.core.initialize import CONDA_PACKAGE_ROOT
                 fh.write(">&2 export PYTHONPATH=" + dirname(CONDA_PACKAGE_ROOT) + "\n")
-                hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook', '--dev'])
-            else:
-                hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook'])
+            hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook'] + dev_args)
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment before ***'\n"
                          ">&2 env\n")
@@ -394,7 +395,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                          .format(hook_quoted))
             fh.write("eval \"$({0})\"\n"
                      .format(hook_quoted))
-            fh.write("conda activate {0}\n".format(quote_for_shell((prefix,))))
+            fh.write("conda activate {0} {1}\n".format(dev_arg, quote_for_shell((prefix,))))
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n"
                          ">&2 env\n")
@@ -404,6 +405,9 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                 fh.write("{0}\n".format(' '.join(arguments)))
             fh.write("{0}\n".format(quote_for_shell(arguments)))
             script_caller = fh.name
-        command_args = [shell_path, "-x", script_caller]
+        if debug_wrapper_scripts:
+            command_args = [shell_path, "-x", script_caller]
+        else:
+            command_args = [shell_path, script_caller]
 
     return script_caller, command_args
