@@ -1622,6 +1622,11 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
+            output, _ = run_command(Commands.RUN, prefix, "which", "python")
+            assert output.startswith(prefix), "We should be running python in {}\n" \
+                                              "We are running {}\n" \
+                                              "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n" \
+                                              "for a likely place to add more fixes".format(prefix, output)
             output, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.9.0" in pkgs
