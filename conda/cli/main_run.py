@@ -14,13 +14,6 @@ from ..gateways.disk.delete import rm_rf
 def execute(args, parser):
     on_win = sys.platform == "win32"
 
-    # import time
-    # while not 'CONTINUAR' in os.environ:
-    #     print("Please set CONTINUAR env var", file=sys.stderr)
-    #     time.sleep(0.5)
-
-    # import pdb; pdb.set_trace()
-
     call = args.executable_call
     prefix = args.prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
 
