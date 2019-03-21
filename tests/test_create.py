@@ -1078,8 +1078,8 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python')
             if not on_win:
-                # python on windows doesn't actually have real dependencies
-                assert package_is_installed(prefix, 'openssl')
+                # sqlite is a dependency of Python on all platforms
+                assert package_is_installed(prefix, 'sqlite')
             assert package_is_installed(prefix, 'itsdangerous')
 
     def test_install_update_deps_flag(self):
@@ -1328,19 +1328,20 @@ class IntegrationTests(TestCase):
         with env_vars({
             "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
         }, conda_tests_ctxt_mgmt_def_pol):
-            # This test will use python=3.6 in the prefix. That is used to compile flask's pycs.
+            # The flask install will use this version of Python. That is then used to compile flask's pycs.
+            flask_python = '3.6'
             with make_temp_env("python=3.7", use_restricted_unicode=True) as prefix:
 
                 run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
                 run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
 
-                run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask")
+                run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask", "python=" + flask_python)
 
                 touch(join(prefix, 'test.file'))  # untracked file
                 with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
                     assert context.offline
-                    assert package_is_installed(clone_prefix, 'python=3.6')
-                    assert package_is_installed(clone_prefix, 'flask=0.11.1=py_0')
+                    assert package_is_installed(clone_prefix, "python=" + flask_python)
+                    assert package_is_installed(clone_prefix, "flask=0.11.1=py_0")
                     assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
     def test_package_pinning(self):
@@ -1354,7 +1355,7 @@ class IntegrationTests(TestCase):
 
             run_command(Commands.UPDATE, prefix, "--all")
             assert package_is_installed(prefix, "itsdangerous=0.23")
-            # assert not package_is_installed(prefix, "python-3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
+            # assert not package_is_installed(prefix, "python=3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
             assert package_is_installed(prefix, "python=2.7")
 
             assert not package_is_installed(prefix, "pytz=2015.7")
