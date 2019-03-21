@@ -456,7 +456,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
 
     if 'fish' in shells:
         if for_user:
-            config_fish_path = expand(join('~', '.config', 'config.fish'))
+            config_fish_path = expand(join('~', '.config', 'fish', 'config.fish'))
             plan.append({
                 'function': init_fish_user.__name__,
                 'kwargs': {
@@ -465,8 +465,17 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'reverse': reverse,
                 },
             })
+
         if for_system:
-            raise NotImplementedError()
+            config_fish_path = expand(join('~', '.config', 'fish', 'config.fish'))
+            plan.append({
+                'function': init_fish_user.__name__,
+                'kwargs': {
+                    'target_path': config_fish_path,
+                    'conda_prefix': conda_prefix,
+                    'reverse': reverse,
+                },
+            })
 
     if 'tcsh' in shells and for_user:
         tcshrc_path = expand(join('~', '.tcshrc'))
