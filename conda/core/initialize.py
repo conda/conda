@@ -49,8 +49,8 @@ from .._vendor.auxlib.ish import dals
 from ..activate import (CshActivator, FishActivator,
                         PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
-from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_text_type, on_mac,
-                             on_win, open)
+from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_utf8_encoding,
+                             ensure_text_type, on_mac, on_win, open)
 from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
                            get_python_site_packages_short_path, win_path_ok)
 from ..exceptions import CondaValueError
@@ -1420,7 +1420,7 @@ def make_conda_egg_link(target_path, conda_source_root):
     conda_egg_link_contents = conda_source_root + os.linesep
 
     if isfile(target_path):
-        with open(target_path) as fh:
+        with open(target_path, 'b') as fh:
             conda_egg_link_contents_old = fh.read()
     else:
         conda_egg_link_contents_old = ""
@@ -1431,8 +1431,8 @@ def make_conda_egg_link(target_path, conda_source_root):
             print(target_path, file=sys.stderr)
             print(make_diff(conda_egg_link_contents_old, conda_egg_link_contents), file=sys.stderr)
         if not context.dry_run:
-            with open(target_path, 'w') as fh:
-                fh.write(ensure_fs_path_encoding(conda_egg_link_contents))
+            with open(target_path, 'wb') as fh:
+                fh.write(ensure_utf8_encoding(conda_egg_link_contents))
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
@@ -1454,15 +1454,15 @@ def modify_easy_install_pth(target_path, conda_source_root):
 
     ln_end = os.sep + "conda"
     old_contents_lines = tuple(ln for ln in old_contents_lines if not ln.endswith(ln_end))
-    new_contents = easy_install_new_line + '\n' + '\n'.join(old_contents_lines) + '\n'
+    new_contents = easy_install_new_line + os.linesep + os.linesep.join(old_contents_lines) + os.linesep
 
     if context.verbosity:
         print('\n', file=sys.stderr)
         print(target_path, file=sys.stderr)
         print(make_diff(old_contents, new_contents), file=sys.stderr)
     if not context.dry_run:
-        with open(target_path, 'w') as fh:
-            fh.write(ensure_fs_path_encoding(new_contents))
+        with open(target_path, 'wb') as fh:
+            fh.write(ensure_utf8_encoding(new_contents))
     return Result.MODIFIED
 
 

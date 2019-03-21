@@ -285,3 +285,12 @@ def ensure_fs_path_encoding(value):
     except UnicodeEncodeError:
         return value
 
+
+def ensure_utf8_encoding(value):
+    try:
+        return value.encode('utf-8')
+    except AttributeError:
+        return value
+    except UnicodeEncodeError:
+        return value
+
