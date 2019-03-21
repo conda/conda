@@ -354,9 +354,6 @@ class EnvironmentSaveTestCase(unittest.TestCase):
 
 
 class SaveExistingEnvTestCase(unittest.TestCase):
-    # This test will not run from an unactivated conda in an IDE. You *will* get complaints about being unable
-    # to load the SSL module. Never try to test conda from outside an activated env. Maybe this should be a
-    # session fixture with autouse=True so we just refuse to run the testsuite in that case?!
     @unittest.skipIf(not is_prefix_activated_PATHwise(),
                       "You are running `pytest` outside of proper activation. "
                       "The entries necessary for conda to operate correctly "
@@ -366,6 +363,7 @@ class SaveExistingEnvTestCase(unittest.TestCase):
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
                 'CONDA_PIP_INTEROP_ENABLED': 'true',
+                'CONDA_DLL_SEARCH_MODIFICATION_ENABLE': 'true',
             }, conda_tests_ctxt_mgmt_def_pol):
                 env_name = str(uuid4())[:8]
                 prefix = join(envs_dir, env_name)

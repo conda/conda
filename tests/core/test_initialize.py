@@ -73,14 +73,14 @@ class InitializeTests(TestCase):
                         "function": "make_entry_point_exe",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\conda.exe",
+                            "target_path": "/darwin\\Scripts\\conda.exe"
                         }
                     },
                     {
                         "function": "make_entry_point_exe",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\conda-env.exe",
+                            "target_path": "/darwin\\Scripts\\conda-env.exe"
                         }
                     },
                     {
@@ -181,14 +181,14 @@ class InitializeTests(TestCase):
                         "function": "install_conda_sh",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\etc\\profile.d\\conda.sh",
+                            "target_path": "/darwin\\etc\\profile.d\\conda.sh"
                         }
                     },
                     {
                         "function": "install_conda_fish",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish",
+                            "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish"
                         }
                     },
                     {
