@@ -8,9 +8,32 @@ from conda.base.context import context
 from conda.common.io import captured
 from conda.gateways.disk.delete import rm_rf
 from tests.helpers import capture_json_with_argv, run_inprocess_conda_command
+from conda.common.compat import text_type
 
+import os
 
+@pytest.mark.usefixtures("tmpdir")
 class TestJson(unittest.TestCase):
+
+    @pytest.fixture(autouse=True)
+    def empty_env_tmpdir(self, tmpdir):
+        # TODO :: Figure out if the pkgcache and a way to look for alternatives until one is found and add
+        #         a warning about it.
+        '''
+        # Slightly fancier, "works on my computer", using the last 3 dirs is probably a pytest-ism?
+        self.tmpdir = os.path.join('opt', 'conda.tmp', *(text_type(tmpdir).split(os.sep)[-3:]))
+        try:
+            try:
+                rm_rf(self.tmpdir)
+            except:
+                pass
+            os.makedirs(self.tmpdir)
+        except:
+            self.tmpdir = text_type(tmpdir)
+        '''
+        self.tmpdir = text_type(tmpdir)
+        return self.tmpdir
+
     def assertJsonSuccess(self, res):
         self.assertIsInstance(res, dict)
         self.assertIn('success', res)
@@ -42,8 +65,11 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda config --get use_pip --json')
         self.assertJsonSuccess(res)
 
+    from mock import patch
+
     @pytest.mark.integration
-    def test_info(self):
+    @patch("conda.core.envs_manager.get_user_environments_txt_file", return_value=os.devnull)
+    def test_info(self, _mocked_guetf):
         res = capture_json_with_argv('conda info --json')
         keys = ('channels', 'conda_version', 'default_prefix', 'envs',
                 'envs_dirs', 'pkgs_dirs', 'platform',
@@ -57,8 +83,13 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, dict)
         self.assertIn('conda', res)
         self.assertIsInstance(res['conda'], list)
+        assert _mocked_guetf.call_count > 0
 
-    def test_list(self):
+
+    @pytest.mark.usefixtures("empty_env_tmpdir")
+    @patch("conda.base.context.mockable_context_envs_dirs")
+    def test_list(self, mockable_context_envs_dirs):
+        mockable_context_envs_dirs.return_value = (self.tmpdir,)
         res = capture_json_with_argv('conda list --json')
         self.assertIsInstance(res, list)
 
@@ -78,6 +109,8 @@ class TestJson(unittest.TestCase):
         assert json.loads(stdout.strip())['exception_name'] == 'EnvironmentLocationNotFound'
         assert stderr == ''
         assert rc > 0
+
+        assert mockable_context_envs_dirs.call_count > 0
 
     @pytest.mark.integration
     def test_search_0(self):

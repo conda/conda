@@ -67,6 +67,22 @@ user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 
 
+def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
+    if root_writable:
+        fixed_dirs = (
+            join(root_prefix, 'envs'),
+            join('~', '.conda', 'envs'),
+        )
+    else:
+        fixed_dirs = (
+            join('~', '.conda', 'envs'),
+            join(root_prefix, 'envs'),
+        )
+    if on_win:
+        fixed_dirs += join(user_data_dir(APP_NAME, APP_NAME), 'envs'),
+    return tuple(IndexedSet(expand(p) for p in concatv(_envs_dirs, fixed_dirs)))
+
+
 def channel_alias_validation(value):
     if value and not has_scheme(value):
         return "channel_alias value '%s' must have scheme/protocol." % value
@@ -393,19 +409,7 @@ class Context(Configuration):
 
     @property
     def envs_dirs(self):
-        if self.root_writable:
-            fixed_dirs = (
-                join(self.root_prefix, 'envs'),
-                join('~', '.conda', 'envs'),
-            )
-        else:
-            fixed_dirs = (
-                join('~', '.conda', 'envs'),
-                join(self.root_prefix, 'envs'),
-            )
-        if on_win:
-            fixed_dirs += join(user_data_dir(APP_NAME, APP_NAME), 'envs'),
-        return tuple(IndexedSet(expand(p) for p in concatv(self._envs_dirs, fixed_dirs)))
+        return mockable_context_envs_dirs(self.root_writable, self.root_prefix, self._envs_dirs)
 
     @property
     def pkgs_dirs(self):
@@ -1283,6 +1287,10 @@ def _first_writable_envs_dir():
     # Calling this function will *create* an envs directory if one does not already
     # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
     for envs_dir in context.envs_dirs:
+
+        if envs_dir == os.devnull:
+            continue
+
         # The magic file being used here could change in the future.  Don't write programs
         # outside this code base that rely on the presence of this file.
         # This value is duplicated in conda.gateways.disk.create.create_envs_directory().
