@@ -109,10 +109,10 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
             message = dals("""
             #
             # To activate this environment, use:
-            # > source activate %s
+            # > conda activate %s
             #
             # To deactivate an active environment, use:
-            # > source deactivate
+            # > conda deactivate
             #
             """) % env_name_or_prefix
         print(message)  # TODO: use logger
@@ -201,7 +201,11 @@ def install(args, parser, command='install'):
     specs = []
     if args.file:
         for fpath in args.file:
-            specs.extend(common.specs_from_url(fpath, json=context.json))
+            try:
+                specs.extend(common.specs_from_url(fpath, json=context.json))
+            except UnicodeError:
+                raise CondaError("Error reading file, file should be a text file containing"
+                                 " packages \nconda create --help for details")
         if '@EXPLICIT' in specs:
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return

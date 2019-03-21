@@ -54,6 +54,7 @@ test:
     - pytest
     - pexpect
     - responses
+    - conda-build
   imports:
     - conda
     - conda_env

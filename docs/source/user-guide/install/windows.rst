@@ -28,8 +28,9 @@ Installing on Windows
 Installing in silent mode
 =========================
 
-NOTE: The following instructions are for Miniconda. For Anaconda,
-substitute ``Anaconda`` for ``Miniconda`` in all of the commands.
+.. note::
+   The following instructions are for Miniconda. For Anaconda,
+   substitute ``Anaconda`` for ``Miniconda`` in all of the commands.
 
 To run the the Windows installer for Miniconda in
 :ref:`silent mode <silent-mode-glossary>`, use the ``/S``
@@ -75,4 +76,5 @@ Uninstalling conda
 
 #. Click Remove Program.
 
-NOTE: Removing a program is different in Windows 10.
+.. note::
+   Removing a program is different in Windows 10.

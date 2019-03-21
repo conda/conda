@@ -8,7 +8,6 @@ defaults: &defaults
     - image: condatest/linux-64-python-3.6
       # Dockerfile at https://github.com/conda/conda-docker/blob/master/condatest/linux-64-python3.6/Dockerfile
 
-
 main_test: &main_test
   <<: *defaults
   steps:
@@ -16,19 +15,33 @@ main_test: &main_test
     - run:
         name: unit tests
         command: |
-          echo "local_repodata_ttl: 1800" >> ~/.condarc
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-          conda info
-          py.test $ADD_COV -m "not integration and not installed"
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+            echo "Only docs changed detected, skipping tests"
+          else
+            echo "local_repodata_ttl: 1800" >> ~/.condarc
+            eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+            conda info
+            py.test $ADD_COV -m "not integration and not installed"
+          fi
     - run:
         name: integration tests
         command: |
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-          py.test $ADD_COV --cov-append -m "integration and not installed" -v
-          python -m conda.common.io
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+            echo "Only docs changed detected, skipping tests"
+          else
+            eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+            py.test $ADD_COV --cov-append -m "integration and not installed" -v
+            python -m conda.common.io
+          fi
     - run:
         name: upload codecov
-        command: /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
+        command: |
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+            echo "No codecov report to upload"
+          else
+            /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
+            echo "No codecov report to upload"
+          fi
 
 
 conda_build_test: &conda_build_test
@@ -122,10 +135,14 @@ conda_build_test: &conda_build_test
           # test_overlinking_detection package doesn't have configure
           # test_python_line_up_with_compiled_lib because older CB honors run_exports.yaml and not run_exports.json
         command: |
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-          conda info
-          cd ~/conda-build
-          py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+            echo "Only docs changed detected, skipping tests"
+          else
+            eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+            conda info
+            cd ~/conda-build
+            py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
+          fi
 
     - run:
         name: conda-build tests [serial]
@@ -146,10 +163,14 @@ conda_build_test: &conda_build_test
           # test_setuptools_test_requirements upstream changes that affect 'conda skeleton'
           # rpm-libX11-devel returns 404 error
         command: |
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-          cd ~/conda-build
-          py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
-          /opt/conda/bin/python -m conda.common.io
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+              echo "Only docs changed detected, skipping tests"
+          else
+            eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+            cd ~/conda-build
+            py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
+            /opt/conda/bin/python -m conda.common.io
+          fi
 
 
 flake8: &flake8
@@ -158,6 +179,17 @@ flake8: &flake8
     - checkout
     - run: /opt/conda/bin/flake8 --statistics
 
+build_docs: &build_docs
+  working_directory: ~/conda
+  docker:
+    - image: readthedocs/build
+  steps:
+    - checkout
+    - run:
+        command: |
+          pip3 install -r utils/requirements-docs.txt
+          cd docs
+          make html
 
 jobs:
   py37 main tests:
@@ -189,7 +221,7 @@ jobs:
       - CONDA_BUILD: 3.10.1
       - CONDA_INSTRUMENTATION_ENABLED: true
   flake8: *flake8
-
+  build_docs: *build_docs
 
 version: 2
 workflows:
@@ -202,3 +234,4 @@ workflows:
       # - 3.0 conda-build
       - 3.10 conda-build
       - flake8
+      - build_docs

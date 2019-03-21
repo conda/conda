@@ -5,6 +5,71 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.6.7 (2019-02-21)
+------------------
+
+Bug fixes
+^^^^^^^^^
+
+* skip scanning folders for contents during reversal of transactions.  Just ignore folders.  A bit messier, but a lot faster.  (#8266)
+* fix some logic in renaming trash files to fix permission errors  (#8300)
+* wrap pip subprocess calls in conda-env more cleanly and uniformly  (#8307)
+* revert conda prepending to PATH in cli main file on windows  (#8307)
+* simplify ``conda run`` code to use activation subprocess wrapper.  Fix a few conda tests to use ``conda run``.  (#8307)
+
+Docs improvements
+^^^^^^^^^^^^^^^^^
+
+* fixed duplicated "to" in managing envs section (#8298)
+* flesh out docs on activation  (#8314)
+* correct git syntax for adding a remote in dev docs  (#8316)
+* unpin sphinx version in docs requirements  (#8317)
+
+Contributors
+^^^^^^^^^^^^
+
+* @jjhelmus
+* @MarckK
+* @msarahan
+* @rrigdon
+* @samgd
+
+
+4.6.6 (2019-02-18)
+------------------
+
+Bug fixes
+^^^^^^^^^
+
+* fix incorrect syntax prepending to PATH for conda CLI functionality  (#8295)
+* fix rename_tmp.bat operating on folders, leading to hung interactive dialogs.  Operate only on files.  (#8295)
+
+Contributors
+^^^^^^^^^^^^
+
+* @mingwandroid
+* @msarahan
+
+
+4.6.5 (2019-02-15)
+------------------
+
+Bug fixes
+^^^^^^^^^
+
+* Make super in resolve.py python 2 friendly  (#8280)
+* support unicode paths better in activation scripts on Windows (#)
+* set PATH for conda.bat to include Conda's root prefix, so that libraries can be found when using conda when the root env is not activated  (#8287, #8292)
+* clean up warnings/errors about rsync and trash files  (#8290)
+
+Contributors
+^^^^^^^^^^^^
+
+* @jjhelmus
+* @mingwandroid
+* @msarahan
+* @rrigdon
+
 4.6.4 (2019-02-13)
 ------------------
 
@@ -283,7 +348,7 @@ Contributors
 
 
 4.5.12 (2018-12-10)
-------------------
+-------------------
 
 Improvements
 ^^^^^^^^^^^^

@@ -10,7 +10,6 @@ from conda.base.context import reset_context
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_load
 from conda.install import on_win
-import ruamel_yaml
 
 from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
@@ -375,5 +374,5 @@ class SaveExistingEnvTestCase(unittest.TestCase):
                 # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
                 run_command(Commands.EXPORT, env_name, out_file)
                 with open(out_file) as f:
-                    d = ruamel_yaml.load(f)
+                    d = yaml_load(f)
                 assert {'pip': ['argh==0.26.2']} in d['dependencies']

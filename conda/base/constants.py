@@ -24,13 +24,23 @@ machine_bits = 8 * tuple.__itemsize__
 
 APP_NAME = 'conda'
 
-SEARCH_PATH = (
-    '/etc/conda/.condarc',
-    '/etc/conda/condarc',
-    '/etc/conda/condarc.d/',
-    '/var/lib/conda/.condarc',
-    '/var/lib/conda/condarc',
-    '/var/lib/conda/condarc.d/',
+if on_win:
+    SEARCH_PATH = (
+        'C:/ProgramData/conda/.condarc',
+        'C:/ProgramData/conda/condarc',
+        'C:/ProgramData/conda/condarc.d',
+    )
+else:
+    SEARCH_PATH = (
+        '/etc/conda/.condarc',
+        '/etc/conda/condarc',
+        '/etc/conda/condarc.d/',
+        '/var/lib/conda/.condarc',
+        '/var/lib/conda/condarc',
+        '/var/lib/conda/condarc.d/',
+    )
+
+SEARCH_PATH += (
     '$CONDA_ROOT/.condarc',
     '$CONDA_ROOT/condarc',
     '$CONDA_ROOT/condarc.d/',

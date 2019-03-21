@@ -49,4 +49,4 @@ def execute(args, parser):
 
         anaconda_prompt = on_win and args.anaconda_prompt
         return initialize(context.conda_prefix, selected_shells, for_user, args.system,
-                          anaconda_prompt)
+                          anaconda_prompt, args.reverse)

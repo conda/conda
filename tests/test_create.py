@@ -52,9 +52,9 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError
+    DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError, CondaFileIOError
 from conda.gateways.anaconda_client import read_binstar_tokens
-from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.create import mkdir_p, extract_tarball
 from conda.gateways.disk.delete import rm_rf, path_is_clean
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
@@ -1025,7 +1025,7 @@ class IntegrationTests(TestCase):
                 stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources --json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
-                assert json_obj['envvars'] == {'quiet': True}
+                assert "quiet" in json_obj['envvars'] and json_obj['envvars']["quiet"] == True
                 assert json_obj['cmd_line'] == {'json': True}
 
             run_command(Commands.CONFIG, prefix, "--set changeps1 false")
@@ -1055,7 +1055,7 @@ class IntegrationTests(TestCase):
                 stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources --json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
-                assert json_obj['envvars'] == {'quiet': True}
+                assert "quiet" in json_obj['envvars'] and json_obj['envvars']["quiet"] == True
                 assert json_obj['cmd_line'] == {'json': True}
 
     def test_conda_config_validate(self):
@@ -1543,9 +1543,9 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
-            output, err = run_command(Commands.RUN, prefix, "python -m pip install -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
+            output, err = run_command(Commands.RUN, prefix, "python -m pip install -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3", workdir=prefix)
             print(output)
-            assert isfile(join("src", "urllib3", "urllib3", "__init__.py"))
+            assert isfile(join(prefix, "src", "urllib3", "urllib3", "__init__.py"))
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "urllib3")
             urllib3_record = next(PrefixData(prefix).query("urllib3"))
@@ -2506,3 +2506,12 @@ class PrivateEnvIntegrationTests(TestCase):
         assert package_is_installed(self.prefix, "spiffy-test-app=2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
+
+
+@pytest.mark.integration
+def test_tar_traversal_errors_out():
+    # test tar traversal exploits: https://github.com/jwilk/traversal-archives
+    tar_folder = join(dirname(__file__), 'data', 'tar_traversal')
+    for fn in ('absolute1.tar', 'absolute2.tar', 'relative0.tar', 'relative2.tar'):
+        with pytest.raises(CondaFileIOError):
+            extract_tarball(join(tar_folder, fn))

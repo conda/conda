@@ -9,7 +9,7 @@ pytest-timeout
 conda-forge::radon
 responses
 
-# conda-build
+conda-build
 anaconda-client
 beautifulsoup4
 chardet

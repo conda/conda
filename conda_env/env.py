@@ -29,7 +29,7 @@ VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels')
 def validate_keys(data, kwargs):
     """Check for unknown keys, remove them and print a warning."""
     invalid_keys = []
-    new_data = data.copy()
+    new_data = data.copy() if data else {}
     for key in data.keys():
         if key not in VALID_KEYS:
             invalid_keys.append(key)
