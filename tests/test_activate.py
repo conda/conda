@@ -270,13 +270,13 @@ class ActivatorUnitTests(TestCase):
                         'PS1': ps1,
                     }
 
-                    export_vars = OrderedDict({
-                        'PATH': new_path,
-                        'CONDA_PREFIX': td,
-                        'CONDA_SHLVL': 1,
-                        'CONDA_DEFAULT_ENV': td,
-                        'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-                    })
+                    export_vars = OrderedDict((
+                        ('PATH', new_path),
+                        ('CONDA_PREFIX', td),
+                        ('CONDA_SHLVL', 1),
+                        ('CONDA_DEFAULT_ENV', td),
+                        ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                    ))
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['set_vars'] == set_vars
@@ -318,13 +318,13 @@ class ActivatorUnitTests(TestCase):
                 set_vars = {
                     'PS1': ps1,
                 }
-                export_vars = OrderedDict({
-                    'PATH': new_path,
-                    'CONDA_PREFIX': td,
-                    'CONDA_SHLVL': 2,
-                    'CONDA_DEFAULT_ENV': td,
-                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-                })
+                export_vars = OrderedDict((
+                    ('PATH', new_path),
+                    ('CONDA_PREFIX', td),
+                    ('CONDA_SHLVL', 2),
+                    ('CONDA_DEFAULT_ENV', td),
+                    ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                ))
                 export_vars, _ = activator.add_export_unset_vars(export_vars, None)
                 export_vars['CONDA_PREFIX_1'] = old_prefix
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
@@ -351,13 +351,13 @@ class ActivatorUnitTests(TestCase):
                     assert builder['set_vars'] == {
                         'PS1': '(/old/prefix)',
                     }
-                    export_vars = OrderedDict({
-                        'PATH': old_path,
-                        'CONDA_PREFIX': old_prefix,
-                        'CONDA_SHLVL': 1,
-                        'CONDA_DEFAULT_ENV': old_prefix,
-                        'CONDA_PROMPT_MODIFIER': '(%s)' % old_prefix,
-                    })
+                    export_vars = OrderedDict((
+                        ('PATH', old_path),
+                        ('CONDA_PREFIX', old_prefix),
+                        ('CONDA_SHLVL', 1),
+                        ('CONDA_DEFAULT_ENV', old_prefix),
+                        ('CONDA_PROMPT_MODIFIER', '(%s)' % old_prefix),
+                    ))
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['export_vars'] == export_vars
@@ -396,13 +396,13 @@ class ActivatorUnitTests(TestCase):
                 set_vars = {
                     'PS1': ps1,
                 }
-                export_vars = OrderedDict({
-                    'PATH': new_path,
-                    'CONDA_PREFIX': td,
-                    'CONDA_SHLVL': 2,
-                    'CONDA_DEFAULT_ENV': td,
-                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-                })
+                export_vars = OrderedDict((
+                    ('PATH', new_path),
+                    ('CONDA_PREFIX', td),
+                    ('CONDA_SHLVL', 2),
+                    ('CONDA_DEFAULT_ENV', td),
+                    ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                ))
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, [])
                 export_vars['CONDA_PREFIX_1'] = old_prefix
                 export_vars['CONDA_STACKED_2'] = 'true'
@@ -432,13 +432,13 @@ class ActivatorUnitTests(TestCase):
                     assert builder['set_vars'] == {
                         'PS1': '(/old/prefix)',
                     }
-                    export_vars = OrderedDict({
-                        'PATH': old_path,
-                        'CONDA_PREFIX': old_prefix,
-                        'CONDA_SHLVL': 1,
-                        'CONDA_DEFAULT_ENV': old_prefix,
-                        'CONDA_PROMPT_MODIFIER': '(%s)' % old_prefix,
-                    })
+                    export_vars = OrderedDict((
+                        ('PATH', old_path),
+                        ('CONDA_PREFIX', old_prefix),
+                        ('CONDA_SHLVL', 1),
+                        ('CONDA_DEFAULT_ENV', old_prefix),
+                        ('CONDA_PROMPT_MODIFIER', '(%s)' % old_prefix)
+                    ))
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['export_vars'] == export_vars
@@ -474,11 +474,11 @@ class ActivatorUnitTests(TestCase):
                     set_vars = {
                         'PS1': ps1,
                     }
-                    export_vars = {
-                        'PATH': activator.pathsep_join(new_path_parts),
-                        'CONDA_PROMPT_MODIFIER': "(%s) " % td,
-                        'CONDA_SHLVL': 1,
-                    }
+                    export_vars = OrderedDict((
+                        ('PATH', activator.pathsep_join(new_path_parts)),
+                        ('CONDA_PROMPT_MODIFIER', "(%s) " % td),
+                        ('CONDA_SHLVL', 1),
+                    ))
                     assert builder['unset_vars'] == ()
                     assert builder['set_vars'] == set_vars
                     assert builder['export_vars'] == export_vars
@@ -529,13 +529,13 @@ class ActivatorUnitTests(TestCase):
                     set_vars = {
                         'PS1': ps1,
                     }
-                    export_vars = {
-                        'PATH': original_path,
-                        'CONDA_PREFIX': old_prefix,
-                        'CONDA_SHLVL': 1,
-                        'CONDA_DEFAULT_ENV': old_prefix,
-                        'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-                    }
+                    export_vars = OrderedDict((
+                        ('PATH', original_path),
+                        ('CONDA_PREFIX', old_prefix),
+                        ('CONDA_SHLVL', 1),
+                        ('CONDA_DEFAULT_ENV', old_prefix),
+                        ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                    ))
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['set_vars'] == set_vars
@@ -580,13 +580,13 @@ class ActivatorUnitTests(TestCase):
                 set_vars = {
                     'PS1': ps1,
                 }
-                export_vars = OrderedDict({
-                    'PATH': original_path,
-                    'CONDA_PREFIX': old_prefix,
-                    'CONDA_SHLVL': 1,
-                    'CONDA_DEFAULT_ENV': old_prefix,
-                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-                })
+                export_vars = OrderedDict((
+                    ('PATH', original_path),
+                    ('CONDA_PREFIX', old_prefix),
+                    ('CONDA_SHLVL', 1),
+                    ('CONDA_DEFAULT_ENV', old_prefix),
+                    ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                ))
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                 assert builder['unset_vars'] == unset_vars
                 assert builder['set_vars'] == set_vars
@@ -619,10 +619,10 @@ class ActivatorUnitTests(TestCase):
                     assert builder['set_vars'] == {
                         'PS1': os.environ.get('PS1', ''),
                     }
-                    export_vars = OrderedDict({
-                        'PATH': new_path,
-                        'CONDA_SHLVL': 0,
-                    })
+                    export_vars = OrderedDict((
+                        ('PATH', new_path),
+                        ('CONDA_SHLVL', 0),
+                    ))
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars,
                                                                               conda_exe_vars=True)
                     assert builder['export_vars'] == export_vars
