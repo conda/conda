@@ -299,7 +299,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     try:
         unlink_link_transaction.download_and_extract()
         if context.download_only:
-            raise CondaExitZero('Package caches prepared. UnlinkLinkTransaction cancelled with '
+            raise CondaExitZero('Package caches prepared. UnlinkLinkTransaction cancelled with ' \
                                 '--download-only option.')
         unlink_link_transaction.execute()
 
