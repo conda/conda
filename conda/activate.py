@@ -725,7 +725,10 @@ class PosixActivator(_Activator):
             result = ''
             for key, value in iteritems(context.conda_exe_vars_dict):
                 if value is None:
-                    result += join(self.unset_var_tmpl % key) + '\n'
+                    # Using `unset_var_tmpl` would cause issues for people running
+                    # with shell flag -u set (error on unset).
+                    # result += join(self.unset_var_tmpl % key) + '\n'
+                    result += join(self.export_var_tmpl % (key, '')) + '\n'
                 else:
                     result += join(self.export_var_tmpl % (key, value)) + '\n'
             return result
