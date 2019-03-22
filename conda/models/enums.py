@@ -4,7 +4,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from platform import machine
-import sys from enum import Enum
+import sys 
+
+from enum import Enum
 
 from .._vendor.auxlib.decorators import classproperty
 from .._vendor.auxlib.ish import dals
