@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from platform import machine
-import sys 
+import sys
 
 from enum import Enum
 
