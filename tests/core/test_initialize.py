@@ -378,6 +378,7 @@ class InitializeTests(TestCase):
     def test_install_conda_sh(self):
         with tempdir() as conda_prefix:
             target_path = join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
+            context.dev = False
             result = install_conda_sh(target_path, conda_prefix)
             assert result == Result.MODIFIED
 
