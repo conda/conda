@@ -19,12 +19,16 @@ initialize_logging()
 import os
 if 'CONDA_PREFIX' in os.environ:
     from conda.activate import (PosixActivator, CmdExeActivator)
-    activator = PosixActivator()
+    if os.name == 'nt':
+        activator_cls = CmdExeActivator
+    else:
+        activator_cls = PosixActivator
+    activator = activator_cls()
     # But why not just use _replace_prefix_in_path? => because moving
     # the entries to the front of PATH is the goal here, not swapping
     # x for x (which would be pointless anyway).
     p = activator._remove_prefix_from_path(os.environ['CONDA_PREFIX'])
     os.environ['PATH'] = os.pathsep.join(p)
-    activator = PosixActivator()
+    activator = activator_cls()
     p = activator._add_prefix_to_path(os.environ['CONDA_PREFIX'])
     os.environ['PATH'] = os.pathsep.join(p)
