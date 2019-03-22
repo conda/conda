@@ -109,18 +109,38 @@ class CondaMultiError(CondaError):
         self.errors = errors
         super(CondaMultiError, self).__init__(None)
 
-    def __repr__(self):
-        errs = []
-        for e in self.errors:
-            if isinstance(e, EnvironmentError) and not isinstance(e, CondaError):
-                errs.append(text_type(e))
-            else:
-                # We avoid Python casting this back to a str()
-                # by using e.__repr__() instead of repr(e)
-                # https://github.com/scrapy/cssselect/issues/34
-                errs.append(e.__repr__())
-        res = '\n'.join(errs)
-        return res
+    if sys.version_info[0] > 2:
+        def __repr__(self):
+            errs = []
+            for e in self.errors:
+                if isinstance(e, EnvironmentError) and not isinstance(e, CondaError):
+                    errs.append(text_type(e))
+                else:
+                    # We avoid Python casting this back to a str()
+                    # by using e.__repr__() instead of repr(e)
+                    # https://github.com/scrapy/cssselect/issues/34
+                    errs.append(e.__repr__())
+            res = '\n'.join(errs)
+            return res
+    else:
+        # We must return unicode here.
+        def __unicode__(self):
+            errs = []
+            for e in self.errors:
+                if isinstance(e, EnvironmentError) and not isinstance(e, CondaError):
+                    errs.append(text_type(e))
+                else:
+                    # We avoid Python casting this back to a str()
+                    # by using e.__repr__() instead of repr(e)
+                    # https://github.com/scrapy/cssselect/issues/34
+                    errs.append(e.__repr__())
+            res = '\n'.join(errs)
+            return res
+
+        def __repr__(self):
+            return '%s: %s' % (self.__class__.__name__, self.__unicode__())
+
+
 
     def __str__(self):
         return str('\n').join(str(e) for e in self.errors) + str('\n')
