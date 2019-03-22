@@ -885,6 +885,28 @@ class IntegrationTests(TestCase):
             with make_temp_env(tar_bld_path) as prefix2:
                 assert package_is_installed(prefix2, 'flask')
 
+    def test_tarball_install(self):
+        with make_temp_env('bzip2', '--force') as prefix:
+            # We have a problem. If bzip2 is extracted already but the tarball is missing then this fails.
+            bzip2_data = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'bzip2'][0]
+            bzip2_fname = bzip2_data['fn']
+            tar_old_path = join(PackageCacheData.first_writable().pkgs_dir, bzip2_fname)
+            if not isfile(tar_old_path):
+                log.warning("Installing bzip2 failed to save the compressed package, downloading it 'manually' ..")
+                from conda.gateways.connection.download import download
+                download('https://repo.anaconda.com/pkgs/main/' + bzip2_data.subdir + '/' + bzip2_fname,
+                         tar_old_path, None)
+            assert isfile(tar_old_path), "Failed to cache:\n{}".format(tar_old_path)
+            # It would be nice to be able to do this, but the cache folder name comes from
+            # the file name and that is then all out of whack with the metadata.
+            # tar_new_path = join(prefix, '家' + bzip2_fname)
+            tar_new_path = join(prefix, bzip2_fname)
+
+            run_command(Commands.RUN, prefix, 'cp', tar_old_path, tar_new_path)
+            assert isfile(tar_new_path), "Failed to copy:\n{}\nto:\n{}".format(tar_old_path, tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
+            assert package_is_installed(prefix, 'bzip2')
+
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python=3.7.2", "flask=1.0.2", "--json") as prefix:
             assert package_is_installed(prefix, 'flask==1.0.2')
