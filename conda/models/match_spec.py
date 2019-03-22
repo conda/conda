@@ -23,8 +23,8 @@ from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
 from ..common.io import dashlist
-from ..common.path import expand
-from ..common.url import is_url, path_to_url, url_to_path, unquote
+from ..common.path import expand, url_to_path
+from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec
 
 log = getLogger(__name__)

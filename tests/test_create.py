@@ -47,7 +47,7 @@ from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
 from conda.common.serialize import yaml_load, json_dump
-from conda.common.url import path_to_url, url_to_path
+from conda.common.url import path_to_url
 from conda.core.index import get_reduced_index
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData

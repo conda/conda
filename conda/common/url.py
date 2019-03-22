@@ -70,6 +70,9 @@ def percent_decode(path):
 
 
 file_scheme = 'file://'
+
+# Keeping this around for now, need to combine with the same function in conda/common/path.py
+"""
 def url_to_path(url):
     assert url.startswith(file_scheme), "{} is not a file-scheme URL".format(url)
     decoded = percent_decode(url[len(file_scheme):])
@@ -77,6 +80,8 @@ def url_to_path(url):
         # A Windows path.
         decoded.replace('/', '\\')
     return decoded
+"""
+
 
 @memoize
 def path_to_url(path):
