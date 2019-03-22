@@ -16,7 +16,7 @@ Installing with conda
 
 Conda install
 -------------
-* When you `conda install <package>` the happy path (with no dependencies) is that conda:
+* When you `conda install` a package that exists in your channels and has no dependencies, conda:
 
   * looks at your configured channels (in priority)
 
@@ -25,6 +25,7 @@ Conda install
   * parses repodata to search for the package
 
   * once the package is found, conda pulls it down and installs
+  
 
 .. _specifying-channels:
 
