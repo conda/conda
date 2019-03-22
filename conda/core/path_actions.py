@@ -1062,7 +1062,6 @@ class CacheUrlAction(PathAction):
     def __init__(self, url, target_pkgs_dir, target_package_basename,
                  md5sum=None, expected_size_in_bytes=None):
         self.url = url
-        filename = url_to_path(url)
         self.target_pkgs_dir = target_pkgs_dir
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
