@@ -25,7 +25,7 @@ from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
                            pyc_path, url_to_path, win_path_ok)
-from ..common.url import has_platform, path_to_url, unquote
+from ..common.url import has_platform, path_to_url
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
 from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_multiple_pyc, copy,
@@ -1062,6 +1062,7 @@ class CacheUrlAction(PathAction):
     def __init__(self, url, target_pkgs_dir, target_package_basename,
                  md5sum=None, expected_size_in_bytes=None):
         self.url = url
+        filename = url_to_path(url)
         self.target_pkgs_dir = target_pkgs_dir
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
@@ -1091,7 +1092,7 @@ class CacheUrlAction(PathAction):
                 backoff_rename(self.target_full_path, self.hold_path, force=True)
 
         if self.url.startswith('file:/'):
-            source_path = unquote(url_to_path(self.url))
+            source_path = url_to_path(self.url)
             if dirname(source_path) in context.pkgs_dirs:
                 # if url points to another package cache, link to the writable cache
                 create_hard_link_or_copy(source_path, self.target_full_path)

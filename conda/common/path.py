@@ -71,7 +71,6 @@ def url_to_path(url):
     if not url.startswith("file://"):  # pragma: no cover
         raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
     _, netloc, path, _, _ = urlsplit(url)
-    # path = unquote(path)
     from .url import percent_decode
     path = percent_decode(path)
     if netloc not in ('', 'localhost', '127.0.0.1', '::1'):

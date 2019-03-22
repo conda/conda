@@ -115,8 +115,8 @@ def path_to_url(path):
         path = file_scheme + '/' + path
     else:
         path = file_scheme + path
-
     return path
+
 
 @memoize
 def urlparse(url):

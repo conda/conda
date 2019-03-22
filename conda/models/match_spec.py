@@ -24,7 +24,7 @@ from ..common.compat import (isiterable, iteritems, itervalues, string_types, te
                              with_metaclass)
 from ..common.io import dashlist
 from ..common.path import expand
-from ..common.url import is_url, path_to_url, unquote
+from ..common.url import is_url, path_to_url, url_to_path, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec
 
 log = getLogger(__name__)
@@ -589,9 +589,15 @@ def _parse_spec_str(spec_str):
             }
         else:
             # url is not a channel
+            if spec_str.startswith('file://'):
+                # We must undo percent-encoding when generating fn.
+                path_or_url = url_to_path(spec_str)
+            else:
+                path_or_url = spec_str
+
             return {
                 'name': '*',
-                'fn': basename(spec_str),
+                'fn': basename(path_or_url),
                 'url': spec_str,
             }
         return result
