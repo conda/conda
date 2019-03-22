@@ -12,7 +12,7 @@
 @SET _sysp=%_sysp:~0,-1%
 @SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
 @CALL "%CONDA_EXE%" %_CE_M% %_CE_CONDA% %*
-REM @ENDLOCAL
+@REM @ENDLOCAL
 
 @IF %errorlevel% NEQ 0 EXIT /B %errorlevel%
 
