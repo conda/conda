@@ -4,9 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from platform import machine
-import sys
-
-from enum import Enum
+import sys from enum import Enum
 
 from .._vendor.auxlib.decorators import classproperty
 from .._vendor.auxlib.ish import dals
@@ -156,7 +154,7 @@ class NoarchType(Enum):
         if isinstance(val, NoarchType):
             return val
         valtype = getattr(val, 'type', None)
-        if isinstance(valtype, NoarchType): # see issue #8311
+        if isinstance(valtype, NoarchType):    # see issue #8311
             return valtype
         if isinstance(val, bool):
             val = NoarchType.generic if val else None
