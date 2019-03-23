@@ -1,12 +1,24 @@
-import os.path
+# encoding: utf-8
+import codecs
 import sys
 import unittest
 
 from conda.core.subdir_data import cache_fn_url
 from conda.misc import url_pat, walk_prefix
-
+from conda.utils import Utf8NamedTemporaryFile
 
 class TestMisc(unittest.TestCase):
+
+    def test_Utf8NamedTemporaryFile(self):
+        fname = None
+        test_string = 'ōγђ家固한áêñßôç'
+        with Utf8NamedTemporaryFile(delete=False) as tf:
+            tf.write(test_string)
+            fname = tf.name
+        with codecs.open(fname, mode='rb', encoding='utf-8') as fh:
+            value = fh.read()
+        assert value == test_string
+
 
     def test_cache_fn_url(self):
         url = "http://repo.continuum.io/pkgs/pro/osx-64/"

@@ -1,0 +1,107 @@
+{% set on_win = SUBDIR in ('win-64', 'win-32') %}
+
+package:
+  name: conda
+  version: "{{ GIT_DESCRIBE_TAG }}"
+
+source:
+  path: ../
+
+build:
+  # These are present when the new environment is created
+  # so we have to exempt them from the list of initial files
+  # for conda-build to realize they should be included.
+  always_include_files:
+    - bin/conda                 [unix]
+    - bin/activate              [unix]
+    - bin/deactivate            [unix]
+    - Scripts/activate.bat      [win]
+    - Scripts/activate          [win]
+    - Scripts/deactivate        [win]
+
+requirements:
+  host:
+    - python
+    - enum34                       # [py<34]
+    - futures >=3.0.0              # [py<34]
+    - menuinst >=1.4.11,<2         # [win]
+    - pip
+    - ruamel_yaml >=0.11.14,<0.16
+    - setuptools >=31.0.1
+  run:
+    - python
+    - enum34                       # [py<34]
+    - futures >=3.0.0              # [py<34]
+    - menuinst >=1.4.11,<2         # [win]
+    - pycosat >=0.6.3
+    - pyopenssl >=16.2.0
+    - requests >=2.18.4,<3
+    - ruamel_yaml >=0.11.14,<0.16
+    - setuptools >=31.0.1
+  run_constrained:
+    - conda-build >=3
+    - conda-env >=2.6
+    - cytoolz >=0.8.1
+    - setuptools >=31.0.1
+
+test:
+  source_files:
+    - conftest.py
+    - tests
+    - setup.cfg
+  requires:
+    - mock
+    - pytest
+    - pexpect
+    - responses
+    - conda-build
+  imports:
+    - conda
+    - conda_env
+  commands:
+{% if on_win %}
+    - echo
+#    - SET CONDA_SHLVL=
+#    - CALL %PREFIX%\condabin\conda_hook.bat
+#    - CALL conda.bat activate base
+#    - FOR /F "delims=" %%i IN ('python -c "import sys; print(sys.version_info[0])"') DO set "PYTHON_MAJOR_VERSION=%%i"
+#    - set TEST_PLATFORM=win
+#    - FOR /F "delims=" %%i IN ('python -c "import random as r; print(r.randint(0,4294967296))"') DO set "PYTHONHASHSEED=%%i"
+#    - set
+#    - conda info
+#    - conda create -y -p .\built-conda-test-env
+#    - CALL conda.bat activate .\built-conda-test-env
+#    - echo %CONDA_PREFIX%
+#    - IF NOT "%CONDA_PREFIX%"=="%CD%\built-conda-test-env" EXIT /B 1
+#    - CALL conda.bat deactivate
+#    - py.test tests -m "not integration and not installed" -vv
+{% else %}
+    - unset CONDA_SHLVL
+    - eval "$(python -m conda shell.bash hook)"
+    - conda activate base
+    - export PYTHON_MAJOR_VERSION=$(python -c "import sys; print(sys.version_info[0])")
+    - export TEST_PLATFORM=$(python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
+    - export PYTHONHASHSEED=$(python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+    - env | sort
+    - conda info
+    - conda create -y -p ./built-conda-test-env
+    - conda activate ./built-conda-test-env
+    - echo $CONDA_PREFIX
+    - '[ "$CONDA_PREFIX" = "$PWD/built-conda-test-env" ] || exit 1'
+    - conda deactivate
+    - py.test tests -m "not integration and not installed" -vv
+{% endif %}
+
+about:
+  home: https://conda.io/
+  license: BSD
+  license_file: LICENSE.txt
+  summary: OS-agnostic, system-level binary package and environment manager.
+  description: |
+    Conda is an open source package management system and environment
+    management system for installing multiple versions of software packages
+    and their dependencies and switching easily between them. It works on
+    Linux, OS X and Windows, and was created for Python programs but can
+    package and distribute any software.
+  doc_url: http://conda.pydata.org/docs/
+  dev_url: https://github.com/conda/conda
