@@ -94,6 +94,18 @@ def bash_unsupported_because():
 def bash_unsupported():
     return True if bash_unsupported_because() else False
 
+
+def bash_unsupported_win_because():
+    if on_win:
+        return "You are using Windows. These tests involve setting PATH to POSIX values\n" \
+          "but our Python is a Windows program and Windows doesn't understand POSIX values."
+    return bash_unsupported_because()
+
+
+def bash_unsupported_win():
+    return True if bash_unsupported_win_because() else False
+
+
 class ActivatorUnitTests(TestCase):
 
     def setUp(self):
@@ -154,7 +166,7 @@ class ActivatorUnitTests(TestCase):
             added_paths = added_paths,
 
         new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
-        condabin_dir = context.conda_prefix + "/condabin"
+        condabin_dir = activator.path_conversion(os.path.join(context.conda_prefix, "condabin"))
         assert new_path == added_paths + (condabin_dir,) + path_dirs
 
     @pytest.mark.skipif(not on_win, reason="windows-specific test")
@@ -284,7 +296,7 @@ class ActivatorUnitTests(TestCase):
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == ()
 
-    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
+    @pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
     def test_build_activate_shlvl_1(self):
         with tempdir() as td:
             mkdir_p(join(td, 'conda-meta'))
@@ -310,7 +322,7 @@ class ActivatorUnitTests(TestCase):
                 conda_prompt_modifier = "(%s)" % td
                 ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
 
-                assert td in new_path
+                assert activator.path_conversion(td) in new_path
                 assert old_prefix not in new_path
 
                 unset_vars = []
@@ -364,7 +376,7 @@ class ActivatorUnitTests(TestCase):
                     assert builder['activate_scripts'] == ()
                     assert builder['deactivate_scripts'] == ()
 
-    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
+    @pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
     def test_build_stack_shlvl_1(self):
         with tempdir() as td:
             mkdir_p(join(td, 'conda-meta'))
@@ -485,7 +497,7 @@ class ActivatorUnitTests(TestCase):
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
-    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
+    @pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
     def test_build_deactivate_shlvl_2_from_stack(self):
         with tempdir() as td:
             mkdir_p(join(td, 'conda-meta'))
@@ -543,7 +555,7 @@ class ActivatorUnitTests(TestCase):
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
-    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
+    @pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
     def test_build_deactivate_shlvl_2_from_activate(self):
         with tempdir() as td:
             mkdir_p(join(td, 'conda-meta'))

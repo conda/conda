@@ -750,18 +750,13 @@ class IntegrationTests(TestCase):
             # We see:
             # libcxx             pkgs/main/osx-64::libcxx-4.0.1-h579ed51_0
             # Rather than spending more time looking for another package, just filter it out.
+            # Same thing for Windows, this is because we use MKL always. Perhaps there's a
+            # way to exclude it, I tried the "nomkl" package but that did not work.
             json_obj["actions"]["LINK"] = [link for link in json_obj["actions"]["LINK"]
-                                           if link['name'] not in ('libcxx',)]
-            if 'libcxx' in json_obj["actions"]["LINK"]:
-                del json_obj["actions"]["LINK"]['libcxx']
+                                           if link['name'] not in ('libcxx', 'mkl', 'intel-openmp')]
             channel_groups = groupby("channel", json_obj["actions"]["LINK"])
             channel_groups = sorted(list(channel_groups))
-            # conda-forge should be the only channel in the solution on unix
-            # fiona->gdal->libgdal->m2w64-xz brings in pkgs/msys2 on win
-            if on_win:
-                assert channel_groups == ["conda-forge", "pkgs/msys2"]
-            else:
-                assert channel_groups == ["conda-forge"]
+            assert channel_groups == ["conda-forge",]
 
     def test_strict_resolve_get_reduced_index(self):
         channels = (Channel("defaults"),)
@@ -890,7 +885,7 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix2, 'flask')
 
     def test_tarball_install(self):
-        with make_temp_env('bzip2', '--force') as prefix:
+        with make_temp_env('bzip2') as prefix:
             # We have a problem. If bzip2 is extracted already but the tarball is missing then this fails.
             bzip2_data = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'bzip2'][0]
             bzip2_fname = bzip2_data['fn']
@@ -1909,16 +1904,19 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "six=1.9")
             assert package_is_installed(prefix, "appdirs>=1.4.3")
 
-            p = Popen(PYTHON_BINARY + " -m pip install fs==2.1.0", stdout=PIPE, stderr=PIPE, cwd=prefix, shell=True)
+            python_binary = join(prefix, PYTHON_BINARY)
+            p = Popen(python_binary + " -m pip install fs==2.1.0",
+                      stdout=PIPE, stderr=PIPE, cwd=prefix, shell=True)
             stdout, stderr = p.communicate()
             rc = p.returncode
             assert int(rc) != 0
-            assert "Cannot uninstall" in text_type(stderr)
+            stderr = stderr.decode('utf-8', errors='replace') if hasattr(stderr, 'decode') else text_type(stderr)
+            assert "Cannot uninstall" in stderr
 
             run_command(Commands.REMOVE, prefix, "six")
             assert not package_is_installed(prefix, "six")
 
-            output = check_output(PYTHON_BINARY + " -m pip install fs==2.1.0", cwd=prefix, shell=True)
+            output = check_output(python_binary + " -m pip install fs==2.1.0", cwd=prefix, shell=True)
             print(output)
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "fs==2.1.0")
