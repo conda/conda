@@ -122,10 +122,10 @@ class _Activator(object):
         export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict(kwargs))
         script_export_vars = script_unset_vars = None
         if export_vars:
-            script_export_vars = '\n'.join([self.export_var_tmpl % (k, v)
+            script_export_vars = self.command_join.join([self.export_var_tmpl % (k, v)
                                             for k, v in export_vars.items()])
         if unset_vars:
-            script_unset_vars =  '\n'.join([self.unset_var_tmpl % (k)
+            script_unset_vars =  self.command_join.join([self.unset_var_tmpl % (k)
                                             for k in unset_vars])
         return script_export_vars or '', script_unset_vars or ''
 

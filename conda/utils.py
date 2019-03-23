@@ -337,6 +337,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             conda_bat = environ.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix,
                                     suffix='.bat', delete=False) as fh:
+            fh.write("@ECHO OFF\n")
             fh.write("@SET PYTHONIOENCODING=utf-8\n")
             fh.write("@SET PYTHONUTF8=1\n")
             fh.write("@chcp 65001 > NUL\n")
@@ -367,7 +368,13 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                 # it needs doing for each line and the caller may as well do that.
                 fh.write("{0}\n".format(arguments[0]))
             else:
-                fh.write("{0}\n".format(quote_for_shell(arguments)))
+                assert not any('\n' in arg for arg in arguments), \
+                    "Support for scripts where arguments contain newlines not implemented.\n"     \
+                    ".. requires writing the script to an external file and knowing how to "      \
+                    "transform the command-line (e.g. `python -c args` => `python file`) "        \
+                    "in a tool dependent way, or attempting something like:\n"                    \
+                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping requirements)"
+                fh.write("@{0}\n".format(quote_for_shell(arguments)))
             # fh.write('@chcp %CONDA_OLD_CHCP%>NUL\n')
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]

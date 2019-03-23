@@ -81,6 +81,10 @@ PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
 UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
+which_or_where = "which" if not on_win else "where"
+cp_or_copy = "cp" if not on_win else "copy"
+env_or_set = "env" if not on_win else "set"
+
 # UNICODE_CHARACTERS = u"12345678abcdef"
 # UNICODE_CHARACTERS_RESTRICTED = UNICODE_CHARACTERS
 
@@ -902,7 +906,7 @@ class IntegrationTests(TestCase):
             # tar_new_path = join(prefix, '家' + bzip2_fname)
             tar_new_path = join(prefix, bzip2_fname)
 
-            run_command(Commands.RUN, prefix, 'cp', tar_old_path, tar_new_path)
+            run_command(Commands.RUN, prefix, cp_or_copy, tar_old_path, tar_new_path)
             assert isfile(tar_new_path), "Failed to copy:\n{}\nto:\n{}".format(tar_old_path, tar_new_path)
             run_command(Commands.INSTALL, prefix, tar_new_path)
             assert package_is_installed(prefix, 'bzip2')
@@ -1645,11 +1649,11 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
-            output, _ = run_command(Commands.RUN, prefix, "which", "python")
-            assert output.startswith(prefix), "We should be running python in {}\n" \
-                                              "We are running {}\n" \
-                                              "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n" \
-                                              "for a likely place to add more fixes".format(prefix, output)
+            output, _ = run_command(Commands.RUN, prefix, which_or_where, "python")
+            assert prefix in output, "We should be running python in {}\n" \
+                                     "We are running {}\n" \
+                                     "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n" \
+                                     "for a likely place to add more fixes".format(prefix, output)
             output, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.9.0" in pkgs
@@ -2348,6 +2352,17 @@ class IntegrationTests(TestCase):
         finally:
             rm_rf(prefix)
 
+    def test_multiline_run_command(self):
+        with make_temp_env() as prefix:
+            env_which_etc, errs_etc = run_command(Commands.RUN, prefix, dedent(
+            """
+            {env} | sort
+            {which} conda
+            """.format(env=env_or_set, which=which_or_where)),
+        dev=True, workdir=prefix)
+        assert env_which_etc
+        assert not errs_etc
+
     def test_init_dev_and_NoBaseEnvironmentError(self):
         # This specific python version is named so that the test suite uses an
         # old python build that still hacks 'Library/bin' into PATH. Really, we
@@ -2363,6 +2378,7 @@ class IntegrationTests(TestCase):
         # .. and from then onwards, that conda package is corrupt in the cache.
         # Note: We were overwriting some *old* conda package with files from this latest
         #       source code. Urgh.
+
         conda_v = "4.5.13"
         python_v = "3.6.7"
         with make_temp_env("conda="+conda_v, "python="+python_v, "git", "--copy",
@@ -2404,7 +2420,6 @@ class IntegrationTests(TestCase):
                 #
 
                 '''
-                log.warning("IMPORTANT :: conde run_command activation information (dev mode)")
                 env_path_etc, errs_etc = run_command(Commands.RUN, prefix, dedent(
                     """
                     declare -f
@@ -2416,28 +2431,24 @@ class IntegrationTests(TestCase):
                     """), dev=True, workdir=conda_dev_srcdir)
                 log.warning(env_path_etc)
                 log.warning(errs_etc)
-                log.warning("ENDOFIMPORTANT :: conde run_command activation information (dev mode)")
                 '''
 
-                # Before we do that, let's test that the conda we expect to be running in that scenario is the
-                # conda that actually runs (and the same thing for Python)
-                #
+                # Let us test that the conda we expect to be running in that scenario
+                # is the conda that actually runs:
                 conda__file__, stderr = run_command(Commands.RUN, prefix,
-                    "python", "-c", dedent(
-                    '''
-                    import conda, os, sys
-                    sys.stdout.write(os.path.abspath(conda.__file__))
-                    '''), dev=True, workdir=conda_dev_srcdir)
+                    sys.executable, "-c",
+                    "import conda, os, sys; "
+                    "sys.stdout.write(os.path.abspath(conda.__file__))",
+                    dev=True, workdir=conda_dev_srcdir)
                 assert dirname(dirname(conda__file__)) == conda_dev_srcdir
 
+                # (and the same thing for Python)
                 python_v2, _ = run_command(Commands.RUN, prefix,
-                    "python", "-c", dedent(
-                    '''
-                    import os, sys
-                    sys.stdout.write(str(sys.version_info[0]) + '.' +
-                                     str(sys.version_info[1]) + '.' +
-                                     str(sys.version_info[2]))
-                    '''), dev=True, workdir=conda_dev_srcdir)
+                    "python", "-c",
+                    "import os, sys; "
+                    "sys.stdout.write(str(sys.version_info[0]) + '.' + "
+                    "                 str(sys.version_info[1]) + '.' + "
+                    "                 str(sys.version_info[2]))", dev=True, workdir=conda_dev_srcdir)
                 assert python_v2 == python_v
 
                 args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])

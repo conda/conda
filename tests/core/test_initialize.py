@@ -898,7 +898,7 @@ class InitializeTests(TestCase):
         try:
             target_path = r'HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun'
             conda_prefix = "c:\\Users\\Lars\\miniconda"
-            with env_var('CONDA_DRY_RUN', 'true', reset_context):
+            with env_var('CONDA_DRY_RUN', 'true', conda_tests_ctxt_mgmt_def_pol):
                 with captured() as c:
                     initialize.init_cmd_exe_registry(target_path, conda_prefix, reverse=True)
         finally:

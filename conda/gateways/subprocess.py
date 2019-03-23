@@ -10,6 +10,7 @@ from os.path import abspath
 from conda._vendor.auxlib.compat import shlex_split_unicode
 import sys
 from subprocess import CalledProcessError, PIPE, Popen
+from ..utils import wrap_subprocess_call
 
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES

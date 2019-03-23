@@ -499,7 +499,7 @@ class Context(Configuration):
 
         if context.dev:
             return OrderedDict({'CONDA_EXE': sys.executable,
-                                'PYTHONPATH': os.path.dirname(CONDA_PACKAGE_ROOT)+':{}'.format(
+                                'PYTHONPATH': os.path.dirname(CONDA_PACKAGE_ROOT)+'{}{}'.format(os.pathsep,
                                     os.environ['PYTHONPATH'] if 'PYTHONPATH' in os.environ else ''),
                                 '_CE_M': '-m',
                                 '_CE_CONDA': 'conda'})
