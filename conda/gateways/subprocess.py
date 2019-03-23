@@ -108,4 +108,5 @@ def subprocess_call_with_clean_env(command, path=None, stdin=None,raise_on_error
     # This has been seen to be the case with PYTHONPATH.
     env = os.environ.copy()
     _subprocess_clean_env(env, clean_python, clean_conda)
+    # env['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
     return subprocess_call(command, env=env, path=path, stdin=stdin, raise_on_error=raise_on_error)
