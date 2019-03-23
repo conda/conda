@@ -22,6 +22,28 @@ import os
 from os.path import dirname, normpath, join, isfile
 from subprocess import check_output
 
+
+
+
+
+def encode_for_env_var(value):
+    if isinstance(value, str):
+        return value
+    if sys.version_info[0] == 2:
+        _unicode = unicode
+    else:
+        _unicode = str
+    if isinstance(value, (str, _unicode)):
+        try:
+            return bytes(value, encoding='utf-8')
+        except:
+            return value.encode('utf-8')
+    return str(value)
+
+
+
+
+
 def move_conda_to_front_of_PATH():
     if 'CONDA_PREFIX' in os.environ:
         from conda.activate import (PosixActivator, CmdExeActivator)
@@ -46,16 +68,12 @@ def move_conda_to_front_of_PATH():
         # just return the same value every time, even if you update PATH.
         p = activator._remove_prefix_from_path(os.environ['CONDA_PREFIX'])
         new_path = os.pathsep.join(p)
-        new_path = new_path.encode('utf-8') \
-            if hasattr(new_path, 'encode') \
-            else bytes(new_path, encoding='utf-8')
+        new_path = encode_for_env_var(new_path)
         os.environ['PATH'] = new_path
         activator = activator_cls()
         p = activator._add_prefix_to_path(os.environ['CONDA_PREFIX'])
         new_path = os.pathsep.join(p)
-        new_path = new_path.encode('utf-8') \
-            if hasattr(new_path, 'encode') \
-            else bytes(new_path, encoding='utf-8')
+        new_path = encode_for_env_var(new_path)
         os.environ['PATH'] = new_path
 
 def check_conda_versions_aligned():
