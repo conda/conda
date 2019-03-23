@@ -1302,15 +1302,18 @@ class IntegrationTests(TestCase):
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
 
 
-    def _test_compile_pyc(self, use_sys_python=False):
-        with env_vars({
-            "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
-        }, conda_tests_ctxt_mgmt_def_pol):
+    def _test_compile_pyc(self, use_sys_python=False, use_dll_search_modifiction=False):
+        evs = {}
+        if use_dll_search_modifiction:
+            evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
+        with env_vars(evs, conda_tests_ctxt_mgmt_def_pol):
             packages = []
             if use_sys_python:
                 py_ver = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
             else:
-                py_ver = '3.7'
+                # We force the use of 'the other' Python on Windows so that Windows
+                # runtime / DLL incompatibilities will be readily apparent.
+                py_ver = '3.7' if sys.version_info[0] == 3 else '2.7'
                 packages.append('python=' + py_ver)
             with make_temp_env(*packages, use_restricted_unicode=False) as prefix:
                 if use_sys_python:
@@ -1321,7 +1324,7 @@ class IntegrationTests(TestCase):
                 spdir = join('Lib', 'site-packages') if on_win else join('lib', 'python', py_ver)
                 # Bad pun on itsdangerous.
                 py_full_paths = (join(prefix, spdir, 'isitsafe.py'),)
-                pyc_full_paths = (join(prefix, spdir, '__pycache__', 'isitsafe.pyc'),)
+                pyc_full_paths = [pyc_path(py_path, py_ver) for py_path in py_full_paths]
                 from os import makedirs
                 try:
                     makedirs(dirname(py_full_paths[0]))
@@ -1336,6 +1339,7 @@ class IntegrationTests(TestCase):
                     fpy.close()
                 from conda.gateways.disk.create import compile_multiple_pyc
                 compile_multiple_pyc(python_binary, py_full_paths, pyc_full_paths, prefix, py_ver)
+                assert isfile(pyc_full_paths[0]), "Failed to generate expected .pyc file {}".format(pyc_full_paths[0])
 
 
     def test_compile_pyc_sys_python(self):

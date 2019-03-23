@@ -9,6 +9,7 @@ import sys
 from ..base.context import context
 from ..utils import wrap_subprocess_call
 from ..gateways.disk.delete import rm_rf
+from ..compat import encode_environment
 
 
 def execute(args, parser):
@@ -20,7 +21,7 @@ def execute(args, parser):
 
     script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix,
                                                        args.dev, args.debug_wrapper_scripts, call)
-    env = os.environ.copy()
+    env = encode_environment(os.environ.copy())
     process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE,
                     env=env, cwd=cwd)
     stdout, stderr = process.communicate()

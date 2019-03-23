@@ -19,7 +19,7 @@ from .delete import rm_rf, path_is_clean
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
-from ..subprocess import subprocess_call_with_clean_env, subprocess_call
+from ...cli.python_api import run_command, Commands
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
@@ -368,9 +368,9 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, pr
         #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
         if int(py_ver[0]) >= 3 and int(py_ver.split('.')[1]) > 5:
             command.extend(["-j", "0"])
-        command.insert(0, python_exe_full_path)
+        command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
         log.trace(command)
-        result = subprocess_call_with_clean_env(command, raise_on_error=False, path=prefix)
+        stdout, stderr, rc = run_command(Commands.RUN, *command)
     finally:
         os.remove(filename)
 
