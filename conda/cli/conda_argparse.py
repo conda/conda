@@ -1057,6 +1057,11 @@ def configure_parser_run(sub_parsers):
         dest="debug_wrapper_scripts",
         default=NULL,
     )
+    p.add_argument(
+        "--cwd",
+        help="Current working directory for command to run in.  Defaults to cwd",
+        default=os.getcwd()
+    )
 
     p.add_argument(
         'executable_call',

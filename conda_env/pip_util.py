@@ -24,13 +24,10 @@ from conda.common.compat import on_win
 log = getLogger(__name__)
 
 
-from conda.gateways.subprocess import any_subprocess
-def pip_subprocess(args, prefix, env=None, cwd=None):
-    stdout, stderr, rc = any_subprocess(args=['pip'] + args, prefix=prefix, env=env, cwd=cwd)
-    if rc != 0:
-        raise CondaEnvException("Pip subcommand failed with \n"
-                                "output: {}\nerror: {}".format(stdout, stderr))
-    return stdout, stderr
+def pip_subprocess(args, prefix, cwd):
+    run_args = ['-p', prefix, 'pip'] + args
+    stdout, stderr, rc = run_command(Commands.RUN, *run_args, cwd=cwd, stdout=None, stderr=None)
+     return stdout, stderr
 
 
 def get_pip_version(prefix):

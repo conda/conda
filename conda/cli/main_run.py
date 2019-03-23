@@ -15,12 +15,14 @@ def execute(args, parser):
     on_win = sys.platform == "win32"
 
     call = args.executable_call
+    cwd = args.cwd
     prefix = args.prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
 
     script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix,
                                                        args.dev, args.debug_wrapper_scripts, call)
     env = os.environ.copy()
-    process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE, env=env)
+    process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE,
+                    env=env, cwd=cwd)
     stdout, stderr = process.communicate()
     if hasattr(stdout, "decode"): stdout = stdout.decode('utf-8', errors='replace')
     if hasattr(stderr, "decode"): stderr = stderr.decode('utf-8', errors='replace')
