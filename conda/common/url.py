@@ -106,8 +106,9 @@ def path_to_url(path):
     # To avoid risking breaking the internet, this code only runs
     # for `file://` URLs.
     #
+    percent_encode_chars = "!'()*-._/\\:"
     percent_encode = lambda s: "".join(["%%%02X" % ord(c), c]
-                                       [c < "{" and c.isalnum() or c in "!'()*-._/:"]
+                                       [c < "{" and c.isalnum() or c in percent_encode_chars]
                                        for c in s)
     if any(ord(char) >= 128 for char in path):
         path = percent_encode(path.decode('unicode-escape')

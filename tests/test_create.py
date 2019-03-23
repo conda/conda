@@ -1322,9 +1322,12 @@ class IntegrationTests(TestCase):
                 # Bad pun on itsdangerous.
                 py_full_paths = (join(prefix, spdir, 'isitsafe.py'),)
                 pyc_full_paths = (join(prefix, spdir, '__pycache__', 'isitsafe.pyc'),)
+                from os import makedirs
                 try:
-                    from os import makedirs
                     makedirs(dirname(py_full_paths[0]))
+                except:
+                    pass
+                try:
                     makedirs(dirname(pyc_full_paths[0]))
                 except:
                     pass
@@ -1608,7 +1611,8 @@ class IntegrationTests(TestCase):
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
         with make_temp_env("python=3", "pip", use_restricted_unicode=False) as prefix:
             pip_ioo, pip_ioe = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-            pip_o, pip_e = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous", debug_wrapper_scripts=True)
+            pip_o, pip_e = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous",
+                                       no_capture=True)
 
             PrefixData._cache_.clear()
             output, error = run_command(Commands.LIST, prefix)

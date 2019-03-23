@@ -88,22 +88,15 @@ def run_command(command, *arguments, **kwargs):
         search_path=configuration_search_path,
         argparse_args=args,
     )
-    from conda._vendor.auxlib.path import ChangePath
-    from contextlib import ExitStack
-    if 'cwd' in kwargs:
-        dir_change = ChangePath(kwargs['cwd'])
-    else:
-        dir_change = ExitStack()
 
     from subprocess import list2cmdline
     log.debug("executing command >>>  conda %s", list2cmdline(arguments))
     try:
         with argv(['python_api'] + encode_arguments(arguments)), captured(stdout, stderr) as c:
-            with dir_change:
-                if use_exception_handler:
-                    return_code = conda_exception_handler(do_call, args, p)
-                else:
-                    return_code = do_call(args, p)
+            if use_exception_handler:
+                return_code = conda_exception_handler(do_call, args, p)
+            else:
+                return_code = do_call(args, p)
     except Exception as e:
         log.debug("\n  stdout: %s\n  stderr: %s", c.stdout, c.stderr)
         e.stdout, e.stderr = c.stdout, c.stderr
