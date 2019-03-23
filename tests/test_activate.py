@@ -947,6 +947,9 @@ class ShellWrapperUnitTests(TestCase):
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             conda_exe_vars = ';\n'.join([activator.export_var_tmpl % (k, v) for k, v in context.conda_exe_vars_dict.items()])
+
+            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars(conda_exe_vars=True)
+
             e_deactivate_data = dals("""
             source "%(deactivate1)s";
             unsetenv CONDA_PREFIX;
@@ -955,12 +958,12 @@ class ShellWrapperUnitTests(TestCase):
             set prompt='%(prompt)s';
             setenv PATH "%(new_path)s";
             setenv CONDA_SHLVL "0";
-            %(conda_exe_vars)s;
+            %(conda_exe_export)s;
             """) % {
                 'new_path': new_path,
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.csh')),
                 'prompt': os.environ.get('prompt', ''),
-                'conda_exe_vars': conda_exe_vars,
+                'conda_exe_export': conda_exe_export,
             }
             assert deactivate_data == e_deactivate_data
 
@@ -1257,10 +1260,23 @@ class InteractiveShell(object):
         # though, so there is that.  What I'm getting at is that this is a huge mixup and a mess.
         'cmd.exe': {
             'activator': 'cmd.exe',
+
+# For non-dev-mode you'd have:
+#            'init_command': 'set "CONDA_SHLVL=" '
+#                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat {} '
+#                            '&& set "CONDA_EXE={}" '
+#                            '&& set _CE_M='
+#                            '&& set _CE_CONDA='
+#                            .format(CONDA_PACKAGE_ROOT, dev_arg,
+#                                    join(sys.prefix, "Scripts", "conda.exe")),
+
             'init_command': 'set "CONDA_SHLVL=" '
-                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat '
-                            '&& set "CONDA_EXE={}"'.format(CONDA_PACKAGE_ROOT,
-                                                           join(sys.prefix, "Scripts", "conda.exe")),
+                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat {} '
+                            '&& set "CONDA_EXE={}" '
+                            '&& set _CE_M=-m '
+                            '&& set _CE_CONDA=conda '.format(CONDA_PACKAGE_ROOT, dev_arg,
+                                                             sys.executable),
+
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
@@ -1833,6 +1849,8 @@ class ShellWrapperIntegrationTests(TestCase):
     def test_cmd_exe_activate_error(self):
         context.dev = True
         with InteractiveShell('cmd.exe') as shell:
+            shell.sendline("set")
+            shell.expect('.*')
             shell.sendline("conda activate environment-not-found-doesnt-exist")
             shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
             shell.assert_env_var('errorlevel', '1')
