@@ -1068,16 +1068,14 @@ class ShellWrapperUnitTests(TestCase):
         activate_data = c.stdout
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
-        conda_exe_vars = ';\n'.join(
-            [activator.export_var_tmpl % (k, v) for k, v in context.conda_exe_vars_dict.items()])
-
+        conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
         e_activate_data = dals("""
         set -gx PATH "%(new_path)s";
         set -gx CONDA_PREFIX "%(native_prefix)s";
         set -gx CONDA_SHLVL "1";
         set -gx CONDA_DEFAULT_ENV "%(native_prefix)s";
         set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
-        %(conda_exe_vars)s;
+        %(conda_exe_export)s;
         source "%(activate1)s";
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
@@ -1085,7 +1083,7 @@ class ShellWrapperUnitTests(TestCase):
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.fish')),
-            'conda_exe_vars': conda_exe_vars,
+            'conda_exe_export': conda_exe_export,
         }
         assert activate_data == e_activate_data
 
@@ -1123,8 +1121,7 @@ class ShellWrapperUnitTests(TestCase):
             deactivate_data = c.stdout
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
-            conda_exe_vars = ';\n'.join(
-                [activator.export_var_tmpl % (k, v) for k, v in context.conda_exe_vars_dict.items()])
+            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
             e_deactivate_data = dals("""
             source "%(deactivate1)s";
             set -e CONDA_PREFIX;
@@ -1132,11 +1129,11 @@ class ShellWrapperUnitTests(TestCase):
             set -e CONDA_PROMPT_MODIFIER;
             set -gx PATH "%(new_path)s";
             set -gx CONDA_SHLVL "0";
-            %(conda_exe_vars)s;
+            %(conda_exe_export)s;
             """) % {
                 'new_path': new_path,
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.fish')),
-                'conda_exe_vars': conda_exe_vars,
+                'conda_exe_export': conda_exe_export,
             }
             assert deactivate_data == e_deactivate_data
 
@@ -1151,21 +1148,21 @@ class ShellWrapperUnitTests(TestCase):
         activate_data = c.stdout
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
-        conda_exe_vars = '\n'.join([activator.export_var_tmpl % (k, v) for k, v in context.conda_exe_vars_dict.items()])
+        conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
         e_activate_data = dals("""
         $env:PATH = "%(new_path)s"
         $env:CONDA_PREFIX = "%(prefix)s"
         $env:CONDA_SHLVL = "1"
         $env:CONDA_DEFAULT_ENV = "%(prefix)s"
         $env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
-        %(conda_exe_vars)s
+        %(conda_exe_export)s
         . "%(activate1)s"
         """) % {
             'prefix': self.prefix,
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': sys.executable,
             'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.ps1'),
-            'conda_exe_vars': conda_exe_vars,
+            'conda_exe_export': conda_exe_export,
         }
         assert activate_data == e_activate_data
 
@@ -1209,11 +1206,11 @@ class ShellWrapperUnitTests(TestCase):
             Remove-Item Env:/CONDA_PROMPT_MODIFIER
             $env:PATH = "%(new_path)s"
             $env:CONDA_SHLVL = "0"
-            %(conda_exe_vars)s
+            %(conda_exe_export)s
             """) % {
                 'new_path': new_path,
                 'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.ps1'),
-                'conda_exe_vars': conda_exe_vars,
+                'conda_exe_export': conda_exe_export,
             }
 
     def test_unicode(self):
