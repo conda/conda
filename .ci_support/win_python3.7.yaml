@@ -1,0 +1,10 @@
+channel_sources:
+- conda-forge,defaults
+channel_targets:
+- conda-forge main
+pin_run_as_build:
+  python:
+    min_pin: x.x
+    max_pin: x.x
+python:
+- '3.7'

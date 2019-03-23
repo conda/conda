@@ -1,0 +1,8 @@
+# This file was generated automatically from conda-smithy. To update this configuration,
+# update the conda-forge.yml and/or the recipe/meta.yaml.
+# -*- mode: yaml -*-
+
+jobs:
+  - template: ./.azure-pipelines/azure-pipelines-linux.yml
+  - template: ./.azure-pipelines/azure-pipelines-osx.yml
+  - template: ./.azure-pipelines/azure-pipelines-win.yml
