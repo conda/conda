@@ -56,6 +56,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             continue
 
         if not is_url(spec):
+            expanded = expand(spec)
+            urled = path_to_url(expanded)
+            pathed = url_to_path(urled)
+            assert pathed == expanded
             spec = path_to_url(expand(spec))
 
         # parse URL

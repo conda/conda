@@ -10,14 +10,16 @@ from conda.utils import Utf8NamedTemporaryFile
 class TestMisc(unittest.TestCase):
 
     def test_Utf8NamedTemporaryFile(self):
-        fname = None
         test_string = 'ōγђ家固한áêñßôç'
-        with Utf8NamedTemporaryFile(delete=False) as tf:
-            tf.write(test_string)
-            fname = tf.name
-        with codecs.open(fname, mode='rb', encoding='utf-8') as fh:
-            value = fh.read()
-        assert value == test_string
+        try:
+            with Utf8NamedTemporaryFile(delete=False) as tf:
+                tf.write(test_string.encode('utf-8') if hasattr(test_string, 'encode') else test_string)
+                fname = tf.name
+            with codecs.open(fname, mode='rb', encoding='utf-8') as fh:
+                value = fh.read()
+            assert value == test_string
+        except Exception as e:
+            raise e
 
 
     def test_cache_fn_url(self):
