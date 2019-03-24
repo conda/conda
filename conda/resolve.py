@@ -892,6 +892,13 @@ class Resolve(object):
             sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
         new_index = {prec: prec for prec in itervalues(sat_name_map)}
+        name_map = {p.name: p for p in new_index}
+        if 'python' in name_map and 'pip' not in name_map:
+            python_prec = new_index[name_map['python']]
+            if 'pip' in python_prec.depends:
+                # strip pip dependency from python if not installed in environment
+                new_deps = [d for d in python_prec.depends if d != 'pip']
+                python_prec.depends = new_deps
         r2 = Resolve(new_index, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
