@@ -53,3 +53,32 @@ def set_tmpdir(tmpdir):
     assert os.sep in td
     os.environ['CONDA_TEST_TMPDIR'] = td
     tmpdir_in_use = td
+
+
+# From: https://hackebrot.github.io/pytest-tricks/fixtures_as_class_attributes/
+# This allows using pytest fixtures in unittest subclasses, here is how to use it:
+#
+# @auto_inject_fixtures('tmpdir')
+# class Test:
+#     def test_foo(self):
+#         assert self.tmpdir.isdir()
+#
+# More importantly, this also works for unittest subclasses:
+#
+# @auto_inject_fixtures('tmpdir')
+# class Test2(unittest.TestCase):
+#     def test_foo(self):
+#         self.assertTrue(self.tmpdir.isdir())
+
+def _inject(cls, names):
+    @pytest.fixture(autouse=True)
+    def auto_injector_fixture(self, request):
+        for name in names:
+            setattr(self, name, request.getfixturevalue(name))
+
+    cls.__auto_injector_fixture = auto_injector_fixture
+    return cls
+
+
+def auto_inject_fixtures(*names):
+    return partial(_inject, names=names)

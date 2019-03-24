@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import bz2
 from contextlib import contextmanager
 from datetime import datetime
-import fnmatch
 from glob import glob
 
 from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
@@ -18,7 +16,7 @@ import json
 from json import loads as json_loads
 from logging import DEBUG, INFO, getLogger
 import os
-from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
+from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 from random import sample
 import re
 from shutil import copyfile, rmtree
@@ -183,7 +181,6 @@ def run_command(command, prefix, *arguments, **kwargs):
     # either because in the 4.5 days that would just run whatever Python was found first on PATH.
     command_defaults_to_dev = command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.RUN)
     dev = kwargs.get('dev', True if command_defaults_to_dev else False)
-    workdir = kwargs.get("workdir")
     debug = kwargs.get("debug_wrapper_scripts", False)
 
     p = generate_parser()
@@ -204,6 +201,11 @@ def run_command(command, prefix, *arguments, **kwargs):
     if debug:
         arguments.insert(1, '--debug-wrapper-scripts')
 
+    # It would be nice at this point to re-use:
+    # from conda.cli.python_api import run_command as python_api_run_command
+    # python_api_run_command
+    # .. but that does not support no_capture and probably more stuff.
+
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
     init_loggers(context)
@@ -213,11 +215,10 @@ def run_command(command, prefix, *arguments, **kwargs):
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         arguments = encode_arguments(arguments)
         with argv(['python_api'] + arguments), captured(*cap_args) as c:
-            with temp_chdir(workdir):
-                if use_exception_handler:
-                    conda_exception_handler(do_call, args, p)
-                else:
-                    do_call(args, p)
+            if use_exception_handler:
+                conda_exception_handler(do_call, args, p)
+            else:
+                do_call(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout, file=sys.stderr)
     if command is Commands.CONFIG:
@@ -414,10 +415,7 @@ class IntegrationTests(TestCase):
 
         with patch('conda.core.envs_manager.get_user_environments_txt_file',
                    return_value=environment_txt) as _:
-            environment_txt
             with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
-#                from conda.core.envs_manager import get_USER_ENVIRONMENTS_TXT_FILE
-#                bah = get_USER_ENVIRONMENTS_TXT_FILE()
                 with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', conda_tests_ctxt_mgmt_def_pol):
                     assert exists(join(prefix, PYTHON_BINARY))
                     assert package_is_installed(prefix, 'python=2')
@@ -1800,20 +1798,21 @@ class IntegrationTests(TestCase):
 
             assert not glob(join(prefix, sp_dir, "six*"))
 
+
     def test_conda_pip_interop_conda_editable_package(self):
         with make_temp_env("python=2.7", "pip", "git", use_restricted_unicode=on_win) as prefix:
-
             conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
+            workdir = prefix
 
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
-            output, err = run_command(Commands.RUN, prefix,
+            output, err = run_command(Commands.RUN, prefix, '--cwd', workdir,
                                       "python", "-m", "pip", "install", "-e",
-                                          "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
-                                      workdir=conda_dev_srcdir)
-            assert isfile(join(conda_dev_srcdir, "src", "urllib3", "urllib3", "__init__.py"))
+                                          "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
+            assert isfile(join(workdir, "src", "urllib3", "urllib3", "__init__.py"))
+            assert not isfile(join("src", "urllib3", "urllib3", "__init__.py"))
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "urllib3")
             urllib3_record = next(PrefixData(prefix).query("urllib3"))
@@ -2360,12 +2359,11 @@ class IntegrationTests(TestCase):
 
     def test_multiline_run_command(self):
         with make_temp_env() as prefix:
-            env_which_etc, errs_etc = run_command(Commands.RUN, prefix, dedent(
-            """
+            env_which_etc, errs_etc = run_command(Commands.RUN, prefix, '--cwd', prefix, dedent("""
             {env} | sort
             {which} conda
             """.format(env=env_or_set, which=which_or_where)),
-        dev=True, workdir=prefix)
+        dev=True)
         assert env_which_etc
         assert not errs_etc
 
@@ -2426,42 +2424,41 @@ class IntegrationTests(TestCase):
                 #
 
                 '''
-                env_path_etc, errs_etc = run_command(Commands.RUN, prefix, dedent(
-                    """
+                env_path_etc, errs_etc = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir, dedent("""
                     declare -f
                     env | sort
                     which conda
                     cat $(which conda)
                     echo $PATH
                     conda info
-                    """), dev=True, workdir=conda_dev_srcdir)
+                    """), dev=True)
                 log.warning(env_path_etc)
                 log.warning(errs_etc)
                 '''
 
                 # Let us test that the conda we expect to be running in that scenario
                 # is the conda that actually runs:
-                conda__file__, stderr = run_command(Commands.RUN, prefix,
+                conda__file__, stderr = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir,
                     sys.executable, "-c",
                     "import conda, os, sys; "
                     "sys.stdout.write(os.path.abspath(conda.__file__))",
-                    dev=True, workdir=conda_dev_srcdir)
+                    dev=True)
                 assert dirname(dirname(conda__file__)) == conda_dev_srcdir
 
                 # (and the same thing for Python)
-                python_v2, _ = run_command(Commands.RUN, prefix,
+                python_v2, _ = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir,
                     "python", "-c",
                     "import os, sys; "
                     "sys.stdout.write(str(sys.version_info[0]) + '.' + "
                     "                 str(sys.version_info[1]) + '.' + "
-                    "                 str(sys.version_info[2]))", dev=True, workdir=conda_dev_srcdir)
+                    "                 str(sys.version_info[2]))", dev=True)
                 assert python_v2 == python_v
 
                 args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
 
-                result, stderr = run_command(Commands.RUN, prefix,
+                result, stderr = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir
                                              *args,
-                                             dev=True, workdir=conda_dev_srcdir)
+                                             dev=True)
 
                 result = subprocess_call_with_clean_env("%s --version" % conda_exe)
                 assert result.rc == 0

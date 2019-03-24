@@ -27,6 +27,9 @@ from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.resolve import Resolve
 
+from functools import partial
+import pytest
+
 try:
     from unittest import mock
     from unittest.mock import patch
