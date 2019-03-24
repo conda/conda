@@ -354,6 +354,9 @@ class Solver(object):
             log.debug("inconsistent precs: %s",
                       dashlist(inconsistent_precs) if inconsistent_precs else 'None')
         if inconsistent_precs:
+            print(dedent("""
+            The environment is inconsistent, please check the package plan carefully
+            """))
             for prec in inconsistent_precs:
                 # pop and save matching spec in specs_map
                 ssc.add_back_map[prec.name] = (prec, ssc.specs_map.pop(prec.name, None))
