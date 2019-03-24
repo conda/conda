@@ -359,7 +359,13 @@ class Solver(object):
             """))
             for prec in inconsistent_precs:
                 # pop and save matching spec in specs_map
-                ssc.add_back_map[prec.name] = (prec, ssc.specs_map.pop(prec.name, None))
+                spec = ssc.specs_map.pop(prec.name, None)
+                ssc.add_back_map[prec.name] = (prec, spec)
+                # inconsistent environments should maintain the python version
+                # unless explicitly requested by the user. This along with the logic in
+                # _add_specs maintains the major.minor version
+                if prec.name == 'python':
+                    ssc.specs_map['python'] = spec
             ssc.solution_precs = tuple(prec for prec in ssc.solution_precs
                                        if prec not in inconsistent_precs)
         return ssc
