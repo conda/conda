@@ -1420,7 +1420,7 @@ def make_conda_egg_link(target_path, conda_source_root):
     conda_egg_link_contents = conda_source_root + os.linesep
 
     if isfile(target_path):
-        with open(target_path, 'b') as fh:
+        with open(target_path, 'rb') as fh:
             conda_egg_link_contents_old = fh.read()
     else:
         conda_egg_link_contents_old = ""
