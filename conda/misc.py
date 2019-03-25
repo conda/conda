@@ -56,10 +56,15 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             continue
 
         if not is_url(spec):
+            '''
+            # This does not work because url_to_path does not enforce Windows
+            # backslashes. Should it? Seems like a dangerous change to make but
+            # it would be cleaner.
             expanded = expand(spec)
             urled = path_to_url(expanded)
             pathed = url_to_path(urled)
             assert pathed == expanded
+            '''
             spec = path_to_url(expand(spec))
 
         # parse URL

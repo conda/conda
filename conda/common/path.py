@@ -71,9 +71,6 @@ def url_to_path(url):
     if not url.startswith("file://"):  # pragma: no cover
         raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
     _, netloc, path, _, _ = urlsplit(url)
-    # Windows file URLs...
-    if path[0] == '/' and path[2] == ':':
-        path = path[1:].replace('/', '\\')
     from .url import percent_decode
     path = percent_decode(path)
     if netloc not in ('', 'localhost', '127.0.0.1', '::1'):
@@ -129,6 +126,12 @@ def explode_directories(child_directories, already_split=False):
 
 
 def pyc_path(py_path, python_major_minor_version):
+    '''
+    This must not return backslashes on Windows as that will break
+    tests and leads to an eventual need to make url_to_path return
+    backslashes too and that may end up changing files on disc or
+    to the result of comparisons with the contents of them.
+    '''
     pyver_string = python_major_minor_version.replace('.', '')
     if pyver_string.startswith('2'):
         return py_path + 'c'
@@ -136,7 +139,7 @@ def pyc_path(py_path, python_major_minor_version):
         directory, py_file = split(py_path)
         basename_root, extension = splitext(py_file)
         pyc_file = "__pycache__" + os.sep + "%s.cpython-%s%sc" % (basename_root, pyver_string, extension)
-        return "%s%s%s" % (directory, os.sep, pyc_file) if directory else pyc_file
+        return "%s%s%s" % (directory, '/', pyc_file) if directory else pyc_file
 
 
 def missing_pyc_files(python_major_minor_version, files):

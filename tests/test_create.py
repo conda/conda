@@ -644,7 +644,7 @@ class IntegrationTests(TestCase):
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/flask/__init__.py"
-            pyc_file = pyc_path(py_file, py_ver)
+            pyc_file = pyc_path(py_file, py_ver).replace('/', os.sep)
             assert isfile(join(prefix, py_file))
             assert isfile(join(prefix, pyc_file))
             exe_path = join(prefix, get_bin_directory_short_path(), 'flask')
@@ -664,7 +664,7 @@ class IntegrationTests(TestCase):
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/itsdangerous.py"
-            pyc_file = pyc_path(py_file, py_ver)
+            pyc_file = pyc_path(py_file, py_ver).replace('/', os.sep)
             assert isfile(join(prefix, py_file))
             assert isfile(join(prefix, pyc_file))
 
@@ -679,7 +679,7 @@ class IntegrationTests(TestCase):
             assert py_ver.startswith('3')
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/itsdangerous.py"
-            pyc_file_py3 = pyc_path(py_file, py_ver)
+            pyc_file_py3 = pyc_path(py_file, py_ver).replace('/', os.sep)
             assert isfile(join(prefix, py_file))
             assert isfile(join(prefix, pyc_file_py3))
 
@@ -690,7 +690,7 @@ class IntegrationTests(TestCase):
             assert py_ver.startswith('2')
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/itsdangerous.py"
-            pyc_file_py2 = pyc_path(py_file, py_ver)
+            pyc_file_py2 = pyc_path(py_file, py_ver).replace('/', os.sep)
 
             assert isfile(join(prefix, py_file))
             assert isfile(join(prefix, pyc_file_py2))
