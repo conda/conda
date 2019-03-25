@@ -1208,12 +1208,6 @@ class IntegrationTests(TestCase):
                 assert context.offline
                 assert package_is_installed(clone_prefix, 'bzip2')
 
-            with env_var('CONDA_DISALLOWED_PACKAGES', 'python', conda_tests_ctxt_mgmt_def_pol):
-                with pytest.raises(DisallowedPackageError) as exc:
-                    with make_temp_env('--clone', prefix, '--offline'):
-                        pass
-                assert exc.value.dump_map()['package_ref']['name'] == 'python'
-
     def test_conda_config_describe(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe")
