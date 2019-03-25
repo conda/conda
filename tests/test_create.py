@@ -1644,8 +1644,8 @@ class IntegrationTests(TestCase):
 
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
         with make_temp_env("python=3", "pip", use_restricted_unicode=False) as prefix:
-            pip_ioo, pip_ioe = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-            pip_o, pip_e = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous",
+            pip_ioo, pip_ioe, _ = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
+            pip_o, pip_e, _ = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous",
                                        no_capture=True)
 
             PrefixData._cache_.clear()
