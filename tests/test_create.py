@@ -236,16 +236,16 @@ def run_command(command, prefix, *arguments, **kwargs):
         arguments = encode_arguments(arguments)
         with argv(['python_api'] + arguments), captured(*cap_args) as c:
             if use_exception_handler:
-                conda_exception_handler(do_call, args, p)
+                result = conda_exception_handler(do_call, args, p)
             else:
-                do_call(args, p)
+                result = do_call(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout, file=sys.stderr)
     # Unfortunately there are other ways to change context, such as Commands.CREATE --offline.
     # You will probably end up playing whack-a-bug here adding more and more the tuple here.
     if command in (Commands.CONFIG,):
         reset_context([os.path.join(prefix + os.sep, 'condarc')], args)
-    return c.stdout, c.stderr
+    return c.stdout, c.stderr, result
 
 
 @contextmanager
@@ -1372,8 +1372,15 @@ class IntegrationTests(TestCase):
         return self._test_compile_pyc(use_sys_python=False)
 
     def test_conda_run(self):
-        prefix = make_temp_prefix(str(uuid4())[:7])
-        run_command(Commands.RUN, prefix, 'echo', '\"hello\"')
+        with make_temp_env(use_restricted_unicode=False, name=str(uuid4())[:7]) as prefix:
+            output, error, rc = run_command(Commands.RUN, prefix, 'echo', 'hello')
+            assert output == 'hello' + os.linesep
+            assert not error
+            assert rc == 0
+            output, error, rc = run_command(Commands.RUN, prefix, 'exit', '5')
+            assert not output
+            assert not error
+            assert rc == 5
 
     def test_clone_offline_multichannel_with_untracked(self):
         with env_vars({
