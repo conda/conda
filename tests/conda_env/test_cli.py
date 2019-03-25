@@ -80,14 +80,14 @@ def run_env_command(command, prefix, *arguments):
     arguments.insert(0, command)
 
     if command is Commands.ENV_EXPORT:
-        arguments[1:1] = ['-n', prefix]
+        arguments.insert(1, ['-n', prefix])
     elif command is Commands.ENV_CREATE: # CREATE
         if prefix:
-            arguments[1:1] = ['-f', prefix]
+            arguments.insert(1, ['-f', prefix])
     elif command is Commands.ENV_REMOVE:  # REMOVE
-        arguments[1:1] = ['--yes', '-n', prefix]
+        arguments.insert(1, ['--yes', '-n', prefix])
     elif command is Commands.ENV_UPDATE:
-        arguments[1:1] = ['-n', prefix]
+        arguments.insert(1, ['-n', prefix])
     else:
         command_line = " --help "
     p = create_parser()

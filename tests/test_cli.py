@@ -137,7 +137,7 @@ class TestJson(unittest.TestCase):
         from tests.test_create import run_command
         from tests.test_create import Commands
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "nose", use_exception_handler=True)
+            stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "nose", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
 
             assert "nose                           1.3.4          py34_0  pkgs/free" in result
@@ -148,7 +148,7 @@ class TestJson(unittest.TestCase):
         from tests.test_create import run_command
         from tests.test_create import Commands
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "*/linux-64::nose==1.3.7[build=py36_1]", "--info", use_exception_handler=True)
+            stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "*/linux-64::nose==1.3.7[build=py36_1]", "--info", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
             assert "file name   : nose-1.3.7-py36_1.tar.bz2" in result
             assert "name        : nose" in result
