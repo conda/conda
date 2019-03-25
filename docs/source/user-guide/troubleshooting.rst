@@ -25,7 +25,7 @@ is almost always caused by one of two things:
 
   1. The environment with numpy has not been activated.
   2. Another software vendor has installed MKL or Intel OpenMP (libiomp5md.dll)
-     files into the C:\Windows\System32 folder. These files are being loaded
+     files into the C:\\Windows\\System32 folder. These files are being loaded
      before Anaconda's and they're not compatible.
 
 Solution
@@ -35,7 +35,7 @@ If you are not activating your environments, start with doing that. There's more
 info at :ref:`Activating environments <activate-env>`. If you are still stuck, you need to consider
 more drastic measures.
 
-  1. Remove any MKL-related files from C:\Windows\System32. We recommend
+  1. Remove any MKL-related files from C:\\Windows\\System32. We recommend
      renaming them to add .bak to the filename to effectively hide them. Observe
      if any other software breaks. Try moving the DLL files alongside the .exe of
      the software that broke. If it works again, you can keep things in the
@@ -81,7 +81,7 @@ more drastic measures.
        set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
 
 
-List of known bad software that installs Intel libraries to C:\Windows\System32:
+List of known bad software that installs Intel libraries to C:\\Windows\\System32:
 
 * Amplitube, by IK Multimedia
 * ASIO4ALL, by Michael Tippach
@@ -117,7 +117,7 @@ versions of conda and more recent builds of Python are more strict about
 requiring activation of environments. We're working on better error messages for
 them, but here's the story for now. Windows relies on the PATH environment
 variable as the way to locate libraries that are not in the immediate folder,
-and also not in the C:\Windows\System32 folder. Searching for libraries in the
+and also not in the C:\\Windows\\System32 folder. Searching for libraries in the
 PATH folders goes from left to right. If you choose to put Anaconda's folders on
 PATH, there are several of them:
 
