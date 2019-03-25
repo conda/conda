@@ -102,21 +102,6 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
     import conftest
     tmpdir = conftest.get_tmpdir() or gettempdir()
 
-    src = sys.executable
-    dst = os.path.join(tmpdir, os.path.basename(sys.executable))
-    from conda.gateways.disk.link import link
-    try:
-        link(src, dst)
-    except (IOError, OSError) as e:
-        sys.exit   ("\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
-                    "           not on the same FS as `sys.prefix`:\n           {}\n"
-                    "           this will be slow and unlike the majority of end-user installs.\n"
-                    "           Please pass `--basetemp=<somewhere-else>` instead.".format(tmpdir, sys.prefix))
-    try:
-        os.unlink(dst)
-    except:
-        pass
-
     if use_restricted_unicode:
         random_unicode = ''.join(sample(UNICODE_CHARACTERS_RESTRICTED, len(UNICODE_CHARACTERS_RESTRICTED)))
     else:
@@ -124,6 +109,25 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
     tmpdir_name = os.environ.get("CONDA_TEST_TMPDIR_NAME",
                                  (str(uuid4())[:4] + SPACER_CHARACTER + random_unicode) if name is None else name)
     prefix = join(tmpdir, tmpdir_name)
+
+    # Exit immediately if we cannot use hardlinks, on Windows, we get permissions errors if we use
+    # sys.executable so instead use the pdb files.
+    src = sys.executable.replace('.exe', '.pdb') if on_win else sys.exectuable
+    dst = os.path.join(tmpdir, os.path.basename(sys.executable))
+    from conda.gateways.disk.link import link
+    try:
+        link(src, dst)
+    except (IOError, OSError) as e:
+        sys.exit("\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
+                 "           not on the same FS as `sys.prefix`:\n           {}\n"
+                 "           this will be slow and unlike the majority of end-user installs.\n"
+                 "           Please pass `--basetemp=<somewhere-else>` instead.".format(tmpdir, sys.prefix))
+    try:
+        rm_rf(dst)
+    except Exception as e:
+        print(e)
+        pass
+
     return prefix
 
 
@@ -419,8 +423,10 @@ def get_shortcut_dir():
         except ImportError:
             raise
 
+from conftest import auto_inject_fixtures
 
 @pytest.mark.integration
+@auto_inject_fixtures('tmpdir')
 class IntegrationTests(TestCase):
 
     def setUp(self):
@@ -1331,7 +1337,8 @@ class IntegrationTests(TestCase):
                 # runtime / DLL incompatibilities will be readily apparent.
                 py_ver = '3.7' if sys.version_info[0] == 3 else '2.7'
                 packages.append('python=' + py_ver)
-            with make_temp_env(*packages, use_restricted_unicode=False) as prefix:
+            with make_temp_env(*packages, use_restricted_unicode=True
+                               if py_ver.startswith('2') else False) as prefix:
                 if use_sys_python:
                     python_binary = sys.executable
                 else:
