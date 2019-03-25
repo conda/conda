@@ -368,9 +368,16 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, pr
         #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
         if int(py_ver[0]) >= 3 and int(py_ver.split('.')[1]) > 5:
             command.extend(["-j", "0"])
-        command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
+        command[0:0] = [python_exe_full_path]
+        # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
         log.trace(command)
-        stdout, stderr, rc = run_command(Commands.RUN, *command)
+        from conda.gateways.subprocess import any_subprocess
+        # from conda.common.io import env_vars
+        # This stack does not maintain its _argparse_args correctly?
+        # from conda.base.context import stack_context_default
+        # with env_vars({}, stack_context_default):
+        #     stdout, stderr, rc = run_command(Commands.RUN, *command)
+        stdout, stderr, rc = any_subprocess(command, prefix)
     finally:
         os.remove(filename)
 

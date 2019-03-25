@@ -15,7 +15,8 @@ import re
 import subprocess
 
 from .exceptions import CondaEnvException
-from conda.cli.python_api import run_command, Commands
+#from conda.cli.python_api import run_command, Commands
+from conda.gateways.subprocess import any_subprocess
 
 
 log = getLogger(__name__)
@@ -23,8 +24,9 @@ log = getLogger(__name__)
 
 def pip_subprocess(args, prefix, cwd):
     run_args = ['-p', prefix, 'pip'] + args
-    run_args = ['-p', prefix, '--cwd', cwd, 'pip'] + args
-    stdout, stderr, rc = run_command(Commands.RUN, *run_args, stdout=None, stderr=None)
+    stdout, stderr, rc = any_subprocess(run_args, prefix, cwd=cwd)
+    # This will modify (break) Context. We have a context stack but need to verify it works
+    # stdout, stderr, rc = run_command(Commands.RUN, *run_args, stdout=None, stderr=None)
 
 
 def get_pip_version(prefix):

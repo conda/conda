@@ -41,10 +41,7 @@ def encode_for_env_var(value):
     return str(value)
 
 
-
-
-
-def move_conda_to_front_of_PATH():
+def conda_move_to_front_of_PATH():
     if 'CONDA_PREFIX' in os.environ:
         from conda.activate import (PosixActivator, CmdExeActivator)
         if os.name == 'nt':
@@ -76,7 +73,7 @@ def move_conda_to_front_of_PATH():
         new_path = encode_for_env_var(new_path)
         os.environ['PATH'] = new_path
 
-def check_conda_versions_aligned():
+def conda_check_versions_aligned():
     # Next problem. If we use conda to provide our git or otherwise do not
     # have it on PATH and if we also have no .version file then conda is
     # unable to figure out its version without throwing an exception. The
@@ -107,5 +104,5 @@ def check_conda_versions_aligned():
             fh.write(version_from_git)
 
 
-move_conda_to_front_of_PATH()
-check_conda_versions_aligned()
+conda_move_to_front_of_PATH()
+conda_check_versions_aligned()

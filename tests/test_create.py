@@ -101,6 +101,22 @@ def escape_for_winpath(p):
 def _get_temp_prefix(name=None, use_restricted_unicode=False):
     import conftest
     tmpdir = conftest.get_tmpdir() or gettempdir()
+
+    src = sys.executable
+    dst = os.path.join(tmpdir, os.path.basename(sys.executable))
+    from conda.gateways.disk.link import link
+    try:
+        link(src, dst)
+    except (IOError, OSError) as e:
+        sys.exit   ("\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
+                    "           not on the same FS as `sys.prefix`:\n           {}\n"
+                    "           this will be slow and unlike the majority of end-user installs.\n"
+                    "           Please pass `--basetemp=<somewhere-else>` instead.".format(tmpdir, sys.prefix))
+    try:
+        os.path.unlink(dst)
+    except:
+        pass
+
     if use_restricted_unicode:
         random_unicode = ''.join(sample(UNICODE_CHARACTERS_RESTRICTED, len(UNICODE_CHARACTERS_RESTRICTED)))
     else:
@@ -890,6 +906,14 @@ class IntegrationTests(TestCase):
             tar_old_path = join(PackageCacheData.first_writable().pkgs_dir, bzip2_fname)
             if not isfile(tar_old_path):
                 log.warning("Installing bzip2 failed to save the compressed package, downloading it 'manually' ..")
+                # Downloading to the package cache causes some internal inconsistency here:
+                #
+                #   File "/Users/rdonnelly/conda/conda/conda/common/path.py", line 72, in url_to_path
+                #     raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
+                # conda.CondaError: You can only turn absolute file: urls into paths (not https://repo.anaconda.com/pkgs/main/osx-64/bzip2-1.0.6-h1de35cc_5.tar.bz2)
+                #
+                # .. so download to the root of the prefix instead.
+                tar_old_path = join(prefix, bzip2_fname)
                 from conda.gateways.connection.download import download
                 download('https://repo.anaconda.com/pkgs/main/' + bzip2_data.subdir + '/' + bzip2_fname,
                          tar_old_path, None)
@@ -1175,14 +1199,12 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, "mkl_random")
 
     def test_clone_offline_simple(self):
-        with make_temp_env("python", "flask=0.10.1") as prefix:
-            assert package_is_installed(prefix, 'flask=0.10.1')
-            assert package_is_installed(prefix, 'python')
+        with make_temp_env("bzip2") as prefix:
+            assert package_is_installed(prefix, 'bzip2')
 
             with make_temp_env('--clone', prefix, '--offline') as clone_prefix:
                 assert context.offline
-                assert package_is_installed(clone_prefix, 'flask=0.10.1')
-                assert package_is_installed(clone_prefix, 'python')
+                assert package_is_installed(clone_prefix, 'bzip2')
 
             with env_var('CONDA_DISALLOWED_PACKAGES', 'python', conda_tests_ctxt_mgmt_def_pol):
                 with pytest.raises(DisallowedPackageError) as exc:
