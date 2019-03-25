@@ -5,6 +5,7 @@ import warnings
 import pytest
 
 from conda.common.compat import PY3
+from functools import partial
 
 win_default_shells = ["cmd.exe", "powershell", "git_bash", "cygwin"]
 shells = ["bash", "zsh"]

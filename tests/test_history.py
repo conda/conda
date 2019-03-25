@@ -14,7 +14,9 @@ from .test_create import make_temp_prefix
 from conda.history import History
 from conda.resolve import MatchSpec
 
+from conftest import auto_inject_fixtures
 
+@auto_inject_fixtures('tmpdir')
 class HistoryTestCase(unittest.TestCase):
     def test_works_as_context_manager(self):
         h = History("/path/to/prefix")
