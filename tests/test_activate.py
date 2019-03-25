@@ -804,9 +804,9 @@ class ShellWrapperUnitTests(TestCase):
         rm_rf(activate_result)
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
-        assert activate_data == dals("""
-        @SET _CE_M=
+        e_activate_data = dals("""
         @SET _CE_CONDA=
+        @SET _CE_M=
         @SET "PATH=%(new_path)s"
         @SET "CONDA_PREFIX=%(converted_prefix)s"
         @SET "CONDA_SHLVL=1"
@@ -822,6 +822,7 @@ class ShellWrapperUnitTests(TestCase):
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat')),
             'conda_exe': activator.path_conversion(context.conda_exe),
         }
+        assert activate_data == e_activate_data
 
         with env_vars({
             'CONDA_PREFIX': self.prefix,
@@ -862,13 +863,13 @@ class ShellWrapperUnitTests(TestCase):
             rm_rf(deactivate_result)
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
-            assert deactivate_data == dals("""
+            e_deactivate_data = dals("""
             @CALL "%(deactivate1)s"
             @SET CONDA_PREFIX=
             @SET CONDA_DEFAULT_ENV=
             @SET CONDA_PROMPT_MODIFIER=
-            @SET _CE_M=
             @SET _CE_CONDA=
+            @SET _CE_M=
             @SET "PATH=%(new_path)s"
             @SET "CONDA_SHLVL=0"
             @SET "CONDA_EXE=%(conda_exe)s"
@@ -877,6 +878,7 @@ class ShellWrapperUnitTests(TestCase):
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat')),
                 'conda_exe': activator.path_conversion(context.conda_exe),
             }
+            assert deactivate_data == e_deactivate_data
 
     def test_csh_basic(self):
         activator = CshActivator()

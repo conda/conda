@@ -761,7 +761,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win and context.subdir == "win-32", reason="conda-forge doesn't do win-32")
     def test_strict_channel_priority(self):
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(
+            stdout, stderr, _ = run_command(
                 Commands.CREATE, prefix,
                 "-c", "conda-forge", "-c", "defaults", "python=3.6", "quaternion",
                 "--strict-channel-priority", "--dry-run", "--json",
