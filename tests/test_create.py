@@ -112,7 +112,7 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
 
     # Exit immediately if we cannot use hardlinks, on Windows, we get permissions errors if we use
     # sys.executable so instead use the pdb files.
-    src = sys.executable.replace('.exe', '.pdb') if on_win else sys.exectuable
+    src = sys.executable.replace('.exe', '.pdb') if on_win else sys.executable
     dst = os.path.join(tmpdir, os.path.basename(sys.executable))
     from conda.gateways.disk.link import link
     try:
