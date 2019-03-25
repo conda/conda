@@ -237,8 +237,10 @@ def run_command(command, prefix, *arguments, **kwargs):
                 do_call(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout, file=sys.stderr)
-    if command is Commands.CONFIG:
-        reload_config(prefix)
+    # Unfortunately there are other ways to change context, such as Commands.CREATE --offline.
+    # You will probably end up playing whack-a-bug here adding more and more the tuple here.
+    if command in (Commands.CONFIG,):
+        reset_context([os.path.join(prefix + os.sep, 'condarc')], args)
     return c.stdout, c.stderr
 
 
@@ -2478,9 +2480,8 @@ class IntegrationTests(TestCase):
 
                 args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
 
-                result, stderr = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir
-                                             *args,
-                                             dev=True)
+                result, stderr = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir,
+                                             *args, dev=True)
 
                 result = subprocess_call_with_clean_env("%s --version" % conda_exe)
                 assert result.rc == 0
