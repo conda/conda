@@ -67,7 +67,7 @@ To set up an environment to start developing on conda code, we recommend the fol
 
        The tests-suite is very sensitive to the initial environment. We have make
        some effort to make the tests runnable in popular IDEs, and in PyCharm's
-       case, many tests can be run from a clean environment (variable-wise).
+       case, many tests can be run from a clean environment (variable-wise)
 
 ## Development Environment, Windows cmd.exe shell
 

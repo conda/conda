@@ -6,9 +6,9 @@
 @IF DEFINED CONDA_SHLVL GOTO :EOF
 
 @FOR %%F in ("%~dp0") do @SET "__condabin_dir=%%~dpF"
-@SET "PATH=%__condabin_dir%;%PATH%"
-@SET "CONDA_BAT=%__condabin_dir%conda.bat"
 @SET "__condabin_dir=%__condabin_dir:~0,-1%"
+@SET "PATH=%__condabin_dir%;%PATH%"
+@SET "CONDA_BAT=%__condabin_dir%\conda.bat"
 @FOR %%F in ("%__condabin_dir%") do @SET "__conda_root=%%~dpF"
 @SET "CONDA_EXE=%__conda_root%Scripts\conda.exe"
 @SET __condabin_dir=
