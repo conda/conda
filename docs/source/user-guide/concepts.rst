@@ -44,31 +44,10 @@ Specifying channels
 
   $ conda search scipy --channel file:/<path to>/local-channel --override-channels
 
-* In .condarc with the keys
-
-  * channels: list of channels for conda to search for packages
-
-  * default_channels: normally pointing to channels at repo.continuum.io, sets the
-    list of "default channels"
-
-  * allow_other_channels: a boolean value that determines if the user may install
-    packages outside of the channels list. This is generally used in a central
-    condarc that other users on a system are not allowed to edit.
-
-  * channel_alias: sets an alias for a channel. For example, if `channel_alias: https://my.repo`
-    then
-
-    .. code-block:: bash
-
-      conda install --channel me <package>
-
-    is equivalent to
-
-    .. code-block:: bash
-
-       conda install --channel https://my.repo/me <package>
+* In .condarc, use the key `channels` to see a list of channels for conda to search for packages
 
 Learn more about :doc:`managing channels <../user-guide/tasks/manage-channels>`.
+
 
 Conda directory structure
 =========================
