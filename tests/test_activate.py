@@ -1202,7 +1202,7 @@ class InteractiveShell(object):
 
         p = PopenSpawn("{} {}".format(self.shell_name, self.args) if self.args else self.shell_name,
                        timeout=12, maxread=2000, searchwindowsize=None,
-                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
+                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding="UTF-8",
                        codec_errors='strict')
 
         # set state for context
