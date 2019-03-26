@@ -506,9 +506,11 @@ class Context(Configuration):
         else:
             bin_dir = 'Scripts' if on_win else 'bin'
             exe = 'conda.exe' if on_win else 'conda'
+            # I was going to use None to indicate a variable to unset, but that gets tricky with
+            # error-on-undefined.
             return OrderedDict({'CONDA_EXE': os.path.join(sys.prefix, bin_dir, exe),
-                                '_CE_M': None,
-                                '_CE_CONDA': None})
+                                '_CE_M': '',
+                                '_CE_CONDA': ''})
 
     @memoizedproperty
     def channel_alias(self):

@@ -804,15 +804,15 @@ class ShellWrapperUnitTests(TestCase):
         rm_rf(activate_result)
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
+        conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+
         e_activate_data = dals("""
-        @SET _CE_CONDA=
-        @SET _CE_M=
         @SET "PATH=%(new_path)s"
         @SET "CONDA_PREFIX=%(converted_prefix)s"
         @SET "CONDA_SHLVL=1"
         @SET "CONDA_DEFAULT_ENV=%(native_prefix)s"
         @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
-        @SET "CONDA_EXE=%(conda_exe)s"
+        %(conda_exe_export)s
         @CALL "%(activate1)s"
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
@@ -820,7 +820,7 @@ class ShellWrapperUnitTests(TestCase):
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat')),
-            'conda_exe': activator.path_conversion(context.conda_exe),
+            'conda_exe_export': conda_exe_export,
         }
         assert activate_data == e_activate_data
 
@@ -868,15 +868,13 @@ class ShellWrapperUnitTests(TestCase):
             @SET CONDA_PREFIX=
             @SET CONDA_DEFAULT_ENV=
             @SET CONDA_PROMPT_MODIFIER=
-            @SET _CE_CONDA=
-            @SET _CE_M=
             @SET "PATH=%(new_path)s"
             @SET "CONDA_SHLVL=0"
-            @SET "CONDA_EXE=%(conda_exe)s"
+            %(conda_exe_export)s
             """) % {
                 'new_path': new_path,
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat')),
-                'conda_exe': activator.path_conversion(context.conda_exe),
+                'conda_exe_export': conda_exe_export,
             }
             assert deactivate_data == e_deactivate_data
 

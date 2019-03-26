@@ -93,7 +93,7 @@ class _Activator(object):
             if v is None or conda_exe_vars_None:
                 conda_exe_unset_vars.append(k)
             else:
-                conda_exe_vars_export[k] = self.path_conversion(v)
+                conda_exe_vars_export[k] = self.path_conversion(v) if v else v
         from collections import OrderedDict
         export_vars = OrderedDict()
         for k, v in kwargs.items():
@@ -303,7 +303,7 @@ class _Activator(object):
         if old_conda_shlvl == 0:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
             export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict((
-                                                                 ('path', new_path,),
+                                                                 ('path', new_path),
                                                                  ('conda_prefix', prefix),
                                                                  ('conda_shlvl', new_conda_shlvl),
                                                                  ('conda_default_env', conda_default_env),
@@ -374,7 +374,7 @@ class _Activator(object):
             # here so that "deactivate means deactivate" but you cannot since the conda shell scripts
             # still refer to them and they only set them once at the top. We could change that though,
             # the conda() shell function could set them instead of doing it at the top.  This would
-            # be *much* cleaner. I personally cannot stand that I have deactivated conda and anything
+            # be *much* cleaner. I personally cannot abide that I have deactivated conda and anything
             # at all in my env still references it (apart from the shell script, we need something
             # I suppose!)
             export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict((
