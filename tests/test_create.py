@@ -775,7 +775,7 @@ class IntegrationTests(TestCase):
             # Same thing for Windows, this is because we use MKL always. Perhaps there's a
             # way to exclude it, I tried the "nomkl" package but that did not work.
             json_obj["actions"]["LINK"] = [link for link in json_obj["actions"]["LINK"]
-                                           if link['name'] not in ('libcxx', 'mkl', 'intel-openmp')]
+                                           if link['name'] not in ('libcxx', 'libcxxabi', 'mkl', 'intel-openmp')]
             channel_groups = groupby("channel", json_obj["actions"]["LINK"])
             channel_groups = sorted(list(channel_groups))
             assert channel_groups == ["conda-forge",]
