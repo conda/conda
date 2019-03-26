@@ -889,16 +889,16 @@ class PowerShellActivator(_Activator):
         if context.dev:
             return dedent("""\
                 $Env:CONDA_EXE = "{context.conda_exe}"
-                $Env:_CE_M = -m
-                $Env:_CE_CONDA = conda
+                $Env:_CE_M = "-m"
+                $Env:_CE_CONDA = "conda"
                 $Env:_CONDA_ROOT = "{context.conda_prefix}"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 """.format(context=context))
         else:
             return dedent("""\
                 $Env:CONDA_EXE = "{context.conda_exe}"
-                $Env:_CE_M =
-                $Env:_CE_CONDA =
+                $Env:_CE_M = ""
+                $Env:_CE_CONDA = ""
                 $Env:_CONDA_ROOT = "{context.conda_prefix}"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 """.format(context=context))
