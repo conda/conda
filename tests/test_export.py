@@ -87,7 +87,7 @@ class ExportIntegrationTests(TestCase):
 
                     assert package_is_installed(prefix2, "python")
                     assert package_is_installed(prefix2, "six")
-                output2, error2 = run_command(Commands.LIST, prefix2, "--explicit")
+                output2, error2, _ = run_command(Commands.LIST, prefix2, "--explicit")
                 assert not error2
                 urls2 = set(url for url in output2.split() if url.startswith("http"))
                 assert urls1 == urls2

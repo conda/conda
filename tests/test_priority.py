@@ -22,11 +22,11 @@ class PriorityIntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'pycosat')
 
                 # add conda-forge channel
-                o, e = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
+                o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
 
                 assert context.channels == ("conda-forge", "defaults"), o + e
                 # update --all
-                update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
+                update_stdout, _, _ = run_command(Commands.UPDATE, prefix, '--all')
 
                 # this assertion works with the pinned_packages config to make sure
                 # conda update --all still respects the pinned python version
@@ -59,11 +59,11 @@ class PriorityIntegrationTests(TestCase):
             assert package_is_installed(prefix, 'python')
 
             # add conda-forge channel
-            o, e = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
+            o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
             assert context.channels == ("conda-forge", "defaults"), o+e
 
             # update python
-            update_stdout, _ = run_command(Commands.UPDATE, prefix, 'python')
+            update_stdout, _, _ = run_command(Commands.UPDATE, prefix, 'python')
 
             # pycosat should be in the SUPERSEDED list
             superceded_split = update_stdout.split('UPDATED')
