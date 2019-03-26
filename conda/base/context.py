@@ -498,19 +498,19 @@ class Context(Configuration):
         '''
 
         if context.dev:
-            return OrderedDict({'CONDA_EXE': sys.executable,
-                                'PYTHONPATH': os.path.dirname(CONDA_PACKAGE_ROOT)+'{}{}'.format(os.pathsep,
-                                    os.environ['PYTHONPATH'] if 'PYTHONPATH' in os.environ else ''),
-                                '_CE_M': '-m',
-                                '_CE_CONDA': 'conda'})
+            return OrderedDict([('CONDA_EXE', sys.executable),
+                                ('PYTHONPATH', os.path.dirname(CONDA_PACKAGE_ROOT)+'{}{}'.format(os.pathsep,
+                                    os.environ['PYTHONPATH'] if 'PYTHONPATH' in os.environ else '')),
+                                ('_CE_M', '-m'),
+                                ('_CE_CONDA', 'conda')])
         else:
             bin_dir = 'Scripts' if on_win else 'bin'
             exe = 'conda.exe' if on_win else 'conda'
             # I was going to use None to indicate a variable to unset, but that gets tricky with
             # error-on-undefined.
-            return OrderedDict({'CONDA_EXE': os.path.join(sys.prefix, bin_dir, exe),
-                                '_CE_M': '',
-                                '_CE_CONDA': ''})
+            return OrderedDict([('CONDA_EXE', os.path.join(sys.prefix, bin_dir, exe)),
+                                ('_CE_M', ''),
+                                ('_CE_CONDA', '')])
 
     @memoizedproperty
     def channel_alias(self):

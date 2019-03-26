@@ -732,7 +732,7 @@ class PosixActivator(_Activator):
                         )
         else:
             result = ''
-            for key, value in iteritems(context.conda_exe_vars_dict):
+            for key, value in context.conda_exe_vars_dict.items():
                 if value is None:
                     # Using `unset_var_tmpl` would cause issues for people running
                     # with shell flag -u set (error on unset).

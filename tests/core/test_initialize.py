@@ -386,17 +386,14 @@ class InitializeTests(TestCase):
                 created_file_contents = fh.read()
 
             if on_win:
-                first_line, second_line, remainder = created_file_contents.split('\n', 2)
-                assert first_line == "export CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
-                assert second_line == "export CONDA_BAT=\"%s\"" % join(context.conda_prefix, 'condabin', 'conda.bat')
+                line0, line1, remainder = created_file_contents.split('\n', 2)
+                assert line0 == "export CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
+                assert line1 == "export CONDA_BAT=\"%s\"" % join(context.conda_prefix, 'condabin', 'conda.bat')
             else:
-                first_line, remainder = created_file_contents.split('\n', 1)
-                second_line, remainder = remainder.split('\n', 1)
-                third_line, remainder = remainder.split('\n', 1)
-                fourth_line, remainder = remainder.split('\n', 1)
-                assert first_line == "\\export CONDA_EXE='%s'" % context.conda_exe
-                assert second_line == "\\export _CE_M=''"
-                assert third_line == "\\export _CE_CONDA=''"
+                line0, line1, line2, _, remainder = created_file_contents.split('\n', 4)
+                assert line0 == "\\export CONDA_EXE='%s'" % context.conda_exe
+                assert line1 == "\\export _CE_M=''"
+                assert line2 == "\\export _CE_CONDA=''"
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')) as fh:
                 original_contents = fh.read()

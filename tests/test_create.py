@@ -92,7 +92,7 @@ env_or_set = "env" if not on_win else "set"
 
 # When testing for bugs, you may want to change this to a _,
 # for example to see if a bug is related to spaces in prefixes.
-SPACER_CHARACTER = '_'
+SPACER_CHARACTER = ' '
 
 def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
@@ -761,13 +761,13 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win and context.subdir == "win-32", reason="conda-forge doesn't do win-32")
     def test_strict_channel_priority(self):
         with make_temp_env() as prefix:
-            stdout, stderr, _ = run_command(
+            stdout, stderr, rc = run_command(
                 Commands.CREATE, prefix,
                 "-c", "conda-forge", "-c", "defaults", "python=3.6", "quaternion",
                 "--strict-channel-priority", "--dry-run", "--json",
                 use_exception_handler=True
             )
-            assert not stderr
+            assert not rc
             json_obj = json_loads(stdout)
             # We see:
             # libcxx             pkgs/main/osx-64::libcxx-4.0.1-h579ed51_0
@@ -1944,8 +1944,8 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "appdirs>=1.4.3")
 
             python_binary = join(prefix, PYTHON_BINARY)
-            p = Popen(python_binary + " -m pip install fs==2.1.0",
-                      stdout=PIPE, stderr=PIPE, cwd=prefix, shell=True)
+            p = Popen([python_binary, '-m', 'pip', 'install', 'fs==2.1.0'],
+                      stdout=PIPE, stderr=PIPE, cwd=prefix, shell=False)
             stdout, stderr = p.communicate()
             rc = p.returncode
             assert int(rc) != 0
@@ -1955,7 +1955,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, "six")
             assert not package_is_installed(prefix, "six")
 
-            output = check_output(python_binary + " -m pip install fs==2.1.0", cwd=prefix, shell=True)
+            output = check_output([python_binary, '-m', 'pip', 'install', 'fs==2.1.0'], cwd=prefix, shell=False)
             print(output)
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "fs==2.1.0")
