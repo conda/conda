@@ -17,7 +17,7 @@ class ExportIntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            output, error = run_command(Commands.LIST, prefix, "-e")
+            output, error, _ = run_command(Commands.LIST, prefix, "-e")
 
             with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                 env_txt.write(output)
@@ -28,7 +28,7 @@ class ExportIntegrationTests(TestCase):
 
                 assert package_is_installed(prefix2, "python")
 
-            output2, error= run_command(Commands.LIST, prefix2, "-e")
+            output2, error, _ = run_command(Commands.LIST, prefix2, "-e")
             self.assertEqual(output, output2)
 
     @pytest.mark.skipif(True, reason="Bring back `conda list --export` #3445")
@@ -44,7 +44,7 @@ class ExportIntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, "six", "-c", "conda-forge")
             assert package_is_installed(prefix, "six")
 
-            output, error = run_command(Commands.LIST, prefix, "-e")
+            output, error, _ = run_command(Commands.LIST, prefix, "-e")
             self.assertIn("conda-forge", output)
             
             try:
@@ -55,7 +55,7 @@ class ExportIntegrationTests(TestCase):
                     run_command(Commands.CREATE, prefix2 , "--file", env_txt.name)
 
                     assert package_is_installed(prefix2, "python")
-                output2, error = run_command(Commands.LIST, prefix2, "-e")
+                output2, error, _ = run_command(Commands.LIST, prefix2, "-e")
                 self.assertEqual(output, output2)
             finally:
                 rm_rf(env_txt.name)
@@ -72,7 +72,7 @@ class ExportIntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, "six", "-c", "conda-forge")
             assert package_is_installed(prefix, "conda-forge::six")
 
-            output, error = run_command(Commands.LIST, prefix, "--explicit")
+            output, error, _ = run_command(Commands.LIST, prefix, "--explicit")
             assert not error
             assert "conda-forge" in output
 
