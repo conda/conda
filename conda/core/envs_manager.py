@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES
+from errno import EACCES, EROFS
 from logging import getLogger
 from os import devnull, listdir
 from os.path import dirname, isdir, isfile, join, normpath
@@ -40,7 +40,7 @@ def register_env(location):
             fh.write(ensure_text_type(location))
             fh.write('\n')
     except EnvironmentError as e:
-        if e.errno == EACCES:
+        if e.errno in (EACCES, EROFS):
             log.warn("Unable to register environment. Path not writable.\n"
                      "  environment location: %s\n"
                      "  registry file: %s", location, user_environments_txt_file)
