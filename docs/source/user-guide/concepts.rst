@@ -52,7 +52,8 @@ Specifying channels
     list of "default channels"
 
   * allow_other_channels: a boolean value that determines if the user may install
-    packages outside of the channels list
+    packages outside of the channels list. This is generally used in a central
+    condarc that other users on a system are not allowed to edit.
 
   * channel_alias: sets an alias for a channel. For example, if `channel_alias: https://my.repo`
     then
