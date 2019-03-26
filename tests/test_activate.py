@@ -1876,7 +1876,7 @@ class ShellWrapperIntegrationTests(TestCase):
         with InteractiveShell('cmd.exe') as shell:
             shell.sendline("set")
             shell.expect('.*')
-            shell.sendline("conda activate environment-not-found-doesnt-exist")
+            shell.sendline("conda activate --dev environment-not-found-doesnt-exist")
             shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
             shell.assert_env_var('errorlevel', '1')
 
