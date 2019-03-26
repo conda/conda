@@ -1300,7 +1300,7 @@ class InteractiveShell(object):
         'powershell': {
             'activator': 'powershell',
             'args': ('-NoProfile', '-NoLogo'),
-            'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
+            'init_command': 'python -m conda shell.powershell hook --dev | Out-String | Invoke-Expression',
             'print_env_var': '$Env:%s',
             'exit_cmd': 'exit'
         },

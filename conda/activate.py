@@ -725,6 +725,8 @@ class PosixActivator(_Activator):
                         )
             else:
                 return ('export CONDA_EXE="$(cygpath \'%s\')"\n'
+                        'export _CE_M=-m\n'
+                        'export _CE_CONDA=conda\n'
                         'export CONDA_BAT="%s"'
                         % (context.conda_exe, join(context.conda_prefix, 'condabin', 'conda.bat'))
                         )
@@ -884,11 +886,22 @@ class PowerShellActivator(_Activator):
         super(PowerShellActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        return dedent("""\
-        $Env:CONDA_EXE = "{context.conda_exe}"
-        $Env:_CONDA_ROOT = "{context.conda_prefix}"
-        $Env:_CONDA_EXE = "{context.conda_exe}"
-        """.format(context=context))
+        if context.dev:
+            return dedent("""\
+                $Env:CONDA_EXE = "{context.conda_exe}"
+                $Env:_CE_M = -m
+                $Env:_CE_CONDA = conda
+                $Env:_CONDA_ROOT = "{context.conda_prefix}"
+                $Env:_CONDA_EXE = "{context.conda_exe}"
+                """.format(context=context))
+        else:
+            return dedent("""\
+                $Env:CONDA_EXE = "{context.conda_exe}"
+                $Env:_CE_M =
+                $Env:_CE_CONDA =
+                $Env:_CONDA_ROOT = "{context.conda_prefix}"
+                $Env:_CONDA_EXE = "{context.conda_exe}"
+                """.format(context=context))
 
 
 activator_map = {
