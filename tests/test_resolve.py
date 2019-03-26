@@ -1030,6 +1030,20 @@ def test_broken_install():
     # always insure installed packages _are_ in the index
 
 
+def test_pip_depends_removed_on_inconsistent_env():
+    installed = r.install(['python 2.7*'])
+    pkg_names = [p.name for p in installed]
+    assert 'python' in pkg_names
+    assert 'pip' not in pkg_names
+    # add pip as python dependency
+    for pkg in installed:
+        if pkg.name == 'python':
+            pkg.depends += ('pip', )
+        assert pkg.name != 'pip'
+    bad_pkgs = r.bad_installed(installed, [])[0]
+    assert bad_pkgs is None
+
+
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
     _installed = [rec.dist_str() for rec in installed]
