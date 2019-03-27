@@ -16,7 +16,7 @@ Installing with conda
 
 Conda install
 -------------
-* When you `conda install` a package that exists in your channels and has no dependencies, conda:
+* When you `conda install` a package that exists in a channel and has no dependencies, conda:
 
   * looks at your configured channels (in priority)
 
