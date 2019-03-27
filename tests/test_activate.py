@@ -32,6 +32,7 @@ from tests.helpers import tempdir
 from tests.test_create import Commands, run_command
 from conda._vendor.auxlib.decorators import memoize
 from re import escape
+from .test_create import SPACER_CHARACTER
 
 try:
     from unittest.mock import patch
@@ -649,7 +650,7 @@ class ShellWrapperUnitTests(TestCase):
     def setUp(self):
         tempdirdir = gettempdir()
 
-        prefix_dirname = str(uuid4())[:4] + ' ' + str(uuid4())[:4]
+        prefix_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
         self.prefix = join(tempdirdir, prefix_dirname)
         mkdir_p(join(self.prefix, 'conda-meta'))
         assert isdir(self.prefix)
@@ -1458,7 +1459,7 @@ class ShellWrapperIntegrationTests(TestCase):
     def setUp(self):
         tempdirdir = gettempdir()
 
-        prefix_dirname = str(uuid4())[:4] + ' ' + str(uuid4())[:4]
+        prefix_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
         self.prefix = join(tempdirdir, prefix_dirname)
         mkdir_p(join(self.prefix, 'conda-meta'))
         assert isdir(self.prefix)
@@ -1805,8 +1806,14 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline('powershell -NoProfile -c ("get-command conda | Format-List Source")')
             shell.p.expect_exact('Source : ' + conda_bat)
 
+            shell.sendline('chcp'); shell.expect('.*\n')
+
             # PATH0 = shell.get_env_var('PATH', '').split(os.pathsep)
             shell.sendline('conda activate --dev "%s"' % charizard)
+
+            shell.sendline('chcp'); shell.expect('.*\n')
+            shell.assert_env_var('CONDA_SHLVL', '1\r')
+
             # PATH1 = shell.get_env_var('PATH', '').split(os.pathsep)
             # print(set(PATH1)-set(PATH0))
             shell.sendline('powershell -NoProfile -c ("get-command conda | Format-List Source")')
@@ -1815,7 +1822,6 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('_CE_CONDA', 'conda\r')
             shell.assert_env_var('_CE_M', '-m\r')
             shell.assert_env_var('CONDA_EXE', escape(sys.executable) + '\r')
-            shell.assert_env_var('CONDA_SHLVL', '1\r')
             shell.assert_env_var('CONDA_PREFIX', charizard, True)
             # PATH2 = shell.get_env_var('PATH', '').split(os.pathsep)
 
@@ -1913,24 +1919,36 @@ class ShellWrapperIntegrationTests(TestCase):
         with InteractiveShell('cmd.exe') as shell:
             shell.sendline("echo off")
 
+            conda__ce_conda = shell.get_env_var('_CE_CONDA')
+            assert conda__ce_conda == 'conda'
+
             PATH = "%s\\shell\\Scripts;%%PATH%%" % CONDA_PACKAGE_ROOT
 
             shell.sendline("SET \"PATH=" + PATH + "\"")
-            shell.sendline("activate \"%s\"" % self.prefix2)
+
+            shell.sendline('activate --dev "%s"' % self.prefix2)
+            shell.expect('.*\n')
+
+            conda_shlvl = shell.get_env_var('CONDA_SHLVL')
+            assert conda_shlvl == '1', conda_shlvl
+
             PATH = shell.get_env_var("PATH")
             assert 'charizard' in PATH
+
+            conda__ce_conda = shell.get_env_var('_CE_CONDA')
+            assert conda__ce_conda == 'conda'
 
             shell.sendline("conda --version")
             shell.p.expect_exact("conda " + conda_version)
 
-            shell.sendline("activate.bat \"%s\"" % self.prefix3)
+            shell.sendline('activate.bat --dev "%s"' % self.prefix3)
             PATH = shell.get_env_var("PATH")
             assert 'venusaur' in PATH
 
-            shell.sendline("deactivate.bat")
+            shell.sendline("deactivate.bat --dev")
             PATH = shell.get_env_var("PATH")
             assert 'charizard' in PATH
 
-            shell.sendline("deactivate")
+            shell.sendline("deactivate --dev")
             conda_shlvl = shell.get_env_var('CONDA_SHLVL')
-            assert int(conda_shlvl) == 0, conda_shlvl
+            assert conda_shlvl == '0', conda_shlvl
