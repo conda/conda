@@ -5,7 +5,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-from os.path import dirname
+from os.path import abspath, dirname
 import sys
 # This hack is from http://kmike.ru/python-with-strings-attached/
 # It is needed ro prevent str() conversion of %r. Against general
@@ -38,7 +38,7 @@ __url__ = "https://github.com/conda/conda"
 if os.getenv('CONDA_ROOT') is None:
     os.environ[str('CONDA_ROOT')] = sys.prefix
 
-CONDA_PACKAGE_ROOT = dirname(__file__)
+CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
 
 def another_to_unicode(val):
     # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
