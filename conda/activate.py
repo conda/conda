@@ -828,9 +828,9 @@ class CmdExeActivator(_Activator):
 
         super(CmdExeActivator, self).__init__(arguments)
 
-    def _hook_preamble(self):
-        if on_win:
-            return '@chcp 65001'
+    # def _hook_preamble(self):
+    #     if on_win:
+    #         return '@chcp 65001'
 
 
 class FishActivator(_Activator):

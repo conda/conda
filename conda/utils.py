@@ -340,7 +340,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             fh.write("@ECHO OFF\n")
             fh.write("@SET PYTHONIOENCODING=utf-8\n")
             fh.write("@SET PYTHONUTF8=1\n")
-            fh.write("@chcp 65001 > NUL\n")
+            # fh.write("@chcp 65001 > NUL\n")
             if dev_mode:
                 from conda.core.initialize import CONDA_PACKAGE_ROOT
                 fh.write("@SET CONDA_DEV=1\n")
