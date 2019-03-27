@@ -37,7 +37,7 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
 
 import subprocess
 from conda.gateways.disk.delete import rm_rf
-from conda.common.compat import on_win
+from conda.common.compat import on_win, encode_environment, isiterable
 from conda.base.context import context
 
 def any_subprocess(args, prefix, env=None, cwd=None):
@@ -62,10 +62,8 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """
-    from conda.compat import encode_environment
     env = encode_environment(env if env else os.environ)
     cwd = sys.prefix if path is None else abspath(path)
-    from conda.compat import isiterable
     if not isiterable(command):
         command = shlex_split_unicode(command)
     command_str = command if isinstance(command, string_types) else ' '.join(command)

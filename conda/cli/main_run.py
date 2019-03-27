@@ -9,7 +9,7 @@ import sys
 from ..base.context import context
 from ..utils import wrap_subprocess_call
 from ..gateways.disk.delete import rm_rf
-from ..compat import encode_environment
+from ..common.compat import encode_environment
 
 
 def execute(args, parser):
