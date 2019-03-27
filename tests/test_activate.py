@@ -1262,7 +1262,7 @@ class InteractiveShell(object):
 # For non-dev-mode you'd have:
 #            'init_command': 'set "CONDA_SHLVL=" '
 #                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat {} '
-#                            '&& set "CONDA_EXE={}" '
+#                            '&& set CONDA_EXE={}'
 #                            '&& set _CE_M='
 #                            '&& set _CE_CONDA='
 #                            .format(CONDA_PACKAGE_ROOT, dev_arg,
@@ -1270,7 +1270,7 @@ class InteractiveShell(object):
 
             'init_command': 'set "CONDA_SHLVL=" '
                             '&& @CALL {}\\shell\\condabin\\conda_hook.bat {}'
-                            '&& set "CONDA_EXE={}"'
+                            '&& set CONDA_EXE={}'
                             '&& set _CE_M=-m'
                             '&& set _CE_CONDA=conda'.format(CONDA_PACKAGE_ROOT, dev_arg,
                                                              sys.executable),
