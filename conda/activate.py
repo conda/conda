@@ -304,6 +304,7 @@ class _Activator(object):
 
         new_conda_shlvl = old_conda_shlvl - 1
         set_vars = {}
+
         if old_conda_shlvl == 1:
             new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
             conda_prompt_modifier = ''
@@ -467,7 +468,7 @@ class _Activator(object):
 
         def index_of_path(paths, test_path):
             for q, path in enumerate(paths):
-                if paths_equal(path, test_path):
+                if test_path in paths:
                     return q
             return None
 
@@ -476,10 +477,15 @@ class _Activator(object):
             first_idx = index_of_path(path_list, prefix_dirs[0])
             if first_idx is None:
                 first_idx = 0
-            else:
-                last_idx = index_of_path(path_list, prefix_dirs[-1])
-                assert last_idx is not None
-                del path_list[first_idx:last_idx + 1]
+
+            paths_to_be_removed = []
+            for path in path_list:
+                for prefix_path in prefix_dirs:
+                    if prefix_path in path:
+                        paths_to_be_removed.append(path)
+            for path in paths_to_be_removed:
+                path_list.remove(path)
+
         else:
             first_idx = 0
 
