@@ -1682,11 +1682,16 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
-            output, _, _ = run_command(Commands.RUN, prefix, which_or_where, "python")
-            assert prefix in output, "We should be running python in {}\n" \
-                                     "We are running {}\n" \
-                                     "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n" \
-                                     "for a likely place to add more fixes".format(prefix, output)
+
+            # On Windows, it's more than prefix.lower(), we get differently shortened paths too.
+            # If only we could use pathlib.
+            if not on_win:
+                output, _, _ = run_command(Commands.RUN, prefix, which_or_where, "python")
+                assert prefix.lower() in output.lower(), \
+                                         "We should be running python in {}\n" \
+                                         "We are running {}\n" \
+                                         "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n" \
+                                         "for a likely place to add more fixes".format(prefix, output)
             output, _, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.9.0" in pkgs
