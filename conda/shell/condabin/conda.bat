@@ -14,10 +14,8 @@
   @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
 )
 
-echo Doing activate or deactivate
 @IF [%1]==[activate]   "%~dp0_conda_activate" %*
 @IF [%1]==[deactivate] "%~dp0_conda_activate" %*
-echo Done activate or deactivate
 
 @SETLOCAL
 @SET _sysp=%_sysp:~0,-1%
