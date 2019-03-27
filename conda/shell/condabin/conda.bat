@@ -20,7 +20,7 @@
 @SETLOCAL
 @SET _sysp=%_sysp:~0,-1%
 @SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
-@SET CONDA_EXES=%CONDA_EXE% %_CE_M% %_CE_CONDA%
+@SET "CONDA_EXES=%CONDA_EXE% %_CE_M% %_CE_CONDA%"
 @CALL %CONDA_EXES% %*
 @ENDLOCAL
 

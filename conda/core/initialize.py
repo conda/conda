@@ -197,16 +197,20 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         ]
         print("\n".join(builder))
     elif shell == 'cmd.exe':
+        if context.dev:
+            dev_arg = '--dev'
+        else:
+            dev_arg = ''
         builder = []
         builder += ["@IF NOT \"%CONDA_PROMPT_MODIFIER%\" == \"\" @CALL "
                     "SET \"PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%\""]
         builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
-            '@CALL \"%s\"' % join(dev_env_prefix, 'condabin', 'conda_hook.bat'),
+            '@CALL \"%s\" %s' % (join(dev_env_prefix, 'condabin', 'conda_hook.bat'), dev_arg),
             '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
-            '@CALL \"%s\" activate \"%s\"' % (join(dev_env_prefix, 'condabin', 'conda.bat'),
-                                              dev_env_prefix),
+            '@CALL \"%s\" activate %s \"%s\"' % (join(dev_env_prefix, 'condabin', 'conda.bat'),
+                                                 dev_arg, dev_env_prefix),
             '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
         ]
         if not context.dry_run:

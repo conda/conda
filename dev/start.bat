@@ -27,7 +27,7 @@ conda install -y defaults::git
 @ECHO exit at this point.
 
 :ALREADY
-call %devenv%\Scripts\activate.bat
+call "%devenv%"\Scripts\activate.bat
 
 @REM Unset some variables that get in the way
 set CONDA_BAT=
@@ -36,12 +36,12 @@ set CONDA_SHLVL=
 set PYTHONPATH=
 set PYTHONHOME=
 
-@ECHO               ^>^> conda update -p %devenv% -yq --all
-@CALL "%devenv%\Scripts\conda" update -p %devenv% -yq --all
-@ECHO               ^>^> conda install -yp \%devenv% defaults::git
-@CALL "%devenv%\Scripts\conda" install -yp %devenv% defaults::git
-@ECHO               ^>^> conda install -yq -p %devenv% --file dev/test-requirements.txt -c defaults -c conda-forge
-@CALL "%devenv%\Scripts\conda" install -yq -p %devenv% --file dev/test-requirements.txt -c defaults -c conda-forge
+@ECHO               ^>^> conda update -p "%devenv%" -yq --all
+@CALL "%devenv%\Scripts\conda" update -p "%devenv%" -yq --all
+@ECHO               ^>^> conda install -yp "%devenv%" defaults::git
+@CALL "%devenv%\Scripts\conda" install -yp "%devenv%" defaults::git
+@ECHO               ^>^> conda install -yq -p "%devenv%" --file dev/test-requirements.txt -c defaults -c conda-forge
+@CALL "%devenv%\Scripts\conda" install -yq -p "%devenv%" --file dev/test-requirements.txt -c defaults -c conda-forge
 
 @CALL "%devenv%\python" -m conda init --dev cmd.exe > NUL
 
