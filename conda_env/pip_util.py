@@ -10,8 +10,10 @@ from __future__ import absolute_import, print_function
 
 import json
 import os
+from os.path import isfile, join
 import re
 import subprocess
+import sys
 
 from .exceptions import CondaEnvException
 from conda.base.context import context
@@ -21,8 +23,9 @@ from conda.common.compat import on_win
 
 
 def pip_subprocess(args, prefix, env=None, cwd=None):
+    pip_command = pip_args(prefix)
     script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix,
-                                                       prefix, ' '.join(['pip'] + args))
+                                                       prefix, ' '.join(pip_command + args))
     process = subprocess.Popen(command_args,
                                cwd=cwd or prefix,
                                universal_newlines=True,
@@ -34,6 +37,24 @@ def pip_subprocess(args, prefix, env=None, cwd=None):
         raise CondaEnvException("Pip subcommand failed with \n"
                                 "output: {}\nerror: {}".format(stdout, stderr))
     return stdout, stderr
+
+
+def pip_args(prefix):
+    """
+    return the arguments required to invoke pip (in prefix), or None if pip
+    is not installed
+    """
+    if sys.platform == 'win32':
+        pip_path = join(prefix, 'Scripts', 'pip-script.py')
+        py_path = join(prefix, 'python.exe')
+    else:
+        pip_path = join(prefix, 'bin', 'pip')
+        py_path = join(prefix, 'bin', 'python')
+    if isfile(pip_path) and isfile(py_path):
+        ret = [py_path, pip_path]
+        return ret
+    else:
+        return None
 
 
 def get_pip_version(prefix):
