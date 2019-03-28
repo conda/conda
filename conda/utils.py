@@ -12,7 +12,7 @@ from ._vendor.auxlib.decorators import memoize
 from .common.compat import on_win
 from .common.path import win_path_to_unix
 from .common.url import path_to_url
-from os.path import abspath, join
+from os.path import abspath, join, isfile
 from os import environ
 import tempfile
 
@@ -260,6 +260,8 @@ def sys_prefix_unfollowed():
 
 
 def wrap_subprocess_call(on_win, root_prefix, prefix, command):
+    if on_win:
+        ensure_comspec_set()
     env = environ.copy()
     tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
@@ -286,3 +288,15 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, command):
         command_args = [shell_path, "-x", script_caller]
 
     return script_caller, command_args
+
+
+def ensure_comspec_set():
+    if 'COMSPEC' not in environ:
+        cmd_exe = join(environ.get('SystemRoot'), 'System32', 'cmd.exe')
+        if not isfile(cmd_exe):
+            cmd_exe = join(environ.get('windir'), 'System32', 'cmd.exe')
+        if not isfile(cmd_exe):
+            log.warn("cmd.exe could not be found. "
+                     "Looked in SystemRoot and windir env vars.\n")
+        else:
+            environ['COMSPEC'] = cmd_exe
