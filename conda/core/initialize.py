@@ -49,7 +49,7 @@ from .._vendor.auxlib.ish import dals
 from ..activate import (CshActivator, FishActivator,
                         PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
-from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_utf8_encoding,
+from ..common.compat import (PY2, ensure_binary, ensure_utf8_encoding,
                              ensure_text_type, on_mac, on_win, open)
 from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
                            get_python_site_packages_short_path, win_path_ok)
@@ -1467,7 +1467,8 @@ def modify_easy_install_pth(target_path, conda_source_root):
 
     ln_end = os.sep + "conda"
     old_contents_lines = tuple(ln for ln in old_contents_lines if not ln.endswith(ln_end))
-    new_contents = easy_install_new_line + os.linesep + os.linesep.join(old_contents_lines) + os.linesep
+    new_contents = (easy_install_new_line + os.linesep +
+                    os.linesep.join(old_contents_lines) + os.linesep)
 
     if context.verbosity:
         print('\n', file=sys.stderr)

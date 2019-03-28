@@ -138,7 +138,8 @@ def pyc_path(py_path, python_major_minor_version):
     else:
         directory, py_file = split(py_path)
         basename_root, extension = splitext(py_file)
-        pyc_file = "__pycache__" + os.sep + "%s.cpython-%s%sc" % (basename_root, pyver_string, extension)
+        pyc_file = "__pycache__" + os.sep + "%s.cpython-%s%sc" % (
+            basename_root, pyver_string, extension)
         return "%s%s%s" % (directory, '/', pyc_file) if directory else pyc_file
 
 

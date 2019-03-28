@@ -113,8 +113,7 @@ if sys.platform == 'win32' and sys.version_info[0] == 2:
         if argc.value > 0:
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
-            return [argv[i] for i in
-                    xrange(start, argc.value)]
+            return [argv[i] for i in range(start, argc.value)]
 
 
 def main(*args, **kwargs):

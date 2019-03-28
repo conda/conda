@@ -38,8 +38,8 @@ def rmtree(path, *args, **kwargs):
             #    to scan for any possible symlinks, we could do the faster way.
             # out = check_output('DEL /F/Q/S *.* > NUL 2> NUL'.format(path), shell=True,
             #                    stderr=STDOUT, cwd=path)
-            out = check_output('chcp 65001 > NUL 2> NUL\nRD /S /Q "{}" > NUL 2> NUL'.format(path), shell=True,
-                               stderr=STDOUT)
+            out = check_output('chcp 65001 > NUL 2> NUL\nRD /S /Q "{}" > NUL 2> NUL'.format(path),
+                               shell=True, stderr=STDOUT)
         except CalledProcessError as e:
             if e.returncode != 5:
                 log.error("Removing folder {} the fast way failed.  Output was: {}".format(out))

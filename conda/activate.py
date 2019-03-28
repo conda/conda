@@ -83,7 +83,8 @@ class _Activator(object):
                  And a list of env vars to unset.
         """
         kwargs = odargs
-        conda_exe_vars_None = False if 'conda_exe_vars' not in kwargs or kwargs['conda_exe_vars'] is not None else True
+        conda_exe_vars_None = False if ('conda_exe_vars' not in kwargs or
+                                        kwargs['conda_exe_vars'] is not None) else True
         conda_exe_unset_vars = []
         unset_vars = []
         # conda_exe_vars = context.conda_exe_vars_dict.copy()
@@ -122,11 +123,11 @@ class _Activator(object):
         export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict(kwargs))
         script_export_vars = script_unset_vars = None
         if export_vars:
-            script_export_vars = self.command_join.join([self.export_var_tmpl % (k, v)
-                                            for k, v in export_vars.items()])
+            script_export_vars = self.command_join.join(
+                [self.export_var_tmpl % (k, v) for k, v in export_vars.items()])
         if unset_vars:
-            script_unset_vars =  self.command_join.join([self.unset_var_tmpl % (k)
-                                            for k in unset_vars])
+            script_unset_vars = self.command_join.join(
+                [self.unset_var_tmpl % (k) for k in unset_vars])
         return script_export_vars or '', script_unset_vars or ''
 
     def _finalize(self, commands, ext):
@@ -302,12 +303,13 @@ class _Activator(object):
         unset_vars = []
         if old_conda_shlvl == 0:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
-            export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict((
-                                                                 ('path', new_path),
-                                                                 ('conda_prefix', prefix),
-                                                                 ('conda_shlvl', new_conda_shlvl),
-                                                                 ('conda_default_env', conda_default_env),
-                                                                 ('conda_prompt_modifier', conda_prompt_modifier))))
+            export_vars, unset_vars = self.get_export_unset_vars(
+                odargs=OrderedDict((
+                    ('path', new_path),
+                    ('conda_prefix', prefix),
+                    ('conda_shlvl', new_conda_shlvl),
+                    ('conda_default_env', conda_default_env),
+                    ('conda_prompt_modifier', conda_prompt_modifier))))
             deactivate_scripts = ()
         else:
             if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl - 1)) == prefix:
@@ -326,7 +328,8 @@ class _Activator(object):
                 export_vars['CONDA_PREFIX_%d' % old_conda_shlvl] = old_conda_prefix
                 export_vars['CONDA_STACKED_%d' % new_conda_shlvl] = 'true'
             else:
-                new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix))
+                new_path = self.pathsep_join(
+                    self._replace_prefix_in_path(old_conda_prefix, prefix))
                 deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
                 export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict((
                     ('path', new_path),
@@ -335,7 +338,6 @@ class _Activator(object):
                     ('conda_default_env', conda_default_env),
                     ('conda_prompt_modifier', conda_prompt_modifier))))
                 export_vars['CONDA_PREFIX_%d' % old_conda_shlvl] = old_conda_prefix
-
 
         set_vars = {}
         if context.changeps1:
@@ -371,12 +373,12 @@ class _Activator(object):
         if old_conda_shlvl == 1:
             new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
             # You might think that you can remove the CONDA_EXE vars by passing conda_exe_vars=None
-            # here so that "deactivate means deactivate" but you cannot since the conda shell scripts
-            # still refer to them and they only set them once at the top. We could change that though,
-            # the conda() shell function could set them instead of doing it at the top.  This would
-            # be *much* cleaner. I personally cannot abide that I have deactivated conda and anything
-            # at all in my env still references it (apart from the shell script, we need something
-            # I suppose!)
+            # here so that "deactivate means deactivate" but you cannot since the conda shell
+            # scripts still refer to them and they only set them once at the top. We could change
+            # that though, the conda() shell function could set them instead of doing it at the
+            # top.  This would be *much* cleaner. I personally cannot abide that I have
+            # deactivated conda and anything at all in my env still references it (apart from the
+            # shell script, we need something I suppose!)
             export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict((
                 ('path', new_path),
                 ('conda_prefix', None),
@@ -469,7 +471,7 @@ class _Activator(object):
                                 'C:\\Windows;'
                                 'C:\\Windows\\System32\\Wbem;'
                                 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\'
-                      }
+                       }
         path = self.environ.get('PATH',
                                 clean_paths[sys.platform] if sys.platform in clean_paths else
                                 '/usr/bin')

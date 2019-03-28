@@ -16,7 +16,7 @@ import sys
 
 from .base.context import context
 from .common.compat import itervalues, on_win, open
-from .common.path import expand, url_to_path
+from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction

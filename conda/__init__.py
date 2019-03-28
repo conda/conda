@@ -142,8 +142,6 @@ class CondaMultiError(CondaError):
         def __repr__(self):
             return '%s: %s' % (self.__class__.__name__, self.__unicode__())
 
-
-
     def __str__(self):
         return str('\n').join(str(e) for e in self.errors) + str('\n')
 

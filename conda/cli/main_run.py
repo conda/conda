@@ -25,8 +25,10 @@ def execute(args, parser):
     process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE,
                     env=env, cwd=cwd)
     stdout, stderr = process.communicate()
-    if hasattr(stdout, "decode"): stdout = stdout.decode('utf-8', errors='replace')
-    if hasattr(stderr, "decode"): stderr = stderr.decode('utf-8', errors='replace')
+    if hasattr(stdout, "decode"):
+        stdout = stdout.decode('utf-8', errors='replace')
+    if hasattr(stderr, "decode"):
+        stderr = stderr.decode('utf-8', errors='replace')
     if stdout:
         sys.stdout.write(stdout)
     if stderr:
@@ -36,9 +38,10 @@ def execute(args, parser):
         log.error("Subprocess for 'conda run {}' command failed.  Stderr was:\n{}"
                   .format(call, stderr))
     if script_caller is not None:
-        if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+        if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
             rm_rf(script_caller)
         else:
             log = getLogger(__name__)
-            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining main_run script_caller {}'.format(script_caller))
+            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining main_run script_caller {}'.format(
+                script_caller))
     return process.returncode

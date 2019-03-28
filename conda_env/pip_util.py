@@ -12,10 +12,8 @@ import json
 from logging import getLogger
 import os
 import re
-import subprocess
 
 from .exceptions import CondaEnvException
-#from conda.cli.python_api import run_command, Commands
 from conda.gateways.subprocess import any_subprocess
 
 
@@ -42,11 +40,7 @@ def get_pip_version(prefix):
 class PipPackage(dict):
     def __str__(self):
         if 'path' in self:
-            return '%s (%s)-%s-<pip>' % (
-                self['name'],
-                self['path'],
-                self['version']
-            )
+            return '%s (%s)-%s-<pip>' % (self['name'], self['path'], self['version'])
         return '%s-%s-<pip>' % (self['name'], self['version'])
 
 

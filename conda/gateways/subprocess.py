@@ -15,7 +15,10 @@ from ..utils import wrap_subprocess_call
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
 from .._vendor.auxlib.ish import dals
-from ..common.compat import ensure_binary, ensure_text_type, iteritems, string_types, encode_arguments
+from ..common.compat import (ensure_binary, string_types, encode_arguments,
+                             on_win, encode_environment, isiterable)
+from ..gateways.disk.delete import rm_rf
+from ..base.context import context
 
 log = getLogger(__name__)
 Response = namedtuple('Response', ('stdout', 'stderr', 'rc'))
@@ -33,29 +36,22 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
     """) % (command_str, cwd, rc, stdout, stderr)
 
 
-
-
-import subprocess
-from conda.gateways.disk.delete import rm_rf
-from conda.common.compat import on_win, encode_environment, isiterable
-from conda.base.context import context
-
 def any_subprocess(args, prefix, env=None, cwd=None):
     script_caller, command_args = wrap_subprocess_call(
                                       on_win, context.root_prefix, prefix, context.dev, False, args
     )
-    process = subprocess.Popen(command_args,
-                               cwd=cwd or prefix,
-                               universal_newlines=False,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    process = Popen(command_args,
+                    cwd=cwd or prefix,
+                    universal_newlines=False,
+                    stdout=PIPE, stderr=PIPE, env=env)
     stdout, stderr = process.communicate()
     if script_caller is not None:
-        if not 'CONDA_TEST_SAVE_TEMPS' in os.environ:
+        if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
             rm_rf(script_caller)
         else:
-            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {}'.format(script_caller))
+            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {}'.format(
+                script_caller))
     return stdout, stderr, process.returncode
-
 
 
 def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True):
@@ -72,8 +68,10 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     ACTIVE_SUBPROCESSES.add(p)
     stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
     stdout, stderr = p.communicate(input=stdin)
-    if hasattr(stdout, "decode"): stdout = stdout.decode('utf-8', errors='replace')
-    if hasattr(stderr, "decode"): stderr = stderr.decode('utf-8', errors='replace')
+    if hasattr(stdout, "decode"):
+        stdout = stdout.decode('utf-8', errors='replace')
+    if hasattr(stderr, "decode"):
+        stderr = stderr.decode('utf-8', errors='replace')
     rc = p.returncode
     ACTIVE_SUBPROCESSES.remove(p)
     if (raise_on_error and rc != 0) or log.isEnabledFor(TRACE):

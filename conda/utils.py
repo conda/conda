@@ -334,7 +334,8 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             conda_bat = abspath(join(root_prefix, 'condabin', 'conda.bat'))
             conda_bat = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
         else:
-            conda_bat = environ.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
+            conda_bat = environ.get("CONDA_BAT",
+                                    abspath(join(root_prefix, 'condabin', 'conda.bat')))
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix,
                                     suffix='.bat', delete=False) as fh:
             fh.write("@ECHO OFF\n")
@@ -373,7 +374,8 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                     ".. requires writing the script to an external file and knowing how to "      \
                     "transform the command-line (e.g. `python -c args` => `python file`) "        \
                     "in a tool dependent way, or attempting something like:\n"                    \
-                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping requirements)"
+                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"         \
+                    "requirements)"
                 fh.write("@{0}\n".format(quote_for_shell(arguments)))
             # fh.write('@chcp %CONDA_OLD_CHCP%>NUL\n')
             script_caller = fh.name
