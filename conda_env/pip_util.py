@@ -51,6 +51,8 @@ def pip_args(prefix):
         pip_path = join(prefix, 'bin', 'pip')
         py_path = join(prefix, 'bin', 'python')
     if isfile(pip_path) and isfile(py_path):
+        py_path = '"{}"'.format(py_path)
+        pip_path = '"{}"'.format(pip_path)
         ret = [py_path, pip_path]
         return ret
     else:
