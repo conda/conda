@@ -12,7 +12,7 @@ from ._vendor.auxlib.decorators import memoize
 from .common.compat import on_win
 from .common.path import win_path_to_unix
 from .common.url import path_to_url
-from os.path import abspath, join, isfile
+from os.path import abspath, join, isfile, basename
 from os import environ
 import tempfile
 
@@ -291,7 +291,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, command):
 
 
 def ensure_comspec_set():
-    if 'COMSPEC' not in environ:
+    if basename(environ.get("COMSPEC", "")).lower() != "cmd.exe":
         cmd_exe = join(environ.get('SystemRoot'), 'System32', 'cmd.exe')
         if not isfile(cmd_exe):
             cmd_exe = join(environ.get('windir'), 'System32', 'cmd.exe')
