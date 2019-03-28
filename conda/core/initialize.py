@@ -629,7 +629,7 @@ def run_plan_elevated(plan):
             try:
                 with Utf8NamedTemporaryFile('w+', suffix='.json', delete=False) as tf:
                     # the default mode is 'w+b', and universal new lines don't work in that mode
-                    tf.write(plan)
+                    tf.write(json.dumps(plan, ensure_ascii=False, default=lambda x: x.__dict__))
                     temp_path = tf.name
                 python_exe = '"%s"' % abspath(sys.executable)
                 hinstance, error_code = run_as_admin((python_exe, '-m',  'conda.core.initialize',
