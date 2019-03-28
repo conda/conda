@@ -21,6 +21,7 @@ main_test: &main_test
             echo "local_repodata_ttl: 1800" >> ~/.condarc
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
             conda info
+            sudo mkdir /opt/pytest_tmp && sudo chmod 777 /opt/pytest_tmp
             py.test $ADD_COV -m "not integration and not installed" --basetemp /opt/pytest_tmp
           fi
     - run:
