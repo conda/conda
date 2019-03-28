@@ -16,10 +16,11 @@
 @set _args1=
 
 @if "%_args1_first%"=="+" if NOT "%_args1_last%"=="+" (
-    @CALL "%%~dp0..\condabin\conda.bat" activate
+    @CALL %~dp0..\condabin\conda.bat activate
     @GOTO :End
 )
 
+@REM This may work if there are spaces in anything in %*
 @CALL "%~dp0..\condabin\conda.bat" activate %*
 
 :End

@@ -18,9 +18,20 @@
 @SETLOCAL EnableDelayedExpansion
 @SET _sysp=%_sysp:~0,-1%
 @SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
-@SET "CONDA_EXES=%CONDA_EXE% %_CE_M% %_CE_CONDA%"
-@FOR /F %%i IN ('%CONDA_EXES% shell.cmd.exe %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
-@FOR /F "delims=" %%A in (""!_TEMP_SCRIPT_PATH!"") DO @ENDLOCAL & @SET "_TEMP_SCRIPT_PATH=%%~A"
+@REM It seems that it is not possible to have "CONDA_EXE=Something With Spaces"
+@REM and %* to contain: activate "Something With Spaces does not exist".
+@REM MSDOS associates the outer "'s and is unable to run very much at all.
+@REM @SET CONDA_EXES="%CONDA_EXE%" %_CE_M% %_CE_CONDA%
+@REM @FOR /F %%i IN ('%CONDA_EXES% shell.cmd.exe %*') DO @SET _TEMP_SCRIPT_PATH=%%i not return error
+@REM This method will not work if %TMP% contains any spaces.
+:tmpName
+@SET UNIQUE=%TMP%\conda-%RANDOM%.tmp
+@IF EXIST "%UNIQUE%" goto :tmpName
+@"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE%
+@IF %ErrorLevel% NEQ 0 @EXIT /B %ErrorLevel%
+@FOR /F %%i IN (%UNIQUE%) DO @SET _TEMP_SCRIPT_PATH=%%i
+@DEL /F /Q "%UNIQUE%"
+@FOR /F "delims=" %%A in (""!_TEMP_SCRIPT_PATH!"") DO @ENDLOCAL & @SET _TEMP_SCRIPT_PATH=%%~A
 @IF "%_TEMP_SCRIPT_PATH%" == "" @EXIT /B 1
 @IF NOT "%CONDA_PROMPT_MODIFIER%" == "" @CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
 @CALL "%_TEMP_SCRIPT_PATH%"

@@ -1884,7 +1884,8 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.expect('.*')
             shell.sendline("conda activate --dev environment-not-found-doesnt-exist")
             shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
-            shell.assert_env_var('errorlevel', '1')
+            shell.expect('.*')
+            shell.assert_env_var('errorlevel', '1\r')
 
             shell.sendline("conda activate -h blah blah")
             shell.expect('usage: conda activate')
@@ -1924,7 +1925,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
             PATH = "%s\\shell\\Scripts;%%PATH%%" % CONDA_PACKAGE_ROOT
 
-            shell.sendline("SET \"PATH=" + PATH + "\"")
+            shell.sendline("SET PATH=" + PATH)
 
             shell.sendline('activate --dev "%s"' % self.prefix2)
             shell.expect('.*\n')

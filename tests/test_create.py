@@ -78,7 +78,10 @@ stderr_log_level(TEST_LOG_LEVEL, 'requests')
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
-UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
+# UNICODE_CHARACTERS_RESTRICTED_PY2 = u"ÀÁÂÃÄÅ"
+UNICODE_CHARACTERS_RESTRICTED_PY2 = u"abcdef"
+UNICODE_CHARACTERS_RESTRICTED_PY3 = u"áêñßôç"
+UNICODE_CHARACTERS_RESTRICTED_PY2 = UNICODE_CHARACTERS_RESTRICTED_PY3
 which_or_where = "which" if not on_win else "where"
 cp_or_copy = "cp" if not on_win else "copy"
 env_or_set = "env" if not on_win else "set"
@@ -97,13 +100,42 @@ SPACER_CHARACTER = ' '
 def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
+from conda._vendor.auxlib.decorators import memoize
+
+@memoize
+def running_a_python_capable_of_unicode_subprocessing():
+    name = None
+    # try:
+    # UNICODE_CHARACTERS + os.sep +
+    with Utf8NamedTemporaryFile(mode="w",
+                                suffix=UNICODE_CHARACTERS + ".bat",
+                                delete=False) as batch_file:
+        batch_file.write('@echo Hello World\n')
+        batch_file.write('@exit 0\n')
+        name = batch_file.name
+    if name:
+        try:
+            out = text_type(check_output(name, cwd=dirname(name), shell=True))
+            if out == 'Hello World\r\n':
+                return True
+            return False
+        except Exception as _:
+            return False
+        finally:
+            os.unlink(name)
+    return False
+
 
 def _get_temp_prefix(name=None, use_restricted_unicode=False):
     import conftest
     tmpdir = conftest.get_tmpdir() or gettempdir()
+    capable = running_a_python_capable_of_unicode_subprocessing()
 
-    if use_restricted_unicode:
-        random_unicode = ''.join(sample(UNICODE_CHARACTERS_RESTRICTED, len(UNICODE_CHARACTERS_RESTRICTED)))
+    if not capable or use_restricted_unicode:
+        RESTRICTED = UNICODE_CHARACTERS_RESTRICTED_PY2 \
+            if (sys.version_info[0] == 2) \
+            else UNICODE_CHARACTERS_RESTRICTED_PY3
+        random_unicode = ''.join(sample(RESTRICTED, len(RESTRICTED)))
     else:
         random_unicode = ''.join(sample(UNICODE_CHARACTERS, len(UNICODE_CHARACTERS)))
     tmpdir_name = os.environ.get("CONDA_TEST_TMPDIR_NAME",
@@ -2085,8 +2117,8 @@ class IntegrationTests(TestCase):
         prefix = ''
 
         # make sure we have something in the index cache
-        stdout, stderr, _ = run_command(Commands.INFO, prefix, "flask", "--json")
-        assert "flask" in json_loads(stdout)
+        stdout, stderr, _ = run_command(Commands.INFO, prefix, "bzip2", "--json")
+        assert "bzip2" in json_loads(stdout)
         index_cache_dir = create_cache_dir()
         assert glob(join(index_cache_dir, "*.json"))
 

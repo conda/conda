@@ -87,7 +87,7 @@ def conda_check_versions_aligned():
 
     git_exe = 'git.exe' if sys.platform == 'win32' else 'git'
     version_from_git = None
-    for pe in os.environ['PATH'].split(os.pathsep):
+    for pe in os.environ.get('PATH', '').split(os.pathsep):
         if isfile(join(pe, git_exe)):
             try:
                 version_from_git = check_output(join(pe, git_exe) + ' describe').decode('utf-8').split('\n')[0]
