@@ -351,7 +351,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                 # 'python -m conda'
                 # *with* PYTHONPATH set.
                 fh.write("@SET PYTHONPATH=" + dirname(CONDA_PACKAGE_ROOT) + "\n")
-                fh.write("@SET \"CONDA_EXE={}\"\n".format(sys.executable))
+                fh.write("@SET CONDA_EXE={}\n".format(sys.executable))
                 fh.write("@SET _CE_M=-m\n")
                 fh.write("@SET _CE_CONDA=conda\n")
             if debug_wrapper_scripts:
