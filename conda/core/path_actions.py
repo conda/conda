@@ -26,7 +26,8 @@ from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            parse_entry_point_def,
                            pyc_path, url_to_path, win_path_ok)
 from ..common.url import has_platform, path_to_url
-from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
+from ..exceptions import (CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError,
+                          NotWritableError)
 from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     create_hard_link_or_copy, create_link,
@@ -919,8 +920,12 @@ class RegisterEnvironmentLocationAction(PathAction):
 
     def verify(self):
         user_environments_txt_file = get_user_environments_txt_file()
-        touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
-        self._verified = True
+        try:
+            touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
+            self._verified = True
+        except NotWritableError:
+            log.warn("Unable to create environments file. Path not writable.\n"
+                     "  environment location: %s\n", user_environments_txt_file)
 
     def execute(self):
         log.trace("registering environment in catalog %s", self.target_prefix)

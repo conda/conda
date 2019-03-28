@@ -758,7 +758,7 @@ class IntegrationTests(TestCase):
             assert stderr == ''
             self.assertIsInstance(stdout, string_types)
 
-    @pytest.mark.skipif(on_win and context.subdir == "win-32", reason="conda-forge doesn't do win-32")
+    @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
     def test_strict_channel_priority(self):
         with make_temp_env() as prefix:
             stdout, stderr, rc = run_command(

@@ -354,9 +354,19 @@ class Solver(object):
             log.debug("inconsistent precs: %s",
                       dashlist(inconsistent_precs) if inconsistent_precs else 'None')
         if inconsistent_precs:
+            print(dedent("""
+            The environment is inconsistent, please check the package plan carefully
+            The following packages are causing the inconsistency:"""))
+            print(dashlist(inconsistent_precs))
             for prec in inconsistent_precs:
                 # pop and save matching spec in specs_map
-                ssc.add_back_map[prec.name] = (prec, ssc.specs_map.pop(prec.name, None))
+                spec = ssc.specs_map.pop(prec.name, None)
+                ssc.add_back_map[prec.name] = (prec, spec)
+                # inconsistent environments should maintain the python version
+                # unless explicitly requested by the user. This along with the logic in
+                # _add_specs maintains the major.minor version
+                if prec.name == 'python':
+                    ssc.specs_map['python'] = spec
             ssc.solution_precs = tuple(prec for prec in ssc.solution_precs
                                        if prec not in inconsistent_precs)
         return ssc
