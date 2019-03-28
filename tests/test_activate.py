@@ -490,8 +490,8 @@ class ActivatorUnitTests(TestCase):
                     }
                     export_vars = OrderedDict((
                         ('PATH', activator.pathsep_join(new_path_parts)),
-                        ('CONDA_PROMPT_MODIFIER', "(%s) " % td),
                         ('CONDA_SHLVL', 1),
+                        ('CONDA_PROMPT_MODIFIER', "(%s) " % td),
                     ))
                     assert builder['unset_vars'] == ()
                     assert builder['set_vars'] == set_vars
