@@ -41,7 +41,7 @@ def rmtree(path, *args, **kwargs):
 
             out = check_output('RD /S /Q "{}" > NUL 2> NUL'.format(path), shell=True,
                                stderr=STDOUT)
-        except Exception as _:
+        except:
             try:
                 # Try to delete in Unicode
                 name = None
@@ -65,15 +65,17 @@ def rmtree(path, *args, **kwargs):
                 # if we do not, then the standard console handles get attached and chcp affects the
                 # parent process (and any which share those console handles!)
                 out = check_output([comspec, '/d', '/c', name], shell=False,
-                                   stdout = None, stderr = None, stdin = None,
-                                   creationflags = CREATE_NO_WINDOW)
+                                   stdout=None, stderr=None, stdin=None,
+                                   creationflags=CREATE_NO_WINDOW)
 
             except CalledProcessError as e:
                 if e.returncode != 5:
-                    log.error("Removing folder {} the fast way failed.  Output was: {}".format(out))
+                    log.error("Removing folder {} the fast way failed.  Output was: {}"
+                              .format(out))
                     raise
                 else:
-                    log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
+                    log.debug("removing dir contents the fast way failed.  Output was: {}"
+                              .format(out))
     else:
         try:
             makedirs('.empty')
