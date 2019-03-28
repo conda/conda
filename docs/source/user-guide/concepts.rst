@@ -52,7 +52,7 @@ Specifying channels
 
   $ conda search scipy --channel file:/<path to>/local-channel --override-channels
 
-* In .condarc, use the key `channels` to see a list of channels for conda to search for packages
+* In .condarc, use the key `channels` to see a list of channels for conda to search for packages.
 
 Learn more about :doc:`managing channels <../user-guide/tasks/manage-channels>`.
 
@@ -136,7 +136,7 @@ maintain a private or internal channel. For details, see
 The conda package format is identical across platforms and
 operating systems.
 
-To install conda packages, in the Terminal or an Anaconda Prompt, run:: 
+To install conda packages, in the terminal or an Anaconda Prompt, run:: 
 
   conda install [packagename]
 
