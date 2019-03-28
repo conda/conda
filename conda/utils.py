@@ -333,7 +333,6 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
         comspec = environ[str('COMSPEC')]
         if dev_mode:
             from conda import CONDA_PACKAGE_ROOT
-            conda_bat = abspath(join(root_prefix, 'condabin', 'conda.bat'))
             conda_bat = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
         else:
             conda_bat = environ.get("CONDA_BAT",
@@ -343,7 +342,8 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             fh.write("@ECHO OFF\n")
             fh.write("@SET PYTHONIOENCODING=utf-8\n")
             fh.write("@SET PYTHONUTF8=1\n")
-            # fh.write("@chcp 65001 > NUL\n")
+            fh.write('@FOR /F "tokens=*" %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n')
+            fh.write("@chcp 65001 > NUL\n")
             if dev_mode:
                 from conda.core.initialize import CONDA_PACKAGE_ROOT
                 fh.write("@SET CONDA_DEV=1\n")
@@ -379,7 +379,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                     ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"         \
                     "requirements)"
                 fh.write("@{0}\n".format(quote_for_shell(arguments)))
-            # fh.write('@chcp %CONDA_OLD_CHCP%>NUL\n')
+            fh.write('@chcp %_CONDA_OLD_CHCP%>NUL\n')
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
     else:

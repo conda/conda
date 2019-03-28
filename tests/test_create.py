@@ -81,7 +81,6 @@ UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
 # UNICODE_CHARACTERS_RESTRICTED_PY2 = u"ÀÁÂÃÄÅ"
 UNICODE_CHARACTERS_RESTRICTED_PY2 = u"abcdef"
 UNICODE_CHARACTERS_RESTRICTED_PY3 = u"áêñßôç"
-UNICODE_CHARACTERS_RESTRICTED_PY2 = UNICODE_CHARACTERS_RESTRICTED_PY3
 which_or_where = "which" if not on_win else "where"
 cp_or_copy = "cp" if not on_win else "copy"
 env_or_set = "env" if not on_win else "set"
@@ -115,8 +114,9 @@ def running_a_python_capable_of_unicode_subprocessing():
         name = batch_file.name
     if name:
         try:
-            out = text_type(check_output(name, cwd=dirname(name), shell=True))
-            if out == 'Hello World\r\n':
+            out = check_output(name, cwd=dirname(name), stderr=None, shell=False)
+            out = out.decode("utf-8") if hasattr(out, 'decode') else out
+            if out.startswith('Hello World'):
                 return True
             return False
         except Exception as _:
