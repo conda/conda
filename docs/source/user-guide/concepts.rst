@@ -6,6 +6,56 @@ Concepts
    :local:
    :depth: 1
 
+.. image:: /img/installing-with-conda.png
+    :align: right
+
+.. _installing-with-conda:
+
+Installing with conda
+=====================
+
+Conda install
+-------------
+* When you `conda install` a package that exists in a channel and has no dependencies, conda:
+
+  * looks at your configured channels (in priority)
+
+  * reaches out to the repodata associated with your channels/platform
+
+  * parses repodata to search for the package
+
+  * once the package is found, conda pulls it down and installs
+  
+
+.. _specifying-channels:
+
+Specifying channels
+-------------------
+
+* From the command line use `--channel`
+
+.. code-block:: bash
+
+  $ conda install scipy --channel conda-forge
+  
+  You may specify multiple channels by passing the argument multiple times:
+  
+.. code-block:: bash
+
+  $ conda install scipy --channel conda-forge --channel bioconda
+  
+  Priority decreases from left to right - the first argument is higher priority than the second.
+
+* From the command line use `--override-channels` to only search the specified channel(s), rather than any channels configured in .condarc. This also ignores conda's default channels.
+
+.. code-block:: bash
+
+  $ conda search scipy --channel file:/<path to>/local-channel --override-channels
+
+* In .condarc, use the key `channels` to see a list of channels for conda to search for packages.
+
+Learn more about :doc:`managing channels <../user-guide/tasks/manage-channels>`.
+
 
 Conda directory structure
 =========================
@@ -86,7 +136,7 @@ maintain a private or internal channel. For details, see
 The conda package format is identical across platforms and
 operating systems.
 
-To install conda packages, in the Terminal or an Anaconda Prompt, run:: 
+To install conda packages, in the terminal or an Anaconda Prompt, run:: 
 
   conda install [packagename]
 

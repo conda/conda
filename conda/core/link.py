@@ -41,7 +41,7 @@ from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
-from ..utils import human_bytes, wrap_subprocess_call
+from ..utils import human_bytes, wrap_subprocess_call, ensure_comspec_set
 
 log = getLogger(__name__)
 
@@ -1044,6 +1044,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
 
     script_caller = None
     if on_win:
+        ensure_comspec_set()
         try:
             comspec = os.environ[str('COMSPEC')]
         except KeyError:
