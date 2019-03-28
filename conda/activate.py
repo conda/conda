@@ -450,11 +450,11 @@ class _Activator(object):
         return {
             'unset_vars': (),
             'set_vars': set_vars,
-            'export_vars': {
-                'PATH': new_path,
-                'CONDA_SHLVL': conda_shlvl,
-                'CONDA_PROMPT_MODIFIER': self._prompt_modifier(conda_prefix, conda_default_env),
-            },
+            'export_vars': OrderedDict(
+                PATH=new_path,
+                CONDA_SHLVL=conda_shlvl,
+                CONDA_PROMPT_MODIFIER=self._prompt_modifier(conda_prefix, conda_default_env),
+            ),
             'deactivate_scripts': self._get_deactivate_scripts(conda_prefix),
             'activate_scripts': self._get_activate_scripts(conda_prefix),
         }
