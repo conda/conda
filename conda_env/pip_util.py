@@ -21,7 +21,7 @@ log = getLogger(__name__)
 
 
 def pip_subprocess(args, prefix, cwd):
-    run_args = ['-p', prefix, 'pip'] + args
+    run_args = ['python', '-m', 'pip'] + args
     stdout, stderr, rc = any_subprocess(run_args, prefix, cwd=cwd)
     # This will modify (break) Context. We have a context stack but need to verify it works
     # stdout, stderr, rc = run_command(Commands.RUN, *run_args, stdout=None, stderr=None)
