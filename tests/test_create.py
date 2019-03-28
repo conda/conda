@@ -150,10 +150,10 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
     try:
         link(src, dst)
     except (IOError, OSError) as e:
-        sys.exit("\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
-                 "           not on the same FS as `sys.prefix`:\n           {}\n"
-                 "           this will be slow and unlike the majority of end-user installs.\n"
-                 "           Please pass `--basetemp=<somewhere-else>` instead.".format(tmpdir, sys.prefix))
+        print("\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
+              "           not on the same FS as `sys.prefix`:\n           {}\n"
+              "           this will be slow and unlike the majority of end-user installs.\n"
+              "           Please pass `--basetemp=<somewhere-else>` instead.".format(tmpdir, sys.prefix))
     try:
         rm_rf(dst)
     except Exception as e:
