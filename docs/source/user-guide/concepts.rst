@@ -46,7 +46,7 @@ Specifying channels
   
   Priority decreases from left to right - the first argument is higher priority than the second.
 
-* From the command line use `--override-channels` to only search the specified channel
+* From the command line use `--override-channels` to only search the specified channel(s), rather than any channels configured in .condarc. This also ignores conda's default channels.
 
 .. code-block:: bash
 
