@@ -37,6 +37,14 @@ Specifying channels
 .. code-block:: bash
 
   $ conda install scipy --channel conda-forge
+  
+  You may specify multiple channels by passing the argument multiple times:
+  
+.. code-block:: bash
+
+  $ conda install scipy --channel conda-forge --channel bioconda
+  
+  Priority decreases from left to right - the first argument is higher priority than the second.
 
 * From the command line use `--override-channels` to only search the specified channel
 
