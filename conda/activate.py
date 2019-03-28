@@ -361,8 +361,8 @@ class _Activator(object):
             # no active environment, so cannot deactivate; do nothing
             return {
                 'unset_vars': (),
-                'set_vars': {},
-                'export_vars': {},
+                'set_vars': OrderedDict(),
+                'export_vars': OrderedDict(),
                 'deactivate_scripts': (),
                 'activate_scripts': (),
             }
@@ -433,8 +433,8 @@ class _Activator(object):
             # no active environment, so cannot reactivate; do nothing
             return {
                 'unset_vars': (),
-                'set_vars': {},
-                'export_vars': {},
+                'set_vars': OrderedDict(),
+                'export_vars': OrderedDict(),
                 'deactivate_scripts': (),
                 'activate_scripts': (),
             }
@@ -452,8 +452,8 @@ class _Activator(object):
             'set_vars': set_vars,
             'export_vars': OrderedDict(
                 PATH=new_path,
-                CONDA_PROMPT_MODIFIER=self._prompt_modifier(conda_prefix, conda_default_env),
                 CONDA_SHLVL=conda_shlvl,
+                CONDA_PROMPT_MODIFIER=self._prompt_modifier(conda_prefix, conda_default_env),
             ),
             'deactivate_scripts': self._get_deactivate_scripts(conda_prefix),
             'activate_scripts': self._get_activate_scripts(conda_prefix),
