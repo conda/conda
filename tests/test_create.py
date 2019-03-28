@@ -175,7 +175,10 @@ def make_temp_prefix(name=None, use_restricted_unicode=False, _temp_prefix=None)
     if not _temp_prefix:
         _temp_prefix = _get_temp_prefix(name=name,
                                         use_restricted_unicode=use_restricted_unicode)
-    os.makedirs(_temp_prefix)
+    try:
+        os.makedirs(_temp_prefix)
+    except:
+        pass
     assert isdir(_temp_prefix)
     return _temp_prefix
 

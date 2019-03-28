@@ -13,6 +13,7 @@ from .test_create import make_temp_prefix
 
 from conda.history import History
 from conda.resolve import MatchSpec
+from conda.common.compat import text_type
 
 from conftest import auto_inject_fixtures
 
@@ -54,9 +55,10 @@ class HistoryTestCase(unittest.TestCase):
         assert not h.file_is_empty()
 
     @skip_if_no_mock
+    @auto_inject_fixtures('tmpdir')
     def test_parse_on_empty_env(self):
         with mock.patch.object(History, 'parse') as mock_parse:
-            with History(make_temp_prefix()) as h:
+            with History(make_temp_prefix(name=text_type(self.tmpdir))) as h:
                 self.assertEqual(mock_parse.call_count, 0)
                 self.assertEqual(len(h.parse()), 0)
         self.assertEqual(len(h.parse()), 1)
