@@ -1230,6 +1230,8 @@ class InteractiveShell(object):
     activator = None
     init_command = None
     print_env_var = None
+    from conda.utils import quote_for_shell
+    exe_quoted = quote_for_shell([sys.executable.replace('\\', '/') if on_win else sys.executable])
     shells = {
         'posix': {
             'activator': 'posix',
@@ -1237,7 +1239,7 @@ class InteractiveShell(object):
             # 'init_command': 'env | sort && echo "$({0} -m conda shell.posix hook)" && eval "$({0} -m conda shell.posix hook)"'.format(self.
             #    '/c/Users/rdonnelly/mc/python.exe'),  # sys.executable.replace('\\', '/')),
             'init_command': 'env | sort && echo "$({0} -m conda shell.posix hook {1})" && eval "$({0} -m conda shell.posix hook {1})" && env | sort && which conda'\
-                .format(sys.executable.replace('\\', '/') if on_win else sys.executable, dev_arg),
+                .format(exe_quoted, dev_arg),
 
             'print_env_var': 'echo "$%s"',
         },
@@ -1866,6 +1868,7 @@ class ShellWrapperIntegrationTests(TestCase):
     def test_bash_activate_error(self):
         context.dev = True
         with InteractiveShell('bash') as shell:
+            shell.assert_env_var('CONDA_SHLVL', '0')
             if on_win:
                 shell.sendline("uname -o")
                 shell.expect('(Msys|Cygwin)')
