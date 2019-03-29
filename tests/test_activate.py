@@ -1913,10 +1913,14 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline('conda deactivate')
             shell.expect('.*\n')
 
-            shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT)
-            shell.sendline("source \"%s\"/shell/bin/activate %s \"%s\"" % (CONDA_PACKAGE_ROOT, dev_arg, self.prefix2))
-            PATH = shell.get_env_var("PATH")
-            assert 'charizard' in PATH
+            activator = PosixActivator()
+            CONDA_PACKAGE_ROOT_p = activator.path_conversion(CONDA_PACKAGE_ROOT)
+            prefix2_p = activator.path_conversion(self.prefix2)
+            prefix3_p = activator.path_conversion(self.prefix3)
+            shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT_p)
+            shell.sendline('source "${_CONDA_ROOT}/bin/activate" %s "%s"' % (dev_arg, prefix2_p))
+            PATH0 = shell.get_env_var("PATH")
+            assert 'charizard' in PATH0
 
             shell.sendline("type conda")
             shell.expect("conda is a function")
@@ -1924,15 +1928,16 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline("conda --version")
             shell.p.expect_exact("conda " + conda_version)
 
-            shell.sendline("source activate \"%s\"" % self.prefix3)
-            PATH = shell.get_env_var("PATH")
-            assert 'venusaur' in PATH
+            shell.sendline('source "${_CONDA_ROOT}/bin/activate" %s "%s"' % (dev_arg, prefix3_p))
 
-            shell.sendline("source deactivate")
-            PATH = shell.get_env_var("PATH")
-            assert 'charizard' in PATH
+            PATH1 = shell.get_env_var("PATH")
+            assert 'venusaur' in PATH1
 
-            shell.sendline("source deactivate")
+            shell.sendline('source "${_CONDA_ROOT}/bin/deactivate"')
+            PATH2 = shell.get_env_var("PATH")
+            assert 'charizard' in PATH2
+
+            shell.sendline('source "${_CONDA_ROOT}/deactivate"')
             shell.assert_env_var('CONDA_SHLVL', '0')
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
