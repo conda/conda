@@ -22,7 +22,7 @@ set PYTHONHOME=
 @powershell.exe -NoProfile -Command (new-object System.Net.WebClient).DownloadFile('https://repo.continuum.io/miniconda/Miniconda%pyver%-latest-Windows-x86_64.exe','miniconda.exe')
 @ECHO Installing miniconda to: %devenv%
 @start /wait "" miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%devenv%
-call %devenv%\Scripts\activate.bat
+call "%devenv%"\Scripts\activate.bat
 conda install -y defaults::git
 @ECHO exit at this point.
 
