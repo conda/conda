@@ -1904,6 +1904,14 @@ class ShellWrapperIntegrationTests(TestCase):
     @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_legacy_activate_deactivate_bash(self):
         with InteractiveShell('bash') as shell:
+
+            # calling bash -l, as we do for MSYS2, may cause conda activation.
+            shell.sendline('conda deactivate')
+            shell.sendline('conda deactivate')
+            shell.sendline('conda deactivate')
+            shell.sendline('conda deactivate')
+            shell.expect('.*\n')
+
             shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT)
             shell.sendline("source \"%s\"/shell/bin/activate %s \"%s\"" % (CONDA_PACKAGE_ROOT, dev_arg, self.prefix2))
             PATH = shell.get_env_var("PATH")

@@ -90,7 +90,9 @@ def conda_check_versions_aligned():
     for pe in os.environ.get('PATH', '').split(os.pathsep):
         if isfile(join(pe, git_exe)):
             try:
-                version_from_git = check_output(join(pe, git_exe) + ' describe').decode('utf-8').split('\n')[0]
+                version_from_git = check_output(join(pe, git_exe) + ' describe --tags --long').decode('utf-8').split('\n')[0]
+                from conda._vendor.auxlib.packaging import _get_version_from_git_tag
+                version_from_git = _get_version_from_git_tag(version_from_git)
                 break
             except:
                 continue

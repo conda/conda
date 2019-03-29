@@ -131,15 +131,20 @@ def _git_describe_tags(path):
         raise CalledProcessError(response.rc, response.stderr)
 
 
-def _get_version_from_git_tag(path):
+def _get_version_from_git_tag(tag):
     """Return a PEP440-compliant version derived from the git status.
     If that fails for any reason, return the changeset hash.
     """
-    m = GIT_DESCRIBE_REGEX.match(_git_describe_tags(path) or '')
+    m = GIT_DESCRIBE_REGEX.match(tag)
     if m is None:
         return None
     version, post_commit, hash = m.groups()
     return version if post_commit == '0' else "{0}.post{1}+{2}".format(version, post_commit, hash)
+
+
+def _get_version_from_git_clone(path):
+    tag = _git_describe_tags(path) or ''
+    return _get_version_from_git_tag(tag)
 
 
 def get_version(dunder_file):
@@ -157,7 +162,7 @@ def get_version(dunder_file):
     """
     path = abspath(expanduser(dirname(dunder_file)))
     try:
-        return _get_version_from_version_file(path) or _get_version_from_git_tag(path)
+        return _get_version_from_version_file(path) or _get_version_from_git_clone(path)
     except CalledProcessError as e:
         log.warn(repr(e))
         return None

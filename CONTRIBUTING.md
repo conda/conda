@@ -63,6 +63,8 @@ To set up an environment to start developing on conda code, we recommend the fol
 
        git describe > conda/.version
 
+       .. Then make this file PEP440 compliant.
+
        .. (initially an every time you commit).
 
        The tests-suite is very sensitive to the initial environment. We have make
