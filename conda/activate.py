@@ -690,10 +690,10 @@ class PosixActivator(_Activator):
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
         self.command_join = '\n'
 
-        self.unset_var_tmpl = '\\unset %s'
-        self.export_var_tmpl = "\\export %s='%s'"
+        self.unset_var_tmpl = 'unset %s'
+        self.export_var_tmpl = "export %s='%s'"
         self.set_var_tmpl = "%s='%s'"
-        self.run_script_tmpl = '\\. "%s"'
+        self.run_script_tmpl = '. "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')
 
