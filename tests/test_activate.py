@@ -1243,7 +1243,7 @@ class InteractiveShell(object):
         },
         'bash': {
             # MSYS2's login scripts handle mounting the filesystem. Without it, /c is /cygdrive.
-            'args': ('-l') if on_win else tuple(),
+            'args': ('-l',) if on_win else tuple(),
             'base_shell': 'posix',  # inheritance implemented in __init__
         },
         'dash': {
