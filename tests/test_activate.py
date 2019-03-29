@@ -1580,20 +1580,20 @@ class ShellWrapperIntegrationTests(TestCase):
         assert _CE_CONDA == _CE_CONDA2, "_CE_CONDA stacked changed by activation procedure\n:From\n{}\nto:\n{}".\
             format(_CE_CONDA, _CE_CONDA2)
 
-        shell.sendline('conda' + install + '-yq proj4=5.2.0')
+        shell.sendline('conda' + install + '-yq openssl=1.1.1a')
         shell.expect('Executing transaction: ...working... done.*\n', timeout=60)
         shell.assert_env_var('?', '0', True)
 
-        shell.sendline('proj')
-        shell.expect(r'.*Rel\. 5\.2\.0,.*')
+        shell.sendline('openssl version')
+        shell.expect(r'.*OpenSSL 1.1.1a.*')
 
         # TODO: assert that reactivate worked correctly
 
         shell.sendline("type conda")
         shell.expect(conda_is_a_function)
 
-        shell.sendline('conda run {} proj'.format(dev_arg))
-        shell.expect(r'.*Rel\. 5\.2\.0,.*')
+        shell.sendline('conda run {} openssl version'.format(dev_arg))
+        shell.expect(r'.*OpenSSL 1.1.1a.*')
 
         # regression test for #6840
         shell.sendline('conda' + install + '--blah')
