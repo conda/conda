@@ -22,7 +22,7 @@ main_test: &main_test
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
             conda info
             # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
-            sudo rm -rf /opt/conda/pkgs
+            sudo find /opt/conda/pkgs -type d -depth 1 -exec rm {} +
             py.test $ADD_COV -m "not integration and not installed"
           fi
     - run:

@@ -38,8 +38,7 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
 
 def any_subprocess(args, prefix, env=None, cwd=None):
     script_caller, command_args = wrap_subprocess_call(
-                                      on_win, context.root_prefix, prefix, context.dev, False, args
-    )
+        on_win, context.root_prefix, prefix, context.dev, context.verbosity>2, args)
     process = Popen(command_args,
                     cwd=cwd or prefix,
                     universal_newlines=False,

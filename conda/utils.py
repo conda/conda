@@ -339,21 +339,22 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                                     abspath(join(root_prefix, 'condabin', 'conda.bat')))
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix,
                                     suffix='.bat', delete=False) as fh:
-            fh.write("@ECHO OFF\n")
-            fh.write("@SET PYTHONIOENCODING=utf-8\n")
-            fh.write("@SET PYTHONUTF8=1\n")
-            fh.write('@FOR /F "tokens=*" %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n')  # NOQA
-            fh.write("@chcp 65001 > NUL\n")
+            silencer = "" if debug_wrapper_scripts else "@"
+            fh.write("{}ECHO OFF\n".format(silencer))
+            fh.write("{}SET PYTHONIOENCODING=utf-8\n".format(silencer))
+            fh.write("{}SET PYTHONUTF8=1\n".format(silencer))
+            fh.write('{}FOR /F "tokens=*" %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'.format(silencer))  # NOQA
+            fh.write("{}chcp 65001 > NUL\n".format(silencer))
             if dev_mode:
                 from conda.core.initialize import CONDA_PACKAGE_ROOT
-                fh.write("@SET CONDA_DEV=1\n")
+                fh.write("{}SET CONDA_DEV=1\n".format(silencer))
                 # In dev mode, conda is really:
                 # 'python -m conda'
                 # *with* PYTHONPATH set.
-                fh.write("@SET PYTHONPATH=" + dirname(CONDA_PACKAGE_ROOT) + "\n")
-                fh.write("@SET CONDA_EXE={}\n".format(sys.executable))
-                fh.write("@SET _CE_M=-m\n")
-                fh.write("@SET _CE_CONDA=conda\n")
+                fh.write("{}SET PYTHONPATH={}\n".format(silencer, dirname(CONDA_PACKAGE_ROOT)))
+                fh.write("{}SET CONDA_EXE={}\n".format(silencer, sys.executable))
+                fh.write("{}SET _CE_M=-m\n".format(silencer))
+                fh.write("{}SET _CE_CONDA=conda\n".format(silencer))
             if debug_wrapper_scripts:
                 fh.write('echo *** environment before *** 1>&2\n')
                 fh.write('SET 1>&2\n')
@@ -361,8 +362,8 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             # after all!
             # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
             # fh.write('@chcp 65001>NUL\n')
-            fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix))
-            fh.write("@IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+            fh.write('{0}CALL \"{1}\" activate \"{2}\"\n'.format(silencer, conda_bat, prefix))
+            fh.write("{}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n".format(silencer))
             if debug_wrapper_scripts:
                 fh.write('echo *** environment after *** 1>&2\n')
                 fh.write('SET 1>&2\n')
@@ -378,8 +379,8 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                     "in a tool dependent way, or attempting something like:\n"                    \
                     ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"         \
                     "requirements)"
-                fh.write("@{0}\n".format(quote_for_shell(arguments)))
-            fh.write('@chcp %_CONDA_OLD_CHCP%>NUL\n')
+                fh.write("{0}{1}\n".format(silencer, quote_for_shell(arguments)))
+            fh.write('{}chcp %_CONDA_OLD_CHCP%>NUL\n'.format(silencer))
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
     else:
