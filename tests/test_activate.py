@@ -1238,7 +1238,7 @@ class InteractiveShell(object):
             # 'init_command': 'env | sort && mount && which {0} && {0} -V && echo "$({0} -m conda shell.posix hook)" && eval "$({0} -m conda shell.posix hook)"'.format('/c/Users/rdonnelly/mc/python.exe'), # sys.executable.replace('\\', '/')),
             # 'init_command': 'env | sort && echo "$({0} -m conda shell.posix hook)" && eval "$({0} -m conda shell.posix hook)"'.format(self.
             #    '/c/Users/rdonnelly/mc/python.exe'),  # sys.executable.replace('\\', '/')),
-            'init_command': 'env | sort && echo "$({0} -m conda shell.posix hook {1})" && eval "$({0} -m conda shell.posix hook {1})" && env | sort && which conda'\
+            'init_command': 'env | sort && echo "$({0} -m conda shell.posix hook {1})" && eval "$({0} -m conda shell.posix hook {1})" && env | sort'\
                 .format(exe_quoted, dev_arg),
 
             'print_env_var': 'echo "$%s"',
@@ -1868,13 +1868,13 @@ class ShellWrapperIntegrationTests(TestCase):
     def test_bash_activate_error(self):
         context.dev = True
         with InteractiveShell('bash') as shell:
-            shell.assert_env_var('CONDA_SHLVL', '0')
+            shell.sendline("export CONDA_SHLVL=unaffected")
             if on_win:
                 shell.sendline("uname -o")
                 shell.expect('(Msys|Cygwin)')
             shell.sendline("conda activate environment-not-found-doesnt-exist")
             shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
-            shell.assert_env_var('CONDA_SHLVL', '0')
+            shell.assert_env_var('CONDA_SHLVL', 'unaffected')
 
             shell.sendline("conda activate -h blah blah")
             shell.expect('usage: conda activate')
