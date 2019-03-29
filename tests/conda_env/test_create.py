@@ -39,7 +39,7 @@ def reenable_dotlog(handlers):
 
 def package_is_installed(prefix, spec, pip=None):
     spec = MatchSpec(spec)
-    prefix_recs = tuple(PrefixData(prefix).query(spec))
+    prefix_recs = tuple(PrefixData(prefix, pip_interop_enabled=pip).query(spec))
     if len(prefix_recs) > 1:
         raise AssertionError("Multiple packages installed.%s"
                              % (dashlist(prec.dist_str() for prec in prefix_recs)))
