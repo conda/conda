@@ -28,6 +28,8 @@ def pip_subprocess(args, prefix, cwd):
         python_path = os.path.join(prefix, 'bin', 'python')
     run_args = [python_path, '-m', 'pip'] + args
     stdout, stderr, rc = any_subprocess(run_args, prefix, cwd=cwd)
+    print("Ran pip subprocess with arguments:")
+    print(run_args)
     print("Pip subprocess output:")
     print(stdout)
     if rc != 0:
