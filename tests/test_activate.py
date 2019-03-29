@@ -366,15 +366,16 @@ class ActivatorUnitTests(TestCase):
                         'PS1': '(/old/prefix)',
                     }
                     export_vars = OrderedDict((
-                        ('PATH', old_path),
                         ('CONDA_PREFIX', old_prefix),
                         ('CONDA_SHLVL', 1),
                         ('CONDA_DEFAULT_ENV', old_prefix),
                         ('CONDA_PROMPT_MODIFIER', '(%s)' % old_prefix),
                     ))
+                    export_path = {'PATH': old_path,}
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['export_vars'] == export_vars
+                    assert builder['export_path'] == export_path
                     assert builder['activate_scripts'] == ()
                     assert builder['deactivate_scripts'] == ()
 
@@ -447,12 +448,12 @@ class ActivatorUnitTests(TestCase):
                         'PS1': '(/old/prefix)',
                     }
                     export_vars = OrderedDict((
-                        ('PATH', old_path),
                         ('CONDA_PREFIX', old_prefix),
                         ('CONDA_SHLVL', 1),
                         ('CONDA_DEFAULT_ENV', old_prefix),
                         ('CONDA_PROMPT_MODIFIER', '(%s)' % old_prefix)
                     ))
+                    export_path = {'PATH': old_path,}
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['export_vars'] == export_vars
@@ -544,16 +545,17 @@ class ActivatorUnitTests(TestCase):
                         'PS1': ps1,
                     }
                     export_vars = OrderedDict((
-                        ('PATH', original_path),
                         ('CONDA_PREFIX', old_prefix),
                         ('CONDA_SHLVL', 1),
                         ('CONDA_DEFAULT_ENV', old_prefix),
                         ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
                     ))
+                    export_path = {'PATH': original_path,}
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['set_vars'] == set_vars
                     assert builder['export_vars'] == export_vars
+                    assert builder['export_path'] == export_path
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
@@ -595,16 +597,17 @@ class ActivatorUnitTests(TestCase):
                     'PS1': ps1,
                 }
                 export_vars = OrderedDict((
-                    ('PATH', original_path),
                     ('CONDA_PREFIX', old_prefix),
                     ('CONDA_SHLVL', 1),
                     ('CONDA_DEFAULT_ENV', old_prefix),
                     ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
                 ))
+                export_path = {'PATH': original_path,}
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                 assert builder['unset_vars'] == unset_vars
                 assert builder['set_vars'] == set_vars
                 assert builder['export_vars'] == export_vars
+                assert builder['export_path'] == export_path
                 assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                 assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
@@ -634,13 +637,14 @@ class ActivatorUnitTests(TestCase):
                         'PS1': os.environ.get('PS1', ''),
                     }
                     export_vars = OrderedDict((
-                        ('PATH', new_path),
                         ('CONDA_SHLVL', 0),
                     ))
+                    export_path = {'PATH': new_path,}
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars,
                                                                               conda_exe_vars=True)
                     assert builder['export_vars'] == export_vars
                     assert builder['unset_vars'] == unset_vars
+                    assert builder['export_path'] == export_path
                     assert builder['activate_scripts'] == ()
                     assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
@@ -770,13 +774,13 @@ class ShellWrapperUnitTests(TestCase):
             conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars(conda_exe_vars=True)
 
             e_deactivate_data = dals("""
+            export PATH='%(new_path)s'
             . "%(deactivate1)s"
             %(conda_exe_unset)s
             unset CONDA_PREFIX
             unset CONDA_DEFAULT_ENV
             unset CONDA_PROMPT_MODIFIER
             PS1='%(ps1)s'
-            export PATH='%(new_path)s'
             export CONDA_SHLVL='0'
             %(conda_exe_export)s
             """) % {
@@ -953,12 +957,12 @@ class ShellWrapperUnitTests(TestCase):
             conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars(conda_exe_vars=True)
 
             e_deactivate_data = dals("""
+            setenv PATH "%(new_path)s";
             source "%(deactivate1)s";
             unsetenv CONDA_PREFIX;
             unsetenv CONDA_DEFAULT_ENV;
             unsetenv CONDA_PROMPT_MODIFIER;
             set prompt='%(prompt)s';
-            setenv PATH "%(new_path)s";
             setenv CONDA_SHLVL "0";
             %(conda_exe_export)s;
             """) % {
@@ -1044,11 +1048,11 @@ class ShellWrapperUnitTests(TestCase):
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             e_deactivate_data = dals("""
+            $PATH = '%(new_path)s'
             source "%(deactivate1)s"
             del $CONDA_PREFIX
             del $CONDA_DEFAULT_ENV
             del $CONDA_PROMPT_MODIFIER
-            $PATH = '%(new_path)s'
             $CONDA_SHLVL = '0'
             %(conda_exe_export)s
             """) % {
@@ -1124,11 +1128,11 @@ class ShellWrapperUnitTests(TestCase):
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
             e_deactivate_data = dals("""
+            set -gx PATH "%(new_path)s";
             source "%(deactivate1)s";
             set -e CONDA_PREFIX;
             set -e CONDA_DEFAULT_ENV;
             set -e CONDA_PROMPT_MODIFIER;
-            set -gx PATH "%(new_path)s";
             set -gx CONDA_SHLVL "0";
             %(conda_exe_export)s;
             """) % {
@@ -1201,12 +1205,12 @@ class ShellWrapperUnitTests(TestCase):
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
+            $env:PATH = "%(new_path)s"
             . "%(deactivate1)s"
             Remove-Item Env:/CONDA_PREFIX
             Remove-Item Env:/CONDA_DEFAULT_ENV
             Remove-Item Env:/CONDA_PROMPT_MODIFIER
-            $Env:PATH = "%(new_path)s"
-            $Env:CONDA_SHLVL = "0"
+            $env:CONDA_SHLVL = "0"
             %(conda_exe_export)s
             """) % {
                 'new_path': new_path,

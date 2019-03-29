@@ -266,6 +266,9 @@ class _Activator(object):
         self.command = command
 
     def _yield_commands(self, cmds_dict):
+        for key, value in sorted(iteritems(cmds_dict.get('export_path', {}))):
+            yield self.export_var_tmpl % (key, value)
+
         for script in cmds_dict.get('deactivate_scripts', ()):
             yield self.run_script_tmpl % script
 
@@ -390,13 +393,13 @@ class _Activator(object):
             # deactivated conda and anything at all in my env still references it (apart from the
             # shell script, we need something I suppose!)
             export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict((
-                ('path', new_path),
                 ('conda_prefix', None),
                 ('conda_shlvl', new_conda_shlvl),
                 ('conda_default_env', None),
                 ('conda_prompt_modifier', None))))
             conda_prompt_modifier = ''
             activate_scripts = ()
+            export_path = {'PATH': new_path, }
         else:
             assert old_conda_shlvl > 1
             new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_conda_shlvl)
@@ -416,13 +419,12 @@ class _Activator(object):
                 )
 
             export_vars, unset_vars2 = self.get_export_unset_vars(odargs=OrderedDict((
-                ('path', new_path),
                 ('conda_prefix', new_prefix),
                 ('conda_shlvl', new_conda_shlvl),
                 ('conda_default_env', conda_default_env),
                 ('conda_prompt_modifier', conda_prompt_modifier))))
             unset_vars += unset_vars2
-
+            export_path = {'PATH': new_path, }
             activate_scripts = self._get_activate_scripts(new_prefix)
 
         if context.changeps1:
@@ -432,6 +434,7 @@ class _Activator(object):
             'unset_vars': unset_vars,
             'set_vars': set_vars,
             'export_vars': export_vars,
+            'export_path': export_path,
             'deactivate_scripts': deactivate_scripts,
             'activate_scripts': activate_scripts,
         }
