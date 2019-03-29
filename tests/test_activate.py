@@ -1502,6 +1502,14 @@ class ShellWrapperIntegrationTests(TestCase):
         install = ' install {0} '.format(dev_arg)
 
         num_paths_added = len(tuple(PosixActivator()._get_path_dirs(self.prefix)))
+
+        # calling bash -l, as we do for MSYS2, may cause conda activation.
+        shell.sendline('conda deactivate')
+        shell.sendline('conda deactivate')
+        shell.sendline('conda deactivate')
+        shell.sendline('conda deactivate')
+        shell.expect('.*\n')
+
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH0 = shell.get_env_var('PATH', '').strip(':')
         assert any(p.endswith("condabin") for p in PATH0.split(":"))
