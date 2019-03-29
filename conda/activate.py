@@ -690,10 +690,10 @@ class PosixActivator(_Activator):
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
         self.command_join = '\n'
 
-        self.unset_var_tmpl = 'unset %s'
-        self.export_var_tmpl = "export %s='%s'"
+        self.unset_var_tmpl = '\\unset %s'
+        self.export_var_tmpl = "\\export %s='%s'"
         self.set_var_tmpl = "%s='%s'"
-        self.run_script_tmpl = '. "%s"'
+        self.run_script_tmpl = '\\. "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')
 
@@ -742,6 +742,16 @@ class PosixActivator(_Activator):
                 else:
                     result += join(self.export_var_tmpl % (key, value)) + '\n'
             return result
+
+
+class DashActivator(PosixActivator):
+
+    def __init__(self, arguments=None):
+        super(DashActivator, self).__init__(arguments)
+        self.unset_var_tmpl = '\\unset %s'
+        self.export_var_tmpl = "\\export %s='%s'"
+        self.set_var_tmpl = "%s='%s'"
+        self.run_script_tmpl = '\\. "%s"'
 
 
 class CshActivator(_Activator):
@@ -909,7 +919,7 @@ activator_map = {
     'posix': PosixActivator,
     'ash': PosixActivator,
     'bash': PosixActivator,
-    'dash': PosixActivator,
+    'dash': DashActivator,
     'zsh': PosixActivator,
     'csh': CshActivator,
     'tcsh': CshActivator,
