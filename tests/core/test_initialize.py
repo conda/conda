@@ -393,9 +393,9 @@ class InitializeTests(TestCase):
                 assert line3 == "export CONDA_BAT=\"%s\"" % join(context.conda_prefix, 'condabin', 'conda.bat')
             else:
                 line0, line1, line2, _, remainder = created_file_contents.split('\n', 4)
-                assert line0 == "\\export CONDA_EXE='%s'" % context.conda_exe
-                assert line1 == "\\export _CE_M=''"
-                assert line2 == "\\export _CE_CONDA=''"
+                assert line0 == "export CONDA_EXE='%s'" % context.conda_exe
+                assert line1 == "export _CE_M=''"
+                assert line2 == "export _CE_CONDA=''"
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')) as fh:
                 original_contents = fh.read()

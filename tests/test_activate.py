@@ -712,13 +712,13 @@ class ShellWrapperUnitTests(TestCase):
         e_activate_data = dals("""
         PS1='%(ps1)s'
         %(conda_exe_unset)s
-        \\export PATH='%(new_path)s'
-        \\export CONDA_PREFIX='%(native_prefix)s'
-        \\export CONDA_SHLVL='1'
-        \\export CONDA_DEFAULT_ENV='%(native_prefix)s'
-        \\export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
+        export PATH='%(new_path)s'
+        export CONDA_PREFIX='%(native_prefix)s'
+        export CONDA_SHLVL='1'
+        export CONDA_DEFAULT_ENV='%(native_prefix)s'
+        export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
         %(conda_exe_export)s
-        \\. "%(activate1)s"
+        . "%(activate1)s"
         """) % {
             'native_prefix': self.prefix,
             'new_path': activator.pathsep_join(new_path_parts),
@@ -770,14 +770,14 @@ class ShellWrapperUnitTests(TestCase):
             conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars(conda_exe_vars=True)
 
             e_deactivate_data = dals("""
-            \\. "%(deactivate1)s"
+            . "%(deactivate1)s"
             %(conda_exe_unset)s
-            \\unset CONDA_PREFIX
-            \\unset CONDA_DEFAULT_ENV
-            \\unset CONDA_PROMPT_MODIFIER
+            unset CONDA_PREFIX
+            unset CONDA_DEFAULT_ENV
+            unset CONDA_PROMPT_MODIFIER
             PS1='%(ps1)s'
-            \\export PATH='%(new_path)s'
-            \\export CONDA_SHLVL='0'
+            export PATH='%(new_path)s'
+            export CONDA_SHLVL='0'
             %(conda_exe_export)s
             """) % {
                 'new_path': new_path,
