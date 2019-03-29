@@ -1937,7 +1937,7 @@ class ShellWrapperIntegrationTests(TestCase):
             PATH2 = shell.get_env_var("PATH")
             assert 'charizard' in PATH2
 
-            shell.sendline('source "${_CONDA_ROOT}/deactivate"')
+            shell.sendline('source "${_CONDA_ROOT}/bin/deactivate"')
             shell.assert_env_var('CONDA_SHLVL', '0')
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
