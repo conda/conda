@@ -15,14 +15,24 @@ import re
 
 from .exceptions import CondaEnvException
 from conda.gateways.subprocess import any_subprocess
+from conda.exports import on_win
 
 
 log = getLogger(__name__)
 
 
 def pip_subprocess(args, prefix, cwd):
-    run_args = ['python', '-m', 'pip'] + args
+    if on_win:
+        python_path = os.path.join(prefix, 'python.exe')
+    else:
+        python_path = os.path.join(prefix, 'bin', 'python')
+    run_args = [python_path, '-m', 'pip'] + args
     stdout, stderr, rc = any_subprocess(run_args, prefix, cwd=cwd)
+    print("Pip subprocess output:")
+    print(stdout)
+    if rc != 0:
+        print("Pip subprocess error:")
+        print(stderr)
     # This will modify (break) Context. We have a context stack but need to verify it works
     # stdout, stderr, rc = run_command(Commands.RUN, *run_args, stdout=None, stderr=None)
 

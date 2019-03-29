@@ -38,7 +38,7 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
 
 def any_subprocess(args, prefix, env=None, cwd=None):
     script_caller, command_args = wrap_subprocess_call(
-        on_win, context.root_prefix, prefix, context.dev, context.verbosity>2, args)
+        on_win, context.root_prefix, prefix, context.dev, context.verbosity >= 2, args)
     process = Popen(command_args,
                     cwd=cwd or prefix,
                     universal_newlines=False,
@@ -50,6 +50,10 @@ def any_subprocess(args, prefix, env=None, cwd=None):
         else:
             log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {}'.format(
                 script_caller))
+    if hasattr(stdout, 'decode'):
+        stdout = stdout.decode('utf-8', errors='replace')
+    if hasattr(stderr, 'decode'):
+        stderr = stderr.decode('utf-8', errors='replace')
     return stdout, stderr, process.returncode
 
 

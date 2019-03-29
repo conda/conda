@@ -96,7 +96,6 @@ class IntegrationTests(TestCase):
         with make_temp_envs_dir() as envs_dir:
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
-                'CONDA_PIP_INTEROP_ENABLED': 'true',
             }, conda_tests_ctxt_mgmt_def_pol):
                 env_name = str(uuid4())[:8]
                 prefix = join(envs_dir, env_name)
