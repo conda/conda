@@ -745,12 +745,12 @@ class ShellWrapperUnitTests(TestCase):
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             e_reactivate_data = dals("""
-            \\. "%(deactivate1)s"
+            . "%(deactivate1)s"
             PS1='%(ps1)s'
-            \\export PATH='%(new_path)s'
-            \\export CONDA_SHLVL='1'
-            \\export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
-            \\. "%(activate1)s"
+            export PATH='%(new_path)s'
+            export CONDA_SHLVL='1'
+            export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
+            . "%(activate1)s"
             """) % {
                 'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh')),
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh')),
