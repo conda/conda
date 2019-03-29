@@ -24,6 +24,8 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+import pytest
+
 from conda_env import env
 from conda_env import exceptions
 
@@ -358,6 +360,7 @@ class SaveExistingEnvTestCase(unittest.TestCase):
                       "You are running `pytest` outside of proper activation. "
                       "The entries necessary for conda to operate correctly "
                       "are not on PATH.  Please use `conda activate`")
+    @pytest.mark.integration
     def test_create_advanced_pip(self):
         with make_temp_envs_dir() as envs_dir:
             with env_vars({

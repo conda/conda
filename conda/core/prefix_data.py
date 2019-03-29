@@ -56,9 +56,9 @@ class PrefixData(object):
         self.prefix_path = prefix_path
         self.__prefix_records = None
         self.__is_writable = NULL
-        self._pip_interop_enabled = (context.pip_interop_enabled
-                                     if pip_interop_enabled is None
-                                     else pip_interop_enabled)
+        self._pip_interop_enabled = (pip_interop_enabled
+                                     if pip_interop_enabled is not None
+                                     else context.pip_interop_enabled)
 
     def load(self):
         self.__prefix_records = {}
