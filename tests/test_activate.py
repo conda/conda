@@ -1436,7 +1436,7 @@ def which_powershell():
         posh =  which('powershell.exe')
         if posh:
             return 'powershell', posh
-    
+
     posh = which('pwsh')
     if posh:
         return 'pwsh', posh
@@ -1580,20 +1580,20 @@ class ShellWrapperIntegrationTests(TestCase):
         assert _CE_CONDA == _CE_CONDA2, "_CE_CONDA stacked changed by activation procedure\n:From\n{}\nto:\n{}".\
             format(_CE_CONDA, _CE_CONDA2)
 
-        shell.sendline('conda' + install + '-yq openssl=1.1.1a')
+        shell.sendline('conda' + install + '-yq hdf5=1.10.2')
         shell.expect('Executing transaction: ...working... done.*\n', timeout=60)
         shell.assert_env_var('?', '0', True)
 
-        shell.sendline('openssl version')
-        shell.expect(r'.*OpenSSL 1.1.1a.*')
+        shell.sendline('h5stat --version')
+        shell.expect(r'.*h5stat: Version 1.10.2.*')
 
         # TODO: assert that reactivate worked correctly
 
         shell.sendline("type conda")
         shell.expect(conda_is_a_function)
 
-        shell.sendline('conda run {} openssl version'.format(dev_arg))
-        shell.expect(r'.*OpenSSL 1.1.1a.*')
+        shell.sendline('conda run {} h5stat --version'.format(dev_arg))
+        shell.expect(r'.*h5stat: Version 1.10.2.*')
 
         # regression test for #6840
         shell.sendline('conda' + install + '--blah')
@@ -1764,20 +1764,20 @@ class ShellWrapperIntegrationTests(TestCase):
             assert 'charizard' in PATH
 
             print('## [PowerShell integration] Installing.')
-            shell.sendline('conda install -yq proj4=5.2.0')
+            shell.sendline('conda install -yq hdf5=1.10.2')
             shell.expect('Executing transaction: ...working... done.*\n', timeout=100)
             shell.sendline('$LASTEXITCODE')
             shell.expect('0')
             # TODO: assert that reactivate worked correctly
 
             print('## [PowerShell integration] Checking installed version.')
-            shell.sendline('proj')
-            shell.expect(r'.*Rel\. 5\.2\.0,.*')
+            shell.sendline('h5stat --version')
+            shell.expect(r'.*h5stat: Version 1.10.2.*')
 
             # conda run integration test
             print('## [PowerShell integration] Checking conda run.')
-            shell.sendline('conda run {} proj'.format(dev_arg))
-            shell.expect(r'.*Rel\. 5\.2\.0,.*')
+            shell.sendline('conda run {} h5stat --version'.format(dev_arg))
+            shell.expect(r'.*h5stat: Version 1.10.2.*')
 
             print('## [PowerShell integration] Deactivating')
             shell.sendline('conda deactivate')
@@ -1842,18 +1842,18 @@ class ShellWrapperIntegrationTests(TestCase):
             #       not require an old or incompatible version of any
             #       library critical to the correct functioning of
             #       Python (e.g. OpenSSL).
-            shell.sendline('conda install -yq proj4=5.2.0')
+            shell.sendline('conda install -yq hdf5=1.10.2')
             shell.expect('Executing transaction: ...working... done.*\n', timeout=100)
             shell.assert_env_var('errorlevel', '0', True)
             # TODO: assert that reactivate worked correctly
 
-            shell.sendline('proj')
-            shell.expect(r'.*Rel\. 5\.2\.0,.*')
+            shell.sendline('h5stat --version')
+            shell.expect(r'.*h5stat: Version 1.10.2.*')
 
             # conda run integration test
-            shell.sendline('conda run {} proj'.format(dev_arg))
+            shell.sendline('conda run {} h5stat --version'.format(dev_arg))
 
-            shell.expect(r'.*Rel\. 5\.2\.0,.*')
+            shell.expect(r'.*h5stat: Version 1.10.2.*')
 
             shell.sendline('conda deactivate --dev')
             shell.assert_env_var('CONDA_SHLVL', '1\r')
