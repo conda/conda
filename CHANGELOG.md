@@ -1,3 +1,40 @@
+## 4.6.9 (2019-03-29)
+
+### Improvements
+
+* Improve CI for docs commits (#8387, #8401, #8417)
+* Implement `conda init --reverse` to undo rc file and registry changes (#8400)
+* Improve handling of unicode systems  (#8342, #8435)
+* Force the "COMSPEC"  environment variable to always point to cmd.exe on windows.  This was an implicit assumption that was not always true.  (#8457, #8461)
+
+### Bug fixes
+
+* Add central C:/ProgramData/conda as a search path on Windows  (#8272)
+* remove direct use of ruamel_yaml (prefer internal abstraction, yaml_load)  (#8392)
+* Fix/improve `conda init` support for fish shell (#8437)
+* Improve solver behavior in the presence of inconsistent environments (such as pip as a conda dependency of python, but also installed via pip itself) (#8444)
+* Handle read-only filesystems for environments.txt (#8451, #8453)
+* Fix conda env commands involving pip-installed dependencies being installed into incorrect locations  (#8435)
+
+### Docs improvements
+
+* updated cheatsheet  (#8402)
+* updated color theme  (#8403)
+
+### Contributors
+
+* @blackgear
+* @dhirschfeld
+* @jakirkham
+* @jjhelmus
+* @katietz
+* @mingwandroid
+* @msarahan
+* @nehaljwani
+* @rrigdon
+* @soapy1
+* @spamlrot-tic
+
 ## 4.6.8 (2019-03-06)
 
 ### Bug fixes
