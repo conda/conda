@@ -8,6 +8,7 @@ pytest-cov
 pytest-timeout
 conda-forge::radon
 responses
+git
 
 conda-build
 anaconda-client

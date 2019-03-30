@@ -9,31 +9,34 @@ NOTE: This modules used to in conda, as conda/pip.py
 from __future__ import absolute_import, print_function
 
 import json
+from logging import getLogger
 import os
 import re
-import subprocess
 
 from .exceptions import CondaEnvException
-from conda.base.context import context
-from conda.utils import wrap_subprocess_call
-from conda.gateways.disk.delete import rm_rf
-from conda.common.compat import on_win
+from conda.gateways.subprocess import any_subprocess
+from conda.exports import on_win
 
 
-def pip_subprocess(args, prefix, env=None, cwd=None):
-    script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix,
-                                                       prefix, ' '.join(['pip'] + args))
-    process = subprocess.Popen(command_args,
-                               cwd=cwd or prefix,
-                               universal_newlines=True,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    stdout, stderr = process.communicate()
-    if script_caller is not None:
-        rm_rf(script_caller)
-    if process.returncode != 0:
-        raise CondaEnvException("Pip subcommand failed with \n"
-                                "output: {}\nerror: {}".format(stdout, stderr))
-    return stdout, stderr
+log = getLogger(__name__)
+
+
+def pip_subprocess(args, prefix, cwd):
+    if on_win:
+        python_path = os.path.join(prefix, 'python.exe')
+    else:
+        python_path = os.path.join(prefix, 'bin', 'python')
+    run_args = [python_path, '-m', 'pip'] + args
+    stdout, stderr, rc = any_subprocess(run_args, prefix, cwd=cwd)
+    print("Ran pip subprocess with arguments:")
+    print(run_args)
+    print("Pip subprocess output:")
+    print(stdout)
+    if rc != 0:
+        print("Pip subprocess error:")
+        print(stderr)
+    # This will modify (break) Context. We have a context stack but need to verify it works
+    # stdout, stderr, rc = run_command(Commands.RUN, *run_args, stdout=None, stderr=None)
 
 
 def get_pip_version(prefix):
@@ -49,11 +52,7 @@ def get_pip_version(prefix):
 class PipPackage(dict):
     def __str__(self):
         if 'path' in self:
-            return '%s (%s)-%s-<pip>' % (
-                self['name'],
-                self['path'],
-                self['version']
-            )
+            return '%s (%s)-%s-<pip>' % (self['name'], self['path'], self['version'])
         return '%s-%s-<pip>' % (self['name'], self['version'])
 
 

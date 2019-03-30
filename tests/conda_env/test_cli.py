@@ -1,8 +1,6 @@
 import json
 import os
-from os.path import join
-from shlex import split
-import tempfile
+from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 import unittest
 
 import pytest
@@ -13,8 +11,8 @@ from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser
 from conda.common.io import captured
 from conda.core.envs_manager import list_all_known_prefixes
-from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
+from conda.utils import massage_arguments
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import EnvironmentFileExtensionNotValid, EnvironmentFileNotFound
 from conda_env.yaml import load as yaml_load
@@ -77,26 +75,23 @@ def run_env_command(command, prefix, *arguments):
         prefix: The prefix, for remove and create
         *arguments: The extra arguments
     """
-    p = create_parser()
-    prefix = escape_for_winpath(prefix)
 
-    if arguments:
-        arguments = list(map(escape_for_winpath, arguments))
+    arguments = massage_arguments(arguments)
+    arguments.insert(0, command)
 
     if command is Commands.ENV_EXPORT:
-        command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
+        arguments[1:1] = ['-n', prefix]
     elif command is Commands.ENV_CREATE: # CREATE
-        if prefix :
-            command_line = "{0} -f {1} {2}".format(command, prefix, " ".join(arguments))
-        else:
-            command_line = "{0} {1}".format(command, " ".join(arguments))
+        if prefix:
+            arguments[1:1] = ['-f', prefix]
     elif command is Commands.ENV_REMOVE:  # REMOVE
-        command_line = "{0} --yes -n {1} {2}".format(command, prefix, " ".join(arguments))
+        arguments[1:1] = ['--yes', '-n', prefix]
     elif command is Commands.ENV_UPDATE:
-        command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
+        arguments[1:1] = ['-n', prefix]
     else:
         command_line = " --help "
-    args = p.parse_args(split(command_line))
+    p = create_parser()
+    args = p.parse_args(arguments)
     context._set_argparse_args(args)
 
     with captured() as c:
@@ -109,7 +104,7 @@ def run_conda_command(command, prefix, *arguments):
     """
         Run conda command,
     Args:
-        command: conda create , list, info
+        command: conda create, list, info
         prefix: The prefix or the name of environment
         *arguments: Extra arguments
     """
@@ -125,7 +120,9 @@ def run_conda_command(command, prefix, *arguments):
     else:  # CREATE
         command_line = "{0} -y -q -n {1} {2}".format(command, prefix, " ".join(arguments))
 
-    args = p.parse_args(split(command_line))
+    from conda._vendor.auxlib.compat import shlex_split_unicode
+    commands = shlex_split_unicode(command_line)
+    args = p.parse_args(commands)
     context._set_argparse_args(args)
     with captured() as c:
         do_call(args, p)
@@ -171,7 +168,7 @@ class IntegrationTests(unittest.TestCase):
         exist.
         '''
         try:
-            run_env_command(Commands.ENV_CREATE, None, '--file not_a_file.txt')
+            run_env_command(Commands.ENV_CREATE, None, '--file', 'not_a_file.txt')
         except Exception as e:
             self.assertIsInstance(e, EnvironmentFileNotFound)
 
@@ -220,6 +217,13 @@ class IntegrationTests(unittest.TestCase):
         """
         create_env(environment_1)
         env_name = 'smoke-gh-254'
+
+        # It might be the case that you need to run this test more than once!
+        try:
+            run_env_command(Commands.ENV_REMOVE, env_name)
+        except:
+            pass
+
         try:
             run_env_command(Commands.ENV_CREATE, 'environment.yml', "-n",
                             env_name)
@@ -263,9 +267,15 @@ class NewIntegrationTests(unittest.TestCase):
     """
 
     def setUp(self):
+        # It *can* happen that this does not remove the env directory and then
+        # the CREATE fails. Keep your eyes out! We could use rm_rf, but do we
+        # know which conda install we're talking about? Now? Forever? I'd feel
+        # safer adding an `rm -rf` if we had a `Commands.ENV_NAME_TO_PREFIX` to
+        # tell us which folder to remove.
         run_env_command(Commands.ENV_REMOVE, test_env_name_2)
 
     def tearDown(self):
+        pass
         run_env_command(Commands.ENV_REMOVE, test_env_name_2)
 
     def test_env_export(self):
@@ -276,9 +286,9 @@ class NewIntegrationTests(unittest.TestCase):
         run_conda_command(Commands.CREATE, test_env_name_2, "flask")
         assert env_is_created(test_env_name_2)
 
-        snowflake, e,  = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
+        snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
+        with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
@@ -310,7 +320,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         snowflake, e = run_conda_command(Commands.LIST, test_env_name_2, "-e")
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
+        with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
             env_txt.write(snowflake)
             env_txt.flush()
             env_txt.close()
@@ -338,13 +348,13 @@ class NewIntegrationTests(unittest.TestCase):
 
         check1, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
+        with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
-            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+            o, e = run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
-            run_env_command(Commands.ENV_CREATE, env_yaml.name)
+            o, e = run_env_command(Commands.ENV_CREATE, env_yaml.name)
             self.assertTrue(env_is_created(test_env_name_2))
 
         # check explicit that we have same file
@@ -356,7 +366,7 @@ class NewIntegrationTests(unittest.TestCase):
             run_env_command(Commands.ENV_CREATE, 'i_do_not_exist.yml')
 
     def test_invalid_extensions(self):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".ymla", delete=False) as env_yaml:
+        with Utf8NamedTemporaryFile(mode="w", suffix=".ymla", delete=False) as env_yaml:
             with self.assertRaises(EnvironmentFileExtensionNotValid):
                 run_env_command(Commands.ENV_CREATE, env_yaml.name)
 

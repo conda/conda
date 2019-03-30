@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from ast import literal_eval
+import codecs
 from errno import EACCES, EPERM
 import logging
 from operator import itemgetter
@@ -323,7 +324,7 @@ class History(object):
             print('%s  (rev %d)' % (date, i))
             for line in pretty_content(content):
                 print('    %s' % line)
-            print()
+            print('')
 
     def object_log(self):
         result = []
@@ -376,7 +377,7 @@ class History(object):
     def write_changes(self, last_state, current_state):
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
-        with open(self.path, 'a') as fo:
+        with codecs.open(self.path, mode='ab', encoding='utf-8') as fo:
             write_head(fo)
             for fn in sorted(last_state - current_state):
                 fo.write('-%s\n' % fn)
@@ -387,7 +388,7 @@ class History(object):
         remove_specs = [text_type(MatchSpec(s)) for s in remove_specs]
         update_specs = [text_type(MatchSpec(s)) for s in update_specs]
         if update_specs or remove_specs:
-            with open(self.path, 'a') as fh:
+            with codecs.open(self.path, mode='ab', encoding='utf-8') as fh:
                 if remove_specs:
                     fh.write("# remove specs: %s\n" % remove_specs)
                 if update_specs:

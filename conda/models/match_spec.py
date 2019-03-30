@@ -23,7 +23,7 @@ from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
 from ..common.io import dashlist
-from ..common.path import expand
+from ..common.path import expand, url_to_path
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec
 
@@ -589,9 +589,15 @@ def _parse_spec_str(spec_str):
             }
         else:
             # url is not a channel
+            if spec_str.startswith('file://'):
+                # We must undo percent-encoding when generating fn.
+                path_or_url = url_to_path(spec_str)
+            else:
+                path_or_url = spec_str
+
             return {
                 'name': '*',
-                'fn': basename(spec_str),
+                'fn': basename(path_or_url),
                 'url': spec_str,
             }
         return result

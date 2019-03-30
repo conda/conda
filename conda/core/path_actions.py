@@ -10,7 +10,7 @@ from os.path import basename, dirname, getsize, join, isdir
 import re
 from uuid import uuid4
 
-from .envs_manager import USER_ENVIRONMENTS_TXT_FILE, register_env, unregister_env
+from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 from .. import CondaError
@@ -25,8 +25,9 @@ from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
                            pyc_path, url_to_path, win_path_ok)
-from ..common.url import has_platform, path_to_url, unquote
-from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError, NotWritableError
+from ..common.url import has_platform, path_to_url
+from ..exceptions import (CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError,
+                          NotWritableError)
 from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     create_hard_link_or_copy, create_link,
@@ -918,12 +919,13 @@ class RegisterEnvironmentLocationAction(PathAction):
         self._execute_successful = False
 
     def verify(self):
+        user_environments_txt_file = get_user_environments_txt_file()
         try:
-            touch(USER_ENVIRONMENTS_TXT_FILE, mkdir=True, sudo_safe=True)
+            touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
             self._verified = True
-        except NotWritableError as e:
+        except NotWritableError:
             log.warn("Unable to create environments file. Path not writable.\n"
-                     "  environment location: %s\n", USER_ENVIRONMENTS_TXT_FILE)
+                     "  environment location: %s\n", user_environments_txt_file)
 
     def execute(self):
         log.trace("registering environment in catalog %s", self.target_prefix)
@@ -1094,7 +1096,7 @@ class CacheUrlAction(PathAction):
                 backoff_rename(self.target_full_path, self.hold_path, force=True)
 
         if self.url.startswith('file:/'):
-            source_path = unquote(url_to_path(self.url))
+            source_path = url_to_path(self.url)
             if dirname(source_path) in context.pkgs_dirs:
                 # if url points to another package cache, link to the writable cache
                 create_hard_link_or_copy(source_path, self.target_full_path)

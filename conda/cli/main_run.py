@@ -9,20 +9,39 @@ import sys
 from ..base.context import context
 from ..utils import wrap_subprocess_call
 from ..gateways.disk.delete import rm_rf
+from ..common.compat import encode_environment
 
 
 def execute(args, parser):
     on_win = sys.platform == "win32"
 
-    call = " ".join(args.executable_call)
+    call = args.executable_call
+    cwd = args.cwd
     prefix = args.prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
-    script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix, call)
-    process = Popen(command_args, universal_newlines=True, stdout=PIPE, stderr=PIPE)
-    for line in process.stdout:
-        sys.stdout.write(line)
+
+    script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix,
+                                                       args.dev, args.debug_wrapper_scripts, call)
+    env = encode_environment(os.environ.copy())
+    process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE,
+                    env=env, cwd=cwd)
     stdout, stderr = process.communicate()
+    if hasattr(stdout, "decode"):
+        stdout = stdout.decode('utf-8', errors='replace')
+    if hasattr(stderr, "decode"):
+        stderr = stderr.decode('utf-8', errors='replace')
+    if stdout:
+        sys.stdout.write(stdout)
+    if stderr:
+        sys.stderr.write(stderr)
     if process.returncode != 0:
         log = getLogger(__name__)
-        log.error("Subprocess for 'conda run' command failed.  Stderr was:\n{}".format(stderr))
+        log.error("Subprocess for 'conda run {}' command failed.  Stderr was:\n{}"
+                  .format(call, stderr))
     if script_caller is not None:
-        rm_rf(script_caller)
+        if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
+            rm_rf(script_caller)
+        else:
+            log = getLogger(__name__)
+            log.warning('CONDA_TEST_SAVE_TEMPS :: retaining main_run script_caller {}'.format(
+                script_caller))
+    return process.returncode

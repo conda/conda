@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 import fnmatch
 from logging import getLogger
-from os import rename, unlink, walk, makedirs, getcwd, rmdir, listdir
+from os import rename, unlink, walk, makedirs, getcwd, rmdir, listdir, environ
 from os.path import abspath, dirname, isdir, join, split, exists, isfile, normpath, basename
 import shutil
 from subprocess import check_output, STDOUT, CalledProcessError
@@ -38,14 +38,44 @@ def rmtree(path, *args, **kwargs):
             #    to scan for any possible symlinks, we could do the faster way.
             # out = check_output('DEL /F/Q/S *.* > NUL 2> NUL'.format(path), shell=True,
             #                    stderr=STDOUT, cwd=path)
+
             out = check_output('RD /S /Q "{}" > NUL 2> NUL'.format(path), shell=True,
                                stderr=STDOUT)
-        except CalledProcessError as e:
-            if e.returncode != 5:
-                log.error("Removing folder {} the fast way failed.  Output was: {}".format(out))
-                raise
-            else:
-                log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
+        except:
+            try:
+                # Try to delete in Unicode
+                name = None
+                from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+                from conda.utils import quote_for_shell
+
+                with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as batch_file:
+                    batch_file.write('RD /S {}\n'.format(quote_for_shell([path])))
+                    batch_file.write('chcp 65001\n')
+                    batch_file.write('RD /S {}\n'.format(quote_for_shell([path])))
+                    batch_file.write('EXIT 0\n')
+                    name = batch_file.name
+                # If the above is bugged we can end up deleting hard-drives, so we check
+                # that 'path' appears in it. This is not bulletproof but it could save you (me).
+                with open(name, 'r') as contents:
+                    content = contents.read()
+                    assert path in content
+                comspec = environ['COMSPEC']
+                CREATE_NO_WINDOW = 0x08000000
+                # It is essential that we `pass stdout=None, stderr=None, stdin=None` here because
+                # if we do not, then the standard console handles get attached and chcp affects the
+                # parent process (and any which share those console handles!)
+                out = check_output([comspec, '/d', '/c', name], shell=False,
+                                   stdout=None, stderr=None, stdin=None,
+                                   creationflags=CREATE_NO_WINDOW)
+
+            except CalledProcessError as e:
+                if e.returncode != 5:
+                    log.error("Removing folder {} the fast way failed.  Output was: {}"
+                              .format(out))
+                    raise
+                else:
+                    log.debug("removing dir contents the fast way failed.  Output was: {}"
+                              .format(out))
     else:
         try:
             makedirs('.empty')

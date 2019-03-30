@@ -6,28 +6,35 @@
 
 devenv="${1:-./devenv}"
 pyver="${2:-3}"
+_CONDA="$devenv/bin/conda"
 
 if ! [ -f "$devenv/conda-meta/history" ]; then
     if [ "$(uname)" = Darwin ]; then
-        if [ ! -f miniconda.sh ]; then
-            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o miniconda.sh
+        if [ ! -f miniconda${pyver}.sh ]; then
+            curl https://repo.anaconda.com/miniconda/Miniconda${pyver}-latest-MacOSX-x86_64.sh -o miniconda${pyver}.sh
         fi
-        bash miniconda.sh -bfp "$devenv"
-        "$devenv/bin/conda" install -yq python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
+        bash miniconda${pyver}.sh -bfp "$devenv"
     elif [ "$(uname)" = Linux ]; then
-        if [ ! -f miniconda3.sh ]; then
-            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh
+        if [ ! -f miniconda${pyver}.sh ]; then
+            curl https://repo.anaconda.com/miniconda/Miniconda${pyver}-latest-Linux-x86_64.sh -o miniconda${pyver}.sh
         fi
-        bash miniconda.sh -bfp "$devenv"
+        bash miniconda${pyver}.sh -bfp "$devenv"
         "$devenv/bin/conda" install -yq python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
         "$devenv/bin/conda" install -yq patchelf  # for conda-build
     else
-        if [ ! -f miniconda.exe ]; then
-            powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('https://repo.anaconda.com/miniconda/Miniconda$pyver-latest-Windows-x86_64.exe','miniconda.exe')"
+        if [ ! -f miniconda${pyver}.exe ]; then
+            powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('https://repo.anaconda.com/miniconda/Miniconda$pyver-latest-Windows-x86_64.exe','miniconda${pyver}.exe')"
         fi
-        cmd.exe /c "start /wait \"\" miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $devenv)"
+        cmd.exe /c "start /wait \"\" miniconda${pyver}.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $devenv)"
+        _CONDA="$devenv/Scripts/conda"
         "$devenv/Scripts/conda" install -yq python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
     fi
+fi
+
+
+if ! [ -f "$devenv/.dev-start-ed" ]; then
+  "${_CONDA}" install -yq python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
+  touch "$devenv/.dev-start-ed"
 fi
 
 

@@ -9,14 +9,15 @@ import os
 from os.path import dirname, join, abspath
 import re
 from shlex import split
+from conda._vendor.auxlib.compat import shlex_split_unicode
 import sys
 from tempfile import gettempdir
 from uuid import uuid4
 
 from conda import cli
 from conda._vendor.auxlib.decorators import memoize
-from conda.base.context import context, reset_context
-from conda.common.compat import iteritems, itervalues
+from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.common.compat import iteritems, itervalues, encode_arguments
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
 from conda.core.subdir_data import SubdirData, make_feature_record
 from conda.gateways.disk.delete import rm_rf
@@ -25,6 +26,9 @@ from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.resolve import Resolve
+
+from functools import partial
+import pytest
 
 try:
     from unittest import mock
@@ -95,10 +99,11 @@ def assert_in(a, b, output=""):
 def run_inprocess_conda_command(command, disallow_stderr=True):
     # anything that uses this function is an integration test
     reset_context(())
-    with argv(split(command)), captured(disallow_stderr) as c:
+    # May want to do this to command:
+    with argv(encode_arguments(shlex_split_unicode(command))), captured(disallow_stderr) as c:
         initialize_logging()
         try:
-            exit_code = cli.main()
+            exit_code = cli.main(*sys.argv)
         except SystemExit:
             pass
     print(c.stderr, file=sys.stderr)
@@ -166,7 +171,7 @@ def get_index_r_1(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -192,7 +197,7 @@ def get_index_r_2(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-2/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -217,7 +222,7 @@ def get_index_r_4(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-4/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -243,7 +248,7 @@ def get_index_r_5(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-5/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", reset_context):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd

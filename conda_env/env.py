@@ -46,6 +46,16 @@ def validate_keys(data, kwargs):
             print(' - {}'.format(key))
         print('')
 
+    deps = data.get('dependencies', [])
+    for dep in deps:
+        if (isinstance(dep, dict) and 'pip' in dep
+                and not any(_.split()[0] == 'pip' for _ in deps if not hasattr(_, 'keys'))):
+            print("Warning: you have pip-installed dependencies in your environment file, "
+                  "but you do not list pip itself as one of your conda dependencies.  Conda "
+                  "may not use the correct pip to install your packages, and they may end up "
+                  "in the wrong place.  Please add an explicit pip dependency.  I'm adding one"
+                  " for you, but still nagging you.")
+            new_data['dependencies'].insert(0, 'pip')
     return new_data
 
 

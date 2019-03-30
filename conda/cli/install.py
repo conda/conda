@@ -48,9 +48,9 @@ def check_prefix(prefix, json=False):
         raise CondaValueError(error, json)
 
     if ' ' in prefix:
-        stderrlog.warn("WARNING: A space was detected in your requested environment path\n"
-                       "'%s'\n"
-                       "Spaces in paths can sometimes be problematic." % prefix)
+        stderrlog.warning("WARNING: A space was detected in your requested environment path\n"
+                          "'%s'\n"
+                          "Spaces in paths can sometimes be problematic." % prefix)
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):

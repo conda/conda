@@ -9,7 +9,11 @@ from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
-from functools import wraps
+from functools import partial, wraps
+import sys
+if sys.version_info[0] > 2:
+    # Not used at present.
+    from io import BytesIO
 from itertools import cycle
 import json
 import logging  # lgtm [py/import-and-import-from]
@@ -17,11 +21,10 @@ from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join
 import signal
-import sys
 from threading import Event, Thread
 from time import sleep, time
 
-from .compat import StringIO, iteritems, on_win
+from .compat import StringIO, iteritems, on_win, encode_environment
 from .constants import NULL
 from .path import expand
 from .._vendor.auxlib.decorators import memoizemethod
@@ -114,35 +117,19 @@ class CaptureTarget(Enum):
 
 
 @contextmanager
-def env_var(name, value, callback=None):
-    # NOTE: will likely want to call reset_context() when using this function, so pass
-    #       it as callback
-    name, value = str(name), str(value)
-    saved_env_var = os.environ.get(name)
-    try:
+def env_vars(var_map=None, callback=None):
+
+    if var_map is None:
+        var_map = {}
+
+    new_var_map = encode_environment(var_map)
+    saved_vars = {}
+    for name, value in iteritems(new_var_map):
+        saved_vars[name] = os.environ.get(name, NULL)
         os.environ[name] = value
-        if callback:
-            callback()
-        yield
-    finally:
-        if saved_env_var:
-            os.environ[name] = saved_env_var
-        else:
-            del os.environ[name]
-        if callback:
-            callback()
-
-
-@contextmanager
-def env_vars(var_map, callback=None):
-    # NOTE: will likely want to call reset_context() when using this function, so pass
-    #       it as callback
-    saved_vars = {str(name): os.environ.get(name, NULL) for name in var_map}
     try:
-        for name, value in iteritems(var_map):
-            os.environ[str(name)] = str(value)
         if callback:
-            callback()
+            callback(True)
         yield
     finally:
         for name, value in iteritems(saved_vars):
@@ -151,7 +138,22 @@ def env_vars(var_map, callback=None):
             else:
                 os.environ[name] = value
         if callback:
-            callback()
+            callback(False)
+
+@contextmanager
+def env_var(name, value, callback=None):
+    # Maybe, but in env_vars, not here:
+    #    from conda.compat import ensure_fs_path_encoding
+    #    d = dict({name: ensure_fs_path_encoding(value)})
+    d = dict({name: value})
+    with env_vars(d, callback=callback) as es:
+        yield es
+
+
+@contextmanager
+def env_unmodified(callback=None):
+    with env_vars(callback=callback) as es:
+        yield es
 
 
 @contextmanager
@@ -188,17 +190,48 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
     # >>> c.stdout
     # 'hello world!\n'
     # """
+    def write_wrapper(self, to_write):
+        # This may have to deal with a *lot* of text.
+        if hasattr(self, 'mode') and 'b' in self.mode:
+            wanted = bytes
+        elif sys.version_info[0] == 3 and isinstance(self, BytesIO):
+            wanted = bytes
+        else:
+            # ignore flake8 on this because it finds an error on py3 even though it is guarded
+            if sys.version_info[0] == 2:
+                wanted = unicode  # NOQA
+            else:
+                wanted = str
+        if not isinstance(to_write, wanted):
+            if hasattr(to_write, 'decode'):
+                decoded = to_write.decode('utf-8')
+                self.old_write(decoded)
+            elif hasattr(to_write, 'encode'):
+                b = to_write.encode('utf-8')
+                self.old_write(b)
+        else:
+            self.old_write(to_write)
+
     class CapturedText(object):
         pass
+    # sys.stdout.write(u'unicode out')
+    # sys.stdout.write(bytes('bytes out', encoding='utf-8'))
+    # sys.stdout.write(str('str out'))
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
     if stdout == CaptureTarget.STRING:
-        sys.stdout = outfile = StringIO()
+        outfile = StringIO()
+        outfile.old_write = outfile.write
+        outfile.write = partial(write_wrapper, outfile)
+        sys.stdout = outfile
     else:
         outfile = stdout
         if outfile is not None:
             sys.stdout = outfile
     if stderr == CaptureTarget.STRING:
-        sys.stderr = errfile = StringIO()
+        errfile = StringIO()
+        errfile.old_write = errfile.write
+        errfile.write = partial(write_wrapper, errfile)
+        sys.stderr = errfile
     elif stderr == CaptureTarget.STDOUT:
         sys.stderr = errfile = outfile
     else:

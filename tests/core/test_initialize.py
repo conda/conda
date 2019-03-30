@@ -13,7 +13,7 @@ import pytest
 
 from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import context, reset_context
+from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open
 from conda.common.io import captured, env_var, env_vars
@@ -42,7 +42,7 @@ class InitializeTests(TestCase):
     def setUpClass(cls):
         cls.orig_verbosity = os.environ.get('CONDA_VERBOSITY')
         os.environ['CONDA_VERBOSITY'] = '1'
-        reset_context()
+        reset_context(())
 
     @classmethod
     def tearDownClass(cls):
@@ -73,14 +73,14 @@ class InitializeTests(TestCase):
                         "function": "make_entry_point_exe",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\conda.exe",
+                            "target_path": "/darwin\\Scripts\\conda.exe"
                         }
                     },
                     {
                         "function": "make_entry_point_exe",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\conda-env.exe",
+                            "target_path": "/darwin\\Scripts\\conda-env.exe"
                         }
                     },
                     {
@@ -181,14 +181,14 @@ class InitializeTests(TestCase):
                         "function": "install_conda_sh",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\etc\\profile.d\\conda.sh",
+                            "target_path": "/darwin\\etc\\profile.d\\conda.sh"
                         }
                     },
                     {
                         "function": "install_conda_fish",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish",
+                            "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish"
                         }
                     },
                     {
@@ -378,6 +378,7 @@ class InitializeTests(TestCase):
     def test_install_conda_sh(self):
         with tempdir() as conda_prefix:
             target_path = join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
+            context.dev = False
             result = install_conda_sh(target_path, conda_prefix)
             assert result == Result.MODIFIED
 
@@ -385,12 +386,16 @@ class InitializeTests(TestCase):
                 created_file_contents = fh.read()
 
             if on_win:
-                first_line, second_line, remainder = created_file_contents.split('\n', 2)
-                assert first_line == "export CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
-                assert second_line == "export CONDA_BAT=\"%s\"" % join(context.conda_prefix, 'condabin', 'conda.bat')
+                line0, line1, line2, line3, remainder = created_file_contents.split('\n', 4)
+                assert line0 == "export CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
+                assert line1 == "export _CE_M=-m"
+                assert line2 == "export _CE_CONDA=conda"
+                assert line3 == "export CONDA_BAT=\"%s\"" % join(context.conda_prefix, 'condabin', 'conda.bat')
             else:
-                first_line, remainder = created_file_contents.split('\n', 1)
-                assert first_line == 'export CONDA_EXE="%s"' % context.conda_exe
+                line0, line1, line2, _, remainder = created_file_contents.split('\n', 4)
+                assert line0 == "export CONDA_EXE='%s'" % context.conda_exe
+                assert line1 == "export _CE_M=''"
+                assert line2 == "export _CE_CONDA=''"
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')) as fh:
                 original_contents = fh.read()
@@ -503,7 +508,7 @@ class InitializeTests(TestCase):
         assert site_packages_dir.endswith('site-packages')
 
     def test_install_1(self):
-        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, reset_context):
+        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, conda_tests_ctxt_mgmt_def_pol):
             with tempdir() as conda_temp_prefix:
                 with captured() as c:
                     install(conda_temp_prefix)
@@ -558,7 +563,7 @@ class InitializeTests(TestCase):
         with pytest.raises(CondaValueError):
             initialize_dev('bash', conda_source_root=join('a', 'b', 'c'))
 
-        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, reset_context):
+        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, conda_tests_ctxt_mgmt_def_pol):
             with tempdir() as conda_temp_prefix:
                 new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
                 mkdir_p(dirname(new_py))
@@ -626,7 +631,7 @@ class InitializeTests(TestCase):
         assert "unset CONDA_SHLVL" in c.stdout
 
     def test_initialize_dev_cmd_exe(self):
-        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, reset_context):
+        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, conda_tests_ctxt_mgmt_def_pol):
             with tempdir() as conda_temp_prefix:
                 new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
                 mkdir_p(dirname(new_py))
@@ -876,7 +881,7 @@ class InitializeTests(TestCase):
         try:
             target_path = r'HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun'
             conda_prefix = "c:\\Users\\Lars\\miniconda"
-            with env_var('CONDA_DRY_RUN', 'true', reset_context):
+            with env_var('CONDA_DRY_RUN', 'true', conda_tests_ctxt_mgmt_def_pol):
                 with captured() as c:
                     initialize.init_cmd_exe_registry(target_path, conda_prefix)
         finally:
@@ -892,7 +897,7 @@ class InitializeTests(TestCase):
         try:
             target_path = r'HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun'
             conda_prefix = "c:\\Users\\Lars\\miniconda"
-            with env_var('CONDA_DRY_RUN', 'true', reset_context):
+            with env_var('CONDA_DRY_RUN', 'true', conda_tests_ctxt_mgmt_def_pol):
                 with captured() as c:
                     initialize.init_cmd_exe_registry(target_path, conda_prefix, reverse=True)
         finally:

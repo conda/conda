@@ -824,7 +824,7 @@ class UnlinkLinkTransaction(object):
                                                           download_urls, stp.remove_specs,
                                                           stp.update_specs)
             change_report_str = self._change_report_str(change_report)
-            print(change_report_str)
+            print(ensure_text_type(change_report_str))
 
         return legacy_action_groups
 
@@ -1051,18 +1051,16 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             log.info("failed to run %s for %s due to COMSPEC KeyError", action, prec.dist_str())
             return False
         if activate:
-            command = '@CALL \"{0}\"\n'.format(path)
             script_caller, command_args = wrap_subprocess_call(
-                on_win, context.root_prefix, prefix, command
+                on_win, context.root_prefix, prefix, context.dev, False, ('@CALL', path)
             )
         else:
             command_args = [comspec, '/d', '/c', path]
     else:
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
         if activate:
-            command = ". \"{}\"\n".format(path)
             script_caller, command_args = wrap_subprocess_call(
-                on_win, context.root_prefix, prefix, command
+                on_win, context.root_prefix, prefix, context.dev, False, (".", path)
             )
         else:
             shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
@@ -1104,7 +1102,11 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
         return True
     finally:
         if script_caller is not None:
-            rm_rf(script_caller)
+            if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
+                rm_rf(script_caller)
+            else:
+                log.warning('CONDA_TEST_SAVE_TEMPS :: retaining run_script {}'.format(
+                    script_caller))
 
 
 def messages(prefix):
@@ -1113,7 +1115,9 @@ def messages(prefix):
         if isfile(path):
             with open(path) as fi:
                 m = fi.read()
-                print(m, file=sys.stderr if context.json else sys.stdout)
+                if hasattr(m, "decode"):
+                    m = m.decode('utf-8')
+                print(m.encode('utf-8'), file=sys.stderr if context.json else sys.stdout)
                 return m
     finally:
         rm_rf(path)

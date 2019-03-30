@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import codecs
 from errno import EACCES, ELOOP, EPERM
 from io import open
 from logging import getLogger
@@ -18,12 +19,11 @@ from .delete import rm_rf, path_is_clean
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
-from ..subprocess import subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
-from ...common.compat import ensure_binary, on_win
+from ...common.compat import on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import (BasicClobberError, CaseInsensitiveFileSystemError, CondaOSError,
@@ -62,9 +62,9 @@ if __name__ == '__main__':
 
 def write_as_json_to_file(file_path, obj):
     log.trace("writing json to file %s", file_path)
-    with open(file_path, str('wb')) as fo:
+    with codecs.open(file_path, mode='wb', encoding='utf-8') as fo:
         json_str = json_dump(obj)
-        fo.write(ensure_binary(json_str))
+        fo.write(json_str)
 
 
 def create_python_entry_point(target_full_path, python_full_path, module, func):
@@ -81,23 +81,17 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
         'func': func,
         'import_name': import_name,
     }
-
     if python_full_path is not None:
-        shebang = '#!%s\n' % python_full_path
-        if hasattr(shebang, 'encode'):
-            shebang = shebang.encode()
+        shebang = u'#!%s\n' % python_full_path
 
         from ...core.portability import replace_long_shebang  # TODO: must be in wrong spot
         shebang = replace_long_shebang(FileMode.text, shebang)
-
-        if hasattr(shebang, 'decode'):
-            shebang = shebang.decode()
     else:
         shebang = None
 
-    with open(target_full_path, str('w')) as fo:
+    with codecs.open(target_full_path, mode='wb', encoding='utf-8') as fo:
         if shebang is not None:
-            fo.write(shebang)
+            fo.write(shebang.decode('utf-8'))
         fo.write(pyscript)
 
     if shebang is not None:
@@ -340,6 +334,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
                       "  error: %r\n"
                       "  src: %s\n"
                       "  dst: %s", e, src, dst)
+
             copy(src, dst)
     elif link_type == LinkType.softlink:
         _do_softlink(src, dst)
@@ -372,9 +367,16 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, pr
         #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
         if int(py_ver[0]) >= 3 and int(py_ver.split('.')[1]) > 5:
             command.extend(["-j", "0"])
-        command = '"%s" ' % python_exe_full_path + " ".join(command)
+        command[0:0] = [python_exe_full_path]
+        # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
         log.trace(command)
-        result = subprocess_call(command, raise_on_error=False, path=prefix)
+        from conda.gateways.subprocess import any_subprocess
+        # from conda.common.io import env_vars
+        # This stack does not maintain its _argparse_args correctly?
+        # from conda.base.context import stack_context_default
+        # with env_vars({}, stack_context_default):
+        #     stdout, stderr, rc = run_command(Commands.RUN, *command)
+        stdout, stderr, rc = any_subprocess(command, prefix)
     finally:
         os.remove(filename)
 
@@ -382,7 +384,7 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, pr
     for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
         if not isfile(pyc_full_path):
             message = dals("""
-            pyc file failed to compile successfully
+            pyc file failed to compile successfully (run_command failed)
             python_exe_full_path: %s
             py_full_path: %s
             pyc_full_path: %s
@@ -391,7 +393,7 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, pr
             compile stderr: %s
             """)
             log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
-                     result.rc, result.stdout, result.stderr)
+                     rc, stdout, stderr)
         else:
             created_pyc_paths.append(pyc_full_path)
 

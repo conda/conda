@@ -551,6 +551,15 @@ def configure_parser_create(sub_parsers):
         action="store_true",
         help=SUPPRESS,
     )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+             "This is mainly for use during tests where we test new conda source "
+             "against old Python versions.",
+        dest="dev",
+        default=NULL,
+    )
     p.set_defaults(func='.main_create.execute')
 
 
@@ -762,6 +771,15 @@ def configure_parser_install(sub_parsers):
         default=NULL,
         help="Allow clobbering of overlapping file paths within packages, "
              "and suppress related warnings.",
+    )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+             "This is mainly for use during tests where we test new conda source "
+             "against old Python versions.",
+        dest="dev",
+        default=NULL,
     )
     p.set_defaults(func='.main_install.execute')
 
@@ -975,6 +993,15 @@ def configure_parser_remove(sub_parsers, name='remove'):
         nargs='*',
         help="Package names to %s from the environment." % name,
     )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+             "This is mainly for use during tests where we test new conda source "
+             "against old Python versions.",
+        dest="dev",
+        default=NULL,
+    )
 
     p.set_defaults(func='.main_remove.execute')
 
@@ -1009,6 +1036,31 @@ def configure_parser_run(sub_parsers):
         help="Use once for info, twice for debug, three times for trace.",
         dest="verbosity",
         default=NULL,
+    )
+
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains"
+             "the root of conda development sources.  This is mainly for use"
+             "during tests where we test new conda source against old Python"
+             "versions.",
+        dest="dev",
+        default=NULL,
+    )
+
+    p.add_argument(
+        "--debug-wrapper-scripts",
+        action=NullCountAction,
+        help="When this is set, where implemented, the shell wrapper scripts"
+             "will echo to stderr a lot of debugging information.",
+        dest="debug_wrapper_scripts",
+        default=NULL,
+    )
+    p.add_argument(
+        "--cwd",
+        help="Current working directory for command to run in.  Defaults to cwd",
+        default=os.getcwd()
     )
 
     p.add_argument(

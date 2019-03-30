@@ -7,7 +7,7 @@ import unittest
 
 import pytest
 
-from conda.base.context import context, reset_context
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
@@ -1120,7 +1120,7 @@ def test_channel_priority_1():
 
     r2 = Resolve(index2, channels=channels)
 
-    with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", conda_tests_ctxt_mgmt_def_pol):
         # Should select the "record_2" because it has highest channel priority, even though
         # 'channel-1::pandas-0.11.1-np17py27_0.tar.bz2' would otherwise be preferred
         installed1 = r2.install(spec)
@@ -1135,7 +1135,7 @@ def test_channel_priority_1():
         assert record_1 not in installed2
 
 
-    with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", conda_tests_ctxt_mgmt_def_pol):
         # Should also select the newer package because we have
         # turned off channel priority altogether
         r2._reduced_index_cache.clear()
@@ -1156,7 +1156,7 @@ def test_channel_priority_2():
     spec = (MatchSpec('pandas'), MatchSpec('python 2.7*'))
     channels = (Channel('channel-1'), Channel('channel-3'))
     this_r = Resolve(this_index, channels=channels)
-    with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", conda_tests_ctxt_mgmt_def_pol):
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
@@ -1307,7 +1307,7 @@ def test_channel_priority_2():
         ]
 
     # setting strict actually doesn't do anything here; just ensures it's not 'disabled'
-    with env_var("CONDA_CHANNEL_PRIORITY", "strict", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "strict", conda_tests_ctxt_mgmt_def_pol):
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
@@ -1332,7 +1332,7 @@ def test_channel_priority_2():
             'channel-1::zlib-1.2.7-0',
         ], installed_w_strict
 
-    with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", conda_tests_ctxt_mgmt_def_pol):
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()

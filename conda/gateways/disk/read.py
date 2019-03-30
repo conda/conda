@@ -14,7 +14,7 @@ import json
 from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
-import shlex
+from conda._vendor.auxlib.compat import shlex_split_unicode
 import tarfile
 
 from .link import islink, lexists
@@ -216,7 +216,7 @@ def read_has_prefix(path):
 
     def parse_line(line):
         # placeholder, filemode, filepath
-        parts = tuple(x.strip('"\'') for x in shlex.split(line, posix=False))
+        parts = tuple(x.strip('"\'') for x in shlex_split_unicode(line, posix=False))
         if len(parts) == 1:
             return ParseResult(PREFIX_PLACEHOLDER, FileMode.text, parts[0])
         elif len(parts) == 3:

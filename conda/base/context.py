@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import OrderedDict
+
 from errno import ENOENT
 from logging import getLogger
 import os
@@ -28,6 +30,8 @@ from ..common.configuration import (Configuration, ConfigurationLoadError, MapPa
 from ..common.os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
+
+from .. import CONDA_PACKAGE_ROOT
 
 try:
     os.getcwd()
@@ -61,6 +65,22 @@ _arch_names = {
 
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
+
+
+def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
+    if root_writable:
+        fixed_dirs = (
+            join(root_prefix, 'envs'),
+            join('~', '.conda', 'envs'),
+        )
+    else:
+        fixed_dirs = (
+            join('~', '.conda', 'envs'),
+            join(root_prefix, 'envs'),
+        )
+    if on_win:
+        fixed_dirs += join(user_data_dir(APP_NAME, APP_NAME), 'envs'),
+    return tuple(IndexedSet(expand(p) for p in concatv(_envs_dirs, fixed_dirs)))
 
 
 def channel_alias_validation(value):
@@ -201,6 +221,7 @@ class Context(Configuration):
     always_copy = PrimitiveParameter(False, aliases=('copy',))
     always_yes = PrimitiveParameter(None, aliases=('yes',), element_type=(bool, NoneType))
     debug = PrimitiveParameter(False)
+    dev = PrimitiveParameter(False)
     dry_run = PrimitiveParameter(False)
     error_upload_url = PrimitiveParameter(ERROR_UPLOAD_URL)
     force = PrimitiveParameter(False)
@@ -388,19 +409,7 @@ class Context(Configuration):
 
     @property
     def envs_dirs(self):
-        if self.root_writable:
-            fixed_dirs = (
-                join(self.root_prefix, 'envs'),
-                join('~', '.conda', 'envs'),
-            )
-        else:
-            fixed_dirs = (
-                join('~', '.conda', 'envs'),
-                join(self.root_prefix, 'envs'),
-            )
-        if on_win:
-            fixed_dirs += join(user_data_dir(APP_NAME, APP_NAME), 'envs'),
-        return tuple(IndexedSet(expand(p) for p in concatv(self._envs_dirs, fixed_dirs)))
+        return mockable_context_envs_dirs(self.root_writable, self.root_prefix, self._envs_dirs)
 
     @property
     def pkgs_dirs(self):
@@ -475,10 +484,33 @@ class Context(Configuration):
         return abspath(sys.prefix)
 
     @property
+    # This is deprecated, please use conda_exe_vars_dict instead.
     def conda_exe(self):
         bin_dir = 'Scripts' if on_win else 'bin'
         exe = 'conda.exe' if on_win else 'conda'
         return join(self.conda_prefix, bin_dir, exe)
+
+    @property
+    def conda_exe_vars_dict(self):
+        '''
+        An OrderedDict so the vars can refer to each other if necessary.
+        None means unset it.
+        '''
+
+        if context.dev:
+            return OrderedDict([('CONDA_EXE', sys.executable),
+                                ('PYTHONPATH', os.path.dirname(CONDA_PACKAGE_ROOT) + '{}{}'.format(
+                                    os.pathsep, os.environ.get('PYTHONPATH', ''))),
+                                ('_CE_M', '-m'),
+                                ('_CE_CONDA', 'conda')])
+        else:
+            bin_dir = 'Scripts' if on_win else 'bin'
+            exe = 'conda.exe' if on_win else 'conda'
+            # I was going to use None to indicate a variable to unset, but that gets tricky with
+            # error-on-undefined.
+            return OrderedDict([('CONDA_EXE', os.path.join(sys.prefix, bin_dir, exe)),
+                                ('_CE_M', ''),
+                                ('_CE_CONDA', '')])
 
     @memoizedproperty
     def channel_alias(self):
@@ -748,6 +780,7 @@ class Context(Configuration):
             'allow_conda_downgrades',
             'add_pip_as_python_dependency',
             'debug',
+            'dev',
             'default_python',
             'enable_private_envs',
             'error_upload_url',  # should remain undocumented
@@ -1082,6 +1115,86 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     return context
 
 
+class ContextStackObject(object):
+
+    def __init__(self, search_path=SEARCH_PATH, argparse_args=None):
+        self.set_value(search_path, argparse_args)
+
+    def set_value(self, search_path=SEARCH_PATH, argparse_args=None):
+        self.search_path = search_path
+        self.argparse_args = argparse_args
+
+    def apply(self):
+        reset_context(self.search_path, self.argparse_args)
+
+
+class ContextStack(object):
+
+    def __init__(self):
+        self._stack = [ContextStackObject() for _ in range(3)]
+        self._stack_idx = 0
+        self._last_search_path = None
+        self._last_argparse_args = None
+
+    def push(self, search_path, argparse_args):
+        self._stack_idx += 1
+        old_len = len(self._stack)
+        if self._stack_idx >= old_len:
+            self._stack.extend([ContextStackObject() for _ in range(old_len)])
+        self._stack[self._stack_idx].set_value(search_path, argparse_args)
+        self.apply()
+
+    def apply(self):
+        if self._last_search_path != self._stack[self._stack_idx].search_path or \
+           self._last_argparse_args != self._stack[self._stack_idx].argparse_args:
+            # Expensive:
+            self._stack[self._stack_idx].apply()
+            self._last_search_path = self._stack[self._stack_idx].search_path
+            self._last_argparse_args = self._stack[self._stack_idx].argparse_args
+
+    def pop(self):
+        self._stack_idx -= 1
+        self._stack[self._stack_idx].apply()
+
+    def replace(self, search_path, argparse_args):
+        self._stack[self._stack_idx].set_value(search_path, argparse_args)
+        self._stack[self._stack_idx].apply()
+
+
+context_stack = ContextStack()
+
+
+def stack_context(pushing, search_path=SEARCH_PATH, argparse_args=None):
+    if pushing:
+        # Fast
+        context_stack.push(search_path, argparse_args)
+    else:
+        # Slow
+        context_stack.pop()
+
+
+# Default means "The configuration when there are no condarc files present". It is
+# all the settings and defaults that are built in to the code and *not* the default
+# value of search_path=SEARCH_PATH. It means search_path=().
+def stack_context_default(pushing, argparse_args=None):
+    return stack_context(pushing, search_path=(), argparse_args=argparse_args)
+
+
+def replace_context(pushing, search_path=SEARCH_PATH, argparse_args=None):
+    return context_stack.replace(search_path, argparse_args)
+
+
+def replace_context_default(pushing, argparse_args=None):
+    return context_stack.replace(search_path=(), argparse_args=argparse_args)
+
+
+# Tests that want to only declare 'I support the project-wide default for how to
+# manage stacking of contexts'. Tests that are known to be careful with context
+# can use `replace_context_with_default` which might be faster, though it should
+# be a stated goal to set conda_tests_ctxt_mgmt_def_pol to replace_context_default
+# and not to stack_context_default.
+conda_tests_ctxt_mgmt_def_pol = replace_context_default
+
 @memoize
 def _get_cpu_info():
     # DANGER: This is rather slow
@@ -1176,6 +1289,10 @@ def _first_writable_envs_dir():
     # Calling this function will *create* an envs directory if one does not already
     # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
     for envs_dir in context.envs_dirs:
+
+        if envs_dir == os.devnull:
+            continue
+
         # The magic file being used here could change in the future.  Don't write programs
         # outside this code base that rely on the presence of this file.
         # This value is duplicated in conda.gateways.disk.create.create_envs_directory().

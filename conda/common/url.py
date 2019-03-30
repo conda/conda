@@ -3,9 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import codecs
 from getpass import getpass
-from logging import getLogger
-import os
 from os.path import abspath, expanduser
 import re
 import socket
@@ -18,33 +17,110 @@ from .._vendor.urllib3.util.url import Url, parse_url
 
 try:  # pragma: py2 no cover
     # Python 3
-    from urllib.parse import (quote, quote_plus, unquote, unquote_plus,  # NOQA
-                              urlunparse as stdlib_urlparse, urljoin)  # NOQA
-    # Importing urllib.request is exceptionally slow in Python 3.
-    # Copy pathname2url's implementation directly instead:
-    if os.name == 'nt':
-        from nturl2path import pathname2url  # NOQA
-    else:
-        def pathname2url(pathname):
-            return quote(pathname)
+    from urllib.parse import (quote, quote_plus, unquote, unquote_plus)
 except ImportError:  # pragma: py3 no cover
     # Python 2
-    from urllib import quote, quote_plus, unquote, unquote_plus, pathname2url  # NOQA
-    from urlparse import urlunparse as stdlib_urlparse, urljoin  # NOQA
+    from urllib import (quote, quote_plus, unquote, unquote_plus)  # NOQA
 
 
-log = getLogger(__name__)
+def hex_octal_to_int(ho):
+    ho = ord(ho)
+    o0 = ord('0')
+    o9 = ord('9')
+    oA = ord('A')
+    oF = ord('F')
+    res = ho - o0 if ho >= o0 and ho <= o9 else (ho - oA + 10) if ho >= oA and ho <= oF else None
+    return res
+
+
+@memoize
+def percent_decode(path):
+
+    # This is not fast so avoid when we can.
+    if '%' not in path:
+        return path
+    ranges = []
+    for m in re.finditer(r'(%[0-9A-F]{2})', path):
+        ranges.append((m.start(), m.end()))
+    if not len(ranges):
+        return path
+
+    # Sorry! Correctness is more important than speed at the moment.
+    # Should use a map + lambda eventually.
+    result = b''
+    skips = 0
+    for i, c in enumerate(path):
+        if skips > 0:
+            skips -= 1
+            continue
+        c = c.encode('ascii')
+        emit = c
+        if c == b'%':
+            for r in ranges:
+                if i == r[0]:
+                    import struct
+                    emit = struct.pack(
+                        "B", hex_octal_to_int(path[i+1])*16 + hex_octal_to_int(path[i+2]))
+                    skips = 2
+                    break
+        if emit:
+            result += emit
+    return codecs.utf_8_decode(result)[0]
+
+
+file_scheme = 'file://'
+
+# Keeping this around for now, need to combine with the same function in conda/common/path.py
+"""
+def url_to_path(url):
+    assert url.startswith(file_scheme), "{} is not a file-scheme URL".format(url)
+    decoded = percent_decode(url[len(file_scheme):])
+    if decoded.startswith('/') and decoded[2] == ':':
+        # A Windows path.
+        decoded.replace('/', '\\')
+    return decoded
+"""
 
 
 @memoize
 def path_to_url(path):
     if not path:
         raise ValueError('Not allowed: %r' % path)
-    if path.startswith('file:/'):
+    if path.startswith(file_scheme):
+        try:
+            path.decode('ascii')
+        except UnicodeDecodeError:
+            raise ValueError('Non-ascii not allowed for things claiming to be URLs: %r' % path)
         return path
-    path = abspath(expanduser(path))
-    url = urljoin('file:', pathname2url(path))
-    return url
+    path = abspath(expanduser(path)).replace('\\', '/')
+    # We do not use urljoin here because we want to take our own
+    # *very* explicit control of how paths get encoded into URLs.
+    #   We should not follow any RFCs on how to encode and decode
+    # them, we just need to make sure we can represent them in a
+    # way that will not cause problems for whatever amount of
+    # urllib processing we *do* need to do on them (which should
+    # be none anyway, but I doubt that is the case). I have gone
+    # for ASCII and % encoding of everything not alphanumeric or
+    # not in `!'()*-._/:`. This should be pretty save.
+    #
+    # To avoid risking breaking the internet, this code only runs
+    # for `file://` URLs.
+    #
+    percent_encode_chars = "!'()*-._/\\:"
+    percent_encode = lambda s: "".join(["%%%02X" % ord(c), c]
+                                       [c < "{" and c.isalnum() or c in percent_encode_chars]
+                                       for c in s)
+    if any(ord(char) >= 128 for char in path):
+        path = percent_encode(path.decode('unicode-escape')
+                              if hasattr(path, 'decode')
+                              else bytes(path, "utf-8").decode('unicode-escape'))
+
+    # https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
+    if path[1] == ':':
+        path = file_scheme + '/' + path
+    else:
+        path = file_scheme + path
+    return path
 
 
 @memoize

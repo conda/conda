@@ -69,7 +69,7 @@ def pretty_package(prec):
     for key in sorted(set(pkg.keys()) - SKIP_FIELDS):
         d[key] = pkg[key]
 
-    print()
+    print('')
     header = "%s %s %s" % (d['name'], d['version'], d['build string'])
     print(header)
     print('-'*len(header))
@@ -277,7 +277,7 @@ def execute(args, parser):
         if context.json:
             stdout_json({'root_prefix': context.root_prefix})
         else:
-            print(context.root_prefix)
+            print('{}'.format(context.root_prefix))
         return
 
     if args.packages:
@@ -327,14 +327,14 @@ def execute(args, parser):
             if site_dirs:
                 print(site_dirs[0])
             else:
-                print()
+                print('')
             for site_dir in site_dirs[1:]:
                 print('                %s' % site_dir)
-            print()
+            print('')
 
             for name, value in sorted(iteritems(info_dict['env_vars'])):
                 print("%s: %s" % (name, value))
-            print()
+            print('')
 
     if context.json:
         stdout_json(info_dict)

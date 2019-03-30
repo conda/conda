@@ -6,13 +6,15 @@ import unittest
 from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
-from conda.base.context import reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_load
 from conda.install import on_win
 
 from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
+from tests.test_utils import is_prefix_activated_PATHwise
+
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 
@@ -21,6 +23,8 @@ try:
     from io import StringIO
 except ImportError:
     from StringIO import StringIO
+
+import pytest
 
 from conda_env import env
 from conda_env import exceptions
@@ -352,15 +356,18 @@ class EnvironmentSaveTestCase(unittest.TestCase):
 
 
 class SaveExistingEnvTestCase(unittest.TestCase):
+    @unittest.skipIf(not is_prefix_activated_PATHwise(),
+                      "You are running `pytest` outside of proper activation. "
+                      "The entries necessary for conda to operate correctly "
+                      "are not on PATH.  Please use `conda activate`")
+    @pytest.mark.integration
     def test_create_advanced_pip(self):
         with make_temp_envs_dir() as envs_dir:
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
-                'CONDA_PIP_INTEROP_ENABLED': 'true',
-            }, reset_context):
+                'CONDA_DLL_SEARCH_MODIFICATION_ENABLE': 'true',
+            }, conda_tests_ctxt_mgmt_def_pol):
                 env_name = str(uuid4())[:8]
-                prefix = join(envs_dir, env_name)
-                python_path = join(prefix, PYTHON_BINARY)
                 run_command(Commands.CREATE, env_name,
                             support_file('pip_argh.yml'))
                 out_file = join(envs_dir, 'test_env.yaml')
@@ -370,7 +377,7 @@ class SaveExistingEnvTestCase(unittest.TestCase):
 
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
-            }, reset_context):
+            }, conda_tests_ctxt_mgmt_def_pol):
                 # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
                 run_command(Commands.EXPORT, env_name, out_file)
                 with open(out_file) as f:

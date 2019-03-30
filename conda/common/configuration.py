@@ -186,7 +186,11 @@ class RawParameter(object):
     def __init__(self, source, key, raw_value):
         self.source = source
         self.key = key
-        self._raw_value = raw_value
+        try:
+            # ignore flake8 on this because it finds an error on py3 even though it is guarded
+            self._raw_value = unicode(raw_value.decode('utf-8'))  # NOQA
+        except:
+            self._raw_value = raw_value
 
     def __repr__(self):
         return text_type(vars(self))

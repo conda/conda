@@ -17,7 +17,7 @@ import sys
 from .base.context import context
 from .common.compat import itervalues, on_win, open
 from .common.path import expand
-from .common.url import is_url, join_url, path_to_url, unquote
+from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
@@ -56,7 +56,16 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             continue
 
         if not is_url(spec):
-            spec = unquote(path_to_url(expand(spec)))
+            '''
+            # This does not work because url_to_path does not enforce Windows
+            # backslashes. Should it? Seems like a dangerous change to make but
+            # it would be cleaner.
+            expanded = expand(spec)
+            urled = path_to_url(expanded)
+            pathed = url_to_path(urled)
+            assert pathed == expanded
+            '''
+            spec = path_to_url(expand(spec))
 
         # parse URL
         m = url_pat.match(spec)

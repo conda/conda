@@ -155,7 +155,7 @@ class ClobberError(CondaError):
 
     def __repr__(self):
         clz_name = "ClobberWarning" if self.path_conflict == PathConflict.warn else "ClobberError"
-        return '%s: %s\n' % (clz_name, text_type(self))
+        return '%s: %s\n' % (clz_name, self)
 
 
 class BasicClobberError(ClobberError):
@@ -689,7 +689,7 @@ class SpecsConfigurationConflictError(CondaError):
         """).format(
             requested_specs_formatted=dashlist(requested_specs, 4),
             pinned_specs_formatted=dashlist(pinned_specs, 4),
-            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+            pinned_specs_path=join(prefix, 'conda-meta', 'pinned'),
         )
         super(SpecsConfigurationConflictError, self).__init__(
             message, requested_specs=requested_specs, pinned_specs=pinned_specs, prefix=prefix,
@@ -972,15 +972,16 @@ def print_conda_exception(exc_val, exc_tb=None):
     elif context.json:
         if isinstance(exc_val, DryRunExit):
             return
-        logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
+        logger = getLogger('conda.stdout' if rc else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
         logger.info("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
-        if rc == 0:
-            stderrlog.error("\n%s\n", exc_val)
-        else:
-            stderrlog.error("\n%r\n", exc_val)
+        stderrlog.error("\n%r\n", exc_val)
+        # An alternative which would allow us not to reload sys with newly setdefaultencoding()
+        # is to not use `%r`, e.g.:
+        # Still, not being able to use `%r` seems too great a price to pay.
+        # stderrlog.error("\n" + exc_val.__repr__() + \n")
 
 
 def _format_exc(exc_val=None, exc_tb=None):

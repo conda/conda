@@ -55,6 +55,21 @@ To set up an environment to start developing on conda code, we recommend the fol
 
        py.test tests/test_create.py -k create_install_update_remove_smoketest
 
+3.1  Test-suite issues
+
+       If you do not have git installed and your test does not install it then
+       queries to conda --version will except (yeah, this should get fixed). To
+       workaround:
+
+       git describe > conda/.version
+
+       .. Then make this file PEP440 compliant.
+
+       .. (initially an every time you commit).
+
+       The tests-suite is very sensitive to the initial environment. We have make
+       some effort to make the tests runnable in popular IDEs, and in PyCharm's
+       case, many tests can be run from a clean environment (variable-wise)
 
 ## Development Environment, Windows cmd.exe shell
 

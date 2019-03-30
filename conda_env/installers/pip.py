@@ -5,8 +5,12 @@ from __future__ import absolute_import
 
 import os
 import os.path as op
-import tempfile
+from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from conda_env.pip_util import pip_subprocess
+from logging import getLogger
+
+
+log = getLogger(__name__)
 
 
 def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
@@ -30,21 +34,25 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
     requirements = None
     try:
         # Generate the temporary requirements file
-        requirements = tempfile.NamedTemporaryFile(mode='w',
-                                                   prefix='condaenv.',
-                                                   suffix='.requirements.txt',
-                                                   dir=pip_workdir,
-                                                   delete=False)
+        requirements = Utf8NamedTemporaryFile(mode='w',
+                                              prefix='condaenv.',
+                                              suffix='.requirements.txt',
+                                              dir=pip_workdir,
+                                              delete=False)
         requirements.write('\n'.join(specs))
         requirements.close()
         # pip command line...
-        pip_cmd = ['install', '-r', '"{}"'.format(requirements.name)]
+        pip_cmd = ['install', '-r', requirements.name]
         pip_subprocess(pip_cmd, prefix, cwd=pip_workdir)
     finally:
         # Win/Appveyor does not like it if we use context manager + delete=True.
         # So we delete the temporary file in a finally block.
         if requirements is not None and op.isfile(requirements.name):
-            os.remove(requirements.name)
+            if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
+                os.remove(requirements.name)
+            else:
+                log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip requirements.txt {}'
+                            .format(requirements.name))
 
 
 # Conform to Installers API

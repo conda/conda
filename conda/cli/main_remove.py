@@ -35,6 +35,18 @@ def execute(args, parser):
 
     if args.all and path_is_clean(prefix):
         # full environment removal was requested, but environment doesn't exist anyway
+
+        # .. but you know what? If you call `conda remove --all` you'd expect the dir
+        # not to exist afterwards, would you not? If not (fine, I can see the argument
+        # about deleting people's work in envs being a very bad thing indeed), but if
+        # being careful is the goal it would still be nice if after `conda remove --all`
+        # to be able to do `conda create` on the same environment name.
+        #
+        # try:
+        #     rm_rf(prefix, clean_empty_parents=True)
+        # except:
+        #     log.warning("Failed rm_rf() of partially existent env {}".format(prefix))
+
         return 0
 
     if args.all:

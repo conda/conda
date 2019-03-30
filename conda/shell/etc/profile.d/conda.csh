@@ -10,8 +10,14 @@ else
 endif
 
 if ("`alias conda`" == "") then
-    if ($?_CONDA_ROOT) then
-        alias conda source "${_CONDA_ROOT}/etc/profile.d/conda.csh"
+    if ($?_CONDA_EXE) then
+        # _CONDA_PFX is named so as not to cause confusion with CONDA_PREFIX
+        # If nested backticks were possible we wouldn't use any variables here.
+        set _CONDA_PFX=`dirname "${_CONDA_EXE}"`
+        set _CONDA_PFX=`dirname "${_CONDA_PFX}"`
+        alias conda source "${_CONDA_PFX}/etc/profile.d/conda.csh"
+        # And for good measure, get rid of it afterwards.
+        unset _CONDA_PFX
     else
         alias conda source "${PWD}/conda/shell/etc/profile.d/conda.csh"
     endif

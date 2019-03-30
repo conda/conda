@@ -22,21 +22,21 @@ __conda_activate() {
     \local cmd="$1"
     shift
     \local ask_conda
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" shell.posix "$cmd" "$@")" || \return $?
+    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix "$cmd" "$@")" || \return $?
     \eval "$ask_conda"
     __conda_hashr
 }
 
 __conda_reactivate() {
     \local ask_conda
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" shell.posix reactivate)" || \return $?
+    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix reactivate)" || \return $?
     \eval "$ask_conda"
     __conda_hashr
 }
 
 conda() {
     if [ "$#" -lt 1 ]; then
-        "$CONDA_EXE"
+        "$CONDA_EXE" $_CE_M $_CE_CONDA
     else
         \local cmd="$1"
         shift
@@ -45,16 +45,24 @@ conda() {
                 __conda_activate "$cmd" "$@"
                 ;;
             install|update|upgrade|remove|uninstall)
-                "$CONDA_EXE" "$cmd" "$@" && __conda_reactivate
+                "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@" && __conda_reactivate
                 ;;
-            *) "$CONDA_EXE" "$cmd" "$@" ;;
+            *) "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@" ;;
         esac
     fi
 }
 
 if [ -z "${CONDA_SHLVL+x}" ]; then
     \export CONDA_SHLVL=0
-    PATH="$(dirname "$(dirname "$CONDA_EXE")")/condabin:${PATH:-}"
+    if [ "${_CE_CONDA+x}" == "condax" ]; then
+        if [ "${PATH+x}" == "x" ]; then
+            PATH="$(dirname "$CONDA_EXE")/condabin"
+        else
+            PATH="$(dirname "$(dirname "$CONDA_EXE")")/condabin:${PATH}"
+        fi
+    else
+        PATH="$(dirname "$(dirname "$CONDA_EXE")")/condabin:${PATH:-}"
+    fi
     \export PATH
 
     # We're not allowing PS1 to be unbound. It must at least be set.

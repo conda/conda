@@ -4,14 +4,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from shlex import split
 
 from .conda_argparse import do_call
+from ..compat import encode_arguments
 from .main import generate_parser
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
 from ..common.io import CaptureTarget, argv, captured
-from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
 
@@ -35,7 +34,7 @@ class Commands:
 STRING = CaptureTarget.STRING
 STDOUT = CaptureTarget.STDOUT
 
-
+# Note, a deviated copy of this code appears in tests/test_create.py
 def run_command(command, *arguments, **kwargs):
     """Runs a conda command in-process with a given set of command-line interface arguments.
 
@@ -45,7 +44,9 @@ def run_command(command, *arguments, **kwargs):
     Args:
         command: one of the Commands.X
         *arguments: instructions you would normally pass to the conda comamnd on the command line
-                    see below for examples
+                    see below for examples. Be very careful to delimit arguements exactly as you
+                    want them to be delivered. No 'combine then split at spaces' or other
+                    information destroying processing gets performed on the arguments.
         **kwargs: special instructions for programmatic overrides
           use_exception_handler: defaults to False.  False will let the code calling
               `run_command` handle all exceptions.  True won't raise when an exception
@@ -64,9 +65,10 @@ def run_command(command, *arguments, **kwargs):
         stdout, stderr are either strings, None or the corresponding file-like function argument.
 
     Examples:
-        >>  run_command(Commands.CREATE, "-n newenv python=3 flask", use_exception_handler=True)
-        >>  run_command(Commands.CREATE, "-n newenv", "python=3", "flask")
-        >>  run_command(Commands.CREATE, ["-n newenv", "python=3", "flask"], search_path=())
+        >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask",
+                        use_exception_handler=True)
+        >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")
+        >>  run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
 
 
     """
@@ -77,19 +79,20 @@ def run_command(command, *arguments, **kwargs):
     stderr = kwargs.pop('stderr', STRING)
     p = generate_parser()
 
-    arguments = map(win_path_double_escape, arguments)
-    command_line = "%s %s" % (command, " ".join(arguments))
-    split_command_line = split(command_line)
+    arguments = list(arguments)
+    arguments.insert(0, command)
 
-    args = p.parse_args(split_command_line)
+    args = p.parse_args(arguments)
     args.yes = True  # always skip user confirmation, force setting context.always_yes
     context.__init__(
         search_path=configuration_search_path,
         argparse_args=args,
     )
-    log.debug("executing command >>>  conda %s", command_line)
+
+    from subprocess import list2cmdline
+    log.debug("executing command >>>  conda %s", list2cmdline(arguments))
     try:
-        with argv(['python_api'] + split_command_line), captured(stdout, stderr) as c:
+        with argv(['python_api'] + encode_arguments(arguments)), captured(stdout, stderr) as c:
             if use_exception_handler:
                 return_code = conda_exception_handler(do_call, args, p)
             else:

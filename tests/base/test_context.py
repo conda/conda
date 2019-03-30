@@ -13,7 +13,7 @@ from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
 from conda.base.constants import PathConflict, ChannelPriority
-from conda.base.context import context, reset_context
+from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import odict, iteritems
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var
@@ -63,7 +63,7 @@ class ContextCustomRcTests(TestCase):
         aggressive_update_packages: []
         channel_priority: false
         """)
-        reset_context()
+        reset_context(())
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._set_raw_data(rd)
 
@@ -130,7 +130,7 @@ class ContextCustomRcTests(TestCase):
         conda_bld_url = path_to_url(conda_bld_path)
         try:
             mkdir_p(conda_bld_path)
-            with env_var('CONDA_BLD_PATH', conda_bld_path, reset_context):
+            with env_var('CONDA_BLD_PATH', conda_bld_path, conda_tests_ctxt_mgmt_def_pol):
                 assert len(context.conda_build_local_paths) >= 1
                 assert context.conda_build_local_paths[0] == conda_bld_path
 
@@ -186,7 +186,7 @@ class ContextCustomRcTests(TestCase):
         assert context.conda_build['root-dir'] == "/some/test/path"
 
     def test_clobber_enum(self):
-        with env_var("CONDA_PATH_CONFLICT", 'prevent', reset_context):
+        with env_var("CONDA_PATH_CONFLICT", 'prevent', conda_tests_ctxt_mgmt_def_pol):
             assert context.path_conflict == PathConflict.prevent
 
     def test_context_parameter_map(self):
@@ -214,11 +214,11 @@ class ContextCustomRcTests(TestCase):
         assert context.local_build_root == "C:\\some\\test\\path" if on_win else "/some/test/path"
 
         test_path_1 = join(os.getcwd(), 'test_path_1')
-        with env_var("CONDA_CROOT", test_path_1, reset_context):
+        with env_var("CONDA_CROOT", test_path_1, conda_tests_ctxt_mgmt_def_pol):
             assert context.local_build_root == test_path_1
 
         test_path_2 = join(os.getcwd(), 'test_path_2')
-        with env_var("CONDA_BLD_PATH", test_path_2, reset_context):
+        with env_var("CONDA_BLD_PATH", test_path_2, conda_tests_ctxt_mgmt_def_pol):
             assert context.local_build_root == test_path_2
 
     def test_default_target_is_root_prefix(self):
@@ -231,7 +231,7 @@ class ContextCustomRcTests(TestCase):
             create_package_cache_directory(join(prefix, 'first', 'pkgs'))
             create_package_cache_directory(join(prefix, 'second', 'pkgs'))
             envs_dirs = (join(prefix, 'first', 'envs'), join(prefix, 'second', 'envs'))
-            with env_var('CONDA_ENVS_DIRS', os.pathsep.join(envs_dirs), reset_context):
+            with env_var('CONDA_ENVS_DIRS', os.pathsep.join(envs_dirs), conda_tests_ctxt_mgmt_def_pol):
 
                 # with both dirs writable, choose first
                 reset_context((), argparse_args=AttrDict(name='blarg', func='create'))
@@ -253,7 +253,7 @@ class ContextCustomRcTests(TestCase):
     def test_aggressive_update_packages(self):
         assert context.aggressive_update_packages == tuple()
         specs = ['certifi', 'openssl>=1.1']
-        with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), reset_context):
+        with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), conda_tests_ctxt_mgmt_def_pol):
             assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
 
     def test_channel_priority(self):
@@ -266,7 +266,7 @@ class ContextDefaultRcTests(TestCase):
         assert context.subdirs == (context.subdir, 'noarch')
 
         subdirs = ('linux-highest', 'linux-64', 'noarch')
-        with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
+        with env_var('CONDA_SUBDIRS', ','.join(subdirs), conda_tests_ctxt_mgmt_def_pol):
             assert context.subdirs == subdirs
 
     def test_local_build_root_default_rc(self):

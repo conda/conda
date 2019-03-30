@@ -3,11 +3,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import codecs
 from errno import EACCES, ENOENT, EPERM
 from functools import reduce
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
+from sys import platform
 from tarfile import ReadError
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
@@ -416,8 +418,8 @@ class UrlsData(object):
         self.pkgs_dir = pkgs_dir
         self.urls_txt_path = urls_txt_path = join(pkgs_dir, 'urls.txt')
         if isfile(urls_txt_path):
-            with open(urls_txt_path, 'r') as fh:
-                self._urls_data = [line.strip() for line in fh]
+            with open(urls_txt_path, 'rb') as fh:
+                self._urls_data = [line.strip().decode('utf-8') for line in fh]
                 self._urls_data.reverse()
         else:
             self._urls_data = []
@@ -429,8 +431,9 @@ class UrlsData(object):
         return iter(self._urls_data)
 
     def add_url(self, url):
-        with open(self.urls_txt_path, 'a') as fh:
-            fh.write(url + '\n')
+        with codecs.open(self.urls_txt_path, mode='ab', encoding='utf-8') as fh:
+            linefeed = '\r\n' if platform == 'win32' else '\n'
+            fh.write(url + linefeed)
         self._urls_data.insert(0, url)
 
     @memoizemethod
@@ -610,7 +613,7 @@ class ProgressiveFetchExtract(object):
             for prec_or_spec, prec_actions in iteritems(self.paired_actions):
                 exc = self._execute_actions(prec_or_spec, prec_actions)
                 if exc:
-                    log.debug('%r', exc, exc_info=True)
+                    log.debug('%r'.encode('utf-8'), exc, exc_info=True)
                     exceptions.append(exc)
 
         if exceptions:
