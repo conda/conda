@@ -42,6 +42,10 @@ from random import randint
 import re
 import sys
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
 
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.compat import Utf8NamedTemporaryFile
