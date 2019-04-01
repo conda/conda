@@ -646,7 +646,7 @@ def run_plan_elevated(plan):
                     rm_rf(temp_path)
 
         else:
-            stdin = json.dumps(plan)
+            stdin = json.dumps(plan, ensure_ascii=False, default=lambda x: x.__dict__)
             result = subprocess_call(
                 'sudo %s -m conda.core.initialize' % sys.executable,
                 env={},
