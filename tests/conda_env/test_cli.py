@@ -83,7 +83,7 @@ def run_env_command(command, prefix, *arguments):
         arguments[1:1] = ['-n', prefix]
     elif command is Commands.ENV_CREATE: # CREATE
         if prefix:
-            arguments[1:1] = ['-f', prefix]
+            arguments[1:1] = ['-n', prefix]
     elif command is Commands.ENV_REMOVE:  # REMOVE
         arguments[1:1] = ['--yes', '-n', prefix]
     elif command is Commands.ENV_UPDATE:
@@ -295,7 +295,7 @@ class NewIntegrationTests(unittest.TestCase):
 
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
-            run_env_command(Commands.ENV_CREATE, env_yaml.name)
+            run_env_command(Commands.ENV_CREATE, None, "--file", env_yaml.name)
             self.assertTrue(env_is_created(test_env_name_2))
 
             # regression test for #6220
@@ -332,7 +332,7 @@ class NewIntegrationTests(unittest.TestCase):
         snowflake2, e = run_conda_command(Commands.LIST, test_env_name_2, "-e")
         self.assertEqual(snowflake, snowflake2)
 
-    def test_export_muti_channel(self):
+    def test_export_multi_channel(self):
         """
             Test conda env export
         """
@@ -354,7 +354,7 @@ class NewIntegrationTests(unittest.TestCase):
             env_yaml.close()
             o, e = run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
-            o, e = run_env_command(Commands.ENV_CREATE, env_yaml.name)
+            o, e = run_env_command(Commands.ENV_CREATE, None, "--file", env_yaml.name)
             self.assertTrue(env_is_created(test_env_name_2))
 
         # check explicit that we have same file
@@ -363,12 +363,12 @@ class NewIntegrationTests(unittest.TestCase):
 
     def test_non_existent_file(self):
         with self.assertRaises(EnvironmentFileNotFound):
-            run_env_command(Commands.ENV_CREATE, 'i_do_not_exist.yml')
+            run_env_command(Commands.ENV_CREATE, None, "--file", 'i_do_not_exist.yml')
 
     def test_invalid_extensions(self):
         with Utf8NamedTemporaryFile(mode="w", suffix=".ymla", delete=False) as env_yaml:
             with self.assertRaises(EnvironmentFileExtensionNotValid):
-                run_env_command(Commands.ENV_CREATE, env_yaml.name)
+                run_env_command(Commands.ENV_CREATE, None, "--file", env_yaml.name)
 
 
 
