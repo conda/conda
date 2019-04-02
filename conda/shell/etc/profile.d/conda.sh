@@ -54,8 +54,8 @@ conda() {
 
 if [ -z "${CONDA_SHLVL+x}" ]; then
     \export CONDA_SHLVL=0
-    if [ "${_CE_CONDA+x}" == "condax" ]; then
-        if [ "${PATH+x}" == "x" ]; then
+    if [ "${_CE_CONDA+x}" = "condax" ]; then
+        if [ "${PATH+x}" = "x" ]; then
             PATH="$(dirname "$CONDA_EXE")/condabin"
         else
             PATH="$(dirname "$(dirname "$CONDA_EXE")")/condabin:${PATH}"
