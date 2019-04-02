@@ -69,7 +69,7 @@ class EnvsManagerUnitTests(TestCase):
 
     def test_prefix_cli_flag(self):
         envs_dirs = (join(self.prefix, 'first-envs-dir'), join(self.prefix, 'seconds-envs-dir'))
-        with env_var('CONDA_ENVS_DIRS', os.pathsep.join(envs_dirs), conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_ENVS_DIRS', os.pathsep.join(envs_dirs), stack_callback=conda_tests_ctxt_mgmt_def_pol):
 
             # even if prefix doesn't exist, it can be a target prefix
             reset_context((), argparse_args=AttrDict(prefix='./blarg', func='create'))

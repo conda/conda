@@ -139,7 +139,7 @@ class ActivatorUnitTests(TestCase):
         pass
 
     def test_PS1(self):
-        with env_var("CONDA_CHANGEPS1", "yes", conda_tests_ctxt_mgmt_def_pol):
+        with env_var("CONDA_CHANGEPS1", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             activator = PosixActivator()
             assert activator._prompt_modifier('/dont/matter', ROOT_ENV_NAME) == '(%s) ' % ROOT_ENV_NAME
 
@@ -147,7 +147,7 @@ class ActivatorUnitTests(TestCase):
             assert instructions['export_vars']['CONDA_PROMPT_MODIFIER'] == '(%s) ' % ROOT_ENV_NAME
 
     def test_PS1_no_changeps1(self):
-        with env_var("CONDA_CHANGEPS1", "no", conda_tests_ctxt_mgmt_def_pol):
+        with env_var("CONDA_CHANGEPS1", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             activator = PosixActivator()
             assert activator._prompt_modifier('/dont/matter', 'root') == ''
 
@@ -317,7 +317,7 @@ class ActivatorUnitTests(TestCase):
                 'CONDA_PREFIX': old_prefix,
                 'PATH': old_path,
                 'CONDA_ENV_PROMPT': '({default_env})',
-            }, conda_tests_ctxt_mgmt_def_pol):
+            }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_activate(td)
                 new_path = activator.pathsep_join(activator._replace_prefix_in_path(old_prefix, td))
@@ -397,7 +397,7 @@ class ActivatorUnitTests(TestCase):
                 'CONDA_PREFIX': old_prefix,
                 'PATH': old_path,
                 'CONDA_ENV_PROMPT': '({default_env})',
-            }, conda_tests_ctxt_mgmt_def_pol):
+            }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_stack(td)
                 new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
@@ -528,7 +528,7 @@ class ActivatorUnitTests(TestCase):
                     'CONDA_PREFIX': td,
                     'CONDA_STACKED_2': 'true',
                     'PATH': starting_path,
-                }, conda_tests_ctxt_mgmt_def_pol):
+                }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     activator = PosixActivator()
                     builder = activator.build_deactivate()
 
@@ -582,7 +582,7 @@ class ActivatorUnitTests(TestCase):
                 'CONDA_PREFIX_1': old_prefix,
                 'CONDA_PREFIX': td,
                 'PATH': new_path,
-            }, conda_tests_ctxt_mgmt_def_pol):
+            }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_deactivate()
 
@@ -1808,7 +1808,7 @@ class ShellWrapperIntegrationTests(TestCase):
         charizard = join(self.prefix, 'envs', 'charizard')
         conda_bat = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
         with env_vars({'PATH': "C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"},
-                      conda_tests_ctxt_mgmt_def_pol):
+                      stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with InteractiveShell('cmd.exe') as shell:
                 shell.expect('.*\n')
 

@@ -366,7 +366,7 @@ class SaveExistingEnvTestCase(unittest.TestCase):
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
                 'CONDA_DLL_SEARCH_MODIFICATION_ENABLE': 'true',
-            }, conda_tests_ctxt_mgmt_def_pol):
+            }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 env_name = str(uuid4())[:8]
                 run_command(Commands.CREATE, env_name,
                             support_file('pip_argh.yml'))
@@ -377,7 +377,7 @@ class SaveExistingEnvTestCase(unittest.TestCase):
 
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
-            }, conda_tests_ctxt_mgmt_def_pol):
+            }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
                 run_command(Commands.EXPORT, env_name, out_file)
                 with open(out_file) as f:

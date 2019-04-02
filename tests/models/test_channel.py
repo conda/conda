@@ -546,7 +546,7 @@ class CustomConfigChannelTests(TestCase):
         mkdir_p(conda_bld_path)
         try:
             from functools import partial
-            with env_var('CONDA_CROOT', conda_bld_path, conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_CROOT', conda_bld_path, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 Channel._reset_state()
                 channel = Channel('local')
                 assert channel._channels[0].name.rsplit('/', 1)[-1] == 'conda-bld'
@@ -923,7 +923,7 @@ class UrlChannelTests(TestCase):
                 for subdir in subdirs:
                     yield join_url(channel.base_url, subdir)
 
-        with env_vars(dict({'CONDA_SUBDIRS': ','.join(subdirs)}), conda_tests_ctxt_mgmt_def_pol):
+        with env_vars(dict({'CONDA_SUBDIRS': ','.join(subdirs)}), stack_callback=conda_tests_ctxt_mgmt_def_pol):
             c = Channel('defaults')
             assert c.urls() == list(_channel_urls())
 
@@ -950,7 +950,7 @@ class UrlChannelTests(TestCase):
             ))
 
     def test_subdir_env_var(self):
-        with env_var('CONDA_SUBDIR', 'osx-1012-x84_64', conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_SUBDIR', 'osx-1012-x84_64', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             channel = Channel('https://conda.anaconda.org/msarahan/osx-1012-x84_64/clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2')
             assert channel.base_url == 'https://conda.anaconda.org/msarahan'
             assert channel.package_filename == 'clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2'

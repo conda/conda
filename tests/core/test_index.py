@@ -29,7 +29,7 @@ def test_check_whitelist():
         'conda-forge',
         'https://beta.conda.anaconda.org/conda-test'
     )
-    with env_vars({'CONDA_WHITELIST_CHANNELS': ','.join(whitelist)}, conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({'CONDA_WHITELIST_CHANNELS': ','.join(whitelist)}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with pytest.raises(ChannelNotAllowed):
             get_index(("conda-canary",))
 
