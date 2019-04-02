@@ -441,7 +441,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     with env_vars({
         'CONDA_ALLOW_NON_CHANNEL_URLS': 'true',
         'CONDA_SOLVER_IGNORE_TIMESTAMPS': 'false',
-    }, callback=stack_context_default):
+    }, stack_callback=stack_context_default):
         from os.path import basename
         from ._vendor.boltons.setutils import IndexedSet
         from .core.solve import Solver
