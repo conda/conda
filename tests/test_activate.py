@@ -870,11 +870,11 @@ class ShellWrapperUnitTests(TestCase):
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             e_deactivate_data = dals("""
+            @SET "PATH=%(new_path)s"
             @CALL "%(deactivate1)s"
             @SET CONDA_PREFIX=
             @SET CONDA_DEFAULT_ENV=
             @SET CONDA_PROMPT_MODIFIER=
-            @SET "PATH=%(new_path)s"
             @SET "CONDA_SHLVL=0"
             %(conda_exe_export)s
             """) % {
@@ -1204,13 +1204,14 @@ class ShellWrapperUnitTests(TestCase):
             deactivate_data = c.stdout
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
+
             assert deactivate_data == dals("""
-            $env:PATH = "%(new_path)s"
+            $Env:PATH = "%(new_path)s"
             . "%(deactivate1)s"
             Remove-Item Env:/CONDA_PREFIX
             Remove-Item Env:/CONDA_DEFAULT_ENV
             Remove-Item Env:/CONDA_PROMPT_MODIFIER
-            $env:CONDA_SHLVL = "0"
+            $Env:CONDA_SHLVL = "0"
             %(conda_exe_export)s
             """) % {
                 'new_path': new_path,
@@ -2028,3 +2029,45 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline("deactivate --dev")
             conda_shlvl = shell.get_env_var('CONDA_SHLVL')
             assert conda_shlvl == '0', conda_shlvl
+
+@pytest.mark.integration
+class ActivationIntegrationTests(TestCase):
+
+    def setUp(self):
+        tempdirdir = gettempdir()
+
+        prefix_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
+        self.prefix = join(tempdirdir, prefix_dirname)
+        mkdir_p(join(self.prefix, 'conda-meta'))
+        assert isdir(self.prefix)
+        touch(join(self.prefix, 'conda-meta', 'history'))
+
+        self.prefix2 = join(self.prefix, 'envs', 'charizard')
+        mkdir_p(join(self.prefix2, 'conda-meta'))
+        touch(join(self.prefix2, 'conda-meta', 'history'))
+
+    def tearDown(self):
+        rm_rf(self.prefix)
+        rm_rf(self.prefix2)
+
+    def activate_deactivate_modify_path(self, shell):
+        activate_deactivate_package = "activate_deactivate_package"
+        activate_deactivate_package_path_string = "teststringfromactivate/bin/test"
+        original_path = os.environ.get("PATH")
+        run_command(Commands.INSTALL, self.prefix2, activate_deactivate_package, "-c", "c3i_test2")
+
+        with InteractiveShell(shell) as shell:
+            shell.sendline('conda activate "%s"' % self.prefix2)
+            activated_env_path = shell.get_env_var("PATH")
+            shell.sendline('conda deactivate')
+
+        assert activate_deactivate_package_path_string in activated_env_path
+        assert original_path == os.environ.get("PATH")
+
+    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
+    def test_activate_deactivate_modify_path_bash(self):
+        self.activate_deactivate_modify_path("bash")
+
+    @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
+    def test_activate_deactivate_modify_path(self):
+        self.activate_deactivate_modify_path("cmd.exe")
