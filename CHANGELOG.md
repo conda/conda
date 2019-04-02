@@ -1,3 +1,30 @@
+## 4.6.10 (2019-04-01)
+
+### Bug fixes
+
+* Fix python-3 only FileNotFoundError usage in initialize.py  (#8470)
+* Fix more JSON encode errors for the _Null data type (#8471)
+* Fix non-posix-compliant == in conda.sh (#8475, #8476)
+* improve detection of pip dependency in environment.yml files to avoid warning message (#8478)
+* fix condabin\conda.bat use of dp0, making PATH additions incorrect (#8480)
+* init_fish_user: don't assume config file exists  (#8481)
+* Fix for chcp output ending with . (#8484)
+
+### Docs improvements
+
+* Changelogs for 4.6.8, 4.6.9
+
+### Contributors
+
+* @duncanmmacleod
+* @nehaljwani
+* @ilango100
+* @jjhelmus
+* @mingwandroid
+* @msarahan
+* @rrigdon
+
+
 ## 4.6.9 (2019-03-29)
 
 ### Improvements
