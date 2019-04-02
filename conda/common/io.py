@@ -129,7 +129,7 @@ def env_vars(var_map=None, callback=None):
         os.environ[name] = value
     try:
         if callback:
-            callback(True)
+            callback()
         yield
     finally:
         for name, value in iteritems(saved_vars):
@@ -138,7 +138,7 @@ def env_vars(var_map=None, callback=None):
             else:
                 os.environ[name] = value
         if callback:
-            callback(False)
+            callback()
 
 @contextmanager
 def env_var(name, value, callback=None):
