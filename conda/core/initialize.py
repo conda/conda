@@ -979,8 +979,13 @@ def init_fish_user(target_path, conda_prefix, reverse):
     # target_path: ~/.config/config.fish
     user_rc_path = target_path
 
-    with open(user_rc_path) as fh:
-        rc_content = fh.read()
+    try:
+        with open(user_rc_path) as fh:
+            rc_content = fh.read()
+    except FileNotFoundError:
+        rc_content = ''
+    except:
+        raise
 
     rc_original_content = rc_content
 
@@ -1045,6 +1050,9 @@ def init_fish_user(target_path, conda_prefix, reverse):
             print(target_path)
             print(make_diff(rc_original_content, rc_content))
         if not context.dry_run:
+            # Make the directory if needed.
+            if not exists(dirname(user_rc_path)):
+                mkdir_p(dirname(user_rc_path))
             with open(user_rc_path, 'w') as fh:
                 fh.write(rc_content)
         return Result.MODIFIED
