@@ -48,7 +48,7 @@ def validate_keys(data, kwargs):
         print('')
 
     deps = data.get('dependencies', [])
-    depsplit = re.compile(r"[\s=]")
+    depsplit = re.compile(r"[<>~\s=]")
     for dep in deps:
         if (isinstance(dep, dict) and 'pip' in dep and not
                 any(depsplit.split(_)[0] == 'pip' for _ in deps if not hasattr(_, 'keys'))):
