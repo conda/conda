@@ -8,17 +8,17 @@
 @IF DEFINED _CE_CONDA (
   FOR %%A IN ("%CONDA_EXE%") DO @SET "_sysp=%%~dpA."
 ) else (
-  @SET _sysp=%~dp0..\
+  @SET "_sysp=%~dp0..\"
   @SET _CE_M=
   @SET _CE_CONDA=
-  @SET CONDA_EXE=%~dp0..\Scripts\conda.exe
+  @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
 )
 @IF [%1]==[activate]   "%~dp0_conda_activate" %*
 @IF [%1]==[deactivate] "%~dp0_conda_activate" %*
 
 @SETLOCAL
-@SET _sysp=%_sysp:~0,-1%
-@SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
+@SET "_sysp=%_sysp:~0,-1%"
+@SET "PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%"
 @SET CONDA_EXES="%CONDA_EXE%" %_CE_M% %_CE_CONDA%
 @CALL %CONDA_EXES% %*
 @ENDLOCAL
