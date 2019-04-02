@@ -6,6 +6,7 @@ from __future__ import absolute_import, print_function
 from collections import OrderedDict
 from itertools import chain
 import os
+import re
 
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
@@ -47,9 +48,10 @@ def validate_keys(data, kwargs):
         print('')
 
     deps = data.get('dependencies', [])
+    depsplit = re.compile(r"[\s=]")
     for dep in deps:
-        if (isinstance(dep, dict) and 'pip' in dep
-                and not any(_.split()[0] == 'pip' for _ in deps if not hasattr(_, 'keys'))):
+        if (isinstance(dep, dict) and 'pip' in dep and not
+                any(depsplit.split(_)[0] == 'pip' for _ in deps if not hasattr(_, 'keys'))):
             print("Warning: you have pip-installed dependencies in your environment file, "
                   "but you do not list pip itself as one of your conda dependencies.  Conda "
                   "may not use the correct pip to install your packages, and they may end up "
