@@ -343,7 +343,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             fh.write("{}ECHO OFF\n".format(silencer))
             fh.write("{}SET PYTHONIOENCODING=utf-8\n".format(silencer))
             fh.write("{}SET PYTHONUTF8=1\n".format(silencer))
-            fh.write('{}FOR /F "tokens=*" %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'.format(silencer))  # NOQA
+            fh.write('{}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'.format(silencer))  # NOQA
             fh.write("{}chcp 65001 > NUL\n".format(silencer))
             if dev_mode:
                 from conda.core.initialize import CONDA_PACKAGE_ROOT
