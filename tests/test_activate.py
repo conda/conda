@@ -1517,6 +1517,14 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH0 = shell.get_env_var('PATH', '').strip(':')
         assert any(p.endswith("condabin") for p in PATH0.split(":"))
+        # Remove sys.prefix from PATH. It interferes with path entry count tests.
+        # We can no longer check this since we'll replace e.g. between 1 and N path
+        # entries with N of them in _replace_prefix_in_path() now. It is debatable
+        # whether it should be here at all too.
+        if PATH0.startswith(activator.path_conversion(sys.prefix) + ':'):
+            PATH0=PATH0[len(activator.path_conversion(sys.prefix))+1:]
+            shell.sendline('export PATH="{}"'.format(PATH0))
+            PATH0 = shell.get_env_var('PATH', '').strip(':')
         shell.sendline("type conda")
         shell.expect(conda_is_a_function)
 
