@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
@@ -7,6 +8,7 @@ from collections import OrderedDict
 from errno import ENOENT
 from glob import glob
 from itertools import chain
+from logging import getLogger
 import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
 import re
@@ -21,6 +23,8 @@ from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
+
+log = getLogger(__name__)
 
 
 class _Activator(object):
@@ -546,8 +550,13 @@ class _Activator(object):
             if first_idx is None:
                 first_idx = 0
             else:
-                last_idx = index_of_path(path_list, prefix_dirs[-1])
-                assert last_idx is not None
+                last_idx_idx = len(prefix_dirs) - 1
+                last_idx = None
+                while last_idx is None and last_idx_idx > -1:
+                    last_idx = index_of_path(path_list, prefix_dirs[last_idx_idx])
+                    if last_idx is None:
+                        log.info("Did not find path entry {}".format(prefix_dirs[last_idx_idx]))
+                    last_idx_idx = last_idx_idx - 1
                 # this compensates for an extra Library/bin dir entry from the interpreter on
                 #     windows.  If that entry isn't being added, it should have no effect.
                 library_bin_dir = self.path_conversion(
