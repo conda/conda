@@ -1,3 +1,21 @@
+## 4.6.11 (2019-04-04)
+
+### Bug fixes
+
+* Remove sys.prefix from front of PATH in basic_posix (#8491)
+* add import to fix conda.core.index.get_index (#8495)
+
+### Docs improvements
+
+* Changelogs for 4.6.10
+
+### Contributors
+
+* @jjhelmus
+* @mingwandroid
+* @msarahan
+
+
 ## 4.6.10 (2019-04-01)
 
 ### Bug fixes
