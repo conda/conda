@@ -16,7 +16,7 @@
 @set _args1=
 
 @if "%_args1_first%"=="+" if NOT "%_args1_last%"=="+" (
-    @CALL %~dp0..\condabin\conda.bat activate
+    @CALL "%~dp0..\condabin\conda.bat" activate
     @GOTO :End
 )
 
