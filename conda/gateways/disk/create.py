@@ -19,6 +19,7 @@ from .delete import rm_rf, path_is_clean
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
+from ...cli.python_api import run_command, Commands
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
