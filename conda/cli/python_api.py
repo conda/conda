@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from .conda_argparse import do_call
-from ..compat import encode_arguments
+from ..common.compat import encode_arguments
 from .main import generate_parser
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
