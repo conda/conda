@@ -324,7 +324,7 @@ def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     if os.path.normcase(os.path.normpath(prefix)) in os.path.normcase(os.path.normpath(root_dir)):
         return
     if on_win:
-        where = 'Scripts'
+        where = 'condabin'
         symlink_fn = functools.partial(win_conda_bat_redirect, shell=shell)
     else:
         where = 'bin'
