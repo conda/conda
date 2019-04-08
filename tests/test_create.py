@@ -16,7 +16,7 @@ import json
 from json import loads as json_loads
 from logging import DEBUG, INFO, getLogger
 import os
-from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
+from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 from random import sample
 import re
 from shlex import split
@@ -2233,6 +2233,11 @@ class IntegrationTests(TestCase):
             python_package = next(p for p in packages if p['name'] == 'python')
             assert python_package['version'].startswith('3')
 
+    def test_legacy_repodata(self):
+        channel = join(dirname(abspath(__file__)), 'data', 'legacy_repodata')
+        with make_temp_env('python', 'moto=1.3.7', '-c', channel, '--no-deps') as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert package_is_installed(prefix, 'moto=1.3.7')
 
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")
 @pytest.mark.integration
