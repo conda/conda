@@ -716,32 +716,16 @@ class PosixActivator(_Activator):
         })
 
     def _hook_preamble(self):
-        if on_win:
-            if context.dev:
-                return ('export CONDA_EXE="$(cygpath \'%s\')"\n'
-                        'export _CE_M=-m\n'
-                        'export _CE_CONDA=conda\n'
-                        'export PYTHONPATH="$(cygpath \'%s\')"\n'
-                        % (sys.executable, dirname(CONDA_PACKAGE_ROOT))
-                        )
+        result = ''
+        for key, value in context.conda_exe_vars_dict.items():
+            if value is None:
+                # Using `unset_var_tmpl` would cause issues for people running
+                # with shell flag -u set (error on unset).
+                # result += join(self.unset_var_tmpl % key) + '\n'
+                result += join(self.export_var_tmpl % (key, '')) + '\n'
             else:
-                return ('export CONDA_EXE="$(cygpath \'%s\')"\n'
-                        'export _CE_M=-m\n'
-                        'export _CE_CONDA=conda\n'
-                        'export CONDA_BAT="%s"'
-                        % (context.conda_exe, join(context.conda_prefix, 'condabin', 'conda.bat'))
-                        )
-        else:
-            result = ''
-            for key, value in context.conda_exe_vars_dict.items():
-                if value is None:
-                    # Using `unset_var_tmpl` would cause issues for people running
-                    # with shell flag -u set (error on unset).
-                    # result += join(self.unset_var_tmpl % key) + '\n'
-                    result += join(self.export_var_tmpl % (key, '')) + '\n'
-                else:
-                    result += join(self.export_var_tmpl % (key, value)) + '\n'
-            return result
+                result += join(self.export_var_tmpl % (key, value)) + '\n'
+        return result
 
 
 class CshActivator(_Activator):
