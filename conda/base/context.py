@@ -1269,7 +1269,7 @@ def determine_target_prefix(ctx, args=None):
     elif prefix_path is not None:
         return expand(prefix_path)
     else:
-        disallowed_chars = ('/', ' ', ':')
+        disallowed_chars = ('/', ' ', ':', '#')
         if any(_ in prefix_name for _ in disallowed_chars):
             from ..exceptions import CondaValueError
             builder = ["Invalid environment name: '" + prefix_name + "'"]
