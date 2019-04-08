@@ -10,9 +10,10 @@ from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems
 from conda.common.io import env_vars
-from conda.core.index import check_whitelist, get_index, get_reduced_index
+from conda.core.index import check_whitelist, get_index, get_reduced_index, _supplement_index_with_system
 from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
+from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from tests.core.test_repodata import platform_in_record
 
@@ -41,6 +42,16 @@ def test_check_whitelist():
         check_whitelist(("https://conda.anaconda.org/conda-forge/linux-64",))
 
     check_whitelist(("conda-canary",))
+
+
+def test_supplement_index_with_system():
+    index = {}
+    with env_vars({'CONDA_OVERRIDE_CUDA': '3.2'}):
+        _supplement_index_with_system(index)
+
+    cuda_pkg = index['_cuda']
+    assert cuda_pkg.version == '3.2'
+    assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
 @pytest.mark.integration
