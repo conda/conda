@@ -26,7 +26,7 @@
 
 Conda is a cross-platform, language-agnostic binary package manager. It is the
 package manager used by `Anaconda
-<https://www.anaconda.com/download/>`_ installations, but it may be
+<https://www.anaconda.com/distribution/>`_ installations, but it may be
 used for other systems as well.  Conda makes environments first-class
 citizens, making it easy to create independent environments even for C
 libraries. Conda is written entirely in Python, and is BSD licensed open
@@ -41,7 +41,7 @@ Installation
 ------------
 
 Conda is a part of the `Anaconda Distribution <https://repo.anaconda.com>`_.
-Use `Miniconda <https://conda.io/miniconda.html>`_ to bootstrap a minimal installation
+Use `Miniconda <https://conda.io/en/latest/miniconda.html>`_ to bootstrap a minimal installation
 that only includes conda and its dependencies.
 
 
@@ -71,7 +71,7 @@ and to install a package, use
 The real power of conda comes from its ability to manage environments. In
 conda, an environment can be thought of as a completely separate installation.
 Conda installs packages into environments efficiently using `hard links
-<http://en.wikipedia.org/wiki/Hard_links>`_ by default when it is possible, so
+<https://en.wikipedia.org/wiki/Hard_link>`_ by default when it is possible, so
 environments are space efficient, and take seconds to create.
 
 The default environment, which ``conda`` itself is installed into is called
@@ -118,10 +118,10 @@ You can easily build your own packages for conda, and upload them
 to `anaconda.org <https://anaconda.org>`_, a free service for hosting
 packages for conda, as well as other package managers.
 To build a package, create a recipe. Package building documentation is available
-`here <https://conda.io/docs/user-guide/tasks/build-packages/index.html>`_.
-See http://github.com/AnacondaRecipes for the recipes that make up the Anaconda Distribution
+`here <https://conda.io/projects/conda-build/en/latest/>`_.
+See https://github.com/AnacondaRecipes for the recipes that make up the Anaconda Distribution
 and ``defaults`` channel. `Conda-forge <https://conda-forge.org/feedstocks/>`_ and
-`Bioconda <https://bioconda.github.io/recipes.html>`_ are community-driven
+`Bioconda <https://github.com/bioconda/bioconda-recipes>`_ are community-driven
 conda-based distributions.
 
 To upload to anaconda.org, create an account.  Then, install the
@@ -153,7 +153,7 @@ to add).
 Getting Help
 ------------
 
-The documentation for conda is at http://conda.io/docs/. You can
+The documentation for conda is at https://conda.io/en/latest/. You can
 subscribe to the `conda mailing list
 <https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_.  The source
 code and issue tracker for conda are on `GitHub <https://github.com/conda/conda>`_.
