@@ -1495,7 +1495,7 @@ def test_pinned_specs():
         with env_var('CONDA_PREFIX', td, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             run_command(Commands.CONFIG, "--env", "--add", "pinned_packages", "requests=2.13")
             condarc = join(td, '.condarc')
-            with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_2), partial(stack_context, search_path=(condarc,))):#conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_2), partial(stack_context, True, search_path=(condarc,))):#conda_tests_ctxt_mgmt_def_pol):
                 pinned_specs = get_pinned_specs(td)
                 expected = specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1
                 assert pinned_specs == expected

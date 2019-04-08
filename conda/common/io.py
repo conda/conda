@@ -149,7 +149,7 @@ def env_var(name, value, callback=None, stack_callback=None):
     # Maybe, but in env_vars, not here:
     #    from conda.compat import ensure_fs_path_encoding
     #    d = dict({name: ensure_fs_path_encoding(value)})
-    d = dict({name: value})
+    d = {name: value}
     with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
         yield es
 

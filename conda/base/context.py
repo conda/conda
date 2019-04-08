@@ -1107,6 +1107,7 @@ def conda_in_private_env():
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
+    global context
     context.__init__(search_path, argparse_args)
     context.__dict__.pop('_Context__conda_build', None)
     from ..models.channel import Channel
@@ -1180,17 +1181,19 @@ def stack_context_default(pushing, argparse_args=None):
     return stack_context(pushing, search_path=(), argparse_args=argparse_args)
 
 
-def replace_context(pushing, search_path=SEARCH_PATH, argparse_args=None):
+def replace_context(pushing=None, search_path=SEARCH_PATH, argparse_args=None):
+    # pushing arg intentionally not used here, but kept for API compatibility
     return context_stack.replace(search_path, argparse_args)
 
 
-def replace_context_default(pushing, argparse_args=None):
+def replace_context_default(pushing=None, argparse_args=None):
+    # pushing arg intentionally not used here, but kept for API compatibility
     return context_stack.replace(search_path=(), argparse_args=argparse_args)
 
 
 # Tests that want to only declare 'I support the project-wide default for how to
 # manage stacking of contexts'. Tests that are known to be careful with context
-# can use `replace_context_with_default` which might be faster, though it should
+# can use `replace_context_default` which might be faster, though it should
 # be a stated goal to set conda_tests_ctxt_mgmt_def_pol to replace_context_default
 # and not to stack_context_default.
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
