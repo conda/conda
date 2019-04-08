@@ -1574,7 +1574,8 @@ class ShellWrapperIntegrationTests(TestCase):
         # goes to use this old conda to generate the activation script for the newly activated env.
         # it is running the old code (or at best, a mix of new code and old scripts).
         shell.assert_env_var('CONDA_SHLVL', '2')
-        shell.assert_env_var('CONDA_PREFIX', prefix_p, True)
+        if not on_win:
+            shell.assert_env_var('CONDA_PREFIX', prefix_p, True)
         PATH2 = shell.get_env_var('PATH', '').strip(':')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
 
