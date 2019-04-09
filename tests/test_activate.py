@@ -1577,7 +1577,11 @@ class ShellWrapperIntegrationTests(TestCase):
         # goes to use this old conda to generate the activation script for the newly activated env.
         # it is running the old code (or at best, a mix of new code and old scripts).
         shell.assert_env_var('CONDA_SHLVL', '2')
-        shell.assert_env_var('CONDA_PREFIX', prefix_p, True)
+        shell.expect('.*\n')
+        CONDA_PREFIX = shell.get_env_var('CONDA_PREFIX', '')
+        # We get C: vs c: differences on Windows.
+        # Also, self.prefix instead of prefix_p is deliberate (maybe unfortunate?)
+        assert CONDA_PREFIX.lower() == self.prefix.lower()
         PATH2 = shell.get_env_var('PATH', '')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
 
@@ -1818,7 +1822,7 @@ class ShellWrapperIntegrationTests(TestCase):
     @pytest.mark.xfail(sys.version_info[0] == 3,
                        reason="the PowerShell integration scripts do not manage PATH correctly. Here we "
                               "see that an unactivated conda cannot be used in PowerShell because it will "
-                              "not have the necessary entries on PATH for OpenSSL to be found.", strict=True)
+                              "not have the necessary entries on PATH for OpenSSL to be found.")
     def test_powershell_PATH_management(self):
         posh_kind, posh_path = which_powershell()
         print('## [PowerShell activation PATH management] Using {}.'.format(posh_path))
