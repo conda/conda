@@ -117,7 +117,7 @@ class CaptureTarget(Enum):
 
 
 @contextmanager
-def env_vars(var_map=None, callback=None):
+def env_vars(var_map=None, callback=None, stack_callback=None):
 
     if var_map is None:
         var_map = {}
@@ -129,7 +129,9 @@ def env_vars(var_map=None, callback=None):
         os.environ[name] = value
     try:
         if callback:
-            callback(True)
+            callback()
+        if stack_callback:
+            stack_callback(True)
         yield
     finally:
         for name, value in iteritems(saved_vars):
@@ -138,15 +140,17 @@ def env_vars(var_map=None, callback=None):
             else:
                 os.environ[name] = value
         if callback:
-            callback(False)
+            callback()
+        if stack_callback:
+            stack_callback(False)
 
 @contextmanager
-def env_var(name, value, callback=None):
+def env_var(name, value, callback=None, stack_callback=None):
     # Maybe, but in env_vars, not here:
     #    from conda.compat import ensure_fs_path_encoding
     #    d = dict({name: ensure_fs_path_encoding(value)})
-    d = dict({name: value})
-    with env_vars(d, callback=callback) as es:
+    d = {name: value}
+    with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
         yield es
 
 

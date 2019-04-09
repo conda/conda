@@ -686,7 +686,7 @@ def test_broken_install():
 
 def test_conda_downgrade():
     specs = MatchSpec("conda-build"),
-    with env_var("CONDA_CHANNEL_PRIORITY", "False", conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
@@ -850,7 +850,7 @@ def test_conda_downgrade():
 
 def test_install_uninstall_features_1():
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.6.*")
-    with env_var("CONDA_TRACK_FEATURES", 'mkl', conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_TRACK_FEATURES", 'mkl', stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with get_solver(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
@@ -926,7 +926,7 @@ def test_install_uninstall_features_1():
 
 def test_install_uninstall_features_2():
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.13.*")
-    with env_var("CONDA_TRACK_FEATURES", 'nomkl', conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_TRACK_FEATURES", 'nomkl', stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with get_solver_4(specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
@@ -1026,7 +1026,7 @@ def test_auto_update_conda():
         )
         assert convert_to_dist_str(final_state_1) == order
 
-    with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         specs_to_add = MatchSpec("pytz"),
         with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
@@ -1050,7 +1050,7 @@ def test_auto_update_conda():
     saved_sys_prefix = sys.prefix
     try:
         sys.prefix = TEST_PREFIX
-        with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, conda_tests_ctxt_mgmt_def_pol):
+        with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             specs_to_add = MatchSpec("pytz"),
             with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
                 final_state_2 = solver.solve_final_state()
@@ -1071,7 +1071,7 @@ def test_auto_update_conda():
                 )
                 assert convert_to_dist_str(final_state_2) == order
 
-        with env_vars({"CONDA_AUTO_UPDATE_CONDA": "no"}, conda_tests_ctxt_mgmt_def_pol):
+        with env_vars({"CONDA_AUTO_UPDATE_CONDA": "no"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             specs_to_add = MatchSpec("pytz"),
             with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
                 final_state_2 = solver.solve_final_state()
@@ -1108,7 +1108,7 @@ def test_aggressive_update_packages():
     # test with "libpng", "cmake": both have multiple versions and no requirements in "channel-1"
 
     empty_state = ((), ())
-    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         base_state = solve(
             empty_state, ["libpng=1.2"],
             (
@@ -1118,21 +1118,21 @@ def test_aggressive_update_packages():
     # # ~~has "libpng" restricted to "=1.2" by history_specs~~ NOPE!
     # In conda 4.6 making aggressive_update *more* aggressive, making it override history specs.
     state_1 = base_state
-    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solve(
             state_1, ["cmake=2.8.9"],
             (
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.5.13-1',
             ))
-    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         state_1_2 = solve(
             state_1, ["cmake=2.8.9"],
             (
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.2.50-0',
             ))
-    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solve(
             state_1_2, ["cmake>2.8.9"],
             (
@@ -1142,21 +1142,21 @@ def test_aggressive_update_packages():
 
     # use new history_specs to remove "libpng" version restriction
     state_2 = (base_state[0], (MatchSpec("libpng"),))
-    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solve(
             state_2, ["cmake=2.8.9"],
             (
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.5.13-1',
             ))
-    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         state_2_2 = solve(
             state_2, ["cmake=2.8.9"],
             (
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.2.50-0',
             ))
-    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solve(
             state_2_2, ["cmake>2.8.9"],
             (
@@ -1490,7 +1490,7 @@ def test_pinned_1():
         )
         assert convert_to_dist_str(final_state_1) == order
 
-    with env_var("CONDA_PINNED_PACKAGES", "python=2.6&iopro<=1.4.2", conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_PINNED_PACKAGES", "python=2.6&iopro<=1.4.2", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         specs = MatchSpec("system=5.8=0"),
         with get_solver(specs) as solver:
             final_state_1 = solver.solve_final_state()
@@ -1843,9 +1843,9 @@ def test_remove_with_constrained_dependencies():
 
 
 def test_priority_1():
-    with env_var("CONDA_SUBDIR", "linux-64", conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_SUBDIR", "linux-64", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         specs = MatchSpec("pandas"), MatchSpec("python=2.7"),
-        with env_var("CONDA_CHANNEL_PRIORITY", "True", conda_tests_ctxt_mgmt_def_pol):
+        with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with get_solver_aggregate_1(specs) as solver:
                 final_state_1 = solver.solve_final_state()
                 pprint(convert_to_dist_str(final_state_1))
@@ -1915,7 +1915,7 @@ def test_priority_1():
     
                 """)
 
-        with env_var("CONDA_CHANNEL_PRIORITY", "False", conda_tests_ctxt_mgmt_def_pol):
+        with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with get_solver_aggregate_1(specs, prefix_records=final_state_1,
                                         history_specs=specs) as solver:
                 final_state_2 = solver.solve_final_state()
@@ -2126,7 +2126,7 @@ def test_features_solve_1():
     #   and channel-4 is a view of the newer pkgs/main/linux-64
     # The channel list, equivalent to context.channels is ('channel-2', 'channel-4')
     specs = (MatchSpec("python=2.7"), MatchSpec("numpy"), MatchSpec("nomkl"))
-    with env_var("CONDA_CHANNEL_PRIORITY", "True", conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
@@ -2144,7 +2144,7 @@ def test_features_solve_1():
             )
             assert convert_to_dist_str(final_state_1) == order
 
-    with env_var("CONDA_CHANNEL_PRIORITY", "False", conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))

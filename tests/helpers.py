@@ -171,7 +171,7 @@ def get_index_r_1(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -197,7 +197,7 @@ def get_index_r_2(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-2/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -222,7 +222,7 @@ def get_index_r_4(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-4/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -248,7 +248,7 @@ def get_index_r_5(subdir=context.subdir):
 
     channel = Channel('https://conda.anaconda.org/channel-5/%s' % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd

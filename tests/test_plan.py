@@ -99,7 +99,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 
 
 def test_display_actions_0():
-    with env_var('CONDA_SHOW_CHANNEL_URLS', 'False', conda_tests_ctxt_mgmt_def_pol):
+    with env_var('CONDA_SHOW_CHANNEL_URLS', 'False', stack_callback=conda_tests_ctxt_mgmt_def_pol):
         actions = defaultdict(list)
         actions.update({"FETCH": [
             get_matchspec_from_index(index, "channel-1::sympy==0.7.2=py27_0"),
@@ -298,7 +298,7 @@ The following packages will be DOWNGRADED:
 
 
 def test_display_actions_show_channel_urls():
-    with env_var('CONDA_SHOW_CHANNEL_URLS', 'True', conda_tests_ctxt_mgmt_def_pol):
+    with env_var('CONDA_SHOW_CHANNEL_URLS', 'True', stack_callback=conda_tests_ctxt_mgmt_def_pol):
         actions = defaultdict(list)
         sympy_prec = PackageRecord.from_objects(get_matchspec_from_index(index, 'channel-1::sympy==0.7.2=py27_0'))
         numpy_prec = PackageRecord.from_objects(get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py27_0"))
@@ -554,7 +554,7 @@ The following packages will be DOWNGRADED:
 @pytest.mark.xfail(strict=True, reason="Not reporting link type until refactoring display_actions "
                                        "after txn.verify()")
 def test_display_actions_link_type():
-    with env_var('CONDA_SHOW_CHANNEL_URLS', 'False', conda_tests_ctxt_mgmt_def_pol):
+    with env_var('CONDA_SHOW_CHANNEL_URLS', 'False', stack_callback=conda_tests_ctxt_mgmt_def_pol):
 
         actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 2', 'dateutil-1.5-py33_0 2',
         'numpy-1.7.1-py33_0 2', 'python-3.3.2-0 2', 'readline-6.2-0 2', 'sqlite-3.7.13-0 2', 'tk-8.5.13-0 2', 'zlib-1.2.7-0 2']})
@@ -705,7 +705,7 @@ The following packages will be DOWNGRADED:
     dateutil: 2.1-py33_1    --> 1.5-py33_0  (copy)
 
 """
-    with env_var('CONDA_SHOW_CHANNEL_URLS', 'True', conda_tests_ctxt_mgmt_def_pol):
+    with env_var('CONDA_SHOW_CHANNEL_URLS', 'True', stack_callback=conda_tests_ctxt_mgmt_def_pol):
 
         d = Dist('cython-0.19.1-py33_0.tar.bz2')
         index[d] = PackageRecord.from_objects(index[d], channel='my_channel')
@@ -765,7 +765,7 @@ The following packages will be DOWNGRADED:
 
 
 def test_display_actions_features():
-    with env_var('CONDA_SHOW_CHANNEL_URLS', 'False', conda_tests_ctxt_mgmt_def_pol):
+    with env_var('CONDA_SHOW_CHANNEL_URLS', 'False', stack_callback=conda_tests_ctxt_mgmt_def_pol):
 
         actions = defaultdict(list)
         actions.update({
@@ -903,7 +903,7 @@ The following packages will be UPDATED:
     numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0
 
 """
-    with env_var('CONDA_SHOW_CHANNEL_URLS', 'True', conda_tests_ctxt_mgmt_def_pol):
+    with env_var('CONDA_SHOW_CHANNEL_URLS', 'True', stack_callback=conda_tests_ctxt_mgmt_def_pol):
 
         actions = defaultdict(list)
         actions.update({
@@ -1225,8 +1225,8 @@ def generate_mocked_context(prefix, root_prefix, envs_dirs):
 #
 #     def test_determine_dists_per_prefix_2(self):  # not_requires
 #         root_prefix = self.root_prefix
-#         with env_var("CONDA_ROOT_PREFIX", root_prefix, conda_tests_ctxt_mgmt_def_pol):
-#             with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), conda_tests_ctxt_mgmt_def_pol):
+#         with env_var("CONDA_ROOT_PREFIX", root_prefix, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+#             with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), stack_callback=conda_tests_ctxt_mgmt_def_pol):
 #                 with patch.object(plan, "get_resolve_object") as gen_resolve_object_mock:
 #                     gen_resolve_object_mock.return_value = self.res
 #                     preferred_envs_with_specs = {None: ['test-spec', 'test-spec2'], 'ranenv': ['test']}
@@ -1387,8 +1387,8 @@ def generate_remove_action(prefix, unlink):
 #         with tempdir() as root_prefix:
 #             mkdir_p(join(root_prefix, 'conda-meta'))
 #             touch(join(root_prefix, 'conda-meta', 'history'))
-#             with env_var("CONDA_ROOT_PREFIX", root_prefix, conda_tests_ctxt_mgmt_def_pol):
-#                 with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), conda_tests_ctxt_mgmt_def_pol):
+#             with env_var("CONDA_ROOT_PREFIX", root_prefix, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+#                 with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), stack_callback=conda_tests_ctxt_mgmt_def_pol):
 #                     with patch("conda.plan.remove_actions",
 #                                return_value=generate_remove_action(root_prefix, [Dist("test1-2.1.4-1")])):
 #                         preferred_env_prefix = join(root_prefix, 'envs', '_env_')
@@ -1443,8 +1443,8 @@ def generate_remove_action(prefix, unlink):
 #         with tempdir() as root_prefix:
 #             mkdir_p(join(root_prefix, 'conda-meta'))
 #             touch(join(root_prefix, 'conda-meta', 'history'))
-#             with env_var("CONDA_ROOT_PREFIX", root_prefix, conda_tests_ctxt_mgmt_def_pol):
-#                 with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), conda_tests_ctxt_mgmt_def_pol):
+#             with env_var("CONDA_ROOT_PREFIX", root_prefix, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+#                 with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), stack_callback=conda_tests_ctxt_mgmt_def_pol):
 #                     env_path = join(root_prefix, 'envs', '_env_')
 #                     ed = EnvsDirectory(join(root_prefix, 'envs'))
 #                     ed.add_preferred_env_package('_env_', 'test3', join(env_path, "conda-meta", "test3-1.2.0.json"), "test3")
@@ -1466,7 +1466,7 @@ def test_pinned_specs():
     # Test pinned specs environment variable
     specs_str_1 = ("numpy 1.11", "python >3")
     specs_1 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_1)
-    with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_1), conda_tests_ctxt_mgmt_def_pol):
+    with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_1), stack_callback=conda_tests_ctxt_mgmt_def_pol):
         pinned_specs = get_pinned_specs("/none")
         assert pinned_specs == specs_1
         assert pinned_specs != specs_str_1
@@ -1492,10 +1492,10 @@ def test_pinned_specs():
             fh.write("\n".join(specs_str_1))
             fh.write("\n")
 
-        with env_var('CONDA_PREFIX', td, conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_PREFIX', td, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             run_command(Commands.CONFIG, "--env", "--add", "pinned_packages", "requests=2.13")
             condarc = join(td, '.condarc')
-            with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_2), partial(stack_context, search_path=(condarc,))):#conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_2), partial(stack_context, True, search_path=(condarc,))):#conda_tests_ctxt_mgmt_def_pol):
                 pinned_specs = get_pinned_specs(td)
                 expected = specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1
                 assert pinned_specs == expected

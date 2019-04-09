@@ -19,9 +19,9 @@ from conda.core.package_cache_data import download
 class TestConnectionWithShortTimeouts(TestCase):
 
     def test_download_connectionerror(self):
-        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, conda_tests_ctxt_mgmt_def_pol):
-            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, conda_tests_ctxt_mgmt_def_pol):
-                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     with pytest.raises(CondaHTTPError) as execinfo:
                         url = "http://240.0.0.0/"
                         msg = "Connection error:"
@@ -29,9 +29,9 @@ class TestConnectionWithShortTimeouts(TestCase):
                         assert msg in str(execinfo)
 
     def test_fetchrepodate_connectionerror(self):
-        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, conda_tests_ctxt_mgmt_def_pol):
-            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, conda_tests_ctxt_mgmt_def_pol):
-                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     with pytest.raises(CondaHTTPError) as execinfo:
                         url = "http://240.0.0.0/channel/osx-64"
                         msg = "Connection error:"
@@ -39,9 +39,9 @@ class TestConnectionWithShortTimeouts(TestCase):
                         assert msg in str(execinfo)
 
     def test_tmpDownload(self):
-        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, conda_tests_ctxt_mgmt_def_pol):
-            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, conda_tests_ctxt_mgmt_def_pol):
-                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     url = "https://repo.anaconda.com/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
                     with TmpDownload(url) as dst:
                         assert exists(dst)

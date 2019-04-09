@@ -501,7 +501,7 @@ class InitializeTests(TestCase):
         assert site_packages_dir.endswith('site-packages')
 
     def test_install_1(self):
-        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, conda_tests_ctxt_mgmt_def_pol):
+        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with tempdir() as conda_temp_prefix:
                 with captured() as c:
                     install(conda_temp_prefix)
@@ -556,7 +556,7 @@ class InitializeTests(TestCase):
         with pytest.raises(CondaValueError):
             initialize_dev('bash', conda_source_root=join('a', 'b', 'c'))
 
-        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, conda_tests_ctxt_mgmt_def_pol):
+        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with tempdir() as conda_temp_prefix:
                 new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
                 mkdir_p(dirname(new_py))
@@ -624,7 +624,7 @@ class InitializeTests(TestCase):
         assert "unset CONDA_SHLVL" in c.stdout
 
     def test_initialize_dev_cmd_exe(self):
-        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, conda_tests_ctxt_mgmt_def_pol):
+        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with tempdir() as conda_temp_prefix:
                 new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
                 mkdir_p(dirname(new_py))
@@ -874,7 +874,7 @@ class InitializeTests(TestCase):
         try:
             target_path = r'HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun'
             conda_prefix = "c:\\Users\\Lars\\miniconda"
-            with env_var('CONDA_DRY_RUN', 'true', conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_DRY_RUN', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 with captured() as c:
                     initialize.init_cmd_exe_registry(target_path, conda_prefix)
         finally:
@@ -890,7 +890,7 @@ class InitializeTests(TestCase):
         try:
             target_path = r'HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun'
             conda_prefix = "c:\\Users\\Lars\\miniconda"
-            with env_var('CONDA_DRY_RUN', 'true', conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_DRY_RUN', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 with captured() as c:
                     initialize.init_cmd_exe_registry(target_path, conda_prefix, reverse=True)
         finally:

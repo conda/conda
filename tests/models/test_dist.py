@@ -92,7 +92,7 @@ class UrlDistTests(TestCase):
         conda_bld_path = join(gettempdir(), 'conda-bld')
         try:
             mkdir_p(conda_bld_path)
-            with env_var('CONDA_BLD_PATH', conda_bld_path, conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_BLD_PATH', conda_bld_path, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 url = path_to_url(join_url(context.croot, 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2'))
                 d = Dist(url)
                 assert d.channel == 'local'

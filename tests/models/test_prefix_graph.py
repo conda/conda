@@ -628,7 +628,7 @@ def test_windows_sort_orders_2():
     # This test makes sure the windows-specific parts of _toposort_prepare_graph
     # are behaving correctly.
 
-    with env_var('CONDA_ALLOW_CYCLES', 'false', conda_tests_ctxt_mgmt_def_pol):
+    with env_var('CONDA_ALLOW_CYCLES', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
         old_on_win = conda.models.prefix_graph.on_win
         conda.models.prefix_graph.on_win = False
         try:
@@ -754,7 +754,7 @@ def test_sort_without_prep():
         )
         assert nodes == order
 
-        with env_var('CONDA_ALLOW_CYCLES', 'false', conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_ALLOW_CYCLES', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             records, specs = get_windows_conda_build_record_set()
             with pytest.raises(CyclicalDependencyError):
                 graph = PrefixGraph(records, specs)
