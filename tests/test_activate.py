@@ -1610,7 +1610,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda' + install + '-yq hdf5=1.10.2')
         shell.expect('Executing transaction: ...working... done.*\n', timeout=60)
-        shell.assert_env_var('?', '0', True)
+        shell.assert_env_var('?', '0', use_exact=True)
 
         shell.sendline('h5stat --version')
         shell.expect(r'.*h5stat: Version 1.10.2.*')
