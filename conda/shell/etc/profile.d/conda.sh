@@ -18,8 +18,6 @@ __add_sys_prefix_to_path() {
         PATH="${SYSP}/Library/usr/bin:${PATH}"
         PATH="${SYSP}/Library/mingw-w64/bin:${PATH}"
         PATH="${SYSP}:${PATH}"
-    else
-        PATH="${SYSP}/bin:${PATH}"
     fi
     \export PATH
 }
