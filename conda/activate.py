@@ -613,10 +613,11 @@ class _Activator(object):
                     prompt_stack = prompt_stack[0:-1]
                 prompt_stack.append(conda_default_env)
 
-            conda_default_env = ','.join(prompt_stack)
+            conda_stacked_env = ','.join(prompt_stack[::-1])
 
             return context.env_prompt.format(
                 default_env=conda_default_env,
+                stacked_env=conda_stacked_env,
                 prefix=prefix,
                 name=basename(prefix),
             )
