@@ -48,8 +48,8 @@ __conda_activate() {
     OLDPATH="${PATH}"
     __add_sys_prefix_to_path
     ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix "$cmd" "$@")" || \return $?
-    \eval "$ask_conda"
     PATH="${OLDPATH}"
+    \eval "$ask_conda"
     __conda_hashr
 }
 
@@ -58,8 +58,8 @@ __conda_reactivate() {
     OLDPATH="${PATH}"
     __add_sys_prefix_to_path
     ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix reactivate)" || \return $?
-    \eval "$ask_conda"
     PATH="${OLDPATH}"
+    \eval "$ask_conda"
     __conda_hashr
 }
 
