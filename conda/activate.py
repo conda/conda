@@ -550,13 +550,13 @@ class _Activator(object):
             if first_idx is None:
                 first_idx = 0
             else:
-                last_idx_idx = len(prefix_dirs) - 1
+                prefix_dirs_idx = len(prefix_dirs) - 1
                 last_idx = None
-                while last_idx is None and last_idx_idx > -1:
-                    last_idx = index_of_path(path_list, prefix_dirs[last_idx_idx])
+                while last_idx is None and prefix_dirs_idx > -1:
+                    last_idx = index_of_path(path_list, prefix_dirs[prefix_dirs_idx])
                     if last_idx is None:
-                        log.info("Did not find path entry {}".format(prefix_dirs[last_idx_idx]))
-                    last_idx_idx = last_idx_idx - 1
+                        log.info("Did not find path entry {}".format(prefix_dirs[prefix_dirs_idx]))
+                    prefix_dirs_idx = prefix_dirs_idx - 1
                 # this compensates for an extra Library/bin dir entry from the interpreter on
                 #     windows.  If that entry isn't being added, it should have no effect.
                 library_bin_dir = self.path_conversion(
@@ -733,7 +733,10 @@ class PosixActivator(_Activator):
                 # result += join(self.unset_var_tmpl % key) + '\n'
                 result += join(self.export_var_tmpl % (key, '')) + '\n'
             else:
-                result += join(self.export_var_tmpl % (key, value)) + '\n'
+                if key in ('PYTHONPATH', 'CONDA_EXE'):
+                    result += join(self.export_var_tmpl % (key, self.path_conversion(value))) + '\n'
+                else:
+                    result += join(self.export_var_tmpl % (key, value)) + '\n'
         return result
 
 

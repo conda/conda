@@ -64,7 +64,23 @@ def conda_move_to_front_of_PATH():
         # prefix from the *original* value of PATH, calling it N times will
         # just return the same value every time, even if you update PATH.
         p = activator._remove_prefix_from_path(os.environ['CONDA_PREFIX'])
-        new_path = os.pathsep.join(p)
+
+        # Replace any non sys.prefix condabin with sys.prefix condabin
+        new_p = []
+        found_condabin = False
+        for pe in p:
+            if pe.endswith('condabin'):
+                if not found_condabin:
+                    found_condabin = True
+                    if join(sys.prefix, 'condabin') != pe:
+                        print("Incorrect condabin, swapping {} to {}".format(pe, join(sys.prefix, 'condabin')))
+                        new_p.append(join(sys.prefix, 'condabin'))
+                    else:
+                        new_p.append(pe)
+            else:
+                new_p.append(pe)
+
+        new_path = os.pathsep.join(new_p)
         new_path = encode_for_env_var(new_path)
         os.environ['PATH'] = new_path
         activator = activator_cls()
