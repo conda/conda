@@ -155,6 +155,9 @@ class NoarchType(Enum):
         # what a mess
         if isinstance(val, NoarchType):
             return val
+        valtype = getattr(val, 'type', None)
+        if isinstance(valtype, NoarchType):    # see issue #8311
+            return valtype
         if isinstance(val, bool):
             val = NoarchType.generic if val else None
         if isinstance(val, string_types):

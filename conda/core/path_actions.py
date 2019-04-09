@@ -206,6 +206,11 @@ class LinkPathAction(CreateInPrefixPathAction):
         def make_file_link_action(source_path_data):
             # TODO: this inner function is still kind of a mess
             noarch = package_info.repodata_record.noarch
+            if noarch is None and package_info.package_metadata is not None:
+                # Look in package metadata in case it was omitted from repodata (see issue #8311)
+                noarch = package_info.package_metadata.noarch
+                if noarch is not None:
+                    noarch = noarch.type
             if noarch == NoarchType.python:
                 sp_dir = transaction_context['target_site_packages_short_path']
                 if sp_dir is None:
