@@ -58,7 +58,7 @@ function Add-Sys-Prefix-To-Path() {
                     $sysp + '\Library\mingw-w64\bin;' +
                     $sysp + '\Library\usr\bin;' +
                     $sysp + '\Library\bin;' +
-                    $sysp + '\Library\Scripts;' +
+                    $sysp + '\Scripts;' +
                     $sysp + '\bin;' + $Env:PATH;
     } else {
         $Env:PATH = $sysp + '/bin:' + $Env:PATH;
