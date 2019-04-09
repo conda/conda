@@ -81,13 +81,17 @@ conda() {
                 PATH="${OLDPATH}"
                 if [ $t1 == 0]; then
                     __conda_reactivate
+                else
+                    exit $t1
                 fi
                 ;;
             *)
                 OLDPATH="${PATH}"
                 __add_sys_prefix_to_path
                 "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@"
+                \local t1=$?
                 PATH="${OLDPATH}"
+                exit $t1
                 ;;
         esac
     fi
