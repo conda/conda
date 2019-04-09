@@ -190,7 +190,7 @@ class ActivatorUnitTests(TestCase):
 
     def test_remove_prefix_from_path_1(self):
         activator = PosixActivator()
-        original_path = tuple(activator._get_starting_path_list())
+        original_path = tuple(activator._get_starting_path_list()[0])
         keep_path = activator.path_conversion('/keep/this/path')
         final_path = (keep_path,) + original_path
         final_path = activator.path_conversion(final_path)
@@ -204,7 +204,7 @@ class ActivatorUnitTests(TestCase):
     def test_remove_prefix_from_path_2(self):
         # this time prefix doesn't actually exist in path
         activator = PosixActivator()
-        original_path = tuple(activator._get_starting_path_list())
+        original_path = tuple(activator._get_starting_path_list()[0])
         keep_path = activator.path_conversion('/keep/this/path')
         final_path = (keep_path,) + original_path
         final_path = activator.path_conversion(final_path)
@@ -217,7 +217,7 @@ class ActivatorUnitTests(TestCase):
 
     def test_replace_prefix_in_path_1(self):
         activator = PosixActivator()
-        original_path = tuple(activator._get_starting_path_list())
+        original_path = tuple(activator._get_starting_path_list()[0])
         new_prefix = join(os.getcwd(), 'mytestpath-new')
         new_paths = activator.path_conversion(activator._get_path_dirs(new_prefix))
         if isinstance(new_paths, string_types):
@@ -620,7 +620,7 @@ class ActivatorUnitTests(TestCase):
             with env_var('CONDA_SHLVL', '1'):
                 with env_var('CONDA_PREFIX', td):
                     activator = PosixActivator()
-                    original_path = tuple(activator._get_starting_path_list())
+                    original_path = tuple(activator._get_starting_path_list()[0])
                     builder = activator.build_deactivate()
 
                     unset_vars = [
@@ -1354,7 +1354,7 @@ class InteractiveShell(object):
         joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
         PATH = joiner(self.activator.path_conversion(concatv(
             (dirname(sys.executable),),
-            self.activator._get_starting_path_list(),
+            self.activator._get_starting_path_list()[0],
             (dirname(which(self.shell_name)),),
         )))
         self.original_path = PATH

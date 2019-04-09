@@ -371,7 +371,9 @@ class _Activator(object):
         new_conda_shlvl = old_conda_shlvl - 1
         set_vars = {}
         if old_conda_shlvl == 1:
-            new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
+            starting_path_dirs = self._get_starting_path_list()[0]
+            new_path = self.pathsep_join(self._remove_prefix_from_path(
+                old_conda_prefix, starting_path_dirs=starting_path_dirs))
             # You might think that you can remove the CONDA_EXE vars by passing conda_exe_vars=None
             # here so that "deactivate means deactivate" but you cannot since the conda shell
             # scripts still refer to them and they only set them once at the top. We could change
@@ -458,56 +460,66 @@ class _Activator(object):
             'activate_scripts': self._get_activate_scripts(conda_prefix),
         }
 
-    def _get_starting_path_list(self):
+    def _get_starting_path_list(self, old_path=sys.prefix, start_only=True,
+                                starting_path_dirs=None):
         # For isolation, running the conda test suite *without* env. var. inheritance
         # every so often is a good idea. We should probably make this a pytest fixture
         # along with one that tests both hardlink-only and copy-only, but before that
         # conda's testsuite needs to be a lot faster!
-        clean_paths = {'darwin': '/usr/bin:/bin:/usr/sbin:/sbin',
-                       # You may think 'let us do something more clever here and interpolate
-                       # `%windir%`' but the point here is the the whole env. is cleaned out
-                       'win32': 'C:\\Windows\\system32;'
-                                'C:\\Windows;'
-                                'C:\\Windows\\System32\\Wbem;'
-                                'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\'
-                       }
-        path = self.environ.get('PATH',
-                                clean_paths[sys.platform] if sys.platform in clean_paths else
-                                '/usr/bin')
-        path_split = path.split(os.pathsep)
+        if not starting_path_dirs:
+            clean_paths = {'darwin': '/usr/bin:/bin:/usr/sbin:/sbin',
+                           # You may think 'let us do something more clever here and interpolate
+                           # `%windir%`' but the point here is the the whole env. is cleaned out
+                           'win32': 'C:\\Windows\\system32;'
+                                    'C:\\Windows;'
+                                    'C:\\Windows\\System32\\Wbem;'
+                                    'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\'
+                           }
+            path = self.environ.get('PATH',
+                                    clean_paths[sys.platform] if sys.platform in clean_paths else
+                                    '/usr/bin')
+            path_split = path.split(os.pathsep)
+            path_split = list(self.path_conversion(path_split))
+        else:
+            path_split = list(starting_path_dirs)
+        prefix_dirs = tuple(self._get_path_dirs(old_path))
+        try:
+            start_index = path_split.index(prefix_dirs[0])
+        except ValueError:
+            start_index = 0
         if on_win:
             # We used to prepend sys.prefix\Library\bin to PATH on startup but not anymore.
             # Instead, in conda 4.6 we add the full suite of entries. This is performed in
             # condabin\conda.bat and condabin\ _conda_activate.bat. However, we
             # need to ignore the stuff we add there, and only consider actual PATH entries.
-            prefix_dirs = tuple(self._get_path_dirs(sys.prefix))
-            start_index = 0
-            while (start_index < len(prefix_dirs) and
-                   start_index < len(path_split) and
-                   paths_equal(path_split[start_index], prefix_dirs[start_index])):
-                start_index += 1
-            path_split = path_split[start_index:]
-            library_bin_dir = self.path_conversion(
-                    self.sep.join((sys.prefix, 'Library', 'bin')))
-            if paths_equal(path_split[0], library_bin_dir):
-                path_split = path_split[1:]
-        return path_split
+            if not start_only or paths_equal(prefix_dirs[0], path_split[0]):
+                for prefix_dir in prefix_dirs:
+                    try:
+                        path_split.remove(prefix_dir)
+                    except ValueError:
+                        # we don't really care if things aren't found, just skip over them
+                        pass
+                # this one is additional for old python builds that patch in Library/bin on windows
+                library_bin_dir = self.sep.join((old_path, 'Library', 'bin'))
+                if paths_equal(path_split[0], library_bin_dir):
+                    path_split = path_split[1:]
+        return list(path_split), start_index
 
     def _get_path_dirs(self, prefix, extra_library_bin=False):
         if on_win:  # pragma: unix no cover
-            yield prefix.rstrip("\\")
-            yield self.sep.join((prefix, 'Library', 'mingw-w64', 'bin'))
-            yield self.sep.join((prefix, 'Library', 'usr', 'bin'))
-            yield self.sep.join((prefix, 'Library', 'bin'))
-            yield self.sep.join((prefix, 'Scripts'))
-            yield self.sep.join((prefix, 'bin'))
+            yield self.path_conversion(prefix.rstrip("\\"))
+            yield self.path_conversion(self.sep.join((prefix, 'Library', 'mingw-w64', 'bin')))
+            yield self.path_conversion(self.sep.join((prefix, 'Library', 'usr', 'bin')))
+            yield self.path_conversion(self.sep.join((prefix, 'Library', 'bin')))
+            yield self.path_conversion(self.sep.join((prefix, 'Scripts')))
+            yield self.path_conversion(self.sep.join((prefix, 'bin')))
         else:
-            yield self.sep.join((prefix, 'bin'))
+            yield self.path_conversion(self.sep.join((prefix, 'bin')))
 
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
         prefix = self.path_conversion(prefix)
         if starting_path_dirs is None:
-            path_list = list(self.path_conversion(self._get_starting_path_list()))
+            path_list = self._get_starting_path_list()[0]
         else:
             path_list = list(self.path_conversion(starting_path_dirs))
 
@@ -520,7 +532,7 @@ class _Activator(object):
             condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
             path_list.insert(0, condabin_dir)
 
-        path_list[0:0] = list(self.path_conversion(self._get_path_dirs(prefix)))
+        path_list[0:0] = list(self._get_path_dirs(prefix))
         return tuple(path_list)
 
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
@@ -530,31 +542,13 @@ class _Activator(object):
         old_prefix = self.path_conversion(old_prefix)
         new_prefix = self.path_conversion(new_prefix)
         if starting_path_dirs is None:
-            path_list = list(self.path_conversion(self._get_starting_path_list()))
+            path_list = self._get_starting_path_list()[0]
         else:
             path_list = list(self.path_conversion(starting_path_dirs))
 
-        def index_of_path(paths, test_path):
-            for q, path in enumerate(paths):
-                if paths_equal(path, test_path):
-                    return q
-            return None
-
         if old_prefix is not None:
-            prefix_dirs = tuple(self._get_path_dirs(old_prefix))
-            first_idx = index_of_path(path_list, prefix_dirs[0])
-            if first_idx is None:
-                first_idx = 0
-            else:
-                last_idx = index_of_path(path_list, prefix_dirs[-1])
-                assert last_idx is not None
-                # this compensates for an extra Library/bin dir entry from the interpreter on
-                #     windows.  If that entry isn't being added, it should have no effect.
-                library_bin_dir = self.path_conversion(
-                    self.sep.join((sys.prefix, 'Library', 'bin')))
-                if path_list[last_idx + 1] == library_bin_dir:
-                    last_idx += 1
-                del path_list[first_idx:last_idx + 1]
+            path_list, first_idx = self._get_starting_path_list(
+                old_prefix, start_only=False, starting_path_dirs=starting_path_dirs)
         else:
             first_idx = 0
 
@@ -636,7 +630,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     command += ' --path -f -'
 
     single_path = isinstance(paths, string_types)
-    joined = paths if single_path else ("%s" % os.pathsep).join(paths)
+    joined = paths if single_path else os.pathsep.join(paths)
 
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
