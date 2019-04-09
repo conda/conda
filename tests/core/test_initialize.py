@@ -388,7 +388,7 @@ class InitializeTests(TestCase):
             from conda.activate import PosixActivator
             activator = PosixActivator()
 
-            line0, line1, line2, line3, _, remainder = created_file_contents.split('\n', 4)
+            line0, line1, line2, line3, _, remainder = created_file_contents.split('\n', 5)
             assert line0 == "export CONDA_EXE='%s'" % activator.path_conversion(context.conda_exe)
             assert line1 == "export _CE_M=''"
             assert line2 == "export _CE_CONDA=''"
