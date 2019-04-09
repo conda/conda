@@ -1642,7 +1642,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH = shell.get_env_var('PATH')
-        #assert len(PATH0.split(':')) == len(PATH.split(':'))
+        assert len(PATH0.split(':')) == len(PATH.split(':'))
         assert PATH0 == PATH
 
         shell.sendline(shell.print_env_var % 'PS1')
@@ -1664,7 +1664,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda' + activate + '"%s"' % prefix2_p)
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH')
-        #assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         shell.sendline('conda' + activate + '"%s" --stack' % self.prefix3)
         shell.assert_env_var('CONDA_SHLVL', '2')
@@ -1678,7 +1678,7 @@ class ShellWrapperIntegrationTests(TestCase):
         PATH3 = shell.get_env_var('PATH')
         assert 'charizard' in PATH3
         assert 'venusaur' not in PATH3
-        #assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
 
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '2')
