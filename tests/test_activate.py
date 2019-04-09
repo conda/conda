@@ -1151,11 +1151,11 @@ class ShellWrapperUnitTests(TestCase):
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
         e_activate_data = dals("""
-        $env:PATH = "%(new_path)s"
-        $env:CONDA_PREFIX = "%(prefix)s"
-        $env:CONDA_SHLVL = "1"
-        $env:CONDA_DEFAULT_ENV = "%(prefix)s"
-        $env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
+        $Env:PATH = "%(new_path)s"
+        $Env:CONDA_PREFIX = "%(prefix)s"
+        $Env:CONDA_SHLVL = "1"
+        $Env:CONDA_DEFAULT_ENV = "%(prefix)s"
+        $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
         %(conda_exe_export)s
         . "%(activate1)s"
         """) % {
@@ -1182,9 +1182,9 @@ class ShellWrapperUnitTests(TestCase):
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
             . "%(deactivate1)s"
-            $env:PATH = "%(new_path)s"
-            $env:CONDA_SHLVL = "1"
-            $env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
+            $Env:PATH = "%(new_path)s"
+            $Env:CONDA_SHLVL = "1"
+            $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
             . "%(activate1)s"
             """) % {
                 'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.ps1'),
@@ -1205,8 +1205,8 @@ class ShellWrapperUnitTests(TestCase):
             Remove-Item Env:/CONDA_PREFIX
             Remove-Item Env:/CONDA_DEFAULT_ENV
             Remove-Item Env:/CONDA_PROMPT_MODIFIER
-            $env:PATH = "%(new_path)s"
-            $env:CONDA_SHLVL = "0"
+            $Env:PATH = "%(new_path)s"
+            $Env:CONDA_SHLVL = "0"
             %(conda_exe_export)s
             """) % {
                 'new_path': new_path,
@@ -1771,6 +1771,8 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.p.expect_exact('Alias')
             shell.sendline('(Get-Command conda).Definition')
             shell.p.expect_exact('Invoke-Conda')
+            shell.sendline('(Get-Command Invoke-Conda).Definition')
+            shell.p.expect_exact('.*\n')
 
             print('## [PowerShell integration] Activating.')
             shell.sendline('conda activate "%s"' % charizard)
@@ -1832,12 +1834,16 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.p.expect_exact('Alias')
             shell.sendline('(Get-Command conda).Definition')
             shell.p.expect_exact('Invoke-Conda')
+            shell.sendline('(Get-Command Invoke-Conda).Definition')
+            shell.p.expect('.*\n')
 
             shell.sendline('conda deactivate')
             shell.sendline('conda deactivate')
 
             PATH0 = shell.get_env_var('PATH', '')
             print("PATH is {}".format(PATH0.split(os.pathsep)))
+            shell.sendline('(Get-Command conda).CommandType')
+            shell.p.expect_exact('Alias')
             shell.sendline('conda create -yqp "{}" bzip2'.format(prefix))
             shell.expect('Executing transaction: ...working... done.*\n')
 

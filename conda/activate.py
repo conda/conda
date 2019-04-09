@@ -885,12 +885,15 @@ class PowerShellActivator(_Activator):
     def _hook_preamble(self):
         if context.dev:
             return dedent("""\
-                $Env:CONDA_EXE = "{context.conda_exe}"
+                $Env:PYTHONPATH = "{python_path}"
+                $Env:CONDA_EXE = "{sys_exe}"
                 $Env:_CE_M = "-m"
                 $Env:_CE_CONDA = "conda"
-                $Env:_CONDA_ROOT = "{context.conda_prefix}"
+                $Env:_CONDA_ROOT = "{python_path}{s}conda"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
-                """.format(context=context))
+                """.format(s=os.sep,
+                           python_path=dirname(CONDA_PACKAGE_ROOT),
+                           sys_exe=sys.executable, context=context))
         else:
             return dedent("""\
                 $Env:CONDA_EXE = "{context.conda_exe}"
