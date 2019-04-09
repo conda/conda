@@ -13,7 +13,7 @@ __add_sys_prefix_to_path() {
 
     if [ -n "${WINDIR+x}" ]; then
         PATH="${SYSP}/bin:${PATH}"
-        PATH="${SYSP}/Library/Scripts:${PATH}"
+        PATH="${SYSP}/Scripts:${PATH}"
         PATH="${SYSP}/Library/bin:${PATH}"
         PATH="${SYSP}/Library/usr/bin:${PATH}"
         PATH="${SYSP}/Library/mingw-w64/bin:${PATH}"
