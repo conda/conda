@@ -1582,7 +1582,7 @@ class ShellWrapperIntegrationTests(TestCase):
         # Also, self.prefix instead of prefix_p is deliberate (maybe unfortunate?)
         assert CONDA_PREFIX.lower() == self.prefix.lower()
         PATH2 = shell.get_env_var('PATH', '')
-        #assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
 
         shell.sendline('env | sort | grep CONDA')
         shell.expect('CONDA_')
@@ -1596,7 +1596,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('PS1', '(charizard).*')
         shell.assert_env_var('CONDA_SHLVL', '3')
         PATH3 = shell.get_env_var('PATH')
-        #assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
         CONDA_EXE2 = shell.get_env_var('CONDA_EXE')
         _CE_M2 = shell.get_env_var('_CE_M')
@@ -1632,12 +1632,12 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '2')
         PATH = shell.get_env_var('PATH')
-        #assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
 
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH = shell.get_env_var('PATH')
-        #assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
 
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '0')
