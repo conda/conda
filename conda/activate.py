@@ -734,7 +734,8 @@ class PosixActivator(_Activator):
                 result += join(self.export_var_tmpl % (key, '')) + '\n'
             else:
                 if key in ('PYTHONPATH', 'CONDA_EXE'):
-                    result += join(self.export_var_tmpl % (key, self.path_conversion(value))) + '\n'
+                    result += join(self.export_var_tmpl % (
+                        key, self.path_conversion(value))) + '\n'
                 else:
                     result += join(self.export_var_tmpl % (key, value)) + '\n'
         return result
