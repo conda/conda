@@ -82,7 +82,7 @@ conda() {
                 if [ $t1 == 0]; then
                     __conda_reactivate
                 else
-                    exit $t1
+                    return $t1
                 fi
                 ;;
             *)
@@ -91,7 +91,7 @@ conda() {
                 "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@"
                 \local t1=$?
                 PATH="${OLDPATH}"
-                exit $t1
+                return $t1
                 ;;
         esac
     fi
