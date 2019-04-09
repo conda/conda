@@ -1577,7 +1577,6 @@ class ShellWrapperIntegrationTests(TestCase):
         # goes to use this old conda to generate the activation script for the newly activated env.
         # it is running the old code (or at best, a mix of new code and old scripts).
         shell.assert_env_var('CONDA_SHLVL', '2')
-        shell.expect('.*\n')
         CONDA_PREFIX = shell.get_env_var('CONDA_PREFIX', '')
         # We get C: vs c: differences on Windows.
         # Also, self.prefix instead of prefix_p is deliberate (maybe unfortunate?)
