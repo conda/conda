@@ -1772,7 +1772,6 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline('(Get-Command conda).Definition')
             shell.p.expect_exact('Invoke-Conda')
             shell.sendline('(Get-Command Invoke-Conda).Definition')
-            shell.p.expect_exact('.*\n')
 
             print('## [PowerShell integration] Activating.')
             shell.sendline('conda activate "%s"' % charizard)

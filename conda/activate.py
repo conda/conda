@@ -874,8 +874,8 @@ class PowerShellActivator(_Activator):
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'Remove-Item Env:/%s'
-        self.export_var_tmpl = '$env:%s = "%s"'
-        self.set_var_tmpl = '$env:%s = "%s"'
+        self.export_var_tmpl = '$Env:%s = "%s"'
+        self.set_var_tmpl = '$Env:%s = "%s"'
         self.run_script_tmpl = '. "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda-hook.ps1')

@@ -184,6 +184,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         'CONDA_PREFIX',
         'CONDA_PREFIX_1',
         'CONDA_PREFIX_2',
+        'CONDA_PYTHON_EXE',
         'CONDA_PROMPT_MODIFIER',
         'CONDA_SHLVL',
     )
