@@ -1,5 +1,6 @@
 # This is just here so that tests is a package, so that dotted relative
 # imports work.
+from __future__ import print_function
 from conda.gateways.logging import initialize_logging
 import pytest
 import sys
@@ -23,9 +24,6 @@ from os.path import dirname, normpath, join, isfile
 from subprocess import check_output
 
 
-
-
-
 def encode_for_env_var(value):
     if isinstance(value, str):
         return value
@@ -39,6 +37,20 @@ def encode_for_env_var(value):
         except:
             return value.encode('utf-8')
     return str(value)
+
+
+def conda_ensure_sys_python_is_base_env_python():
+    # Exit if we try to run tests from a non-base env. The tests end up installing
+    # menuinst into the env they are called with and that breaks non-base env activation
+    # as it emits a message to stderr:
+    # WARNING menuinst_win32:<module>(157): menuinst called from non-root env C:\opt\conda\envs\py27
+    # So lets just sys.exit on that.
+
+    if 'CONDA_PYTHON_EXE' in os.environ:
+        if os.path.normpath(os.environ['CONDA_PYTHON_EXE']) != sys.executable:
+            print("ERROR :: Running tests from a non-base Python interpreter.  Tests requires installing" \
+                  "         menuinst and that causes stderr output when activated.", file=sys.stderr)
+            sys.exit(-1)
 
 
 def conda_move_to_front_of_PATH():
@@ -89,6 +101,7 @@ def conda_move_to_front_of_PATH():
         new_path = encode_for_env_var(new_path)
         os.environ['PATH'] = new_path
 
+
 def conda_check_versions_aligned():
     # Next problem. If we use conda to provide our git or otherwise do not
     # have it on PATH and if we also have no .version file then conda is
@@ -122,5 +135,6 @@ def conda_check_versions_aligned():
             fh.write(version_from_git)
 
 
+conda_ensure_sys_python_is_base_env_python()
 conda_move_to_front_of_PATH()
 conda_check_versions_aligned()

@@ -1863,14 +1863,15 @@ class ShellWrapperIntegrationTests(TestCase):
 
                 shell.sendline('chcp'); shell.expect('.*\n')
 
-                # PATH0 = shell.get_env_var('PATH', '').split(os.pathsep)
+                PATH0 = shell.get_env_var('PATH', '').split(os.pathsep)
+                print(PATH0)
                 shell.sendline('conda activate --dev "%s"' % charizard)
 
                 shell.sendline('chcp'); shell.expect('.*\n')
                 shell.assert_env_var('CONDA_SHLVL', '1\r')
 
-                # PATH1 = shell.get_env_var('PATH', '').split(os.pathsep)
-                # print(set(PATH1)-set(PATH0))
+                PATH1 = shell.get_env_var('PATH', '').split(os.pathsep)
+                print(PATH1)
                 shell.sendline('powershell -NoProfile -c ("get-command conda | Format-List Source")')
                 shell.p.expect_exact('Source : ' + conda_bat)
 
@@ -1878,7 +1879,8 @@ class ShellWrapperIntegrationTests(TestCase):
                 shell.assert_env_var('_CE_M', '-m\r')
                 shell.assert_env_var('CONDA_EXE', escape(sys.executable) + '\r')
                 shell.assert_env_var('CONDA_PREFIX', charizard, True)
-                # PATH2 = shell.get_env_var('PATH', '').split(os.pathsep)
+                PATH2 = shell.get_env_var('PATH', '').split(os.pathsep)
+                print(PATH2)
 
                 shell.sendline('powershell -NoProfile -c ("get-command conda -All | Format-List Source")')
                 shell.p.expect_exact('Source : ' + conda_bat)
