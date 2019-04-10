@@ -2674,6 +2674,7 @@ class IntegrationTests(TestCase):
             python_package = next(p for p in packages if p['name'] == 'python')
             assert python_package['version'].startswith('3')
 
+    @pytest.mark.skipif(context.subdir == "win-32", reason="dependencies not available for win-32")
     def test_legacy_repodata(self):
         channel = join(dirname(abspath(__file__)), 'data', 'legacy_repodata')
         with make_temp_env('python', 'moto=1.3.7', '-c', channel, '--no-deps') as prefix:
