@@ -1819,10 +1819,6 @@ class ShellWrapperIntegrationTests(TestCase):
 
     @pytest.mark.skipif(not which_powershell() or not on_win or sys.version_info[0] == 2,
                         reason="Windows, Python != 2 (needs dynamic OpenSSL), PowerShell specific test")
-    @pytest.mark.xfail(sys.version_info[0] == 3,
-                       reason="the PowerShell integration scripts do not manage PATH correctly. Here we "
-                              "see that an unactivated conda cannot be used in PowerShell because it will "
-                              "not have the necessary entries on PATH for OpenSSL to be found.")
     def test_powershell_PATH_management(self):
         posh_kind, posh_path = which_powershell()
         print('## [PowerShell activation PATH management] Using {}.'.format(posh_path))
