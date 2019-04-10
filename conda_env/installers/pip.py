@@ -42,7 +42,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         requirements.write('\n'.join(specs))
         requirements.close()
         # pip command line...
-        pip_cmd = ['install', '-r', requirements.name]
+        pip_cmd = ['install', '-U', '-r', requirements.name]
         pip_subprocess(pip_cmd, prefix, cwd=pip_workdir)
     finally:
         # Win/Appveyor does not like it if we use context manager + delete=True.
