@@ -3,12 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-<<<<<<< HEAD
 import codecs
 from errno import EACCES, ELOOP, EPERM
-=======
-from errno import EACCES, EPERM
->>>>>>> support new package format for installation.  prefer sha256 for verification where available
 from io import open
 from logging import getLogger
 import os
@@ -32,12 +28,8 @@ from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
-<<<<<<< HEAD
 from ...exceptions import (BasicClobberError, CaseInsensitiveFileSystemError, CondaOSError,
                            maybe_raise, CondaFileIOError)
-=======
-from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
->>>>>>> support new package format for installation.  prefer sha256 for verification where available
 from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
@@ -178,31 +170,7 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
         log.debug("package folder {} was not empty, but we're writing there."
                   .format(destination_directory))
 
-<<<<<<< HEAD
-    with open(tarball_full_path, 'rb') as fileobj:
-        if progress_update_callback:
-            fileobj = ProgressFileWrapper(fileobj, progress_update_callback)
-        with tarfile.open(fileobj=fileobj) as tar_file:
-            if context.safety_checks:
-                for member in tar_file.getmembers():
-                    if (os.path.isabs(member.name) or
-                            not os.path.realpath(member.name).startswith(os.getcwd())):
-                        raise CondaFileIOError(tarball_full_path,
-                                               "contains unsafe path: {}".format(member.name))
-            try:
-                tar_file.extractall(path=destination_directory)
-            except EnvironmentError as e:
-                if e.errno == ELOOP:
-                    raise CaseInsensitiveFileSystemError(
-                        package_location=tarball_full_path,
-                        extract_location=destination_directory,
-                        caused_by=e,
-                    )
-                else:
-                    raise
-=======
     conda_package_handling.api.extract(tarball_full_path, dest_dir=destination_directory)
->>>>>>> support new package format for installation.  prefer sha256 for verification where available
 
     if sys.platform.startswith('linux') and os.getuid() == 0:
         # When extracting as root, tarfile will by restore ownership
