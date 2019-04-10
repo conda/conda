@@ -773,13 +773,16 @@ class CshActivator(_Activator):
         if on_win:
             return ('setenv CONDA_EXE `cygpath %s`\n'
                     'setenv _CONDA_ROOT `cygpath %s`\n'
-                    'setenv _CONDA_EXE `cygpath %s`'
-                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
+                    'setenv _CONDA_EXE `cygpath %s`\n'
+                    'setenv CONDA_PYTHON_EXE `cygpath %s`'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
         else:
             return ('setenv CONDA_EXE "%s"\n'
                     'setenv _CONDA_ROOT "%s"\n'
-                    'setenv _CONDA_EXE "%s"'
-                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
+                    'setenv _CONDA_EXE "%s"\n'
+                    'setenv CONDA_PYTHON_EXE "%s"'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe,
+                       sys.executable))
 
 
 class XonshActivator(_Activator):
@@ -855,13 +858,15 @@ class FishActivator(_Activator):
         if on_win:
             return ('set -gx CONDA_EXE (cygpath "%s")\n'
                     'set _CONDA_ROOT (cygpath "%s")\n'
-                    'set _CONDA_EXE (cygpath "%s")'
-                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
+                    'set _CONDA_EXE (cygpath "%s")\n'
+                    'set -gx CONDA_PYTHON_EXE (cygpath "%s")'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
         else:
             return ('set -gx CONDA_EXE "%s"\n'
                     'set _CONDA_ROOT "%s"\n'
-                    'set _CONDA_EXE "%s"'
-                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
+                    'set _CONDA_EXE "%s"\n'
+                    'set -gx CONDA_PYTHON_EXE "%s"'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
 
 
 class PowerShellActivator(_Activator):

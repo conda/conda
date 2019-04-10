@@ -414,10 +414,11 @@ class InitializeTests(TestCase):
             first_line, second_line, third_line, fourth_line, remainder = created_file_contents.split('\n', 4)
             if on_win:
                 win_conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
+                win_py_exe = join(conda_prefix, 'Scripts', 'python.exe')
                 assert first_line == 'set -gx CONDA_EXE (cygpath "%s")' % win_conda_exe
                 assert second_line == 'set _CONDA_ROOT (cygpath "%s")' % conda_prefix
                 assert third_line == 'set _CONDA_EXE (cygpath "%s")' % win_conda_exe
-                assert fourth_line == 'set -gx CONDA_EXE (cygpath "%s")' % win_conda_exe
+                assert fourth_line == 'set -gx CONDA_PYTHON_EXE (cygpath "%s")' % win_py_exe
             else:
                 assert first_line == 'set -gx CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
                 assert second_line == 'set _CONDA_ROOT "%s"' % conda_prefix
@@ -474,7 +475,7 @@ class InitializeTests(TestCase):
                 assert first_line == 'setenv CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
                 assert second_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
                 assert third_line == 'setenv _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
-                assert fourth_line == 'setenv CONDA_PYTHON_EXE `cygpath %s`' % join(conda_prefix, 'bin', 'python')
+                assert fourth_line == 'setenv CONDA_PYTHON_EXE "%s"' % join(conda_prefix, 'bin', 'python')
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.csh')) as fh:
                 original_contents = fh.read()
