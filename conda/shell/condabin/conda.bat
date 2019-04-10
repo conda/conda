@@ -6,7 +6,7 @@
 @REM echo CONDA_EXE is %CONDA_EXE%
 
 @IF DEFINED _CE_CONDA (
-  FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA.
+  FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA
 ) else (
   @SET _sysp=%~dp0..\
   @SET _CE_M=
@@ -17,8 +17,11 @@
 @IF [%1]==[deactivate] "%~dp0_conda_activate" %*
 
 @SETLOCAL
-@SET "_sysp=%_sysp:~0,-1%"
-@SET "PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%"
+echo _sysp lizzy1_1 %_sysp%
+@SET _sysp=%_sysp:~0,-1%
+echo _sysp lizzy1_2 %_sysp%
+@SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
+echo PATH lizzy1_3 %PATH%
 @SET CONDA_EXES="%CONDA_EXE%" %_CE_M% %_CE_CONDA%
 @CALL %CONDA_EXES% %*
 @ENDLOCAL

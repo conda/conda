@@ -3,7 +3,7 @@
 @REM Helper routine for activation, deactivation, and reactivation.
 
 @IF DEFINED _CE_CONDA (
-  FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA.
+  FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA
 ) ELSE (
   @SET _sysp=%~dp0..\
 )
@@ -16,8 +16,11 @@
 :FIXUP43
 
 @SETLOCAL EnableDelayedExpansion
+echo _sysp lizzy2_1 %_sysp%
 @SET _sysp=%_sysp:~0,-1%
+echo _sysp lizzy2_2 %_sysp%
 @SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
+echo PATH lizzy2_3 %PATH%
 @REM It seems that it is not possible to have "CONDA_EXE=Something With Spaces"
 @REM and %* to contain: activate "Something With Spaces does not exist".
 @REM MSDOS associates the outer "'s and is unable to run very much at all.
