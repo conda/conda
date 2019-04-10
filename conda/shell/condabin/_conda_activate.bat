@@ -3,9 +3,9 @@
 @REM Helper routine for activation, deactivation, and reactivation.
 
 @IF DEFINED _CE_CONDA (
-  FOR %%A IN ("%CONDA_EXE%") DO @SET "_sysp=%%~dpA."
+  FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA.
 ) ELSE (
-  @SET "_sysp=%~dp0..\"
+  @SET _sysp=%~dp0..\
 )
 
 @IF "%CONDA_PS1_BACKUP%"=="" GOTO FIXUP43

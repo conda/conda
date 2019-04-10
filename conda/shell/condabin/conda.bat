@@ -6,9 +6,9 @@
 @REM echo CONDA_EXE is %CONDA_EXE%
 
 @IF DEFINED _CE_CONDA (
-  FOR %%A IN ("%CONDA_EXE%") DO @SET "_sysp=%%~dpA."
+  FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA.
 ) else (
-  @SET "_sysp=%~dp0..\"
+  @SET _sysp=%~dp0..\
   @SET _CE_M=
   @SET _CE_CONDA=
   @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
