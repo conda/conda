@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
@@ -7,6 +8,7 @@ from collections import OrderedDict
 from errno import ENOENT
 from glob import glob
 from itertools import chain
+from logging import getLogger
 import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
 import re
@@ -21,6 +23,8 @@ from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
+
+log = getLogger(__name__)
 
 
 class _Activator(object):
@@ -546,8 +550,13 @@ class _Activator(object):
             if first_idx is None:
                 first_idx = 0
             else:
-                last_idx = index_of_path(path_list, prefix_dirs[-1])
-                assert last_idx is not None
+                prefix_dirs_idx = len(prefix_dirs) - 1
+                last_idx = None
+                while last_idx is None and prefix_dirs_idx > -1:
+                    last_idx = index_of_path(path_list, prefix_dirs[prefix_dirs_idx])
+                    if last_idx is None:
+                        log.info("Did not find path entry {}".format(prefix_dirs[prefix_dirs_idx]))
+                    prefix_dirs_idx = prefix_dirs_idx - 1
                 # this compensates for an extra Library/bin dir entry from the interpreter on
                 #     windows.  If that entry isn't being added, it should have no effect.
                 library_bin_dir = self.path_conversion(
@@ -724,7 +733,11 @@ class PosixActivator(_Activator):
                 # result += join(self.unset_var_tmpl % key) + '\n'
                 result += join(self.export_var_tmpl % (key, '')) + '\n'
             else:
-                result += join(self.export_var_tmpl % (key, value)) + '\n'
+                if key in ('PYTHONPATH', 'CONDA_EXE'):
+                    result += join(self.export_var_tmpl % (
+                        key, self.path_conversion(value))) + '\n'
+                else:
+                    result += join(self.export_var_tmpl % (key, value)) + '\n'
         return result
 
 
@@ -760,13 +773,16 @@ class CshActivator(_Activator):
         if on_win:
             return ('setenv CONDA_EXE `cygpath %s`\n'
                     'setenv _CONDA_ROOT `cygpath %s`\n'
-                    'setenv _CONDA_EXE `cygpath %s`'
-                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
+                    'setenv _CONDA_EXE `cygpath %s`\n'
+                    'setenv CONDA_PYTHON_EXE `cygpath %s`'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
         else:
             return ('setenv CONDA_EXE "%s"\n'
                     'setenv _CONDA_ROOT "%s"\n'
-                    'setenv _CONDA_EXE "%s"'
-                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
+                    'setenv _CONDA_EXE "%s"\n'
+                    'setenv CONDA_PYTHON_EXE "%s"'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe,
+                       sys.executable))
 
 
 class XonshActivator(_Activator):
@@ -842,13 +858,15 @@ class FishActivator(_Activator):
         if on_win:
             return ('set -gx CONDA_EXE (cygpath "%s")\n'
                     'set _CONDA_ROOT (cygpath "%s")\n'
-                    'set _CONDA_EXE (cygpath "%s")'
-                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
+                    'set _CONDA_EXE (cygpath "%s")\n'
+                    'set -gx CONDA_PYTHON_EXE (cygpath "%s")'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
         else:
             return ('set -gx CONDA_EXE "%s"\n'
                     'set _CONDA_ROOT "%s"\n'
-                    'set _CONDA_EXE "%s"'
-                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
+                    'set _CONDA_EXE "%s"\n'
+                    'set -gx CONDA_PYTHON_EXE "%s"'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
 
 
 class PowerShellActivator(_Activator):
@@ -862,8 +880,8 @@ class PowerShellActivator(_Activator):
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'Remove-Item Env:/%s'
-        self.export_var_tmpl = '$env:%s = "%s"'
-        self.set_var_tmpl = '$env:%s = "%s"'
+        self.export_var_tmpl = '$Env:%s = "%s"'
+        self.set_var_tmpl = '$Env:%s = "%s"'
         self.run_script_tmpl = '. "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda-hook.ps1')
@@ -873,12 +891,15 @@ class PowerShellActivator(_Activator):
     def _hook_preamble(self):
         if context.dev:
             return dedent("""\
-                $Env:CONDA_EXE = "{context.conda_exe}"
+                $Env:PYTHONPATH = "{python_path}"
+                $Env:CONDA_EXE = "{sys_exe}"
                 $Env:_CE_M = "-m"
                 $Env:_CE_CONDA = "conda"
-                $Env:_CONDA_ROOT = "{context.conda_prefix}"
+                $Env:_CONDA_ROOT = "{python_path}{s}conda"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
-                """.format(context=context))
+                """.format(s=os.sep,
+                           python_path=dirname(CONDA_PACKAGE_ROOT),
+                           sys_exe=sys.executable, context=context))
         else:
             return dedent("""\
                 $Env:CONDA_EXE = "{context.conda_exe}"

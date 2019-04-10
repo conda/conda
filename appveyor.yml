@@ -10,10 +10,10 @@ environment:
     secure: ZaE7K9EHorv40AjYhSuWtQeRAsMN1+QqPf7u8rOlvEY50kdaHj87Mh5GIDZgJBzj
 
   matrix:
-     - PYTHON: "C:\\Python3_64"
-       PYTHON_VERSION: "3.7"
+     - PYTHON: "C:\\Python36_64"
+       PYTHON_VERSION: "3.6"
        PYTHON_ARCH: "64"
-       PYTHON_ROOT: "C:\\Miniconda3-x64"
+       PYTHON_ROOT: "C:\\Miniconda36-x64"
        CONDA_INSTRUMENTATION_ENABLED: "true"
 
      - PYTHON: "C:\\Python27_32"
@@ -22,16 +22,12 @@ environment:
        PYTHON_ROOT: "C:\\Miniconda"
        CONDA_INSTRUMENTATION_ENABLED: "true"
 
-skip_commits:
-  files:
-    - docs/*
-    
 init:
   - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %HOME%
   # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
-on_finish:
-  # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 install:
   - '%PYTHON_ROOT%\\Scripts\\conda install -y -c conda-canary -c defaults -c conda-forge python=%PYTHON_VERSION% pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses pexpect pywin32 anaconda-client'

@@ -1151,11 +1151,11 @@ class ShellWrapperUnitTests(TestCase):
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
         e_activate_data = dals("""
-        $env:PATH = "%(new_path)s"
-        $env:CONDA_PREFIX = "%(prefix)s"
-        $env:CONDA_SHLVL = "1"
-        $env:CONDA_DEFAULT_ENV = "%(prefix)s"
-        $env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
+        $Env:PATH = "%(new_path)s"
+        $Env:CONDA_PREFIX = "%(prefix)s"
+        $Env:CONDA_SHLVL = "1"
+        $Env:CONDA_DEFAULT_ENV = "%(prefix)s"
+        $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
         %(conda_exe_export)s
         . "%(activate1)s"
         """) % {
@@ -1182,9 +1182,9 @@ class ShellWrapperUnitTests(TestCase):
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
             . "%(deactivate1)s"
-            $env:PATH = "%(new_path)s"
-            $env:CONDA_SHLVL = "1"
-            $env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
+            $Env:PATH = "%(new_path)s"
+            $Env:CONDA_SHLVL = "1"
+            $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
             . "%(activate1)s"
             """) % {
                 'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.ps1'),
@@ -1205,8 +1205,8 @@ class ShellWrapperUnitTests(TestCase):
             Remove-Item Env:/CONDA_PREFIX
             Remove-Item Env:/CONDA_DEFAULT_ENV
             Remove-Item Env:/CONDA_PROMPT_MODIFIER
-            $env:PATH = "%(new_path)s"
-            $env:CONDA_SHLVL = "0"
+            $Env:PATH = "%(new_path)s"
+            $Env:CONDA_SHLVL = "0"
             %(conda_exe_export)s
             """) % {
                 'new_path': new_path,
@@ -1304,7 +1304,8 @@ class InteractiveShell(object):
         'powershell': {
             'activator': 'powershell',
             'args': ('-NoProfile', '-NoLogo'),
-            'init_command': 'python -m conda shell.powershell hook --dev | Out-String | Invoke-Expression',
+            'init_command': '{} -m conda shell.powershell hook --dev | Out-String | Invoke-Expression'\
+                .format(sys.executable),
             'print_env_var': '$Env:%s',
             'exit_cmd': 'exit'
         },
@@ -1353,7 +1354,6 @@ class InteractiveShell(object):
         # set state for context
         joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
         PATH = joiner(self.activator.path_conversion(concatv(
-            (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
             (dirname(which(self.shell_name)),),
         )))
@@ -1412,7 +1412,7 @@ class InteractiveShell(object):
             self.sendline(self.print_env_var % env_var)
             # The \r\n\( is the newline after the env var and the start of the prompt.
             # If we knew the active env we could add that in as well as the closing )
-            self.expect(r'\$Env:{}\r\n([^\r]*)(\r\n)+\('.format(env_var))
+            self.expect(r'\$Env:{}\r\n([^\r]*)(\r\n).*'.format(env_var))
             value = self.p.match.groups()[0]
         else:
             self.sendline('echo get_var_start')
@@ -1507,6 +1507,9 @@ class ShellWrapperIntegrationTests(TestCase):
         prefix2_p = activator.path_conversion(self.prefix2)
         prefix3_p = activator.path_conversion(self.prefix3)
 
+        PATH0 = shell.get_env_var('PATH', '')
+        assert any(p.endswith("condabin") for p in PATH0.split(":"))
+
         # calling bash -l, as we do for MSYS2, may cause conda activation.
         shell.sendline('conda deactivate')
         shell.sendline('conda deactivate')
@@ -1515,8 +1518,8 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.expect('.*\n')
 
         shell.assert_env_var('CONDA_SHLVL', '0')
-        PATH0 = shell.get_env_var('PATH', '').strip(':')
-        assert any(p.endswith("condabin") for p in PATH0.split(":"))
+        PATH0 = shell.get_env_var('PATH', '')
+        assert len([p for p in PATH0.split(":") if p.endswith("condabin")]) > 0
         # Remove sys.prefix from PATH. It interferes with path entry count tests.
         # We can no longer check this since we'll replace e.g. between 1 and N path
         # entries with N of them in _replace_prefix_in_path() now. It is debatable
@@ -1524,7 +1527,7 @@ class ShellWrapperIntegrationTests(TestCase):
         if PATH0.startswith(activator.path_conversion(sys.prefix) + ':'):
             PATH0=PATH0[len(activator.path_conversion(sys.prefix))+1:]
             shell.sendline('export PATH="{}"'.format(PATH0))
-            PATH0 = shell.get_env_var('PATH', '').strip(':')
+            PATH0 = shell.get_env_var('PATH', '')
         shell.sendline("type conda")
         shell.expect(conda_is_a_function)
 
@@ -1544,7 +1547,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
-        PATH1 = shell.get_env_var('PATH', '').strip(':')
+        PATH1 = shell.get_env_var('PATH', '')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         CONDA_EXE = shell.get_env_var('CONDA_EXE')
@@ -1574,8 +1577,11 @@ class ShellWrapperIntegrationTests(TestCase):
         # goes to use this old conda to generate the activation script for the newly activated env.
         # it is running the old code (or at best, a mix of new code and old scripts).
         shell.assert_env_var('CONDA_SHLVL', '2')
-        shell.assert_env_var('CONDA_PREFIX', prefix_p, True)
-        PATH2 = shell.get_env_var('PATH', '').strip(':')
+        CONDA_PREFIX = shell.get_env_var('CONDA_PREFIX', '')
+        # We get C: vs c: differences on Windows.
+        # Also, self.prefix instead of prefix_p is deliberate (maybe unfortunate?)
+        assert CONDA_PREFIX.lower() == self.prefix.lower()
+        PATH2 = shell.get_env_var('PATH', '')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
 
         shell.sendline('env | sort | grep CONDA')
@@ -1589,7 +1595,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.expect('PATH=')
         shell.assert_env_var('PS1', '(charizard).*')
         shell.assert_env_var('CONDA_SHLVL', '3')
-        PATH3 = shell.get_env_var('PATH').strip(':')
+        PATH3 = shell.get_env_var('PATH')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
         CONDA_EXE2 = shell.get_env_var('CONDA_EXE')
@@ -1604,7 +1610,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda' + install + '-yq hdf5=1.10.2')
         shell.expect('Executing transaction: ...working... done.*\n', timeout=60)
-        shell.assert_env_var('?', '0', True)
+        shell.assert_env_var('?', '0', use_exact=True)
 
         shell.sendline('h5stat --version')
         shell.expect(r'.*h5stat: Version 1.10.2.*')
@@ -1625,17 +1631,17 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '2')
-        PATH = shell.get_env_var('PATH').strip(':')
+        PATH = shell.get_env_var('PATH')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
 
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '1')
-        PATH = shell.get_env_var('PATH').strip(':')
+        PATH = shell.get_env_var('PATH')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
 
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '0')
-        PATH = shell.get_env_var('PATH').strip(':')
+        PATH = shell.get_env_var('PATH')
         assert len(PATH0.split(':')) == len(PATH.split(':'))
         assert PATH0 == PATH
 
@@ -1653,16 +1659,16 @@ class ShellWrapperIntegrationTests(TestCase):
         assert CONDA_EXED, "A fully deactivated conda shell must retain CONDA_EXE (and _CE_M and _CE_CONDA in dev)\n" \
                            "  as the shell scripts refer to them."
 
-        PATH0 = shell.get_env_var('PATH').strip(':')
+        PATH0 = shell.get_env_var('PATH')
 
         shell.sendline('conda' + activate + '"%s"' % prefix2_p)
         shell.assert_env_var('CONDA_SHLVL', '1')
-        PATH1 = shell.get_env_var('PATH').strip(':')
+        PATH1 = shell.get_env_var('PATH')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         shell.sendline('conda' + activate + '"%s" --stack' % self.prefix3)
         shell.assert_env_var('CONDA_SHLVL', '2')
-        PATH2 = shell.get_env_var('PATH').strip(':')
+        PATH2 = shell.get_env_var('PATH')
         assert 'charizard' in PATH2
         assert 'venusaur' in PATH2
         assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH2.split(':'))
@@ -1676,7 +1682,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '2')
-        PATH4 = shell.get_env_var('PATH').strip(':')
+        PATH4 = shell.get_env_var('PATH')
         assert 'charizard' in PATH4
         assert 'venusaur' in PATH4
         assert PATH4 == PATH2
@@ -1765,6 +1771,7 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.p.expect_exact('Alias')
             shell.sendline('(Get-Command conda).Definition')
             shell.p.expect_exact('Invoke-Conda')
+            shell.sendline('(Get-Command Invoke-Conda).Definition')
 
             print('## [PowerShell integration] Activating.')
             shell.sendline('conda activate "%s"' % charizard)
@@ -1812,10 +1819,6 @@ class ShellWrapperIntegrationTests(TestCase):
 
     @pytest.mark.skipif(not which_powershell() or not on_win or sys.version_info[0] == 2,
                         reason="Windows, Python != 2 (needs dynamic OpenSSL), PowerShell specific test")
-    @pytest.mark.xfail(sys.version_info[0] == 3,
-                       reason="the PowerShell integration scripts do not manage PATH correctly. Here we "
-                              "see that an unactivated conda cannot be used in PowerShell because it will "
-                              "not have the necessary entries on PATH for OpenSSL to be found.", strict=True)
     def test_powershell_PATH_management(self):
         posh_kind, posh_path = which_powershell()
         print('## [PowerShell activation PATH management] Using {}.'.format(posh_path))
@@ -1826,12 +1829,16 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.p.expect_exact('Alias')
             shell.sendline('(Get-Command conda).Definition')
             shell.p.expect_exact('Invoke-Conda')
+            shell.sendline('(Get-Command Invoke-Conda).Definition')
+            shell.p.expect('.*\n')
 
             shell.sendline('conda deactivate')
             shell.sendline('conda deactivate')
 
             PATH0 = shell.get_env_var('PATH', '')
             print("PATH is {}".format(PATH0.split(os.pathsep)))
+            shell.sendline('(Get-Command conda).CommandType')
+            shell.p.expect_exact('Alias')
             shell.sendline('conda create -yqp "{}" bzip2'.format(prefix))
             shell.expect('Executing transaction: ...working... done.*\n')
 
@@ -1856,14 +1863,15 @@ class ShellWrapperIntegrationTests(TestCase):
 
                 shell.sendline('chcp'); shell.expect('.*\n')
 
-                # PATH0 = shell.get_env_var('PATH', '').split(os.pathsep)
+                PATH0 = shell.get_env_var('PATH', '').split(os.pathsep)
+                print(PATH0)
                 shell.sendline('conda activate --dev "%s"' % charizard)
 
                 shell.sendline('chcp'); shell.expect('.*\n')
                 shell.assert_env_var('CONDA_SHLVL', '1\r')
 
-                # PATH1 = shell.get_env_var('PATH', '').split(os.pathsep)
-                # print(set(PATH1)-set(PATH0))
+                PATH1 = shell.get_env_var('PATH', '').split(os.pathsep)
+                print(PATH1)
                 shell.sendline('powershell -NoProfile -c ("get-command conda | Format-List Source")')
                 shell.p.expect_exact('Source : ' + conda_bat)
 
@@ -1871,7 +1879,8 @@ class ShellWrapperIntegrationTests(TestCase):
                 shell.assert_env_var('_CE_M', '-m\r')
                 shell.assert_env_var('CONDA_EXE', escape(sys.executable) + '\r')
                 shell.assert_env_var('CONDA_PREFIX', charizard, True)
-                # PATH2 = shell.get_env_var('PATH', '').split(os.pathsep)
+                PATH2 = shell.get_env_var('PATH', '').split(os.pathsep)
+                print(PATH2)
 
                 shell.sendline('powershell -NoProfile -c ("get-command conda -All | Format-List Source")')
                 shell.p.expect_exact('Source : ' + conda_bat)
