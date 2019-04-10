@@ -17,11 +17,8 @@
 @IF [%1]==[deactivate] "%~dp0_conda_activate" %*
 
 @SETLOCAL
-echo _sysp lizzy1_1 %_sysp%
 @SET _sysp=%_sysp:~0,-1%
-echo _sysp lizzy1_2 %_sysp%
 @SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
-echo PATH lizzy1_3 %PATH%
 @SET CONDA_EXES="%CONDA_EXE%" %_CE_M% %_CE_CONDA%
 @CALL %CONDA_EXES% %*
 @ENDLOCAL
