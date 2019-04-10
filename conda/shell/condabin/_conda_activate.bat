@@ -5,7 +5,7 @@
 @IF DEFINED _CE_CONDA (
   FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA
 ) ELSE (
-  @SET _sysp=%~dp0..\
+  FOR %%A IN ("%~dp0") DO @SET _sysp=%%~dpA
 )
 
 @IF "%CONDA_PS1_BACKUP%"=="" GOTO FIXUP43
