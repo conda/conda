@@ -628,7 +628,7 @@ def run_plan_elevated(plan):
 
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
         if on_win:
-            from ..common.os.windows import run_as_admin
+            from ..common._os.windows import run_as_admin
             temp_path = None
             try:
                 with Utf8NamedTemporaryFile('w+', suffix='.json', delete=False) as tf:
