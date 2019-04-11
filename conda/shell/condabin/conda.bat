@@ -30,3 +30,6 @@
 @IF [%1]==[upgrade]   "%~dp0_conda_activate" reactivate
 @IF [%1]==[remove]    "%~dp0_conda_activate" reactivate
 @IF [%1]==[uninstall] "%~dp0_conda_activate" reactivate
+
+@IF %errorlevel% NEQ 0 EXIT /B %errorlevel%
+@EXIT /B 0
