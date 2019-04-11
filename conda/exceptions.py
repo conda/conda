@@ -493,8 +493,8 @@ class ChecksumMismatchError(CondaError):
         Conda detected a mismatch between the expected content and downloaded content
         for url '%(url)s'.
           download saved to: %(target_full_path)s
-          expected %(checksum_type) sum: %(expected_md5sum)s
-          actual %(checksum_type) sum: %(actual_md5sum)s
+          expected %(checksum_type)s sum: %(expected_sum)s
+          actual %(checksum_type)s sum: %(actual_sum)s
         """)
         from .common.url import maybe_unquote
         url = maybe_unquote(url)

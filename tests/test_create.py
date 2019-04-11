@@ -2434,8 +2434,7 @@ class IntegrationTests(TestCase):
             env_which_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', prefix, dedent("""
             {env} | sort
             {which} conda
-            """.format(env=env_or_set, which=which_or_where)),
-        dev=True)
+            """.format(env=env_or_set, which=which_or_where)), dev=True)
         assert env_which_etc
         assert not errs_etc
 
@@ -2457,7 +2456,7 @@ class IntegrationTests(TestCase):
 
         conda_v = "4.5.13"
         python_v = "3.6.7"
-        with make_temp_env("conda="+conda_v, "python="+python_v, "git", "--copy",
+        with make_temp_env("conda="+conda_v, "python="+python_v, "git", "conda-package-handling", "--copy",
                            name='_' + str(uuid4())[:8]) as prefix:
             conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
             # We cannot naively call $SOME_PREFIX/bin/conda and expect it to run the right conda because we
@@ -2954,11 +2953,3 @@ class PrivateEnvIntegrationTests(TestCase):
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
-
-@pytest.mark.integration
-def test_tar_traversal_errors_out():
-    # test tar traversal exploits: https://github.com/jwilk/traversal-archives
-    tar_folder = join(dirname(__file__), 'data', 'tar_traversal')
-    for fn in ('absolute1.tar', 'absolute2.tar', 'relative0.tar', 'relative2.tar'):
-        with pytest.raises(CondaFileIOError):
-            extract_tarball(join(tar_folder, fn))

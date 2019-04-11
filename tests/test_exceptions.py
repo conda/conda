@@ -207,8 +207,9 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
         assert json_obj['url'] == url
         assert json_obj['target_full_path'] == target_full_path
-        assert json_obj['expected_md5sum'] == expected_md5sum
-        assert json_obj['actual_md5sum'] == actual_md5sum
+        assert json_obj['expected_sum'] == expected_md5sum
+        assert json_obj['actual_sum'] == actual_md5sum
+        assert json_obj['checksum_type'] == 'md5'
 
         with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
