@@ -27,7 +27,7 @@ except ImportError:
 def test_check_non_admin_enabled_false():
     with env_var('CONDA_NON_ADMIN_ENABLED', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
         if on_win:
-            from conda.common.os.windows import is_admin_on_windows
+            from conda.common._os.windows import is_admin_on_windows
             if is_admin_on_windows():
                 check_non_admin()
             else:
