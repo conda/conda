@@ -5,6 +5,43 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.6.12 (2019-04-10)
+-------------------
+
+Bug fixes
+^^^^^^^^^
+
+* Fix compat import warning (#8507)
+* Adjust collections import to avoid deprecation warning (#8499)
+* Fix bug in CLI tests (#8468)
+* Disallow the number sign in environment names (#8521)
+* Workaround issues with noarch on certain repositories (#8523)
+* Fix activation on Windows when spaces are in path (#8503)
+* Fix conda init profile modification for powershell (#8531)
+* Point conda.bat to condabin (#8517)
+* Fix various bugs in activation (#8520, #8528)
+
+Docs improvements
+^^^^^^^^^^^^^^^^^
+
+* Fix links in README (#8482)
+* Changelogs for 4.6.10 and 4.6.11 (#8502)
+
+Contributors
+^^^^^^^^^^^^
+
+* @Bezier89
+* @duncanmmacleod
+* @ivigamberdiev
+* @javabrett
+* @jjhelmus
+* @katietz
+* @mingwandroid
+* @msarahan
+* @nehaljwani
+* @rrigdon
+
+
 4.6.11 (2019-04-04)
 -------------------
 
