@@ -8,7 +8,7 @@
 @IF DEFINED _CE_CONDA (
   FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA
 ) ELSE (
-  FOR %%A IN ("%~dp0") DO @SET _sysp=%%~dpA
+  FOR %%A IN ("%~dp0.") DO @SET _sysp=%%~dpA
   @SET _CE_M=
   @SET _CE_CONDA=
   @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
