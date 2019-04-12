@@ -93,7 +93,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         disp_lst = []
         for prec in actions[FETCH]:
             assert isinstance(prec, PackageRecord)
-            extra = '%15s' % human_bytes(prec['size'])
+            extra = '%15s' % human_bytes(prec.get('conda_size') or prec['size'])
             schannel = channel_filt(prec.channel.canonical_name)
             if schannel:
                 extra += '  ' + schannel
@@ -101,7 +101,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         print_dists(disp_lst)
 
         if index and len(actions[FETCH]) > 1:
-            num_bytes = sum(prec['size'] for prec in actions[FETCH])
+            num_bytes = sum(prec.get('conda_size') or prec['size'] for prec in actions[FETCH])
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
