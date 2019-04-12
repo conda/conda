@@ -280,8 +280,8 @@ class VersionOrder(object):
                             # str < int
                             return True
                     elif isinstance(c2, string_types):
-                            # not (int < str)
-                            return False
+                        # not (int < str)
+                        return False
                     # c1 and c2 have the same type
                     return c1 < c2
         # self == other
