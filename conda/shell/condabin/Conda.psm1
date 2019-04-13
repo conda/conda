@@ -253,16 +253,6 @@ function TabExpansion($line, $lastWord) {
 }
 
 ## PROMPT MANAGEMENT ###########################################################
-# We use the same procedure to nest prompts as we did for nested tab completion.
-
-if (Test-Path Function:\prompt) {
-    Rename-Item Function:\prompt CondaPromptBackup
-} else {
-    function CondaPromptBackup() {
-        # Restore a basic prompt if the definition is missing.
-        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
-    }
-}
 
 <#
     .SYNOPSIS
@@ -274,11 +264,22 @@ if (Test-Path Function:\prompt) {
         Causes the current session's prompt to display the currently activated
         conda environment.
 #>
-function prompt() {
-    if ($Env:CONDA_PROMPT_MODIFIER) {
-        $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
+function Add-CondaEnvironmentToPrompt() {
+    # We use the same procedure to nest prompts as we did for nested tab completion.
+    if (Test-Path Function:\prompt) {
+        Rename-Item Function:\prompt CondaPromptBackup
+    } else {
+        function CondaPromptBackup() {
+            # Restore a basic prompt if the definition is missing.
+            "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
+        }
     }
-    CondaPromptBackup;
+    function global:prompt() {
+        if ($Env:CONDA_PROMPT_MODIFIER) {
+            $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
+        }
+        CondaPromptBackup;
+    }
 }
 
 ## ALIASES #####################################################################

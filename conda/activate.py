@@ -169,6 +169,9 @@ class _Activator(object):
             builder.append(fsrc.read())
         if auto_activate_base is None and context.auto_activate_base or auto_activate_base:
             builder.append("conda activate base\n")
+        postamble = self._hook_postamble()
+        if postamble is not None:
+            builder.append(postamble)
         return "\n".join(builder)
 
     def execute(self):
@@ -195,6 +198,9 @@ class _Activator(object):
     def _hook_preamble(self):
         # must be implemented in subclass
         raise NotImplementedError()
+
+    def _hook_postamble(self):
+        return None
 
     def _parse_and_set_args(self, arguments):
         # the first index of arguments MUST be either activate, deactivate, or reactivate
@@ -908,6 +914,11 @@ class PowerShellActivator(_Activator):
                 $Env:_CONDA_ROOT = "{context.conda_prefix}"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 """.format(context=context))
+
+    def _hook_postamble(self):
+        if context.changeps1:
+            return "Add-CondaEnvironmentToPrompt"
+        return None
 
 
 activator_map = {
