@@ -12,14 +12,19 @@ build:
   # so we have to exempt them from the list of initial files
   # for conda-build to realize they should be included.
   always_include_files:
-    - bin/conda                 [unix]
-    - bin/activate              [unix]
-    - bin/deactivate            [unix]
-    - Scripts/activate.bat      [win]
-    - Scripts/activate          [win]
-    - Scripts/deactivate        [win]
+    - bin/conda                    # [unix]
+    - bin/activate                 # [unix]
+    - bin/deactivate               # [unix]
+    - Scripts/activate.bat         # [win]
+    - Scripts/activate             # [win]
+    - Scripts/deactivate           # [win]
 
 requirements:
+  build:
+    - m2-filesystem                # [win]
+    - m2-bash                      # [win]
+    - m2-base                      # [win]
+
   host:
     - python
     - enum34                       # [py<34]
@@ -55,26 +60,41 @@ test:
     - pexpect
     - responses
     - conda-build
+    - m2-filesystem  # [win]
+    - m2-bash        # [win]
+    - m2-base        # [win]
   imports:
     - conda
     - conda_env
   commands:
 {% if on_win %}
-    - echo
-#    - SET CONDA_SHLVL=
-#    - CALL %PREFIX%\condabin\conda_hook.bat
-#    - CALL conda.bat activate base
-#    - FOR /F "delims=" %%i IN ('python -c "import sys; print(sys.version_info[0])"') DO set "PYTHON_MAJOR_VERSION=%%i"
-#    - set TEST_PLATFORM=win
-#    - FOR /F "delims=" %%i IN ('python -c "import random as r; print(r.randint(0,4294967296))"') DO set "PYTHONHASHSEED=%%i"
-#    - set
-#    - conda info
-#    - conda create -y -p .\built-conda-test-env
-#    - CALL conda.bat activate .\built-conda-test-env
-#    - echo %CONDA_PREFIX%
-#    - IF NOT "%CONDA_PREFIX%"=="%CD%\built-conda-test-env" EXIT /B 1
-#    - CALL conda.bat deactivate
-#    - py.test tests -m "not integration and not installed" -vv
+    - SET CONDA_SHLVL=
+    # don't inherit these from the build env setup
+    - SET _CE_CONDA=
+    - SET _CE_M=
+    - SET _CONDA_EXE=
+    - SET
+    # CALL stuff is necessary because conda in condabin is a bat script
+    #    running bat files within other bat files requires CALL or else
+    #    the outer script (our test script) exits when the inner completes
+    - CALL %PREFIX%\condabin\conda_hook.bat
+    - CALL conda.bat activate base
+    - FOR /F "delims=" %%i IN ('python -c "import sys; print(sys.version_info[0])"') DO set "PYTHON_MAJOR_VERSION=%%i"
+    - SET TEST_PLATFORM=win
+    - FOR /F "delims=" %%i IN ('python -c "import random as r; print(r.randint(0,4294967296))"') DO set "PYTHONHASHSEED=%%i"
+    - where conda
+    - CALL conda info
+    - CALL conda create -y -p .\built-conda-test-env
+    - CALL conda.bat activate .\built-conda-test-env
+    - ECHO %CONDA_PREFIX%
+    - IF NOT "%CONDA_PREFIX%"=="%CD%\built-conda-test-env" EXIT /B 1
+    - CALL conda deactivate
+    - SET MSYSTEM=MINGW%ARCH%
+    - SET MSYS2_PATH_TYPE=inherit
+    - SET CHERE_INVOKING=1
+    - FOR /F "delims=" %%i IN ('cygpath.exe -u "%PREFIX%"') DO set "PREFIXP=%%i"
+    - bash -lc "source %PREFIXP%/Scripts/activate"
+    - py.test tests -m "not integration and not installed" -vv
 {% else %}
     - unset CONDA_SHLVL
     - eval "$(python -m conda shell.bash hook)"
@@ -93,15 +113,29 @@ test:
 {% endif %}
 
 about:
-  home: https://conda.io/
-  license: BSD
+  home: https://conda.io
+  license: BSD 3-Clause
   license_file: LICENSE.txt
   summary: OS-agnostic, system-level binary package and environment manager.
-  description: |
+  description: >
     Conda is an open source package management system and environment
     management system for installing multiple versions of software packages
     and their dependencies and switching easily between them. It works on
     Linux, OS X and Windows, and was created for Python programs but can
     package and distribute any software.
-  doc_url: http://conda.pydata.org/docs/
+  doc_url: https://conda.io/projects/conda/en/latest/
   dev_url: https://github.com/conda/conda
+
+extra:
+  recipe-maintainers:
+    - jakirkham
+    - jjhelmus
+    - kalefranz
+    - mcg1969
+    - mingwandroid
+    - msarahan
+    - mwcraig
+    - ocefpaf
+    - patricksnape
+    - pelson
+    - scopatz

@@ -6,6 +6,32 @@ Troubleshooting
    :local:
    :depth: 1
 
+
+Using Conda in Windows Batch script exits early
+===============================================
+
+In conda 4.6+, the way that you interact with conda goes through a batch script (``%PREFIX%\condabin\conda.bat``).
+Unfortunately, this means it's a little complicated to use conda from other batch scripts.  When using batch
+scripts from within batch scripts, you must prefix your command with ``CALL``.  If you do not do this, your batch
+script that calls conda will exit immediately after the conda usage.  In other words, if you write this in a .bat file:
+
+   .. code-block:: bash
+
+      conda create myenv python
+      conda activate myenv
+      echo test
+
+Neither the activation, nor the echo will happen.  You must write this in your batch script:
+
+   .. code-block:: bash
+
+      CALL conda create myenv python
+      CALL conda activate myenv
+      echo test
+
+This is known behavior with cmd.exe, and we have not found any way to change it.  https://stackoverflow.com/questions/4798879/how-do-i-run-a-batch-script-from-within-a-batch-script/4798965
+
+
 Numpy MKL library load failed
 =============================
 

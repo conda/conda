@@ -8,7 +8,7 @@
 @IF DEFINED _CE_CONDA (
   FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA
 ) ELSE (
-  FOR %%A IN ("%~dp0") DO @SET _sysp=%%~dpA
+  FOR %%A IN ("%~dp0.") DO @SET _sysp=%%~dpA
   @SET _CE_M=
   @SET _CE_CONDA=
   @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
@@ -30,3 +30,5 @@
 @IF [%1]==[upgrade]   "%~dp0_conda_activate" reactivate
 @IF [%1]==[remove]    "%~dp0_conda_activate" reactivate
 @IF [%1]==[uninstall] "%~dp0_conda_activate" reactivate
+
+EXIT /B %errorlevel%
