@@ -4,7 +4,7 @@
 __add_sys_prefix_to_path() {
     # In dev-mode CONDA_EXE is python.exe and on Windows
     # it is in a different relative location to condabin.
-    if [ -n "${_CE_CONDA+x}" ] && [ -n "${WINDIR+x}" ]; then
+    if [ -n "${_CE_CONDA}" ] && [ -n "${WINDIR+x}" ]; then
         SYSP=$(\dirname "${CONDA_EXE}")
     else
         SYSP=$(\dirname "${CONDA_EXE}")

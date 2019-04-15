@@ -69,7 +69,7 @@ function Add-Sys-Prefix-To-Path() {
 
 <#
     .SYNOPSIS
-        Activates a conda enviroment, placing its commands and packages at
+        Activates a conda environment, placing its commands and packages at
         the head of $Env:PATH.
 
     .EXAMPLE
