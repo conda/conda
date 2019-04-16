@@ -63,7 +63,6 @@ function Add-Sys-Prefix-To-Path() {
     } else {
         $Env:PATH = $sysp + '/bin:' + $Env:PATH;
     }
-    Write-Output Env:PATH is $Env:PATH;
     return $OldPath;
 }
 
