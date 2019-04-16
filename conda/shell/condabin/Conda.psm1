@@ -46,7 +46,7 @@ function Get-CondaEnvironment {
 #>
 function Add-Sys-Prefix-To-Path() {
     $OldPath = $Env:PATH;
-    if ($Env:_CE_CONDA -ne '' -And $Env:OS -eq 'Windows_NT') {
+    if ($Env:_CE_CONDA -eq '' -And $Env:OS -eq 'Windows_NT') {
         # Windows has a different layout for the python exe than other platforms.
         $sysp = Split-Path $Env:CONDA_EXE -Parent;
     } else {
