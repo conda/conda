@@ -1210,7 +1210,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "bleach=2")
             with pytest.raises(UnsatisfiableError):
                 run_command(Commands.INSTALL, prefix,
-                            "conda-forge::tensorflow>=1.4", "--dry-run", "--freeze-installed")
+                            "conda-forge::tensorflow>=1.4,<1.12", "--dry-run", "--freeze-installed")
 
     @pytest.mark.xfail(on_win, reason="nomkl not present on windows",
                        strict=True)
