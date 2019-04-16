@@ -682,11 +682,11 @@ def native_path_to_unix(paths):  # pragma: unix no cover
 
 def path_identity(paths):
     if isinstance(paths, string_types):
-        return paths
+        return os.path.normpath(paths)
     elif paths is None:
         return None
     else:
-        return tuple(paths)
+        return tuple(os.path.normpath(_) for _ in paths)
 
 
 class PosixActivator(_Activator):
