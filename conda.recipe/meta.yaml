@@ -1,11 +1,11 @@
-{% set on_win = SUBDIR in ('win-64', 'win-32') %}
-
 package:
   name: conda
-  version: "{{ GIT_DESCRIBE_TAG }}"
+  version: {{ GIT_DESCRIBE_TAG }}.{{ GIT_BUILD_STR }}
 
 source:
-  path: ../
+  # git_url is nice in that it won't capture devenv stuff.  However, it only
+  #    captures committed code, so pay attention.
+  git_url: ../
 
 build:
   # These are present when the new environment is created
