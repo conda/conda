@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
+set -x
 
 unset CONDA_SHLVL
+unset _CE_CONDA
+unset _CE_M
+unset CONDA_EXE
 eval "$(python -m conda shell.bash hook)"
 conda activate base
 export PYTHON_MAJOR_VERSION=$(python -c "import sys; print(sys.version_info[0])")
