@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -x
 
 unset CONDA_SHLVL
 eval "$(python -m conda shell.bash hook)"

@@ -1,3 +1,4 @@
+@echo on
 SET CONDA_SHLVL=
 REM don't inherit these from the build env setup
 SET _CE_CONDA=
