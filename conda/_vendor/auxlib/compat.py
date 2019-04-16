@@ -66,7 +66,7 @@ if sys.version_info[0] < 3:
         if 'CONDA_TEST_SAVE_TEMPS' in os.environ:
             delete = False
         return codecs.getwriter('utf-8')(NamedTemporaryFile(mode=mode, bufsize=bufsize, suffix=suffix,
-                                 prefix=template, dir=None, delete=delete))
+                                 prefix=template, dir=dir, delete=delete))
 else:
     def Utf8NamedTemporaryFile(mode='w+b', buffering=-1, newline=None,
                                suffix=None, prefix=None, dir=None, delete=True):
