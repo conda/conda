@@ -1729,6 +1729,7 @@ class ShellWrapperIntegrationTests(TestCase):
             self.basic_csh(shell)
 
     @pytest.mark.skipif(not which('tcsh'), reason='tcsh not installed')
+    @pytest.mark.xfail(reason="punting until we officially enable support for tcsh")
     def test_tcsh_basic_integration(self):
         with InteractiveShell('tcsh') as shell:
             self.basic_csh(shell)
