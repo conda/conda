@@ -294,6 +294,6 @@ Export-ModuleMember `
     -Alias * `
     -Function `
         Invoke-Conda, `
-        Get-CondaEnvironment, `
+        Get-CondaEnvironment, Add-CondaEnvironmentToPrompt, `
         Enter-CondaEnvironment, Exit-CondaEnvironment, `
         TabExpansion, prompt
