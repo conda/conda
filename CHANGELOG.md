@@ -1,3 +1,14 @@
+## 4.6.14 (2019-04-17)
+
+### Bug fixes
+
+* export extra function in powershell Conda.psm1 script (fixes anaconda powershell prompt)  (#8570)
+
+### Contributors
+
+* @msarahan
+
+
 ## 4.6.13 (2019-04-16)
 
 ### Bug fixes
