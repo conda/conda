@@ -1238,8 +1238,9 @@ class InteractiveShell(object):
             # 'init_command': 'env | sort && mount && which {0} && {0} -V && echo "$({0} -m conda shell.posix hook)" && eval "$({0} -m conda shell.posix hook)"'.format('/c/Users/rdonnelly/mc/python.exe'), # sys.executable.replace('\\', '/')),
             # 'init_command': 'env | sort && echo "$({0} -m conda shell.posix hook)" && eval "$({0} -m conda shell.posix hook)"'.format(self.
             #    '/c/Users/rdonnelly/mc/python.exe'),  # sys.executable.replace('\\', '/')),
-            'init_command': 'env | sort && echo "$({0} -m conda shell.posix hook {1})" && eval "$({0} -m conda shell.posix hook {1})" && env | sort'\
-                .format(exe_quoted, dev_arg),
+            'init_command': ('env | sort && echo "$({0} -m conda shell.posix hook {1})" && '
+                             'eval "$({0} -m conda shell.posix hook {1})" && env | sort'
+                             .format(exe_quoted, dev_arg)),
 
             'print_env_var': 'echo "$%s"',
         },
@@ -1253,7 +1254,8 @@ class InteractiveShell(object):
         },
         'zsh': {
             'base_shell': 'posix',  # inheritance implemented in __init__
-            'init_command': 'env | sort && eval "$(python -m conda shell.zsh hook {0})"'.format(dev_arg),
+            'init_command': ('env | sort && eval "$({0} -m conda shell.zsh hook {1})"'
+                             .format(exe_quoted, dev_arg)),
         },
         # It should be noted here that we use the latest hook with whatever conda.exe is installed
         # in sys.prefix (and we will activate all of those PATH entries).  We will set PYTHONPATH
@@ -1296,7 +1298,7 @@ class InteractiveShell(object):
         },
         'fish': {
             'activator': 'fish',
-            'init_command': 'eval (python -m conda shell.fish hook {0})'.format(dev_arg),
+            'init_command': 'eval ({0} -m conda shell.fish hook {1})'.format(exe_quoted, dev_arg),
             'print_env_var': 'echo $%s',
         },
         # We don't know if the PowerShell executable is called
