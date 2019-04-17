@@ -1,3 +1,25 @@
+## 4.6.13 (2019-04-16)
+
+### Bug fixes
+
+* disable ``test_legacy_repodata`` on win-32 (missing dependencies)  (#8540)
+* Fix activation problems on windows with bash, powershell, and batch.  Improve tests. (#8550, #8564)
+* pass -U flag to for pip dependencies in conda env when running "conda env update"  (#8542)
+* rename ``conda.common.os`` to ``conda.common._os`` to avoid shadowing os built-in  (#8548)
+* raise exception when pip subprocess fails with conda env  (#8562)
+* fix installing recursive requirements.txt files in conda env specs with python 2.7  (#8562)
+* Don't modify powershell prompt when "changeps1" setting in condarc is False  (#8465)
+
+### Contributors
+
+* @dennispg
+* @jjhelmus
+* @jpgill86
+* @mingwandroid
+* @msarahan
+* @noahp
+
+
 ## 4.6.12 (2019-04-10)
 
 ### Bug fixes
