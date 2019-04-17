@@ -485,22 +485,21 @@ class _Activator(object):
                                 clean_paths[sys.platform] if sys.platform in clean_paths else
                                 '/usr/bin')
         path_split = path.split(os.pathsep)
-        if on_win:
-            # We used to prepend sys.prefix\Library\bin to PATH on startup but not anymore.
-            # Instead, in conda 4.6 we add the full suite of entries. This is performed in
-            # condabin\conda.bat and condabin\ _conda_activate.bat. However, we
-            # need to ignore the stuff we add there, and only consider actual PATH entries.
-            prefix_dirs = tuple(self._get_path_dirs(sys.prefix))
-            start_index = 0
-            while (start_index < len(prefix_dirs) and
-                   start_index < len(path_split) and
-                   paths_equal(path_split[start_index], prefix_dirs[start_index])):
-                start_index += 1
-            path_split = path_split[start_index:]
-            library_bin_dir = self.path_conversion(
-                    self.sep.join((sys.prefix, 'Library', 'bin')))
-            if paths_equal(path_split[0], library_bin_dir):
-                path_split = path_split[1:]
+        # We used to prepend sys.prefix\Library\bin to PATH on startup but not anymore.
+        # Instead, in conda 4.6 we add the full suite of entries. This is performed in
+        # condabin\conda.bat and condabin\ _conda_activate.bat. However, we
+        # need to ignore the stuff we add there, and only consider actual PATH entries.
+        prefix_dirs = tuple(self._get_path_dirs(sys.prefix))
+        start_index = 0
+        while (start_index < len(prefix_dirs) and
+               start_index < len(path_split) and
+               paths_equal(path_split[start_index], prefix_dirs[start_index])):
+            start_index += 1
+        path_split = path_split[start_index:]
+        library_bin_dir = self.path_conversion(
+                self.sep.join((sys.prefix, 'Library', 'bin')))
+        if paths_equal(path_split[0], library_bin_dir):
+            path_split = path_split[1:]
         return path_split
 
     def _get_path_dirs(self, prefix, extra_library_bin=False):
@@ -688,11 +687,11 @@ def native_path_to_unix(paths):  # pragma: unix no cover
 
 def path_identity(paths):
     if isinstance(paths, string_types):
-        return paths
+        return os.path.normpath(paths)
     elif paths is None:
         return None
     else:
-        return tuple(paths)
+        return tuple(os.path.normpath(_) for _ in paths)
 
 
 class PosixActivator(_Activator):

@@ -46,7 +46,7 @@ function Get-CondaEnvironment {
 #>
 function Add-Sys-Prefix-To-Path() {
     $OldPath = $Env:PATH;
-    if ($Env:_CE_CONDA -ne '' -And $Env:OS -eq 'Windows_NT') {
+    if ($Env:_CE_CONDA -eq '' -And $Env:OS -eq 'Windows_NT') {
         # Windows has a different layout for the python exe than other platforms.
         $sysp = Split-Path $Env:CONDA_EXE -Parent;
     } else {
@@ -63,13 +63,12 @@ function Add-Sys-Prefix-To-Path() {
     } else {
         $Env:PATH = $sysp + '/bin:' + $Env:PATH;
     }
-    Write-Output Env:PATH is $Env:PATH;
     return $OldPath;
 }
 
 <#
     .SYNOPSIS
-        Activates a conda enviroment, placing its commands and packages at
+        Activates a conda environment, placing its commands and packages at
         the head of $Env:PATH.
 
     .EXAMPLE

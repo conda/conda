@@ -2,12 +2,6 @@
 @REM SPDX-License-Identifier: BSD-3-Clause
 @REM Helper routine for activation, deactivation, and reactivation.
 
-@IF DEFINED _CE_CONDA (
-  FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA
-) ELSE (
-  FOR %%A IN ("%~dp0.") DO @SET _sysp=%%~dpA
-)
-
 @IF "%CONDA_PS1_BACKUP%"=="" GOTO FIXUP43
     @REM Handle transition from shell activated with conda 4.3 to a subsequent activation
     @REM after conda updated to 4.4. See issue #6173.
@@ -16,8 +10,16 @@
 :FIXUP43
 
 @SETLOCAL EnableDelayedExpansion
-@SET _sysp=%_sysp:~0,-1%
-@SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
+@IF DEFINED _CE_CONDA (
+  @REM when _CE_CONDA is defined, we're in develop mode.  CONDA_EXE is actually python.exe in the root of the dev env.
+  FOR %%A IN ("%CONDA_EXE%") DO @SET _sysp=%%~dpA
+) ELSE (
+  @REM This is the standard user case.  This script is run in root\condabin.
+  FOR %%A IN ("%~dp0.") DO @SET _sysp=%%~dpA
+  IF NOT EXIST "!_sysp!\Scripts\conda.exe" @SET "_sysp=!_sysp!..\"
+)
+@SET _sysp=!_sysp:~0,-1!
+@SET PATH=!_sysp!;!_sysp!\Library\mingw-w64\bin;!_sysp!\Library\usr\bin;!_sysp!\Library\bin;!_sysp!\Scripts;!_sysp!\bin;%PATH%
 @REM It seems that it is not possible to have "CONDA_EXE=Something With Spaces"
 @REM and %* to contain: activate "Something With Spaces does not exist".
 @REM MSDOS associates the outer "'s and is unable to run very much at all.
