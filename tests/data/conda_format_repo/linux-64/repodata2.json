@@ -2,31 +2,7 @@
   "info": {
     "subdir": "linux-64"
   },
-  "packages": [
-    {
-      "build": "h7b6447c_3",
-      "build_number": 3,
-      "channel_name": "conda_format_repo",
-      "conda_inner_sha256": "10f20c2badb3726fea22272c1ff8e04bfa172c0ea20a836a80421b2772b90292",
-      "conda_outer_sha256": "f33afff2144e1d6c4cf2e3e184937db8bf825b4537df74662aea5ee207b6a31b",
-      "conda_size": 105917,
-      "fn": "zlib-1.2.11-h7b6447c_3.tar.bz2",
-      "license": "zlib",
-      "license_family": "Other",
-      "md5": "e76217678961a4836e1067a2d11603e2",
-      "name": "zlib",
-      "namespace": "global",
-      "record_version": 2,
-      "requires": [
-        "libgcc-ng >=7.3.0"
-      ],
-      "sha256": "d5653139d823ef26148ea5fe781e48e62a1d95b487a80e9aa3507dfd9efd5971",
-      "size": 122469,
-      "subdir": "linux-64",
-      "timestamp": 1542814864,
-      "version": "1.2.11"
-    }
-  ],
+  "packages": [],
   "removed": [],
   "repodata_version": 2,
   "revoked": []

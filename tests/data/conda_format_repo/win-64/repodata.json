@@ -2,27 +2,7 @@
   "info": {
     "subdir": "win-64"
   },
-  "packages": {
-    "zlib-1.2.11-h62dcd97_3.tar.bz2": {
-      "build": "h62dcd97_3",
-      "build_number": 3,
-      "conda_inner_sha256": "0115dd3ba5bec05772de4b44555190ba5a24cb834dda157d7e2cd076f0fdefc1",
-      "conda_outer_sha256": "2fb5900c4a2ca7e0f509ebc344b3508815d7647c86cfb6721a1690365222e55a",
-      "conda_size": 112305,
-      "depends": [
-        "vc >=14.1,<15.0a0"
-      ],
-      "license": "zlib",
-      "license_family": "Other",
-      "md5": "6f96fd91475cc78aabf76d2e1a9ed91f",
-      "name": "zlib",
-      "sha256": "3a5148e6b79ae0ec581df96d97d248d38366db49109f1726eda76639551745be",
-      "size": 131359,
-      "subdir": "win-64",
-      "timestamp": 1542815182812,
-      "version": "1.2.11"
-    }
-  },
+  "packages": {},
   "removed": [],
   "repodata_version": 1
 }
