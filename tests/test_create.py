@@ -2456,7 +2456,9 @@ class IntegrationTests(TestCase):
 
         conda_v = "4.5.13"
         python_v = "3.6.7"
-        with make_temp_env("conda="+conda_v, "python="+python_v, "git", "conda-package-handling", "--copy",
+        # conda-package-handling is necessary here because we install a dev version of conda
+        with make_temp_env("conda="+conda_v, "python="+python_v, "git",
+                           "conda-package-handling", "--copy",
                            name='_' + str(uuid4())[:8]) as prefix:
             conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
             # We cannot naively call $SOME_PREFIX/bin/conda and expect it to run the right conda because we
@@ -2465,11 +2467,9 @@ class IntegrationTests(TestCase):
             # for this and my clean_env stuff gets in the way but let's just be explicit about the Python
             # instead.  If we ran any conda stuff that needs ssl on Windows then we'd need to use
             # Commands.RUN here, but on Unix we'll be fine.
-            python_exe = join(prefix, 'python.exe') if on_win else join(prefix, 'bin', 'python')
             conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
-            py_co = [python_exe, "-m", "conda"]
             with env_var('CONDA_BAT' if on_win else 'CONDA_EXE', conda_exe, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                result = subprocess_call_with_clean_env(py_co + ["--version"], path=prefix)
+                result = subprocess_call_with_clean_env([conda_exe, "--version"], path=prefix)
                 assert result.rc == 0
                 # Python returns --version in stderr. This used to `assert not result.stderr` and I am
                 # not entirely sure why that didn't cause problems before. Unfortunately pycharm outputs
@@ -2525,8 +2525,8 @@ class IntegrationTests(TestCase):
                     "                 str(sys.version_info[2]))", dev=True)
                 assert python_v2 == python_v
 
+                # install a dev version with our current source checkout into prefix
                 args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
-
                 result, stderr, _ = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir,
                                               *args, dev=True)
 
@@ -2563,10 +2563,14 @@ class IntegrationTests(TestCase):
         }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             # py_ver = str(sys.version_info[0])
             py_ver = "3"
-            with make_temp_env("conda=4.5.12", "python=" + py_ver, use_restricted_unicode=True,
+            with make_temp_env("conda=4.5.12", "python=" + py_ver, "conda-package-handling", use_restricted_unicode=True,
                                name = '_' + str(uuid4())[:8]) as prefix:  # rev 0
                 # See comment in test_init_dev_and_NoBaseEnvironmentError.
+                python_exe = join(prefix, 'python.exe') if on_win else join(prefix, 'bin', 'python')
                 conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
+                # this is used to run the python interpreter in the env and loads our dev
+                #     version of conda
+                py_co = [python_exe, "-m", "conda"]
                 assert package_is_installed(prefix, "conda=4.5.12")
 
                 # runs our current version of conda to install into the foreign env
@@ -2578,8 +2582,8 @@ class IntegrationTests(TestCase):
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "itsdangerous")
 
-                # downgrade the version of conda in the env
-                subprocess_call_with_clean_env([conda_exe, "install", "-yp", prefix, "conda=4.5.11"], path=prefix)  #rev 3
+                # downgrade the version of conda in the env, using our dev version of conda
+                subprocess_call(py_co + ["install", "-yp", prefix, "conda=4.5.11"], path=prefix)  #rev 3
                 PrefixData._cache_.clear()
                 assert not package_is_installed(prefix, "conda=4.5.12")
 

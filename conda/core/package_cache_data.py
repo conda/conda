@@ -30,8 +30,9 @@ from ..exceptions import NoWritablePkgsDirError, NotWritableError
 from ..gateways.disk.create import (create_package_cache_directory, extract_tarball,
                                     write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import (compute_sha256sum, isdir, isfile, islink, read_index_json,
-                                  read_index_json_from_tarball, read_repodata_json)
+from ..gateways.disk.read import (compute_sha256sum, compute_md5sum, isdir, isfile, islink,
+                                  read_index_json, read_index_json_from_tarball,
+                                  read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
@@ -378,14 +379,17 @@ class PackageCacheData(object):
 
             # we were able to read info/index.json, so let's continue
             if isfile(package_tarball_full_path):
+                md5 = compute_md5sum(package_tarball_full_path)
                 sha256 = compute_sha256sum(package_tarball_full_path)
             else:
+                md5 = None
                 sha256 = None
 
             url = self._urls_data.get_url(package_filename)
             package_cache_record = PackageCacheRecord.from_objects(
                 raw_json_record,
                 url=url,
+                md5=md5,
                 sha256=sha256,
                 package_tarball_full_path=package_tarball_full_path,
                 extracted_package_dir=extracted_package_dir,
@@ -509,6 +513,7 @@ class ProgressiveFetchExtract(object):
                 target_pkgs_dir=dirname(pcrec_from_writable_cache.preferred_package_path),
                 target_extracted_dirname=basename(pcrec_from_writable_cache.extracted_package_dir),
                 record_or_spec=pcrec_from_writable_cache,
+                md5sum=pcrec_from_writable_cache.md5,
                 sha256sum=pcrec_from_writable_cache.sha256,
             )
             return None, extract_axn
@@ -531,6 +536,7 @@ class ProgressiveFetchExtract(object):
                 url=path_to_url(pcrec_from_read_only_cache.preferred_package_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
+                md5sum=md5,
                 sha256sum=sha256,
                 expected_size_in_bytes=expected_size_in_bytes,
             )
@@ -540,6 +546,7 @@ class ProgressiveFetchExtract(object):
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_extracted_dirname=trgt_extracted_dirname,
                 record_or_spec=pcrec_from_read_only_cache,
+                md5sum=pcrec_from_read_only_cache.md5,
                 sha256sum=pcrec_from_read_only_cache.sha256,
             )
             return cache_axn, extract_axn
@@ -564,6 +571,7 @@ class ProgressiveFetchExtract(object):
             url=url.rsplit('/', 1)[0] + "/" + fn,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=fn,
+            md5sum=md5,
             sha256sum=sha256,
             expected_size_in_bytes=expected_size_in_bytes,
         )
@@ -572,6 +580,7 @@ class ProgressiveFetchExtract(object):
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_extracted_dirname=get_extracted_package_dir(cache_axn.target_full_path),
             record_or_spec=pref_or_spec,
+            md5sum=md5,
             sha256sum=sha256,
         )
         return cache_axn, extract_axn
