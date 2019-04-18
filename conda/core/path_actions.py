@@ -4,7 +4,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
-from errno import EXDEV
 from logging import getLogger
 from os.path import basename, dirname, getsize, join, isdir
 import re
