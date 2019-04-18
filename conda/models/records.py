@@ -246,13 +246,14 @@ class PackageRecord(DictSafeMixin, Entity):
     md5 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
-    # the sha256 of the .conda file itself.  May change with added signatures or metadata.  We use this one for
-    #      verifying downloads, since it's easy to compute the outer sha256 on something.
+    # the sha256 of the .conda file itself.  May change with added signatures or metadata.
+    #      We use this one for verifying downloads, since it's easy to compute the outer
+    #      sha256 on something.
     conda_outer_sha256 = StringField(default=None, required=False, nullable=True,
                                      default_in_dump=False)
-    # the sha256 of the package contents tarball inside the .conda.  Should never change.  We keep this one,
-    #    because it is a better static reference when packages may change by being signed, but are actually the same
-    #    on disk.
+    # the sha256 of the package contents tarball inside the .conda.  Should never change.
+    #    We keep this one, because it is a better static reference when packages may change
+    #    by being signed, but are actually the same on disk.
     conda_inner_sha256 = StringField(default=None, required=False, nullable=True,
                                      default_in_dump=False)
 
