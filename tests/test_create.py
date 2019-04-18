@@ -2574,12 +2574,12 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, "lockfile")
 
                 # runs the conda in the env to install something new into the env
-                run_command(Commands.RUN, prefix, conda_exe, "install", "-yp", prefix, "itsdangerous")  #rev 2
+                subprocess_call_with_clean_env([conda_exe, "install", "-yp", prefix, "itsdangerous"], path=prefix)  #rev 2
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "itsdangerous")
 
                 # downgrade the version of conda in the env
-                run_command(Commands.RUN, prefix, conda_exe, "install", "-yp", prefix, "conda=4.5.11")  # rev 3
+                subprocess_call_with_clean_env([conda_exe, "install", "-yp", prefix, "conda=4.5.11"], path=prefix)  #rev 3
                 PrefixData._cache_.clear()
                 assert not package_is_installed(prefix, "conda=4.5.12")
 
