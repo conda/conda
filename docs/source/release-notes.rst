@@ -5,6 +5,45 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.6.14 (2019-04-17)
+------------------
+
+Bug fixes
+^^^^^^^^^
+
+* Export extra function in powershell Conda.psm1 script (fixes Anaconda powershell prompt)  (#8570)
+
+Contributors
+^^^^^^^^^^^^
+
+* @msarahan
+
+
+4.6.13 (2019-04-16)
+-------------------
+
+Bug fixes
+^^^^^^^^^
+
+* Disable ``test_legacy_repodata`` on win-32 (missing dependencies)  (#8540)
+* Fix activation problems on windows with bash, powershell, and batch.  Improve tests. (#8550, #8564)
+* Pass -U flag to for pip dependencies in conda env when running "conda env update"  (#8542)
+* Rename ``conda.common.os`` to ``conda.common._os`` to avoid shadowing os built-in  (#8548)
+* Raise exception when pip subprocess fails with conda env  (#8562)
+* Fix installing recursive requirements.txt files in conda env specs with python 2.7  (#8562)
+* Don't modify powershell prompt when "changeps1" setting in condarc is False  (#8465)
+
+Contributors
+^^^^^^^^^^^^
+
+* @dennispg
+* @jjhelmus
+* @jpgill86
+* @mingwandroid
+* @msarahan
+* @noahp
+
+
 4.6.12 (2019-04-10)
 -------------------
 
@@ -49,7 +88,7 @@ Bug fixes
 ^^^^^^^^^
 
 * Remove sys.prefix from front of PATH in basic_posix (#8491)
-* add import to fix conda.core.index.get_index (#8495)
+* Add import to fix conda.core.index.get_index (#8495)
 
 Docs improvements
 ^^^^^^^^^^^^^^^^^
@@ -73,7 +112,7 @@ Bug fixes
 * Fix python-3 only FileNotFoundError usage in initialize.py  (#8470)
 * Fix more JSON encode errors for the _Null data type (#8471)
 * Fix non-posix-compliant == in conda.sh (#8475, #8476)
-* improve detection of pip dependency in environment.yml files to avoid warning message (#8478)
+* Improve detection of pip dependency in environment.yml files to avoid warning message (#8478)
 * fix condabin\conda.bat use of dp0, making PATH additions incorrect (#8480)
 * init_fish_user: don't assume config file exists  (#8481)
 * Fix for chcp output ending with . (#8484)
@@ -111,7 +150,7 @@ Bug fixes
 ^^^^^^^^^
 
 * Add central C:/ProgramData/conda as a search path on Windows  (#8272)
-* remove direct use of ruamel_yaml (prefer internal abstraction, yaml_load)  (#8392)
+* Remove direct use of ruamel_yaml (prefer internal abstraction, yaml_load)  (#8392)
 * Fix/improve `conda init` support for fish shell  (#8437)
 * Improve solver behavior in the presence of inconsistent environments (such as pip as a conda dependency of python, but also installed via pip itself) (#8444)
 * Handle read-only filesystems for environments.txt  (#8451, #8453)
