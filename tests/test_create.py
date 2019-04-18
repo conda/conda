@@ -2563,7 +2563,7 @@ class IntegrationTests(TestCase):
         }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             # py_ver = str(sys.version_info[0])
             py_ver = "3"
-            with make_temp_env("conda=4.5.12", "conda-package-handling", "python=" + py_ver, use_restricted_unicode=True,
+            with make_temp_env("conda=4.5.12", "python=" + py_ver, use_restricted_unicode=True,
                                name = '_' + str(uuid4())[:8]) as prefix:  # rev 0
                 # See comment in test_init_dev_and_NoBaseEnvironmentError.
                 conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
