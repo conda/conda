@@ -2,7 +2,31 @@
   "info": {
     "subdir": "win-32"
   },
-  "packages": [],
+  "packages": [
+    {
+      "build": "h62dcd97_3",
+      "build_number": 3,
+      "channel_name": "conda_format_repo",
+      "conda_inner_sha256": "cc131b00a6431b8002c9171f6c174756276060ef35378e848f5aebc10b5f1588",
+      "conda_outer_sha256": "1f3fe788d266c16e35d1e737fd9b7c82dd1f1ba4d3973f0907c8a7634c5d484b",
+      "conda_size": 99106,
+      "fn": "zlib-1.2.11-h62dcd97_3.tar.bz2",
+      "license": "zlib",
+      "license_family": "Other",
+      "md5": "d56715ca9b345d3c51f2b19dba1dbf04",
+      "name": "zlib",
+      "namespace": "global",
+      "record_version": 2,
+      "requires": [
+        "vc >=14.1,<15.0a0"
+      ],
+      "sha256": "ea899e1c10ab22e565a201df1ee9d69b9260aa8ad4527b37d2dcd21a28f3a11d",
+      "size": 115056,
+      "subdir": "win-32",
+      "timestamp": 1542815118,
+      "version": "1.2.11"
+    }
+  ],
   "removed": [],
   "repodata_version": 2,
   "revoked": []
