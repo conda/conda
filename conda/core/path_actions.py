@@ -1192,21 +1192,8 @@ class ExtractPackageAction(PathAction):
         from .package_cache_data import PackageCacheData
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
-        if lexists(self.hold_path):
-            rm_rf(self.hold_path)
         if lexists(self.target_full_path):
-            try:
-                backoff_rename(self.target_full_path, self.hold_path)
-            except (IOError, OSError) as e:
-                if e.errno == EXDEV:
-                    # OSError(18, 'Invalid cross-device link')
-                    # https://github.com/docker/docker/issues/25409
-                    # ignore, but we won't be able to roll back
-                    log.debug("Invalid cross-device link on rename %s => %s",
-                              self.target_full_path, self.hold_path)
-                    rm_rf(self.target_full_path)
-                else:
-                    raise
+            rm_rf(self.target_full_path)
 
         extract_tarball(self.source_full_path, self.target_full_path,
                         progress_update_callback=progress_update_callback)
