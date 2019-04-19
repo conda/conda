@@ -18,7 +18,8 @@ from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, dashlist,
 from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
-from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord
+from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord, PackageRecord
+from ..models.enums import PackageType
 
 log = getLogger(__name__)
 
@@ -115,10 +116,30 @@ def _supplement_index_with_cache(index):
             index[pcrec] = pcrec
 
 
+def _make_virtual_package(name, version=None):
+    return PackageRecord(
+            package_type=PackageType.VIRTUAL_SYSTEM,
+            name=name,
+            version=version or '0',
+            build='0',
+            channel='@',
+            subdir=context.subdir,
+            md5="12345678901234567890123456789012",
+            build_number=0,
+            fn=name,
+    )
+
 def _supplement_index_with_features(index, features=()):
     for feature in chain(context.track_features, features):
         rec = make_feature_record(feature)
         index[rec] = rec
+
+
+def _supplement_index_with_system(index):
+    cuda_version = context.cuda_version
+    if cuda_version is not None:
+        rec = _make_virtual_package('_cuda', cuda_version)
+        index[rec.name] = rec
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
@@ -244,5 +265,7 @@ def get_reduced_index(prefix, channels, subdirs, specs):
         for ftr_str in known_features:
             rec = make_feature_record(ftr_str)
             reduced_index[rec] = rec
+
+        _supplement_index_with_system(reduced_index)
 
         return reduced_index

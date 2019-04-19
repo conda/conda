@@ -16,12 +16,14 @@ from conda.base.context import context, Context, reset_context, conda_tests_ctxt
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver, UpdateModifier
-from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
+from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.resolve import MatchSpec
-from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, get_index_r_5
+from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, \
+    get_index_r_5, get_index_cuda
+
 from conda.common.compat import iteritems
 
 try:
@@ -112,6 +114,19 @@ def get_solver_aggregate_2(specs_to_add=(), specs_to_remove=(), prefix_records=(
         yield solver
 
 
+@contextmanager
+def get_solver_cuda(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    PrefixData._cache_.clear()
+    pd = PrefixData(TEST_PREFIX)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    get_index_cuda(context.subdir)
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(TEST_PREFIX, (Channel('channel-1'),), (context.subdir,),
+                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        yield solver
+
+
 def convert_to_dist_str(solution):
     return tuple(prec.dist_str() for prec in solution)
 
@@ -150,6 +165,52 @@ def test_solve_1():
             'channel-1::numpy-1.7.1-py27_0',
         )
         assert convert_to_dist_str(final_state) == order
+
+
+def test_cuda_1():
+    specs = MatchSpec("cudatoolkit"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '9.2'):
+        with get_solver_cuda(specs) as solver:
+            final_state = solver.solve_final_state()
+            # print(convert_to_dist_str(final_state))
+            order = (
+                'channel-1::cudatoolkit-9.0-0',
+            )
+            assert convert_to_dist_str(final_state) == order
+
+
+def test_cuda_2():
+    specs = MatchSpec("cudatoolkit"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
+        with get_solver_cuda(specs) as solver:
+            final_state = solver.solve_final_state()
+            # print(convert_to_dist_str(final_state))
+            order = (
+                'channel-1::cudatoolkit-10.0-0',
+            )
+            assert convert_to_dist_str(final_state) == order
+
+
+def test_cuda_fail_1():
+    specs = MatchSpec("cudatoolkit"),
+
+    # No cudatoolkit in index for CUDA 8.0
+    with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
+        with get_solver_cuda(specs) as solver:
+            with pytest.raises(ResolvePackageNotFound):
+                final_state = solver.solve_final_state()
+
+
+def test_cuda_fail_2():
+    specs = MatchSpec("cudatoolkit"),
+
+    # No CUDA on system
+    with env_var('CONDA_OVERRIDE_CUDA', ''):
+        with get_solver_cuda(specs) as solver:
+            with pytest.raises(ResolvePackageNotFound):
+                final_state = solver.solve_final_state()
 
 
 def test_prune_1():

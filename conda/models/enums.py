@@ -129,6 +129,7 @@ class PackageType(Enum):
     VIRTUAL_PYTHON_EGG_MANAGEABLE = 'virtual_python_egg_manageable'
     VIRTUAL_PYTHON_EGG_UNMANAGEABLE = 'virtual_python_egg_unmanageable'
     VIRTUAL_PYTHON_EGG_LINK = 'virtual_python_egg_link'  # unmanageable
+    VIRTUAL_SYSTEM = 'virtual_system'  # virtual packages representing system attributes
 
     @staticmethod
     def conda_package_types():
@@ -143,6 +144,7 @@ class PackageType(Enum):
         return {
             PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
             PackageType.VIRTUAL_PYTHON_EGG_LINK,
+            PackageType.VIRTUAL_SYSTEM,
         }
 
 

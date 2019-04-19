@@ -21204,6 +21204,27 @@
       "python 3.3"
     ],
     "version": "4.1.1.1"
+  },
+  "cudatoolkit-9.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "_cuda>=9.0"
+    ],
+    "md5": "28a63f84034658e80779e88e70fad7bf",
+    "name": "cudatoolkit",
+    "pub_date": "2013-01-14",
+    "version": "9.0"
+  },
+  "cudatoolkit-10.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "_cuda>=10.0"
+    ],
+    "md5": "28a63f84034658e80779e88e70fad7bf",
+    "name": "cudatoolkit",
+    "pub_date": "2013-01-14",
+    "version": "10.0"
   }
-
 }
