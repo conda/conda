@@ -30,11 +30,12 @@ init:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 install:
-  - '%PYTHON_ROOT%\\Scripts\\conda install -y -c conda-canary -c defaults -c conda-forge python=%PYTHON_VERSION% pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses pexpect pywin32 anaconda-client'
+  - '%PYTHON_ROOT%\\Scripts\\conda install -y -c conda-canary -c defaults -c conda-forge python=%PYTHON_VERSION% pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses pexpect pywin32 anaconda-client conda-package-handling'
   - "%PYTHON_ROOT%\\Scripts\\conda install -yq conda-build=3.13"
   # conda install -y -c defaults -c conda-forge pytest pytest-cov pytest-timeout mock responses pexpect xonsh
   # TODO: add xonsh for PY3 builds
   - "%PYTHON_ROOT%\\Scripts\\pip install codecov==2.0.5"
+  - CALL %PYTHON_ROOT%\\Scripts\\activate
   - "%PYTHON_ROOT%\\python -m conda init cmd.exe --dev"
 
 build: false

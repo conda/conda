@@ -2434,8 +2434,7 @@ class IntegrationTests(TestCase):
             env_which_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', prefix, dedent("""
             {env} | sort
             {which} conda
-            """.format(env=env_or_set, which=which_or_where)),
-        dev=True)
+            """.format(env=env_or_set, which=which_or_where)), dev=True)
         assert env_which_etc
         assert not errs_etc
 
@@ -2457,7 +2456,9 @@ class IntegrationTests(TestCase):
 
         conda_v = "4.5.13"
         python_v = "3.6.7"
-        with make_temp_env("conda="+conda_v, "python="+python_v, "git", "--copy",
+        # conda-package-handling is necessary here because we install a dev version of conda
+        with make_temp_env("conda="+conda_v, "python="+python_v, "git",
+                           "conda-package-handling", "--copy",
                            name='_' + str(uuid4())[:8]) as prefix:
             conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
             # We cannot naively call $SOME_PREFIX/bin/conda and expect it to run the right conda because we
@@ -2466,11 +2467,9 @@ class IntegrationTests(TestCase):
             # for this and my clean_env stuff gets in the way but let's just be explicit about the Python
             # instead.  If we ran any conda stuff that needs ssl on Windows then we'd need to use
             # Commands.RUN here, but on Unix we'll be fine.
-            python_exe = join(prefix, 'python.exe') if on_win else join(prefix, 'bin', 'python')
             conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
-            py_co = [python_exe, "-m", "conda"]
             with env_var('CONDA_BAT' if on_win else 'CONDA_EXE', conda_exe, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                result = subprocess_call_with_clean_env(py_co + ["--version"], path=prefix)
+                result = subprocess_call_with_clean_env([conda_exe, "--version"], path=prefix)
                 assert result.rc == 0
                 # Python returns --version in stderr. This used to `assert not result.stderr` and I am
                 # not entirely sure why that didn't cause problems before. Unfortunately pycharm outputs
@@ -2526,8 +2525,8 @@ class IntegrationTests(TestCase):
                     "                 str(sys.version_info[2]))", dev=True)
                 assert python_v2 == python_v
 
+                # install a dev version with our current source checkout into prefix
                 args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
-
                 result, stderr, _ = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir,
                                               *args, dev=True)
 
@@ -2564,11 +2563,13 @@ class IntegrationTests(TestCase):
         }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             # py_ver = str(sys.version_info[0])
             py_ver = "3"
-            with make_temp_env("conda=4.5.12", "python=" + py_ver, use_restricted_unicode=True,
+            with make_temp_env("conda=4.5.12", "python=" + py_ver, "conda-package-handling", use_restricted_unicode=True,
                                name = '_' + str(uuid4())[:8]) as prefix:  # rev 0
                 # See comment in test_init_dev_and_NoBaseEnvironmentError.
                 python_exe = join(prefix, 'python.exe') if on_win else join(prefix, 'bin', 'python')
                 conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
+                # this is used to run the python interpreter in the env and loads our dev
+                #     version of conda
                 py_co = [python_exe, "-m", "conda"]
                 assert package_is_installed(prefix, "conda=4.5.12")
 
@@ -2577,12 +2578,12 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, "lockfile")
 
                 # runs the conda in the env to install something new into the env
-                subprocess_call(py_co + ["install", "-yp", prefix, "itsdangerous"], path=prefix)  # rev 2
+                subprocess_call_with_clean_env([conda_exe, "install", "-yp", prefix, "itsdangerous"], path=prefix)  #rev 2
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "itsdangerous")
 
-                # downgrade the version of conda in the env
-                subprocess_call_with_clean_env(py_co + ["install", "-yp", prefix, "conda=4.5.11"], path=prefix)  # rev 3
+                # downgrade the version of conda in the env, using our dev version of conda
+                subprocess_call(py_co + ["install", "-yp", prefix, "conda=4.5.11"], path=prefix)  #rev 3
                 PrefixData._cache_.clear()
                 assert not package_is_installed(prefix, "conda=4.5.12")
 
@@ -2597,14 +2598,14 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, "conda=4.5.12")
 
                 # use the conda in the env to revert to a previous state
-                subprocess_call_with_clean_env(py_co + ["install", "-yp", prefix, "--rev", "1"], path=prefix)
+                subprocess_call_with_clean_env([conda_exe, "install", "-yp", prefix, "--rev", "1"], path=prefix)
                 PrefixData._cache_.clear()
                 assert not package_is_installed(prefix, "itsdangerous")
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "conda=4.5.12")
                 assert package_is_installed(prefix, "python=" + py_ver)
 
-                result = subprocess_call_with_clean_env(py_co + ["info", "--json"])
+                result = subprocess_call_with_clean_env([conda_exe, "info", "--json"])
                 conda_info = json.loads(result.stdout)
                 assert conda_info["conda_version"] == "4.5.12"
 
@@ -2954,11 +2955,3 @@ class PrivateEnvIntegrationTests(TestCase):
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
-
-@pytest.mark.integration
-def test_tar_traversal_errors_out():
-    # test tar traversal exploits: https://github.com/jwilk/traversal-archives
-    tar_folder = join(dirname(__file__), 'data', 'tar_traversal')
-    for fn in ('absolute1.tar', 'absolute2.tar', 'relative0.tar', 'relative2.tar'):
-        with pytest.raises(CondaFileIOError):
-            extract_tarball(join(tar_folder, fn))

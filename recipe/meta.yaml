@@ -30,6 +30,7 @@ requirements:
     - setuptools >=31.0.1
   run:
     - python
+    - conda-package-handling
     - enum34                       # [py<34]
     - futures >=3.0.0              # [py<34]
     - menuinst >=1.4.11,<2         # [win]
