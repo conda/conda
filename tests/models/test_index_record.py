@@ -22,23 +22,23 @@ class PrefixRecordTests(TestCase):
                 version='1.2.3',
                 build_string='py34_2',
                 build_number=2,
-                url="https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
+                url="https://repo.anaconda.com/pkgs/main/win-32/austin-1.2.3-py34_2.tar.bz2",
                 subdir="win-32",
                 md5='0123456789',
                 files=(),
             )
-            assert pr.url == "https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"
+            assert pr.url == "https://repo.anaconda.com/pkgs/main/win-32/austin-1.2.3-py34_2.tar.bz2"
             assert pr.channel.canonical_name == 'defaults'
             assert pr.subdir == "win-32"
             assert pr.fn == "austin-1.2.3-py34_2.tar.bz2"
-            channel_str = text_type(Channel("https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"))
-            assert channel_str == "https://repo.anaconda.com/pkgs/free/win-32"
+            channel_str = text_type(Channel("https://repo.anaconda.com/pkgs/main/win-32/austin-1.2.3-py34_2.tar.bz2"))
+            assert channel_str == "https://repo.anaconda.com/pkgs/main/win-32"
             assert dict(pr.dump()) == dict(
                 name='austin',
                 version='1.2.3',
                 build='py34_2',
                 build_number=2,
-                url="https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
+                url="https://repo.anaconda.com/pkgs/main/win-32/austin-1.2.3-py34_2.tar.bz2",
                 md5='0123456789',
                 files=(),
                 channel=channel_str,

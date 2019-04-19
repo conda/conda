@@ -77,12 +77,11 @@ conda_build_test: &conda_build_test
           echo "safety_checks: disabled" >> ~/.condarc
           echo "local_repodata_ttl: 1800" >> ~/.condarc
           conda create -n blarg -yq --download-only python=2.7
-          conda create -n blarg -yq --download-only python=3.4
           conda create -n blarg -yq --download-only python=3.5
           conda create -n blarg -yq --download-only python=3.6
           conda create -n blarg -yq --download-only python=3.7
           conda create -n blarg -yq --download-only python setuptools cython certifi
-          conda create -n blarg -yq --download-only libpng=1.6.17
+          conda create -n blarg -yq -c https://repo.anaconda.com/pkgs/free --download-only libpng=1.6.17
 
     - run:
         name: conda-build conda
