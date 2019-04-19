@@ -199,7 +199,7 @@ class Context(Configuration):
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
-    channel_priority = PrimitiveParameter(ChannelPriority.FLEXIBLE)
+    channel_priority = PrimitiveParameter(ChannelPriority.STRICT)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',),
                                   expandvars=True)  # channel for args.channel
