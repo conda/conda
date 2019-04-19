@@ -5,7 +5,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # Do not use python stdlib imports from this module in other projects. You may be broken
 # without warning.
-import collections as _collections
+try:
+    from collections.abc import Hashable as _Hashable
+except ImportError:
+    from collections import Hashable as _Hashable
 import errno
 import functools
 import os
@@ -176,7 +179,7 @@ class memoized(object):  # pragma: no cover
         for arg in args:
             if isinstance(arg, list):
                 newargs.append(tuple(arg))
-            elif not isinstance(arg, _collections.Hashable):
+            elif not isinstance(arg, _Hashable):
                 # uncacheable. a list, for instance.
                 # better to not cache than blow up.
                 return self.func(*args, **kw)
