@@ -266,9 +266,9 @@ function TabExpansion($line, $lastWord) {
 function Add-CondaEnvironmentToPrompt() {
     # We use the same procedure to nest prompts as we did for nested tab completion.
     if (Test-Path Function:\prompt) {
-        Rename-Item Function:\prompt CondaPromptBackup
+        Rename-Item Function:\prompt script:CondaPromptBackup
     } else {
-        function CondaPromptBackup() {
+        function script:CondaPromptBackup() {
             # Restore a basic prompt if the definition is missing.
             "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
         }
