@@ -9,13 +9,15 @@ from logging import DEBUG, getLogger
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
 from ._vendor.toolz import concat, groupby
-from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY
+from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
-from .common.logic import Clauses, get_sat_solver_cls, minimal_unsatisfiable_subset
+from .common.logic import (Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver,
+                           minimal_unsatisfiable_subset)
 from .common.toposort import toposort
-from .exceptions import InvalidSpec, ResolvePackageNotFound, UnsatisfiableError
+from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFound,
+                         UnsatisfiableError)
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType
 from .models.match_spec import MatchSpec
@@ -29,7 +31,34 @@ stdoutlog = getLogger('conda.stdoutlog')
 Unsatisfiable = UnsatisfiableError
 ResolvePackageNotFound = ResolvePackageNotFound
 
-get_sat_solver_cls = memoize(get_sat_solver_cls)
+_sat_solvers = odict([
+    (SatSolverChoice.PYCOSAT, PycoSatSolver),
+    (SatSolverChoice.PYCRYPTOSAT, CryptoMiniSatSolver),
+    (SatSolverChoice.PYSAT, PySatSolver),
+])
+
+
+@memoize
+def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
+    cls = _sat_solvers[sat_solver_choice]
+    try:
+        cls().run(0)
+    except Exception as e:
+        log.warning("Could not run SAT solver through interface '%s'.", sat_solver_choice)
+        log.debug("SAT interface error due to: %s", e, exc_info=True)
+    else:
+        log.debug("Using SAT solver interface '%s'.", sat_solver_choice)
+        return cls
+    for solver_choice, cls in _sat_solvers.items():
+        try:
+            cls().run(0)
+        except Exception as e:
+            log.debug("Attempted SAT interface '%s' but unavailable due to: %s",
+                      sat_solver_choice, e)
+        else:
+            log.debug("Falling back to SAT solver interface '%s'.", sat_solver_choice)
+            return cls
+    raise CondaDependencyError("Cannot run solver. No functioning SAT implementations available.")
 
 
 def dashlist(iterable, indent=2):
@@ -665,7 +694,7 @@ class Resolve(object):
 
     @time_recorder(module_name=__name__)
     def gen_clauses(self):
-        C = Clauses(sat_solver_cls=get_sat_solver_cls(context.sat_solver))
+        C = Clauses(sat_solver_cls=_get_sat_solver_cls(context.sat_solver))
         for name, group in iteritems(self.groups):
             group = [self.to_sat_name(prec) for prec in group]
             # Create one variable for each package
