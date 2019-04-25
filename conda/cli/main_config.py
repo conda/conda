@@ -310,7 +310,7 @@ def execute_config(args, parser):
     for key, item in args.set:
         key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key in primitive_parameters:
-            value = context.typify_parameter(key, item)
+            value = context.typify_parameter(key, item, "--set parameter")
             rc_config[key] = value
         elif key in map_parameters:
             argmap = rc_config.setdefault(key, {})
