@@ -486,9 +486,9 @@ class Parameter(object):
         # Otherwise e.g. `my_bool_var: $BOOL` with BOOL=True would raise a TypeCoercionError.
         expanded = self._expand(merged)
         try:
-            result = typify_data_structure(expanded, self._element_type)
-        except TypeCoercionError as e:
-            errors.append(CustomValidationError(self.name, e.value, "<<merged>>", text_type(e)))
+            result = self.typify(expanded, "<<merged>>")
+        except CustomValidationError as e:
+            errors.append(e)
         else:
             errors.extend(self.collect_errors(instance, result))
         raise_errors(errors)
@@ -537,6 +537,19 @@ class Parameter(object):
     @classmethod
     def repr_raw(cls, raw_parameter):
         raise NotImplementedError()
+
+    def typify(self, value, source, name=None):
+        element_type = self._element_type
+        try:
+            return typify_data_structure(value, element_type)
+        except TypeCoercionError as e:
+            if name is None:
+                name = self.name
+            msg = text_type(e)
+            if issubclass(element_type, Enum):
+                choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
+                msg += "\nValid choices for {}: {}".format(name, choices)
+            raise CustomValidationError(name, e.value, source, msg)
 
 
 class PrimitiveParameter(Parameter):
@@ -826,17 +839,16 @@ class Configuration(object):
                 validation_errors.append(multikey_error)
 
             if match is not None:
+                untyped_value = match.value(parameter)
+                if untyped_value is None:
+                    if isinstance(parameter, SequenceParameter):
+                        untyped_value = ()
+                    elif isinstance(parameter, MapParameter):
+                        untyped_value = {}
                 try:
-                    untyped_value = match.value(parameter)
-                    if untyped_value is None:
-                        if isinstance(parameter, SequenceParameter):
-                            untyped_value = ()
-                        elif isinstance(parameter, MapParameter):
-                            untyped_value = {}
-                    typed_value = typify_data_structure(untyped_value, parameter._element_type)
-                except TypeCoercionError as e:
-                    validation_errors.append(CustomValidationError(match.key, e.value,
-                                                                   match.source, text_type(e)))
+                    typed_value = parameter.typify(untyped_value, match.source, name=match.key)
+                except CustomValidationError as e:
+                    validation_errors.append(e)
                 else:
                     collected_errors = parameter.collect_errors(self, typed_value, match.source)
                     if collected_errors:
@@ -914,14 +926,14 @@ class Configuration(object):
     def list_parameters(self):
         return tuple(sorted(name.lstrip('_') for name in self.parameter_names))
 
-    def typify_parameter(self, parameter_name, value):
+    def typify_parameter(self, parameter_name, value, source):
         # return a tuple with correct parameter name and typed-value
         if parameter_name not in self.parameter_names:
             parameter_name = '_' + parameter_name
         parameter = self.__class__.__dict__[parameter_name]
         assert isinstance(parameter, Parameter)
 
-        return typify_data_structure(value, parameter._element_type)
+        return parameter.typify(value, source)
 
     def get_descriptions(self):
         raise NotImplementedError()
