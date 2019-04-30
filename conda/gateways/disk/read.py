@@ -17,7 +17,7 @@ from os.path import isdir, isfile, join
 import conda_package_handling.api
 
 from .link import islink, lexists
-from ...compat import TemporaryDirectory
+from ...common.compat import TemporaryDirectory
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.compat import shlex_split_unicode
 from ..._vendor.auxlib.ish import dals

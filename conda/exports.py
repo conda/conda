@@ -13,7 +13,6 @@ import errno
 import functools
 import os
 import sys
-import tempfile
 import threading
 import warnings as _warnings
 
@@ -40,8 +39,8 @@ ArgumentParser = ArgumentParser
 
 from .common import compat as _compat  # NOQA
 compat = _compat
-from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, itervalues  # NOQA
-PY3, StringIO,  input, iteritems, string_types, text_type = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
+from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, itervalues, TemporaryDirectory  # NOQA
+PY3, StringIO,  input, iteritems, string_types, text_type, TemporaryDirectory = PY3, StringIO,  input, iteritems, string_types, text_type, TemporaryDirectory  # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
 CondaSession = CondaSession
 
@@ -250,57 +249,6 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 def fetch_index(channel_urls, use_cache=False, index=None):
     index = _fetch_index(channel_urls, use_cache, index)
     return {Dist(prec): prec for prec in itervalues(index)}
-
-
-class TemporaryDirectory(object):
-    """Create and return a temporary directory.  This has the same
-    behavior as mkdtemp but can be used as a context manager.  For
-    example:
-
-        with TemporaryDirectory() as tmpdir:
-            ...
-
-    Upon exiting the context, the directory and everything contained
-    in it are removed.
-    """
-
-    # Handle mkdtemp raising an exception
-    name = None
-    _closed = False
-
-    def __init__(self, suffix="", prefix='tmp', dir=None):
-        self.name = tempfile.mkdtemp(suffix, prefix, dir)
-
-    def __repr__(self):
-        return "<{} {!r}>".format(self.__class__.__name__, self.name)
-
-    def __enter__(self):
-        return self.name
-
-    def cleanup(self, _warn=False, _warnings=_warnings):
-        from .gateways.disk.delete import rm_rf as _rm_rf
-        if self.name and not self._closed:
-            try:
-                _rm_rf(self.name)
-            except (TypeError, AttributeError) as ex:
-                if "None" not in '%s' % (ex,):
-                    raise
-                _rm_rf(self.name)
-            self._closed = True
-            if _warn and _warnings.warn:
-                try:
-                    _warnings.warn("Implicitly cleaning up {!r}".format(self),
-                                   _warnings.ResourceWarning)
-                except AttributeError:
-                    _warnings.warn("Implicitly cleaning up {!r}".format(self),
-                                   RuntimeWarning)
-
-    def __exit__(self, exc, value, tb):
-        self.cleanup()
-
-    def __del__(self):
-        # Issue a ResourceWarning if implicit cleanup needed
-        self.cleanup(_warn=True)
 
 
 def package_cache():

@@ -11,6 +11,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 from operator import methodcaller
 import sys
+from tempfile import mkdtemp
+import warnings as _warnings
 
 on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
@@ -294,3 +296,46 @@ def ensure_utf8_encoding(value):
     except UnicodeEncodeError:
         return value
 
+
+class TemporaryDirectory(object):
+    """Create and return a temporary directory.  This has the same
+    behavior as mkdtemp but can be used as a context manager.  For
+    example:
+
+        with TemporaryDirectory() as tmpdir:
+            ...
+
+    Upon exiting the context, the directory and everything contained
+    in it are removed.
+    """
+
+    # Handle mkdtemp raising an exception
+    name = None
+    _closed = False
+
+    def __init__(self, suffix="", prefix='tmp', dir=None):
+        self.name = mkdtemp(suffix, prefix, dir)
+
+    def __repr__(self):
+        return "<{} {!r}>".format(self.__class__.__name__, self.name)
+
+    def __enter__(self):
+        return self.name
+
+    def cleanup(self, _warn=False, _warnings=_warnings):
+        from ..gateways.disk.delete import rm_rf as _rm_rf
+        if self.name and not self._closed:
+            try:
+                _rm_rf(self.name)
+            except (TypeError, AttributeError) as ex:
+                if "None" not in '%s' % (ex,):
+                    raise
+                _rm_rf(self.name)
+            self._closed = True
+
+    def __exit__(self, exc, value, tb):
+        self.cleanup()
+
+    def __del__(self):
+        # Issue a ResourceWarning if implicit cleanup needed
+        self.cleanup(_warn=True)
