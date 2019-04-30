@@ -14,6 +14,7 @@ from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
+from ..common.constants import NULL
 from ..common.path import paths_equal
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
@@ -240,6 +241,7 @@ def install(args, parser, command='install'):
         return
 
     try:
+        update_modifier = context.update_modifier
         if isinstall and args.revision:
             index = get_index(channel_urls=index_args['channel_urls'],
                               prepend=index_args['prepend'], platform=None,
@@ -247,13 +249,17 @@ def install(args, parser, command='install'):
                               unknown=index_args['unknown'], prefix=prefix)
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
         else:
+            solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
+            if isinstall and context.update_modifier == NULL:
+                # try to do a quick solve with then existing env frozen by default
+                update_modifier = UpdateModifier.FREEZE_INSTALLED
             if isupdate:
                 deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
             else:
                 deps_modifier = context.deps_modifier
-            solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
             unlink_link_transaction = solver.solve_for_transaction(
                 deps_modifier=deps_modifier,
+                update_modifier=update_modifier,
                 force_reinstall=context.force_reinstall or context.force,
             )
 
@@ -267,11 +273,24 @@ def install(args, parser, command='install'):
         raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
     except (UnsatisfiableError, SystemExit) as e:
-        # Unsatisfiable package specifications/no such revision/import error
-        if e.args and 'could not import' in e.args[0]:
-            raise CondaImportError(text_type(e))
-        raise
-
+        # Quick solve with frozen env failed.  Try again without that.
+        if isinstall and context.update_modifier == NULL:
+            try:
+                unlink_link_transaction = solver.solve_for_transaction(
+                    deps_modifier=deps_modifier,
+                    update_modifier=NULL,
+                    force_reinstall=context.force_reinstall or context.force,
+                )
+            except (UnsatisfiableError, SystemExit) as e:
+                # Unsatisfiable package specifications/no such revision/import error
+                if e.args and 'could not import' in e.args[0]:
+                    raise CondaImportError(text_type(e))
+                raise
+        else:
+            # Unsatisfiable package specifications/no such revision/import error
+            if e.args and 'could not import' in e.args[0]:
+                raise CondaImportError(text_type(e))
+            raise
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 
