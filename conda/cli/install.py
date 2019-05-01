@@ -250,7 +250,7 @@ def install(args, parser, command='install'):
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
         else:
             solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
-            if isinstall and context.update_modifier == NULL:
+            if isinstall and args.update_modifier == NULL:
                 # try to do a quick solve with then existing env frozen by default
                 update_modifier = UpdateModifier.FREEZE_INSTALLED
             if isupdate:
@@ -278,7 +278,7 @@ def install(args, parser, command='install'):
             try:
                 unlink_link_transaction = solver.solve_for_transaction(
                     deps_modifier=deps_modifier,
-                    update_modifier=NULL,
+                    update_modifier=args.update_modifier,
                     force_reinstall=context.force_reinstall or context.force,
                 )
             except (UnsatisfiableError, SystemExit) as e:

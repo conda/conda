@@ -65,6 +65,21 @@ def dashlist(iterable, indent=2):
     return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
 
 
+def exactness_and_number_of_deps(resolve_obj, ms):
+    """Sorting key to emphasize packages that have more strict
+    requirements. More strict means the reduced index can be reduced
+    more, so we want to consider these more constrained deps earlier in
+    reducing the index."""
+    if ms.strictness == 3:
+        prec = resolve_obj.find_matches(ms)
+        value = 3
+        for dep in prec[0].depends:
+            value += MatchSpec(dep).strictness
+    else:
+        value = ms.strictness
+    return value
+
+
 class Resolve(object):
 
     def __init__(self, index, processed=False, channels=()):
@@ -1043,7 +1058,12 @@ class Resolve(object):
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
-        specs = frozenset(map(MatchSpec, specs))
+        specs = map(MatchSpec, specs)
+
+        # prioritize specs that are more exact.  Exact specs will evaluate to 3,
+        #    constrained specs will evaluate to 2, and name only will be 1
+        specs = tuple(sorted(specs, key=lambda x: (exactness_and_number_of_deps(self, x),
+                                                   x.name), reverse=True))
 
         reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
