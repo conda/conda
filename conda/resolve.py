@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict, OrderedDict
+import copy
 from logging import DEBUG, getLogger
 
 from ._vendor.auxlib.collection import frozendict
@@ -287,7 +288,7 @@ class Resolve(object):
             bad_deps.extend(self.invalid_chains(ms, filter.copy()))
         if bad_deps:
             raise ResolvePackageNotFound(bad_deps)
-        return non_tf_specs, feature_names
+        return tuple(non_tf_specs), feature_names
 
     def find_conflicts(self, specs):
         """Perform a deeper analysis on conflicting specifications, by attempting
@@ -385,20 +386,21 @@ class Resolve(object):
         return False
 
     @time_recorder(module_name=__name__)
-    def get_reduced_index(self, specs):
+    def get_reduced_index(self, explicit_specs):
         # TODO: fix this import; this is bad
         from .core.subdir_data import make_feature_record
 
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
-        cache_key = strict_channel_priority, frozenset(specs)
+        cache_key = strict_channel_priority, frozenset(explicit_specs)
         if cache_key in self._reduced_index_cache:
             return self._reduced_index_cache[cache_key]
 
         if log.isEnabledFor(DEBUG):
-            log.debug('Retrieving packages for: %s', dashlist(sorted(text_type(s) for s in specs)))
+            log.debug('Retrieving packages for: %s', dashlist(
+                sorted(text_type(s) for s in explicit_specs)))
 
-        specs, features = self.verify_specs(specs)
+        explicit_specs, features = self.verify_specs(explicit_specs)
         filter_out = {prec: False if val else "feature not enabled"
                       for prec, val in iteritems(self.default_filter(features))}
         snames = set()
@@ -482,7 +484,7 @@ class Resolve(object):
         # perfect about this, so performance matters.
         for _ in range(2):
             snames.clear()
-            slist = list(specs)
+            slist = list(explicit_specs)
             reduced = False
             while slist:
                 s = slist.pop()
@@ -505,8 +507,11 @@ class Resolve(object):
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
-        explicit_spec_list = set(specs)
-        for explicit_spec in explicit_spec_list:
+        explicit_spec_set = set(explicit_specs)
+        specs_by_name_seed = dict()
+        for s in explicit_specs:
+            specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, list()) + [s]
+        for explicit_spec in explicit_spec_set:
             add_these_precs2 = tuple(
                 prec for prec in self.find_matches(explicit_spec)
                 if prec not in reduced_index2 and self.valid2(prec, filter_out))
@@ -525,16 +530,19 @@ class Resolve(object):
                 #    broadening check to apply across packages at the explicit level; only
                 #    at the level of deps below that explicit package.
                 seen_specs = set()
-                specs_by_name = {}
+                specs_by_name = copy.deepcopy(specs_by_name_seed)
 
                 dep_specs = set(self.ms_depends(pkg))
                 this_pkg_constraints = {}
                 for dep in dep_specs:
-                    specs = specs_by_name.get(dep.name, set())
-                    specs.add(dep)
-                    specs_by_name[dep.name] = specs
-                this_pkg_constraints = frozendict(
-                    {k: frozenset(v) for k, v in specs_by_name.items()})
+                    specs = specs_by_name.get(dep.name, list())
+                    if dep not in specs:
+                        specs.append(dep)
+                    specs_by_name[dep.name] = sorted(
+                        specs,
+                        key=lambda x: (exactness_and_number_of_deps(self, x), x.name),
+                        reverse=True)
+                this_pkg_constraints = frozendict({k: tuple(v) for k, v in specs_by_name.items()})
 
                 while(dep_specs):
                     # used for debugging
@@ -564,8 +572,8 @@ class Resolve(object):
                                 # behavior, but keeping these packags out of the
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
-                                if ('track_features' not in new_ms
-                                        and not self._broader(new_ms, this_pkg_constraints)):
+                                if ('track_features' not in new_ms and not self._broader(
+                                        new_ms, this_pkg_constraints)):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
                                     #     specs_added.append(new_ms)
@@ -1059,13 +1067,13 @@ class Resolve(object):
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
-        specs = map(MatchSpec, specs)
+        specs = list(map(MatchSpec, specs))
 
         # prioritize specs that are more exact.  Exact specs will evaluate to 3,
         #    constrained specs will evaluate to 2, and name only will be 1
-        specs = tuple(sorted(specs, key=lambda x: (exactness_and_number_of_deps(self, x),
-                                                   x.name), reverse=True))
-
+        specs.sort(key=lambda x: (exactness_and_number_of_deps(self, x),
+                                  x.name), reverse=True)
+        specs = tuple(specs)
         reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             return False if reduced_index is None else ([[]] if returnall else [])
