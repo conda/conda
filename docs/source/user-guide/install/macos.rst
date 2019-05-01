@@ -83,7 +83,7 @@ EXAMPLE::
 Updating Anaconda or Miniconda
 ==============================
 
-#. Open a Terminal window.
+#. Open a terminal window.
 
 #. Navigate to the ``anaconda`` directory.
 
@@ -93,7 +93,7 @@ Updating Anaconda or Miniconda
 Uninstalling Anaconda or Miniconda
 ==================================
 
-#. Open a Terminal window.
+#. Open a terminal window.
 
 #. Remove the entire Miniconda install directory with::
 
