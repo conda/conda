@@ -274,7 +274,7 @@ def install(args, parser, command='install'):
 
     except (UnsatisfiableError, SystemExit) as e:
         # Quick solve with frozen env failed.  Try again without that.
-        if isinstall and context.update_modifier == NULL:
+        if isinstall and args.update_modifier == NULL:
             try:
                 unlink_link_transaction = solver.solve_for_transaction(
                     deps_modifier=deps_modifier,

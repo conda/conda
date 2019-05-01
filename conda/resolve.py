@@ -73,8 +73,9 @@ def exactness_and_number_of_deps(resolve_obj, ms):
     if ms.strictness == 3:
         prec = resolve_obj.find_matches(ms)
         value = 3
-        for dep in prec[0].depends:
-            value += MatchSpec(dep).strictness
+        if prec:
+            for dep in prec[0].depends:
+                value += MatchSpec(dep).strictness
     else:
         value = ms.strictness
     return value
