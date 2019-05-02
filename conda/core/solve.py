@@ -25,7 +25,6 @@ from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError
-from ..gateways.logging import TRACE
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -401,8 +400,7 @@ class Solver(object):
                 else:
                     new_spec = MatchSpec(spec, target=target_prec.dist_str())
                 ssc.specs_map[pkg_name] = new_spec
-        if log.isEnabledFor(TRACE):
-            log.trace("specs_map with targets: %s", ssc.specs_map)
+        log.debug("specs_map with targets: %s", ssc.specs_map)
 
         # If we're in UPDATE_ALL mode, we need to drop all the constraints attached to specs,
         # so they can all float and the solver can find the most up-to-date solution. In the case

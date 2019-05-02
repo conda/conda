@@ -15,7 +15,7 @@ import pytest
 from conda.base.context import context, Context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
-from conda.core.solve import DepsModifier, Solver, UpdateModifier
+from conda.core.solve import DepsModifier, Solver, UpdateModifier, Resolve
 from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
 from conda.history import History
 from conda.models.channel import Channel

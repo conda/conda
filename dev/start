@@ -19,21 +19,21 @@ if ! [ -f "$devenv/conda-meta/history" ]; then
             curl https://repo.anaconda.com/miniconda/Miniconda${pyver}-latest-Linux-x86_64.sh -o miniconda${pyver}.sh
         fi
         bash miniconda${pyver}.sh -bfp "$devenv"
-        "$devenv/bin/conda" install -yq python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
-        "$devenv/bin/conda" install -yq patchelf  # for conda-build
+        "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
+        "${_CONDA}" install -yq -p $devenv patchelf  # for conda-build
     else
         if [ ! -f miniconda${pyver}.exe ]; then
             powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('https://repo.anaconda.com/miniconda/Miniconda$pyver-latest-Windows-x86_64.exe','miniconda${pyver}.exe')"
         fi
         cmd.exe /c "start /wait \"\" miniconda${pyver}.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $devenv)"
         _CONDA="$devenv/Scripts/conda"
-        "$devenv/Scripts/conda" install -yq python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
+        "$devenv/Scripts/conda" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
     fi
 fi
 
 
 if ! [ -f "$devenv/.dev-start-ed" ]; then
-  "${_CONDA}" install -yq python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
+  "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
   touch "$devenv/.dev-start-ed"
 fi
 

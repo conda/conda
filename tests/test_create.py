@@ -35,7 +35,7 @@ from conda import CondaError, CondaMultiError, plan, __version__ as CONDA_VERSIO
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda._vendor.auxlib.ish import dals
 from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks, \
-    PREFIX_MAGIC_FILE
+    PREFIX_MAGIC_FILE, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
@@ -46,7 +46,7 @@ from conda.common.path import get_bin_directory_short_path, get_python_site_pack
     pyc_path
 from conda.common.serialize import yaml_load, json_dump
 from conda.common.url import path_to_url
-from conda.core.index import get_reduced_index
+from conda.core.index import get_reduced_index, get_index
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
@@ -62,12 +62,13 @@ from conda.gateways.subprocess import subprocess_call, subprocess_call_with_clea
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.models.version import VersionOrder
+from conda.resolve import exactness_and_number_of_deps
 from conda.utils import massage_arguments, on_win
 
 try:
-    from unittest.mock import Mock, patch
+    from unittest.mock import Mock, patch, ANY
 except ImportError:
-    from mock import Mock, patch
+    from mock import Mock, patch, ANY
 
 
 log = getLogger(__name__)
@@ -2009,6 +2010,42 @@ class IntegrationTests(TestCase):
 
             with pytest.raises(DryRunExit):
                 run_command(Commands.INSTALL, prefix, "agate=1.6", "--dry-run")
+
+    def test_install_freezes_env_by_default(self):
+        """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
+        up by not considering changes to existing stuff unless the solve ends up unsatisfiable."""
+
+        # create an initial env
+        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
+            assert package_is_installed(prefix, "python=2.7.*")
+            stdout, stderr, _ = run_command(Commands.LIST, prefix, '--json')
+            pkgs = json.loads(stdout)
+            specs = []
+            for entry in pkgs:
+                if entry['name'] in DEFAULT_AGGRESSIVE_UPDATE_PACKAGES:
+                    specs.append(entry['name'])
+                else:
+                    specs.append(entry['channel'] + '/' + entry['platform'] + '::' +
+                                 entry['name'] + '=' + entry['version'] + '=' + entry['build_string'])
+
+            specs.append('imagesize')
+            specs = [MatchSpec(s) for s in specs]
+            import conda.core.solve
+            r = conda.core.solve.Resolve(get_index())
+            specs = tuple(sorted(specs, key=lambda x: (exactness_and_number_of_deps(r, x), x.name), reverse=True))
+            reduced_index = r.get_reduced_index([MatchSpec('imagesize')])
+
+            # now add requests to that env.  The call to get_reduced_index should include our exact specs
+            #     for the existing env.  doing so will greatly reduce the search space for the initial solve
+            with patch.object(conda.core.solve.Resolve, 'get_reduced_index',
+                              return_value=reduced_index) as mock_method:
+                run_command(Commands.INSTALL, prefix, "imagesize")
+                # TODO: this should match the specs above.  It does, at least as far as I can tell from text
+                #    comparison.   Unfortunately, it doesn't evaluate as a match, even though the text all matches.
+                #    I suspect some strange equality of objects issue.
+                mock_method.assert_called_with(specs)
+
+
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
