@@ -14,6 +14,7 @@ if ! [ -f "$devenv/conda-meta/history" ]; then
             curl https://repo.anaconda.com/miniconda/Miniconda${pyver}-latest-MacOSX-x86_64.sh -o miniconda${pyver}.sh
         fi
         bash miniconda${pyver}.sh -bfp "$devenv"
+        "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
     elif [ "$(uname)" = Linux ]; then
         if [ ! -f miniconda${pyver}.sh ]; then
             curl https://repo.anaconda.com/miniconda/Miniconda${pyver}-latest-Linux-x86_64.sh -o miniconda${pyver}.sh
