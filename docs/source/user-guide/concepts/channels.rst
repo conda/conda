@@ -16,7 +16,7 @@ URLs to directories containing conda packages.
 The ``conda``
 command searches a default set of channels, and packages are
 automatically downloaded and updated from
-http://repo.continuum.io/pkgs/.
+https://repo.anaconda.com/pkgs/.
 You can modify what remote channels are automatically searched.
 You might want to do this to maintain a private or internal channel. For details,
 see how to :ref:``modify your channel lists <config-channels>`. 
