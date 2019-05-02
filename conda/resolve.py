@@ -374,16 +374,9 @@ class Resolve(object):
     @memoizemethod
     def _broader(self, ms, specs_by_name):
         """prevent introduction of matchspecs that broaden our selection of choices"""
-        if ms.name not in specs_by_name:
+        if not specs_by_name:
             return False
-        matching_specs = specs_by_name[ms.name]
-        # is there a version constraint defined for any existing spec, but not ms?
-        if any('version' in _ for _ in matching_specs) and 'version' not in ms:
-            return True
-        # is there a build constraint defined for any of the specs, but not on ms?
-        if any('build' in _ for _ in matching_specs) and 'build' not in ms:
-            return True
-        return False
+        return ms.strictness < specs_by_name[0].strictness
 
     @time_recorder(module_name=__name__)
     def get_reduced_index(self, explicit_specs):
@@ -533,13 +526,11 @@ class Resolve(object):
                 specs_by_name = copy.deepcopy(specs_by_name_seed)
 
                 dep_specs = set(self.ms_depends(pkg))
-                this_pkg_constraints = {}
                 for dep in dep_specs:
                     specs = specs_by_name.get(dep.name, list())
                     if dep not in specs and (not specs or dep.strictness >= specs[0].strictness):
                         specs.insert(0, dep)
                     specs_by_name[dep.name] = specs
-                this_pkg_constraints = frozendict({k: tuple(v) for k, v in specs_by_name.items()})
 
                 while(dep_specs):
                     # used for debugging
@@ -570,7 +561,7 @@ class Resolve(object):
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
                                 if ('track_features' not in new_ms and not self._broader(
-                                        new_ms, this_pkg_constraints)):
+                                        new_ms, tuple(specs_by_name.get(new_ms.name, tuple())))):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
                                     #     specs_added.append(new_ms)
