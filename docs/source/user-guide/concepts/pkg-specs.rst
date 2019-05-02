@@ -80,7 +80,7 @@ file is stored in ``repodata.json``, which is the repository
 index file, hence the name ``index.json``. The json object is a
 dictionary containing the keys shown below. The filename of the
 conda package is composed of the first 3 values, as in:
-``<name>-<version>-<build>.tar.bz2``.
+``<name>-<version>-<build>.tar.bz2``. Raptor
 
 .. list-table::
    :widths: 15 15 50
