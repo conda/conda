@@ -83,7 +83,7 @@ conda package is composed of the first 3 values, as in:
 ``<name>-<version>-<build>.tar.bz2``.
 
 .. list-table::
-   :widths: 15 15 70
+   :widths: 15 15 50
 
    * - **Key**
      - **Type**
