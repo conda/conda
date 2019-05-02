@@ -23,7 +23,8 @@ from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSy
                           CondaValueError, DirectoryNotACondaEnvironmentError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
                           NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
-                          TooManyArgumentsError, UnsatisfiableError)
+                          TooManyArgumentsError, UnsatisfiableError,
+                          SpecsConfigurationConflictError)
 from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..misc import clone_env, explicit, touch_nonadmin
@@ -272,16 +273,18 @@ def install(args, parser, command='install'):
         ))
         raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
-    except (UnsatisfiableError, SystemExit) as e:
+    except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
         # Quick solve with frozen env failed.  Try again without that.
         if isinstall and args.update_modifier == NULL:
             try:
+                log.info("Initial quick solve with frozen env failed.  "
+                         "Unfreezing env and trying again.")
                 unlink_link_transaction = solver.solve_for_transaction(
                     deps_modifier=deps_modifier,
                     update_modifier=args.update_modifier,
                     force_reinstall=context.force_reinstall or context.force,
                 )
-            except (UnsatisfiableError, SystemExit) as e:
+            except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
                 # Unsatisfiable package specifications/no such revision/import error
                 if e.args and 'could not import' in e.args[0]:
                     raise CondaImportError(text_type(e))
