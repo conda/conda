@@ -19,7 +19,7 @@ automatically downloaded and updated from
 http://repo.continuum.io/pkgs/.
 You can modify what remote channels are automatically searched.
 You might want to do this to maintain a private or internal channel. For details,
-see how to :ref:``modify your channel lists <config-channels>`_. 
+see how to :ref:``modify your channel lists <config-channels>`. 
 
 .. _specifying-channels:
 
