@@ -13,9 +13,9 @@ To install conda packages, in the terminal or an Anaconda Prompt, run::
   conda install [packagename]
 
 
-During the install process, files are extracted into the
-``install`` prefix, except for files in the ``info/``
-directory. Installing the files of a conda package into an
+During the install process, files are extracted into the specified
+environment, defaulting to the current environment if none is specified.
+Installing the files of a conda package into an
 environment can be thought of as changing the directory to an
 environment, and then downloading and extracting the artifact
 and its dependencies---all with the single
