@@ -536,12 +536,9 @@ class Resolve(object):
                 this_pkg_constraints = {}
                 for dep in dep_specs:
                     specs = specs_by_name.get(dep.name, list())
-                    if dep not in specs:
-                        specs.append(dep)
-                    specs_by_name[dep.name] = sorted(
-                        specs,
-                        key=lambda x: (exactness_and_number_of_deps(self, x), x.name),
-                        reverse=True)
+                    if dep not in specs and (not specs or dep.strictness >= specs[0].strictness):
+                        specs.insert(0, dep)
+                    specs_by_name[dep.name] = specs
                 this_pkg_constraints = frozendict({k: tuple(v) for k, v in specs_by_name.items()})
 
                 while(dep_specs):
