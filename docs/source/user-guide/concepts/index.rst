@@ -8,10 +8,10 @@ Explore the links to learn more about conda foundations.
    :maxdepth: 1
 
    packages
-   installing-with-conda
+   pkg-specs
    channels
    environments
-   pkg-specs
+   installing-with-conda
 
 
 
