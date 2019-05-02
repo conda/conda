@@ -17,7 +17,7 @@ During the install process, files are extracted into the
 ``install`` prefix, except for files in the ``info/``
 directory. Installing the files of a conda package into an
 environment can be thought of as changing the directory to an
-environment, and then downloading and extracting the .zip file
+environment, and then downloading and extracting the artifact
 and its dependencies---all with the single
 ``conda install [packagename]`` command.
 
