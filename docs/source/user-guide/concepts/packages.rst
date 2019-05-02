@@ -45,11 +45,13 @@ Using packages
   conda install scipy
 
 
-* You may build a package
+* You may build a package after `installing conda build <https://docs.conda.io/projects/conda-build/en/latest/index.html>`_
 
 .. code-block:: bash
 
   conda build my_fun_package
+
+
 
 Package structure
 =================
