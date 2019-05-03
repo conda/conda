@@ -8,7 +8,7 @@ Installing on Linux
 
    * `Anaconda installer for Linux <https://www.anaconda.com/download/>`_.
 
-#. In your Terminal window, run:
+#. In your terminal window, run:
 
    * Miniconda:
 
@@ -28,7 +28,7 @@ Installing on Linux
    can change them later.
 
 #. To make the changes take effect, close and then re-open your
-   Terminal window.
+   terminal window.
 
 #. :doc:`Test your installation <test-installation>`.
 
@@ -38,9 +38,9 @@ Installing on Linux
 Using with fish shell
 =========================
 
-To use conda with fish shell, add the following line in your ``config.fish`` file::
+To use conda with fish shell, run the following in your terminal: 
 
-  source (conda info --root)/etc/fish/conf.d/conda.fish
+  ``conda init fish``
 
 Installing in silent mode
 =========================
@@ -52,7 +52,7 @@ See the instructions for
 Updating Anaconda or Miniconda
 ==============================
 
-#. Open a Terminal window.
+#. Open a terminal window.
 
 #. Run ``conda update conda``.
 
@@ -60,7 +60,7 @@ Updating Anaconda or Miniconda
 Uninstalling Anaconda or Miniconda
 ==================================
 
-#. Open a Terminal window.
+#. Open a terminal window.
 
 #. Remove the entire miniconda install directory with::
 

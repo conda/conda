@@ -27,11 +27,11 @@ Anaconda <https://docs.anaconda.com/anaconda/install/>`_.
 Contents
 ========
 
- - :ref:`Starting conda <starting-conda>` on Windows, macOS or Linux. 2 MINUTES
+ - :ref:`Starting conda <starting-conda>` on Windows, macOS, or Linux. 2 MINUTES
 
  - :ref:`Managing conda <managing-conda>`. Verify that Anaconda is installed and check that conda is updated to the current version. 3 MINUTES
 
- - :ref:`Managing environments <managing-envs>`. Create :ref:`environments <concept-conda-env>` and move easily between them.  5 MINUTES
+ - :ref:`Managing environments <managing-envs>`. Create :doc:`environments <../user-guide/concepts/environments>` and move easily between them.  5 MINUTES
 
  - :ref:`Managing Python <managing-python>`. Create an environment that has a different version of Python. 5 MINUTES
 
