@@ -116,7 +116,7 @@ def path_to_url(path):
                               else bytes(path, "utf-8").decode('unicode-escape'))
 
     # https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
-    if path[1] == ':':
+    if len(path) > 1 and path[1] == ':':
         path = file_scheme + '/' + path
     else:
         path = file_scheme + path
