@@ -619,10 +619,11 @@ class Resolve(object):
         version_comparator = VersionOrder(prec.get('version', ''))
         build_number = prec.get('build_number', 0)
         build_string = prec.get('build')
+        noarch = - int(prec.subdir == 'noarch')
         if self._channel_priority != ChannelPriority.DISABLED:
-            vkey = [valid, -channel_priority, version_comparator, build_number]
+            vkey = [valid, -channel_priority, version_comparator, build_number, noarch]
         else:
-            vkey = [valid, version_comparator, -channel_priority, build_number]
+            vkey = [valid, version_comparator, -channel_priority, build_number, noarch]
         if self._solver_ignore_timestamps:
             vkey.append(build_string)
         else:
@@ -782,6 +783,7 @@ class Resolve(object):
         eqc = {}  # channel
         eqv = {}  # version
         eqb = {}  # build number
+        eqa = {}  # arch/noarch
         eqt = {}  # timestamp
 
         sdict = {}  # Dict[package_name, PackageRecord]
@@ -807,20 +809,24 @@ class Resolve(object):
                 if targets and any(prec == t for t in targets):
                     continue
                 if pkey is None:
-                    ic = iv = ib = it = 0
+                    ic = iv = ib = it = ia = 0
                 # valid package, channel priority
                 elif pkey[0] != version_key[0] or pkey[1] != version_key[1]:
                     ic += 1
-                    iv = ib = it = 0
+                    iv = ib = it = ia = 0
                 # version
                 elif pkey[2] != version_key[2]:
                     iv += 1
-                    ib = it = 0
+                    ib = it = ia = 0
                 # build number
                 elif pkey[3] != version_key[3]:
                     ib += 1
+                    it = ia = 0
+                # arch/noarch
+                elif pkey[4] != version_key[4]:
+                    ia += 1
                     it = 0
-                elif not self._solver_ignore_timestamps and pkey[4] != version_key[4]:
+                elif not self._solver_ignore_timestamps and pkey[5] != version_key[5]:
                     it += 1
 
                 prec_sat_name = self.to_sat_name(prec)
@@ -830,11 +836,13 @@ class Resolve(object):
                     eqv[prec_sat_name] = iv
                 if ib or include0:
                     eqb[prec_sat_name] = ib
+                if ia or include0:
+                    eqa[prec_sat_name] = ia
                 if it or include0:
                     eqt[prec_sat_name] = it
                 pkey = version_key
 
-        return eqc, eqv, eqb, eqt
+        return eqc, eqv, eqb, eqa, eqt
 
     def dependency_sort(self, must_have):
         # type: (Dict[package_name, PackageRecord]) -> List[PackageRecord]
@@ -1123,7 +1131,7 @@ class Resolve(object):
 
         # Requested packages: maximize versions
         log.debug("Solve: maximize versions of requested packages")
-        eq_req_c, eq_req_v, eq_req_b, eq_req_t = r2.generate_version_metrics(C, specr)
+        eq_req_c, eq_req_v, eq_req_b, eq_req_a, eq_req_t = r2.generate_version_metrics(C, specr)
         solution, obj3a = C.minimize(eq_req_c, solution)
         solution, obj3 = C.minimize(eq_req_v, solution)
         log.debug('Initial package channel/version metric: %d/%d', obj3a, obj3)
@@ -1150,6 +1158,11 @@ class Resolve(object):
         solution, obj4 = C.minimize(eq_req_b, solution)
         log.debug('Initial package build metric: %d', obj4)
 
+        # prefer arch packages where available for requested specs
+        log.debug("Solve: prefer arch over noarch for requested packages")
+        solution, noarch_obj = C.minimize(eq_req_a, solution)
+        log.debug('Noarch metric: %d', noarch_obj)
+
         # Optional installations: minimize count
         if not _remove:
             log.debug("Solve: minimize number of optional installations")
@@ -1164,13 +1177,15 @@ class Resolve(object):
         log.debug('Dependency update count: %d', obj50)
 
         # Remaining packages: maximize versions, then builds
-        log.debug("Solve: maximize versions and builds of indirect dependencies")
-        eq_c, eq_v, eq_b, eq_t = r2.generate_version_metrics(C, speca)
+        log.debug("Solve: maximize versions and builds of indirect dependencies.  "
+                  "Prefer arch over noarch where equivalent.")
+        eq_c, eq_v, eq_b, eq_a, eq_t = r2.generate_version_metrics(C, speca)
         solution, obj5a = C.minimize(eq_c, solution)
         solution, obj5 = C.minimize(eq_v, solution)
         solution, obj6 = C.minimize(eq_b, solution)
-        log.debug('Additional package channel/version/build metrics: %d/%d/%d',
-                  obj5a, obj5, obj6)
+        solution, obj6a = C.minimize(eq_a, solution)
+        log.debug('Additional package channel/version/build/noarch metrics: %d/%d/%d/%d',
+                  obj5a, obj5, obj6, obj6a)
 
         # Prune unnecessary packages
         log.debug("Solve: prune unnecessary packages")
@@ -1178,8 +1193,7 @@ class Resolve(object):
         solution, obj7 = C.minimize(eq_c, solution, trymax=True)
         log.debug('Weak dependency count: %d', obj7)
 
-        converged = is_converged(solution)
-        if not converged:
+        if not is_converged(solution):
             # Maximize timestamps
             eq_t.update(eq_req_t)
             solution, obj6t = C.minimize(eq_t, solution)

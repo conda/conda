@@ -182,7 +182,7 @@ def test_generate_eq_1():
     reduced_index = r.get_reduced_index((MatchSpec('anaconda'), ))
     r2 = Resolve(reduced_index, True)
     C = r2.gen_clauses()
-    eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
+    eqc, eqv, eqb,  eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.
@@ -1160,7 +1160,7 @@ def test_channel_priority_2():
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
-        eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
         pprint(eqc)
         assert eqc == {
@@ -1312,7 +1312,7 @@ def test_channel_priority_2():
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
 
-        eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
         assert eqc == {}, eqc
         installed_w_strict = [prec.dist_str() for prec in this_r.install(spec)]
@@ -1336,7 +1336,7 @@ def test_channel_priority_2():
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
-        eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
         pprint(eqc)
         assert eqc == {
@@ -1882,3 +1882,210 @@ def test_get_reduced_index_broadening_preferred_solution():
             assert d.version == '2.0', "top version should be 2.0, but is {}".format(d.version)
         elif d.name == 'bottom':
             assert d.version == '2.5', "bottom version should be 2.5, but is {}".format(d.version)
+
+
+def test_arch_preferred_over_noarch_when_otherwise_equal():
+    index = (
+        PackageRecord(**{
+            "build": "py36_0",
+            "build_number": 0,
+            "date": "2016-12-17",
+            "license": "BSD",
+            "md5": "9b4568068e3a7ac81be87902827d949e",
+            "name": "itsdangerous",
+            "size": 19688,
+            "version": "0.24"
+        }),
+        PackageRecord(**{
+            "arch": None,
+            "binstar": {
+            "channel": "main",
+            "owner_id": "58596cc93d1b550ffad38672",
+            "package_id": "5898cb9d9aba4511169c383a"
+            },
+            "build": "py_0",
+            "build_number": 0,
+            "has_prefix": False,
+            "license": "BSD",
+            "machine": None,
+            "md5": "917e90ca4e80324b77e8df449d07eefc",
+            "name": "itsdangerous",
+            "noarch": "python",
+            "operatingsystem": None,
+            "platform": None,
+            "requires": [],
+            "size": 14098,
+            "subdir": "noarch",
+            "target-triplet": "None-any-None",
+            "version": "0.24"
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['itsdangerous'])
+    for d in install:
+        assert d.subdir == context.subdir
+
+
+def test_noarch_preferred_over_arch_when_version_greater():
+    index = (
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '2.0',
+            'build': '0',
+            "subdir": "noarch",
+            'build_number': 0,
+        }),
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['abc'])
+    for d in install:
+        assert d.subdir == 'noarch'
+        assert d.version == '2.0'
+
+
+def test_noarch_preferred_over_arch_when_build_greater():
+    index = (
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '1',
+            "subdir": "noarch",
+            'build_number': 1,
+        }),
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['abc'])
+    for d in install:
+        assert d.subdir == 'noarch'
+        assert d.build_number == 1
+
+
+def test_arch_preferred_over_noarch_when_otherwise_equal_dep():
+    index = (
+        PackageRecord(**{
+            "build": "py36_0",
+            "build_number": 0,
+            "date": "2016-12-17",
+            "license": "BSD",
+            "md5": "9b4568068e3a7ac81be87902827d949e",
+            "name": "itsdangerous",
+            "size": 19688,
+            "version": "0.24"
+        }),
+        PackageRecord(**{
+            "arch": None,
+            "binstar": {
+            "channel": "main",
+            "owner_id": "58596cc93d1b550ffad38672",
+            "package_id": "5898cb9d9aba4511169c383a"
+            },
+            "build": "py_0",
+            "build_number": 0,
+            "has_prefix": False,
+            "license": "BSD",
+            "machine": None,
+            "md5": "917e90ca4e80324b77e8df449d07eefc",
+            "name": "itsdangerous",
+            "noarch": "python",
+            "operatingsystem": None,
+            "platform": None,
+            "requires": [],
+            "size": 14098,
+            "subdir": "noarch",
+            "target-triplet": "None-any-None",
+            "version": "0.24"
+        }),
+        PackageRecord(**{
+            'name': 'foo',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+            'depends': ['itsdangerous'],
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['foo'])
+    for d in install:
+        if d.name == 'itsdangerous':
+            assert d.subdir == context.subdir
+
+
+def test_noarch_preferred_over_arch_when_version_greater_dep():
+    index = (
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '2.0',
+            'build': '0',
+            "subdir": "noarch",
+            'build_number': 0,
+        }),
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+        }),
+        PackageRecord(**{
+            'name': 'foo',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+            'depends': ['abc'],
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['foo'])
+    for d in install:
+        if d.name == 'abc':
+            assert d.subdir == 'noarch'
+            assert d.version == '2.0'
+
+
+def test_noarch_preferred_over_arch_when_build_greater_dep():
+    index = (
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '1',
+            "subdir": "noarch",
+            'build_number': 1,
+        }),
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+        }),
+        PackageRecord(**{
+            'name': 'foo',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+            'depends': ['abc'],
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['abc'])
+    for d in install:
+        if d.name == 'abc':
+            assert d.subdir == 'noarch'
+            assert d.build_number == 1
