@@ -385,7 +385,7 @@ class Resolve(object):
 
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
-        cache_key = strict_channel_priority, frozenset(explicit_specs)
+        cache_key = strict_channel_priority, tuple(explicit_specs)
         if cache_key in self._reduced_index_cache:
             return self._reduced_index_cache[cache_key]
 
@@ -398,8 +398,19 @@ class Resolve(object):
                       for prec, val in iteritems(self.default_filter(features))}
         snames = set()
         top_level_spec = None
-
         cp_filter_applied = set()  # values are package names
+
+        # prioritize specs that are more exact.  Exact specs will evaluate to 3,
+        #    constrained specs will evaluate to 2, and name only will be 1
+        explicit_specs = sorted(list(explicit_specs), key=lambda x: (
+            exactness_and_number_of_deps(self, x), x.name), reverse=True)
+        # tuple because it needs to be hashable
+        explicit_specs = tuple(explicit_specs)
+
+        explicit_spec_package_pool = {}
+        for s in explicit_specs:
+            explicit_spec_package_pool[s.name] = explicit_spec_package_pool.get(
+                s.name, set()) | set(self.find_matches(s))
 
         def filter_group(_specs):
             # all _specs should be for the same package name
@@ -407,20 +418,22 @@ class Resolve(object):
             group = self.groups.get(name, ())
 
             # implement strict channel priority
-            if strict_channel_priority and name not in cp_filter_applied:
+            if group and strict_channel_priority and name not in cp_filter_applied:
                 sole_source_channel_name = self._get_strict_channel(name)
                 for prec in group:
                     if prec.channel.name != sole_source_channel_name:
                         filter_out[prec] = "removed due to strict channel priority"
                 cp_filter_applied.add(name)
 
-            # Prune packages that don't match any of the patterns
-            # or which have unsatisfiable dependencies
+            # Prune packages that don't match any of the patterns,
+            # have unsatisfiable dependencies, or conflict with the explicit specs
             nold = nnew = 0
             for prec in group:
                 if not filter_out.setdefault(prec, False):
                     nold += 1
-                    if not self.match_any(_specs, prec):
+                    if not self.match_any(_specs, prec) or (
+                            explicit_spec_package_pool.get(name) and
+                            prec not in explicit_spec_package_pool[name]):
                         filter_out[prec] = "incompatible with required spec %s" % top_level_spec
                         continue
                     unsatisfiable_dep_specs = tuple(
@@ -500,11 +513,10 @@ class Resolve(object):
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
-        explicit_spec_set = set(explicit_specs)
-        specs_by_name_seed = dict()
+        specs_by_name_seed = OrderedDict()
         for s in explicit_specs:
             specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, list()) + [s]
-        for explicit_spec in explicit_spec_set:
+        for explicit_spec in explicit_specs:
             add_these_precs2 = tuple(
                 prec for prec in self.find_matches(explicit_spec)
                 if prec not in reduced_index2 and self.valid2(prec, filter_out))
@@ -979,7 +991,7 @@ class Resolve(object):
             pkgs.extend(p for p in preserve if p.name not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
-        specs = set(map(MatchSpec, specs))
+        specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
@@ -999,8 +1011,8 @@ class Resolve(object):
             else:
                 spec = MatchSpec(name=name, version=version,
                                  build=build, channel=schannel)
-            specs.add(spec)
-        return frozenset(specs), preserve
+            specs.insert(0, spec)
+        return tuple(specs), preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
@@ -1052,16 +1064,14 @@ class Resolve(object):
         if log.isEnabledFor(DEBUG):
             log.debug('Solving for: %s', dashlist(sorted(text_type(s) for s in specs)))
 
+        if specs and not isinstance(specs[0], MatchSpec):
+            specs = tuple(MatchSpec(_) for _ in specs)
+        specs = set(specs)
+
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
-        specs = list(map(MatchSpec, specs))
 
-        # prioritize specs that are more exact.  Exact specs will evaluate to 3,
-        #    constrained specs will evaluate to 2, and name only will be 1
-        specs.sort(key=lambda x: (exactness_and_number_of_deps(self, x),
-                                  x.name), reverse=True)
-        specs = tuple(specs)
         reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             return False if reduced_index is None else ([[]] if returnall else [])
