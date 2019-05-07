@@ -13,7 +13,7 @@ from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
 from conda.core.index import get_index
 from conda.core.subdir_data import cache_fn_url, read_mod_and_etag, \
-    SubdirData, UnavailableInvalidChannel, fetch_remote_request
+    SubdirData, UnavailableInvalidChannel, fetch_remote_request, ResponseException
 from conda.models.channel import Channel
 
 try:
@@ -52,7 +52,7 @@ class GetRepodataIntegrationTests(TestCase):
 
         for unknown in (None, False, True):
             with env_var('CONDA_OFFLINE', 'yes', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
+                with patch.object(conda.core.subdir_data, 'fetch_remote_request') as remote_request:
                     index2 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
                     assert all(index2.get(k) == rec for k, rec in iteritems(index))
                     assert unknown is not False or len(index) == len(index2)
@@ -60,8 +60,8 @@ class GetRepodataIntegrationTests(TestCase):
 
         for unknown in (False, True):
             with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
-                    remote_request.side_effect = Response304ContentUnchanged()
+                with patch.object(conda.core.subdir_data, 'fetch_remote_request') as remote_request:
+                    remote_request.side_effect = ResponseException("some url", 0, None)
                     index3 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
                     assert all(index3.get(k) == rec for k, rec in iteritems(index))
                     assert unknown or len(index) == len(index3)

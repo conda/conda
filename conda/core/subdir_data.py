@@ -195,6 +195,7 @@ class ResponseException(Exception):
         super(ResponseException, self).__init__()
         self.url = url
         self.response_code = response_code
+        self.response = response
 
 
 def load_url_object(cache_path_base, url, channel, cache_cls):

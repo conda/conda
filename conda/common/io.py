@@ -144,6 +144,7 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
         if stack_callback:
             stack_callback(False)
 
+
 @contextmanager
 def env_var(name, value, callback=None, stack_callback=None):
     # Maybe, but in env_vars, not here:
