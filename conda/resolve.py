@@ -369,38 +369,28 @@ class Resolve(object):
                         slist.extend(ms3 for ms3 in self.ms_depends(fkey) if ms3.name != top_level_spec.name)
             sdeps[top_level_spec] = top_level_sdeps
 
-        # find deps with zero intersections between specs
-        import itertools
-        for ms1, ms2 in itertools.combinations(sdeps.keys(), 2):
-            sdep1 = sdeps[ms1]
-            sdep2 = sdeps[ms2]
-            shared_deps = [k for k in sdep1.keys() if k in sdep2]
-            for dep in shared_deps:
-                shared_pkgs = sdep1[dep].intersection(sdep2[dep])
-                if len(shared_pkgs) == 0:
-                    # generate chains for specs with bad deps
-                    filter = {}
-                    for fkey in sdep1[dep]:
-                        filter[fkey] = False
-                    for fkey in sdep2[dep]:
-                        filter[fkey] = False
-                    ndeps1 = set(self.invalid_chains(ms1, filter, False))
-                    ndeps1 = [nd for nd in ndeps1 if nd[-1].name == dep]
-
-                    ndeps2 = set(self.invalid_chains(ms2, filter, False))
-                    ndeps2 = [nd for nd in ndeps2 if nd[-1].name == dep]
-
-                    bad_deps = []
-                    bad_deps.extend(ndeps1)
-                    bad_deps.extend(ndeps2)
-                    raise UnsatisfiableError(bad_deps)
-
-        # Check for the test case:
-        # conda create -n test -q cryptography=2.6.1 python=3.7.0
-        #sdeps0 = sdeps[specs[0]]
-        #sdeps1 = sdeps[specs[1]]
-        #good_openssl = sdeps0['openssl'].intersection(sdeps1['openssl'])
-        #import pdb; pdb.set_trace()
+        # find deps with zero intersection between specs which include that dep
+        bad_deps = []
+        deps = set()
+        for sdep in sdeps.values():
+            deps.update(sdep.keys())
+        for dep in deps:
+            sdeps_with_dep = {k: v.get(dep) for k, v in sdeps.items() if dep in v.keys()}
+            if len(sdeps_with_dep) <= 1:
+                continue
+            intersection = set.intersection(*sdeps_with_dep.values())
+            if len(intersection) != 0:
+                continue
+            filter = {}
+            for fkeys in sdeps_with_dep.values():
+                for fkey in fkeys:
+                    filter[fkey] = False
+            for spec in sdeps_with_dep.keys():
+                ndeps = set(self.invalid_chains(spec, filter, False))
+                ndeps = [nd for nd in ndeps if nd[-1].name == dep]
+                bad_deps.extend(ndeps)
+        if bad_deps:
+            raise UnsatisfiableError(bad_deps)
 
         sdeps = {}
         # For each spec, assemble a dictionary of dependencies, with package
