@@ -19,7 +19,7 @@ from conda._vendor.auxlib.decorators import memoize
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems, itervalues, encode_arguments
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
-from conda.core.subdir_data import SubdirData, make_feature_record
+from conda.core.subdir_data import SubdirData, make_feature_record, CachedRepodata
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
@@ -156,24 +156,31 @@ def add_feature_records_legacy(index):
         rec = make_feature_record(feature_name)
         index[rec] = rec
 
+
+def make_subdir_data(channel, packages_index_str, subdir):
+    repodata = {
+        "info": {
+            "subdir": subdir,
+            "arch": context.arch_name,
+            "platform": context.platform,
+        },
+        "packages": json.loads(packages_index_str),
+    }
+    cached_obj = CachedRepodata(None, channel, None, None, None, None, repodata)
+    sd = SubdirData(channel)
+    sd._package_records = cached_obj.content['_package_records']
+    sd._names_index = cached_obj.content['_names_index']
+    sd._track_features_index = cached_obj.content['_track_features_index']
+    sd._loaded = True
+    return sd
+
+
 @memoize
 def get_index_r_1(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index.json')) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
-
+        packages_index_str = fi.read()
     channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
-    sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
+    sd = make_subdir_data(channel, packages_index_str, subdir)
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
     index = {prec: prec for prec in sd._package_records}
@@ -185,21 +192,10 @@ def get_index_r_1(subdir=context.subdir):
 @memoize
 def get_index_r_2(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index2.json')) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
+        packages_index_str = fi.read()
 
     channel = Channel('https://conda.anaconda.org/channel-2/%s' % subdir)
-    sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
+    sd = make_subdir_data(channel, packages_index_str, subdir)
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
     index = {prec: prec for prec in sd._package_records}
@@ -210,21 +206,10 @@ def get_index_r_2(subdir=context.subdir):
 @memoize
 def get_index_r_4(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index4.json')) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
+        packages_index_str = fi.read()
 
     channel = Channel('https://conda.anaconda.org/channel-4/%s' % subdir)
-    sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
+    sd = make_subdir_data(channel, packages_index_str, subdir)
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
     index = {prec: prec for prec in sd._package_records}
@@ -236,21 +221,10 @@ def get_index_r_4(subdir=context.subdir):
 @memoize
 def get_index_r_5(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index5.json')) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
+        packages_index_str = fi.read()
 
     channel = Channel('https://conda.anaconda.org/channel-5/%s' % subdir)
-    sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
+    sd = make_subdir_data(channel, packages_index_str, subdir)
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
     index = {prec: prec for prec in sd._package_records}
@@ -262,21 +236,10 @@ def get_index_r_5(subdir=context.subdir):
 # Do not memoize this get_index to allow different CUDA versions to be detected
 def get_index_cuda(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index.json')) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
+        packages_index_str = fi.read()
 
     channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
-    sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
+    sd = make_subdir_data(channel, packages_index_str, subdir)
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
     index = {prec: prec for prec in sd._package_records}

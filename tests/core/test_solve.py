@@ -170,7 +170,7 @@ def test_solve_1():
 def test_cuda_1():
     specs = MatchSpec("cudatoolkit"),
 
-    with env_var('CONDA_OVERRIDE_CUDA', '9.2'):
+    with env_var('CONDA_OVERRIDE_CUDA', '9.2', reset_context):
         with get_solver_cuda(specs) as solver:
             final_state = solver.solve_final_state()
             # print(convert_to_dist_str(final_state))
@@ -183,7 +183,7 @@ def test_cuda_1():
 def test_cuda_2():
     specs = MatchSpec("cudatoolkit"),
 
-    with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0', reset_context):
         with get_solver_cuda(specs) as solver:
             final_state = solver.solve_final_state()
             # print(convert_to_dist_str(final_state))

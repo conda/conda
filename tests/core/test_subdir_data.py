@@ -12,8 +12,8 @@ from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
 from conda.core.index import get_index
-from conda.core.subdir_data import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
-    SubdirData, fetch_repodata_remote_request, UnavailableInvalidChannel
+from conda.core.subdir_data import cache_fn_url, read_mod_and_etag, \
+    SubdirData, UnavailableInvalidChannel, fetch_remote_request
 from conda.models.channel import Channel
 
 try:
@@ -171,7 +171,7 @@ class FetchLocalRepodataTests(TestCase):
         url = 'file:///fake/fake/fake/linux-64'
         etag = None
         mod_stamp = 'Mon, 28 Jan 2019 01:01:01 GMT'
-        result = fetch_repodata_remote_request(url, etag, mod_stamp)
+        result = fetch_remote_request(url, etag, mod_stamp)
         assert result is None
 
     def test_fetch_repodata_remote_request_invalid_noarch(self):
@@ -179,7 +179,7 @@ class FetchLocalRepodataTests(TestCase):
         etag = None
         mod_stamp = 'Mon, 28 Jan 2019 01:01:01 GMT'
         with pytest.raises(UnavailableInvalidChannel):
-            result = fetch_repodata_remote_request(url, etag, mod_stamp)
+            result = fetch_remote_request(url, etag, mod_stamp)
 
 
 def test_subdir_data_prefers_conda_to_tar_bz2():

@@ -11,7 +11,7 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.download import TmpDownload
-from conda.core.subdir_data import fetch_repodata_remote_request
+from conda.core.subdir_data import fetch_remote_request
 from conda.core.package_cache_data import download
 
 

@@ -104,7 +104,7 @@ def stringify(obj, content_max_len=0):
         builder.extend("> {0}: {1}".format(key, value)
                        for key, value in sorted(request_object.headers.items(),
                                                 key=request_header_sort_key))
-        builder.append('')
+        builder.append('>')
         if request_object.body:
             builder.append(request_object.body)
 
@@ -117,7 +117,7 @@ def stringify(obj, content_max_len=0):
         elapsed = text_type(response_object.elapsed).split(':', 1)[-1]
         builder.append('< Elapsed: {0}'.format(elapsed))
         if content_max_len:
-            builder.append('')
+            builder.append('<')
             content_type = response_object.headers.get('Content-Type')
             if content_type == 'application/json':
                 content = pformat(response_object.json(), indent=2)

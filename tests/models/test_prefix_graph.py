@@ -36,8 +36,14 @@ def get_pandas_record_set():
 
 @memoize
 def get_windows_conda_build_record_set():
-    specs = (MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("affine"),
-             MatchSpec("colour"), MatchSpec("uses-spiffy-test-app"),)
+    specs = (
+        MatchSpec("conda"),
+        MatchSpec("conda-build"),
+        MatchSpec("affine"),
+        MatchSpec("colour"),
+        MatchSpec("uses-spiffy-test-app"),
+        MatchSpec("pip"),
+    )
     with get_solver_5(specs) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
@@ -637,7 +643,7 @@ def test_windows_sort_orders_2():
 
             python_node = graph.get_node_by_name('python')
             pip_node = graph.get_node_by_name('pip')
-            assert pip_node in graph.graph[python_node]
+            assert pip_node not in graph.graph[python_node]
             assert python_node in graph.graph[pip_node]
 
             nodes = tuple(rec.name for rec in graph.records)
@@ -702,7 +708,7 @@ def test_sort_without_prep():
 
         python_node = graph.get_node_by_name('python')
         pip_node = graph.get_node_by_name('pip')
-        assert pip_node in graph.graph[python_node]
+        assert pip_node not in graph.graph[python_node]
         assert python_node in graph.graph[pip_node]
 
         nodes = tuple(rec.name for rec in graph.records)
@@ -713,6 +719,7 @@ def test_sort_without_prep():
             'vs2015_runtime',
             'vc',
             'openssl',
+            'python',
             'yaml',
             'affine',
             'asn1crypto',
@@ -729,8 +736,6 @@ def test_sort_without_prep():
             'psutil',
             'pycosat',
             'pycparser',
-            'cffi',
-            'python',
             'pywin32',
             'pyyaml',
             'ruamel_yaml',
@@ -738,15 +743,16 @@ def test_sort_without_prep():
             'spiffy-test-app',
             'win_inet_pton',
             'wincertstore',
-            'cryptography',
+            'cffi',
             'menuinst',
             'pysocks',
             'setuptools',
             'uses-spiffy-test-app',
+            'cryptography',
             'jinja2',
-            'pyopenssl',
             'wheel',
             'pip',
+            'pyopenssl',
             'urllib3',
             'requests',
             'conda',
@@ -754,10 +760,11 @@ def test_sort_without_prep():
         )
         assert nodes == order
 
-        with env_var('CONDA_ALLOW_CYCLES', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            records, specs = get_windows_conda_build_record_set()
-            with pytest.raises(CyclicalDependencyError):
-                graph = PrefixGraph(records, specs)
+        # # this part of the test no longer applies because no cycle is introduced by add_pip_as_python_dependency
+        # with env_var('CONDA_ALLOW_CYCLES', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        #     records, specs = get_windows_conda_build_record_set()
+        #     with pytest.raises(CyclicalDependencyError):
+        #         graph = PrefixGraph(records, specs)
 
 
 def test_deep_cyclical_dependency():

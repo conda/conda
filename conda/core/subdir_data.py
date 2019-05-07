@@ -25,7 +25,7 @@ from .._vendor.toolz import concat, concatv, take
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
-                             string_types, text_type, with_metaclass)
+                             open, string_types, text_type, with_metaclass)
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
@@ -49,7 +49,7 @@ except ImportError:  # pragma: no cover
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
 
-REPODATA_PICKLE_VERSION = 28
+INTERNAL_PICKLE_VERSION = 35
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'  # NOQA
 
@@ -126,8 +126,9 @@ class SubdirData(object):
         self.channel = channel
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)
-        self.cache_path_base = join(create_cache_dir(),
-                                    splitext(cache_fn_url(self.url_w_credentials))[0])
+        self.cache_path_base = join(
+            create_cache_dir(), splitext(cache_fn_url(self.url_w_credentials))[0]
+        )
         self._loaded = False
 
     def reload(self):
@@ -135,17 +136,14 @@ class SubdirData(object):
         self.load()
         return self
 
-    @property
-    def cache_path_json(self):
-        return self.cache_path_base + '.json'
-
-    @property
-    def cache_path_pickle(self):
-        return self.cache_path_base + '.q'
-
     def load(self):
-        _internal_state = self._load()
-        if _internal_state.get("repodata_version", 0) > MAX_REPODATA_VERSION:
+        cached_obj = load_url_object(
+            self.cache_path_base,
+            join_url(self.url_w_credentials, "repodata.json"),
+            self.channel,
+            CachedRepodata
+        )
+        if cached_obj.content.get("repodata_version", 0) > MAX_REPODATA_VERSION:
             raise CondaUpgradeError(dals("""
                 The current version of conda is too old to read repodata from
 
@@ -155,10 +153,9 @@ class SubdirData(object):
                 Please update conda to use this channel.
                 """) % self.url_w_subdir)
 
-        self._internal_state = _internal_state
-        self._package_records = _internal_state['_package_records']
-        self._names_index = _internal_state['_names_index']
-        self._track_features_index = _internal_state['_track_features_index']
+        self._package_records = cached_obj.content['_package_records']
+        self._names_index = cached_obj.content['_names_index']
+        self._track_features_index = cached_obj.content['_track_features_index']
         self._loaded = True
         return self
 
@@ -166,223 +163,6 @@ class SubdirData(object):
         if not self._loaded:
             self.load()
         return iter(self._package_records)
-
-    def _load(self):
-        try:
-            mtime = getmtime(self.cache_path_json)
-        except (IOError, OSError):
-            log.debug("No local cache found for %s at %s", self.url_w_subdir, self.cache_path_json)
-            if context.use_index_cache or (context.offline
-                                           and not self.url_w_subdir.startswith('file://')):
-                log.debug("Using cached data for %s at %s forced. Returning empty repodata.",
-                          self.url_w_subdir, self.cache_path_json)
-                return {
-                    '_package_records': (),
-                    '_names_index': defaultdict(list),
-                    '_track_features_index': defaultdict(list),
-                }
-            else:
-                mod_etag_headers = {}
-        else:
-            mod_etag_headers = read_mod_and_etag(self.cache_path_json)
-
-            if context.use_index_cache:
-                log.debug("Using cached repodata for %s at %s because use_cache=True",
-                          self.url_w_subdir, self.cache_path_json)
-
-                _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
-                                                           mod_etag_headers.get('_mod'))
-                return _internal_state
-
-            if context.local_repodata_ttl > 1:
-                max_age = context.local_repodata_ttl
-            elif context.local_repodata_ttl == 1:
-                max_age = get_cache_control_max_age(mod_etag_headers.get('_cache_control', ''))
-            else:
-                max_age = 0
-
-            timeout = mtime + max_age - time()
-            if (timeout > 0 or context.offline) and not self.url_w_subdir.startswith('file://'):
-                log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
-                          self.url_w_subdir, self.cache_path_json, timeout)
-                _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
-                                                           mod_etag_headers.get('_mod'))
-                return _internal_state
-
-            log.debug("Local cache timed out for %s at %s",
-                      self.url_w_subdir, self.cache_path_json)
-
-        try:
-            raw_repodata_str = fetch_repodata_remote_request(self.url_w_credentials,
-                                                             mod_etag_headers.get('_etag'),
-                                                             mod_etag_headers.get('_mod'))
-        except Response304ContentUnchanged:
-            log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
-                      self.url_w_subdir)
-            touch(self.cache_path_json)
-            _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
-                                                       mod_etag_headers.get('_mod'))
-            return _internal_state
-        else:
-            if not isdir(dirname(self.cache_path_json)):
-                mkdir_p(dirname(self.cache_path_json))
-            try:
-                with io_open(self.cache_path_json, 'w') as fh:
-                    fh.write(raw_repodata_str or '{}')
-            except (IOError, OSError) as e:
-                if e.errno in (EACCES, EPERM):
-                    raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
-                else:
-                    raise
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str)
-            self._internal_state = _internal_state
-            self._pickle_me()
-            return _internal_state
-
-    def _pickle_me(self):
-        try:
-            log.debug("Saving pickled state for %s at %s", self.url_w_subdir, self.cache_path_json)
-            with open(self.cache_path_pickle, 'wb') as fh:
-                pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
-        except Exception:
-            log.debug("Failed to dump pickled repodata.", exc_info=True)
-
-    def _read_local_repdata(self, etag, mod_stamp):
-        # first try reading pickled data
-        _pickled_state = self._read_pickled(etag, mod_stamp)
-        if _pickled_state:
-            return _pickled_state
-
-        # pickled data is bad or doesn't exist; load cached json
-        log.debug("Loading raw json for %s at %s", self.url_w_subdir, self.cache_path_json)
-        with open(self.cache_path_json) as fh:
-            try:
-                raw_repodata_str = fh.read()
-            except ValueError as e:
-                # ValueError: Expecting object: line 11750 column 6 (char 303397)
-                log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
-                message = dals("""
-                An error occurred when loading cached repodata.  Executing
-                `conda clean --index-cache` will remove cached repodata files
-                so they can be downloaded again.
-                """)
-                raise CondaError(message)
-            else:
-                _internal_state = self._process_raw_repodata_str(raw_repodata_str)
-                self._internal_state = _internal_state
-                self._pickle_me()
-                return _internal_state
-
-    def _read_pickled(self, etag, mod_stamp):
-
-        if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
-            # Don't trust pickled data if there is no accompanying json data
-            return None
-
-        try:
-            if isfile(self.cache_path_pickle):
-                log.debug("found pickle file %s", self.cache_path_pickle)
-            with open(self.cache_path_pickle, 'rb') as fh:
-                _pickled_state = pickle.load(fh)
-        except Exception:
-            log.debug("Failed to load pickled repodata.", exc_info=True)
-            rm_rf(self.cache_path_pickle)
-            return None
-
-        def _check_pickled_valid():
-            yield _pickled_state.get('_url') == self.url_w_credentials
-            yield _pickled_state.get('_schannel') == self.channel.canonical_name
-            yield _pickled_state.get('_add_pip') == context.add_pip_as_python_dependency
-            yield _pickled_state.get('_mod') == mod_stamp
-            yield _pickled_state.get('_etag') == etag
-            yield _pickled_state.get('_pickle_version') == REPODATA_PICKLE_VERSION
-
-        if not all(_check_pickled_valid()):
-            log.debug("Pickle load validation failed for %s at %s.",
-                      self.url_w_subdir, self.cache_path_json)
-            return None
-
-        return _pickled_state
-
-    def _process_raw_repodata_str(self, raw_repodata_str):
-        json_obj = json.loads(raw_repodata_str or '{}')
-
-        subdir = json_obj.get('info', {}).get('subdir') or self.channel.subdir
-        assert subdir == self.channel.subdir
-        add_pip = context.add_pip_as_python_dependency
-        schannel = self.channel.canonical_name
-
-        self._package_records = _package_records = []
-        self._names_index = _names_index = defaultdict(list)
-        self._track_features_index = _track_features_index = defaultdict(list)
-
-        _internal_state = {
-            'channel': self.channel,
-            'url_w_subdir': self.url_w_subdir,
-            'url_w_credentials': self.url_w_credentials,
-            'cache_path_base': self.cache_path_base,
-
-            '_package_records': _package_records,
-            '_names_index': _names_index,
-            '_track_features_index': _track_features_index,
-
-            '_etag': json_obj.get('_etag'),
-            '_mod': json_obj.get('_mod'),
-            '_cache_control': json_obj.get('_cache_control'),
-            '_url': json_obj.get('_url'),
-            '_add_pip': add_pip,
-            '_pickle_version': REPODATA_PICKLE_VERSION,
-            '_schannel': schannel,
-            'repodata_version': json_obj.get('repodata_version', 0),
-        }
-        if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
-            raise CondaUpgradeError(dals("""
-                The current version of conda is too old to read repodata from
-
-                    %s
-
-                (This version only supports repodata_version 1.)
-                Please update conda to use this channel.
-                """) % self.url_w_subdir)
-
-        meta_in_common = {  # just need to make this once, then apply with .update()
-            'arch': json_obj.get('info', {}).get('arch'),
-            'channel': self.channel,
-            'platform': json_obj.get('info', {}).get('platform'),
-            'schannel': schannel,
-            'subdir': subdir,
-        }
-
-        channel_url = self.url_w_credentials
-        legacy_packages = json_obj.get("packages", {})
-        conda_packages = json_obj.get("packages.conda", {})
-        _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
-        use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
-            k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
-        )
-
-        for fn, info in concatv(
-            iteritems(conda_packages),
-            ((k, legacy_packages[k]) for k in use_these_legacy_keys),
-        ):
-            info['fn'] = fn
-            info['url'] = join_url(channel_url, fn)
-            if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-                info['depends'].append('pip')
-            info.update(meta_in_common)
-            if info.get('record_version', 0) > 1:
-                log.debug("Ignoring record_version %d from %s",
-                          info["record_version"], info['url'])
-                continue
-            package_record = PackageRecord(**info)
-
-            _package_records.append(package_record)
-            _names_index[package_record.name].append(package_record)
-            for ftr_name in package_record.track_features:
-                _track_features_index[ftr_name].append(package_record)
-
-        self._internal_state = _internal_state
-        return _internal_state
 
 
 def read_mod_and_etag(path):
@@ -409,11 +189,240 @@ def get_cache_control_max_age(cache_control_value):
     return int(max_age.groups()[0]) if max_age else 0
 
 
-class Response304ContentUnchanged(Exception):
-    pass
+class ResponseException(Exception):
+
+    def __init__(self, url, response_code, response):
+        super(ResponseException, self).__init__()
+        self.url = url
+        self.response_code = response_code
 
 
-def fetch_repodata_remote_request(url, etag, mod_stamp):
+def load_url_object(cache_path_base, url, channel, cache_cls):
+    # cache_path = join(cache_dir, hashlib.md5(ensure_binary(url)).hexdigest()[:12] + ".json")
+    cache_path_json = cache_path_base + ".json"
+    try:
+        mtime = getmtime(cache_path_json)
+    except EnvironmentError:
+        if context.use_index_cache or (context.offline and not url.startswith('file://')):
+            log.debug("Using cached data for %s at %s forced. Returning empty content.",
+                      url, cache_path_json)
+            return {}
+        else:
+            mod_etag_headers = {}
+    else:
+        mod_etag_headers = read_mod_and_etag(cache_path_json)
+        etag, mod = mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod')
+        cache_control = mod_etag_headers.get('_cache_control')
+        if context.use_index_cache:
+            log.debug("Using cached content for %s at %s because context.use_index_cache == True",
+                      url, cache_path_json)
+            return cache_cls.load_from_cache(
+                cache_path_base, channel, url, etag, mod, cache_control
+            )
+        if context.local_repodata_ttl > 1:
+            max_age = context.local_repodata_ttl
+        elif context.local_repodata_ttl == 1:
+            max_age = get_cache_control_max_age(mod_etag_headers.get('_cache_control', ''))
+        else:
+            max_age = 0
+
+        timeout = mtime + max_age - time()
+        if (timeout > 0 or context.offline) and not url.startswith('file://'):
+            log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
+                      url, cache_path_json, timeout)
+            return cache_cls.load_from_cache(
+                cache_path_base, channel, url, etag, mod, cache_control
+            )
+        log.debug("Local cache timed out for %s at %s", url, cache_path_json)
+
+    etag, mod = mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod')
+    cache_control = mod_etag_headers.get('_cache_control')
+    try:
+        raw_content_str = fetch_remote_request(url, etag, mod)
+    except ResponseException as e:
+        if e.response_code == 304:
+            log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
+            touch(cache_path_json)
+            return cache_cls.load_from_cache(
+                cache_path_base, channel, url, etag, mod, cache_control
+            )
+        else:
+            raise
+    else:
+        if not isdir(dirname(cache_path_json)):
+            mkdir_p(dirname(cache_path_json))
+        try:
+            with open(cache_path_json, "w") as fh:
+                fh.write(raw_content_str)
+        except EnvironmentError as e:
+            if e.errno in (EACCES, EPERM):
+                raise NotWritableError(cache_path_json, e.errno, caused_by=e)
+            else:
+                raise
+        cached_obj = cache_cls(
+            cache_path_base, channel, url, mod, etag, cache_control, raw_content_str
+        )
+        cached_obj.write_pickle()
+        return cached_obj
+
+
+class PickledObject(object):
+
+    def __init__(self, cache_path_base, channel, url, mod, etag, cache_control, raw_content_str):
+        self.cache_path_base = cache_path_base
+        self.channel = channel
+        self.url = url
+
+        self.mod = mod
+        self.etag = etag
+        self.cache_control = cache_control
+
+        self.internal_pickle_version = INTERNAL_PICKLE_VERSION
+        self.content = self.process(raw_content_str)
+
+    def process(self, raw_content_str):
+        return raw_content_str
+
+    @classmethod
+    def load_from_cache(cls, cache_path_base, channel, url, etag, mod, cache_control):
+        # first try reading pickled data
+        cached_obj = cls._load_from_pickle(cache_path_base, url, etag, mod)
+        if cached_obj:
+            return cached_obj
+
+        # pickled data is bad or doesn't exist; load cached json
+        cache_path_json = cache_path_base + ".json"
+        log.debug("Loading raw json for %s at %s", url, cache_path_json)
+        with open(cache_path_json) as fh:
+            try:
+                binary_content_str = fh.read()
+            except ValueError as e:
+                # ValueError: Expecting object: line 11750 column 6 (char 303397)
+                log.debug("Error for cache path: '%s'\n%r", cache_path_json, e)
+                message = dals("""
+                       An error occurred when loading cached repodata.  Executing
+                       `conda clean --index-cache` will remove cached repodata files
+                       so they can be downloaded again.
+                       """)
+                raise CondaError(message)
+            else:
+                cached_obj = cls(
+                    cache_path_base, channel, url, mod, etag, cache_control, binary_content_str
+                )
+                cached_obj.write_pickle()
+                return cached_obj
+
+    @classmethod
+    def _load_from_pickle(cls, cache_path_base, url, etag, mod):
+        cache_path_json = cache_path_base + ".json"
+        cache_path_pickle = cache_path_base + ".q"
+        if not isfile(cache_path_pickle) or not isfile(cache_path_json):
+            # Don't trust pickled data if there is no accompanying json data
+            log.debug("pickle file '%s' does not have accompanying json file", cache_path_pickle)
+            return None
+        try:
+            if isfile(cache_path_pickle):
+                log.debug("found pickle file %s", cache_path_pickle)
+            with open(cache_path_pickle, "rb") as fh:
+                po = pickle.load(fh)
+        except Exception:
+            log.debug("Failed to load pickled repodata.", exc_info=True)
+            rm_rf(cache_path_pickle)
+            return None
+
+        def _check_pickled_valid():
+            yield isinstance(po, cls)
+            yield po.url == url
+            yield po.mod == mod
+            yield po.etag == etag
+            yield po.internal_pickle_version == INTERNAL_PICKLE_VERSION
+
+        if not all(_check_pickled_valid()):
+            log.debug("Pickle load validation failed for %s at %s.", url, cache_path_base + ".q")
+            return None
+
+        return po
+
+    def write_pickle(self):
+        cache_path_json = self.cache_path_base + ".json"
+        cache_path_pickle = self.cache_path_base + ".q"
+        try:
+            log.debug("Saving pickled state for %s at %s", self.url, cache_path_json)
+            with open(cache_path_pickle, "wb") as fh:
+                pickle.dump(self, fh, -1)  # -1 means HIGHEST_PROTOCOL
+        except Exception:
+            log.debug("Failed to dump pickled repodata.", exc_info=True)
+
+
+class CachedRepodata(PickledObject):
+
+    def process(self, raw_content_str):
+        json_obj = (
+            json.loads(raw_content_str)
+            if isinstance(raw_content_str, string_types)
+            else raw_content_str
+        )
+        subdir = json_obj.get('info', {}).get('subdir') or self.channel.subdir
+        assert subdir == self.channel.subdir
+        schannel = self.channel.canonical_name
+
+        self._package_records = _package_records = []
+        self._names_index = _names_index = defaultdict(list)
+        self._track_features_index = _track_features_index = defaultdict(list)
+
+        content = {
+            '_package_records': _package_records,
+            '_names_index': _names_index,
+            '_track_features_index': _track_features_index,
+            'repodata_version': json_obj.get('repodata_version', 0),
+        }
+        if content["repodata_version"] > MAX_REPODATA_VERSION:
+            raise CondaUpgradeError(dals("""
+                The current version of conda is too old to read repodata from
+
+                    %s
+
+                (This version only supports repodata_version 1.)
+                Please update conda to use this channel.
+                """) % self.url)
+
+        meta_in_common = {  # just need to make this once, then apply with .update()
+            'arch': json_obj.get('info', {}).get('arch'),
+            'channel': self.channel,
+            'platform': json_obj.get('info', {}).get('platform'),
+            'schannel': schannel,
+            'subdir': subdir,
+        }
+
+        channel_url = self.channel.url(with_credentials=True)
+        legacy_packages = json_obj.get("packages", {})
+        conda_packages = json_obj.get("packages.conda", {})
+        _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
+        use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
+            k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
+        )
+
+        for fn, info in concatv(
+            iteritems(conda_packages),
+            ((k, legacy_packages[k]) for k in use_these_legacy_keys),
+        ):
+            if info.get('record_version', 0) > 1:
+                log.debug("Ignoring record_version %d from %s",
+                          info["record_version"], info['url'])
+                continue
+            info['fn'] = fn
+            info['url'] = join_url(channel_url, fn)
+            info.update(meta_in_common)
+            package_record = PackageRecord(**info)
+
+            _package_records.append(package_record)
+            _names_index[package_record.name].append(package_record)
+            for ftr_name in package_record.track_features:
+                _track_features_index[ftr_name].append(package_record)
+        return content
+
+
+def fetch_remote_request(url, etag, mod_stamp):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
@@ -424,19 +433,12 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         headers["If-None-Match"] = etag
     if mod_stamp:
         headers["If-Modified-Since"] = mod_stamp
-
-    if 'repo.anaconda.com' in url:
-        filename = 'repodata.json.bz2'
-        headers['Accept-Encoding'] = 'identity'
-    else:
-        headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-        headers['Content-Type'] = 'application/json'
-        filename = 'repodata.json'
+    headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
+    headers['Content-Type'] = 'application/json'
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
-                           timeout=timeout)
+        resp = session.get(url, headers=headers, proxies=session.proxies, timeout=timeout)
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
@@ -455,119 +457,31 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
 
     except (ConnectionError, HTTPError, SSLError) as e:
         # status_code might not exist on SSLError
-        status_code = getattr(e.response, 'status_code', None)
-        if status_code in (403, 404):
-            if not url.endswith('/noarch'):
-                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
-                return None
-            else:
-                if context.allow_non_channel_urls:
-                    stderrlog.warning("Unable to retrieve repodata (%d error) for %s",
-                                      status_code, url)
-                    return None
-                else:
-                    raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)
-
-        elif status_code == 401:
-            channel = Channel(url)
-            if channel.token:
-                help_message = dals("""
-                The token '%s' given for the URL is invalid.
-
-                If this token was pulled from anaconda-client, you will need to use
-                anaconda-client to reauthenticate.
-
-                If you supplied this token to conda directly, you will need to adjust your
-                conda configuration to proceed.
-
-                Use `conda config --show` to view your configuration's current state.
-                Further configuration help can be found at <%s>.
-               """) % (channel.token, join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-
-            elif context.channel_alias.location in url:
-                # Note, this will not trigger if the binstar configured url does
-                # not match the conda configured one.
-                help_message = dals("""
-                The remote server has indicated you are using invalid credentials for this channel.
-
-                If the remote site is anaconda.org or follows the Anaconda Server API, you
-                will need to
-                  (a) remove the invalid token from your system with `anaconda logout`, optionally
-                      followed by collecting a new token with `anaconda login`, or
-                  (b) provide conda with a valid token directly.
-
-                Further configuration help can be found at <%s>.
-               """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
-
-            else:
-                help_message = dals("""
-                The credentials you have provided for this URL are invalid.
-
-                You will need to modify your conda configuration to proceed.
-                Use `conda config --show` to view your configuration's current state.
-                Further configuration help can be found at <%s>.
-                """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
-
-        elif status_code is not None and 500 <= status_code < 600:
-            help_message = dals("""
-            A remote server error occurred when trying to retrieve this URL.
-
-            A 500-type error (e.g. 500, 501, 502, 503, etc.) indicates the server failed to
-            fulfill a valid request.  The problem may be spurious, and will resolve itself if you
-            try your request again.  If the problem persists, consider notifying the maintainer
-            of the remote server.
-            """)
-
-        else:
-            if url.startswith("https://repo.anaconda.com/"):
-                help_message = dals("""
-                An HTTP error occurred when trying to retrieve this URL.
-                HTTP errors are often intermittent, and a simple retry will get you on your way.
-
-                If your current network has https://www.anaconda.com blocked, please file
-                a support request with your network engineering team.
-
-                %s
-                """) % maybe_unquote(repr(e))
-            else:
-                help_message = dals("""
-                An HTTP error occurred when trying to retrieve this URL.
-                HTTP errors are often intermittent, and a simple retry will get you on your way.
-                %s
-                """) % maybe_unquote(repr(e))
-
-        raise CondaHTTPError(help_message,
-                             join_url(url, filename),
-                             status_code,
-                             getattr(e.response, 'reason', None),
-                             getattr(e.response, 'elapsed', None),
-                             e.response,
-                             caused_by=e)
-
+        # is_noarch = url.split("/")[-2] == "noarch"
+        response_code = getattr(e.response, 'status_code', None)
+        raise ResponseException(url, response_code, e.response)
     if resp.status_code == 304:
-        raise Response304ContentUnchanged()
+        raise ResponseException(url, resp.status_code, resp)
 
-    def maybe_decompress(filename, resp_content):
-        return ensure_text_type(bz2.decompress(resp_content)
-                                if filename.endswith('.bz2')
-                                else resp_content).strip()
-
-    json_str = maybe_decompress(filename, resp.content)
+    raw_json_str = ensure_text_type(resp.content).strip()
 
     saved_fields = {'_url': url}
     add_http_value_to_dict(resp, 'Etag', saved_fields, '_etag')
     add_http_value_to_dict(resp, 'Last-Modified', saved_fields, '_mod')
     add_http_value_to_dict(resp, 'Cache-Control', saved_fields, '_cache_control')
 
-    # add extra values to the raw repodata json
-    if json_str and json_str != "{}":
-        raw_repodata_str = u"%s, %s" % (
-            json.dumps(saved_fields)[:-1],  # remove trailing '}'
-            json_str[1:]  # remove first '{'
-        )
+    if not raw_json_str or raw_json_str == "{}":
+        raw_content_str = json.dumps(saved_fields)
+    elif raw_json_str[0] != "{" or raw_json_str[-1] != "}":
+        log.warning("Content for url '%s' is invalid. Considering as empty.", url)
+        raw_content_str = json.dumps(saved_fields)
     else:
-        raw_repodata_str = ensure_text_type(json.dumps(saved_fields))
-    return raw_repodata_str
+        # add extra values to the raw repodata json
+        raw_content_str = "%s, %s" % (
+            json.dumps(saved_fields)[:-1],  # remove trailing '}'
+            raw_json_str[1:]  # remove first '{'
+        )
+    return raw_content_str
 
 
 def make_feature_record(feature_name):
@@ -587,6 +501,7 @@ def make_feature_record(feature_name):
 
 
 def cache_fn_url(url):
+    # TODO: this function will need to change
     # url must be right-padded with '/' to not invalidate any existing caches
     if not url.endswith('/'):
         url += '/'
