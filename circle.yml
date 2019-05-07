@@ -142,6 +142,7 @@ conda_build_test: &conda_build_test
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
             conda info
             cd ~/conda-build
+            conda config --set restore_free_channel true
             py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
           fi
 
@@ -169,6 +170,7 @@ conda_build_test: &conda_build_test
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
             cd ~/conda-build
+            conda config --set restore_free_channel true
             py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
             /opt/conda/bin/python -m conda.common.io
           fi
