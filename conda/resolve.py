@@ -318,6 +318,90 @@ class Resolve(object):
             above) that all of the specs depend on *but in different ways*. We
             then identify the dependency chains that lead to those packages.
         """
+        # if only a single package matches the spec use the packages depends rather than the spec itself
+        if len(specs) == 1:
+            matches = self.find_matches(specs[0])
+            if len(matches) == 1:
+                specs = self.ms_depends(matches[0])
+
+        sdeps = {}
+        # For each spec, assemble a dictionary of dependencies, with package
+        # name as key, and all of the matching packages as values.
+        for top_level_spec in specs:
+            # find all packages matching a top level specification
+            top_level_pkgs = self.find_matches(top_level_spec)
+
+            # find all depends specs for in top level packages
+            # find the depends names for each top level packages
+            second_level_specs = set()
+            top_level_pkg_dep_names = []
+            for pkg in top_level_pkgs:
+                pkg_deps = self.ms_depends(pkg)
+                second_level_specs.update(pkg_deps)
+                top_level_pkg_dep_names.append([d.name for d in pkg_deps])
+
+            # find all second level packages and their specs
+            top_level_sdeps = {}
+            slist = []
+            for ms in second_level_specs:
+                deps = top_level_sdeps.setdefault(ms.name, set())
+                for fkey in self.find_matches(ms):
+                    deps.add(fkey)
+                    slist.extend(ms2 for ms2 in self.ms_depends(fkey) if ms2.name != top_level_spec.name)
+
+            # dependency names which appear in all top level packages
+            # have been fully considered and not additions should be make to
+            # the package list for that name
+            locked_names = [top_level_spec.name]
+            for name in top_level_pkg_dep_names[0]:
+                if all(name in names for names in top_level_pkg_dep_names):
+                    locked_names.append(name)
+
+            # build out the rest of the dependency tree
+            while slist:
+                ms2 = slist.pop()
+                if ms2.name in locked_names:
+                    continue
+                deps = top_level_sdeps.setdefault(ms2.name, set())
+                for fkey in self.find_matches(ms2):
+                    if fkey not in deps:
+                        deps.add(fkey)
+                        slist.extend(ms3 for ms3 in self.ms_depends(fkey) if ms3.name != top_level_spec.name)
+            sdeps[top_level_spec] = top_level_sdeps
+
+        # find deps with zero intersections between specs
+        import itertools
+        for ms1, ms2 in itertools.combinations(sdeps.keys(), 2):
+            sdep1 = sdeps[ms1]
+            sdep2 = sdeps[ms2]
+            shared_deps = [k for k in sdep1.keys() if k in sdep2]
+            for dep in shared_deps:
+                shared_pkgs = sdep1[dep].intersection(sdep2[dep])
+                if len(shared_pkgs) == 0:
+                    # generate chains for specs with bad deps
+                    filter = {}
+                    for fkey in sdep1[dep]:
+                        filter[fkey] = False
+                    for fkey in sdep2[dep]:
+                        filter[fkey] = False
+                    ndeps1 = set(self.invalid_chains(ms1, filter, False))
+                    ndeps1 = [nd for nd in ndeps1 if nd[-1].name == dep]
+
+                    ndeps2 = set(self.invalid_chains(ms2, filter, False))
+                    ndeps2 = [nd for nd in ndeps2 if nd[-1].name == dep]
+
+                    bad_deps = []
+                    bad_deps.extend(ndeps1)
+                    bad_deps.extend(ndeps2)
+                    raise UnsatisfiableError(bad_deps)
+
+        # Check for the test case:
+        # conda create -n test -q cryptography=2.6.1 python=3.7.0
+        #sdeps0 = sdeps[specs[0]]
+        #sdeps1 = sdeps[specs[1]]
+        #good_openssl = sdeps0['openssl'].intersection(sdeps1['openssl'])
+        #import pdb; pdb.set_trace()
+
         sdeps = {}
         # For each spec, assemble a dictionary of dependencies, with package
         # name as key, and all of the matching packages as values.
