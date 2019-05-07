@@ -21,11 +21,11 @@ from io import open as io_open
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from .._vendor.toolz import concat, take
+from .._vendor.toolz import concat, take, concatv
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
-                             string_types, text_type, with_metaclass)
+                             string_types, text_type, with_metaclass, iterkeys)
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
@@ -354,7 +354,17 @@ class SubdirData(object):
         }
 
         channel_url = self.url_w_credentials
-        for fn, info in iteritems(json_obj.get('packages', {})):
+        legacy_packages = json_obj.get("packages", {})
+        conda_packages = json_obj.get("conda_packages", {})
+        _tar_bz2 = ".tar.bz2"
+        use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
+            k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
+        )
+
+        for fn, info in concatv(
+            iteritems(conda_packages),
+            ((k, legacy_packages[k]) for k in use_these_legacy_keys),
+        ):
             info['fn'] = fn
             info['url'] = join_url(channel_url, fn)
             if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
