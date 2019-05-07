@@ -318,7 +318,8 @@ class Resolve(object):
             above) that all of the specs depend on *but in different ways*. We
             then identify the dependency chains that lead to those packages.
         """
-        # if only a single package matches the spec use the packages depends rather than the spec itself
+        # if only a single package matches the spec use the packages depends
+        # rather than the spec itself
         if len(specs) == 1:
             matches = self.find_matches(specs[0])
             if len(matches) == 1:
@@ -347,7 +348,8 @@ class Resolve(object):
                 deps = top_level_sdeps.setdefault(ms.name, set())
                 for fkey in self.find_matches(ms):
                     deps.add(fkey)
-                    slist.extend(ms2 for ms2 in self.ms_depends(fkey) if ms2.name != top_level_spec.name)
+                    slist.extend(
+                        ms2 for ms2 in self.ms_depends(fkey) if ms2.name != top_level_spec.name)
 
             # dependency names which appear in all top level packages
             # have been fully considered and not additions should be make to
@@ -366,7 +368,8 @@ class Resolve(object):
                 for fkey in self.find_matches(ms2):
                     if fkey not in deps:
                         deps.add(fkey)
-                        slist.extend(ms3 for ms3 in self.ms_depends(fkey) if ms3.name != top_level_spec.name)
+                        slist.extend(ms3 for ms3 in self.ms_depends(fkey)
+                                     if ms3.name != top_level_spec.name)
             sdeps[top_level_spec] = top_level_sdeps
 
         # find deps with zero intersection between specs which include that dep
