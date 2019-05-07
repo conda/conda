@@ -1,9 +1,17 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-if 'CONDA_EXE' not in locals():
-    CONDA_EXE = "python -m conda"  # development mode
+from xonsh.lazyasd import lazyobject as _lazyobject
+
+if 'CONDA_EXE' not in ${...}:
+    $CONDA_EXE = "python -m conda"  # development mode
 
 _REACTIVATE_COMMANDS = ('install', 'update', 'upgrade', 'remove', 'uninstall')
+
+
+@_lazyobject
+def _Env():
+    from collections import namedtuple
+    return namedtuple('Env', ['name', 'path', 'bin_dir', 'envs_dir'])
 
 
 def _parse_args(args=None):
@@ -32,7 +40,7 @@ def _raise_pipeline_error(pipeline):
 
 def _conda_activate_handler(env_name_or_prefix):
     import os
-    pipeline = !(@(CONDA_EXE) shell.xonsh activate @(env_name_or_prefix))
+    pipeline = !($CONDA_EXE shell.xonsh activate @(env_name_or_prefix))
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
     os.unlink(stdout)
@@ -40,24 +48,24 @@ def _conda_activate_handler(env_name_or_prefix):
 
 def _conda_deactivate_handler():
     import os
-    pipeline = !(@(CONDA_EXE) shell.xonsh deactivate)
+    pipeline = !($CONDA_EXE shell.xonsh deactivate)
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
     os.unlink(stdout)
 
 
 def _conda_passthrough_handler(args):
-    pipeline = ![@(CONDA_EXE) @(args)]
+    pipeline = ![$CONDA_EXE @(args)]
     _raise_pipeline_error(pipeline)
 
 
 def _conda_reactivate_handler(args, name_or_prefix_given):
-    pipeline = ![@(CONDA_EXE) @(' '.join(args))]
+    pipeline = ![$CONDA_EXE @(args)]
     _raise_pipeline_error(pipeline)
 
     if not name_or_prefix_given:
         import os
-        pipeline = !(@(CONDA_EXE) shell.xonsh reactivate)
+        pipeline = !($CONDA_EXE shell.xonsh reactivate)
         stdout = _raise_pipeline_error(pipeline)
         source @(stdout)
         os.unlink(stdout)
@@ -80,6 +88,97 @@ if 'CONDA_SHLVL' not in ${...}:
     $CONDA_SHLVL = '0'
     import os as _os
     import sys as _sys
-    _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.dirname(CONDA_EXE)), "condabin"))
+    _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.dirname($CONDA_EXE)), "condabin"))
+    del _os, _sys
 
 aliases['conda'] = _conda_main
+
+
+def _list_dirs(path):
+    """
+    Generator that lists the directories in a given path.
+    """
+    import os
+    for entry in os.scandir(path):
+        if not entry.name.startswith('.') and entry.is_dir():
+            yield entry.name
+
+
+def _get_envs():
+    """
+    Grab a list of all conda env dirs from conda.
+    """
+    import os
+    import importlib
+    try:
+        # breaking changes introduced in Anaconda 4.4.7
+        # try to import newer library structure first
+        context = importlib.import_module('conda.base.context')
+        config = context.context
+    except ModuleNotFoundError:
+        config = importlib.import_module('conda.config')
+
+    # create the list of envrionments
+    env_list = []
+    for envs_dir in config.envs_dirs:
+        # skip non-existing environments directories
+        if not os.path.exists(envs_dir):
+            continue
+        # for each environment in the environments directory
+        for env_name in _list_dirs(envs_dir):
+            # check for duplicates names
+            if env_name in [env.name for env in env_list]:
+                raise ValueError('Multiple environments with the same name '
+                                 "in the system is not supported by conda's xonsh tools.")
+            # add the environment to the list
+            env_list.append(_Env(name=env_name,
+                                 path=os.path.join(envs_dir, env_name),
+                                 bin_dir=os.path.join(envs_dir, env_name, 'bin'),
+                                 envs_dir=envs_dir,
+                            ))
+    return env_list
+
+
+def _conda_completer(prefix, line, start, end, ctx):
+    """
+    Completion for conda
+    """
+    args = line.split(' ')
+    possible = set()
+    if len(args) == 0 or args[0] not in ['xonda', 'conda']:
+        return None
+    curix = args.index(prefix)
+    if curix == 1:
+        possible = {'activate', 'deactivate', 'install', 'remove', 'info',
+                    'help', 'list', 'search', 'update', 'upgrade', 'uninstall',
+                    'config', 'init', 'clean', 'package', 'bundle', 'env',
+                    'select', 'create'}
+
+    elif curix == 2:
+        if args[1] in ['activate', 'select']:
+            possible = set([env.name for env in _get_envs()])
+        elif args[1] == 'create':
+            possible = {'-p', '-n'}
+        elif args[1] == 'env':
+            possible = {'attach', 'create', 'export', 'list', 'remove',
+                        'upload', 'update'}
+
+    elif curix == 3:
+        if args[2] == 'export':
+            possible = {'-n', '--name'}
+        elif args[2] == 'create':
+            possible = {'-h', '--help', '-f', '--file', '-n', '--name', '-p',
+                        '--prefix', '-q', '--quiet', '--force', '--json',
+                        '--debug', '-v', '--verbose'}
+
+    elif curix == 4:
+        if args[2] == 'export' and args[3] in ['-n','--name']:
+            possible = set([env.name for env in _get_envs()])
+
+    return {i for i in possible if i.startswith(prefix)}
+
+
+# add _xonda_completer to list of completers
+__xonsh__.completers['conda'] = _conda_completer
+# bump to top of list
+__xonsh__.completers.move_to_end('conda', last=False)
