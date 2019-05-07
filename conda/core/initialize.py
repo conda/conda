@@ -1101,7 +1101,9 @@ def _config_xonsh_content(conda_prefix):
     conda_initialize_content = dals("""
     # >>> conda initialize >>>
     # !! Contents within this block are managed by 'conda init' !!
-    source $({conda_exe} "shell.xosh" "hook")
+    __xonsh__.execer.exec($("{conda_exe}" "shell.xonsh" "hook"),
+                          glbs=__xonsh__.ctx,
+                          filename="$({conda_exe} shell.xonsh hook)")
     # <<< conda initialize <<<
     """).format(conda_exe=conda_exe)
     return conda_initialize_content

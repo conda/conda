@@ -1,16 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from argparse import ArgumentParser
-import os
-import sys
-
-if '_CONDA_EXE' not in locals():
-    _CONDA_EXE = "python -m conda"  # development mode
+if 'CONDA_EXE' not in locals():
+    CONDA_EXE = "python -m conda"  # development mode
 
 _REACTIVATE_COMMANDS = ('install', 'update', 'upgrade', 'remove', 'uninstall')
 
 
 def _parse_args(args=None):
+    from argparse import ArgumentParser
     p = ArgumentParser(add_help=False)
     p.add_argument('command')
     ns, _ = p.parse_known_args(args)
@@ -34,30 +31,33 @@ def _raise_pipeline_error(pipeline):
 
 
 def _conda_activate_handler(env_name_or_prefix):
-    pipeline = !(@(_CONDA_EXE) shell.xonsh activate @(env_name_or_prefix))
+    import os
+    pipeline = !(@(CONDA_EXE) shell.xonsh activate @(env_name_or_prefix))
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
     os.unlink(stdout)
 
 
 def _conda_deactivate_handler():
-    pipeline = !(@(_CONDA_EXE) shell.xonsh deactivate)
+    import os
+    pipeline = !(@(CONDA_EXE) shell.xonsh deactivate)
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
     os.unlink(stdout)
 
 
 def _conda_passthrough_handler(args):
-    pipeline = ![@(_CONDA_EXE) @(' '.join(args))]
+    pipeline = ![@(CONDA_EXE) @(args)]
     _raise_pipeline_error(pipeline)
 
 
 def _conda_reactivate_handler(args, name_or_prefix_given):
-    pipeline = ![@(_CONDA_EXE) @(' '.join(args))]
+    pipeline = ![@(CONDA_EXE) @(' '.join(args))]
     _raise_pipeline_error(pipeline)
 
     if not name_or_prefix_given:
-        pipeline = !(@(_CONDA_EXE) shell.xonsh reactivate)
+        import os
+        pipeline = !(@(CONDA_EXE) shell.xonsh reactivate)
         stdout = _raise_pipeline_error(pipeline)
         source @(stdout)
         os.unlink(stdout)
@@ -78,7 +78,8 @@ def _conda_main(args=None):
 
 if 'CONDA_SHLVL' not in ${...}:
     $CONDA_SHLVL = '0'
-    import os, sys
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname($CONDA_EXE)), "condabin"))
+    import os as _os
+    import sys as _sys
+    _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.dirname(CONDA_EXE)), "condabin"))
 
 aliases['conda'] = _conda_main
