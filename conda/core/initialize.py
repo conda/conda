@@ -493,6 +493,32 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                 },
             })
 
+    if 'xonsh' in shells:
+        if for_user:
+            config_xonsh_path = expand(join('~', '.xonshrc'))
+            plan.append({
+                'function': init_xonsh_user.__name__,
+                'kwargs': {
+                    'target_path': config_xonsh_path,
+                    'conda_prefix': conda_prefix,
+                    'reverse': reverse,
+                },
+            })
+
+        if for_system:
+            if on_win:
+                config_xonsh_path = expand(join('%ALLUSERSPROFILE%', 'xonsh', 'xonshrc'))
+            else:
+                config_xonsh_path = '/etc/xonshrc'
+            plan.append({
+                'function': init_xonsh_user.__name__,
+                'kwargs': {
+                    'target_path': config_xonsh_path,
+                    'conda_prefix': conda_prefix,
+                    'reverse': reverse,
+                },
+            })
+
     if 'tcsh' in shells and for_user:
         tcshrc_path = expand(join('~', '.tcshrc'))
         plan.append({
@@ -1049,6 +1075,83 @@ def init_fish_user(target_path, conda_prefix, reverse):
 
         if "# >>> conda initialize >>>" not in rc_content:
             rc_content += '\n%s\n' % conda_initialize_content
+
+    if rc_content != rc_original_content:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(rc_original_content, rc_content))
+        if not context.dry_run:
+            # Make the directory if needed.
+            if not exists(dirname(user_rc_path)):
+                mkdir_p(dirname(user_rc_path))
+            with open(user_rc_path, 'w') as fh:
+                fh.write(rc_content)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
+
+
+def _config_xonsh_content(conda_prefix):
+    if on_win:
+        from ..activate import native_path_to_unix
+        conda_exe = native_path_to_unix(join(conda_prefix, 'Scripts', 'conda.exe'))
+    else:
+        conda_exe = join(conda_prefix, 'bin', 'conda')
+    conda_initialize_content = dals("""
+    # >>> conda initialize >>>
+    # !! Contents within this block are managed by 'conda init' !!
+    source $({conda_exe} "shell.xosh" "hook")
+    # <<< conda initialize <<<
+    """).format(conda_exe=conda_exe)
+    return conda_initialize_content
+
+
+def init_xonsh_user(target_path, conda_prefix, reverse):
+    # target_path: ~/.xonshrc
+    user_rc_path = target_path
+
+    try:
+        with open(user_rc_path) as fh:
+            rc_content = fh.read()
+    except FileNotFoundError:
+        rc_content = ''
+    except:
+        raise
+
+    rc_original_content = rc_content
+
+    conda_init_comment = "# commented out by conda initialize"
+    conda_initialize_content = _config_xonsh_content(conda_prefix)
+    if reverse:
+        # uncomment any lines that were commented by prior conda init run
+        rc_content = re.sub(
+            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            r"\1",
+            rc_content,
+            flags=re.MULTILINE,
+        )
+
+        # remove any conda init sections added
+        rc_content = re.sub(
+            r"^\s*" + CONDA_INITIALIZE_RE_BLOCK,
+            "",
+            rc_content,
+            flags=re.DOTALL | re.MULTILINE
+        )
+    else:
+        replace_str = "__CONDA_REPLACE_ME_123__"
+        rc_content = re.sub(
+            CONDA_INITIALIZE_RE_BLOCK,
+            replace_str,
+            rc_content,
+            flags=re.MULTILINE,
+        )
+        # TODO: maybe remove all but last of replace_str, if there's more than one occurrence
+        rc_content = rc_content.replace(replace_str, conda_initialize_content)
+
+        if "# >>> conda initialize >>>" not in rc_content:
+            rc_content += '\n{0}\n'.format(conda_initialize_content)
 
     if rc_content != rc_original_content:
         if context.verbosity:
