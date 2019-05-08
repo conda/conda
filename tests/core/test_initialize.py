@@ -209,7 +209,7 @@ class InitializeTests(TestCase):
                         "function": "install_conda_xsh",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin/lib/python2.6/site-packages\\xonsh\\conda.xsh"
+                            "target_path": "/darwin/lib/python2.6/site-packages\\xontrib\\conda.xsh"
                         }
                     },
                     {
@@ -295,7 +295,7 @@ class InitializeTests(TestCase):
                         "function": "install_conda_xsh",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin/lib/python2.6/site-packages/xonsh/conda.xsh"
+                            "target_path": "/darwin/lib/python2.6/site-packages/xontrib/conda.xsh"
                         }
                     },
                     {
@@ -344,7 +344,7 @@ class InitializeTests(TestCase):
                 assert ep_contents == dals("""
                 # -*- coding: utf-8 -*-
                 import sys
-    
+
                 if __name__ == '__main__':
                     from conda.entry.point import run
                     sys.exit(run())
@@ -354,7 +354,7 @@ class InitializeTests(TestCase):
                 #!%s/bin/python
                 # -*- coding: utf-8 -*-
                 import sys
-    
+
                 if __name__ == '__main__':
                     from conda.entry.point import run
                     sys.exit(run())
@@ -444,9 +444,9 @@ class InitializeTests(TestCase):
 
             first_line, remainder = created_file_contents.split('\n', 1)
             if on_win:
-                assert first_line == 'CONDA_EXE = "%s"' % join(conda_prefix, 'Scripts', 'conda.exe')
+                assert first_line == '$CONDA_EXE = "%s"' % join(conda_prefix, 'Scripts', 'conda.exe')
             else:
-                assert first_line == 'CONDA_EXE = "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert first_line == '$CONDA_EXE = "%s"' % join(conda_prefix, 'bin', 'conda')
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')) as fh:
                 original_contents = fh.read()
@@ -708,19 +708,19 @@ class InitializeTests(TestCase):
             export PATH="/some/other/conda/bin:$PATH"
             export PATH="%(prefix)s/bin:$PATH"
               export PATH="%(prefix)s/bin:$PATH"
-              
+
             # >>> conda initialize >>>
             __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
             if [ $? -eq 0 ]; then
             fi
             unset __conda_setup
             # <<< conda initialize <<<
-            
+
             . etc/profile.d/conda.sh
             . etc/profile.d/coda.sh
             . /somewhere/etc/profile.d/conda.sh
             source /etc/profile.d/conda.sh
-            
+
             \t source %(prefix)s/etc/profile.d/conda.sh
             """) % {
                 'prefix': win_path_backout(abspath(conda_temp_prefix)),
@@ -738,7 +738,7 @@ class InitializeTests(TestCase):
             export PATH="/some/other/conda/bin:$PATH"
             # export PATH="%(prefix)s/bin:$PATH"  # commented out by conda initialize
             # export PATH="%(prefix)s/bin:$PATH"  # commented out by conda initialize
-            
+
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
             __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
@@ -753,12 +753,12 @@ class InitializeTests(TestCase):
             fi
             unset __conda_setup
             # <<< conda initialize <<<
-            
+
             # . etc/profile.d/conda.sh  # commented out by conda initialize
             . etc/profile.d/coda.sh
             # . /somewhere/etc/profile.d/conda.sh  # commented out by conda initialize
             # source /etc/profile.d/conda.sh  # commented out by conda initialize
-            
+
             # source %(prefix)s/etc/profile.d/conda.sh  # commented out by conda initialize
             """) % {
                 'prefix': win_path_backout(abspath(conda_temp_prefix)),
@@ -770,12 +770,12 @@ class InitializeTests(TestCase):
             export PATH="/some/other/conda/bin:$PATH"
             export PATH="%(prefix)s/bin:$PATH"
             export PATH="%(prefix)s/bin:$PATH"
-            
+
             . etc/profile.d/conda.sh
             . etc/profile.d/coda.sh
             . /somewhere/etc/profile.d/conda.sh
             source /etc/profile.d/conda.sh
-            
+
             source %(prefix)s/etc/profile.d/conda.sh
             """) % {
                 'prefix': win_path_backout(abspath(conda_temp_prefix)),
@@ -850,12 +850,12 @@ class InitializeTests(TestCase):
             expected_reversed_content = dals("""
             source /c/conda/Scripts/activate root
             . $(cygpath 'c:\\conda\\Scripts\\activate') root
-            
+
             . etc/profile.d/conda.sh
             . etc/profile.d/coda.sh
             . /somewhere/etc/profile.d/conda.sh
             source /etc/profile.d/conda.sh
-            
+
             source %(prefix)s/etc/profile.d/conda.sh
             """) % {
                 'prefix': win_path_ok(abspath(conda_prefix)),

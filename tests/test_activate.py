@@ -981,11 +981,7 @@ class ShellWrapperUnitTests(TestCase):
             rc = activate_main(['', 'shell.xonsh'] + activate_args + [self.prefix])
         assert not c.stderr
         assert rc == 0
-        activate_result = c.stdout
-
-        with open(activate_result) as fh:
-            activate_data = fh.read()
-        rm_rf(activate_result)
+        activate_data = c.stdout
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
@@ -1014,13 +1010,10 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = XonshActivator()
             with captured() as c:
-                assert activate_main(['', 'shell.xonsh'] + reactivate_args) == 0
+                rc = activate_main(['', 'shell.xonsh'] + reactivate_args)
             assert not c.stderr
-            reactivate_result = c.stdout
-
-            with open(reactivate_result) as fh:
-                reactivate_data = fh.read()
-            rm_rf(reactivate_result)
+            assert rc == 0
+            reactivate_data = c.stdout
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             e_reactivate_data = dals("""
@@ -1030,23 +1023,21 @@ class ShellWrapperUnitTests(TestCase):
             $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
             source "%(activate1)s"
             """) % {
+                'new_path': activator.pathsep_join(new_path_parts),
                 'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.xsh')),
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh')),
                 'native_prefix': self.prefix,
-                'new_path': activator.pathsep_join(new_path_parts),
             }
             assert reactivate_data == e_reactivate_data
 
             with captured() as c:
-                assert activate_main(['', 'shell.xonsh'] + deactivate_args) == 0
+                rc = activate_main(['', 'shell.xonsh'] + deactivate_args)
             assert not c.stderr
-            deactivate_result = c.stdout
-
-            with open(deactivate_result) as fh:
-                deactivate_data = fh.read()
-            rm_rf(deactivate_result)
+            assert rc == 0
+            deactivate_data = c.stdout
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
+            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
             e_deactivate_data = dals("""
             $PATH = '%(new_path)s'
             source "%(deactivate1)s"
