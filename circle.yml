@@ -76,20 +76,6 @@ conda_build_test: &conda_build_test
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           echo "safety_checks: disabled" >> ~/.condarc
           echo "local_repodata_ttl: 1800" >> ~/.condarc
-          conda create -n blarg -yq --download-only python=2.7
-          conda create -n blarg -yq -c https://repo.anaconda.com/pkgs/free --download-only python=3.4
-          conda create -n blarg -yq --download-only python=3.5
-          conda create -n blarg -yq --download-only python=3.6
-          conda create -n blarg -yq --download-only python=3.7
-          conda create -n blarg -yq --download-only python setuptools cython certifi
-          conda create -n blarg -yq -c https://repo.anaconda.com/pkgs/free --download-only libpng=1.6.17
-
-    - run:
-        name: conda-build conda
-        command: |
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-          rm -rf ~/conda/conda.egg-info
-          conda build ~/conda/conda.recipe
 
     - run:
         name: conda-build tests [parallel]
@@ -146,7 +132,10 @@ conda_build_test: &conda_build_test
             conda config --add default_channels https://repo.anaconda.com/pkgs/main
             conda info
             cd ~/conda-build
-            py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
+            # py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests/test_cli.py
+            # py.test --basetemp /tmp/cb tests/test_cli.py
+            # py.test --basetemp /tmp/cb -v tests/test_cli.py -k "not test_inspect_prefix_length and not test_build_with_conda_not_on_path and not test_slash_in_recipe_arg_keeps_build_id and not test_skeleton_pypi_arguments_work and not test_build_long_test_prefix_default_enabled and not test_build_multiple_recipes and not test_test_extra_dep and not test_activate_scripts_not_included and not test_build_no_build_id and not test_render_output_build_path_set_python"
+            py.test --basetemp /tmp/cb -v tests/test_cli.py -k "not test_no_force_upload"
           fi
 
     - run:
@@ -201,24 +190,6 @@ build_docs: &build_docs
           make html
 
 jobs:
-  py37 main tests:
-    <<: *main_test
-    docker:
-      - image: condatest/linux-64-python-3.7
-    environment:
-      - CONDA_INSTRUMENTATION_ENABLED: true
-  py36 main tests:
-    <<: *main_test
-    docker:
-      - image: condatest/linux-64-python-3.6
-    environment:
-      - CONDA_INSTRUMENTATION_ENABLED: true
-  py27 main tests:
-    <<: *main_test
-    docker:
-      - image: condatest/linux-64-python-2.7
-    environment:
-      - CONDA_INSTRUMENTATION_ENABLED: true
   3.10 conda-build:
     <<: *conda_build_test
     # mpi4py test in conda-build needs py<3.7
@@ -235,9 +206,5 @@ workflows:
   version: 2
   conda tests:
     jobs:
-      - py37 main tests
       # - py36 main tests
-      - py27 main tests
       - 3.10 conda-build
-      - flake8
-      - build_docs
