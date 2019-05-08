@@ -141,11 +141,11 @@ conda_build_test: &conda_build_test
             echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-            conda info
-            cd ~/conda-build
             conda config --add default_channels https://repo.anaconda.com/pkgs/free
             conda config --add default_channels https://repo.anaconda.com/pkgs/r
             conda config --add default_channels https://repo.anaconda.com/pkgs/main
+            conda info
+            cd ~/conda-build
             py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
           fi
 
@@ -172,10 +172,11 @@ conda_build_test: &conda_build_test
               echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-            cd ~/conda-build
             conda config --add default_channels https://repo.anaconda.com/pkgs/free
             conda config --add default_channels https://repo.anaconda.com/pkgs/r
             conda config --add default_channels https://repo.anaconda.com/pkgs/main
+            conda info
+            cd ~/conda-build
             py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
             /opt/conda/bin/python -m conda.common.io
           fi
