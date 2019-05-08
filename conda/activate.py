@@ -838,7 +838,7 @@ class XonshActivator(_Activator):
         self.sep = '/'
         self.path_conversion = native_path_to_unix
         self.script_extension = '.xsh'
-        self.tempfile_extension = '.xsh'
+        self.tempfile_extension = None
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'del $%s'

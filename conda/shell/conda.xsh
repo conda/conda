@@ -1,15 +1,21 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from xonsh.lazyasd import lazyobject as _lazyobject
+# Much of this forked from https://github.com/gforsyth/xonda
+# Copyright (c) 2016, Gil Forsyth, All rights reserved.
+# Original code licensed under BSD-3-Clause.
+from xonsh.lazyasd import lazyobject
 
 if 'CONDA_EXE' not in ${...}:
-    $CONDA_EXE = "python -m conda"  # development mode
+    ![python -m conda init --dev out> conda-dev-init.sh]
+    source-bash conda-dev-init.sh
+    import os
+    os.remove("conda-dev-init.sh")
 
 _REACTIVATE_COMMANDS = ('install', 'update', 'upgrade', 'remove', 'uninstall')
 
 
-@_lazyobject
-def _Env():
+@lazyobject
+def Env():
     from collections import namedtuple
     return namedtuple('Env', ['name', 'path', 'bin_dir', 'envs_dir'])
 
@@ -39,19 +45,15 @@ def _raise_pipeline_error(pipeline):
 
 
 def _conda_activate_handler(env_name_or_prefix):
-    import os
-    pipeline = !($CONDA_EXE shell.xonsh activate @(env_name_or_prefix))
-    stdout = _raise_pipeline_error(pipeline)
-    source @(stdout)
-    os.unlink(stdout)
+    __xonsh__.execer.exec($($CONDA_EXE shell.xonsh activate @(env_name_or_prefix)),
+                          glbs=__xonsh__.ctx,
+                          filename="$(conda shell.xonsh activate " + env_name_or_prefix + ")")
 
 
 def _conda_deactivate_handler():
-    import os
-    pipeline = !($CONDA_EXE shell.xonsh deactivate)
-    stdout = _raise_pipeline_error(pipeline)
-    source @(stdout)
-    os.unlink(stdout)
+    __xonsh__.execer.exec($($CONDA_EXE shell.xonsh deactivate),
+                          glbs=__xonsh__.ctx,
+                          filename="$(conda shell.xonsh deactivate)")
 
 
 def _conda_passthrough_handler(args):
@@ -62,13 +64,10 @@ def _conda_passthrough_handler(args):
 def _conda_reactivate_handler(args, name_or_prefix_given):
     pipeline = ![$CONDA_EXE @(args)]
     _raise_pipeline_error(pipeline)
-
     if not name_or_prefix_given:
-        import os
-        pipeline = !($CONDA_EXE shell.xonsh reactivate)
-        stdout = _raise_pipeline_error(pipeline)
-        source @(stdout)
-        os.unlink(stdout)
+        __xonsh__.execer.exec($($CONDA_EXE shell.xonsh reactivate),
+                              glbs=__xonsh__.ctx,
+                              filename="$(conda shell.xonsh reactivate)")
 
 
 def _conda_main(args=None):
@@ -109,14 +108,17 @@ def _get_envs():
     Grab a list of all conda env dirs from conda.
     """
     import os
+    import warnings
     import importlib
-    try:
-        # breaking changes introduced in Anaconda 4.4.7
-        # try to import newer library structure first
-        context = importlib.import_module('conda.base.context')
-        config = context.context
-    except ModuleNotFoundError:
-        config = importlib.import_module('conda.config')
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        try:
+            # breaking changes introduced in Anaconda 4.4.7
+            # try to import newer library structure first
+            context = importlib.import_module('conda.base.context')
+            config = context.context
+        except ModuleNotFoundError:
+            config = importlib.import_module('conda.config')
 
     # create the list of envrionments
     env_list = []
@@ -131,10 +133,10 @@ def _get_envs():
                 raise ValueError('Multiple environments with the same name '
                                  "in the system is not supported by conda's xonsh tools.")
             # add the environment to the list
-            env_list.append(_Env(name=env_name,
-                                 path=os.path.join(envs_dir, env_name),
-                                 bin_dir=os.path.join(envs_dir, env_name, 'bin'),
-                                 envs_dir=envs_dir,
+            env_list.append(Env(name=env_name,
+                                path=os.path.join(envs_dir, env_name),
+                                bin_dir=os.path.join(envs_dir, env_name, 'bin'),
+                                envs_dir=envs_dir,
                             ))
     return env_list
 
