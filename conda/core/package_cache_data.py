@@ -17,8 +17,8 @@ from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import (CONDA_TARBALL_EXTENSIONS, CONDA_TARBALL_EXTENSION_V1,
-                              CONDA_TARBALL_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
+from ..base.constants import (CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_EXTENSION_V1,
+                              CONDA_PACKAGE_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
                              text_type, with_metaclass)
@@ -83,7 +83,7 @@ class PackageCacheData(object):
             # no directory exists, and we didn't have permissions to create it
             return
 
-        _CONDA_TARBALL_EXTENSIONS = CONDA_TARBALL_EXTENSIONS
+        _CONDA_TARBALL_EXTENSIONS = CONDA_PACKAGE_EXTENSIONS
         for base_name in self._dedupe_pkgs_dir_contents(listdir(self.pkgs_dir)):
             full_path = join(self.pkgs_dir, base_name)
             if islink(full_path):
@@ -397,8 +397,8 @@ class PackageCacheData(object):
         #   only 'six-1.10.0-py35_0.tar.bz2' will be in the return contents
         if not pkgs_dir_contents:
             return []
-        _CONDA_TARBALL_EXTENSION_V1 = CONDA_TARBALL_EXTENSION_V1
-        _CONDA_TARBALL_EXTENSION_V2 = CONDA_TARBALL_EXTENSION_V2
+        _CONDA_TARBALL_EXTENSION_V1 = CONDA_PACKAGE_EXTENSION_V1
+        _CONDA_TARBALL_EXTENSION_V2 = CONDA_PACKAGE_EXTENSION_V2
         groups = defaultdict(set)
         any(groups[ext].add(fn_root) for fn_root, ext in (
             strip_pkg_extension(fn) for fn in pkgs_dir_contents
@@ -449,8 +449,8 @@ class UrlsData(object):
         #       That's probably a good assumption going forward, because we should now always
         #       be recording the extension in urls.txt.  The extensionless situation should be
         #       legacy behavior only.
-        if not package_path.endswith(CONDA_TARBALL_EXTENSION_V1):
-            package_path += CONDA_TARBALL_EXTENSION_V1
+        if not package_path.endswith(CONDA_PACKAGE_EXTENSION_V1):
+            package_path += CONDA_PACKAGE_EXTENSION_V1
         return first(self, lambda url: basename(url) == package_path)
 
 

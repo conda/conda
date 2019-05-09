@@ -22,7 +22,7 @@ from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from .._vendor.toolz import concat, concatv, take
-from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_TARBALL_EXTENSION_V1
+from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
                              string_types, text_type, with_metaclass)
@@ -356,7 +356,7 @@ class SubdirData(object):
         channel_url = self.url_w_credentials
         legacy_packages = json_obj.get("packages", {})
         conda_packages = json_obj.get("packages.conda", {})
-        _tar_bz2 = CONDA_TARBALL_EXTENSION_V1
+        _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
         use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
             k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
         )
