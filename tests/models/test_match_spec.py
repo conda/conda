@@ -546,6 +546,17 @@ class SpecStrParsingTests(TestCase):
                 "url": url,
             }
 
+            url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda"
+            assert _parse_spec_str(url) == {
+                "channel": "conda-canary",
+                "subdir": "linux-64",
+                "name": "conda",
+                "version": "4.3.21.post699+1dab973",
+                "build": "py36h4a561cd_0",
+                "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda",
+                "url": url,
+            }
+
     # def test_parse_spec_str_legacy_dist_format(self):
     #     assert _parse_spec_str("numpy-1.8-py26_0") == {
     #         "name": "numpy",

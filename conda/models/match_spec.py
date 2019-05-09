@@ -24,7 +24,7 @@ from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
 from ..common.io import dashlist
-from ..common.path import expand, url_to_path, strip_pkg_extension
+from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec
 
@@ -570,7 +570,7 @@ def _parse_spec_str(spec_str):
     spec_str = spec_split[0]
 
     # Step 2. done if spec_str is a tarball
-    if spec_str.endswith(CONDA_PACKAGE_EXTENSION_V1):
+    if is_package_file(spec_str):
         # treat as a normal url
         if not is_url(spec_str):
             spec_str = unquote(path_to_url(expand(spec_str)))

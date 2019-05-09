@@ -402,6 +402,15 @@ class CustomConfigChannelTests(TestCase):
         assert channel.urls() == [
             'http://192.168.0.15:8080/pkgs/anaconda/noarch',
         ]
+        channel = Channel('https://repo.anaconda.com/pkgs/anaconda/noarch/flask-1.0.conda')
+        assert channel.channel_name == "pkgs/anaconda"
+        assert channel.channel_location == "192.168.0.15:8080"
+        assert channel.platform == "noarch"
+        assert channel.package_filename == "flask-1.0.conda"
+        assert channel.canonical_name == "defaults"
+        assert channel.urls() == [
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
+        ]
 
     def test_pkgs_pro(self):
         channel = Channel('pkgs/pro')
