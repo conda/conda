@@ -486,12 +486,12 @@ class ProgressiveFetchExtract(object):
         # first we look in all writable caches, and if we find a match, we extract in place
         # otherwise, if we find a match in a non-writable cache, we link it to the first writable
         #   cache, and then extract
-        first_writable_cache = PackageCacheData.first_writable()
-        pcrec_from_writable_cache = next((
-            pcrec for pcrec in concat(pcache.query(pref_or_spec)
-                                      for pcache in PackageCacheData.writable_caches())
-            if pcrec.is_fetched
-        ), None)
+        pcrec_from_writable_cache = next(
+            (pcrec for pcrec in concat(
+                pcache.query(pref_or_spec) for pcache in PackageCacheData.writable_caches()
+            ) if pcrec.is_fetched),
+            None
+        )
         if pcrec_from_writable_cache:
             # extract in place
             extract_axn = ExtractPackageAction(
@@ -509,6 +509,7 @@ class ProgressiveFetchExtract(object):
             if pcrec.is_fetched
         ), None)
 
+        first_writable_cache = PackageCacheData.first_writable()
         if pcrec_from_read_only_cache:
             # we found a tarball, but it's in a read-only package cache
             # we need to link the tarball into the first writable package cache,

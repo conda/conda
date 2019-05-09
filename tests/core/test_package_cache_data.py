@@ -216,16 +216,16 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist():
 
         PackageCacheData._cache_.clear()
         pcd = PackageCacheData(pkgs_dir)
-        pc_recs = tuple(pcd.iter_records())
-        assert len(pc_recs) == 1
-        pc_rec = pc_recs[0]
+        pcrecs = tuple(pcd.iter_records())
+        assert len(pcrecs) == 1
+        pcrec = pcrecs[0]
 
         # ensure the package was actually extracted by presence of repodata_record.json
         with open(join(pkgs_dir, zlib_base_fn, "info", "repodata_record.json")) as fh:
             repodata_record = json.load(fh)
 
-        assert pc_rec.fn == zlib_conda_fn == repodata_record["fn"]
-        assert pc_rec.md5 == repodata_record["md5"]
+        assert pcrec.fn == zlib_conda_fn == repodata_record["fn"]
+        assert pcrec.md5 == repodata_record["md5"]
 
         pkgs_dir_files = listdir(pkgs_dir)
         assert zlib_base_fn in pkgs_dir_files
@@ -236,7 +236,7 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist():
 def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only():
     """
     If both .tar.bz2 and .conda packages exist in a read-only package cache, but neither is
-    unpacked, the .conda package should be preferred and pc_rec loaded from that package.
+    unpacked, the .conda package should be preferred and pcrec loaded from that package.
     """
     with make_temp_package_cache() as pkgs_dir:
         # instantiate to create magic file
@@ -266,16 +266,16 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
         PackageCacheData._cache_.clear()
 
         pcd = PackageCacheData(pkgs_dir)
-        pc_recs = tuple(pcd.iter_records())
-        assert len(pc_recs) == 1
-        pc_rec = pc_recs[0]
+        pcrecs = tuple(pcd.iter_records())
+        assert len(pcrecs) == 1
+        pcrec = pcrecs[0]
 
         # no repodata_record.json file should be created
         assert not isfile(join(pkgs_dir, zlib_base_fn, "info", "repodata_record.json"))
 
-        assert pc_rec.fn == zlib_conda_fn
-        assert pc_rec.md5 == "edad165fc3d25636d4f0a61c42873fbc"
-        assert pc_rec.size == 112305
+        assert pcrec.fn == zlib_conda_fn
+        assert pcrec.md5 == "edad165fc3d25636d4f0a61c42873fbc"
+        assert pcrec.size == 112305
 
         pkgs_dir_files = listdir(pkgs_dir)
         assert zlib_base_fn not in pkgs_dir_files

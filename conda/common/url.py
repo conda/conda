@@ -319,7 +319,8 @@ def split_conda_url_easy_parts(url, known_subdirs):
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(cleaned_url, known_subdirs)
-    cleaned_url, package_filename = strip_pkg_extension(cleaned_url)
+    _, ext = strip_pkg_extension(cleaned_url)
+    cleaned_url, package_filename = cleaned_url.rsplit('/', 1) if ext else (cleaned_url, None)
 
     # TODO: split out namespace using regex
 

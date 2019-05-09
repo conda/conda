@@ -255,8 +255,11 @@ class PackageRecord(DictSafeMixin, Entity):
         try:
             return self.__pkey
         except AttributeError:
-            __pkey = self.__pkey = (self.channel.canonical_name, self.subdir, self.name,
-                                    self.version, self.build_number, self.build)
+            # NOTE: fn is included to distinguish between .conda and .tar.bz2 packages
+            __pkey = self.__pkey = (
+                self.channel.canonical_name, self.subdir, self.name,
+                self.version, self.build_number, self.build, self.fn
+            )
             return __pkey
 
     def __hash__(self):
