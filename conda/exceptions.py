@@ -487,35 +487,21 @@ class CouldntParseError(ParseError):
         self.reason = reason
         super(CouldntParseError, self).__init__(self.args[0])
 
-class ChecksumMismatchError(CondaError):
-    def __init__(self, checksum_type, url, target_full_path, expected_sum, actual_sum):
+
+class MD5MismatchError(CondaError):
+    def __init__(self, url, target_full_path, expected_md5sum, actual_md5sum):
         message = dals("""
         Conda detected a mismatch between the expected content and downloaded content
         for url '%(url)s'.
           download saved to: %(target_full_path)s
-          expected %(checksum_type)s sum: %(expected_sum)s
-          actual %(checksum_type)s sum: %(actual_sum)s
+          expected md5 sum: %(expected_md5sum)s
+          actual md5 sum: %(actual_md5sum)s
         """)
         from .common.url import maybe_unquote
         url = maybe_unquote(url)
-        super(ChecksumMismatchError, self).__init__(message, url=url,
-                                                    target_full_path=target_full_path,
-                                                    expected_sum=expected_sum,
-                                                    actual_sum=actual_sum,
-                                                    checksum_type=checksum_type)
-
-
-# kept for backcompat.
-class MD5MismatchError(ChecksumMismatchError):
-    def __init__(self, url, target_full_path, expected_sum, actual_sum):
-        super(MD5MismatchError, self).__init__('md5', url, target_full_path,
-                                               expected_sum, actual_sum)
-
-
-class SHA256MismatchError(ChecksumMismatchError):
-    def __init__(self, url, target_full_path, expected_sum, actual_sum):
-        super(SHA256MismatchError, self).__init__('sha256', url, target_full_path,
-                                                  expected_sum, actual_sum)
+        super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
+                                               expected_md5sum=expected_md5sum,
+                                               actual_md5sum=actual_md5sum)
 
 
 class PackageNotInstalledError(CondaError):

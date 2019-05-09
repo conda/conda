@@ -6,18 +6,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 import fnmatch
 from logging import getLogger
-from os import rename, unlink, walk, makedirs, getcwd, rmdir, listdir, environ
-from os.path import abspath, dirname, isdir, join, split, exists, isfile, normpath, basename
+from os import environ, getcwd, listdir, makedirs, rename, rmdir, unlink, walk
+from os.path import abspath, basename, dirname, exists, isdir, isfile, join, normpath, split
 import shutil
-from subprocess import check_output, STDOUT, CalledProcessError
+from subprocess import CalledProcessError, STDOUT, check_output
 import sys
 
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
+from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
-from ...common.constants import CONDA_TEMP_EXTENSION
+
 if not on_win:
     from ...common.path import which
 

@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
+from os.path import dirname, join
 from unittest import TestCase
 
 import pytest
@@ -180,6 +181,14 @@ class FetchLocalRepodataTests(TestCase):
         with pytest.raises(UnavailableInvalidChannel):
             result = fetch_repodata_remote_request(url, etag, mod_stamp)
 
+
+def test_subdir_data_prefers_conda_to_tar_bz2():
+    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    sd = SubdirData(channel)
+    precs = tuple(sd.query("zlib"))
+    assert len(precs) == 1
+    prec = precs[0]
+    assert prec.fn.endswith(".conda")
 
 # @pytest.mark.integration
 # class SubdirDataTests(TestCase):

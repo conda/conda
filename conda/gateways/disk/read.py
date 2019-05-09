@@ -102,6 +102,7 @@ def read_package_info(record, package_cache_record):
 
     return PackageInfo(
         extracted_package_dir=epd,
+        package_tarball_full_path=package_cache_record.package_tarball_full_path,
         channel=Channel(record.schannel or record.channel),
         repodata_record=record,
         url=package_cache_record.url,

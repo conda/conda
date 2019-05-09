@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 from logging import getLogger
-from os.path import basename, dirname, getsize, join, isdir
+from os.path import basename, dirname, getsize, isdir, join
 import re
 from uuid import uuid4
 
@@ -16,17 +16,16 @@ from .. import CondaError
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from .._vendor.toolz import concat
-from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
 from ..common.compat import iteritems, on_win, text_type
-from ..common.constants import CONDA_TEMP_EXTENSION
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
                            pyc_path, url_to_path, win_path_ok)
 from ..common.url import has_platform, path_to_url
-from ..exceptions import (CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError,
-                          NotWritableError)
+from ..exceptions import (CondaUpgradeError, CondaVerificationError, NotWritableError,
+                          PaddingError, SafetyError)
 from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     create_hard_link_or_copy, create_link,
@@ -43,7 +42,6 @@ from ..models.enums import LinkType, NoarchType, PathType
 from ..models.match_spec import MatchSpec
 from ..models.records import (Link, PackageCacheRecord, PackageRecord, PathDataV1, PathsData,
                               PrefixRecord)
-
 
 log = getLogger(__name__)
 
@@ -831,8 +829,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             type=self.requested_link_type,
         )
         extracted_package_dir = self.package_info.extracted_package_dir
-        package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
-        # TODO: don't make above assumption; put package_tarball_full_path in package_info
+        package_tarball_full_path = self.package_info.package_tarball_full_path
 
         def files_from_action(link_path_action):
             if isinstance(link_path_action, CompileMultiPycAction):
@@ -1069,12 +1066,11 @@ class UnregisterEnvironmentLocationAction(PathAction):
 class CacheUrlAction(PathAction):
 
     def __init__(self, url, target_pkgs_dir, target_package_basename,
-                 sha256sum=None, md5sum=None, expected_size_in_bytes=None):
+                 md5sum=None, expected_size_in_bytes=None):
         self.url = url
         self.target_pkgs_dir = target_pkgs_dir
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
-        self.sha256sum = sha256sum
         self.expected_size_in_bytes = expected_size_in_bytes
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
@@ -1116,22 +1112,20 @@ class CacheUrlAction(PathAction):
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
                 #   in another package cache somewhere
-                # let's try to find the actual, remote source url by matching sha256sums, and then
+                # let's try to find the actual, remote source url by matching md5sums, and then
                 #   record that url as the remote source url in urls.txt
                 # we do the search part of this operation before the create_link so that we
-                #   don't sha256sum-match the file created by 'create_link'
+                #   don't md5sum-match the file created by 'create_link'
                 # there is no point in looking for the tarball in the cache that we are writing
                 #   this file into because we have already removed the previous file if there was
-                #   any. This also makes sure that we ignore the sha256sum of a possible extracted
+                #   any. This also makes sure that we ignore the md5sum of a possible extracted
                 #   directory that might exist in this cache because we are going to overwrite it
                 #   anyway when we extract the tarball.
-                source_sha256sum = compute_sha256sum(source_path)
                 source_md5sum = compute_md5sum(source_path)
                 exclude_caches = self.target_pkgs_dir,
-                pc_entry = PackageCacheData.tarball_file_in_cache(source_path,
-                                                                  source_sha256sum,
-                                                                  source_md5sum,
-                                                                  exclude_caches=exclude_caches)
+                pc_entry = PackageCacheData.tarball_file_in_cache(
+                    source_path, source_md5sum, exclude_caches=exclude_caches
+                )
 
                 if pc_entry:
                     origin_url = target_package_cache._urls_data.get_url(
@@ -1150,7 +1144,7 @@ class CacheUrlAction(PathAction):
                     target_package_cache._urls_data.add_url(self.url)
 
         else:
-            download(self.url, self.target_full_path, sha256sum=self.sha256sum, md5sum=self.md5sum,
+            download(self.url, self.target_full_path, md5sum=self.md5sum,
                      progress_update_callback=progress_update_callback)
             target_package_cache._urls_data.add_url(self.url)
 
@@ -1173,13 +1167,12 @@ class CacheUrlAction(PathAction):
 class ExtractPackageAction(PathAction):
 
     def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname,
-                 record_or_spec, sha256sum, md5sum=None):
+                 record_or_spec, md5sum):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.record_or_spec = record_or_spec
-        self.sha256sum = sha256sum
         self.md5sum = md5sum
 
     def verify(self):
@@ -1204,13 +1197,11 @@ class ExtractPackageAction(PathAction):
             assert url
             channel = Channel(url) if has_platform(url, context.known_subdirs) else Channel(None)
             fn = basename(url)
-            md5 = self.md5sum
-            sha256 = self.sha256sum
-            if not sha256 and not md5:
-                sha256 = compute_sha256sum(self.source_full_path)
-            repodata_record = PackageRecord.from_objects(raw_index_json, url=url,
-                                                         channel=channel, fn=fn,
-                                                         md5=md5, sha256=sha256)
+            md5 = self.md5sum or compute_md5sum(self.source_full_path)
+            size = getsize(self.source_full_path)
+            repodata_record = PackageRecord.from_objects(
+                raw_index_json, url=url, channel=channel, fn=fn, md5=md5, size=size,
+            )
         else:
             repodata_record = PackageRecord.from_objects(self.record_or_spec, raw_index_json)
 
@@ -1224,10 +1215,6 @@ class ExtractPackageAction(PathAction):
             extracted_package_dir=self.target_full_path,
         )
         target_package_cache.insert(package_cache_record)
-
-        # dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
-        # package_cache_entry = PackageCacheRecord.make_legacy(self.target_pkgs_dir, dist)
-        # target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):
         rm_rf(self.target_full_path)

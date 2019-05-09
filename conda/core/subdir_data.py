@@ -9,6 +9,7 @@ from contextlib import closing
 from errno import EACCES, ENODEV, EPERM
 from genericpath import getmtime, isfile
 import hashlib
+from io import open as io_open
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
@@ -16,16 +17,15 @@ from os.path import dirname, isdir, join, splitext
 import re
 from time import time
 import warnings
-from io import open as io_open
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from .._vendor.toolz import concat, take, concatv
+from .._vendor.toolz import concat, concatv, take
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
-                             string_types, text_type, with_metaclass, iterkeys)
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
+                             string_types, text_type, with_metaclass)
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
@@ -355,7 +355,7 @@ class SubdirData(object):
 
         channel_url = self.url_w_credentials
         legacy_packages = json_obj.get("packages", {})
-        conda_packages = json_obj.get("conda_packages", {})
+        conda_packages = json_obj.get("packages.conda", {})
         _tar_bz2 = ".tar.bz2"
         use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
             k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)

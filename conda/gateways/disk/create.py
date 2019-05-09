@@ -16,11 +16,10 @@ import tempfile
 import conda_package_handling.api
 
 from . import mkdir_p
-from .delete import rm_rf, path_is_clean
+from .delete import path_is_clean, rm_rf
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
-from ...cli.python_api import run_command, Commands  # noqa
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
@@ -155,7 +154,7 @@ class ProgressFileWrapper(object):
 
 def extract_tarball(tarball_full_path, destination_directory=None, progress_update_callback=None):
     if destination_directory is None:
-        if tarball_full_path.endswith('.tar.bz2'):
+        if tarball_full_path[-8:] == ".tar.bz2":
             destination_directory = tarball_full_path[:-8]
         else:
             destination_directory = tarball_full_path.splitext()[0]
@@ -166,8 +165,8 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
     #    have a .conda_trash extension though, so it's ok to just write into
     #    the same existing folder.
     if not path_is_clean(destination_directory):
-        log.debug("package folder {} was not empty, but we're writing there."
-                  .format(destination_directory))
+        log.debug("package folder %s was not empty, but we're writing there.",
+                  destination_directory)
 
     conda_package_handling.api.extract(tarball_full_path, dest_dir=destination_directory)
 

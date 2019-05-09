@@ -13,7 +13,7 @@
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os.path import basename, join, isfile
+from os.path import basename, join
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
@@ -245,17 +245,6 @@ class PackageRecord(DictSafeMixin, Entity):
 
     md5 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
-    sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
-    # the sha256 of the .conda file itself.  May change with added signatures or metadata.
-    #      We use this one for verifying downloads, since it's easy to compute the outer
-    #      sha256 on something.
-    conda_outer_sha256 = StringField(default=None, required=False, nullable=True,
-                                     default_in_dump=False)
-    # the sha256 of the package contents tarball inside the .conda.  Should never change.
-    #    We keep this one, because it is a better static reference when packages may change
-    #    by being signed, but are actually the same on disk.
-    conda_inner_sha256 = StringField(default=None, required=False, nullable=True,
-                                     default_in_dump=False)
 
     @property
     def schannel(self):
@@ -339,7 +328,6 @@ class PackageRecord(DictSafeMixin, Entity):
 
     date = StringField(required=False)
     size = IntegerField(required=False)
-    conda_size = IntegerField(required=False)
 
     def __str__(self):
         return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
@@ -382,37 +370,17 @@ class Md5Field(StringField):
                 raise e
 
 
-class Sha256Field(StringField):
-
-    def __init__(self, file_format):
-        self.file_format = file_format
-        super(Sha256Field, self).__init__(required=False, nullable=True)
-
-    def __get__(self, instance, instance_type):
-        try:
-            return super(Sha256Field, self).__get__(instance, instance_type)
-        except AttributeError as e:
-            try:
-                return instance._calculate_sha256sum(self.file_format)
-            except PathNotFoundError:
-                raise e
-
-
 class PackageCacheRecord(PackageRecord):
 
     package_tarball_full_path = StringField()
     extracted_package_dir = StringField()
 
     md5 = Md5Field()
-    # the format specifier indicates the filename that should be hashed and which field is
-    #     referenced for the desired value
-    sha256 = Sha256Field(".tar.bz2")
-    conda_sha256 = Sha256Field(".conda")
 
     @property
     def is_fetched(self):
         from ..gateways.disk.read import isfile
-        return isfile(self.package_tarball_full_path) or isfile(self.package_conda_full_path)
+        return isfile(self.package_tarball_full_path)
 
     @property
     def is_extracted(self):
@@ -422,47 +390,19 @@ class PackageCacheRecord(PackageRecord):
 
     @property
     def tarball_basename(self):
-        return basename(self.preferred_package_path)
-
-    @property
-    def package_conda_full_path(self):
-        return self.package_tarball_full_path.replace('.tar.bz2', '.conda')
-
-    @property
-    def preferred_package_path(self):
-        return (self.package_conda_full_path if isfile(self.package_conda_full_path) else
-                self.package_tarball_full_path)
+        return basename(self.package_tarball_full_path)
 
     def _calculate_md5sum(self):
-        memo_key = '_memoized_md5'
-        memoized_hash = getattr(self, memo_key, None)
-        if memoized_hash:
-            return memoized_hash
-
-        if isfile(self.package_tarball_full_path):
-            from ..gateways.disk.read import compute_md5sum
-            md5 = compute_md5sum(self.package_tarball_full_path)
-            setattr(self, memo_key, md5)
-            return md5
-
-    def _calculate_sha256sum(self, file_format):
-        if file_format == '.tar.bz2':
-            file_path = self.package_tarball_full_path
-        elif file_format == '.conda':
-            file_path = self.package_conda_full_path
-        else:
-            raise ValueError("Unrecognized package format for package record")
-        memo_key = '_memoized_sha256{}'.format(file_format)
-        memoized_sha256 = getattr(self, memo_key, None)
-        if memoized_sha256:
-            return memoized_sha256
+        memoized_md5 = getattr(self, '_memoized_md5', None)
+        if memoized_md5:
+            return memoized_md5
 
         from os.path import isfile
-        if isfile(file_path):
-            from ..gateways.disk.read import compute_sha256sum
-            sha256sum = compute_sha256sum(file_path)
-            setattr(self, memo_key, sha256sum)
-            return sha256sum
+        if isfile(self.package_tarball_full_path):
+            from ..gateways.disk.read import compute_md5sum
+            md5sum = compute_md5sum(self.package_tarball_full_path)
+            setattr(self, '_memoized_md5', md5sum)
+            return md5sum
 
 
 class PrefixRecord(PackageRecord):

@@ -4,11 +4,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
+from collections import defaultdict
 from errno import EACCES, ENOENT, EPERM
-from functools import reduce
 from logging import getLogger
 from os import listdir
-from os.path import basename, dirname, join, splitext
+from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 
@@ -17,7 +17,8 @@ from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
+from ..base.constants import (CONDA_TARBALL_EXTENSION, CONDA_TARBALL_EXTENSIONS,
+                              PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
                              text_type, with_metaclass)
@@ -30,7 +31,7 @@ from ..exceptions import NoWritablePkgsDirError, NotWritableError
 from ..gateways.disk.create import (create_package_cache_directory, extract_tarball,
                                     write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import (compute_sha256sum, compute_md5sum, isdir, isfile, islink,
+from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink,
                                   read_index_json, read_index_json_from_tarball,
                                   read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
@@ -41,19 +42,31 @@ from ..utils import human_bytes
 log = getLogger(__name__)
 
 
-def get_extracted_package_dir(package_tarball_full_path):
-    if package_tarball_full_path.endswith('.tar.bz2'):
-        extracted_package_dir = package_tarball_full_path[:-8]
-    elif package_tarball_full_path.endswith('.conda'):
-        extracted_package_dir = splitext(package_tarball_full_path)[0]
+# def get_extracted_package_dir(package_tarball_full_path):
+#     if package_tarball_full_path.endswith('.tar.bz2'):
+#         extracted_package_dir = package_tarball_full_path[:-8]
+#     elif package_tarball_full_path.endswith('.conda'):
+#         extracted_package_dir = splitext(package_tarball_full_path)[0]
+#
+#     elif isdir(package_tarball_full_path):
+#         extracted_package_dir = package_tarball_full_path
+#     else:
+#         raise NotImplementedError("Package extension on file {} not recognized; don't know "
+#                                   "how to cope. Please send help."
+#                                   .format(basename(package_tarball_full_path)))
+#     return extracted_package_dir
 
-    elif isdir(package_tarball_full_path):
-        extracted_package_dir = package_tarball_full_path
+def strip_pkg_extension(path):
+    if path[-6:] == ".conda":
+        return path[:-6], ".conda"
+    elif path[-8:] == ".tar.bz2":
+        return path[:-8], ".tar.bz2"
     else:
-        raise NotImplementedError("Package extension on file {} not recognized; don't know "
-                                  "how to cope. Please send help."
-                                  .format(basename(package_tarball_full_path)))
-    return extracted_package_dir
+        return path, None
+
+
+def is_package_file(path):
+    return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"
 
 
 class PackageCacheType(type):
@@ -97,12 +110,13 @@ class PackageCacheData(object):
             # no directory exists, and we didn't have permissions to create it
             return
 
+        _CONDA_TARBALL_EXTENSIONS = CONDA_TARBALL_EXTENSIONS
         for base_name in self._dedupe_pkgs_dir_contents(listdir(self.pkgs_dir)):
             full_path = join(self.pkgs_dir, base_name)
             if islink(full_path):
                 continue
             elif (isdir(full_path) and isfile(join(full_path, 'info', 'index.json'))
-                  or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
+                  or isfile(full_path) and full_path.endswith(_CONDA_TARBALL_EXTENSIONS)):
                 package_cache_record = self._make_single_record(base_name)
                 if package_cache_record:
                     _package_cache_records[package_cache_record] = package_cache_record
@@ -227,11 +241,9 @@ class PackageCacheData(object):
         raise CondaError("No package '%s' found in cache directories." % package_ref.dist_str())
 
     @classmethod
-    def tarball_file_in_cache(cls, tarball_path, sha256sum=None, md5sum=None, exclude_caches=()):
-        tarball_full_path, sha256sum, md5sum = cls._clean_tarball_path_and_get_checksums(
-            tarball_path, sha256sum, md5sum)
-        pc_entry = first(cls(pkgs_dir).tarball_file_in_this_cache(tarball_full_path,
-                                                                  sha256sum, md5sum)
+    def tarball_file_in_cache(cls, tarball_path, md5sum=None, exclude_caches=()):
+        tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
+        pc_entry = first(cls(pkgs_dir).tarball_file_in_this_cache(tarball_full_path, md5sum)
                          for pkgs_dir in context.pkgs_dirs
                          if pkgs_dir not in exclude_caches)
         return pc_entry
@@ -240,13 +252,13 @@ class PackageCacheData(object):
     def clear(cls):
         cls._cache_.clear()
 
-    def tarball_file_in_this_cache(self, tarball_path, sha256sum=None, md5sum=None):
-        tarball_full_path, sha256sum, md5sum = self._clean_tarball_path_and_get_checksums(
-            tarball_path, sha256sum=sha256sum, md5sum=md5sum)
+    def tarball_file_in_this_cache(self, tarball_path, md5sum=None):
+        tarball_full_path, md5sum = self._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
         tarball_basename = basename(tarball_full_path)
-        pc_entry = first((pc_entry for pc_entry in itervalues(self)),
-                         key=lambda pce: pce.tarball_basename == tarball_basename
-                                         and (pce.sha256 == sha256sum or pce.md5 == md5sum))  # NOQA
+        pc_entry = first(
+            (pc_entry for pc_entry in itervalues(self)),
+            key=lambda pce: pce.tarball_basename == tarball_basename and pce.md5 == md5sum
+        )
         return pc_entry
 
     @property
@@ -275,17 +287,15 @@ class PackageCacheData(object):
         return i_wri
 
     @staticmethod
-    def _clean_tarball_path_and_get_checksums(tarball_path, sha256sum=None, md5sum=None):
+    def _clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
         if tarball_path.startswith('file:/'):
             tarball_path = url_to_path(tarball_path)
         tarball_full_path = expand(tarball_path)
 
-        # if neither sha256 nor md5 is provided, compute sha256 as a better reference.
-        #    If md5 is provided, go with it.
-        if isfile(tarball_full_path) and sha256sum is None and md5sum is None:
-            sha256sum = compute_sha256sum(tarball_full_path)
+        if isfile(tarball_full_path) and md5sum is None:
+            md5sum = compute_md5sum(tarball_full_path)
 
-        return tarball_full_path, sha256sum, md5sum
+        return tarball_full_path, md5sum
 
     def _scan_for_dist_no_channel(self, dist_str):
         return next((pcrec for pcrec in self._package_cache_records
@@ -305,7 +315,7 @@ class PackageCacheData(object):
     def _make_single_record(self, package_filename):
         package_tarball_full_path = join(self.pkgs_dir, package_filename)
         log.trace("adding to package cache %s", package_tarball_full_path)
-        extracted_package_dir = get_extracted_package_dir(package_tarball_full_path)
+        extracted_package_dir, pkg_ext = strip_pkg_extension(package_tarball_full_path)
 
         # try reading info/repodata_record.json
         try:
@@ -316,8 +326,8 @@ class PackageCacheData(object):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (IOError, OSError, JSONDecodeError) as e:
-            # IOError / OSError if info/repodata_record.json doesn't exists
+        except (EnvironmentError, JSONDecodeError, ValueError) as e:
+            # EnvironmentError if info/repodata_record.json doesn't exists
             # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
             #   python 2.7 raises ValueError instead of JsonDecodeError
             #   ValueError("No JSON object could be decoded")
@@ -327,8 +337,8 @@ class PackageCacheData(object):
             # try reading info/index.json
             try:
                 raw_json_record = read_index_json(extracted_package_dir)
-            except (IOError, OSError, JSONDecodeError) as e:
-                # IOError / OSError if info/index.json doesn't exist
+            except (EnvironmentError, JSONDecodeError, ValueError) as e:
+                # EnvironmentError if info/index.json doesn't exist
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
                 #   python 2.7 raises ValueError instead of JsonDecodeError
                 #   ValueError("No JSON object could be decoded")
@@ -380,17 +390,16 @@ class PackageCacheData(object):
             # we were able to read info/index.json, so let's continue
             if isfile(package_tarball_full_path):
                 md5 = compute_md5sum(package_tarball_full_path)
-                sha256 = compute_sha256sum(package_tarball_full_path)
             else:
                 md5 = None
-                sha256 = None
 
             url = self._urls_data.get_url(package_filename)
             package_cache_record = PackageCacheRecord.from_objects(
                 raw_json_record,
                 url=url,
+                fn=basename(package_tarball_full_path),
                 md5=md5,
-                sha256=sha256,
+                size=getsize(package_tarball_full_path),
                 package_tarball_full_path=package_tarball_full_path,
                 extracted_package_dir=extracted_package_dir,
             )
@@ -415,17 +424,18 @@ class PackageCacheData(object):
         #   only 'six-1.10.0-py35_0.tar.bz2' will be in the return contents
         if not pkgs_dir_contents:
             return []
-
-        contents = []
-
-        def _process(x, y):
-            if x + CONDA_TARBALL_EXTENSION != y:
-                contents.append(x)
-            return y
-
-        last = reduce(_process, sorted(pkgs_dir_contents))
-        _process(last, contents and contents[-1] or '')
-        return contents
+        groups = defaultdict(set)
+        any(groups[ext].add(fn_root) for fn_root, ext in (
+            strip_pkg_extension(fn) for fn in pkgs_dir_contents
+        ))
+        conda_extensions = groups[".conda"]
+        tar_bz2_extensions = groups[".tar.bz2"] - conda_extensions
+        others = groups[None] - conda_extensions - tar_bz2_extensions
+        return sorted(concatv(
+            (p + ".conda" for p in conda_extensions),
+            (p + ".tar.bz2" for p in tar_bz2_extensions),
+            others,
+        ))
 
 
 class UrlsData(object):
@@ -460,6 +470,10 @@ class UrlsData(object):
         # package path can be a full path or just a basename
         #   can be either an extracted directory or tarball
         package_path = basename(package_path)
+        # NOTE: This makes an assumption that all extensionless packages came from a .tar.bz2.
+        #       That's probably a good assumption going forward, because we should now always
+        #       be recording the extension in urls.txt.  The extensionless situation should be
+        #       legacy behavior only.
         if not package_path.endswith(CONDA_TARBALL_EXTENSION):
             package_path += CONDA_TARBALL_EXTENSION
         return first(self, lambda url: basename(url) == package_path)
@@ -476,24 +490,20 @@ class ProgressiveFetchExtract(object):
         assert pref_or_spec is not None
         # returns a cache_action and extract_action
 
-        # if the pref or spec has an sha256 value
+        # if the pref or spec has an md5 value
         # look in all caches for package cache record that is
         #   (1) already extracted, and
-        #   (2) matches the checksum
+        #   (2) matches the md5
         # If one exists, no actions are needed.
         md5 = pref_or_spec.get('md5')
-        sha256 = pref_or_spec.get('sha256')
-        conda_fmt_outer_sha256 = pref_or_spec.get('conda_outer_sha256')
-
-        for thing in (conda_fmt_outer_sha256, sha256, md5):
-            if thing:
-                extracted_pcrec = next((
-                    pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
-                                              for pkgs_dir in context.pkgs_dirs)
-                    if pcrec.is_extracted
-                ), None)
-                if extracted_pcrec:
-                    return None, None
+        if md5:
+            extracted_pcrec = next((
+                pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
+                                          for pkgs_dir in context.pkgs_dirs)
+                if pcrec.is_extracted
+            ), None)
+            if extracted_pcrec:
+                return None, None
 
         # there is no extracted dist that can work, so now we look for tarballs that
         #   aren't extracted
@@ -509,12 +519,11 @@ class ProgressiveFetchExtract(object):
         if pcrec_from_writable_cache:
             # extract in place
             extract_axn = ExtractPackageAction(
-                source_full_path=pcrec_from_writable_cache.preferred_package_path,
-                target_pkgs_dir=dirname(pcrec_from_writable_cache.preferred_package_path),
+                source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
+                target_pkgs_dir=dirname(pcrec_from_writable_cache.package_tarball_full_path),
                 target_extracted_dirname=basename(pcrec_from_writable_cache.extracted_package_dir),
                 record_or_spec=pcrec_from_writable_cache,
                 md5sum=pcrec_from_writable_cache.md5,
-                sha256sum=pcrec_from_writable_cache.sha256,
             )
             return None, extract_axn
 
@@ -533,21 +542,19 @@ class ProgressiveFetchExtract(object):
             except AttributeError:
                 expected_size_in_bytes = None
             cache_axn = CacheUrlAction(
-                url=path_to_url(pcrec_from_read_only_cache.preferred_package_path),
+                url=path_to_url(pcrec_from_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
                 md5sum=md5,
-                sha256sum=sha256,
                 expected_size_in_bytes=expected_size_in_bytes,
             )
-            trgt_extracted_dirname = pcrec_from_read_only_cache.fn[:-len(CONDA_TARBALL_EXTENSION)]
+            trgt_extracted_dirname = strip_pkg_extension(pcrec_from_read_only_cache.fn)[0]
             extract_axn = ExtractPackageAction(
-                source_full_path=cache_axn.preferred_package_path,
+                source_full_path=cache_axn.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_extracted_dirname=trgt_extracted_dirname,
                 record_or_spec=pcrec_from_read_only_cache,
                 md5sum=pcrec_from_read_only_cache.md5,
-                sha256sum=pcrec_from_read_only_cache.sha256,
             )
             return cache_axn, extract_axn
 
@@ -555,33 +562,24 @@ class ProgressiveFetchExtract(object):
         #   we'll have to download one; fetch and extract
         url = pref_or_spec.get('url')
         assert url
-
-        # check if the pref has the new package data.  If it does, swap out the fn extension
-        #    and prefer the download of the new format
-        expected_size_in_bytes = pref_or_spec.get('conda_size')
-        if expected_size_in_bytes:
-            fn = pref_or_spec.fn.replace('.tar.bz2', '.conda')
-            sha256 = pref_or_spec.get('conda_outer_sha256')
-        else:
-            fn = pref_or_spec.fn
-            expected_size_in_bytes = pref_or_spec.get('size')
-            sha256 = pref_or_spec.get('sha256')
+        try:
+            expected_size_in_bytes = pref_or_spec.size
+        except AttributeError:
+            expected_size_in_bytes = None
 
         cache_axn = CacheUrlAction(
-            url=url.rsplit('/', 1)[0] + "/" + fn,
+            url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_package_basename=fn,
+            target_package_basename=pref_or_spec.fn,
             md5sum=md5,
-            sha256sum=sha256,
             expected_size_in_bytes=expected_size_in_bytes,
         )
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_extracted_dirname=get_extracted_package_dir(cache_axn.target_full_path),
+            target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
             record_or_spec=pref_or_spec,
             md5sum=md5,
-            sha256sum=sha256,
         )
         return cache_axn, extract_axn
 
@@ -732,6 +730,6 @@ def rm_fetched(dist):
     raise NotImplementedError()
 
 
-def download(url, dst_path, session=None, sha256=None, md5=None, urlstxt=False, retries=3):
+def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
     from ..gateways.connection.download import download as gateway_download
-    gateway_download(url, dst_path, sha256sum=sha256, md5sum=md5)
+    gateway_download(url, dst_path, md5)

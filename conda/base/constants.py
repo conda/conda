@@ -137,6 +137,11 @@ else:
 MAX_CHANNEL_PRIORITY = 10000
 
 CONDA_TARBALL_EXTENSION = '.tar.bz2'
+CONDA_TARBALL_EXTENSIONS = (
+    ".conda",
+    ".tar.bz2",
+)
+CONDA_TEMP_EXTENSION = '.c~'
 
 UNKNOWN_CHANNEL = "<unknown>"
 

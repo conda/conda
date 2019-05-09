@@ -6,12 +6,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 import fnmatch
 from logging import getLogger
-from os import listdir, lstat, walk, unlink
-from os.path import getsize, isdir, join, exists
+from os import listdir, lstat, unlink, walk
+from os.path import exists, getsize, isdir, join
 import sys
 
-from ..base.constants import CONDA_TARBALL_EXTENSION
-from ..common.constants import CONDA_TEMP_EXTENSION
+from ..base.constants import CONDA_TARBALL_EXTENSION, CONDA_TEMP_EXTENSION
 from ..base.context import context
 
 log = getLogger(__name__)
