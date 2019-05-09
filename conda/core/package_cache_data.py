@@ -399,9 +399,10 @@ class PackageCacheData(object):
             return []
         _CONDA_TARBALL_EXTENSION_V1 = CONDA_PACKAGE_EXTENSION_V1
         _CONDA_TARBALL_EXTENSION_V2 = CONDA_PACKAGE_EXTENSION_V2
+        _strip_pkg_extension = strip_pkg_extension
         groups = defaultdict(set)
         any(groups[ext].add(fn_root) for fn_root, ext in (
-            strip_pkg_extension(fn) for fn in pkgs_dir_contents
+            _strip_pkg_extension(fn) for fn in pkgs_dir_contents
         ))
         conda_extensions = groups[_CONDA_TARBALL_EXTENSION_V2]
         tar_bz2_extensions = groups[_CONDA_TARBALL_EXTENSION_V1] - conda_extensions
