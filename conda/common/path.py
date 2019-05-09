@@ -310,3 +310,40 @@ def win_path_to_unix(path, root_prefix=""):
 def which(executable):
     from distutils.spawn import find_executable
     return find_executable(executable)
+
+
+def strip_pkg_extension(path):
+    """
+    Examples:
+        >>> strip_pkg_extension("/path/_license-1.1-py27_1.tar.bz2")
+        ('/path/_license-1.1-py27_1', '.tar.bz2')
+        >>> strip_pkg_extension("/path/_license-1.1-py27_1.conda")
+        ('/path/_license-1.1-py27_1', '.conda')
+        >>> strip_pkg_extension("/path/_license-1.1-py27_1")
+        ('/path/_license-1.1-py27_1', None)
+    """
+    # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
+    #       import rules and to avoid a global lookup.
+    if path[-6:] == ".conda":
+        return path[:-6], ".conda"
+    elif path[-8:] == ".tar.bz2":
+        return path[:-8], ".tar.bz2"
+    elif path[-5:] == ".json":
+        return path[:-5], ".json"
+    else:
+        return path, None
+
+
+def is_package_file(path):
+    """
+    Examples:
+        >>> is_package_file("/path/_license-1.1-py27_1.tar.bz2")
+        True
+        >>> is_package_file("/path/_license-1.1-py27_1.conda")
+        True
+        >>> is_package_file("/path/_license-1.1-py27_1")
+        False
+    """
+    # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
+    #       import rules and to avoid a global lookup.
+    return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"

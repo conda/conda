@@ -10,7 +10,7 @@ import re
 import socket
 
 from .compat import input, on_win
-from .path import split_filename
+from .path import split_filename, strip_pkg_extension
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
@@ -298,12 +298,6 @@ def has_platform(url, known_subdirs):
     return maybe_a_platform in known_subdirs and maybe_a_platform or None
 
 
-def _split_package_filename(url):
-    cleaned_url, package_filename = (url.rsplit('/', 1) if url.endswith(('.tar.bz2', '.json'))
-                                     else (url, None))
-    return cleaned_url, package_filename
-
-
 def split_scheme_auth_token(url):
     """
     Examples:
@@ -325,7 +319,7 @@ def split_conda_url_easy_parts(url, known_subdirs):
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(cleaned_url, known_subdirs)
-    cleaned_url, package_filename = _split_package_filename(cleaned_url)
+    cleaned_url, package_filename = strip_pkg_extension(cleaned_url)
 
     # TODO: split out namespace using regex
 

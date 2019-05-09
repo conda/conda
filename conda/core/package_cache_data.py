@@ -17,14 +17,14 @@ from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import (CONDA_TARBALL_EXTENSION, CONDA_TARBALL_EXTENSIONS,
-                              PACKAGE_CACHE_MAGIC_FILE)
+from ..base.constants import (CONDA_TARBALL_EXTENSIONS, CONDA_TARBALL_EXTENSION_V1,
+                              CONDA_TARBALL_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
                              text_type, with_metaclass)
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
-from ..common.path import expand, url_to_path
+from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..exceptions import NoWritablePkgsDirError, NotWritableError
@@ -40,33 +40,6 @@ from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
 
 log = getLogger(__name__)
-
-
-# def get_extracted_package_dir(package_tarball_full_path):
-#     if package_tarball_full_path.endswith('.tar.bz2'):
-#         extracted_package_dir = package_tarball_full_path[:-8]
-#     elif package_tarball_full_path.endswith('.conda'):
-#         extracted_package_dir = splitext(package_tarball_full_path)[0]
-#
-#     elif isdir(package_tarball_full_path):
-#         extracted_package_dir = package_tarball_full_path
-#     else:
-#         raise NotImplementedError("Package extension on file {} not recognized; don't know "
-#                                   "how to cope. Please send help."
-#                                   .format(basename(package_tarball_full_path)))
-#     return extracted_package_dir
-
-def strip_pkg_extension(path):
-    if path[-6:] == ".conda":
-        return path[:-6], ".conda"
-    elif path[-8:] == ".tar.bz2":
-        return path[:-8], ".tar.bz2"
-    else:
-        return path, None
-
-
-def is_package_file(path):
-    return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"
 
 
 class PackageCacheType(type):
@@ -424,16 +397,18 @@ class PackageCacheData(object):
         #   only 'six-1.10.0-py35_0.tar.bz2' will be in the return contents
         if not pkgs_dir_contents:
             return []
+        _CONDA_TARBALL_EXTENSION_V1 = CONDA_TARBALL_EXTENSION_V1
+        _CONDA_TARBALL_EXTENSION_V2 = CONDA_TARBALL_EXTENSION_V2
         groups = defaultdict(set)
         any(groups[ext].add(fn_root) for fn_root, ext in (
             strip_pkg_extension(fn) for fn in pkgs_dir_contents
         ))
-        conda_extensions = groups[".conda"]
-        tar_bz2_extensions = groups[".tar.bz2"] - conda_extensions
+        conda_extensions = groups[_CONDA_TARBALL_EXTENSION_V2]
+        tar_bz2_extensions = groups[_CONDA_TARBALL_EXTENSION_V1] - conda_extensions
         others = groups[None] - conda_extensions - tar_bz2_extensions
         return sorted(concatv(
-            (p + ".conda" for p in conda_extensions),
-            (p + ".tar.bz2" for p in tar_bz2_extensions),
+            (p + _CONDA_TARBALL_EXTENSION_V2 for p in conda_extensions),
+            (p + _CONDA_TARBALL_EXTENSION_V1 for p in tar_bz2_extensions),
             others,
         ))
 
@@ -474,8 +449,8 @@ class UrlsData(object):
         #       That's probably a good assumption going forward, because we should now always
         #       be recording the extension in urls.txt.  The extensionless situation should be
         #       legacy behavior only.
-        if not package_path.endswith(CONDA_TARBALL_EXTENSION):
-            package_path += CONDA_TARBALL_EXTENSION
+        if not package_path.endswith(CONDA_TARBALL_EXTENSION_V1):
+            package_path += CONDA_TARBALL_EXTENSION_V1
         return first(self, lambda url: basename(url) == package_path)
 
 

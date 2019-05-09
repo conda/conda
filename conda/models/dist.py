@@ -8,11 +8,11 @@ from logging import getLogger
 import re
 
 from .channel import Channel
-from .records import PackageRecord
 from .package_info import PackageInfo
+from .records import PackageRecord
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
-from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
+from ..base.constants import CONDA_TARBALL_EXTENSION_V1, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
 from ..common.constants import NULL
@@ -122,7 +122,7 @@ class Dist(Entity):
     def is_channel(self):
         return bool(self.base_url and self.platform)
 
-    def to_filename(self, extension='.tar.bz2'):
+    def to_filename(self, extension=CONDA_TARBALL_EXTENSION_V1):
         if self.is_feature_package:
             return self.dist_name
         else:
@@ -157,8 +157,8 @@ class Dist(Entity):
                      )
         channel, original_dist, w_f_d = re.search(REGEX_STR, string).groups()
 
-        if original_dist.endswith(CONDA_TARBALL_EXTENSION):
-            original_dist = original_dist[:-len(CONDA_TARBALL_EXTENSION)]
+        if original_dist.endswith(CONDA_TARBALL_EXTENSION_V1):
+            original_dist = original_dist[:-len(CONDA_TARBALL_EXTENSION_V1)]
 
         if channel_override != NULL:
             channel = channel_override
@@ -180,8 +180,8 @@ class Dist(Entity):
         try:
             string = ensure_text_type(string)
 
-            no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSION)]
-                                 if string.endswith(CONDA_TARBALL_EXTENSION)
+            no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSION_V1)]
+                                 if string.endswith(CONDA_TARBALL_EXTENSION_V1)
                                  else string)
 
             # remove any directory or channel information
@@ -208,7 +208,7 @@ class Dist(Entity):
     @classmethod
     def from_url(cls, url):
         assert is_url(url), url
-        if not url.endswith(CONDA_TARBALL_EXTENSION) and '::' not in url:
+        if not url.endswith(CONDA_TARBALL_EXTENSION_V1) and '::' not in url:
             raise CondaError("url '%s' is not a conda package" % url)
 
         dist_details = cls.parse_dist_name(url)
@@ -235,7 +235,7 @@ class Dist(Entity):
     def to_url(self):
         if not self.base_url:
             return None
-        filename = self.dist_name + CONDA_TARBALL_EXTENSION
+        filename = self.dist_name + CONDA_TARBALL_EXTENSION_V1
         return (join_url(self.base_url, self.platform, filename)
                 if self.platform
                 else join_url(self.base_url, filename))
@@ -285,8 +285,8 @@ class Dist(Entity):
 
     def __contains__(self, item):
         item = ensure_text_type(item)
-        if item.endswith(CONDA_TARBALL_EXTENSION):
-            item = item[:-len(CONDA_TARBALL_EXTENSION)]
+        if item.endswith(CONDA_TARBALL_EXTENSION_V1):
+            item = item[:-len(CONDA_TARBALL_EXTENSION_V1)]
         return item in self.__str__()
 
     @property
@@ -295,8 +295,8 @@ class Dist(Entity):
 
 
 def dist_str_to_quad(dist_str):
-    if dist_str.endswith(CONDA_TARBALL_EXTENSION):
-        dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+    if dist_str.endswith(CONDA_TARBALL_EXTENSION_V1):
+        dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION_V1)]
     if '::' in dist_str:
         channel_str, dist_str = dist_str.split("::", 1)
     else:

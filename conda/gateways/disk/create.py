@@ -22,7 +22,7 @@ from .permissions import make_executable
 from .update import touch
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
-from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
+from ...base.constants import CONDA_TARBALL_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
@@ -154,7 +154,7 @@ class ProgressFileWrapper(object):
 
 def extract_tarball(tarball_full_path, destination_directory=None, progress_update_callback=None):
     if destination_directory is None:
-        if tarball_full_path[-8:] == ".tar.bz2":
+        if tarball_full_path[-8:] == CONDA_TARBALL_EXTENSION_V1:
             destination_directory = tarball_full_path[:-8]
         else:
             destination_directory = tarball_full_path.splitext()[0]

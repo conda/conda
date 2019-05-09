@@ -136,10 +136,11 @@ else:
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000
 
-CONDA_TARBALL_EXTENSION = '.tar.bz2'
+CONDA_TARBALL_EXTENSION_V1 = ".tar.bz2"
+CONDA_TARBALL_EXTENSION_V2 = ".conda"
 CONDA_TARBALL_EXTENSIONS = (
-    ".conda",
-    ".tar.bz2",
+    CONDA_TARBALL_EXTENSION_V2,
+    CONDA_TARBALL_EXTENSION_V1,
 )
 CONDA_TEMP_EXTENSION = '.c~'
 
