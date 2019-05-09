@@ -2029,10 +2029,9 @@ class IntegrationTests(TestCase):
                                  entry['name'] + '=' + entry['version'] + '=' + entry['build_string'])
 
             specs.append('imagesize')
-            specs = [MatchSpec(s) for s in specs]
+            specs = {MatchSpec(s) for s in specs}
             import conda.core.solve
             r = conda.core.solve.Resolve(get_index())
-            specs = tuple(sorted(specs, key=lambda x: (exactness_and_number_of_deps(r, x), x.name), reverse=True))
             reduced_index = r.get_reduced_index([MatchSpec('imagesize')])
 
             # now add requests to that env.  The call to get_reduced_index should include our exact specs
