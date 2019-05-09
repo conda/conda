@@ -973,7 +973,7 @@ def _config_fish_content(conda_prefix):
     conda_initialize_content = dals("""
     # >>> conda initialize >>>
     # !! Contents within this block are managed by 'conda init' !!
-    eval (eval %(conda_exe)s "shell.fish" "hook" $argv)
+    eval %(conda_exe)s "shell.fish" "hook" $argv | source
     # <<< conda initialize <<<
     """) % {
         'conda_exe': conda_exe,
