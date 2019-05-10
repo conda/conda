@@ -140,7 +140,7 @@ class TestJson(unittest.TestCase):
             stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "nose", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
 
-            assert "nose                           1.3.4          py34_0  pkgs/free" in result
+            assert "nose                           1.3.7          py37_2  pkgs/main" in result
 
     @pytest.mark.integration
     def test_search_3(self):
@@ -148,12 +148,12 @@ class TestJson(unittest.TestCase):
         from tests.test_create import run_command
         from tests.test_create import Commands
         with make_temp_env() as prefix:
-            stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "*/linux-64::nose==1.3.7[build=py36_1]", "--info", use_exception_handler=True)
+            stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "*/linux-64::nose==1.3.7[build=py37_2]", "--info", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
-            assert "file name   : nose-1.3.7-py36_1.tar.bz2" in result
+            assert "file name   : nose-1.3.7-py37_2.tar.bz2" in result
             assert "name        : nose" in result
-            assert "url         : https://repo.anaconda.com/pkgs/free/linux-64/nose-1.3.7-py36_1.tar.bz2" in result
-            assert "md5         : f4f697f5ad4df9c8fe35357d269718a5" in result
+            assert "url         : https://repo.anaconda.com/pkgs/main/linux-64/nose-1.3.7-py37_2.tar.bz2" in result
+            assert "md5         : ff390a1e44d77e54914ca1a2c9e75445" in result
 
     @pytest.mark.integration
     def test_search_4(self):

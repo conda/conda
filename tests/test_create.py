@@ -516,16 +516,16 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.10')
-            assert package_is_installed(prefix, 'flask=0.10.1')
+            run_command(Commands.INSTALL, prefix, 'flask=0.12')
+            assert package_is_installed(prefix, 'flask=0.12.2')
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.10')
-            assert package_is_installed(prefix, 'flask=0.10.1')
+            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.12.2')
+            assert package_is_installed(prefix, 'flask=0.12.2')
             assert package_is_installed(prefix, 'python=3')
 
             run_command(Commands.UPDATE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask=0.10.1')
+            assert not package_is_installed(prefix, 'flask=0.12.2')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
@@ -637,23 +637,23 @@ class IntegrationTests(TestCase):
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'flask=0.10', '--json')
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'flask=0.12', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=0.10.1')
+            assert package_is_installed(prefix, 'flask=0.12.2')
             assert package_is_installed(prefix, 'python=3')
 
             # Test force reinstall
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.10', '--json')
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.12', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=0.10.1')
+            assert package_is_installed(prefix, 'flask=0.12.2')
             assert package_is_installed(prefix, 'python=3')
 
             stdout, stderr, _ = run_command(Commands.UPDATE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert not package_is_installed(prefix, 'flask=0.10.1')
+            assert not package_is_installed(prefix, 'flask=0.12.2')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
@@ -918,8 +918,8 @@ class IntegrationTests(TestCase):
         assert type(path) == type(path2)
         # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
         '''
-        with make_temp_env() as prefix, make_temp_channel(["flask-0.10.1"]) as channel:
-            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.10.1', '--json')
+        with make_temp_env() as prefix, make_temp_channel(["flask-0.12.2"]) as channel:
+            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.12.2', '--json')
             assert package_is_installed(prefix, channel + '::' + 'flask')
             flask_fname = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]['fn']
 
@@ -1034,7 +1034,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win, reason="windows python doesn't depend on readline")
     def test_update_with_pinned_packages(self):
         # regression test for #6914
-        with make_temp_env("python=2.7.12") as prefix:
+        with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "python=2.7.12") as prefix:
             assert package_is_installed(prefix, "readline=6.2")
             open(join(prefix, 'conda-meta', 'history'), 'w').close()
             PrefixData._cache_.clear()
@@ -1170,40 +1170,40 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous')
 
     def test_install_update_deps_flag(self):
-        with make_temp_env("flask==0.12", "jinja2==2.8") as prefix:
+        with make_temp_env("flask=0.12", "jinja2=2.9") as prefix:
             assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask==0.12")
-            assert package_is_installed(prefix, "jinja2=2.8")
+            assert package_is_installed(prefix, "flask=0.12")
+            assert package_is_installed(prefix, "jinja2=2.9")
 
             run_command(Commands.INSTALL, prefix, "flask", "--update-deps")
             assert package_is_installed(prefix, "python=3.6")
             assert package_is_installed(prefix, "flask>0.12")
-            assert package_is_installed(prefix, "jinja2>2.8")
+            assert package_is_installed(prefix, "jinja2>2.9")
 
     def test_install_only_deps_flag(self):
-        with make_temp_env("flask==0.12", "jinja2==2.8") as prefix:
+        with make_temp_env("flask=0.12.2", "jinja2=2.9") as prefix:
             assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask==0.12")
-            assert package_is_installed(prefix, "jinja2=2.8")
+            assert package_is_installed(prefix, "flask=0.12.2")
+            assert package_is_installed(prefix, "jinja2=2.9")
 
             run_command(Commands.INSTALL, prefix, "flask", "--only-deps")
             assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask==0.12")
-            assert package_is_installed(prefix, "jinja2=2.8")
+            assert package_is_installed(prefix, "flask=0.12.2")
+            assert package_is_installed(prefix, "jinja2=2.9")
 
-        with make_temp_env("flask==0.12", "--only-deps") as prefix:
+        with make_temp_env("flask==0.12.2", "--only-deps") as prefix:
             assert not package_is_installed(prefix, "flask")
 
     def test_install_update_deps_only_deps_flags(self):
-        with make_temp_env("flask==0.12", "jinja2==2.8") as prefix:
+        with make_temp_env("flask=0.12.2", "jinja2=2.9") as prefix:
             assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask==0.12")
-            assert package_is_installed(prefix, "jinja2=2.8")
+            assert package_is_installed(prefix, "flask=0.12.2")
+            assert package_is_installed(prefix, "jinja2=2.9")
 
             run_command(Commands.INSTALL, prefix, "flask", "python=3.6", "--update-deps", "--only-deps")
             assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask==0.12")
-            assert package_is_installed(prefix, "jinja2>2.8")
+            assert package_is_installed(prefix, "flask=0.12.2")
+            assert package_is_installed(prefix, "jinja2>2.9")
 
     @pytest.mark.skipif(on_win, reason="tensorflow package used in test not available on Windows")
     def test_install_freeze_installed_flag(self):
@@ -1439,55 +1439,55 @@ class IntegrationTests(TestCase):
                     assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
     def test_package_pinning(self):
-        with make_temp_env("python=2.7", "itsdangerous=0.23", "pytz=2015.7") as prefix:
-            assert package_is_installed(prefix, "itsdangerous=0.23")
+        with make_temp_env("python=2.7", "itsdangerous=0.24", "pytz=2017.3") as prefix:
+            assert package_is_installed(prefix, "itsdangerous=0.24")
             assert package_is_installed(prefix, "python=2.7")
-            assert package_is_installed(prefix, "pytz=2015.7")
+            assert package_is_installed(prefix, "pytz=2017.3")
 
             with open(join(prefix, 'conda-meta', 'pinned'), 'w') as fh:
-                fh.write("itsdangerous 0.23\n")
+                fh.write("itsdangerous 0.24\n")
 
             run_command(Commands.UPDATE, prefix, "--all")
-            assert package_is_installed(prefix, "itsdangerous=0.23")
+            assert package_is_installed(prefix, "itsdangerous=0.24")
             # assert not package_is_installed(prefix, "python=3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
             assert package_is_installed(prefix, "python=2.7")
 
-            assert not package_is_installed(prefix, "pytz=2015.7")
+            assert not package_is_installed(prefix, "pytz=2017.3")
             assert package_is_installed(prefix, "pytz")
 
             run_command(Commands.UPDATE, prefix, "--all", "--no-pin")
             assert package_is_installed(prefix, "python=2.7")
-            assert not package_is_installed(prefix, "itsdangerous=0.23")
+            assert not package_is_installed(prefix, "itsdangerous=0.24")
 
     def test_package_optional_pinning(self):
         with make_temp_env() as prefix:
             run_command(Commands.CONFIG, prefix,
-                        "--add", "pinned_packages", "python=3.6.1=2")
+                        "--add", "pinned_packages", "python=3.6.5")
             run_command(Commands.INSTALL, prefix, "openssl")
             assert not package_is_installed(prefix, "python")
             run_command(Commands.INSTALL, prefix, "flask")
-            assert package_is_installed(prefix, "python=3.6.1")
+            assert package_is_installed(prefix, "python=3.6.5")
 
     def test_update_deps_flag_absent(self):
-        with make_temp_env("python=2", "itsdangerous=0.23") as prefix:
+        with make_temp_env("python=2", "itsdangerous=0.24") as prefix:
             assert package_is_installed(prefix, 'python=2')
-            assert package_is_installed(prefix, 'itsdangerous=0.23')
+            assert package_is_installed(prefix, 'itsdangerous=0.24')
             assert not package_is_installed(prefix, 'flask')
 
             run_command(Commands.INSTALL, prefix, 'flask')
             assert package_is_installed(prefix, 'python=2')
-            assert package_is_installed(prefix, 'itsdangerous=0.23')
+            assert package_is_installed(prefix, 'itsdangerous=0.24')
             assert package_is_installed(prefix, 'flask')
 
     def test_update_deps_flag_present(self):
-        with make_temp_env("python=2", "itsdangerous=0.23") as prefix:
+        with make_temp_env("python=2", "itsdangerous=0.24") as prefix:
             assert package_is_installed(prefix, 'python=2')
-            assert package_is_installed(prefix, 'itsdangerous=0.23')
+            assert package_is_installed(prefix, 'itsdangerous=0.24')
             assert not package_is_installed(prefix, 'flask')
 
             run_command(Commands.INSTALL, prefix, '--update-deps', 'python=2', 'flask')
             assert package_is_installed(prefix, 'python=2')
-            assert not package_is_installed(prefix, 'itsdangerous=0.23')
+            assert not package_is_installed(prefix, 'itsdangerous=0.24')
             assert package_is_installed(prefix, 'itsdangerous')
             assert package_is_installed(prefix, 'flask')
 
@@ -1713,7 +1713,7 @@ class IntegrationTests(TestCase):
         #   File "C:\Users\builder\AppData\Local\Temp\f903_固ō한ñђáγßê家ôç_35\lib\site-packages\pip\_vendor\urllib3\util\ssl_.py", line 313, in ssl_wrap_socket
         #     context.load_verify_locations(ca_certs, ca_cert_dir)
         #   TypeError: cafile should be a valid filesystem path
-        with make_temp_env("six=1.9", "pip=9.0.3", "python=3.5",
+        with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "six=1.9", "pip=9.0.3", "python=3.5",
                            use_restricted_unicode=on_win) as prefix:
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "six=1.9.0")
@@ -1873,112 +1873,116 @@ class IntegrationTests(TestCase):
 
 
     def test_conda_pip_interop_conda_editable_package(self):
-        with make_temp_env("python=2.7", "pip", "git", use_restricted_unicode=on_win) as prefix:
-            conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
-            workdir = prefix
+        with env_var('CONDA_RESTORE_FREE_CHANNEL', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with make_temp_env("python=2.7", "pip", "git", use_restricted_unicode=on_win) as prefix:
+                conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
+                workdir = prefix
 
-            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-            assert package_is_installed(prefix, "python")
+                run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
+                assert package_is_installed(prefix, "python")
 
-            # install an "editable" urllib3 that cannot be managed
-            output, err, _ = run_command(Commands.RUN, prefix, '--cwd', workdir,
-                                        "python", "-m", "pip", "install", "-e",
-                                            "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
-            assert isfile(join(workdir, "src", "urllib3", "urllib3", "__init__.py"))
-            assert not isfile(join("src", "urllib3", "urllib3", "__init__.py"))
-            PrefixData._cache_.clear()
-            assert package_is_installed(prefix, "urllib3")
-            urllib3_record = next(PrefixData(prefix).query("urllib3"))
-            urllib3_record_dump = urllib3_record.dump()
-            files = urllib3_record_dump.pop("files")
-            paths_data = urllib3_record_dump.pop("paths_data")
-            print(json_dump(urllib3_record_dump))
+                # install an "editable" urllib3 that cannot be managed
+                output, err, _ = run_command(Commands.RUN, prefix, '--cwd', workdir,
+                                             "python", "-m", "pip", "install", "-e",
+                                             "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
+                assert isfile(join(workdir, "src", "urllib3", "urllib3", "__init__.py"))
+                assert not isfile(join("src", "urllib3", "urllib3", "__init__.py"))
+                PrefixData._cache_.clear()
+                assert package_is_installed(prefix, "urllib3")
+                urllib3_record = next(PrefixData(prefix).query("urllib3"))
+                urllib3_record_dump = urllib3_record.dump()
+                files = urllib3_record_dump.pop("files")
+                paths_data = urllib3_record_dump.pop("paths_data")
+                print(json_dump(urllib3_record_dump))
 
-            assert json_loads(json_dump(urllib3_record_dump)) == {
-                "build": "dev_0",
-                "build_number": 0,
-                "channel": "https://conda.anaconda.org/<develop>",
-                "constrains": [
-                    "cryptography >=1.3.4",
-                    "idna >=2.0.0",
-                    "pyopenssl >=0.14",
-                    "pysocks !=1.5.7,<2.0,>=1.5.6"
-                ],
-                "depends": [
-                    "python 2.7.*"
-                ],
-                "fn": "urllib3-1.19.1-dev_0",
-                "name": "urllib3",
-                "package_type": "virtual_python_egg_link",
-                "subdir": "pypi",
-                "version": "1.19.1"
-            }
+                assert json_loads(json_dump(urllib3_record_dump)) == {
+                    "build": "dev_0",
+                    "build_number": 0,
+                    "channel": "https://conda.anaconda.org/<develop>",
+                    "constrains": [
+                        "cryptography >=1.3.4",
+                        "idna >=2.0.0",
+                        "pyopenssl >=0.14",
+                        "pysocks !=1.5.7,<2.0,>=1.5.6"
+                    ],
+                    "depends": [
+                        "python 2.7.*"
+                    ],
+                    "fn": "urllib3-1.19.1-dev_0",
+                    "name": "urllib3",
+                    "package_type": "virtual_python_egg_link",
+                    "subdir": "pypi",
+                    "version": "1.19.1"
+                }
 
-            # the unmanageable urllib3 should prevent a new requests from being installed
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "requests", "--dry-run", "--json",
-                                         use_exception_handler=True)
-            assert not stderr
-            json_obj = json_loads(stdout)
-            assert "UNLINK" not in json_obj["actions"]
-            link_dists = json_obj["actions"]["LINK"]
-            assert len(link_dists) == 1
-            assert link_dists[0]["name"] == "requests"
-            assert VersionOrder(link_dists[0]["version"]) < VersionOrder("2.16")
+                # the unmanageable urllib3 should prevent a new requests from being installed
+                stdout, stderr, _ = run_command(Commands.INSTALL, prefix,
+                                                "requests", "--dry-run", "--json",
+                                                use_exception_handler=True)
+                assert not stderr
+                json_obj = json_loads(stdout)
+                assert "UNLINK" not in json_obj["actions"]
+                link_dists = json_obj["actions"]["LINK"]
+                assert len(link_dists) == 1
+                assert link_dists[0]["name"] == "requests"
+                assert VersionOrder(link_dists[0]["version"]) < VersionOrder("2.16")
 
-            # should already be satisfied
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "urllib3", "-S")
-            assert "All requested packages already installed." in stdout
+                # should already be satisfied
+                stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "urllib3", "-S")
+                assert "All requested packages already installed." in stdout
 
-            # should raise an error
-            with pytest.raises(PackagesNotFoundError):
-                # TODO: This raises PackagesNotFoundError, but the error should really explain
-                #       that we can't install urllib3 because it's already installed and
-                #       unmanageable. The error should suggest trying to use pip to uninstall it.
-                stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "urllib3=1.20", "--dry-run")
+                # should raise an error
+                with pytest.raises(PackagesNotFoundError):
+                    # TODO: This raises PackagesNotFoundError, but the error should really explain
+                    #       that we can't install urllib3 because it's already installed and
+                    #       unmanageable. The error should suggest trying to use pip to uninstall it.
+                    stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "urllib3=1.20", "--dry-run")
 
-            # Now install a manageable urllib3.
-            output = check_output(PYTHON_BINARY + " -m pip install -U urllib3==1.20",
-                                  cwd=prefix, shell=True)
-            print(output)
-            PrefixData._cache_.clear()
-            assert package_is_installed(prefix, "urllib3")
-            urllib3_record = next(PrefixData(prefix).query("urllib3"))
-            urllib3_record_dump = urllib3_record.dump()
-            files = urllib3_record_dump.pop("files")
-            paths_data = urllib3_record_dump.pop("paths_data")
-            print(json_dump(urllib3_record_dump))
+                # Now install a manageable urllib3.
+                output = check_output(PYTHON_BINARY + " -m pip install -U urllib3==1.20",
+                                    cwd=prefix, shell=True)
+                print(output)
+                PrefixData._cache_.clear()
+                assert package_is_installed(prefix, "urllib3")
+                urllib3_record = next(PrefixData(prefix).query("urllib3"))
+                urllib3_record_dump = urllib3_record.dump()
+                files = urllib3_record_dump.pop("files")
+                paths_data = urllib3_record_dump.pop("paths_data")
+                print(json_dump(urllib3_record_dump))
 
-            assert json_loads(json_dump(urllib3_record_dump)) == {
-                "build": "pypi_0",
-                "build_number": 0,
-                "channel": "https://conda.anaconda.org/pypi",
-                "constrains": [
-                    "pysocks >=1.5.6,<2.0,!=1.5.7"
-                ],
-                "depends": [
-                    "python 2.7.*"
-                ],
-                "fn": "urllib3-1.20.dist-info",
-                "name": "urllib3",
-                "package_type": "virtual_python_wheel",
-                "subdir": "pypi",
-                "version": "1.20"
-            }
+                assert json_loads(json_dump(urllib3_record_dump)) == {
+                    "build": "pypi_0",
+                    "build_number": 0,
+                    "channel": "https://conda.anaconda.org/pypi",
+                    "constrains": [
+                        "pysocks >=1.5.6,<2.0,!=1.5.7"
+                    ],
+                    "depends": [
+                        "python 2.7.*"
+                    ],
+                    "fn": "urllib3-1.20.dist-info",
+                    "name": "urllib3",
+                    "package_type": "virtual_python_wheel",
+                    "subdir": "pypi",
+                    "version": "1.20"
+                }
 
-            # we should be able to install an unbundled requests that upgrades urllib3 in the process
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "requests=2.18", "--json")
-            assert package_is_installed(prefix, "requests")
-            assert package_is_installed(prefix, "urllib3>=1.21")
-            assert not stderr
-            json_obj = json_loads(stdout)
-            unlink_dists = json_obj["actions"]["UNLINK"]
-            assert len(unlink_dists) == 1
-            assert unlink_dists[0]["name"] == "urllib3"
-            assert unlink_dists[0]["channel"] == "pypi"
+                # we should be able to install an unbundled requests that upgrades urllib3 in the process
+                stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "requests=2.18", "--json")
+                assert package_is_installed(prefix, "requests")
+                assert package_is_installed(prefix, "urllib3>=1.21")
+                assert not stderr
+                json_obj = json_loads(stdout)
+                unlink_dists = json_obj["actions"]["UNLINK"]
+                assert len(unlink_dists) == 1
+                assert unlink_dists[0]["name"] == "urllib3"
+                assert unlink_dists[0]["channel"] == "pypi"
 
     def test_conda_pip_interop_compatible_release_operator(self):
         # Regression test for #7776
-        with make_temp_env("pip=10", "six=1.9", "appdirs", use_restricted_unicode=on_win) as prefix:
+        # important to start the env with six 1.9.  That version forces an upgrade later in the test
+        with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "pip=10", "six=1.9", "appdirs",
+                           use_restricted_unicode=on_win) as prefix:
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
             assert package_is_installed(prefix, "six=1.9")
@@ -2009,7 +2013,8 @@ class IntegrationTests(TestCase):
             assert "fs                        2.1.0                    pypi_0    pypi" in stdout
 
             with pytest.raises(DryRunExit):
-                run_command(Commands.INSTALL, prefix, "agate=1.6", "--dry-run")
+                run_command(Commands.INSTALL, prefix, "-c", "https://repo.anaconda.com/pkgs/free",
+                            "agate=1.6", "--dry-run")
 
     def test_install_freezes_env_by_default(self):
         """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
@@ -2029,10 +2034,9 @@ class IntegrationTests(TestCase):
                                  entry['name'] + '=' + entry['version'] + '=' + entry['build_string'])
 
             specs.append('imagesize')
-            specs = [MatchSpec(s) for s in specs]
+            specs = {MatchSpec(s) for s in specs}
             import conda.core.solve
             r = conda.core.solve.Resolve(get_index())
-            specs = tuple(sorted(specs, key=lambda x: (exactness_and_number_of_deps(r, x), x.name), reverse=True))
             reduced_index = r.get_reduced_index([MatchSpec('imagesize')])
 
             # now add requests to that env.  The call to get_reduced_index should include our exact specs
@@ -2056,18 +2060,16 @@ class IntegrationTests(TestCase):
                 use_exception_handler=True,
             )
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert "gawk" in json_obj.keys()
             assert "m2-gawk" in json_obj.keys()
-            assert len(json_obj.keys()) == 2
+            assert len(json_obj.keys()) == 1
 
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
     def test_search_gawk_on_win(self):
         with make_temp_env() as prefix:
             stdout, _, _ = run_command(Commands.SEARCH, prefix, "*gawk", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert "gawk" in json_obj.keys()
             assert "m2-gawk" in json_obj.keys()
-            assert len(json_obj.keys()) == 2
+            assert len(json_obj.keys()) == 1
 
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
     def test_search_gawk_on_win_filter(self):
@@ -2216,7 +2218,7 @@ class IntegrationTests(TestCase):
             with make_temp_env() as prefix:
                 pkgs_dir = join(prefix, 'pkgs')
                 with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                    with make_temp_channel(['flask-0.10.1']) as channel:
+                    with make_temp_channel(['flask-0.12.2']) as channel:
                         # Clear the index cache.
                         index_cache_dir = create_cache_dir()
                         run_command(Commands.CLEAN, '', "--index-cache")
@@ -2334,9 +2336,9 @@ class IntegrationTests(TestCase):
             assert path_is_clean(prefix)
 
             # this part also a regression test for #4849
-            run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.0", "python=3.5.2", "--mkdir")
-            assert package_is_installed(prefix, "python=3.5.2")
-            assert package_is_installed(prefix, "python-dateutil=2.6.0")
+            run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.1", "python=3.5.6", "--mkdir")
+            assert package_is_installed(prefix, "python=3.5.6")
+            assert package_is_installed(prefix, "python-dateutil=2.6.1")
 
         finally:
             rm_rf(prefix, clean_empty_parents=True)
@@ -2446,15 +2448,15 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.10.1')
-            assert package_is_installed(prefix, 'flask=0.10.1')
+            run_command(Commands.INSTALL, prefix, 'flask=0.12.2')
+            assert package_is_installed(prefix, 'flask=0.12.2')
 
             from conda.core.path_actions import CreatePrefixRecordAction
             with patch.object(CreatePrefixRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(CondaMultiError):
-                    run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
-                assert package_is_installed(prefix, 'flask=0.10.1')
+                    run_command(Commands.INSTALL, prefix, 'flask=1.0.2')
+                assert package_is_installed(prefix, 'flask=0.12.2')
 
     def test_directory_not_a_conda_environment(self):
         prefix = make_temp_prefix(str(uuid4())[:7])
@@ -2650,7 +2652,7 @@ class IntegrationTests(TestCase):
     def test_run_script_called(self):
         import conda.core.link
         with patch.object(conda.core.link, 'subprocess_call') as rs:
-            with make_temp_env("openssl=1.0.2j", "--no-deps") as prefix:
+            with make_temp_env("-c", "http://repo.anaconda.com/pkgs/free", "openssl=1.0.2j", "--no-deps") as prefix:
                 assert package_is_installed(prefix, 'openssl')
                 assert rs.call_count == 1
 

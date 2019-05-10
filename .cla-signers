@@ -1,8 +1,6 @@
-# New contributors should email kfranz@anaconda.com to request a Contributor License Agreement
-# that can be electronically signed. A signed contributor license agreement for a pull request
-# author needs to be on file with Anaconda, Inc. for pull requests to be merged. This file,
-# while not an official record, is used by conda-bot for the purposes of CLA status on pull
-# requests.
+# A signed contributor license agreement for a pull request author needs to be on file with
+# Anaconda, Inc. for pull requests to be merged. This file, while not an official record,
+# is used by conda-bot for the purposes of CLA status on pull requests.
 
 # Each row in this file has three fields. The first field is github username. The second field
 # is git id, the output of `git log -n1 --format="%aN <%aE>"` when HEAD is at a specific user's

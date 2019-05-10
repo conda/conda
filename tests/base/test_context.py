@@ -174,6 +174,11 @@ class ContextCustomRcTests(TestCase):
             Channel('learn_from_every_thing'),
         )
 
+    def test_restore_free_channel(self):
+        assert 'https://repo.anaconda.com/pkgs/free' not in context.default_channels
+        with env_var("CONDA_RESTORE_FREE_CHANNEL", 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            assert  context.default_channels.index('https://repo.anaconda.com/pkgs/free') == 1
+
     def test_proxy_servers(self):
         assert context.proxy_servers['http'] == 'http://user:pass@corp.com:8080'
         assert context.proxy_servers['https'] is None

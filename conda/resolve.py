@@ -385,7 +385,7 @@ class Resolve(object):
 
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
-        cache_key = strict_channel_priority, frozenset(explicit_specs)
+        cache_key = strict_channel_priority, tuple(explicit_specs)
         if cache_key in self._reduced_index_cache:
             return self._reduced_index_cache[cache_key]
 
@@ -398,8 +398,19 @@ class Resolve(object):
                       for prec, val in iteritems(self.default_filter(features))}
         snames = set()
         top_level_spec = None
-
         cp_filter_applied = set()  # values are package names
+
+        # prioritize specs that are more exact.  Exact specs will evaluate to 3,
+        #    constrained specs will evaluate to 2, and name only will be 1
+        explicit_specs = sorted(list(explicit_specs), key=lambda x: (
+            exactness_and_number_of_deps(self, x), x.name), reverse=True)
+        # tuple because it needs to be hashable
+        explicit_specs = tuple(explicit_specs)
+
+        explicit_spec_package_pool = {}
+        for s in explicit_specs:
+            explicit_spec_package_pool[s.name] = explicit_spec_package_pool.get(
+                s.name, set()) | set(self.find_matches(s))
 
         def filter_group(_specs):
             # all _specs should be for the same package name
@@ -407,20 +418,22 @@ class Resolve(object):
             group = self.groups.get(name, ())
 
             # implement strict channel priority
-            if strict_channel_priority and name not in cp_filter_applied:
+            if group and strict_channel_priority and name not in cp_filter_applied:
                 sole_source_channel_name = self._get_strict_channel(name)
                 for prec in group:
                     if prec.channel.name != sole_source_channel_name:
                         filter_out[prec] = "removed due to strict channel priority"
                 cp_filter_applied.add(name)
 
-            # Prune packages that don't match any of the patterns
-            # or which have unsatisfiable dependencies
+            # Prune packages that don't match any of the patterns,
+            # have unsatisfiable dependencies, or conflict with the explicit specs
             nold = nnew = 0
             for prec in group:
                 if not filter_out.setdefault(prec, False):
                     nold += 1
-                    if not self.match_any(_specs, prec):
+                    if not self.match_any(_specs, prec) or (
+                            explicit_spec_package_pool.get(name) and
+                            prec not in explicit_spec_package_pool[name]):
                         filter_out[prec] = "incompatible with required spec %s" % top_level_spec
                         continue
                     unsatisfiable_dep_specs = tuple(
@@ -500,11 +513,10 @@ class Resolve(object):
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
-        explicit_spec_set = set(explicit_specs)
         specs_by_name_seed = OrderedDict()
         for s in explicit_specs:
             specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, list()) + [s]
-        for explicit_spec in explicit_spec_set:
+        for explicit_spec in explicit_specs:
             add_these_precs2 = tuple(
                 prec for prec in self.find_matches(explicit_spec)
                 if prec not in reduced_index2 and self.valid2(prec, filter_out))
@@ -619,10 +631,11 @@ class Resolve(object):
         version_comparator = VersionOrder(prec.get('version', ''))
         build_number = prec.get('build_number', 0)
         build_string = prec.get('build')
+        noarch = - int(prec.subdir == 'noarch')
         if self._channel_priority != ChannelPriority.DISABLED:
-            vkey = [valid, -channel_priority, version_comparator, build_number]
+            vkey = [valid, -channel_priority, version_comparator, build_number, noarch]
         else:
-            vkey = [valid, version_comparator, -channel_priority, build_number]
+            vkey = [valid, version_comparator, -channel_priority, build_number, noarch]
         if self._solver_ignore_timestamps:
             vkey.append(build_string)
         else:
@@ -782,6 +795,7 @@ class Resolve(object):
         eqc = {}  # channel
         eqv = {}  # version
         eqb = {}  # build number
+        eqa = {}  # arch/noarch
         eqt = {}  # timestamp
 
         sdict = {}  # Dict[package_name, PackageRecord]
@@ -807,20 +821,24 @@ class Resolve(object):
                 if targets and any(prec == t for t in targets):
                     continue
                 if pkey is None:
-                    ic = iv = ib = it = 0
+                    ic = iv = ib = it = ia = 0
                 # valid package, channel priority
                 elif pkey[0] != version_key[0] or pkey[1] != version_key[1]:
                     ic += 1
-                    iv = ib = it = 0
+                    iv = ib = it = ia = 0
                 # version
                 elif pkey[2] != version_key[2]:
                     iv += 1
-                    ib = it = 0
+                    ib = it = ia = 0
                 # build number
                 elif pkey[3] != version_key[3]:
                     ib += 1
+                    it = ia = 0
+                # arch/noarch
+                elif pkey[4] != version_key[4]:
+                    ia += 1
                     it = 0
-                elif not self._solver_ignore_timestamps and pkey[4] != version_key[4]:
+                elif not self._solver_ignore_timestamps and pkey[5] != version_key[5]:
                     it += 1
 
                 prec_sat_name = self.to_sat_name(prec)
@@ -830,11 +848,13 @@ class Resolve(object):
                     eqv[prec_sat_name] = iv
                 if ib or include0:
                     eqb[prec_sat_name] = ib
+                if ia or include0:
+                    eqa[prec_sat_name] = ia
                 if it or include0:
                     eqt[prec_sat_name] = it
                 pkey = version_key
 
-        return eqc, eqv, eqb, eqt
+        return eqc, eqv, eqb, eqa, eqt
 
     def dependency_sort(self, must_have):
         # type: (Dict[package_name, PackageRecord]) -> List[PackageRecord]
@@ -979,7 +999,7 @@ class Resolve(object):
             pkgs.extend(p for p in preserve if p.name not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
-        specs = set(map(MatchSpec, specs))
+        specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
@@ -999,8 +1019,8 @@ class Resolve(object):
             else:
                 spec = MatchSpec(name=name, version=version,
                                  build=build, channel=schannel)
-            specs.add(spec)
-        return frozenset(specs), preserve
+            specs.insert(0, spec)
+        return tuple(specs), preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
@@ -1052,16 +1072,14 @@ class Resolve(object):
         if log.isEnabledFor(DEBUG):
             log.debug('Solving for: %s', dashlist(sorted(text_type(s) for s in specs)))
 
+        if specs and not isinstance(specs[0], MatchSpec):
+            specs = tuple(MatchSpec(_) for _ in specs)
+        specs = set(specs)
+
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
-        specs = list(map(MatchSpec, specs))
 
-        # prioritize specs that are more exact.  Exact specs will evaluate to 3,
-        #    constrained specs will evaluate to 2, and name only will be 1
-        specs.sort(key=lambda x: (exactness_and_number_of_deps(self, x),
-                                  x.name), reverse=True)
-        specs = tuple(specs)
         reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             return False if reduced_index is None else ([[]] if returnall else [])
@@ -1123,7 +1141,7 @@ class Resolve(object):
 
         # Requested packages: maximize versions
         log.debug("Solve: maximize versions of requested packages")
-        eq_req_c, eq_req_v, eq_req_b, eq_req_t = r2.generate_version_metrics(C, specr)
+        eq_req_c, eq_req_v, eq_req_b, eq_req_a, eq_req_t = r2.generate_version_metrics(C, specr)
         solution, obj3a = C.minimize(eq_req_c, solution)
         solution, obj3 = C.minimize(eq_req_v, solution)
         log.debug('Initial package channel/version metric: %d/%d', obj3a, obj3)
@@ -1150,6 +1168,11 @@ class Resolve(object):
         solution, obj4 = C.minimize(eq_req_b, solution)
         log.debug('Initial package build metric: %d', obj4)
 
+        # prefer arch packages where available for requested specs
+        log.debug("Solve: prefer arch over noarch for requested packages")
+        solution, noarch_obj = C.minimize(eq_req_a, solution)
+        log.debug('Noarch metric: %d', noarch_obj)
+
         # Optional installations: minimize count
         if not _remove:
             log.debug("Solve: minimize number of optional installations")
@@ -1164,13 +1187,15 @@ class Resolve(object):
         log.debug('Dependency update count: %d', obj50)
 
         # Remaining packages: maximize versions, then builds
-        log.debug("Solve: maximize versions and builds of indirect dependencies")
-        eq_c, eq_v, eq_b, eq_t = r2.generate_version_metrics(C, speca)
+        log.debug("Solve: maximize versions and builds of indirect dependencies.  "
+                  "Prefer arch over noarch where equivalent.")
+        eq_c, eq_v, eq_b, eq_a, eq_t = r2.generate_version_metrics(C, speca)
         solution, obj5a = C.minimize(eq_c, solution)
         solution, obj5 = C.minimize(eq_v, solution)
         solution, obj6 = C.minimize(eq_b, solution)
-        log.debug('Additional package channel/version/build metrics: %d/%d/%d',
-                  obj5a, obj5, obj6)
+        solution, obj6a = C.minimize(eq_a, solution)
+        log.debug('Additional package channel/version/build/noarch metrics: %d/%d/%d/%d',
+                  obj5a, obj5, obj6, obj6a)
 
         # Prune unnecessary packages
         log.debug("Solve: prune unnecessary packages")
@@ -1178,8 +1203,7 @@ class Resolve(object):
         solution, obj7 = C.minimize(eq_c, solution, trymax=True)
         log.debug('Weak dependency count: %d', obj7)
 
-        converged = is_converged(solution)
-        if not converged:
+        if not is_converged(solution):
             # Maximize timestamps
             eq_t.update(eq_req_t)
             solution, obj6t = C.minimize(eq_t, solution)
