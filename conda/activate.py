@@ -838,7 +838,7 @@ class XonshActivator(_Activator):
         self.sep = '/'
         self.path_conversion = native_path_to_unix
         self.script_extension = '.xsh'
-        self.tempfile_extension = '.xsh'
+        self.tempfile_extension = None
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'del $%s'
@@ -851,7 +851,7 @@ class XonshActivator(_Activator):
         super(XonshActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        return 'CONDA_EXE = "%s"' % context.conda_exe
+        return '$CONDA_EXE = "%s"' % context.conda_exe
 
 
 class CmdExeActivator(_Activator):
