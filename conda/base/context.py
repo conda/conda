@@ -217,6 +217,7 @@ class Context(Configuration):
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
     use_local = PrimitiveParameter(False)
     whitelist_channels = SequenceParameter(string_types, expandvars=True)
+    restore_free_channel = PrimitiveParameter(False)
 
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -544,8 +545,12 @@ class Context(Configuration):
     def custom_multichannels(self):
         from ..models.channel import Channel
 
+        default_channels = list(self._default_channels)
+        if self.restore_free_channel:
+            default_channels.insert(1, 'https://repo.anaconda.com/pkgs/free')
+
         reserved_multichannel_urls = odict((
-            (DEFAULTS_CHANNEL_NAME, self._default_channels),
+            (DEFAULTS_CHANNEL_NAME, default_channels),
             ('local', self.conda_build_local_urls),
         ))
         reserved_multichannels = odict(
@@ -713,6 +718,7 @@ class Context(Configuration):
             'migrated_custom_channels',
             'add_anaconda_token',
             'allow_non_channel_urls',
+            'restore_free_channel',
         )),
         ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
             'envs_dirs',
@@ -1062,6 +1068,10 @@ class Context(Configuration):
                 reports are anonymous, with only the error stack trace and information given
                 by `conda info` being sent.
                 """),
+            'restore_free_channel': dals(""""
+                Add the "free" channel back into defaults, behind "main" in priority. The "free"
+                channel was removed from the collection of default channels in conda 4.7.0.
+            """),
             'rollback_enabled': dals("""
                 Should any error occur during an unlink/link transaction, revert any disk
                 mutations made to that point in the transaction.

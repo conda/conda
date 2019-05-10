@@ -17,14 +17,14 @@ class PriorityIntegrationTests(TestCase):
         # This is broken, make_temp_env will reset the context. We get away with it, but really
         # we need a function that does both these at the same time.
         with env_var("CONDA_PINNED_PACKAGES", "python=3.5", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("pycosat==0.6.1") as prefix:
+            with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "pycosat==0.6.1") as prefix:
                 assert package_is_installed(prefix, 'python=3.5')
                 assert package_is_installed(prefix, 'pycosat')
 
                 # add conda-forge channel
                 o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
-
-                assert context.channels == ("conda-forge", "defaults"), o + e
+                o, e, _ = run_command(Commands.CONFIG, prefix, "--append", "channels", "https://repo.anaconda.com/pkgs/free", '--json')
+                assert context.channels == ("conda-forge", "defaults", "https://repo.anaconda.com/pkgs/free"), o + e
                 # update --all
                 update_stdout, _, _ = run_command(Commands.UPDATE, prefix, '--all')
 
@@ -41,8 +41,7 @@ class PriorityIntegrationTests(TestCase):
                 # The following packages will be UPDATED to a higher-priority channel:
                 #
                 installed_str, x = update_stdout.split('UPDATED')
-                updated_str, downgraded_str = x.split('SUPERSEDED')
-                assert 'pycosat' in updated_str
+                assert 'pkgs/free::pycosat-0.6.1-py35_1 --> conda-forge::pycosat' in x
 
                 # python sys.version should show conda-forge python
                 python_tuple = get_conda_list_tuple(prefix, "python")
@@ -55,7 +54,7 @@ class PriorityIntegrationTests(TestCase):
         """
             This case will fail now
         """
-        with make_temp_env("python=3.5.3=0") as prefix:
+        with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "python=3.5.3=0") as prefix:
             assert package_is_installed(prefix, 'python')
 
             # add conda-forge channel

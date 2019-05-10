@@ -77,12 +77,12 @@ conda_build_test: &conda_build_test
           echo "safety_checks: disabled" >> ~/.condarc
           echo "local_repodata_ttl: 1800" >> ~/.condarc
           conda create -n blarg -yq --download-only python=2.7
-          conda create -n blarg -yq --download-only python=3.4
+          conda create -n blarg -yq -c https://repo.anaconda.com/pkgs/free --download-only python=3.4
           conda create -n blarg -yq --download-only python=3.5
           conda create -n blarg -yq --download-only python=3.6
           conda create -n blarg -yq --download-only python=3.7
           conda create -n blarg -yq --download-only python setuptools cython certifi
-          conda create -n blarg -yq --download-only libpng=1.6.17
+          conda create -n blarg -yq -c https://repo.anaconda.com/pkgs/free --download-only libpng=1.6.17
 
     - run:
         name: conda-build conda
@@ -141,6 +141,9 @@ conda_build_test: &conda_build_test
             echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+            conda config --add default_channels https://repo.anaconda.com/pkgs/free
+            conda config --add default_channels https://repo.anaconda.com/pkgs/r
+            conda config --add default_channels https://repo.anaconda.com/pkgs/main
             conda info
             cd ~/conda-build
             py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
@@ -169,6 +172,10 @@ conda_build_test: &conda_build_test
               echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+            conda config --add default_channels https://repo.anaconda.com/pkgs/free
+            conda config --add default_channels https://repo.anaconda.com/pkgs/r
+            conda config --add default_channels https://repo.anaconda.com/pkgs/main
+            conda info
             cd ~/conda-build
             py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
             /opt/conda/bin/python -m conda.common.io

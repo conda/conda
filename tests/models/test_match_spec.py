@@ -293,18 +293,18 @@ class MatchSpecTests(TestCase):
 
     def test_channel_matching(self):
         with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-            assert ChannelMatch('pkgs/free').match('defaults') is False
-            assert ChannelMatch('defaults').match('pkgs/free') is True
+            assert ChannelMatch('pkgs/main').match('defaults') is False
+            assert ChannelMatch('defaults').match('pkgs/main') is True
 
-            assert ChannelMatch("https://repo.anaconda.com/pkgs/free").match('defaults') is False
-            assert ChannelMatch("defaults").match("https://repo.anaconda.com/pkgs/free") is True
+            assert ChannelMatch("https://repo.anaconda.com/pkgs/main").match('defaults') is False
+            assert ChannelMatch("defaults").match("https://repo.anaconda.com/pkgs/main") is True
 
             assert ChannelMatch("https://conda.anaconda.org/conda-forge").match('conda-forge') is True
             assert ChannelMatch("conda-forge").match("https://conda.anaconda.org/conda-forge") is True
 
-            assert ChannelMatch("https://repo.anaconda.com/pkgs/free").match('conda-forge') is False
+            assert ChannelMatch("https://repo.anaconda.com/pkgs/main").match('conda-forge') is False
 
-            assert str(MatchSpec("pkgs/free::*")) == "pkgs/free::*"
+            assert str(MatchSpec("pkgs/main::*")) == "pkgs/main::*"
             assert str(MatchSpec("defaults::*")) == "defaults::*"
 
     def test_matchspec_errors(self):
@@ -356,12 +356,12 @@ class MatchSpecTests(TestCase):
                                                    'tk 8.5*', 'xz 5.0.5', 'zlib 1.2*', 'pip'),
                                          channel=Channel(scheme='https', auth=None,
                                                           location='repo.anaconda.com', token=None,
-                                                          name='pkgs/free', platform='osx-64',
+                                                          name='pkgs/main', platform='osx-64',
                                                           package_filename=None),
                                          subdir='osx-64', fn='python-3.5.1-0.tar.bz2',
                                          md5='a813bc0a32691ab3331ac9f37125164c', size=14678857,
                                          priority=0,
-                                         url='https://repo.anaconda.com/pkgs/free/osx-64/python-3.5.1-0.tar.bz2'))
+                                         url='https://repo.anaconda.com/pkgs/main/osx-64/python-3.5.1-0.tar.bz2'))
 
     def test_index_record(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
@@ -524,7 +524,7 @@ class SpecStrParsingTests(TestCase):
 
     def test_parse_spec_str_tarball_url(self):
         with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-            url = "https://repo.anaconda.com/pkgs/free/linux-64/_license-1.1-py27_1.tar.bz2"
+            url = "https://repo.anaconda.com/pkgs/main/linux-64/_license-1.1-py27_1.tar.bz2"
             assert _parse_spec_str(url) == {
                 "channel": "defaults",
                 "subdir": "linux-64",

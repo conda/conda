@@ -78,13 +78,11 @@ RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
 DEFAULT_CHANNELS_UNIX = (
     'https://repo.anaconda.com/pkgs/main',
-    'https://repo.anaconda.com/pkgs/free',
     'https://repo.anaconda.com/pkgs/r',
 )
 
 DEFAULT_CHANNELS_WIN = (
     'https://repo.anaconda.com/pkgs/main',
-    'https://repo.anaconda.com/pkgs/free',
     'https://repo.anaconda.com/pkgs/r',
     'https://repo.anaconda.com/pkgs/msys2',
 )
