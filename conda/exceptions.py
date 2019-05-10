@@ -267,9 +267,14 @@ class CondaOSError(CondaError, OSError):
 
 
 class ProxyError(CondaError):
-    def __init__(self, message):
-        msg = '%s' % message
-        super(ProxyError, self).__init__(msg)
+    def __init__(self):
+        message = dals("""
+        Conda cannot proceed due to an error in your proxy configuration.
+        Check for typos and other configuration errors in any '.netrc' file in your home directory,
+        any environment variables ending in '_PROXY', and any other system-wide proxy
+        configuration settings.
+        """)
+        super(ProxyError, self).__init__(message)
 
 
 class CondaIOError(CondaError, IOError):

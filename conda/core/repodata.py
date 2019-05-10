@@ -18,7 +18,7 @@ from time import time
 import warnings
 
 from requests import ConnectionError, HTTPError
-from requests.exceptions import InvalidSchema, SSLError
+from requests.exceptions import InvalidSchema, ProxyError as RequestsProxyError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from .. import CondaError, iteritems
@@ -31,7 +31,7 @@ from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode, tex
 from ..common.url import join_url, maybe_unquote
 from ..connection import CondaSession
 from ..core.package_cache import PackageCache
-from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
+from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError, ProxyError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel
@@ -160,6 +160,10 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
         add_http_value_to_dict(resp, 'Last-Modified', fetched_repodata, '_mod')
         add_http_value_to_dict(resp, 'Cache-Control', fetched_repodata, '_cache_control')
         return fetched_repodata
+
+    except RequestsProxyError:
+        raise ProxyError()  # see #3962
+
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):
             message = dals("""

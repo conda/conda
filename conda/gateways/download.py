@@ -7,7 +7,8 @@ from os.path import basename, exists
 from threading import Lock
 import warnings
 
-from requests.exceptions import ConnectionError, HTTPError, InvalidSchema, SSLError
+from requests.exceptions import (ConnectionError, HTTPError, InvalidSchema,
+                                 ProxyError as RequestsProxyError, SSLError)
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
@@ -17,7 +18,7 @@ from ..common.compat import text_type
 from ..common.io import time_recorder
 from ..connection import CondaSession
 from ..exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
-                          MD5MismatchError, maybe_raise)
+                          MD5MismatchError, maybe_raise, ProxyError)
 
 log = getLogger(__name__)
 
@@ -119,6 +120,8 @@ def download(url, target_full_path, md5sum):
             log.debug("MD5 sums mismatch for download: %s (%s != %s), "
                       "trying again" % (url, digest_builder.hexdigest(), md5sum))
             raise MD5MismatchError(url, target_full_path, md5sum, actual_md5sum)
+    except RequestsProxyError:
+        raise ProxyError()  # see #3962
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):
