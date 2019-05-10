@@ -9,7 +9,7 @@ from logging import getLogger
 
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, drop
-from ..base.constants import DEFAULTS_CHANNEL_NAME,MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
+from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_package_file, is_path, win_path_backout
