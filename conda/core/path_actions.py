@@ -1144,7 +1144,7 @@ class CacheUrlAction(PathAction):
                     target_package_cache._urls_data.add_url(self.url)
 
         else:
-            download(self.url, self.target_full_path, md5sum=self.md5sum,
+            download(self.url, self.target_full_path, md5=self.md5sum,
                      progress_update_callback=progress_update_callback)
             target_package_cache._urls_data.add_url(self.url)
 

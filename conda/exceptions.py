@@ -488,20 +488,21 @@ class CouldntParseError(ParseError):
         super(CouldntParseError, self).__init__(self.args[0])
 
 
-class MD5MismatchError(CondaError):
-    def __init__(self, url, target_full_path, expected_md5sum, actual_md5sum):
+class ChecksumMismatchError(CondaError):
+    def __init__(self, url, target_full_path, checksum_type, expected_checksum, actual_checksum):
         message = dals("""
         Conda detected a mismatch between the expected content and downloaded content
         for url '%(url)s'.
           download saved to: %(target_full_path)s
-          expected md5 sum: %(expected_md5sum)s
-          actual md5 sum: %(actual_md5sum)s
+          expected %(checksum_type)s: %(expected_checksum)s
+          actual %(checksum_type)s: %(actual_checksum)s
         """)
         from .common.url import maybe_unquote
         url = maybe_unquote(url)
-        super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
-                                               expected_md5sum=expected_md5sum,
-                                               actual_md5sum=actual_md5sum)
+        super(ChecksumMismatchError, self).__init__(
+            message, url=url, target_full_path=target_full_path, checksum_type=checksum_type,
+            expected_checksum=expected_checksum, actual_checksum=actual_checksum,
+        )
 
 
 class PackageNotInstalledError(CondaError):

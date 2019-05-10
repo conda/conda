@@ -19,7 +19,7 @@ from ...base.context import context
 from ...common.compat import text_type
 from ...common.io import time_recorder
 from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
-                           MD5MismatchError, maybe_raise)
+                           ChecksumMismatchError, maybe_raise)
 
 log = getLogger(__name__)
 
@@ -29,10 +29,9 @@ def disable_ssl_verify_warning():
 
 
 @time_recorder("download")
-def download(url, target_full_path, md5sum=None, progress_update_callback=None):
-    # TODO: For most downloads, we should know the size of the artifact from what's reported
-    #       in repodata.  We should validate that here also, in addition to the 'Content-Length'
-    #       header.
+def download(
+        url, target_full_path, md5=None, sha256=None, size=None, progress_update_callback=None
+):
     if exists(target_full_path):
         maybe_raise(BasicClobberError(target_full_path, url, context), context)
 
@@ -49,7 +48,9 @@ def download(url, target_full_path, md5sum=None, progress_update_callback=None):
 
         content_length = int(resp.headers.get('Content-Length', 0))
 
-        digest_builder = hashlib.new('md5')
+        md5_builder = hashlib.new("md5") if md5 else None
+        sha256_builder = hashlib.new("sha256") if sha256 else None
+        size_builder = 0
         try:
             with open(target_full_path, 'wb') as fh:
                 streamed_bytes = 0
@@ -64,7 +65,9 @@ def download(url, target_full_path, md5sum=None, progress_update_callback=None):
                         # TODO: make this CondaIOError
                         raise CondaError(message, target_path=target_full_path, errno=e.errno)
 
-                    digest_builder.update(chunk)
+                    md5_builder and md5_builder.update(chunk)
+                    sha256_builder and sha256_builder.update(chunk)
+                    size_builder += len(chunk)
 
                     if content_length and 0 <= streamed_bytes <= content_length:
                         if progress_update_callback:
@@ -89,11 +92,22 @@ def download(url, target_full_path, md5sum=None, progress_update_callback=None):
                 log.debug("%s, trying again" % e)
             raise
 
-        actual_md5sum = digest_builder.hexdigest()
-        if md5sum and actual_md5sum != md5sum:
-            log.debug("MD5 sums mismatch for download: %s (%s != %s), "
-                      "trying again" % (url, digest_builder.hexdigest(), md5sum))
-            raise MD5MismatchError(url, target_full_path, md5sum, actual_md5sum)
+        if md5:
+            actual_md5 = md5_builder.hexdigest()
+            if actual_md5 != md5:
+                log.debug("md5 sums mismatch for download: %s (%s != %s)", url, actual_md5, md5)
+                raise ChecksumMismatchError(url, target_full_path, "md5", md5, actual_md5)
+        if sha256:
+            actual_sha256 = sha256_builder.hexdigest()
+            if actual_sha256 != md5:
+                log.debug("sha256 sums mismatch for download: %s (%s != %s)",
+                          url, actual_sha256, sha256)
+                raise ChecksumMismatchError(url, target_full_path, "sha256", sha256, actual_sha256)
+        if size is not None:
+            actual_size = size_builder
+            if actual_size != size:
+                log.debug("size mismatch for download: %s (%s != %s)", url, actual_size, size)
+                raise ChecksumMismatchError(url, target_full_path, "size", size, actual_size)
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):
@@ -137,7 +151,7 @@ class TmpDownload(object):
         else:
             self.tmp_dir = tempfile.mkdtemp()
             dst = join(self.tmp_dir, basename(self.url))
-            download(self.url, dst, None)
+            download(self.url, dst)
             return dst
 
     def __exit__(self, exc_type, exc_value, traceback):
