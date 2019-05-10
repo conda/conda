@@ -30,9 +30,9 @@ from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
-                          NotWritableError, UnavailableInvalidChannel)
+                          NotWritableError, UnavailableInvalidChannel, ProxyError)
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
-                                   InvalidSchema, SSLError)
+                                   InvalidSchema, SSLError, RequestsProxyError)
 from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
@@ -430,6 +430,9 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
+
+    except RequestsProxyError:
+        raise ProxyError()   # see #3962
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):

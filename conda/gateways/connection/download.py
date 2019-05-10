@@ -9,7 +9,8 @@ from os.path import basename, exists, join
 import tempfile
 import warnings
 
-from . import ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema, SSLError
+from . import (ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema,
+               SSLError, RequestsProxyError)
 from .session import CondaSession
 from ..disk.delete import rm_rf
 from ... import CondaError
@@ -19,7 +20,7 @@ from ...base.context import context
 from ...common.compat import text_type
 from ...common.io import time_recorder
 from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
-                           ChecksumMismatchError, maybe_raise)
+                           ChecksumMismatchError, maybe_raise, ProxyError)
 
 log = getLogger(__name__)
 
@@ -106,6 +107,9 @@ def download(url, target_full_path, sha256sum=None, md5sum=None, progress_update
                           "trying again" % (hash_builder, url, digest_builder.hexdigest(),
                                             reference_hash))
                 raise ChecksumMismatchError(url, target_full_path, reference_hash, actual_hash)
+
+    except RequestsProxyError:
+        raise ProxyError()  # see #3962
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):
