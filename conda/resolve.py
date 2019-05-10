@@ -501,7 +501,7 @@ class Resolve(object):
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
         explicit_spec_set = set(explicit_specs)
-        specs_by_name_seed = dict()
+        specs_by_name_seed = OrderedDict()
         for s in explicit_specs:
             specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, list()) + [s]
         for explicit_spec in explicit_spec_set:
