@@ -5,6 +5,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # Do not use python stdlib imports from this module in other projects. You may be broken
 # without warning.
+import hashlib
+
 try:
     from collections.abc import Hashable as _Hashable
 except ImportError:
@@ -39,7 +41,9 @@ ArgumentParser = ArgumentParser
 
 from .common import compat as _compat  # NOQA
 compat = _compat
-from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, itervalues, TemporaryDirectory  # NOQA
+from .common.compat import ensure_binary as _ensure_binary
+from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, \
+    itervalues, TemporaryDirectory  # NOQA
 PY3, StringIO,  input, iteritems, string_types, text_type, TemporaryDirectory = PY3, StringIO,  input, iteritems, string_types, text_type, TemporaryDirectory  # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
 CondaSession = CondaSession
@@ -134,9 +138,6 @@ Dist = Dist
 
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # NOQA
 ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
-
-from .core.subdir_data import cache_fn_url  # NOQA
-cache_fn_url = cache_fn_url
 
 from .core.package_cache_data import ProgressiveFetchExtract  # NOQA
 ProgressiveFetchExtract = ProgressiveFetchExtract
@@ -392,3 +393,11 @@ def is_linked(prefix, dist):
         return prefix_record
     else:
         return None
+
+
+def cache_fn_url(url):
+    # url must be right-padded with '/' to not invalidate any existing caches
+    if not url.endswith('/'):
+        url += '/'
+    md5 = hashlib.md5(_ensure_binary(url)).hexdigest()
+    return '%s.json' % (md5[:8],)

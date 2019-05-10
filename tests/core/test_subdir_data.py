@@ -7,13 +7,14 @@ from unittest import TestCase
 
 import pytest
 
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
 from conda.core.index import get_index
-from conda.core.subdir_data import cache_fn_url, read_mod_and_etag, \
-    SubdirData, UnavailableInvalidChannel, fetch_remote_request, ResponseException
+from conda.core.subdir_data import ResponseException, SubdirData, fetch_remote_request, \
+    read_etag_and_mod
+from conda.exceptions import UnavailableInvalidChannel
 from conda.models.channel import Channel
 
 try:
@@ -34,8 +35,8 @@ class GetRepodataIntegrationTests(TestCase):
     def test_get_index_no_platform_with_offline_cache(self):
         import conda.core.subdir_data
         with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with patch.object(conda.core.subdir_data, 'read_mod_and_etag') as read_mod_and_etag:
-                read_mod_and_etag.return_value = {}
+            with patch.object(conda.core.subdir_data, 'read_etag_and_mod') as read_etag_and_mod:
+                read_etag_and_mod.return_value = {}
                 channel_urls = ('https://repo.anaconda.com/pkgs/pro',)
                 with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     this_platform = context.subdir
@@ -69,7 +70,7 @@ class GetRepodataIntegrationTests(TestCase):
 
 class StaticFunctionTests(TestCase):
 
-    def test_read_mod_and_etag_mod_only(self):
+    def test_read_etag_and_mod_mod_only(self):
         mod_only_str = """
         {
           "_mod": "Wed, 14 Dec 2016 18:49:16 GMT",
@@ -85,11 +86,11 @@ class StaticFunctionTests(TestCase):
         }
         """.strip()
         with temporary_content_in_file(mod_only_str) as path:
-            mod_etag_dict = read_mod_and_etag(path)
+            mod_etag_dict = read_etag_and_mod(path)
             assert "_etag" not in mod_etag_dict
             assert mod_etag_dict["_mod"] == "Wed, 14 Dec 2016 18:49:16 GMT"
 
-    def test_read_mod_and_etag_etag_only(self):
+    def test_read_etag_and_mod_etag_only(self):
         etag_only_str = """
         {
           "_url": "https://repo.anaconda.com/pkgs/r/noarch",
@@ -99,11 +100,11 @@ class StaticFunctionTests(TestCase):
         }
         """.strip()
         with temporary_content_in_file(etag_only_str) as path:
-            mod_etag_dict = read_mod_and_etag(path)
+            mod_etag_dict = read_etag_and_mod(path)
             assert "_mod" not in mod_etag_dict
             assert mod_etag_dict["_etag"] == "\"569c0ecb-48\""
 
-    def test_read_mod_and_etag_etag_mod(self):
+    def test_read_etag_and_mod_etag_mod(self):
         etag_mod_str = """
         {
           "_etag": "\"569c0ecb-48\"",
@@ -114,11 +115,11 @@ class StaticFunctionTests(TestCase):
         }
         """.strip()
         with temporary_content_in_file(etag_mod_str) as path:
-            mod_etag_dict = read_mod_and_etag(path)
+            mod_etag_dict = read_etag_and_mod(path)
             assert mod_etag_dict["_mod"] == "Sun, 17 Jan 2016 21:59:39 GMT"
             assert mod_etag_dict["_etag"] == "\"569c0ecb-48\""
 
-    def test_read_mod_and_etag_mod_etag(self):
+    def test_read_etag_and_mod_mod_etag(self):
         mod_etag_str = """
         {
           "_mod": "Sun, 17 Jan 2016 21:59:39 GMT",
@@ -129,57 +130,27 @@ class StaticFunctionTests(TestCase):
         }
         """.strip()
         with temporary_content_in_file(mod_etag_str) as path:
-            mod_etag_dict = read_mod_and_etag(path)
+            mod_etag_dict = read_etag_and_mod(path)
             assert mod_etag_dict["_mod"] == "Sun, 17 Jan 2016 21:59:39 GMT"
             assert mod_etag_dict["_etag"] == "\"569c0ecb-48\""
-
-    def test_cache_fn_url_repo_continuum_io(self):
-        hash1 = cache_fn_url("http://repo.continuum.io/pkgs/free/osx-64/")
-        hash2 = cache_fn_url("http://repo.continuum.io/pkgs/free/osx-64")
-        assert "aa99d924.json" == hash1 == hash2
-
-        hash3 = cache_fn_url("https://repo.continuum.io/pkgs/free/osx-64/")
-        hash4 = cache_fn_url("https://repo.continuum.io/pkgs/free/osx-64")
-        assert "d85a531e.json" == hash3 == hash4 != hash1
-
-        hash5 = cache_fn_url("https://repo.continuum.io/pkgs/free/linux-64/")
-        assert hash4 != hash5
-
-        hash6 = cache_fn_url("https://repo.continuum.io/pkgs/r/osx-64")
-        assert hash4 != hash6
-
-    def test_cache_fn_url_repo_anaconda_com(self):
-        hash1 = cache_fn_url("http://repo.anaconda.com/pkgs/free/osx-64/")
-        hash2 = cache_fn_url("http://repo.anaconda.com/pkgs/free/osx-64")
-        assert "1e817819.json" == hash1 == hash2
-
-        hash3 = cache_fn_url("https://repo.anaconda.com/pkgs/free/osx-64/")
-        hash4 = cache_fn_url("https://repo.anaconda.com/pkgs/free/osx-64")
-        assert "3ce78580.json" == hash3 == hash4 != hash1
-
-        hash5 = cache_fn_url("https://repo.anaconda.com/pkgs/free/linux-64/")
-        assert hash4 != hash5
-
-        hash6 = cache_fn_url("https://repo.anaconda.com/pkgs/r/osx-64")
-        assert hash4 != hash6
 
 
 class FetchLocalRepodataTests(TestCase):
 
     def test_fetch_repodata_remote_request_invalid_arch(self):
         # see https://github.com/conda/conda/issues/8150
-        url = 'file:///fake/fake/fake/linux-64'
+        url = 'file:///fake/fake/fake/linux-64/repodata.json'
         etag = None
         mod_stamp = 'Mon, 28 Jan 2019 01:01:01 GMT'
-        result = fetch_remote_request(url, etag, mod_stamp)
-        assert result is None
+        with pytest.raises(ResponseException):
+            result, _ = fetch_remote_request(url, etag, mod_stamp)
 
     def test_fetch_repodata_remote_request_invalid_noarch(self):
-        url = 'file:///fake/fake/fake/noarch'
+        url = 'file:///fake/fake/fake/noarch/repodata.json'
         etag = None
         mod_stamp = 'Mon, 28 Jan 2019 01:01:01 GMT'
-        with pytest.raises(UnavailableInvalidChannel):
-            result = fetch_remote_request(url, etag, mod_stamp)
+        with pytest.raises(ResponseException):
+            fetch_remote_request(url, etag, mod_stamp)
 
 
 def test_subdir_data_prefers_conda_to_tar_bz2():

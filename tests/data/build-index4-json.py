@@ -9,7 +9,7 @@ from conda.core.subdir_data import fetch_remote_request
 DATA_DIR = abspath(join(dirname(__file__), "..", "..", "test-data", "repodata"))
 
 def save_data_source(url, name):
-    raw_repodata_str = fetch_remote_request(join_url(url, "repodata.json"), None, None)
+    raw_repodata_str, _ = fetch_remote_request(join_url(url, "repodata.json"), None, None)
     json.loads(raw_repodata_str)
     with open(join(DATA_DIR, name + ".json"), 'w') as fh:
         json.dump(json.loads(raw_repodata_str), fh, indent=2, sort_keys=True, separators=(',', ': '))

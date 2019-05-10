@@ -3,17 +3,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import bz2
 from collections import defaultdict
 from contextlib import closing
+from datetime import datetime
 from errno import EACCES, ENODEV, EPERM
 from genericpath import getmtime, isfile
 import hashlib
-from io import open as io_open
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
-from os.path import dirname, isdir, join, splitext
+from os.path import dirname, isdir, join
 import re
 from time import time
 import warnings
@@ -21,16 +20,15 @@ import warnings
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from .._vendor.toolz import concat, concatv, take
-from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1
+from .._vendor.toolz import concat, concatv, get, take
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
                              open, string_types, text_type, with_metaclass)
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
-from ..common.url import join_url, maybe_unquote
+from ..common.url import join_url
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
-                          NotWritableError, UnavailableInvalidChannel)
+from ..exceptions import CondaDependencyError, CondaUpgradeError, NotWritableError
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
@@ -126,9 +124,7 @@ class SubdirData(object):
         self.channel = channel
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)
-        self.cache_path_base = join(
-            create_cache_dir(), splitext(cache_fn_url(self.url_w_credentials))[0]
-        )
+        self.cache_dir = create_cache_dir()
         self._loaded = False
 
     def reload(self):
@@ -137,25 +133,50 @@ class SubdirData(object):
         return self
 
     def load(self):
-        cached_obj = load_url_object(
-            self.cache_path_base,
-            join_url(self.url_w_credentials, "repodata.json"),
-            self.channel,
-            CachedRepodata
-        )
-        if cached_obj.content.get("repodata_version", 0) > MAX_REPODATA_VERSION:
-            raise CondaUpgradeError(dals("""
-                The current version of conda is too old to read repodata from
+        try:
+            # 1. Try pulling lastmodified.json
+            cached_lastmodified = load_url_object(
+                self.cache_dir,
+                join_url(self.url_w_credentials, "lastmodified.json"),
+                self.channel,
+                CachedLastModified
+            )
+            if cached_lastmodified:
+                self._names_index = cached_lastmodified._names_index
+                self._track_features_index = cached_lastmodified._track_features_index
+                self._package_records = cached_lastmodified  # implemented with __iter__
+            else:
+                self._package_records = []
+                self._names_index = {}
+                self._track_features_index = {}
+        except ResponseException as e:
+            log.info("falling back to repodata.json for %s due to %r", self.url_w_subdir, e)
 
-                    %s
+            # 2. If that fails, try repodata.json
+            try:
+                cached_repodata = load_url_object(
+                    self.cache_dir,
+                    join_url(self.url_w_credentials, "repodata.json"),
+                    self.channel,
+                    CachedRepodata
+                )
+            except ResponseException as e:
+                # TODO: Add in litany of error messages here
+                raise
+            else:
+                if cached_repodata.content.get("repodata_version", 0) > MAX_REPODATA_VERSION:
+                    raise CondaUpgradeError(dals("""
+                        The current version of conda is too old to read repodata from
+        
+                            %s
+        
+                        (This version only supports repodata_version 1.)
+                        Please update conda to use this channel.
+                        """) % self.url_w_subdir)
+                self._package_records = cached_repodata.content['_package_records']
+                self._names_index = cached_repodata.content['_names_index']
+                self._track_features_index = cached_repodata.content['_track_features_index']
 
-                (This version only supports repodata_version 1.)
-                Please update conda to use this channel.
-                """) % self.url_w_subdir)
-
-        self._package_records = cached_obj.content['_package_records']
-        self._names_index = cached_obj.content['_names_index']
-        self._track_features_index = cached_obj.content['_track_features_index']
         self._loaded = True
         return self
 
@@ -165,7 +186,7 @@ class SubdirData(object):
         return iter(self._package_records)
 
 
-def read_mod_and_etag(path):
+def read_etag_and_mod(path):
     with open(path, 'rb') as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
@@ -198,22 +219,35 @@ class ResponseException(Exception):
         self.response = response
 
 
-def load_url_object(cache_path_base, url, channel, cache_cls):
-    # cache_path = join(cache_dir, hashlib.md5(ensure_binary(url)).hexdigest()[:12] + ".json")
+def load_url_object(cache_dir, url, channel, cache_cls, etag=None, mod=None):
+    log.debug("loading url %s", url)
+    cache_base_fn = hashlib.md5(ensure_binary(url)).hexdigest()[:12]
+    cache_path_base = join(cache_dir, cache_base_fn)
     cache_path_json = cache_path_base + ".json"
+    _incoming_etag_mod = {}
+    if etag:
+        _incoming_etag_mod["_etag"] = etag
+    if mod:
+        _incoming_etag_mod["_mod"] = mod
+
     try:
         mtime = getmtime(cache_path_json)
     except EnvironmentError:
         if context.use_index_cache or (context.offline and not url.startswith('file://')):
             log.debug("Using cached data for %s at %s forced. Returning empty content.",
                       url, cache_path_json)
-            return {}
+            return None
         else:
-            mod_etag_headers = {}
+            etag_mod_headers = {}
     else:
-        mod_etag_headers = read_mod_and_etag(cache_path_json)
-        etag, mod = mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod')
-        cache_control = mod_etag_headers.get('_cache_control')
+        etag_mod_headers = read_etag_and_mod(cache_path_json)
+        # update etag and mod with incoming values only if the .json file already exists in cache
+        if "_etag" in etag_mod_headers and etag:
+            etag_mod_headers["_etag"] = etag
+        if "_mod" in etag_mod_headers and mod:
+            etag_mod_headers["_mod"] = mod
+        etag, mod = etag_mod_headers.get('_etag'), etag_mod_headers.get('_mod')
+        cache_control = etag_mod_headers.get('_cache_control')
         if context.use_index_cache:
             log.debug("Using cached content for %s at %s because context.use_index_cache == True",
                       url, cache_path_json)
@@ -223,7 +257,7 @@ def load_url_object(cache_path_base, url, channel, cache_cls):
         if context.local_repodata_ttl > 1:
             max_age = context.local_repodata_ttl
         elif context.local_repodata_ttl == 1:
-            max_age = get_cache_control_max_age(mod_etag_headers.get('_cache_control', ''))
+            max_age = get_cache_control_max_age(etag_mod_headers.get('_cache_control', ''))
         else:
             max_age = 0
 
@@ -236,10 +270,10 @@ def load_url_object(cache_path_base, url, channel, cache_cls):
             )
         log.debug("Local cache timed out for %s at %s", url, cache_path_json)
 
-    etag, mod = mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod')
-    cache_control = mod_etag_headers.get('_cache_control')
+    etag, mod = etag_mod_headers.get('_etag'), etag_mod_headers.get('_mod')
+    cache_control = etag_mod_headers.get('_cache_control')
     try:
-        raw_content_str = fetch_remote_request(url, etag, mod)
+        raw_content_str, saved_fields = fetch_remote_request(url, etag, mod)
     except ResponseException as e:
         if e.response_code == 304:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
@@ -260,8 +294,10 @@ def load_url_object(cache_path_base, url, channel, cache_cls):
                 raise NotWritableError(cache_path_json, e.errno, caused_by=e)
             else:
                 raise
+
+        etag, mod, cache_control = get(["_etag", "_mod", "_cache_control"], saved_fields, None)
         cached_obj = cache_cls(
-            cache_path_base, channel, url, mod, etag, cache_control, raw_content_str
+            cache_path_base, channel, url, etag, mod, cache_control, raw_content_str
         )
         cached_obj.write_pickle()
         return cached_obj
@@ -269,7 +305,7 @@ def load_url_object(cache_path_base, url, channel, cache_cls):
 
 class PickledObject(object):
 
-    def __init__(self, cache_path_base, channel, url, mod, etag, cache_control, raw_content_str):
+    def __init__(self, cache_path_base, channel, url, etag, mod, cache_control, raw_content_str):
         self.cache_path_base = cache_path_base
         self.channel = channel
         self.url = url
@@ -296,7 +332,7 @@ class PickledObject(object):
         log.debug("Loading raw json for %s at %s", url, cache_path_json)
         with open(cache_path_json) as fh:
             try:
-                binary_content_str = fh.read()
+                raw_content_str = fh.read()
             except ValueError as e:
                 # ValueError: Expecting object: line 11750 column 6 (char 303397)
                 log.debug("Error for cache path: '%s'\n%r", cache_path_json, e)
@@ -308,7 +344,7 @@ class PickledObject(object):
                 raise CondaError(message)
             else:
                 cached_obj = cls(
-                    cache_path_base, channel, url, mod, etag, cache_control, binary_content_str
+                    cache_path_base, channel, url, etag, mod, cache_control, raw_content_str
                 )
                 cached_obj.write_pickle()
                 return cached_obj
@@ -331,24 +367,37 @@ class PickledObject(object):
             rm_rf(cache_path_pickle)
             return None
 
-        def _check_pickled_valid():
-            yield isinstance(po, cls)
-            yield po.url == url
-            yield po.mod == mod
-            yield po.etag == etag
-            yield po.internal_pickle_version == INTERNAL_PICKLE_VERSION
-
-        if not all(_check_pickled_valid()):
-            log.debug("Pickle load validation failed for %s at %s.", url, cache_path_base + ".q")
+        check_failures = False
+        if not isinstance(po, cls):
+            log.debug("Pickle load validation failed for %s at %s due to %r != %r.",
+                      url, cache_path_base + ".q", po, cls)
+            check_failures = True
+        if po.url != url:
+            log.debug("Pickle load validation failed for %s at %s due to %r != %r.",
+                      url, cache_path_base + ".q", po.url, url)
+            check_failures = True
+        if (po.etag or etag) and _extract_etag_value(po.etag) != _extract_etag_value(etag):
+            log.debug("Pickle load validation failed for %s at %s due to %r != %r.",
+                      url, cache_path_base + ".q", po.etag, etag)
+            check_failures = True
+        if po.mod != mod:
+            log.debug("Pickle load validation failed for %s at %s due to %r != %r.",
+                      url, cache_path_base + ".q", po.mod, mod)
+            check_failures = True
+        if po.internal_pickle_version != INTERNAL_PICKLE_VERSION:
+            log.debug("Pickle load validation failed for %s at %s due to %r != %r.",
+                      url, cache_path_base + ".q",
+                      po.internal_pickle_version, INTERNAL_PICKLE_VERSION)
+            check_failures = True
+        if check_failures:
             return None
 
         return po
 
     def write_pickle(self):
-        cache_path_json = self.cache_path_base + ".json"
         cache_path_pickle = self.cache_path_base + ".q"
         try:
-            log.debug("Saving pickled state for %s at %s", self.url, cache_path_json)
+            log.debug("Saving pickled state for %s at %s", self.url, cache_path_pickle)
             with open(cache_path_pickle, "wb") as fh:
                 pickle.dump(self, fh, -1)  # -1 means HIGHEST_PROTOCOL
         except Exception:
@@ -423,7 +472,115 @@ class CachedRepodata(PickledObject):
         return content
 
 
-def fetch_remote_request(url, etag, mod_stamp):
+class CallableAsItemGetter(object):
+    def __init__(self, callable_):
+        self._callable = callable_
+
+    def __getitem__(self, item):
+        return self._callable(item)
+
+
+class CachedLastModified(PickledObject):
+
+    def __init__(self, cache_path_base, channel, url, etag, mod, cache_control, raw_content_str):
+        super(CachedLastModified, self).__init__(
+            cache_path_base, channel, url, etag, mod, cache_control, raw_content_str
+        )
+        self._names_index = CallableAsItemGetter(self.load_by_name)
+        self._track_features_index = CallableAsItemGetter(self.load_by_track_features)
+        self._cached_repodata = {}
+
+    def process(self, raw_content_str):
+        json_obj = (
+            json.loads(raw_content_str)
+            if isinstance(raw_content_str, string_types)
+            else raw_content_str
+        )
+        subdir = json_obj.get('info', {}).get('subdir') or self.channel.subdir
+        assert subdir == self.channel.subdir
+
+        self._package_names = _package_names = json_obj.get("packages", {})
+        content = {
+            '_package_names': _package_names,
+            'lastmodified_version': json_obj.get('lastmodified_version', 0),
+        }
+        if content["lastmodified_version"] > MAX_REPODATA_VERSION:
+            raise CondaUpgradeError(dals("""
+                The current version of conda is too old to read repodata from
+
+                    %s
+
+                (This version only supports repodata_version 1.)
+                Please update conda to use this channel.
+                """) % self.url)
+        return content
+
+    def _get_cache_key_shard(self, key):
+        cached_repodata_shard = self._cached_repodata.get(key, None)
+        if not cached_repodata_shard:
+            cache_details = self._package_names.get(key)
+            if cache_details:
+                etag = '"%s"' % cache_details["etag"]
+                mod = datetime.utcfromtimestamp(
+                    cache_details["mod"]
+                ).strftime("%a, %d %b %Y %H:%M:%S GMT")
+                url = join_url(self.channel.url(with_credentials=True), key + ".json")
+                self._cached_repodata[key] = cached_repodata_shard = load_url_object(
+                    dirname(self.cache_path_base),
+                    url,
+                    self.channel,
+                    CachedRepodata,
+                    etag,
+                    mod
+                )
+        return cached_repodata_shard
+
+    def load_by_name(self, name):
+        cached_repodata_shard = self._get_cache_key_shard(name)
+        if cached_repodata_shard:
+            return cached_repodata_shard.content["_names_index"][name]
+        else:
+            return []
+
+    def load_by_track_features(self, feat):
+        cached_repodata_shard = self._get_cache_key_shard(feat)
+        if cached_repodata_shard:
+            return cached_repodata_shard.content["_track_features_index"][feat]
+        else:
+            return []
+
+    def load_all_package_records(self):
+        key = "__all_package_records"
+        _package_records = self._cached_repodata.get(key, None)
+        if _package_records is None:
+            url = join_url(self.channel.url(with_credentials=True), "repodata.json")
+            cached_repodata = load_url_object(
+                dirname(self.cache_path_base),
+                url,
+                self.channel,
+                CachedRepodata
+            )
+            if cached_repodata:
+                if cached_repodata.content.get("repodata_version", 0) > MAX_REPODATA_VERSION:
+                    raise CondaUpgradeError(dals("""
+                        The current version of conda is too old to read repodata from
+        
+                            %s
+        
+                        (This version only supports repodata_version 1.)
+                        Please update conda to use this channel.
+                        """) % url)
+                _package_records = cached_repodata.content['_package_records']
+            else:
+                _package_records = []
+            self._cached_repodata[key] = _package_records
+        return _package_records
+
+    def __iter__(self):
+        return iter(self.load_all_package_records())
+
+
+def fetch_remote_request(url, etag, mod):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
@@ -432,8 +589,8 @@ def fetch_remote_request(url, etag, mod_stamp):
     headers = {}
     if etag:
         headers["If-None-Match"] = etag
-    if mod_stamp:
-        headers["If-Modified-Since"] = mod_stamp
+    if mod:
+        headers["If-Modified-Since"] = mod
     headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
     headers['Content-Type'] = 'application/json'
 
@@ -482,7 +639,7 @@ def fetch_remote_request(url, etag, mod_stamp):
             json.dumps(saved_fields)[:-1],  # remove trailing '}'
             raw_json_str[1:]  # remove first '{'
         )
-    return raw_content_str
+    return raw_content_str, saved_fields
 
 
 def make_feature_record(feature_name):
@@ -500,16 +657,6 @@ def make_feature_record(feature_name):
         fn=pkg_name,
     )
 
-
-def cache_fn_url(url):
-    # TODO: this function will need to change
-    # url must be right-padded with '/' to not invalidate any existing caches
-    if not url.endswith('/'):
-        url += '/'
-    md5 = hashlib.md5(ensure_binary(url)).hexdigest()
-    return '%s.json' % (md5[:8],)
-
-
 def add_http_value_to_dict(resp, http_key, d, dict_key):
     value = resp.headers.get(http_key)
     if value:
@@ -520,3 +667,19 @@ def create_cache_dir():
     cache_dir = join(PackageCacheData.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
     mkdir_p_sudo_safe(cache_dir)
     return cache_dir
+
+
+def _extract_etag_value(etag):
+    if etag:
+        match = re.match(r'(?:W/)?"([-_\w\d]+)"', etag)
+        if match:
+            return match.groups()[0]
+    return None
+
+
+if __name__ == "__main__":
+    context.__init__()
+    from ..cli.main import init_loggers
+    init_loggers(context)
+    print(list(SubdirData(Channel("http://conda.rocks/repo/mewtwo/win-64")).query("zlib")))
+    # print(list(SubdirData(Channel("http://repo.anaconda.com/pkgs/main/win-64")).query("zlib")))
