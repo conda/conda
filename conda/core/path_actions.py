@@ -1066,11 +1066,12 @@ class UnregisterEnvironmentLocationAction(PathAction):
 class CacheUrlAction(PathAction):
 
     def __init__(self, url, target_pkgs_dir, target_package_basename,
-                 md5sum=None, expected_size_in_bytes=None):
+                 md5sum=None, sha256sum=None, expected_size_in_bytes=None):
         self.url = url
         self.target_pkgs_dir = target_pkgs_dir
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
+        self.sha256sum = sha256sum
         self.expected_size_in_bytes = expected_size_in_bytes
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
@@ -1144,7 +1145,7 @@ class CacheUrlAction(PathAction):
                     target_package_cache._urls_data.add_url(self.url)
 
         else:
-            download(self.url, self.target_full_path, md5=self.md5sum,
+            download(self.url, self.target_full_path, md5=self.md5sum, sha256=self.sha256sum,
                      progress_update_callback=progress_update_callback)
             target_package_cache._urls_data.add_url(self.url)
 

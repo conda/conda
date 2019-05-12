@@ -471,8 +471,7 @@ class ProgressiveFetchExtract(object):
         #   (1) already extracted, and
         #   (2) matches the md5
         # If one exists, no actions are needed.
-        md5 = pref_or_spec.get('md5')
-        if md5:
+        if pref_or_spec.get('md5'):
             extracted_pcrec = next((
                 pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
                                           for pkgs_dir in context.pkgs_dirs)
@@ -522,7 +521,8 @@ class ProgressiveFetchExtract(object):
                 url=path_to_url(pcrec_from_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
-                md5sum=md5,
+                md5sum=pref_or_spec.get('md5'),
+                sha256sum=pref_or_spec.get('sha256'),
                 expected_size_in_bytes=expected_size_in_bytes,
             )
             trgt_extracted_dirname = strip_pkg_extension(pcrec_from_read_only_cache.fn)[0]
@@ -548,7 +548,8 @@ class ProgressiveFetchExtract(object):
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=pref_or_spec.fn,
-            md5sum=md5,
+            md5sum=pref_or_spec.get('md5'),
+            sha256sum=pref_or_spec.get('sha256'),
             expected_size_in_bytes=expected_size_in_bytes,
         )
         extract_axn = ExtractPackageAction(
@@ -556,7 +557,7 @@ class ProgressiveFetchExtract(object):
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
             record_or_spec=pref_or_spec,
-            md5sum=md5,
+            md5sum=pref_or_spec.get('md5'),
         )
         return cache_axn, extract_axn
 

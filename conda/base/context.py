@@ -158,6 +158,8 @@ class Context(Configuration):
     track_features = SequenceParameter(string_types)
     use_index_cache = PrimitiveParameter(False)
 
+    separate_format_cache = PrimitiveParameter(False)
+
     _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
                                    string_delimiter=os.pathsep,
@@ -757,6 +759,7 @@ class Context(Configuration):
             'extra_safety_checks',
             'shortcuts',
             'non_admin_enabled',
+            'separate_format_cache'
         )),
         ('Conda-build Configuration', (
             'bld_path',
@@ -1080,6 +1083,14 @@ class Context(Configuration):
                 Enforce available safety guarantees during package installation.
                 The value must be one of 'enabled', 'warn', or 'disabled'.
                 """),
+            'separate_format_cache': dals("""
+                Treat .tar.bz2 files as different from .conda packages when
+                filenames are otherwise similar. This defaults to False, so
+                that your package cache doesn't churn when rolling out the new
+                package format. If you'd rather not assume that a .tar.bz2 and
+                .conda from the same place represent the same content, set this
+                to True.
+            """),
             'extra_safety_checks': dals("""
                 Spend extra time validating package contents.  Currently, runs sha256 verification
                 on every file within each package during installation.
