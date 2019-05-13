@@ -48,8 +48,17 @@ def download(
 
         content_length = int(resp.headers.get('Content-Length', 0))
 
-        md5_builder = hashlib.new("md5") if md5 else None
-        sha256_builder = hashlib.new("sha256") if sha256 else None
+        # prefer sha256 over md5 when both are available
+        checksum_builder = checksum_type = checksum = None
+        if sha256:
+            checksum_builder = hashlib.new("sha256")
+            checksum_type = "sha256"
+            checksum = sha256
+        elif md5:
+            checksum_builder = hashlib.new("md5") if md5 else None
+            checksum_type = "md5"
+            checksum = md5
+
         size_builder = 0
         try:
             with open(target_full_path, 'wb') as fh:
@@ -65,8 +74,7 @@ def download(
                         # TODO: make this CondaIOError
                         raise CondaError(message, target_path=target_full_path, errno=e.errno)
 
-                    md5_builder and md5_builder.update(chunk)
-                    sha256_builder and sha256_builder.update(chunk)
+                    checksum_builder and checksum_builder.update(chunk)
                     size_builder += len(chunk)
 
                     if content_length and 0 <= streamed_bytes <= content_length:
@@ -92,17 +100,14 @@ def download(
                 log.debug("%s, trying again" % e)
             raise
 
-        if md5:
-            actual_md5 = md5_builder.hexdigest()
-            if actual_md5 != md5:
-                log.debug("md5 sums mismatch for download: %s (%s != %s)", url, actual_md5, md5)
-                raise ChecksumMismatchError(url, target_full_path, "md5", md5, actual_md5)
-        if sha256:
-            actual_sha256 = sha256_builder.hexdigest()
-            if actual_sha256 != sha256:
-                log.debug("sha256 sums mismatch for download: %s (%s != %s)",
-                          url, actual_sha256, sha256)
-                raise ChecksumMismatchError(url, target_full_path, "sha256", sha256, actual_sha256)
+        if checksum:
+            actual_checksum = checksum_builder.hexdigest()
+            if actual_checksum != checksum:
+                log.debug("%s mismatch for download: %s (%s != %s)",
+                          checksum_type, url, actual_checksum, checksum)
+                raise ChecksumMismatchError(
+                    url, target_full_path, checksum_type, checksum, actual_checksum
+                )
         if size is not None:
             actual_size = size_builder
             if actual_size != size:
