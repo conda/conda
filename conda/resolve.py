@@ -331,6 +331,7 @@ class Resolve(object):
         for top_level_spec in specs:
             # find all packages matching a top level specification
             top_level_pkgs = self.find_matches(top_level_spec)
+            top_level_sdeps = {top_level_spec.name: set(top_level_pkgs)}
 
             # find all depends specs for in top level packages
             # find the depends names for each top level packages
@@ -342,7 +343,6 @@ class Resolve(object):
                 top_level_pkg_dep_names.append([d.name for d in pkg_deps])
 
             # find all second level packages and their specs
-            top_level_sdeps = {}
             slist = []
             for ms in second_level_specs:
                 deps = top_level_sdeps.setdefault(ms.name, set())
@@ -392,50 +392,9 @@ class Resolve(object):
                 ndeps = set(self.invalid_chains(spec, filter, False))
                 ndeps = [nd for nd in ndeps if nd[-1].name == dep]
                 bad_deps.extend(ndeps)
-        if bad_deps:
-            raise UnsatisfiableError(bad_deps)
-
-        sdeps = {}
-        # For each spec, assemble a dictionary of dependencies, with package
-        # name as key, and all of the matching packages as values.
-        for ms in specs:
-            rec = sdeps.setdefault(ms, {})
-            slist = [ms]
-            while slist:
-                ms2 = slist.pop()
-                deps = rec.setdefault(ms2.name, set())
-                for fkey in self.find_matches(ms2):
-                    if fkey not in deps:
-                        deps.add(fkey)
-                        slist.extend(ms3 for ms3 in self.ms_depends(fkey) if ms3.name != ms.name)
-
-        # Find the list of dependencies they have in common. And for each of
-        # *those*, find the individual packages that they all share. Those need
-        # to be removed as conflict candidates.
-        commkeys = set.intersection(*(set(s.keys()) for s in sdeps.values()))
-        commkeys = {k: set.intersection(*(v[k] for v in sdeps.values())) for k in commkeys}
-
-        # and find the dependency chains that lead to them.
-        bad_deps = []
-        for ms, sdep in iteritems(sdeps):
-            filter = {}
-            for mn, v in sdep.items():
-                if mn != ms.name and mn in commkeys:
-                    # Mark this package's "unique" dependencies as invalid
-                    for fkey in v - commkeys[mn]:
-                        filter[fkey] = False
-            # Find the dependencies that lead to those invalid choices
-            ndeps = set(self.invalid_chains(ms, filter, False))
-            # This may produce some additional invalid chains that we
-            # don't care about. Select only those that terminate in our
-            # predetermined set of "common" keys.
-            ndeps = [nd for nd in ndeps if nd[-1].name in commkeys]
-            if ndeps:
-                bad_deps.extend(ndeps)
-            else:
-                # This means the package *itself* was the common conflict.
-                bad_deps.append((ms,))
-
+        if not bad_deps:
+            # no conflicting packages found, return the bad specs
+            bad_deps = [(ms, ) for ms in specs]
         raise UnsatisfiableError(bad_deps)
 
     def _get_strict_channel(self, package_name):
