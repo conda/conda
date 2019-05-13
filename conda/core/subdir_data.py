@@ -21,7 +21,7 @@ import warnings
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from .._vendor.toolz import concat, concatv, take
+from .._vendor.toolz import concat, take
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
@@ -361,8 +361,9 @@ class SubdirData(object):
             k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
         )
 
-        for group, copy_legacy_md5 in ((iteritems(conda_packages), True),
-                                       (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
+        for group, copy_legacy_md5 in (
+                (iteritems(conda_packages), True),
+                (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
             for fn, info in group:
                 info['fn'] = fn
                 info['url'] = join_url(channel_url, fn)
@@ -371,7 +372,8 @@ class SubdirData(object):
                     if counterpart in legacy_packages:
                         info['legacy_bz2_md5'] = legacy_packages[counterpart].get('md5')
                         info['legacy_bz2_size'] = legacy_packages[counterpart].get('size')
-                if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
+                if (add_pip and info['name'] == 'python' and
+                        info['version'].startswith(('2.', '3.'))):
                     info['depends'].append('pip')
                 info.update(meta_in_common)
                 if info.get('record_version', 0) > 1:
