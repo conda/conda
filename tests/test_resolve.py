@@ -375,7 +375,8 @@ def test_unsat_from_r1():
     assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
 
 
-def simple_rec(name='a', version='1.0', depends=None, build='0', build_number=0):
+def simple_rec(name='a', version='1.0', depends=None, build='0',
+               build_number=0, channel='channel-1'):
     if depends is None:
         depends = []
     return PackageRecord(**{
@@ -384,6 +385,7 @@ def simple_rec(name='a', version='1.0', depends=None, build='0', build_number=0)
         'depends': depends,
         'build': build,
         'build_number': build_number,
+        'channel': channel,
     })
 
 
@@ -489,6 +491,40 @@ def test_unsat_missing_dep():
     r = Resolve(OrderedDict((prec, prec) for prec in index))
     # this raises ResolvePackageNotFound not UnsatisfiableError
     assert raises(ResolvePackageNotFound, lambda: r.install(['a', 'b']))
+
+
+def test_unsat_channel_priority():
+    # c depends on c 2.x which is only available in channel-2
+    index = (
+        simple_rec(name='a', version='1.0', depends=['c'], channel='channel-1'),
+        simple_rec(name='b', version='1.0', depends=['c >=2,<3'], channel='channel-1'),
+        simple_rec(name='c', version='1.0', channel='channel-1'),
+
+        simple_rec(name='a', version='2.0', depends=['c'], channel='channel-2'),
+        simple_rec(name='b', version='2.0', depends=['c >=2,<3'], channel='channel-2'),
+        simple_rec(name='c', version='1.0', channel='channel-2'),
+        simple_rec(name='c', version='2.0', channel='channel-2'),
+    )
+    channels = (
+        Channel('channel-1'),  # higher priority
+        Channel('channel-2'),  # lower priority, missing c 2.0
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index), channels=channels)
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        # channel-1 a and b packages (1.0) installed
+        installed1 = r.install(['a', 'b'])
+        assert any(k.name == 'a' and k.version == '1.0' for k in installed1)
+        assert any(k.name == 'b' and k.version == '1.0' for k in installed1)
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        # no channel priority, largest version of a and b (2.0) installed
+        installed1 = r.install(['a', 'b'])
+        assert any(k.name == 'a' and k.version == '2.0' for k in installed1)
+        assert any(k.name == 'b' and k.version == '2.0' for k in installed1)
+    with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with pytest.raises(UnsatisfiableError) as excinfo:
+            r.install(['a', 'b'])
+        # TODO this hint should be more informative
+        assert "b" in str(excinfo.value)
 
 
 def test_nonexistent():
