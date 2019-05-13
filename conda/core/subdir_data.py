@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from collections import defaultdict
 from contextlib import closing
-from errno import EACCES, ENODEV, EPERM
+from errno import EACCES, ENODEV, EPERM, EROFS
 from genericpath import getmtime, isfile
 import hashlib
 import json
@@ -230,7 +230,7 @@ class SubdirData(object):
                 with io_open(self.cache_path_json, 'w') as fh:
                     fh.write(raw_repodata_str or '{}')
             except (IOError, OSError) as e:
-                if e.errno in (EACCES, EPERM):
+                if e.errno in (EACCES, EPERM, EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
                     raise

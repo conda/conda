@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from ast import literal_eval
 import codecs
-from errno import EACCES, EPERM
+from errno import EACCES, EPERM, EROFS
 import logging
 from operator import itemgetter
 import os
@@ -114,7 +114,7 @@ class History(object):
             curr = set(prefix_rec.dist_str() for prefix_rec in pd.iter_records())
             self.write_changes(last, curr)
         except EnvironmentError as e:
-            if e.errno in (EACCES, EPERM):
+            if e.errno in (EACCES, EPERM, EROFS):
                 raise NotWritableError(self.path, e.errno)
             else:
                 raise
