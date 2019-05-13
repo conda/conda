@@ -413,7 +413,7 @@ class Resolve(object):
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
             bad_deps = [(ms, ) for ms in specs]
-        raise UnsatisfiableError(bad_deps)
+        raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
     def _get_strict_channel(self, package_name):
         try:
