@@ -47,10 +47,9 @@ def download(
         resp.raise_for_status()
 
         content_length = int(resp.headers.get('Content-Length', 0))
-        checksum_builder = None
-        checksum_type = None
 
         # prefer sha256 over md5 when both are available
+        checksum_builder = checksum_type = checksum = None
         if sha256:
             checksum_builder = hashlib.new("sha256")
             checksum_type = "sha256"
@@ -101,17 +100,14 @@ def download(
                 log.debug("%s, trying again" % e)
             raise
 
-        if md5:
-            actual_md5 = md5_builder.hexdigest()
-            if actual_md5 != md5:
-                log.debug("md5 sums mismatch for download: %s (%s != %s)", url, actual_md5, md5)
-                raise ChecksumMismatchError(url, target_full_path, "md5", md5, actual_md5)
-        if sha256:
-            actual_sha256 = sha256_builder.hexdigest()
-            if actual_sha256 != sha256:
-                log.debug("sha256 sums mismatch for download: %s (%s != %s)",
-                          url, actual_sha256, sha256)
-                raise ChecksumMismatchError(url, target_full_path, "sha256", sha256, actual_sha256)
+        if checksum:
+            actual_checksum = checksum_builder.hexdigest()
+            if actual_checksum != checksum:
+                log.debug("%s mismatch for download: %s (%s != %s)",
+                          checksum_type, url, actual_checksum, checksum)
+                raise ChecksumMismatchError(
+                    url, target_full_path, checksum_type, checksum, actual_checksum
+                )
         if size is not None:
             actual_size = size_builder
             if actual_size != size:
