@@ -1,6 +1,8 @@
 import json
 from os.path import abspath, basename, dirname, join
 
+import pytest
+
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars
@@ -108,6 +110,7 @@ def test_tar_bz2_in_pkg_cache_used_instead_of_conda_pkg():
         assert urls_text[0] == zlib_tar_bz2_prec.url
 
 
+@pytest.mark.integration
 def test_tar_bz2_in_pkg_cache_doesnt_overwrite_conda_pkg():
     """
     Test that if a .tar.bz2 package is downloaded and extracted in a package cache, the
@@ -163,6 +166,7 @@ def test_tar_bz2_in_pkg_cache_doesnt_overwrite_conda_pkg():
             assert urls_text[1] == zlib_conda_prec.url
 
 
+@pytest.mark.integration
 def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2():
     """
     Test that if a .conda package is downloaded and extracted in a package cache, the
