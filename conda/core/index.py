@@ -39,7 +39,8 @@ LAST_CHANNEL_URLS = []
 
 @time_recorder("get_index")
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_local=False, use_cache=False, unknown=None, prefix=None):
+              use_local=False, use_cache=False, unknown=None, prefix=None,
+              repodata_fn=context.repodata_fn):
     """
     Return the index of packages available on the channels
 
@@ -58,7 +59,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
     check_whitelist(channel_urls)
 
-    index = fetch_index(channel_urls, use_cache=use_cache)
+    index = fetch_index(channel_urls, use_cache=use_cache, repodata_fn=repodata_fn)
 
     if prefix:
         _supplement_index_with_prefix(index, prefix)
@@ -69,11 +70,11 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     return index
 
 
-def fetch_index(channel_urls, use_cache=False, index=None):
+def fetch_index(channel_urls, use_cache=False, index=None, repodata_fn=context.repodata_fn):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
     for url in channel_urls:
-        sd = SubdirData(Channel(url))
+        sd = SubdirData(Channel(url), repodata_fn=repodata_fn)
         index.update((rec, rec) for rec in sd.iter_records())
     return index
 

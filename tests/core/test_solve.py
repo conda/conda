@@ -259,33 +259,34 @@ def test_prune_1():
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
-    with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
-                    history_specs=specs) as solver:
-        unlink_precs, link_precs = solver.solve_for_diff(prune=True)
-        pprint(convert_to_dist_str(unlink_precs))
-        pprint(convert_to_dist_str(link_precs))
-        unlink_order = (
-            'channel-1::accelerate-1.1.0-np16py27_p0',
-            'channel-1::mkl-11.0-np16py27_p0',
-            'channel-1::scikit-learn-0.13.1-np16py27_p0',
-            'channel-1::numbapro-0.11.0-np16py27_p0',
-            'channel-1::scipy-0.12.0-np16py27_p0',
-            'channel-1::numexpr-2.1-np16py27_p0',
-            'channel-1::numba-0.8.1-np16py27_0',
-            'channel-1::numpy-1.6.2-py27_p4',
-            'channel-1::mkl-service-1.0.0-py27_p0',
-            'channel-1::meta-0.4.2.dev-py27_0',
-            'channel-1::llvmpy-0.11.2-py27_0',
-            'channel-1::bitarray-0.8.1-py27_0',
-            'channel-1::llvm-3.2-0',
-            'channel-1::mkl-rt-11.0-p0',
-            'channel-1::libnvvm-1.0-p0',
-        )
-        link_order = (
-            'channel-1::numpy-1.6.2-py27_4',
-        )
-        assert convert_to_dist_str(unlink_precs) == unlink_order
-        assert convert_to_dist_str(link_precs) == link_order
+    with env_var("CONDA_VERBOSITY", "3", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
+                        history_specs=specs) as solver:
+            unlink_precs, link_precs = solver.solve_for_diff(prune=True)
+            pprint(convert_to_dist_str(unlink_precs))
+            pprint(convert_to_dist_str(link_precs))
+            unlink_order = (
+                'channel-1::accelerate-1.1.0-np16py27_p0',
+                'channel-1::mkl-11.0-np16py27_p0',
+                'channel-1::scikit-learn-0.13.1-np16py27_p0',
+                'channel-1::numbapro-0.11.0-np16py27_p0',
+                'channel-1::scipy-0.12.0-np16py27_p0',
+                'channel-1::numexpr-2.1-np16py27_p0',
+                'channel-1::numba-0.8.1-np16py27_0',
+                'channel-1::numpy-1.6.2-py27_p4',
+                'channel-1::mkl-service-1.0.0-py27_p0',
+                'channel-1::meta-0.4.2.dev-py27_0',
+                'channel-1::llvmpy-0.11.2-py27_0',
+                'channel-1::bitarray-0.8.1-py27_0',
+                'channel-1::llvm-3.2-0',
+                'channel-1::mkl-rt-11.0-p0',
+                'channel-1::libnvvm-1.0-p0',
+            )
+            link_order = (
+                'channel-1::numpy-1.6.2-py27_4',
+            )
+            assert convert_to_dist_str(unlink_precs) == unlink_order
+            assert convert_to_dist_str(link_precs) == link_order
 
 
 def test_force_remove_1():

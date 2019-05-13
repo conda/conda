@@ -265,15 +265,22 @@ def install(args, parser, command='install'):
             )
 
     except ResolvePackageNotFound as e:
-        channels_urls = tuple(calculate_channel_urls(
-            channel_urls=index_args['channel_urls'],
-            prepend=index_args['prepend'],
-            platform=None,
-            use_local=index_args['use_local'],
-        ))
-        raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+        if args.repodata_fn != 'repodata.json':
+            args.repodata_fn = 'repodata.json'
+            return install(args, parser, command)
+        else:
+            channels_urls = tuple(calculate_channel_urls(
+                channel_urls=index_args['channel_urls'],
+                prepend=index_args['prepend'],
+                platform=None,
+                use_local=index_args['use_local'],
+            ))
+            raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
     except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+        if args.repodata_fn != 'repodata.json':
+            args.repodata_fn = 'repodata.json'
+            return install(args, parser, command)
         # Quick solve with frozen env failed.  Try again without that.
         if isinstall and args.update_modifier == NULL:
             try:

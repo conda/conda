@@ -1437,6 +1437,14 @@ def add_parser_channels(p):
         action="store_true",
         help="""Do not search default or .condarc channels.  Requires --channel.""",
     )
+    channel_customization_options.add_argument(
+        "--repodata-fn",
+        default="current_repodata.json",
+        help=("Specify name of repodata on remote server. Conda will try "
+              "whatever you specify, but will ultimately fall back to repodata.json if "
+              "your specs are not satisfiable with what you specify here. This is used "
+              "to employ repodata that is reduced in time scope.")
+    )
     return channel_customization_options
 
 

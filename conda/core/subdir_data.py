@@ -51,6 +51,7 @@ stderrlog = getLogger('conda.stderrlog')
 
 REPODATA_PICKLE_VERSION = 28
 MAX_REPODATA_VERSION = 1
+REPODATA_FN = 'repodata.json'
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'  # NOQA
 
 
@@ -117,7 +118,7 @@ class SubdirData(object):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel):
+    def __init__(self, channel, repodata_fn=REPODATA_FN):
         assert channel.subdir
         if channel.package_filename:
             parts = channel.dump()
@@ -128,6 +129,8 @@ class SubdirData(object):
         self.url_w_credentials = self.channel.url(with_credentials=True)
         self.cache_path_base = join(create_cache_dir(),
                                     splitext(cache_fn_url(self.url_w_credentials))[0])
+        # whether or not to try using the new, trimmed-down repodata
+        self.repodata_fn = repodata_fn
         self._loaded = False
 
     def reload(self):
@@ -213,9 +216,17 @@ class SubdirData(object):
                       self.url_w_subdir, self.cache_path_json)
 
         try:
-            raw_repodata_str = fetch_repodata_remote_request(self.url_w_credentials,
-                                                             mod_etag_headers.get('_etag'),
-                                                             mod_etag_headers.get('_mod'))
+            raw_repodata_str = fetch_repodata_remote_request(
+                self.url_w_credentials,
+                mod_etag_headers.get('_etag'),
+                mod_etag_headers.get('_mod'),
+                repodata_fn=self.repodata_fn)
+        except UnavailableInvalidChannel:
+            if self.current_repodata:
+                self.current_repodata = False
+                return self._load()
+            else:
+                raise
         except Response304ContentUnchanged:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
                       self.url_w_subdir)
@@ -296,6 +307,7 @@ class SubdirData(object):
             yield _pickled_state.get('_mod') == mod_stamp
             yield _pickled_state.get('_etag') == etag
             yield _pickled_state.get('_pickle_version') == REPODATA_PICKLE_VERSION
+            yield _pickled_state.get('_fn') == self.repodata_fn
 
         if not all(_check_pickled_valid()):
             log.debug("Pickle load validation failed for %s at %s.",
@@ -321,6 +333,7 @@ class SubdirData(object):
             'url_w_subdir': self.url_w_subdir,
             'url_w_credentials': self.url_w_credentials,
             'cache_path_base': self.cache_path_base,
+            'fn': self.repodata_fn,
 
             '_package_records': _package_records,
             '_names_index': _names_index,
@@ -419,7 +432,7 @@ class Response304ContentUnchanged(Exception):
     pass
 
 
-def fetch_repodata_remote_request(url, etag, mod_stamp):
+def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
@@ -431,13 +444,9 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
     if mod_stamp:
         headers["If-Modified-Since"] = mod_stamp
 
-    if 'repo.anaconda.com' in url:
-        filename = 'repodata.json.bz2'
-        headers['Accept-Encoding'] = 'identity'
-    else:
-        headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-        headers['Content-Type'] = 'application/json'
-        filename = 'repodata.json'
+    headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
+    headers['Content-Type'] = 'application/json'
+    filename = repodata_fn
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs

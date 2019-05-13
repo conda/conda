@@ -220,6 +220,7 @@ class Context(Configuration):
     use_local = PrimitiveParameter(False)
     whitelist_channels = SequenceParameter(string_types, expandvars=True)
     restore_free_channel = PrimitiveParameter(False)
+    repodata_fn = PrimitiveParameter("current_repodata.json")
 
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -721,6 +722,7 @@ class Context(Configuration):
             'add_anaconda_token',
             'allow_non_channel_urls',
             'restore_free_channel',
+            'repodata_fn',
         )),
         ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
             'envs_dirs',
@@ -1113,6 +1115,11 @@ class Context(Configuration):
             'track_features': dals("""
                 A list of features that are tracked by default. An entry here is similar to
                 adding an entry to the create_default_packages list.
+                """),
+            'repodata_fn': dals("""
+                Specify a filename for repodata fetching. The standard is
+                repodata.json, but you may want to specify something else to
+                use an index that has been reduced in time scope.
                 """),
             'use_index_cache': dals("""
                 Use cache of channel index files, even if it has expired.
