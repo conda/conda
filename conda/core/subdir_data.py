@@ -361,25 +361,29 @@ class SubdirData(object):
             k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
         )
 
-        for fn, info in concatv(
-            iteritems(conda_packages),
-            ((k, legacy_packages[k]) for k in use_these_legacy_keys),
-        ):
-            info['fn'] = fn
-            info['url'] = join_url(channel_url, fn)
-            if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-                info['depends'].append('pip')
-            info.update(meta_in_common)
-            if info.get('record_version', 0) > 1:
-                log.debug("Ignoring record_version %d from %s",
-                          info["record_version"], info['url'])
-                continue
-            package_record = PackageRecord(**info)
+        for group, copy_legacy_md5 in ((iteritems(conda_packages), True),
+                                       (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
+            for fn, info in group:
+                info['fn'] = fn
+                info['url'] = join_url(channel_url, fn)
+                if copy_legacy_md5:
+                    counterpart = fn.replace('.conda', '.tar.bz2')
+                    if counterpart in legacy_packages:
+                        info['legacy_bz2_md5'] = legacy_packages[counterpart].get('md5')
+                        info['legacy_bz2_size'] = legacy_packages[counterpart].get('size')
+                if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
+                    info['depends'].append('pip')
+                info.update(meta_in_common)
+                if info.get('record_version', 0) > 1:
+                    log.debug("Ignoring record_version %d from %s",
+                              info["record_version"], info['url'])
+                    continue
+                package_record = PackageRecord(**info)
 
-            _package_records.append(package_record)
-            _names_index[package_record.name].append(package_record)
-            for ftr_name in package_record.track_features:
-                _track_features_index[ftr_name].append(package_record)
+                _package_records.append(package_record)
+                _names_index[package_record.name].append(package_record)
+                for ftr_name in package_record.track_features:
+                    _track_features_index[ftr_name].append(package_record)
 
         self._internal_state = _internal_state
         return _internal_state

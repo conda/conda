@@ -474,15 +474,19 @@ class ProgressiveFetchExtract(object):
         sha256 = pref_or_spec.get("sha256")
         size = pref_or_spec.get("size")
         md5 = pref_or_spec.get("md5")
+        legacy_bz2_size = pref_or_spec.get("legacy_bz2_size")
+        legacy_bz2_md5 = pref_or_spec.get("legacy_bz2_md5")
 
         def pcrec_matches(pcrec):
             matches = True
-            if sha256 is not None and pcrec.sha256 is not None:
-                matches = sha256 == pcrec.sha256
+            # sha256 is overkill for things that are already in the package cache.
+            #     It's just a quick match.
+            # if sha256 is not None and pcrec.sha256 is not None:
+            #     matches = sha256 == pcrec.sha256
             if size is not None and pcrec.size is not None:
-                matches = size == pcrec.size
+                matches = pcrec.size in (size, legacy_bz2_size)
             if matches and md5 is not None and pcrec is not None:
-                matches = md5 == pcrec.md5
+                matches = pcrec.md5 in (md5, legacy_bz2_md5)
             return matches
 
         if md5:

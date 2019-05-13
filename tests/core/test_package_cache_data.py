@@ -50,6 +50,8 @@ zlib_conda_prec = PackageRecord.from_objects({
       "depends": [
         "vc >=14.1,<15.0a0"
       ],
+      "legacy_bz2_md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
+      "legacy_bz2_size": 131285,
       "license": "zlib",
       "license_family": "Other",
       "md5": "edad165fc3d25636d4f0a61c42873fbc",

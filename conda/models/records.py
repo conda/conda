@@ -244,6 +244,9 @@ class PackageRecord(DictSafeMixin, Entity):
     fn = FilenameField(aliases=('filename',))
 
     md5 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+    legacy_bz2_md5 = StringField(default=None, required=False, nullable=True,
+                                 default_in_dump=False)
+    legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
 
