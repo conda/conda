@@ -33,7 +33,7 @@ from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     make_menu, mkdir_p, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.permissions import make_writable
-from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
+from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, isfile, islink, lexists,
                                   read_index_json)
 from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
@@ -1066,13 +1066,13 @@ class UnregisterEnvironmentLocationAction(PathAction):
 class CacheUrlAction(PathAction):
 
     def __init__(self, url, target_pkgs_dir, target_package_basename,
-                 md5sum=None, sha256sum=None, expected_size_in_bytes=None):
+                 sha256=None, size=None, md5=None):
         self.url = url
         self.target_pkgs_dir = target_pkgs_dir
         self.target_package_basename = target_package_basename
-        self.md5sum = md5sum
-        self.sha256sum = sha256sum
-        self.expected_size_in_bytes = expected_size_in_bytes
+        self.sha256 = sha256
+        self.size = size
+        self.md5 = md5
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def verify(self):
@@ -1097,57 +1097,74 @@ class CacheUrlAction(PathAction):
             else:
                 backoff_rename(self.target_full_path, self.hold_path, force=True)
 
-        if self.url.startswith('file:/'):
-            source_path = url_to_path(self.url)
-            if dirname(source_path) in context.pkgs_dirs:
-                # if url points to another package cache, link to the writable cache
-                create_hard_link_or_copy(source_path, self.target_full_path)
-                source_package_cache = PackageCacheData(dirname(source_path))
-
-                # the package is already in a cache, so it came from a remote url somewhere;
-                #   make sure that remote url is the most recent url in the
-                #   writable cache urls.txt
-                origin_url = source_package_cache._urls_data.get_url(self.target_package_basename)
-                if origin_url and has_platform(origin_url, context.known_subdirs):
-                    target_package_cache._urls_data.add_url(origin_url)
-            else:
-                # so our tarball source isn't a package cache, but that doesn't mean it's not
-                #   in another package cache somewhere
-                # let's try to find the actual, remote source url by matching md5sums, and then
-                #   record that url as the remote source url in urls.txt
-                # we do the search part of this operation before the create_link so that we
-                #   don't md5sum-match the file created by 'create_link'
-                # there is no point in looking for the tarball in the cache that we are writing
-                #   this file into because we have already removed the previous file if there was
-                #   any. This also makes sure that we ignore the md5sum of a possible extracted
-                #   directory that might exist in this cache because we are going to overwrite it
-                #   anyway when we extract the tarball.
-                source_md5sum = compute_md5sum(source_path)
-                exclude_caches = self.target_pkgs_dir,
-                pc_entry = PackageCacheData.tarball_file_in_cache(
-                    source_path, source_md5sum, exclude_caches=exclude_caches
-                )
-
-                if pc_entry:
-                    origin_url = target_package_cache._urls_data.get_url(
-                        pc_entry.extracted_package_dir
-                    )
-                else:
-                    origin_url = None
-
-                # copy the tarball to the writable cache
-                create_link(source_path, self.target_full_path, link_type=LinkType.copy,
-                            force=context.force)
-
-                if origin_url and has_platform(origin_url, context.known_subdirs):
-                    target_package_cache._urls_data.add_url(origin_url)
-                else:
-                    target_package_cache._urls_data.add_url(self.url)
-
+        source_path = url_to_path(self.url)
+        if self.url.startswith('file:/') and not isfile(source_path):
+            self._execute_local(source_path, target_package_cache, progress_update_callback)
         else:
-            download(self.url, self.target_full_path, md5=self.md5sum, sha256=self.sha256sum,
-                     progress_update_callback=progress_update_callback)
-            target_package_cache._urls_data.add_url(self.url)
+            self._execute_channel(target_package_cache, progress_update_callback)
+
+    def _execute_local(self, source_path, target_package_cache, progress_update_callback=None):
+        from .package_cache_data import PackageCacheData
+        if dirname(source_path) in context.pkgs_dirs:
+            # if url points to another package cache, link to the writable cache
+            create_hard_link_or_copy(source_path, self.target_full_path)
+            source_package_cache = PackageCacheData(dirname(source_path))
+
+            # the package is already in a cache, so it came from a remote url somewhere;
+            #   make sure that remote url is the most recent url in the
+            #   writable cache urls.txt
+            origin_url = source_package_cache._urls_data.get_url(self.target_package_basename)
+            if origin_url and has_platform(origin_url, context.known_subdirs):
+                target_package_cache._urls_data.add_url(origin_url)
+        else:
+            # so our tarball source isn't a package cache, but that doesn't mean it's not
+            #   in another package cache somewhere
+            # let's try to find the actual, remote source url by matching md5sums, and then
+            #   record that url as the remote source url in urls.txt
+            # we do the search part of this operation before the create_link so that we
+            #   don't md5sum-match the file created by 'create_link'
+            # there is no point in looking for the tarball in the cache that we are writing
+            #   this file into because we have already removed the previous file if there was
+            #   any. This also makes sure that we ignore the md5sum of a possible extracted
+            #   directory that might exist in this cache because we are going to overwrite it
+            #   anyway when we extract the tarball.
+            source_md5sum = compute_md5sum(source_path)
+            exclude_caches = self.target_pkgs_dir,
+            pc_entry = PackageCacheData.tarball_file_in_cache(
+                source_path, source_md5sum, exclude_caches=exclude_caches
+            )
+
+            if pc_entry:
+                origin_url = target_package_cache._urls_data.get_url(
+                    pc_entry.extracted_package_dir
+                )
+            else:
+                origin_url = None
+
+            # copy the tarball to the writable cache
+            create_link(source_path, self.target_full_path, link_type=LinkType.copy,
+                        force=context.force)
+
+            if origin_url and has_platform(origin_url, context.known_subdirs):
+                target_package_cache._urls_data.add_url(origin_url)
+            else:
+                target_package_cache._urls_data.add_url(self.url)
+
+    def _execute_channel(self, target_package_cache, progress_update_callback=None):
+        kwargs = {}
+        if self.size is not None:
+            kwargs["size"] = self.size
+        if self.sha256:
+            kwargs["sha256"] = self.sha256
+        elif self.md5:
+            kwargs["md5"] = self.md5
+        download(
+            self.url,
+            self.target_full_path,
+            progress_update_callback=progress_update_callback,
+            **kwargs
+        )
+        target_package_cache._urls_data.add_url(self.url)
 
     def reverse(self):
         if lexists(self.hold_path):
@@ -1168,13 +1185,15 @@ class CacheUrlAction(PathAction):
 class ExtractPackageAction(PathAction):
 
     def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname,
-                 record_or_spec, md5sum):
+                 record_or_spec, sha256, size, md5):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.record_or_spec = record_or_spec
-        self.md5sum = md5sum
+        self.sha256 = sha256
+        self.size = size
+        self.md5 = md5
 
     def verify(self):
         self._verified = True
@@ -1198,10 +1217,13 @@ class ExtractPackageAction(PathAction):
             assert url
             channel = Channel(url) if has_platform(url, context.known_subdirs) else Channel(None)
             fn = basename(url)
-            md5 = self.md5sum or compute_md5sum(self.source_full_path)
+            sha256 = self.sha256 or compute_sha256sum(self.source_full_path)
             size = getsize(self.source_full_path)
+            if self.size is not None:
+                assert size == self.size, (size, self.size)
+            md5 = self.md5 or compute_md5sum(self.source_full_path)
             repodata_record = PackageRecord.from_objects(
-                raw_index_json, url=url, channel=channel, fn=fn, md5=md5, size=size,
+                raw_index_json, url=url, channel=channel, fn=fn, sha256=sha256, size=size, md5=md5,
             )
         else:
             repodata_record = PackageRecord.from_objects(self.record_or_spec, raw_index_json)

@@ -245,6 +245,7 @@ class PackageRecord(DictSafeMixin, Entity):
 
     md5 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+    sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
 
     @property
     def schannel(self):

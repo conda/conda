@@ -18,8 +18,8 @@ from ..._vendor.auxlib.logz import stringify
 from ...base.context import context
 from ...common.compat import text_type
 from ...common.io import time_recorder
-from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
-                           ChecksumMismatchError, maybe_raise)
+from ...exceptions import (BasicClobberError, ChecksumMismatchError, CondaDependencyError,
+                           CondaHTTPError, maybe_raise)
 
 log = getLogger(__name__)
 
@@ -101,13 +101,17 @@ def download(
                 log.debug("%s, trying again" % e)
             raise
 
-        if checksum_builder:
-            actual_checksum = checksum_builder.hexdigest()
-            if actual_checksum != checksum:
-                log.debug("%s sums mismatch for download: %s (%s != %s)", checksum_type, url,
-                          actual_checksum, checksum)
-                raise ChecksumMismatchError(url, target_full_path, checksum_type, checksum,
-                                            actual_checksum)
+        if md5:
+            actual_md5 = md5_builder.hexdigest()
+            if actual_md5 != md5:
+                log.debug("md5 sums mismatch for download: %s (%s != %s)", url, actual_md5, md5)
+                raise ChecksumMismatchError(url, target_full_path, "md5", md5, actual_md5)
+        if sha256:
+            actual_sha256 = sha256_builder.hexdigest()
+            if actual_sha256 != sha256:
+                log.debug("sha256 sums mismatch for download: %s (%s != %s)",
+                          url, actual_sha256, sha256)
+                raise ChecksumMismatchError(url, target_full_path, "sha256", sha256, actual_sha256)
         if size is not None:
             actual_size = size_builder
             if actual_size != size:
