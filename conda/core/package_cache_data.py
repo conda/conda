@@ -471,14 +471,27 @@ class ProgressiveFetchExtract(object):
         #   (1) already extracted, and
         #   (2) matches the md5
         # If one exists, no actions are needed.
-        md5 = pref_or_spec.get('md5')
+        sha256 = pref_or_spec.get("sha256")
+        size = pref_or_spec.get("size")
+        md5 = pref_or_spec.get("md5")
+
+        def pcrec_matches(pcrec):
+            matches = True
+            if sha256 is not None and pcrec.sha256 is not None:
+                matches = sha256 == pcrec.sha256
+            if size is not None and pcrec.size is not None:
+                matches = size == pcrec.size
+            if matches and md5 is not None and pcrec is not None:
+                matches = md5 == pcrec.md5
+            return matches
+
         if md5:
             extracted_pcrec = next((
                 pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
                                           for pkgs_dir in context.pkgs_dirs)
                 if pcrec.is_extracted
             ), None)
-            if extracted_pcrec:
+            if extracted_pcrec and pcrec_matches(extracted_pcrec):
                 return None, None
 
         # there is no extracted dist that can work, so now we look for tarballs that
@@ -492,14 +505,16 @@ class ProgressiveFetchExtract(object):
             ) if pcrec.is_fetched),
             None
         )
-        if pcrec_from_writable_cache:
+        if pcrec_from_writable_cache and pcrec_matches(pcrec_from_writable_cache):
             # extract in place
             extract_axn = ExtractPackageAction(
                 source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
                 target_pkgs_dir=dirname(pcrec_from_writable_cache.package_tarball_full_path),
                 target_extracted_dirname=basename(pcrec_from_writable_cache.extracted_package_dir),
                 record_or_spec=pcrec_from_writable_cache,
-                md5sum=pcrec_from_writable_cache.md5,
+                sha256=pcrec_from_writable_cache.sha256 or sha256,
+                size=pcrec_from_writable_cache.size or size,
+                md5=pcrec_from_writable_cache.md5 or md5,
             )
             return None, extract_axn
 
@@ -510,20 +525,17 @@ class ProgressiveFetchExtract(object):
         ), None)
 
         first_writable_cache = PackageCacheData.first_writable()
-        if pcrec_from_read_only_cache:
+        if pcrec_from_read_only_cache and pcrec_matches(pcrec_from_read_only_cache):
             # we found a tarball, but it's in a read-only package cache
             # we need to link the tarball into the first writable package cache,
             #   and then extract
-            try:
-                expected_size_in_bytes = pref_or_spec.size
-            except AttributeError:
-                expected_size_in_bytes = None
             cache_axn = CacheUrlAction(
                 url=path_to_url(pcrec_from_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
-                md5sum=md5,
-                expected_size_in_bytes=expected_size_in_bytes,
+                sha256=pcrec_from_read_only_cache.get("sha256") or sha256,
+                size=pcrec_from_read_only_cache.get("size") or size,
+                md5=pcrec_from_read_only_cache.get("md5") or md5,
             )
             trgt_extracted_dirname = strip_pkg_extension(pcrec_from_read_only_cache.fn)[0]
             extract_axn = ExtractPackageAction(
@@ -531,7 +543,9 @@ class ProgressiveFetchExtract(object):
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_extracted_dirname=trgt_extracted_dirname,
                 record_or_spec=pcrec_from_read_only_cache,
-                md5sum=pcrec_from_read_only_cache.md5,
+                sha256=pcrec_from_read_only_cache.get("sha256") or sha256,
+                size=pcrec_from_read_only_cache.get("size") or size,
+                md5=pcrec_from_read_only_cache.get("md5") or md5,
             )
             return cache_axn, extract_axn
 
@@ -539,24 +553,23 @@ class ProgressiveFetchExtract(object):
         #   we'll have to download one; fetch and extract
         url = pref_or_spec.get('url')
         assert url
-        try:
-            expected_size_in_bytes = pref_or_spec.size
-        except AttributeError:
-            expected_size_in_bytes = None
 
         cache_axn = CacheUrlAction(
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=pref_or_spec.fn,
-            md5sum=md5,
-            expected_size_in_bytes=expected_size_in_bytes,
+            sha256=sha256,
+            size=size,
+            md5=md5,
         )
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
             record_or_spec=pref_or_spec,
-            md5sum=md5,
+            sha256=sha256,
+            size=size,
+            md5=md5,
         )
         return cache_axn, extract_axn
 

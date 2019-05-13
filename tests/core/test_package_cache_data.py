@@ -1,10 +1,14 @@
 import json
 from os.path import abspath, basename, dirname, join
 
+import pytest
+
+from conda import CondaMultiError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.core.index import get_index
 from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from conda.core.path_actions import CacheUrlAction
+from conda.exceptions import ChecksumMismatchError
 from conda.exports import url_path
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
@@ -165,6 +169,26 @@ def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2():
         with open(join(pkgs_dir, zlib_base_fn, "info", "repodata_record.json")) as fh:
             repodata_record = json.load(fh)
         assert repodata_record["fn"] == zlib_tar_bz2_fn
+
+
+def test_bad_sha256_enforcement():
+    with make_temp_package_cache() as pkgs_dir:
+        zlib_conda_prec_bad = PackageRecord.from_objects(zlib_conda_prec, sha256="0" * 10)
+        assert zlib_conda_prec_bad.sha256 == "0" * 10
+        pfe = ProgressiveFetchExtract((zlib_conda_prec_bad,))
+        pfe.prepare()
+        assert len(pfe.cache_actions) == 1
+        assert len(pfe.extract_actions) == 1
+        cache_action = pfe.cache_actions[0]
+        extact_action = pfe.extract_actions[0]
+        assert basename(cache_action.target_full_path) == zlib_conda_fn
+        assert cache_action.target_full_path == extact_action.source_full_path
+        assert basename(extact_action.target_full_path) == zlib_base_fn
+        with pytest.raises(CondaMultiError) as exc:
+            pfe.execute()
+        assert len(exc.value.errors) == 1
+        assert isinstance(exc.value.errors[0], ChecksumMismatchError)
+        assert "expected sha256: 0000000000" in repr(exc.value.errors[0])
 
 
 def test_tar_bz2_in_cache_not_extracted():

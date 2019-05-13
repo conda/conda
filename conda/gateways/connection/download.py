@@ -99,7 +99,7 @@ def download(
                 raise ChecksumMismatchError(url, target_full_path, "md5", md5, actual_md5)
         if sha256:
             actual_sha256 = sha256_builder.hexdigest()
-            if actual_sha256 != md5:
+            if actual_sha256 != sha256:
                 log.debug("sha256 sums mismatch for download: %s (%s != %s)",
                           url, actual_sha256, sha256)
                 raise ChecksumMismatchError(url, target_full_path, "sha256", sha256, actual_sha256)
