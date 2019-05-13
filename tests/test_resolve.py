@@ -532,8 +532,7 @@ def test_unsat_channel_priority():
     with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with pytest.raises(UnsatisfiableError) as excinfo:
             r.install(['a', 'b'])
-        # TODO this hint should be more informative
-        assert "b" in str(excinfo.value)
+        assert "b -> c[version='>=2,<3']" in str(excinfo.value)
 
 
 def test_nonexistent():

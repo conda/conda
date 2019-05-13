@@ -325,12 +325,21 @@ class Resolve(object):
             if len(matches) == 1:
                 specs = self.ms_depends(matches[0])
 
+        strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
+
+        def find_matches_with_strict(ms):
+            matches = self.find_matches(ms)
+            if not strict_channel_priority:
+                return matches
+            sole_source_channel_name = self._get_strict_channel(ms.name)
+            return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
+
         sdeps = {}
         # For each spec, assemble a dictionary of dependencies, with package
         # name as key, and all of the matching packages as values.
         for top_level_spec in specs:
             # find all packages matching a top level specification
-            top_level_pkgs = self.find_matches(top_level_spec)
+            top_level_pkgs = find_matches_with_strict(top_level_spec)
             top_level_sdeps = {top_level_spec.name: set(top_level_pkgs)}
 
             # find all depends specs for in top level packages
@@ -346,7 +355,7 @@ class Resolve(object):
             slist = []
             for ms in second_level_specs:
                 deps = top_level_sdeps.setdefault(ms.name, set())
-                for fkey in self.find_matches(ms):
+                for fkey in find_matches_with_strict(ms):
                     deps.add(fkey)
                     slist.extend(
                         ms2 for ms2 in self.ms_depends(fkey) if ms2.name != top_level_spec.name)
@@ -365,7 +374,7 @@ class Resolve(object):
                 if ms2.name in locked_names:
                     continue
                 deps = top_level_sdeps.setdefault(ms2.name, set())
-                for fkey in self.find_matches(ms2):
+                for fkey in find_matches_with_strict(ms2):
                     if fkey not in deps:
                         deps.add(fkey)
                         slist.extend(ms3 for ms3 in self.ms_depends(fkey)
@@ -393,7 +402,16 @@ class Resolve(object):
                 ndeps = [nd for nd in ndeps if nd[-1].name == dep]
                 bad_deps.extend(ndeps)
         if not bad_deps:
-            # no conflicting packages found, return the bad specs
+            for spec in specs:
+                filter = {}
+                for name, valid_pkgs in sdeps[spec].items():
+                    if name == spec.name:
+                        continue
+                    for fkey in self.find_matches(MatchSpec(name)):
+                        filter[fkey] = fkey in valid_pkgs
+                bad_deps.extend(self.invalid_chains(spec, filter, False))
+        if not bad_deps:
+            # no conflicting nor missing packages found, return the bad specs
             bad_deps = [(ms, ) for ms in specs]
         raise UnsatisfiableError(bad_deps)
 
