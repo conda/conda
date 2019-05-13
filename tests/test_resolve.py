@@ -369,10 +369,19 @@ def test_generate_eq_1():
 
 def test_unsat_from_r1():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['numpy 1.5*', 'scipy 0.12.0b1'])
+    assert "numpy=1.5" in str(excinfo.value)
+    assert "scipy==0.12.0b1 -> numpy=1.7" in str(excinfo.value)
     # numpy 1.5 does not have a python 3 package
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'python 3*']))
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['numpy 1.5*', 'python 3*'])
+    assert "numpy=1.5 -> python=2.7" in str(excinfo.value)
+    assert "python=3" in str(excinfo.value)
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['numpy 1.5*', 'numpy 1.6*'])
+    assert "numpy=1.5" in str(excinfo.value)
+    assert "numpy=1.6" in str(excinfo.value)
 
 
 def simple_rec(name='a', version='1.0', depends=None, build='0',
