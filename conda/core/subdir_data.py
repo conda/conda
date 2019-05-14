@@ -57,7 +57,7 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]' 
 
 class SubdirDataType(type):
 
-    def __call__(cls, channel):
+    def __call__(cls, channel, repodata_fn=REPODATA_FN):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
@@ -65,7 +65,7 @@ class SubdirDataType(type):
         if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
 
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
+        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, repodata_fn)
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
 
@@ -222,8 +222,8 @@ class SubdirData(object):
                 mod_etag_headers.get('_mod'),
                 repodata_fn=self.repodata_fn)
         except UnavailableInvalidChannel:
-            if self.current_repodata:
-                self.current_repodata = False
+            if self.repodata_fn != REPODATA_FN:
+                self.repodata_fn = REPODATA_FN
                 return self._load()
             else:
                 raise
@@ -432,7 +432,7 @@ class Response304ContentUnchanged(Exception):
     pass
 
 
-def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn):
+def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
