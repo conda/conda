@@ -225,6 +225,15 @@ class SubdirData(object):
                 mod_etag_headers.get('_etag'),
                 mod_etag_headers.get('_mod'),
                 repodata_fn=self.repodata_fn)
+            # empty file
+            if ((not raw_repodata_str or len(raw_repodata_str) < 4) and
+                    self.repodata_fn != REPODATA_FN):
+                self.repodata_fn = REPODATA_FN
+                raw_repodata_str = fetch_repodata_remote_request(
+                    self.url_w_credentials,
+                    mod_etag_headers.get('_etag'),
+                    mod_etag_headers.get('_mod'),
+                    repodata_fn=REPODATA_FN)
         except UnavailableInvalidChannel:
             if self.repodata_fn != REPODATA_FN:
                 self.repodata_fn = REPODATA_FN
@@ -480,12 +489,13 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
-                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
+                log.info("Unable to retrieve repodata (%d error) for %s", status_code,
+                         url + '/' + repodata_fn)
                 return None
             else:
                 if context.allow_non_channel_urls:
                     stderrlog.warning("Unable to retrieve repodata (%d error) for %s",
-                                      status_code, url)
+                                      status_code, url + '/' + repodata_fn)
                     return None
                 else:
                     raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)

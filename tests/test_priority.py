@@ -1,5 +1,6 @@
 from datetime import datetime
 from unittest import TestCase
+import re
 
 import pytest
 
@@ -16,21 +17,20 @@ class PriorityIntegrationTests(TestCase):
     def test_channel_order_channel_priority_true(self):
         # This is broken, make_temp_env will reset the context. We get away with it, but really
         # we need a function that does both these at the same time.
-        with env_var("CONDA_PINNED_PACKAGES", "python=3.5", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "pycosat==0.6.1") as prefix:
-                assert package_is_installed(prefix, 'python=3.5')
+        with env_var("CONDA_PINNED_PACKAGES", "python=3.6", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with make_temp_env("pycosat==0.6.2") as prefix:
+                assert package_is_installed(prefix, 'python=3.6')
                 assert package_is_installed(prefix, 'pycosat')
 
                 # add conda-forge channel
                 o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
-                o, e, _ = run_command(Commands.CONFIG, prefix, "--append", "channels", "https://repo.anaconda.com/pkgs/free", '--json')
-                assert context.channels == ("conda-forge", "defaults", "https://repo.anaconda.com/pkgs/free"), o + e
+                assert context.channels == ("conda-forge", "defaults"), o + e
                 # update --all
                 update_stdout, _, _ = run_command(Commands.UPDATE, prefix, '--all')
 
                 # this assertion works with the pinned_packages config to make sure
                 # conda update --all still respects the pinned python version
-                assert package_is_installed(prefix, 'python=3.5')
+                assert package_is_installed(prefix, 'python=3.6')
 
                 # pycosat should be in the SUPERSEDED list
                 # after the 4.4 solver work, looks like it's in the DOWNGRADED list
@@ -41,7 +41,7 @@ class PriorityIntegrationTests(TestCase):
                 # The following packages will be UPDATED to a higher-priority channel:
                 #
                 installed_str, x = update_stdout.split('UPDATED')
-                assert 'pkgs/free::pycosat-0.6.1-py35_1 --> conda-forge::pycosat' in x
+                assert re.search(r'pkgs/main::pycosat-0.6.2-py36h[^\s]+ --> conda-forge::pycosat', x)
 
                 # python sys.version should show conda-forge python
                 python_tuple = get_conda_list_tuple(prefix, "python")
@@ -54,7 +54,7 @@ class PriorityIntegrationTests(TestCase):
         """
             This case will fail now
         """
-        with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "python=3.5.3=0") as prefix:
+        with make_temp_env("python=3.6.5", "pycosat") as prefix:
             assert package_is_installed(prefix, 'python')
 
             # add conda-forge channel
