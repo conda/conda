@@ -483,9 +483,9 @@ class ProgressiveFetchExtract(object):
             #     It's just a quick match.
             # if sha256 is not None and pcrec.sha256 is not None:
             #     matches = sha256 == pcrec.sha256
-            if size is not None and pcrec.size is not None:
+            if size is not None and pcrec.get('size') is not None:
                 matches = pcrec.size in (size, legacy_bz2_size)
-            if matches and md5 is not None and pcrec is not None:
+            if matches and md5 is not None and pcrec.get('md5') is not None:
                 matches = pcrec.md5 in (md5, legacy_bz2_md5)
             return matches
 
