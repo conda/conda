@@ -33,7 +33,7 @@ from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     make_menu, mkdir_p, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.permissions import make_writable
-from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, isfile, islink, lexists,
+from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
                                   read_index_json)
 from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
