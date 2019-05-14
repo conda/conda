@@ -12,6 +12,7 @@ from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 import sys
 import tempfile
+import warnings as _warnings
 
 import conda_package_handling.api
 
@@ -29,6 +30,53 @@ from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.enums import FileMode, LinkType
+
+try:
+    from tempfile import TemporaryDirectory
+except ImportError:
+    class TemporaryDirectory(object):
+        """Create and return a temporary directory.  This has the same
+        behavior as mkdtemp but can be used as a context manager.  For
+        example:
+
+            with TemporaryDirectory() as tmpdir:
+                ...
+
+        Upon exiting the context, the directory and everything contained
+        in it are removed.
+        """
+
+        # Handle mkdtemp raising an exception
+        name = None
+        _closed = False
+
+        def __init__(self, suffix="", prefix='tmp', dir=None):
+            self.name = tempfile.mkdtemp(suffix, prefix, dir)
+
+        def __repr__(self):
+            return "<{} {!r}>".format(self.__class__.__name__, self.name)
+
+        def __enter__(self):
+            return self.name
+
+        def cleanup(self, _warn=False, _warnings=_warnings):
+            from .delete import rm_rf as _rm_rf
+            if self.name and not self._closed:
+                try:
+                    _rm_rf(self.name)
+                except (TypeError, AttributeError) as ex:
+                    if "None" not in '%s' % (ex,):
+                        raise
+                    _rm_rf(self.name)
+                self._closed = True
+
+        def __exit__(self, exc, value, tb):
+            self.cleanup()
+
+        def __del__(self):
+            # Issue a ResourceWarning if implicit cleanup needed
+            self.cleanup(_warn=True)
+
 
 log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
