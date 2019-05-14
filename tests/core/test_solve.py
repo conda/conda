@@ -8,7 +8,7 @@ import sys
 from textwrap import dedent
 from unittest import TestCase
 
-from os.path import join
+from os.path import join, abspath, dirname
 
 import pytest
 
@@ -32,6 +32,7 @@ except ImportError:
     from mock import Mock, patch
 
 TEST_PREFIX = '/a/test/c/prefix'
+CHANNEL_DIR = abspath(join(dirname(__file__), '..', 'data', 'conda_format_repo'))
 
 
 @contextmanager
@@ -2411,3 +2412,37 @@ class PrivateEnvTests(TestCase):
     #
     #         )
     #         assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
+
+
+def test_current_repodata_usage():
+    solver = Solver(TEST_PREFIX, (Channel("file://" + CHANNEL_DIR),), ('win-64',),
+                    specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
+    final_state = solver.solve_final_state()
+    # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
+    assert len(solver._index) == 4
+    assert final_state
+    checked = False
+    for prec in final_state:
+        if prec.name == 'zlib':
+            assert prec.version == '1.2.11'
+            assert prec.fn.endswith('.conda')
+            checked = True
+    if not checked:
+        raise ValueError("Didn't have expected state in solve (needed zlib record)")
+
+
+def test_current_repodata_fallback():
+    solver = Solver(TEST_PREFIX, (Channel("file://" + CHANNEL_DIR),), ('win-64',),
+                    specs_to_add=[MatchSpec('zlib=1.2.8')])
+    final_state = solver.solve_final_state()
+    # zlib 1.2.11, zlib 1.2.8, vc 14.1, vs2015_runtime, virtual package for vc track_feature
+    assert len(solver._index) == 5
+    assert final_state
+    checked = False
+    for prec in final_state:
+        if prec.name == 'zlib':
+            assert prec.version == '1.2.8'
+            assert prec.fn.endswith('.tar.bz2')
+            checked = True
+    if not checked:
+        raise ValueError("Didn't have expected state in solve (needed zlib record)")
