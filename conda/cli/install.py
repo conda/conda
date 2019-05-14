@@ -15,7 +15,7 @@ from ..base.constants import ROOT_ENV_NAME, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
 from ..common.constants import NULL
-from ..common.path import paths_equal
+from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
 from ..core.solve import DepsModifier, Solver
@@ -191,7 +191,7 @@ def install(args, parser, command='install'):
         'use_local': args.use_local
     }
 
-    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
+    num_cp = sum(is_package_file(s) for s in args_packages)
     if num_cp:
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not context.quiet)

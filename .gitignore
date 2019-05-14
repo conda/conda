@@ -35,3 +35,4 @@ miniconda*.exe
 .pytest_cache/
 docs/source/_build
 **/.vscode
+conda.tmp/

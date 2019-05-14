@@ -34,7 +34,7 @@ from conda import CondaError, CondaMultiError, plan, __version__ as CONDA_VERSIO
     CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda._vendor.auxlib.ish import dals
-from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks, \
+from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks, \
     PREFIX_MAGIC_FILE, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.conda_argparse import do_call
@@ -2266,7 +2266,7 @@ class IntegrationTests(TestCase):
         with make_temp_package_cache() as pkgs_dir:
             assert context.pkgs_dirs == (pkgs_dir,)
             def pkgs_dir_has_tarball(tarball_prefix):
-                return any(f.startswith(tarball_prefix) and f.endswith(CONDA_TARBALL_EXTENSION)
+                return any(f.startswith(tarball_prefix) and f.endswith(CONDA_PACKAGE_EXTENSION_V1)
                            for f in os.listdir(pkgs_dir))
 
             with make_temp_env() as prefix:

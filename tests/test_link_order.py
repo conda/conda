@@ -10,8 +10,6 @@ import tempfile
 
 from .test_create import run_command, Commands
 
-from conda_build import api
-
 try:
     from unittest.mock import patch
 except ImportError:

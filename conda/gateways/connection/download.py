@@ -30,23 +30,14 @@ def disable_ssl_verify_warning():
 
 
 @time_recorder("download")
-def download(url, target_full_path, sha256sum=None, md5sum=None, progress_update_callback=None):
-    # TODO: For most downloads, we should know the size of the artifact from what's reported
-    #       in repodata.  We should validate that here also, in addition to the 'Content-Length'
-    #       header.
+def download(
+        url, target_full_path, md5=None, sha256=None, size=None, progress_update_callback=None
+):
     if exists(target_full_path):
         maybe_raise(BasicClobberError(target_full_path, url, context), context)
 
     if not context.ssl_verify:
         disable_ssl_verify_warning()
-
-    hash_builder = None
-    if sha256sum:
-        hash_builder = 'sha256'
-        reference_hash = sha256sum
-    elif md5sum:
-        hash_builder = 'md5'
-        reference_hash = md5sum
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
@@ -58,8 +49,18 @@ def download(url, target_full_path, sha256sum=None, md5sum=None, progress_update
 
         content_length = int(resp.headers.get('Content-Length', 0))
 
-        if hash_builder:
-            digest_builder = hashlib.new(hash_builder)
+        # prefer sha256 over md5 when both are available
+        checksum_builder = checksum_type = checksum = None
+        if sha256:
+            checksum_builder = hashlib.new("sha256")
+            checksum_type = "sha256"
+            checksum = sha256
+        elif md5:
+            checksum_builder = hashlib.new("md5") if md5 else None
+            checksum_type = "md5"
+            checksum = md5
+
+        size_builder = 0
         try:
             with open(target_full_path, 'wb') as fh:
                 streamed_bytes = 0
@@ -74,8 +75,8 @@ def download(url, target_full_path, sha256sum=None, md5sum=None, progress_update
                         # TODO: make this CondaIOError
                         raise CondaError(message, target_path=target_full_path, errno=e.errno)
 
-                    if hash_builder:
-                        digest_builder.update(chunk)
+                    checksum_builder and checksum_builder.update(chunk)
+                    size_builder += len(chunk)
 
                     if content_length and 0 <= streamed_bytes <= content_length:
                         if progress_update_callback:
@@ -100,13 +101,19 @@ def download(url, target_full_path, sha256sum=None, md5sum=None, progress_update
                 log.debug("%s, trying again" % e)
             raise
 
-        if hash_builder:
-            actual_hash = digest_builder.hexdigest()
-            if actual_hash != reference_hash:
-                log.debug("%s sums mismatch for download: %s (%s != %s), "
-                          "trying again" % (hash_builder, url, digest_builder.hexdigest(),
-                                            reference_hash))
-                raise ChecksumMismatchError(url, target_full_path, reference_hash, actual_hash)
+        if checksum:
+            actual_checksum = checksum_builder.hexdigest()
+            if actual_checksum != checksum:
+                log.debug("%s mismatch for download: %s (%s != %s)",
+                          checksum_type, url, actual_checksum, checksum)
+                raise ChecksumMismatchError(
+                    url, target_full_path, checksum_type, checksum, actual_checksum
+                )
+        if size is not None:
+            actual_size = size_builder
+            if actual_size != size:
+                log.debug("size mismatch for download: %s (%s != %s)", url, actual_size, size)
+                raise ChecksumMismatchError(url, target_full_path, "size", size, actual_size)
 
     except RequestsProxyError:
         raise ProxyError()  # see #3962
@@ -153,7 +160,7 @@ class TmpDownload(object):
         else:
             self.tmp_dir = tempfile.mkdtemp()
             dst = join(self.tmp_dir, basename(self.url))
-            download(self.url, dst, None)
+            download(self.url, dst)
             return dst
 
     def __exit__(self, exc_type, exc_value, traceback):

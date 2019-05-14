@@ -6,12 +6,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 import fnmatch
 from logging import getLogger
-from os import listdir, lstat, walk, unlink
-from os.path import getsize, isdir, join, exists
+from os import listdir, lstat, unlink, walk
+from os.path import exists, getsize, isdir, join
 import sys
 
-from ..base.constants import CONDA_TARBALL_EXTENSION
-from ..common.constants import CONDA_TEMP_EXTENSION
+from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSION
 from ..base.context import context
 
 log = getLogger(__name__)
@@ -21,14 +20,14 @@ def find_tarballs():
     from ..core.package_cache_data import PackageCacheData
     pkgs_dirs = defaultdict(list)
     totalsize = 0
-    part_ext = CONDA_TARBALL_EXTENSION + '.part'
+    part_ext = tuple(e + '.part' for e in CONDA_PACKAGE_EXTENSIONS)
     for package_cache in PackageCacheData.writable_caches(context.pkgs_dirs):
         pkgs_dir = package_cache.pkgs_dir
         if not isdir(pkgs_dir):
             continue
         root, _, filenames = next(walk(pkgs_dir))
         for fn in filenames:
-            if fn.endswith(CONDA_TARBALL_EXTENSION) or fn.endswith(part_ext):
+            if fn.endswith(CONDA_PACKAGE_EXTENSIONS) or fn.endswith(part_ext):
                 pkgs_dirs[pkgs_dir].append(fn)
                 totalsize += getsize(join(root, fn))
 

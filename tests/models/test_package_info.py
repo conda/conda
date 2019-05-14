@@ -27,9 +27,10 @@ class DefaultPackageInfo(TestCase):
 
         package_info = PackageInfo(
             extracted_package_dir='/some/path',
+            package_tarball_full_path="/some/path.tar.bz2",
             channel=Channel('defaults'),
             repodata_record=index_json_record,
-            url='https://some.com/place/file.tar.bz2',
+            url='https://some.com/place/path.tar.bz2',
 
             index_json_record=index_json_record,
             icondata=icondata,

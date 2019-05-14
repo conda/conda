@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
+
 try:
     from collections.abc import Mapping
 except ImportError:
@@ -19,11 +20,11 @@ from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
 from ..common.io import dashlist
-from ..common.path import expand, url_to_path
+from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec
 
@@ -177,8 +178,8 @@ class MatchSpec(object):
     @classmethod
     def from_dist_str(cls, dist_str):
         parts = {}
-        if dist_str.endswith(CONDA_TARBALL_EXTENSION):
-            dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+        if dist_str.endswith(CONDA_PACKAGE_EXTENSION_V1):
+            dist_str = dist_str[:-len(CONDA_PACKAGE_EXTENSION_V1)]
         if '::' in dist_str:
             channel_str, dist_str = dist_str.split("::", 1)
             parts['channel'] = channel_str
@@ -258,7 +259,7 @@ class MatchSpec(object):
             return fn_field
         vals = tuple(self.get_exact_value(x) for x in ('name', 'version', 'build'))
         if not any(x is None for x in vals):
-            return '%s-%s-%s.tar.bz2' % vals
+            return ('%s-%s-%s' % vals) + CONDA_PACKAGE_EXTENSION_V1
         else:
             return None
 
@@ -525,8 +526,7 @@ def _parse_legacy_dist(dist_str):
         >>> _parse_legacy_dist("_license-1.1-py27_1")
         ('_license', '1.1', 'py27_1')
     """
-    if dist_str.endswith(CONDA_TARBALL_EXTENSION):
-        dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+    dist_str, _ = strip_pkg_extension(dist_str)
     name, version, build = dist_str.rsplit('-', 2)
     return name, version, build
 
@@ -570,7 +570,7 @@ def _parse_spec_str(spec_str):
     spec_str = spec_split[0]
 
     # Step 2. done if spec_str is a tarball
-    if spec_str.endswith(CONDA_TARBALL_EXTENSION):
+    if is_package_file(spec_str):
         # treat as a normal url
         if not is_url(spec_str):
             spec_str = unquote(path_to_url(expand(spec_str)))

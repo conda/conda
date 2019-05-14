@@ -3,12 +3,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 from logging import getLogger
+from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
 
 from conda._vendor.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import Context, conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import odict, text_type
 from conda.common.configuration import YamlRawParameter
 from conda.common.io import env_unmodified, env_var, env_vars
@@ -16,16 +17,16 @@ from conda.common.serialize import yaml_load
 from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
-
-from os.path import join
 
 try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
 
+initialize_logging()
 log = getLogger(__name__)
 
 
@@ -395,6 +396,15 @@ class CustomConfigChannelTests(TestCase):
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.platform == "noarch"
         assert channel.package_filename == "flask-1.0.tar.bz2"
+        assert channel.canonical_name == "defaults"
+        assert channel.urls() == [
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
+        ]
+        channel = Channel('https://repo.anaconda.com/pkgs/anaconda/noarch/flask-1.0.conda')
+        assert channel.channel_name == "pkgs/anaconda"
+        assert channel.channel_location == "192.168.0.15:8080"
+        assert channel.platform == "noarch"
+        assert channel.package_filename == "flask-1.0.conda"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
             'http://192.168.0.15:8080/pkgs/anaconda/noarch',

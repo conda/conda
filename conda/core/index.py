@@ -3,9 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from logging import getLogger
-
 from itertools import chain
+from logging import getLogger
 
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
@@ -16,10 +15,11 @@ from ..base.context import context
 from ..common.compat import itervalues
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, dashlist, time_recorder
 from ..exceptions import ChannelNotAllowed, InvalidSpec
+from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
-from ..models.match_spec import MatchSpec
-from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord, PackageRecord
 from ..models.enums import PackageType
+from ..models.match_spec import MatchSpec
+from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
 
 log = getLogger(__name__)
 
@@ -47,6 +47,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     If platform=None, then the current platform is used.
     If prefix is supplied, then the packages installed in that prefix are added.
     """
+    initialize_logging()  # needed in case this function is called directly as a public API
+
     if context.offline and unknown is None:
         unknown = True
 

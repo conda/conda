@@ -14,7 +14,7 @@ from conda.common.compat import on_win
 from conda.common.io import captured, env_var
 from conda.exceptions import BasicClobberError, BinaryPrefixReplacementError, CommandNotFoundError, \
     CondaHTTPError, CondaKeyError, CondaRevisionError, DirectoryNotFoundError, \
-    KnownPackageClobberError, MD5MismatchError, PackagesNotFoundError, PathNotFoundError, \
+    KnownPackageClobberError, ChecksumMismatchError, PackagesNotFoundError, PathNotFoundError, \
     SharedLinkPathClobberError, TooFewArgumentsError, TooManyArgumentsError, \
     UnknownPackageClobberError, conda_exception_handler, ExceptionHandler
 
@@ -194,22 +194,21 @@ class ExceptionTests(TestCase):
         target_full_path = "/some/path/on/disk/another-name.tar.bz2"
         expected_md5sum = "abc123"
         actual_md5sum = "deadbeef"
-        exc = MD5MismatchError(url, target_full_path, expected_md5sum, actual_md5sum)
+        exc = ChecksumMismatchError(url, target_full_path, "md5", expected_md5sum, actual_md5sum)
         with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
         assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.MD5MismatchError'>"
-        assert json_obj['exception_name'] == 'MD5MismatchError'
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.ChecksumMismatchError'>"
+        assert json_obj['exception_name'] == 'ChecksumMismatchError'
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
         assert json_obj['url'] == url
         assert json_obj['target_full_path'] == target_full_path
-        assert json_obj['expected_sum'] == expected_md5sum
-        assert json_obj['actual_sum'] == actual_md5sum
-        assert json_obj['checksum_type'] == 'md5'
+        assert json_obj['expected_checksum'] == expected_md5sum
+        assert json_obj['actual_checksum'] == actual_md5sum
 
         with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
@@ -217,11 +216,11 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-        MD5MismatchError: Conda detected a mismatch between the expected content and downloaded content
+        ChecksumMismatchError: Conda detected a mismatch between the expected content and downloaded content
         for url 'https://download.url/path/to/file.tar.bz2'.
           download saved to: /some/path/on/disk/another-name.tar.bz2
-          expected md5 sum: abc123
-          actual md5 sum: deadbeef
+          expected md5: abc123
+          actual md5: deadbeef
         """).strip()
 
     def test_PackageNotFoundError(self):

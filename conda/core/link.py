@@ -23,16 +23,16 @@ from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from .._vendor.toolz import concat, concatv, interleave, take
-from ..base.constants import DEFAULTS_CHANNEL_NAME, SafetyChecks, PREFIX_MAGIC_FILE
+from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
-from ..exceptions import (DisallowedPackageError, KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
-                          EnvironmentNotWritableError)
+from ..exceptions import (DisallowedPackageError, EnvironmentNotWritableError,
+                          KnownPackageClobberError, LinkError, RemoveError,
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -41,7 +41,7 @@ from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
-from ..utils import human_bytes, wrap_subprocess_call, ensure_comspec_set
+from ..utils import ensure_comspec_set, human_bytes, wrap_subprocess_call
 
 log = getLogger(__name__)
 
@@ -872,7 +872,7 @@ class UnlinkLinkTransaction(object):
             total_download_bytes = 0
             for prec in sorted(change_report.fetch_precs,
                                key=lambda x: convert_namekey(x.namekey)):
-                size = prec.size if prec.fn.endswith('.tar.bz2') else prec.conda_size
+                size = prec.size
                 extra = '%15s' % human_bytes(size)
                 total_download_bytes += size
                 schannel = channel_filt(text_type(prec.channel.canonical_name))

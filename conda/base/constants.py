@@ -134,7 +134,14 @@ else:
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000
 
-CONDA_TARBALL_EXTENSION = '.tar.bz2'
+CONDA_PACKAGE_EXTENSION_V1 = ".tar.bz2"
+CONDA_PACKAGE_EXTENSION_V2 = ".conda"
+CONDA_PACKAGE_EXTENSIONS = (
+    CONDA_PACKAGE_EXTENSION_V2,
+    CONDA_PACKAGE_EXTENSION_V1,
+)
+CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build; remove this line  # NOQA
+CONDA_TEMP_EXTENSION = '.c~'
 
 UNKNOWN_CHANNEL = "<unknown>"
 

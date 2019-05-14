@@ -9,6 +9,7 @@ from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from genericpath import getmtime, isfile
 import hashlib
+from io import open as io_open
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
@@ -16,15 +17,14 @@ from os.path import dirname, isdir, join, splitext
 import re
 from time import time
 import warnings
-from io import open as io_open
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from .._vendor.toolz import concat, take
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
                              string_types, text_type, with_metaclass)
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
@@ -354,22 +354,38 @@ class SubdirData(object):
         }
 
         channel_url = self.url_w_credentials
-        for fn, info in iteritems(json_obj.get('packages', {})):
-            info['fn'] = fn
-            info['url'] = join_url(channel_url, fn)
-            if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-                info['depends'].append('pip')
-            info.update(meta_in_common)
-            if info.get('record_version', 0) > 1:
-                log.debug("Ignoring record_version %d from %s",
-                          info["record_version"], info['url'])
-                continue
-            package_record = PackageRecord(**info)
+        legacy_packages = json_obj.get("packages", {})
+        conda_packages = json_obj.get("packages.conda", {})
+        _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
+        use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
+            k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
+        )
 
-            _package_records.append(package_record)
-            _names_index[package_record.name].append(package_record)
-            for ftr_name in package_record.track_features:
-                _track_features_index[ftr_name].append(package_record)
+        for group, copy_legacy_md5 in (
+                (iteritems(conda_packages), True),
+                (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
+            for fn, info in group:
+                info['fn'] = fn
+                info['url'] = join_url(channel_url, fn)
+                if copy_legacy_md5:
+                    counterpart = fn.replace('.conda', '.tar.bz2')
+                    if counterpart in legacy_packages:
+                        info['legacy_bz2_md5'] = legacy_packages[counterpart].get('md5')
+                        info['legacy_bz2_size'] = legacy_packages[counterpart].get('size')
+                if (add_pip and info['name'] == 'python' and
+                        info['version'].startswith(('2.', '3.'))):
+                    info['depends'].append('pip')
+                info.update(meta_in_common)
+                if info.get('record_version', 0) > 1:
+                    log.debug("Ignoring record_version %d from %s",
+                              info["record_version"], info['url'])
+                    continue
+                package_record = PackageRecord(**info)
+
+                _package_records.append(package_record)
+                _names_index[package_record.name].append(package_record)
+                for ftr_name in package_record.track_features:
+                    _track_features_index[ftr_name].append(package_record)
 
         self._internal_state = _internal_state
         return _internal_state
