@@ -1117,9 +1117,11 @@ class Context(Configuration):
                 adding an entry to the create_default_packages list.
                 """),
             'repodata_fn': dals("""
-                Specify a filename for repodata fetching. The standard is
-                repodata.json, but you may want to specify something else to
-                use an index that has been reduced in time scope.
+                Specify a filename for repodata fetching. The default is 'current_repodata.json',
+                which is a subset of the full index containing only the latest version for each
+                package.  You may want to specify something else to use an alternate index that
+                has been reduced somehow.  If this file does not exist on the remote server, or
+                if no solution is possible, conda will fall back to 'repodata.json' and retry.
                 """),
             'use_index_cache': dals("""
                 Use cache of channel index files, even if it has expired.
