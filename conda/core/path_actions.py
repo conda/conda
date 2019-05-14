@@ -1097,8 +1097,8 @@ class CacheUrlAction(PathAction):
             else:
                 backoff_rename(self.target_full_path, self.hold_path, force=True)
 
-        source_path = url_to_path(self.url)
-        if self.url.startswith('file:/') and not isfile(source_path):
+        if self.url.startswith('file:/'):
+            source_path = url_to_path(self.url)
             self._execute_local(source_path, target_package_cache, progress_update_callback)
         else:
             self._execute_channel(target_package_cache, progress_update_callback)
