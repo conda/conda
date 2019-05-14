@@ -623,7 +623,7 @@ class UnsatisfiableError(CondaError):
         unsatisfiable specifications.
     """
 
-    def __init__(self, bad_deps, chains=True):
+    def __init__(self, bad_deps, chains=True, strict=False):
         from .models.match_spec import MatchSpec
 
         # Remove any target values from the MatchSpecs, convert to strings
@@ -666,6 +666,10 @@ Use "conda search <package> --info" to see the dependencies for each package.'''
 others, or with the existing package set:%s
 Use "conda search <package> --info" to see the dependencies for each package.'''
         msg = msg % dashlist(bad_deps)
+        if strict:
+            msg += ('\nNote that strict channel priority may have removed '
+                    'packages required for satisfiability.')
+
         super(UnsatisfiableError, self).__init__(msg)
 
 

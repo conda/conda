@@ -367,12 +367,172 @@ def test_generate_eq_1():
     assert eqt == {}
 
 
-def test_unsat():
+def test_unsat_from_r1():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['numpy 1.5*', 'scipy 0.12.0b1'])
+    assert "numpy=1.5" in str(excinfo.value)
+    assert "scipy==0.12.0b1 -> numpy=1.7" in str(excinfo.value)
     # numpy 1.5 does not have a python 3 package
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'python 3*']))
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['numpy 1.5*', 'python 3*'])
+    assert "numpy=1.5 -> python=2.7" in str(excinfo.value)
+    assert "python=3" in str(excinfo.value)
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['numpy 1.5*', 'numpy 1.6*'])
+    assert "numpy=1.5" in str(excinfo.value)
+    assert "numpy=1.6" in str(excinfo.value)
+
+
+def simple_rec(name='a', version='1.0', depends=None, build='0',
+               build_number=0, channel='channel-1'):
+    if depends is None:
+        depends = []
+    return PackageRecord(**{
+        'name': name,
+        'version': version,
+        'depends': depends,
+        'build': build,
+        'build_number': build_number,
+        'channel': channel,
+    })
+
+
+def test_unsat_simple():
+    # a and b depend on conflicting versions of c
+    index = (
+        simple_rec(name='a', depends=['c >=1,<2']),
+        simple_rec(name='b', depends=['c >=2,<3']),
+        simple_rec(name='c', version='1.0'),
+        simple_rec(name='c', version='2.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['a', 'b'])
+    assert "a -> c[version='>=1,<2']" in str(excinfo.value)
+    assert "b -> c[version='>=2,<3']" in str(excinfo.value)
+
+
+def test_unsat_chain():
+    # a -> b -> c=1.x -> d=1.x
+    # e      -> c=2.x -> d=2.x
+    index = (
+        simple_rec(name='a', depends=['b']),
+        simple_rec(name='b', depends=['c >=1,<2']),
+        simple_rec(name='c', version='1.0', depends=['d >=1,<2']),
+        simple_rec(name='d', version='1.0'),
+
+        simple_rec(name='e', depends=['c >=2,<3']),
+        simple_rec(name='c', version='2.0', depends=['d >=2,<3']),
+        simple_rec(name='d', version='2.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['a', 'e'])
+    assert "a -> b -> c[version='>=1,<2'] -> d[version='>=1,<2']" in str(excinfo.value)
+    assert "e -> c[version='>=2,<3'] -> d[version='>=2,<3']" in str(excinfo.value)
+
+
+def test_unsat_any_two_not_three():
+    # can install any two of a, b and c but not all three
+    index = (
+        simple_rec(name='a', version='1.0', depends=['d >=1,<2']),
+        simple_rec(name='a', version='2.0', depends=['d >=2,<3']),
+
+        simple_rec(name='b', version='1.0', depends=['d >=1,<2']),
+        simple_rec(name='b', version='2.0', depends=['d >=3,<4']),
+
+        simple_rec(name='c', version='1.0', depends=['d >=2,<3']),
+        simple_rec(name='c', version='2.0', depends=['d >=3,<4']),
+
+        simple_rec(name='d', version='1.0'),
+        simple_rec(name='d', version='2.0'),
+        simple_rec(name='d', version='3.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    # a and b can be installed
+    installed1 = r.install(['a', 'b'])
+    assert any(k.name == 'a' and k.version == '1.0' for k in installed1)
+    assert any(k.name == 'b' and k.version == '1.0' for k in installed1)
+    # a and c can be installed
+    installed1 = r.install(['a', 'c'])
+    assert any(k.name == 'a' and k.version == '2.0' for k in installed1)
+    assert any(k.name == 'c' and k.version == '1.0' for k in installed1)
+    # b and c can be installed
+    installed1 = r.install(['b', 'c'])
+    assert any(k.name == 'b' and k.version == '2.0' for k in installed1)
+    assert any(k.name == 'c' and k.version == '2.0' for k in installed1)
+    # a, b and c cannot be installed
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['a', 'b', 'c'])
+    assert "a -> d[version='>=2,<3']" in str(excinfo.value)
+    assert "b -> d[version='>=3,<4']" in str(excinfo.value)
+    assert "c -> d[version='>=3,<4']" in str(excinfo.value)
+    # TODO would also like to see these
+    #assert "a -> d[version='>=1,<2']" in str(excinfo.value)
+    #assert "b -> d[version='>=1,<2']" in str(excinfo.value)
+    #assert "c -> d[version='>=2,<3']" in str(excinfo.value)
+
+
+def test_unsat_expand_single():
+    # if install maps to a single package, examine its dependencies
+    index = (
+        simple_rec(name='a', depends=['b', 'c']),
+        simple_rec(name='b', depends=['d >=1,<2']),
+        simple_rec(name='c', depends=['d >=2,<3']),
+        simple_rec(name='d', version='1.0'),
+        simple_rec(name='d', version='2.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['a'])
+    assert "b -> d[version='>=1,<2']" in str(excinfo.value)
+    assert "c -> d[version='>=2,<3']" in str(excinfo.value)
+
+
+def test_unsat_missing_dep():
+    # an install target has a missing dependency
+    index = (
+        simple_rec(name='a', depends=['b', 'c']),
+        simple_rec(name='b', depends=['c >=2,<3']),
+        simple_rec(name='c', version='1.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    # this raises ResolvePackageNotFound not UnsatisfiableError
+    assert raises(ResolvePackageNotFound, lambda: r.install(['a', 'b']))
+
+
+def test_unsat_channel_priority():
+    # c depends on c 2.x which is only available in channel-2
+    index = (
+        simple_rec(name='a', version='1.0', depends=['c'], channel='channel-1'),
+        simple_rec(name='b', version='1.0', depends=['c >=2,<3'], channel='channel-1'),
+        simple_rec(name='c', version='1.0', channel='channel-1'),
+
+        simple_rec(name='a', version='2.0', depends=['c'], channel='channel-2'),
+        simple_rec(name='b', version='2.0', depends=['c >=2,<3'], channel='channel-2'),
+        simple_rec(name='c', version='1.0', channel='channel-2'),
+        simple_rec(name='c', version='2.0', channel='channel-2'),
+    )
+    channels = (
+        Channel('channel-1'),  # higher priority
+        Channel('channel-2'),  # lower priority, missing c 2.0
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index), channels=channels)
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        # channel-1 a and b packages (1.0) installed
+        installed1 = r.install(['a', 'b'])
+        assert any(k.name == 'a' and k.version == '1.0' for k in installed1)
+        assert any(k.name == 'b' and k.version == '1.0' for k in installed1)
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        # no channel priority, largest version of a and b (2.0) installed
+        installed1 = r.install(['a', 'b'])
+        assert any(k.name == 'a' and k.version == '2.0' for k in installed1)
+        assert any(k.name == 'b' and k.version == '2.0' for k in installed1)
+    with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with pytest.raises(UnsatisfiableError) as excinfo:
+            r.install(['a', 'b'])
+        assert "b -> c[version='>=2,<3']" in str(excinfo.value)
 
 
 def test_nonexistent():
