@@ -39,10 +39,12 @@ ArgumentParser = ArgumentParser
 
 from .common import compat as _compat  # NOQA
 compat = _compat
-from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, itervalues, TemporaryDirectory  # NOQA
-PY3, StringIO,  input, iteritems, string_types, text_type, TemporaryDirectory = PY3, StringIO,  input, iteritems, string_types, text_type, TemporaryDirectory  # NOQA
+from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, itervalues # NOQA
+PY3, StringIO,  input, iteritems, string_types, text_type, = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
 CondaSession = CondaSession
+from .gateways.disk.create import TemporaryDirectory  # NOQA
+TemporaryDirectory = TemporaryDirectory
 
 from .common.toposort import _toposort  # NOQA
 _toposort = _toposort
