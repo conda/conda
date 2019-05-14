@@ -231,7 +231,8 @@ class Solver(object):
                 # Return early, with a solution that should just be PrefixData().iter_records()
                 return IndexedSet(PrefixGraph(ssc.solution_precs).graph)
 
-        with Spinner("Collecting package metadata", not context.verbosity and not context.quiet,
+        with Spinner("Collecting package metadata (%s)" % self._repodata_fn,
+                     not context.verbosity and not context.quiet,
                      context.json):
             ssc = self._collect_all_metadata(ssc)
 
@@ -685,6 +686,7 @@ class Solver(object):
                     additional_channels.add(Channel(channel))
 
             self.channels.update(additional_channels)
+
             reduced_index = get_reduced_index(self.prefix, self.channels,
                                               self.subdirs, prepared_specs, self._repodata_fn)
             _supplement_index_with_system(reduced_index)

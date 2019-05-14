@@ -61,8 +61,8 @@ class SubdirDataType(type):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
-        cache_key = channel.url(with_credentials=True)
-        if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
+        cache_key = channel.url(with_credentials=True), repodata_fn
+        if not cache_key[0].startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
 
         subdir_data_instance = super(SubdirDataType, cls).__call__(channel, repodata_fn)
