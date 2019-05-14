@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import codecs
 from collections import defaultdict
-from errno import EACCES, ENOENT, EPERM
+from errno import EACCES, ENOENT, EPERM, EROFS
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, getsize, join
@@ -384,7 +384,7 @@ class PackageCacheData(object):
                 try:
                     write_as_json_to_file(repodata_record_path, repodata_record)
                 except (IOError, OSError) as e:
-                    if e.errno in (EACCES, EPERM) and isdir(dirname(repodata_record_path)):
+                    if e.errno in (EACCES, EPERM, EROFS) and isdir(dirname(repodata_record_path)):
                         raise NotWritableError(repodata_record_path, e.errno, caused_by=e)
                     else:
                         raise

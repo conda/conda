@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from collections import defaultdict
 from contextlib import closing
-from errno import EACCES, ENODEV, EPERM
+from errno import EACCES, ENODEV, EPERM, EROFS
 from genericpath import getmtime, isfile
 import hashlib
 from io import open as io_open
@@ -30,9 +30,9 @@ from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
-                          NotWritableError, UnavailableInvalidChannel)
+                          NotWritableError, UnavailableInvalidChannel, ProxyError)
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
-                                   InvalidSchema, SSLError)
+                                   InvalidSchema, SSLError, RequestsProxyError)
 from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
@@ -230,7 +230,7 @@ class SubdirData(object):
                 with io_open(self.cache_path_json, 'w') as fh:
                     fh.write(raw_repodata_str or '{}')
             except (IOError, OSError) as e:
-                if e.errno in (EACCES, EPERM):
+                if e.errno in (EACCES, EPERM, EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
                     raise
@@ -446,6 +446,9 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
+
+    except RequestsProxyError:
+        raise ProxyError()   # see #3962
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):

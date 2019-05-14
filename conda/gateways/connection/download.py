@@ -9,7 +9,8 @@ from os.path import basename, exists, join
 import tempfile
 import warnings
 
-from . import ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema, SSLError
+from . import (ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema,
+               SSLError, RequestsProxyError)
 from .session import CondaSession
 from ..disk.delete import rm_rf
 from ... import CondaError
@@ -18,8 +19,8 @@ from ..._vendor.auxlib.logz import stringify
 from ...base.context import context
 from ...common.compat import text_type
 from ...common.io import time_recorder
-from ...exceptions import (BasicClobberError, ChecksumMismatchError, CondaDependencyError,
-                           CondaHTTPError, maybe_raise)
+from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
+                           ChecksumMismatchError, maybe_raise, ProxyError)
 
 log = getLogger(__name__)
 
@@ -113,6 +114,9 @@ def download(
             if actual_size != size:
                 log.debug("size mismatch for download: %s (%s != %s)", url, actual_size, size)
                 raise ChecksumMismatchError(url, target_full_path, "size", size, actual_size)
+
+    except RequestsProxyError:
+        raise ProxyError()  # see #3962
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):

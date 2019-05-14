@@ -387,8 +387,13 @@ class CondaOSError(CondaError, OSError):
 
 class ProxyError(CondaError):
     def __init__(self, message):
-        msg = '%s' % message
-        super(ProxyError, self).__init__(msg)
+        message = dals("""
+        Conda cannot proceed due to an error in your proxy configuration.
+        Check for typos and other configuration errors in any '.netrc' file in your home directory,
+        any environment variables ending in '_PROXY', and any other system-wide proxy
+        configuration settings.
+        """)
+        super(ProxyError, self).__init__(message)
 
 
 class CondaIOError(CondaError, IOError):
@@ -610,7 +615,7 @@ class UnsatisfiableError(CondaError):
         unsatisfiable specifications.
     """
 
-    def __init__(self, bad_deps, chains=True):
+    def __init__(self, bad_deps, chains=True, strict=False):
         from .models.match_spec import MatchSpec
 
         # Remove any target values from the MatchSpecs, convert to strings
@@ -653,6 +658,10 @@ Use "conda search <package> --info" to see the dependencies for each package.'''
 others, or with the existing package set:%s
 Use "conda search <package> --info" to see the dependencies for each package.'''
         msg = msg % dashlist(bad_deps)
+        if strict:
+            msg += ('\nNote that strict channel priority may have removed '
+                    'packages required for satisfiability.')
+
         super(UnsatisfiableError, self).__init__(msg)
 
 

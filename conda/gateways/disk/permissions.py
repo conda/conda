@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES, ENOENT, EPERM
+from errno import EACCES, ENOENT, EPERM, EROFS
 from itertools import chain
 from logging import getLogger
 from os import X_OK, access, chmod, lstat, walk
@@ -34,7 +34,7 @@ def make_writable(path):
         if eno in (ENOENT,):
             log.debug("tried to make writable, but didn't exist: %s", path)
             raise
-        elif eno in (EACCES, EPERM):
+        elif eno in (EACCES, EPERM, EROFS):
             log.debug("tried make writable but failed: %s\n%r", path, e)
             return False
         else:

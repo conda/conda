@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
-from errno import EACCES, EPERM
+from errno import EACCES, EPERM, EROFS
 from io import open
 from logging import getLogger
 import os
@@ -391,7 +391,7 @@ def create_package_cache_directory(pkgs_dir):
         touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE), mkdir=True, sudo_safe=sudo_safe)
         touch(join(pkgs_dir, 'urls'), sudo_safe=sudo_safe)
     except (IOError, OSError) as e:
-        if e.errno in (EACCES, EPERM):
+        if e.errno in (EACCES, EPERM, EROFS):
             log.trace("cannot create package cache directory '%s'", pkgs_dir)
             return False
         else:
@@ -411,7 +411,7 @@ def create_envs_directory(envs_dir):
         sudo_safe = expand(envs_dir).startswith(expand('~'))
         touch(join(envs_dir, envs_dir_magic_file), mkdir=True, sudo_safe=sudo_safe)
     except (IOError, OSError) as e:
-        if e.errno in (EACCES, EPERM):
+        if e.errno in (EACCES, EPERM, EROFS):
             log.trace("cannot create envs directory '%s'", envs_dir)
             return False
         else:
