@@ -343,7 +343,6 @@ class Resolve(object):
             top_level_sdeps = {top_level_spec.name: set(top_level_pkgs)}
 
             # find all depends specs for in top level packages
-            # find the depends names for each top level packages
             second_level_specs = set()
             top_level_pkg_dep_names = []
             for pkg in top_level_pkgs:
@@ -360,19 +359,9 @@ class Resolve(object):
                     slist.extend(
                         ms2 for ms2 in self.ms_depends(fkey) if ms2.name != top_level_spec.name)
 
-            # dependency names which appear in all top level packages
-            # have been fully considered and not additions should be make to
-            # the package list for that name
-            locked_names = [top_level_spec.name]
-            for name in top_level_pkg_dep_names[0]:
-                if all(name in names for names in top_level_pkg_dep_names):
-                    locked_names.append(name)
-
             # build out the rest of the dependency tree
             while slist:
                 ms2 = slist.pop()
-                if ms2.name in locked_names:
-                    continue
                 deps = top_level_sdeps.setdefault(ms2.name, set())
                 for fkey in find_matches_with_strict(ms2):
                     if fkey not in deps:
@@ -575,12 +564,16 @@ class Resolve(object):
                 prec for prec in self.find_matches(explicit_spec)
                 if prec not in reduced_index2 and self.valid2(prec, filter_out))
 
-            if strict_channel_priority and add_these_precs2:
+            if strict_channel_priority and add_these_precs2 and not explicit_spec.get('channel'):
                 strict_channel_name = self._get_strict_channel(add_these_precs2[0].name)
-
+                starting_precs_len = len(add_these_precs2)
                 add_these_precs2 = tuple(
                     prec for prec in add_these_precs2 if prec.channel.name == strict_channel_name
                 )
+                if starting_precs_len and len(add_these_precs2) == 0:
+                    log.warn('Strict channel priority eliminated all possible candidates '
+                             'for spec "%s".  You may need to adjust your channels.' %
+                             explicit_spec)
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
 
             for pkg in add_these_precs2:
