@@ -155,7 +155,7 @@ def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_loc
     return all_channel_urls(channel_urls, subdirs=subdirs)
 
 
-def get_reduced_index(prefix, channels, subdirs, specs):
+def get_reduced_index(prefix, channels, subdirs, specs, repodata_fn):
 
     # # this block of code is a "combine" step intended to filter out redundant specs
     # # causes a problem with py.test tests/core/test_solve.py -k broken_install
@@ -187,7 +187,8 @@ def get_reduced_index(prefix, channels, subdirs, specs):
                 log.info("Ignoring the following channel urls because mode is offline.%s",
                          dashlist(ignored_urls))
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
-        subdir_datas = tuple(SubdirData(Channel(url)) for url in channel_urls)
+        subdir_datas = tuple(SubdirData(Channel(url), repodata_fn=repodata_fn)
+                             for url in channel_urls)
 
         records = IndexedSet()
         collected_names = set()

@@ -11,10 +11,10 @@
       "legacy_bz2_md5": "5eab2de4933e1914f86d1586a8a40c39",
       "license": "zlib",
       "license_family": "Other",
-      "md5": "a1b03ba4ff40c83e4eb9c8fae40315a7",
+      "md5": "5eab2de4933e1914f86d1586a8a40c39",
       "name": "zlib",
-      "sha256": "857293f389b188ba1fb02401a873fca5098db612ce6646c684efee77ad807f77",
-      "size": 91992,
+      "sha256": "9b73eb4e3197eccb485250709c6f4782a83a8688d5b8251a212251c451d9b9ad",
+      "size": 106948,
       "subdir": "osx-64",
       "timestamp": 1542815100324,
       "version": "1.2.11"

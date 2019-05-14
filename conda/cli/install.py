@@ -247,10 +247,12 @@ def install(args, parser, command='install'):
             index = get_index(channel_urls=index_args['channel_urls'],
                               prepend=index_args['prepend'], platform=None,
                               use_local=index_args['use_local'], use_cache=index_args['use_cache'],
-                              unknown=index_args['unknown'], prefix=prefix)
+                              unknown=index_args['unknown'], prefix=prefix,
+                              repodata_fn=args.repodata_fn)
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
         else:
-            solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
+            solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
+                            repodata_fn=args.repodata_fn)
             if isinstall and args.update_modifier == NULL:
                 # try to do a quick solve with then existing env frozen by default
                 update_modifier = UpdateModifier.FREEZE_INSTALLED

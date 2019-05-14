@@ -127,8 +127,6 @@ class SubdirData(object):
         self.channel = channel
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)
-        self.cache_path_base = join(create_cache_dir(),
-                                    splitext(cache_fn_url(self.url_w_credentials))[0])
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
         self._loaded = False
@@ -137,6 +135,12 @@ class SubdirData(object):
         self._loaded = False
         self.load()
         return self
+
+    @property
+    def cache_path_base(self):
+        return join(
+            create_cache_dir(),
+            splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0])
 
     @property
     def cache_path_json(self):
@@ -604,10 +608,11 @@ def make_feature_record(feature_name):
     )
 
 
-def cache_fn_url(url):
+def cache_fn_url(url, repodata_fn=REPODATA_FN):
     # url must be right-padded with '/' to not invalidate any existing caches
     if not url.endswith('/'):
         url += '/'
+    url += repodata_fn
     md5 = hashlib.md5(ensure_binary(url)).hexdigest()
     return '%s.json' % (md5[:8],)
 
