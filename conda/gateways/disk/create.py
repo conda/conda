@@ -12,6 +12,7 @@ from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 import sys
 import tempfile
+import warnings as _warnings
 
 import conda_package_handling.api
 
