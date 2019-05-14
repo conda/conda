@@ -2415,7 +2415,7 @@ class PrivateEnvTests(TestCase):
 
 
 def test_current_repodata_usage():
-    solver = Solver(TEST_PREFIX, (Channel("file://" + CHANNEL_DIR),), ('win-64',),
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('win-64',),
                     specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
     final_state = solver.solve_final_state()
     # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
@@ -2432,7 +2432,7 @@ def test_current_repodata_usage():
 
 
 def test_current_repodata_fallback():
-    solver = Solver(TEST_PREFIX, (Channel("file://" + CHANNEL_DIR),), ('win-64',),
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('win-64',),
                     specs_to_add=[MatchSpec('zlib=1.2.8')])
     final_state = solver.solve_final_state()
     # zlib 1.2.11, zlib 1.2.8, vc 14.1, vs2015_runtime, virtual package for vc track_feature
