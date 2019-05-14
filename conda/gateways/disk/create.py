@@ -52,7 +52,7 @@ except ImportError:
         _closed = False
 
         def __init__(self, suffix="", prefix='tmp', dir=None):
-            self.name = mkdtemp(suffix, prefix, dir)
+            self.name = tempfile.mkdtemp(suffix, prefix, dir)
 
         def __repr__(self):
             return "<{} {!r}>".format(self.__class__.__name__, self.name)
