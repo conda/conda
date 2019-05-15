@@ -838,6 +838,8 @@ class Clauses(object):
                 if newsol is None:
                     lo = mid + 1
                     log.trace("Bisection failure, new range=(%d,%d)" % (lo, hi))
+                    if lo > hi:
+                        break
                     # If this was a failure of the first test after peak minimization,
                     # then it means that the peak minimizer is "tight" and we don't need
                     # any further constraints.
