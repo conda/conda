@@ -27,6 +27,7 @@ from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChe
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
 from ..common.io import Spinner, dashlist, time_recorder
+from ..common.io import ProcessPoolExecutor, ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
@@ -340,6 +341,7 @@ class UnlinkLinkTransaction(object):
         # run all per-action verify methods
         #   one of the more important of these checks is to verify that a file listed in
         #   the packages manifest (i.e. info/files) is actually contained within the package
+        error_results = []
         for axn in all_actions:
             if axn.verified:
                 continue
@@ -347,7 +349,8 @@ class UnlinkLinkTransaction(object):
             if error_result:
                 formatted_error = ''.join(format_exception_only(type(error_result), error_result))
                 log.debug("Verification error in action %s\n%s", axn, formatted_error)
-                yield error_result
+                error_results.append(error_result)
+        return error_results
 
     @staticmethod
     def _verify_prefix_level(target_prefix, prefix_action_group):
@@ -382,6 +385,7 @@ class UnlinkLinkTransaction(object):
                               for axn in grp.actions
                               if isinstance(axn, CreatePrefixRecordAction))
 
+        error_results = []
         # Verification 1. each path either doesn't already exist in the prefix, or will be unlinked
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
@@ -401,27 +405,28 @@ class UnlinkLinkTransaction(object):
                             key=lambda prefix_rec: path in prefix_rec.files
                         )
                         if colliding_prefix_rec:
-                            yield KnownPackageClobberError(
+                            error_results.append(KnownPackageClobberError(
                                 path,
                                 axn.package_info.repodata_record.dist_str(),
                                 colliding_prefix_rec.dist_str(),
                                 context,
-                            )
+                            ))
                         else:
-                            yield UnknownPackageClobberError(
+                            error_results.append(UnknownPackageClobberError(
                                 path,
                                 axn.package_info.repodata_record.dist_str(),
                                 context,
-                            )
+                            ))
 
         # Verification 2. there's only a single instance of each path
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:
-                yield SharedLinkPathClobberError(
+                error_results.append(SharedLinkPathClobberError(
                     path,
                     tuple(axn.package_info.repodata_record.dist_str() for axn in axns),
                     context,
-                )
+                ))
+        return error_results
 
     @staticmethod
     def _verify_transaction_level(prefix_setups):
@@ -515,12 +520,16 @@ class UnlinkLinkTransaction(object):
         )
         if transaction_exceptions:
             return transaction_exceptions
-        exceptions = tuple(exc for exc in concatv(
-            concat(cls._verify_individual_level(prefix_group)
-                   for prefix_group in itervalues(prefix_action_groups)),
-            concat(cls._verify_prefix_level(target_prefix, prefix_group)
-                   for target_prefix, prefix_group in iteritems(prefix_action_groups)),
-        ) if exc)
+
+        exceptions = []
+        with ThreadLimitedThreadPoolExecutor() as executor:
+            futures = list(executor.submit(cls._verify_individual_level, pg)
+                           for pg in itervalues(prefix_action_groups))
+            futures.extend(executor.submit(cls._verify_prefix_level, target_prefix, pg)
+                           for target_prefix, pg in iteritems(prefix_action_groups))
+            for future in as_completed(futures):
+                if future.result():
+                    exceptions.append(future.result())
         return exceptions
 
     @classmethod
@@ -532,32 +541,31 @@ class UnlinkLinkTransaction(object):
         link_actions = tuple(
             group for group in all_action_groups if group.type in ("link", "register"))
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
-            try:
-                with Spinner("Executing transaction", not context.verbosity and not context.quiet,
-                             context.json):
-                    pkg_idx_start = 0
-                    # Execute unlink actions
-                    for pkg_idx, axngroup in enumerate(unlink_actions):
-                        pkg_idx_tracked = pkg_idx + pkg_idx_start
-                        cls._execute_actions(pkg_idx_tracked, axngroup)
-                    # Run post-unlink scripts
-                    for pkg_idx, axngroup in enumerate(unlink_actions):
-                        if axngroup.type in ('unlink', 'link'):
-                            pkg_idx_tracked = pkg_idx + pkg_idx_start
-                            cls._execute_post_link_actions(pkg_idx_tracked, axngroup)
+            exceptions = []
+            with Spinner("Executing transaction", not context.verbosity and not context.quiet,
+                         context.json):
+                # Execute unlink actions
+                with ThreadLimitedThreadPoolExecutor() as executor:
+                    futures = []
+                    for group in (unlink_actions, link_actions):
+                        futures.extend(executor.submit(cls._execute_actions, axngroup)
+                                       for axngroup in group)
+                        # Run post-unlink scripts
+                        futures.extend(executor.submit(cls._execute_post_link_actions, axngroup)
+                                       for axngroup in group
+                                       if axngroup.type in ('unlink', 'link'))
 
-                    pkg_idx_start = len(unlink_actions)
-                    # Execute link actions
-                    for pkg_idx, axngroup in enumerate(link_actions):
-                        pkg_idx_tracked = pkg_idx + pkg_idx_start
-                        cls._execute_actions(pkg_idx_tracked, axngroup)
-                    # Run post-link scripts
-                    for pkg_idx, axngroup in enumerate(link_actions):
-                        if axngroup.type in ('unlink', 'link'):
-                            pkg_idx_tracked = pkg_idx + pkg_idx_start
-                            cls._execute_post_link_actions(pkg_idx_tracked, axngroup)
+                        for future in as_completed(futures):
+                            exc = future.result()
+                            if exc:
+                                log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                                exceptions.append(exc)
 
-            except CondaMultiError as e:
+            if exceptions:
+                # might be good to show all errors, but right now we only show the first
+                e = exceptions[0]
+                axngroup = e.errors[1]
+
                 action, is_unlink = (None, axngroup.type == 'unlink')
                 prec = axngroup.pkg_data
 
@@ -572,12 +580,9 @@ class UnlinkLinkTransaction(object):
                 if context.rollback_enabled:
                     with Spinner("Rolling back transaction",
                                  not context.verbosity and not context.quiet, context.json):
-                        failed_pkg_idx = pkg_idx_tracked
-                        reverse_actions = reversed(tuple(enumerate(
-                            take(failed_pkg_idx, all_action_groups)
-                        )))
-                        for pkg_idx, axngroup in reverse_actions:
-                            excs = cls._reverse_actions(pkg_idx_tracked, axngroup)
+                        reverse_actions = reversed(tuple(all_action_groups))
+                        for axngroup in reverse_actions:
+                            excs = cls._reverse_actions(axngroup)
                             rollback_excs.extend(excs)
 
                 raise CondaMultiError(tuple(concatv(
@@ -592,9 +597,9 @@ class UnlinkLinkTransaction(object):
                         action.cleanup()
 
     @staticmethod
-    def _execute_actions(pkg_idx, axngroup):
+    def _execute_actions(axngroup):
         target_prefix = axngroup.target_prefix
-        axn_idx, action, is_unlink = 0, None, axngroup.type == 'unlink'
+        action, is_unlink = None, axngroup.type == 'unlink'
         prec = axngroup.pkg_data
 
         conda_meta_dir = join(target_prefix, 'conda-meta')
@@ -618,28 +623,26 @@ class UnlinkLinkTransaction(object):
                            prec,
                            'pre-unlink' if is_unlink else 'pre-link',
                            target_prefix)
-            for axn_idx, action in enumerate(axngroup.actions):
+            for action in axngroup.actions:
                 action.execute()
         except Exception as e:  # this won't be a multi error
             # reverse this package
-            log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action,
-                      exc_info=True)
+            log.debug("Error in action %r", action, exc_info=True)
             reverse_excs = ()
             if context.rollback_enabled:
                 # log.error("An error occurred while %s package '%s'.\n"
                 #           "%r\n"
                 #           "Attempting to roll back.\n",
                 #           'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
-                reverse_excs = UnlinkLinkTransaction._reverse_actions(
-                    pkg_idx, axngroup
-                )
-            raise CondaMultiError(tuple(concatv(
+                reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
+            return CondaMultiError(tuple(concatv(
                 (e,),
+                (axngroup,),
                 reverse_excs,
             )))
 
     @staticmethod
-    def _execute_post_link_actions(pkg_idx, axngroup):
+    def _execute_post_link_actions(axngroup):
         target_prefix = axngroup.target_prefix
         is_unlink = axngroup.type == 'unlink'
         prec = axngroup.pkg_data
@@ -649,23 +652,22 @@ class UnlinkLinkTransaction(object):
                        activate=True)
         except Exception as e:  # this won't be a multi error
             # reverse this package
-            log.debug("Error in post-link pkg_idx #%d", pkg_idx, exc_info=True)
+            log.debug("Error in post-link", exc_info=True)
             reverse_excs = ()
             if context.rollback_enabled:
                 log.error("An error occurred while %s package '%s'.\n"
                           "%r\n"
                           "Attempting to roll back.\n",
                           'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
-                reverse_excs = UnlinkLinkTransaction._reverse_actions(
-                    pkg_idx, axngroup
-                )
-            raise CondaMultiError(tuple(concatv(
+                reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
+            return CondaMultiError(tuple(concatv(
                 (e,),
+                (axngroup,),
                 reverse_excs,
             )))
 
     @staticmethod
-    def _reverse_actions(pkg_idx, axngroup, reverse_from_idx=-1):
+    def _reverse_actions(axngroup, reverse_from_idx=-1):
         target_prefix = axngroup.target_prefix
 
         # reverse_from_idx = -1 means reverse all actions
@@ -679,8 +681,6 @@ class UnlinkLinkTransaction(object):
             log.info("===> REVERSING PACKAGE LINK: %s <===\n"
                      "  prefix=%s\n", prec.dist_str(), target_prefix)
 
-        log.debug("reversing pkg_idx #%d from axn_idx #%d", pkg_idx, reverse_from_idx)
-
         exceptions = []
         if reverse_from_idx < 0:
             reverse_actions = axngroup.actions
@@ -690,8 +690,7 @@ class UnlinkLinkTransaction(object):
             try:
                 action.reverse()
             except Exception as e:
-                log.debug("action.reverse() error in action #%d for pkg_idx #%d %r", axn_idx,
-                          pkg_idx, action, exc_info=True)
+                log.debug("action.reverse() error in action %r", action, exc_info=True)
                 exceptions.append(e)
         return exceptions
 
