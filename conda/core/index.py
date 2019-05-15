@@ -73,9 +73,11 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 def fetch_index(channel_urls, use_cache=False, index=None, repodata_fn=context.repodata_fn):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
-    for url in channel_urls:
-        sd = SubdirData(Channel(url), repodata_fn=repodata_fn)
-        index.update((rec, rec) for rec in sd.iter_records())
+    with ThreadLimitedThreadPoolExecutor() as executor:
+        futures = tuple(executor.submit(SubdirData, Channel(url), repodata_fn=repodata_fn)
+                        for url in channel_urls)
+        for sd in (future.result() for future in as_completed(futures)):
+            index.update((rec, rec) for rec in sd.iter_records())
     return index
 
 
@@ -187,8 +189,9 @@ def get_reduced_index(prefix, channels, subdirs, specs, repodata_fn):
                 log.info("Ignoring the following channel urls because mode is offline.%s",
                          dashlist(ignored_urls))
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
-        subdir_datas = tuple(SubdirData(Channel(url), repodata_fn=repodata_fn)
-                             for url in channel_urls)
+        futures = (executor.submit(SubdirData, Channel(url), repodata_fn=repodata_fn)
+                   for url in channel_urls)
+        subdir_datas = tuple(future.result() for future in as_completed(futures))
 
         records = IndexedSet()
         collected_names = set()

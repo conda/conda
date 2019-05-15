@@ -75,7 +75,8 @@ class SubdirData(object):
     _cache_ = {}
 
     @staticmethod
-    def query_all(package_ref_or_match_spec, channels=None, subdirs=None):
+    def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
+                  repodata_fn=REPODATA_FN):
         from .index import check_whitelist  # TODO: fix in-line import
         if channels is None:
             channels = context.channels
@@ -85,7 +86,7 @@ class SubdirData(object):
         check_whitelist(channel_urls)
         with ThreadLimitedThreadPoolExecutor() as executor:
             futures = tuple(executor.submit(
-                SubdirData(Channel(url)).query, package_ref_or_match_spec
+                SubdirData(Channel(url), repodata_fn=repodata_fn).query, package_ref_or_match_spec
             ) for url in channel_urls)
             return tuple(concat(future.result() for future in as_completed(futures)))
 
@@ -320,7 +321,7 @@ class SubdirData(object):
             yield _pickled_state.get('_mod') == mod_stamp
             yield _pickled_state.get('_etag') == etag
             yield _pickled_state.get('_pickle_version') == REPODATA_PICKLE_VERSION
-            yield _pickled_state.get('_fn') == self.repodata_fn
+            yield _pickled_state.get('fn') == self.repodata_fn
 
         if not all(_check_pickled_valid()):
             log.debug("Pickle load validation failed for %s at %s.",
