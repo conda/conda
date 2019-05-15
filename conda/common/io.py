@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, _base, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, _base, as_completed  # NOQA
 from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum

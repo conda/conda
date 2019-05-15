@@ -13,7 +13,8 @@ from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.context import context
 from ..common.compat import itervalues
-from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, dashlist, time_recorder
+from ..common.io import (ThreadLimitedThreadPoolExecutor, ProcessPoolExecutor, as_completed,
+                         dashlist, time_recorder)
 from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
@@ -73,7 +74,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 def fetch_index(channel_urls, use_cache=False, index=None, repodata_fn=context.repodata_fn):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
-    with ThreadLimitedThreadPoolExecutor() as executor:
+    with ProcessPoolExecutor() as executor:
         futures = tuple(executor.submit(SubdirData, Channel(url), repodata_fn=repodata_fn)
                         for url in channel_urls)
         for sd in (future.result() for future in as_completed(futures)):
@@ -177,28 +178,28 @@ def get_reduced_index(prefix, channels, subdirs, specs, repodata_fn):
     #                 keep_specs.append(spec)
     #         consolidated_specs.update(keep_specs)
 
-    with ThreadLimitedThreadPoolExecutor() as executor:
+    channel_urls = all_channel_urls(channels, subdirs=subdirs)
+    check_whitelist(channel_urls)
 
-        channel_urls = all_channel_urls(channels, subdirs=subdirs)
-        check_whitelist(channel_urls)
-
-        if context.offline:
-            grouped_urls = groupby(lambda url: url.startswith('file://'), channel_urls)
-            ignored_urls = grouped_urls.get(False, ())
-            if ignored_urls:
-                log.info("Ignoring the following channel urls because mode is offline.%s",
-                         dashlist(ignored_urls))
-            channel_urls = IndexedSet(grouped_urls.get(True, ()))
+    if context.offline:
+        grouped_urls = groupby(lambda url: url.startswith('file://'), channel_urls)
+        ignored_urls = grouped_urls.get(False, ())
+        if ignored_urls:
+            log.info("Ignoring the following channel urls because mode is offline.%s",
+                     dashlist(ignored_urls))
+        channel_urls = IndexedSet(grouped_urls.get(True, ()))
+    with ProcessPoolExecutor() as executor:
         futures = (executor.submit(SubdirData, Channel(url), repodata_fn=repodata_fn)
                    for url in channel_urls)
         subdir_datas = tuple(future.result() for future in as_completed(futures))
 
-        records = IndexedSet()
-        collected_names = set()
-        collected_track_features = set()
-        pending_names = set()
-        pending_track_features = set()
+    records = IndexedSet()
+    collected_names = set()
+    collected_track_features = set()
+    pending_names = set()
+    pending_track_features = set()
 
+    with ThreadLimitedThreadPoolExecutor() as executor:
         def query_all(spec):
             futures = tuple(executor.submit(sd.query, spec) for sd in subdir_datas)
             return tuple(concat(future.result() for future in as_completed(futures)))
