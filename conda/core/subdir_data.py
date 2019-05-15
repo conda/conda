@@ -143,6 +143,10 @@ class SubdirData(object):
             splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0])
 
     @property
+    def url_w_repodata_fn(self):
+        return self.url_w_subdir + '/' + self.repodata_fn
+
+    @property
     def cache_path_json(self):
         return self.cache_path_base + '.json'
 
@@ -160,7 +164,7 @@ class SubdirData(object):
 
                 (This version only supports repodata_version 1.)
                 Please update conda to use this channel.
-                """) % self.url_w_subdir)
+                """) % self.url_w_repodata_fn)
 
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']
@@ -178,11 +182,12 @@ class SubdirData(object):
         try:
             mtime = getmtime(self.cache_path_json)
         except (IOError, OSError):
-            log.debug("No local cache found for %s at %s", self.url_w_subdir, self.cache_path_json)
+            log.debug("No local cache found for %s at %s", self.url_w_repodata_fn,
+                      self.cache_path_json)
             if context.use_index_cache or (context.offline
                                            and not self.url_w_subdir.startswith('file://')):
                 log.debug("Using cached data for %s at %s forced. Returning empty repodata.",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_repodata_fn, self.cache_path_json)
                 return {
                     '_package_records': (),
                     '_names_index': defaultdict(list),
@@ -195,7 +200,7 @@ class SubdirData(object):
 
             if context.use_index_cache:
                 log.debug("Using cached repodata for %s at %s because use_cache=True",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_repodata_fn, self.cache_path_json)
 
                 _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                            mod_etag_headers.get('_mod'))
@@ -211,13 +216,13 @@ class SubdirData(object):
             timeout = mtime + max_age - time()
             if (timeout > 0 or context.offline) and not self.url_w_subdir.startswith('file://'):
                 log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
-                          self.url_w_subdir, self.cache_path_json, timeout)
+                          self.url_w_repodata_fn, self.cache_path_json, timeout)
                 _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                            mod_etag_headers.get('_mod'))
                 return _internal_state
 
             log.debug("Local cache timed out for %s at %s",
-                      self.url_w_subdir, self.cache_path_json)
+                      self.url_w_repodata_fn, self.cache_path_json)
 
         try:
             raw_repodata_str = fetch_repodata_remote_request(
@@ -226,14 +231,8 @@ class SubdirData(object):
                 mod_etag_headers.get('_mod'),
                 repodata_fn=self.repodata_fn)
             # empty file
-            if ((not raw_repodata_str or len(raw_repodata_str) < 4) and
-                    self.repodata_fn != REPODATA_FN):
-                self.repodata_fn = REPODATA_FN
-                raw_repodata_str = fetch_repodata_remote_request(
-                    self.url_w_credentials,
-                    mod_etag_headers.get('_etag'),
-                    mod_etag_headers.get('_mod'),
-                    repodata_fn=REPODATA_FN)
+            if not raw_repodata_str and self.repodata_fn != REPODATA_FN:
+                raise UnavailableInvalidChannel(self.url_w_repodata_fn, 404)
         except UnavailableInvalidChannel:
             if self.repodata_fn != REPODATA_FN:
                 self.repodata_fn = REPODATA_FN
@@ -242,7 +241,7 @@ class SubdirData(object):
                 raise
         except Response304ContentUnchanged:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
-                      self.url_w_subdir)
+                      self.url_w_repodata_fn)
             touch(self.cache_path_json)
             _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                        mod_etag_headers.get('_mod'))
@@ -265,7 +264,8 @@ class SubdirData(object):
 
     def _pickle_me(self):
         try:
-            log.debug("Saving pickled state for %s at %s", self.url_w_subdir, self.cache_path_json)
+            log.debug("Saving pickled state for %s at %s", self.url_w_repodata_fn,
+                      self.cache_path_json)
             with open(self.cache_path_pickle, 'wb') as fh:
                 pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
         except Exception:
@@ -278,7 +278,7 @@ class SubdirData(object):
             return _pickled_state
 
         # pickled data is bad or doesn't exist; load cached json
-        log.debug("Loading raw json for %s at %s", self.url_w_subdir, self.cache_path_json)
+        log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
         with open(self.cache_path_json) as fh:
             try:
                 raw_repodata_str = fh.read()
@@ -324,7 +324,7 @@ class SubdirData(object):
 
         if not all(_check_pickled_valid()):
             log.debug("Pickle load validation failed for %s at %s.",
-                      self.url_w_subdir, self.cache_path_json)
+                      self.url_w_repodata_fn, self.cache_path_json)
             return None
 
         return _pickled_state
