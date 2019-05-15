@@ -529,37 +529,50 @@ class UnlinkLinkTransaction(object):
                            for target_prefix, pg in iteritems(prefix_action_groups))
             for future in as_completed(futures):
                 if future.result():
-                    exceptions.append(future.result())
+                    exceptions.extend(future.result())
         return exceptions
 
     @classmethod
     def _execute(cls, all_action_groups):
         # unlink unlink_action_groups and unregister_action_groups
-        unlink_actions = tuple(
-            group for group in all_action_groups if group.type in ("unlink", "unregister"))
+        unlink_actions = tuple(group for group in all_action_groups if group.type == "unlink")
         # link unlink_action_groups and register_action_groups
-        link_actions = tuple(
-            group for group in all_action_groups if group.type in ("link", "register"))
+        link_actions = tuple(group for group in all_action_groups if group.type == "link")
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
             with Spinner("Executing transaction", not context.verbosity and not context.quiet,
                          context.json):
                 # Execute unlink actions
                 with ThreadLimitedThreadPoolExecutor() as executor:
-                    futures = []
-                    for group in (unlink_actions, link_actions):
-                        futures.extend(executor.submit(cls._execute_actions, axngroup)
-                                       for axngroup in group)
-                        # Run post-unlink scripts
-                        futures.extend(executor.submit(cls._execute_post_link_actions, axngroup)
-                                       for axngroup in group
-                                       if axngroup.type in ('unlink', 'link'))
-
+                    for (group, register_group) in ((unlink_actions, "unregister"),
+                                                    (link_actions, "register")):
+                        futures = (executor.submit(cls._execute_actions, axngroup)
+                                   for axngroup in group)
                         for future in as_completed(futures):
                             exc = future.result()
                             if exc:
                                 log.debug('%r'.encode('utf-8'), exc, exc_info=True)
                                 exceptions.append(exc)
+
+                        # Run post-link or post-unlink scripts and registering AFTER link/unlink,
+                        #    because they may depend on files in the prefix
+                        futures = [executor.submit(cls._execute_post_link_actions, axngroup)
+                                   for axngroup in group]
+
+                        # must do the register actions AFTER all link/unlink is done
+                        register_actions = tuple(group for group in all_action_groups
+                                                 if group.type == register_group)
+                        for fn in (cls._execute_actions, cls._execute_post_link_actions):
+                            futures.extend(executor.submit(fn, axngroup)
+                                           for axngroup in register_actions)
+
+                            for future in as_completed(futures):
+                                exc = future.result()
+                                if exc:
+                                    log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                                    exceptions.append(exc)
+                        if exceptions:
+                            break
 
             if exceptions:
                 # might be good to show all errors, but right now we only show the first
@@ -592,6 +605,9 @@ class UnlinkLinkTransaction(object):
                     rollback_excs,
                 )))
             else:
+
+                link_actions = tuple(
+                    group for group in all_action_groups if group.type in ("link", "register"))
                 for axngroup in all_action_groups:
                     for action in axngroup.actions:
                         action.cleanup()
@@ -646,25 +662,25 @@ class UnlinkLinkTransaction(object):
         target_prefix = axngroup.target_prefix
         is_unlink = axngroup.type == 'unlink'
         prec = axngroup.pkg_data
-
-        try:
-            run_script(target_prefix, prec, 'post-unlink' if is_unlink else 'post-link',
-                       activate=True)
-        except Exception as e:  # this won't be a multi error
-            # reverse this package
-            log.debug("Error in post-link", exc_info=True)
-            reverse_excs = ()
-            if context.rollback_enabled:
-                log.error("An error occurred while %s package '%s'.\n"
-                          "%r\n"
-                          "Attempting to roll back.\n",
-                          'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
-                reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
-            return CondaMultiError(tuple(concatv(
-                (e,),
-                (axngroup,),
-                reverse_excs,
-            )))
+        if prec:
+            try:
+                run_script(target_prefix, prec, 'post-unlink' if is_unlink else 'post-link',
+                           activate=True)
+            except Exception as e:  # this won't be a multi error
+                # reverse this package
+                log.debug("Error in post-link", exc_info=True)
+                reverse_excs = ()
+                if context.rollback_enabled:
+                    log.error("An error occurred while %s package '%s'.\n"
+                              "%r\n"
+                              "Attempting to roll back.\n",
+                              'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
+                    reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
+                return CondaMultiError(tuple(concatv(
+                    (e,),
+                    (axngroup,),
+                    reverse_excs,
+                )))
 
     @staticmethod
     def _reverse_actions(axngroup, reverse_from_idx=-1):

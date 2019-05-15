@@ -13,7 +13,7 @@ from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv
 from ..base.context import context
 from ..common.compat import itervalues
-from ..common.io import ProcessPoolExecutor, as_completed, time_recorder
+from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, time_recorder
 from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
@@ -73,7 +73,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 def fetch_index(channel_urls, use_cache=False, index=None, repodata_fn=context.repodata_fn):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
-    with ProcessPoolExecutor() as executor:
+    with ThreadLimitedThreadPoolExecutor() as executor:
         futures = tuple(executor.submit(SubdirData, Channel(url), repodata_fn=repodata_fn)
                         for url in channel_urls)
         for sd in (future.result() for future in as_completed(futures)):
