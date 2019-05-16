@@ -537,15 +537,21 @@ class UnlinkLinkTransaction(object):
         # unlink unlink_action_groups and unregister_action_groups
         unlink_actions = tuple(group for group in all_action_groups if group.type == "unlink")
         # link unlink_action_groups and register_action_groups
-        link_actions = tuple(group for group in all_action_groups if group.type == "link")
+        link_actions = list(group for group in all_action_groups if group.type == "link")
+        delayed_link_actions = [axn for axn in link_actions
+                                if isinstance(axn, CompileMultiPycAction)]
+        for axn in delayed_link_actions:
+            del link_actions[axn]
+
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
             with Spinner("Executing transaction", not context.verbosity and not context.quiet,
                          context.json):
                 # Execute unlink actions
                 with ThreadLimitedThreadPoolExecutor() as executor:
-                    for (group, register_group) in ((unlink_actions, "unregister"),
-                                                    (link_actions, "register")):
+                    for (group, register_group, delayed_group) in (
+                            (unlink_actions, "unregister", []),
+                            (link_actions, "register", delayed_link_actions)):
                         futures = (executor.submit(cls._execute_actions, axngroup)
                                    for axngroup in group)
                         for future in as_completed(futures):
@@ -558,6 +564,11 @@ class UnlinkLinkTransaction(object):
                         #    because they may depend on files in the prefix
                         futures = [executor.submit(cls._execute_post_link_actions, axngroup)
                                    for axngroup in group]
+
+                        futures.extend(executor.submit(cls._execute_actions, axngroup)
+                                       for axngroup in delayed_group)
+                        futures.extend(executor.submit(cls._execute_post_link_actions, axngroup)
+                                       for axngroup in delayed_group)
 
                         # must do the register actions AFTER all link/unlink is done
                         register_actions = tuple(group for group in all_action_groups
