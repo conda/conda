@@ -538,10 +538,7 @@ class UnlinkLinkTransaction(object):
         unlink_actions = tuple(group for group in all_action_groups if group.type == "unlink")
         # link unlink_action_groups and register_action_groups
         link_actions = list(group for group in all_action_groups if group.type == "link")
-        delayed_link_actions = [axn for axn in link_actions
-                                if isinstance(axn, CompileMultiPycAction)]
-        for axn in delayed_link_actions:
-            del link_actions[axn]
+        compile_actions = list(group for group in all_action_groups if group.type == "compile")
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
@@ -549,9 +546,9 @@ class UnlinkLinkTransaction(object):
                          context.json):
                 # Execute unlink actions
                 with ThreadLimitedThreadPoolExecutor() as executor:
-                    for (group, register_group, delayed_group) in (
-                            (unlink_actions, "unregister", []),
-                            (link_actions, "register", delayed_link_actions)):
+                    for (group, register_group) in (
+                            (unlink_actions, "unregister"),
+                            (link_actions, "register")):
                         futures = (executor.submit(cls._execute_actions, axngroup)
                                    for axngroup in group)
                         for future in as_completed(futures):
@@ -565,17 +562,17 @@ class UnlinkLinkTransaction(object):
                         futures = [executor.submit(cls._execute_post_link_actions, axngroup)
                                    for axngroup in group]
 
-                        futures.extend(executor.submit(cls._execute_actions, axngroup)
-                                       for axngroup in delayed_group)
-                        futures.extend(executor.submit(cls._execute_post_link_actions, axngroup)
-                                       for axngroup in delayed_group)
-
                         # must do the register actions AFTER all link/unlink is done
                         register_actions = tuple(group for group in all_action_groups
                                                  if group.type == register_group)
                         for fn in (cls._execute_actions, cls._execute_post_link_actions):
                             futures.extend(executor.submit(fn, axngroup)
                                            for axngroup in register_actions)
+                            # key off of register to do the compiling after linking,
+                            #     but not with unlinking
+                            if register_actions == 'register':
+                                futures.extend(executor.submit(fn, axngroup)
+                                               for axngroup in compile_actions)
 
                             for future in as_completed(futures):
                                 exc = future.result()
@@ -762,10 +759,6 @@ class UnlinkLinkTransaction(object):
         create_nonadmin_actions = CreateNonadminAction.create_actions(*required_quad)
         create_menu_actions = MakeMenuAction.create_actions(*required_quad)
 
-        python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
-        compile_pyc_actions = CompileMultiPycAction.create_actions(
-            *required_quad, file_link_actions=file_link_actions)
-
         # if requested_spec:
         #     application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
         #         *required_quad
@@ -776,13 +769,6 @@ class UnlinkLinkTransaction(object):
         # else:
         #     application_entry_point_actions = ()
         #     application_softlink_actions = ()
-
-        all_link_path_actions = tuple(concatv(
-            file_link_actions,
-            python_entry_point_actions,
-            compile_pyc_actions,
-        ))
-
         # leased_paths = tuple(axn.leased_path_entry for axn in concatv(
         #     application_entry_point_actions,
         #     application_softlink_actions,
@@ -791,7 +777,7 @@ class UnlinkLinkTransaction(object):
         meta_create_actions = CreatePrefixRecordAction.create_actions(
             *required_quad,
             requested_spec=requested_spec,
-            all_link_path_actions=all_link_path_actions
+            all_link_path_actions=file_link_actions
         )
 
         # if requested_spec:
@@ -806,12 +792,34 @@ class UnlinkLinkTransaction(object):
             create_directory_actions,
             file_link_actions,
             create_nonadmin_actions,
-            python_entry_point_actions,
-            compile_pyc_actions,
             create_menu_actions,
             # application_entry_point_actions,
             # register_private_env_actions,
             meta_create_actions,
+        ))
+
+    @staticmethod
+    def _make_compile_actions(transaction_context, package_info, target_prefix,
+                              requested_link_type, requested_spec):
+        required_quad = transaction_context, package_info, target_prefix, requested_link_type
+        python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
+        compile_pyc_actions = CompileMultiPycAction.create_actions(
+            *required_quad, file_link_actions=file_link_actions)
+
+        all_link_path_actions = tuple(concatv(
+            python_entry_point_actions,
+            compile_pyc_actions
+        ))
+
+        meta_create_actions = CreatePrefixRecordAction.create_actions(
+            *required_quad,
+            requested_spec=requested_spec,
+            all_link_path_actions=all_link_path_actions
+        )
+        return tuple(concatv(
+            python_entry_point_actions,
+            compile_pyc_actions,
+            meta_create_actions
         ))
 
     def _make_legacy_action_groups(self):
