@@ -504,7 +504,8 @@ class CompileMultiPycAction(MultiPathAction):
             noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
             py_ver = transaction_context['target_python_version']
             py_files = tuple((axn.target_short_path for axn in file_link_actions
-                              if noarch_py_file_re.match(axn.source_short_path)))
+                              if getattr(axn, 'source_short_path') and
+                              noarch_py_file_re.match(axn.source_short_path)))
             pyc_files = tuple((pyc_path(pf, py_ver) for pf in py_files))
             return (cls(transaction_context, package_info, target_prefix, py_files, pyc_files), )
         else:

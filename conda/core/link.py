@@ -129,6 +129,8 @@ PrefixActionGroup = namedtuple('PrefixActionGroup', (
     'unregister_action_groups',
     'link_action_groups',
     'register_action_groups',
+    'compile_action_groups',
+    'prefix_record_groups'
 ))
 
 # each PrefixGroup item is a sequence of ActionGroups
@@ -316,6 +318,24 @@ class UnlinkLinkTransaction(object):
                                           matchspecs_for_link_dists)
         )
 
+        compile_action_groups = tuple(
+            ActionGroup('compile', pkg_info, cls._make_compile_actions(
+                transaction_context, pkg_info, target_prefix, lt, spec, link_action_groups),
+                        target_prefix)
+            for pkg_info, lt, spec in zip(packages_info_to_link, link_types,
+                                          matchspecs_for_link_dists)
+        )
+
+        record_axns = []
+        for pkg_info, lt, spec in zip(packages_info_to_link, link_types,
+                                      matchspecs_for_link_dists):
+            link_ag = next(ag for ag in link_action_groups if ag.pkg_data == pkg_info)
+            compile_ag = next(ag for ag in compile_action_groups if ag.pkg_data == pkg_info)
+            all_link_path_actions = concatv(link_ag.actions, compile_ag.actions)
+            record_axns.extend(CreatePrefixRecordAction.create_actions(
+                transaction_context, pkg_info, target_prefix, lt, spec, all_link_path_actions))
+        prefix_record_groups = [ActionGroup('record', None, record_axns, target_prefix)]
+
         history_actions = UpdateHistoryAction.create_actions(
             transaction_context, target_prefix, remove_specs, update_specs,
         )
@@ -324,12 +344,13 @@ class UnlinkLinkTransaction(object):
         register_action_groups = ActionGroup('register', None,
                                              register_actions + history_actions,
                                              target_prefix),
-
         return PrefixActionGroup(
             unlink_action_groups,
             unregister_action_groups,
             link_action_groups,
+            compile_action_groups,
             register_action_groups,
+            prefix_record_groups,
         )
 
     @staticmethod
@@ -539,6 +560,7 @@ class UnlinkLinkTransaction(object):
         # link unlink_action_groups and register_action_groups
         link_actions = list(group for group in all_action_groups if group.type == "link")
         compile_actions = list(group for group in all_action_groups if group.type == "compile")
+        record_actions = list(group for group in all_action_groups if group.type == "record")
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
@@ -546,9 +568,10 @@ class UnlinkLinkTransaction(object):
                          context.json):
                 # Execute unlink actions
                 with ThreadLimitedThreadPoolExecutor() as executor:
-                    for (group, register_group) in (
-                            (unlink_actions, "unregister"),
-                            (link_actions, "register")):
+                    for (group, register_group, install_side) in (
+                            (unlink_actions, "unregister", False),
+                            (link_actions, "register", True)):
+                        # parallel block 1:
                         futures = (executor.submit(cls._execute_actions, axngroup)
                                    for axngroup in group)
                         for future in as_completed(futures):
@@ -557,31 +580,32 @@ class UnlinkLinkTransaction(object):
                                 log.debug('%r'.encode('utf-8'), exc, exc_info=True)
                                 exceptions.append(exc)
 
+                        # parallel block 2:
                         # Run post-link or post-unlink scripts and registering AFTER link/unlink,
                         #    because they may depend on files in the prefix
                         futures = [executor.submit(cls._execute_post_link_actions, axngroup)
                                    for axngroup in group]
+                        if install_side:
+                            futures.extend(executor.submit(cls._execute_actions, axngroup)
+                                           for axngroup in compile_actions)
+                            futures.extend(executor.submit(cls._execute_actions, axngroup)
+                                           for axngroup in record_actions)
+                        for future in as_completed(futures):
+                            exc = future.result()
+                            if exc:
+                                log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                                exceptions.append(exc)
 
                         # must do the register actions AFTER all link/unlink is done
                         register_actions = tuple(group for group in all_action_groups
                                                  if group.type == register_group)
-                        for fn in (cls._execute_actions, cls._execute_post_link_actions):
-                            futures.extend(executor.submit(fn, axngroup)
-                                           for axngroup in register_actions)
-                            # key off of register to do the compiling after linking,
-                            #     but not with unlinking
-                            if register_actions == 'register':
-                                futures.extend(executor.submit(fn, axngroup)
-                                               for axngroup in compile_actions)
-
-                            for future in as_completed(futures):
-                                exc = future.result()
-                                if exc:
-                                    log.debug('%r'.encode('utf-8'), exc, exc_info=True)
-                                    exceptions.append(exc)
+                        for axngroup in register_actions:
+                            exc = cls._execute_actions(axngroup)
+                            if exc:
+                                log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                                exceptions.append(exc)
                         if exceptions:
                             break
-
             if exceptions:
                 # might be good to show all errors, but right now we only show the first
                 e = exceptions[0]
@@ -774,12 +798,6 @@ class UnlinkLinkTransaction(object):
         #     application_softlink_actions,
         # ))
 
-        meta_create_actions = CreatePrefixRecordAction.create_actions(
-            *required_quad,
-            requested_spec=requested_spec,
-            all_link_path_actions=file_link_actions
-        )
-
         # if requested_spec:
         #     register_private_env_actions = RegisterPrivateEnvAction.create_actions(
         #         transaction_context, package_info, target_prefix, requested_spec, leased_paths
@@ -795,31 +813,19 @@ class UnlinkLinkTransaction(object):
             create_menu_actions,
             # application_entry_point_actions,
             # register_private_env_actions,
-            meta_create_actions,
         ))
 
     @staticmethod
     def _make_compile_actions(transaction_context, package_info, target_prefix,
-                              requested_link_type, requested_spec):
+                              requested_link_type, requested_spec, link_action_groups):
         required_quad = transaction_context, package_info, target_prefix, requested_link_type
         python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
+        link_action_group = next(ag for ag in link_action_groups if ag.pkg_data == package_info)
         compile_pyc_actions = CompileMultiPycAction.create_actions(
-            *required_quad, file_link_actions=file_link_actions)
-
-        all_link_path_actions = tuple(concatv(
-            python_entry_point_actions,
-            compile_pyc_actions
-        ))
-
-        meta_create_actions = CreatePrefixRecordAction.create_actions(
-            *required_quad,
-            requested_spec=requested_spec,
-            all_link_path_actions=all_link_path_actions
-        )
+            *required_quad, file_link_actions=link_action_group.actions)
         return tuple(concatv(
             python_entry_point_actions,
             compile_pyc_actions,
-            meta_create_actions
         ))
 
     def _make_legacy_action_groups(self):
