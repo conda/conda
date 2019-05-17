@@ -847,7 +847,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
                 else:
                     return (link_path_action.prefix_path_data, )
 
-        files = concat((files_from_action(x) for x in self.all_link_path_actions if x))
+        files = list(concat(files_from_action(x) for x in self.all_link_path_actions if x))
         paths_data = PathsData(
             paths_version=1,
             paths=concat((paths_from_action(x) for x in self.all_link_path_actions if x)),

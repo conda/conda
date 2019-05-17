@@ -571,6 +571,7 @@ class UnlinkLinkTransaction(object):
                     for (group, register_group, install_side) in (
                             (unlink_actions, "unregister", False),
                             (link_actions, "register", True)):
+
                         # parallel block 1:
                         futures = (executor.submit(cls._execute_actions, axngroup)
                                    for axngroup in group)
@@ -580,11 +581,17 @@ class UnlinkLinkTransaction(object):
                                 log.debug('%r'.encode('utf-8'), exc, exc_info=True)
                                 exceptions.append(exc)
 
-                        # parallel block 2:
                         # Run post-link or post-unlink scripts and registering AFTER link/unlink,
-                        #    because they may depend on files in the prefix
-                        futures = [executor.submit(cls._execute_post_link_actions, axngroup)
-                                   for axngroup in group]
+                        #    because they may depend on files in the prefix.  Additionally, run
+                        #    them serially, just in case order matters (hopefully not)
+                        for axngroup in group:
+                            exc = cls._execute_post_link_actions(axngroup)
+                            if exc:
+                                log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                                exceptions.append(exc)
+
+                        # parallel block 2:
+                        futures = []
                         if install_side:
                             futures.extend(executor.submit(cls._execute_actions, axngroup)
                                            for axngroup in compile_actions)
@@ -1117,6 +1124,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
     try:
         log.debug("for %s at %s, executing script: $ %s",
                   prec.dist_str(), env['PREFIX'], ' '.join(command_args))
+
         subprocess_call(command_args, env=env, path=dirname(path))
     except CalledProcessError:
         m = messages(prefix)
