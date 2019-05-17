@@ -384,16 +384,9 @@ class UnlinkLinkTransaction(object):
         #   5. make sure envs/catalog.json is writable; done with RegisterEnvironmentLocationAction
         # TODO: 3, 4
 
-        unlink_action_groups = (axn_grp
-                                for action_groups in prefix_action_group
-                                for axn_grp in action_groups
-                                if axn_grp.type == 'unlink')
-        link_action_groups = (axn_grp
-                              for action_groups in prefix_action_group
-                              for axn_grp in action_groups
-                              if axn_grp.type == 'link')
+        unlink_action_groups = prefix_action_group.unlink_action_groups
+        prefix_record_groups = prefix_action_group.prefix_record_groups
 
-        # paths are case-insensitive on windows apparently
         lower_on_win = lambda p: p.lower() if on_win else p
         unlink_paths = set(lower_on_win(axn.target_short_path)
                            for grp in unlink_action_groups
@@ -402,7 +395,7 @@ class UnlinkLinkTransaction(object):
         # we can get all of the paths being linked by looking only at the
         #   CreateLinkedPackageRecordAction actions
         create_lpr_actions = (axn
-                              for grp in link_action_groups
+                              for grp in prefix_record_groups
                               for axn in grp.actions
                               if isinstance(axn, CreatePrefixRecordAction))
 
