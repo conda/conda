@@ -944,7 +944,8 @@ class UnlinkLinkTransaction(object):
             if channel_change or subdir_change:
                 if unlink_prec.channel.name is not None:
                     builder_left.append(unlink_prec.channel.name)
-                builder_right.append(link_prec.channel.name)
+                if link_prec.channel.name is not None:
+                    builder_right.append(link_prec.channel.name)
             if subdir_change:
                 builder_left.append("/" + unlink_prec.subdir)
                 builder_right.append("/" + link_prec.subdir)
