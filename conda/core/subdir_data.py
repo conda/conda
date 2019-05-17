@@ -51,20 +51,21 @@ stderrlog = getLogger('conda.stderrlog')
 
 REPODATA_PICKLE_VERSION = 28
 MAX_REPODATA_VERSION = 1
+REPODATA_FN = 'repodata.json'
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'  # NOQA
 
 
 class SubdirDataType(type):
 
-    def __call__(cls, channel):
+    def __call__(cls, channel, repodata_fn=REPODATA_FN):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
-        cache_key = channel.url(with_credentials=True)
-        if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
+        cache_key = channel.url(with_credentials=True), repodata_fn
+        if not cache_key[0].startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
 
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
+        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, repodata_fn)
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
 
@@ -74,7 +75,8 @@ class SubdirData(object):
     _cache_ = {}
 
     @staticmethod
-    def query_all(package_ref_or_match_spec, channels=None, subdirs=None):
+    def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
+                  repodata_fn=REPODATA_FN):
         from .index import check_whitelist  # TODO: fix in-line import
         if channels is None:
             channels = context.channels
@@ -84,7 +86,7 @@ class SubdirData(object):
         check_whitelist(channel_urls)
         with ThreadLimitedThreadPoolExecutor() as executor:
             futures = tuple(executor.submit(
-                SubdirData(Channel(url)).query, package_ref_or_match_spec
+                SubdirData(Channel(url), repodata_fn=repodata_fn).query, package_ref_or_match_spec
             ) for url in channel_urls)
             return tuple(concat(future.result() for future in as_completed(futures)))
 
@@ -117,7 +119,7 @@ class SubdirData(object):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel):
+    def __init__(self, channel, repodata_fn=REPODATA_FN):
         assert channel.subdir
         if channel.package_filename:
             parts = channel.dump()
@@ -126,14 +128,24 @@ class SubdirData(object):
         self.channel = channel
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)
-        self.cache_path_base = join(create_cache_dir(),
-                                    splitext(cache_fn_url(self.url_w_credentials))[0])
+        # whether or not to try using the new, trimmed-down repodata
+        self.repodata_fn = repodata_fn
         self._loaded = False
 
     def reload(self):
         self._loaded = False
         self.load()
         return self
+
+    @property
+    def cache_path_base(self):
+        return join(
+            create_cache_dir(),
+            splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0])
+
+    @property
+    def url_w_repodata_fn(self):
+        return self.url_w_subdir + '/' + self.repodata_fn
 
     @property
     def cache_path_json(self):
@@ -153,7 +165,7 @@ class SubdirData(object):
 
                 (This version only supports repodata_version 1.)
                 Please update conda to use this channel.
-                """) % self.url_w_subdir)
+                """) % self.url_w_repodata_fn)
 
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']
@@ -171,11 +183,12 @@ class SubdirData(object):
         try:
             mtime = getmtime(self.cache_path_json)
         except (IOError, OSError):
-            log.debug("No local cache found for %s at %s", self.url_w_subdir, self.cache_path_json)
+            log.debug("No local cache found for %s at %s", self.url_w_repodata_fn,
+                      self.cache_path_json)
             if context.use_index_cache or (context.offline
                                            and not self.url_w_subdir.startswith('file://')):
                 log.debug("Using cached data for %s at %s forced. Returning empty repodata.",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_repodata_fn, self.cache_path_json)
                 return {
                     '_package_records': (),
                     '_names_index': defaultdict(list),
@@ -188,7 +201,7 @@ class SubdirData(object):
 
             if context.use_index_cache:
                 log.debug("Using cached repodata for %s at %s because use_cache=True",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_repodata_fn, self.cache_path_json)
 
                 _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                            mod_etag_headers.get('_mod'))
@@ -204,21 +217,32 @@ class SubdirData(object):
             timeout = mtime + max_age - time()
             if (timeout > 0 or context.offline) and not self.url_w_subdir.startswith('file://'):
                 log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
-                          self.url_w_subdir, self.cache_path_json, timeout)
+                          self.url_w_repodata_fn, self.cache_path_json, timeout)
                 _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                            mod_etag_headers.get('_mod'))
                 return _internal_state
 
             log.debug("Local cache timed out for %s at %s",
-                      self.url_w_subdir, self.cache_path_json)
+                      self.url_w_repodata_fn, self.cache_path_json)
 
         try:
-            raw_repodata_str = fetch_repodata_remote_request(self.url_w_credentials,
-                                                             mod_etag_headers.get('_etag'),
-                                                             mod_etag_headers.get('_mod'))
+            raw_repodata_str = fetch_repodata_remote_request(
+                self.url_w_credentials,
+                mod_etag_headers.get('_etag'),
+                mod_etag_headers.get('_mod'),
+                repodata_fn=self.repodata_fn)
+            # empty file
+            if not raw_repodata_str and self.repodata_fn != REPODATA_FN:
+                raise UnavailableInvalidChannel(self.url_w_repodata_fn, 404)
+        except UnavailableInvalidChannel:
+            if self.repodata_fn != REPODATA_FN:
+                self.repodata_fn = REPODATA_FN
+                return self._load()
+            else:
+                raise
         except Response304ContentUnchanged:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
-                      self.url_w_subdir)
+                      self.url_w_repodata_fn)
             touch(self.cache_path_json)
             _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                        mod_etag_headers.get('_mod'))
@@ -241,7 +265,8 @@ class SubdirData(object):
 
     def _pickle_me(self):
         try:
-            log.debug("Saving pickled state for %s at %s", self.url_w_subdir, self.cache_path_json)
+            log.debug("Saving pickled state for %s at %s", self.url_w_repodata_fn,
+                      self.cache_path_json)
             with open(self.cache_path_pickle, 'wb') as fh:
                 pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
         except Exception:
@@ -254,7 +279,7 @@ class SubdirData(object):
             return _pickled_state
 
         # pickled data is bad or doesn't exist; load cached json
-        log.debug("Loading raw json for %s at %s", self.url_w_subdir, self.cache_path_json)
+        log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
         with open(self.cache_path_json) as fh:
             try:
                 raw_repodata_str = fh.read()
@@ -296,10 +321,11 @@ class SubdirData(object):
             yield _pickled_state.get('_mod') == mod_stamp
             yield _pickled_state.get('_etag') == etag
             yield _pickled_state.get('_pickle_version') == REPODATA_PICKLE_VERSION
+            yield _pickled_state.get('fn') == self.repodata_fn
 
         if not all(_check_pickled_valid()):
             log.debug("Pickle load validation failed for %s at %s.",
-                      self.url_w_subdir, self.cache_path_json)
+                      self.url_w_repodata_fn, self.cache_path_json)
             return None
 
         return _pickled_state
@@ -321,6 +347,7 @@ class SubdirData(object):
             'url_w_subdir': self.url_w_subdir,
             'url_w_credentials': self.url_w_credentials,
             'cache_path_base': self.cache_path_base,
+            'fn': self.repodata_fn,
 
             '_package_records': _package_records,
             '_names_index': _names_index,
@@ -419,7 +446,7 @@ class Response304ContentUnchanged(Exception):
     pass
 
 
-def fetch_repodata_remote_request(url, etag, mod_stamp):
+def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
@@ -431,13 +458,9 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
     if mod_stamp:
         headers["If-Modified-Since"] = mod_stamp
 
-    if 'repo.anaconda.com' in url:
-        filename = 'repodata.json.bz2'
-        headers['Accept-Encoding'] = 'identity'
-    else:
-        headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-        headers['Content-Type'] = 'application/json'
-        filename = 'repodata.json'
+    headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
+    headers['Content-Type'] = 'application/json'
+    filename = repodata_fn
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
@@ -467,12 +490,13 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
-                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
+                log.info("Unable to retrieve repodata (%d error) for %s", status_code,
+                         url + '/' + repodata_fn)
                 return None
             else:
                 if context.allow_non_channel_urls:
                     stderrlog.warning("Unable to retrieve repodata (%d error) for %s",
-                                      status_code, url)
+                                      status_code, url + '/' + repodata_fn)
                     return None
                 else:
                     raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)
@@ -595,10 +619,11 @@ def make_feature_record(feature_name):
     )
 
 
-def cache_fn_url(url):
+def cache_fn_url(url, repodata_fn=REPODATA_FN):
     # url must be right-padded with '/' to not invalidate any existing caches
     if not url.endswith('/'):
         url += '/'
+    url += repodata_fn
     md5 = hashlib.md5(ensure_binary(url)).hexdigest()
     return '%s.json' % (md5[:8],)
 

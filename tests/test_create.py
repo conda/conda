@@ -819,7 +819,7 @@ class IntegrationTests(TestCase):
     def test_strict_resolve_get_reduced_index(self):
         channels = (Channel("defaults"),)
         specs = (MatchSpec("anaconda"),)
-        index = get_reduced_index(None, channels, context.subdirs, specs)
+        index = get_reduced_index(None, channels, context.subdirs, specs, 'repodata.json')
         r = Resolve(index, channels=channels)
         with env_var("CONDA_CHANNEL_PRIORITY", "strict", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             reduced_index = r.get_reduced_index(specs)

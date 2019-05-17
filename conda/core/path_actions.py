@@ -504,7 +504,8 @@ class CompileMultiPycAction(MultiPathAction):
             noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
             py_ver = transaction_context['target_python_version']
             py_files = tuple((axn.target_short_path for axn in file_link_actions
-                              if noarch_py_file_re.match(axn.source_short_path)))
+                              if getattr(axn, 'source_short_path') and
+                              noarch_py_file_re.match(axn.source_short_path)))
             pyc_files = tuple((pyc_path(pf, py_ver) for pf in py_files))
             return (cls(transaction_context, package_info, target_prefix, py_files, pyc_files), )
         else:
@@ -820,7 +821,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
                                                        target_short_path)
         self.requested_link_type = requested_link_type
         self.requested_spec = requested_spec
-        self.all_link_path_actions = all_link_path_actions
+        self.all_link_path_actions = list(all_link_path_actions)
         self._execute_successful = False
 
     def execute(self):
@@ -835,18 +836,22 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             if isinstance(link_path_action, CompileMultiPycAction):
                 return link_path_action.target_short_paths
             else:
-                return (link_path_action.target_short_path, )
+                return ((link_path_action.target_short_path, )
+                        if isinstance(link_path_action, CreateInPrefixPathAction) and
+                        (not hasattr(link_path_action, 'link_type') or
+                         link_path_action.link_type != LinkType.directory) else ())
 
         def paths_from_action(link_path_action):
             if isinstance(link_path_action, CompileMultiPycAction):
                 return link_path_action.prefix_paths_data
             else:
-                if link_path_action.prefix_path_data is None:
+                if (not hasattr(link_path_action, 'prefix_path_data') or
+                        link_path_action.prefix_path_data is None):
                     return ()
                 else:
                     return (link_path_action.prefix_path_data, )
 
-        files = concat((files_from_action(x) for x in self.all_link_path_actions if x))
+        files = list(concat(files_from_action(x) for x in self.all_link_path_actions if x))
         paths_data = PathsData(
             paths_version=1,
             paths=concat((paths_from_action(x) for x in self.all_link_path_actions if x)),

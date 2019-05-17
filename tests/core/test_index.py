@@ -81,4 +81,4 @@ class ReducedIndexTests(TestCase):
 
     def test_basic_get_reduced_index(self):
         get_reduced_index(None, (Channel('defaults'), Channel('conda-test')), context.subdirs,
-                          (MatchSpec('flask'), ))
+                          (MatchSpec('flask'), ), 'repodata.json')

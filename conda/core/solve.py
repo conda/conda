@@ -12,7 +12,7 @@ from textwrap import dedent
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
-from .subdir_data import SubdirData
+from .subdir_data import SubdirData, REPODATA_FN
 from .. import CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
@@ -47,7 +47,8 @@ class Solver(object):
 
     """
 
-    def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=()):
+    def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=(),
+                 repodata_fn=REPODATA_FN):
         """
         Args:
             prefix (str):
@@ -70,6 +71,7 @@ class Solver(object):
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
 
         assert all(s in context.known_subdirs for s in self.subdirs)
+        self._repodata_fn = repodata_fn
         self._index = None
         self._r = None
         self._prepared = False
@@ -229,7 +231,8 @@ class Solver(object):
                 # Return early, with a solution that should just be PrefixData().iter_records()
                 return IndexedSet(PrefixGraph(ssc.solution_precs).graph)
 
-        with Spinner("Collecting package metadata", not context.verbosity and not context.quiet,
+        with Spinner("Collecting package metadata (%s)" % self._repodata_fn,
+                     not context.verbosity and not context.quiet,
                      context.json):
             ssc = self._collect_all_metadata(ssc)
 
@@ -635,7 +638,8 @@ class Solver(object):
                     return
 
             conda_newer_precs = sorted(
-                SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
+                SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs,
+                                     repodata_fn=self._repodata_fn),
                 key=lambda x: VersionOrder(x.version)
                 # VersionOrder is fine here rather than r.version_key because all precs
                 # should come from the same channel
@@ -683,8 +687,9 @@ class Solver(object):
                     additional_channels.add(Channel(channel))
 
             self.channels.update(additional_channels)
+
             reduced_index = get_reduced_index(self.prefix, self.channels,
-                                              self.subdirs, prepared_specs)
+                                              self.subdirs, prepared_specs, self._repodata_fn)
             _supplement_index_with_system(reduced_index)
             self._prepared_specs = prepared_specs
             self._index = reduced_index
