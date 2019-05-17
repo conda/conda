@@ -407,7 +407,10 @@ class UnlinkLinkTransaction(object):
                 if isinstance(link_path_action, CompileMultiPycAction):
                     target_short_paths = link_path_action.target_short_paths
                 else:
-                    target_short_paths = (link_path_action.target_short_path, )
+                    target_short_paths = ((link_path_action.target_short_path, )
+                                          if not hasattr(link_path_action, 'link_type') or
+                                          link_path_action.link_type != LinkType.directory
+                                          else tuple())
                 for path in target_short_paths:
                     path = lower_on_win(path)
                     link_paths_dict[path].append(axn)
@@ -559,11 +562,21 @@ class UnlinkLinkTransaction(object):
             exceptions = []
             with Spinner("Executing transaction", not context.verbosity and not context.quiet,
                          context.json):
+
                 # Execute unlink actions
                 with ThreadLimitedThreadPoolExecutor() as executor:
                     for (group, register_group, install_side) in (
                             (unlink_actions, "unregister", False),
                             (link_actions, "register", True)):
+
+                        for axngroup in group:
+                            is_unlink = axngroup.type == 'unlink'
+                            target_prefix = axngroup.target_prefix
+                            prec = axngroup.pkg_data
+                            run_script(target_prefix if is_unlink else prec.extracted_package_dir,
+                                       prec,
+                                       'pre-unlink' if is_unlink else 'pre-link',
+                                       target_prefix)
 
                         # parallel block 1:
                         futures = (executor.submit(cls._execute_actions, axngroup)
@@ -631,7 +644,7 @@ class UnlinkLinkTransaction(object):
                             rollback_excs.extend(excs)
 
                 raise CondaMultiError(tuple(concatv(
-                    (e.errors
+                    ((e.errors[0], e.errors[2:])
                      if isinstance(e, CondaMultiError)
                      else (e,)),
                     rollback_excs,
@@ -647,7 +660,7 @@ class UnlinkLinkTransaction(object):
     @staticmethod
     def _execute_actions(axngroup):
         target_prefix = axngroup.target_prefix
-        action, is_unlink = None, axngroup.type == 'unlink'
+        action = None
         prec = axngroup.pkg_data
 
         conda_meta_dir = join(target_prefix, 'conda-meta')
@@ -666,11 +679,6 @@ class UnlinkLinkTransaction(object):
                          "  source=%s\n",
                          prec.dist_str(), target_prefix, prec.extracted_package_dir)
 
-            if axngroup.type in ('unlink', 'link'):
-                run_script(target_prefix if is_unlink else prec.extracted_package_dir,
-                           prec,
-                           'pre-unlink' if is_unlink else 'pre-link',
-                           target_prefix)
             for action in axngroup.actions:
                 action.execute()
         except Exception as e:  # this won't be a multi error
