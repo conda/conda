@@ -578,7 +578,7 @@ class UnlinkLinkTransaction(object):
                         for future in as_completed(futures):
                             exc = future.result()
                             if exc:
-                                log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                                log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
                                 exceptions.append(exc)
 
                         # Run post-link or post-unlink scripts and registering AFTER link/unlink,
@@ -587,7 +587,7 @@ class UnlinkLinkTransaction(object):
                         for axngroup in group:
                             exc = cls._execute_post_link_actions(axngroup)
                             if exc:
-                                log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                                log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
                                 exceptions.append(exc)
 
                         # parallel block 2:
@@ -600,7 +600,7 @@ class UnlinkLinkTransaction(object):
                         for future in as_completed(futures):
                             exc = future.result()
                             if exc:
-                                log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                                log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
                                 exceptions.append(exc)
 
                         # must do the register actions AFTER all link/unlink is done
@@ -609,7 +609,7 @@ class UnlinkLinkTransaction(object):
                         for axngroup in register_actions:
                             exc = cls._execute_actions(axngroup)
                             if exc:
-                                log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                                log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
                                 exceptions.append(exc)
                         if exceptions:
                             break

@@ -821,7 +821,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
                                                        target_short_path)
         self.requested_link_type = requested_link_type
         self.requested_spec = requested_spec
-        self.all_link_path_actions = all_link_path_actions
+        self.all_link_path_actions = list(all_link_path_actions)
         self._execute_successful = False
 
     def execute(self):
@@ -837,13 +837,16 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
                 return link_path_action.target_short_paths
             else:
                 return ((link_path_action.target_short_path, )
-                        if link_path_action.link_type != LinkType.directory else ())
+                        if isinstance(link_path_action, CreateInPrefixPathAction) and
+                        (not hasattr(link_path_action, 'link_type') or
+                         link_path_action.link_type != LinkType.directory) else ())
 
         def paths_from_action(link_path_action):
             if isinstance(link_path_action, CompileMultiPycAction):
                 return link_path_action.prefix_paths_data
             else:
-                if link_path_action.prefix_path_data is None:
+                if (not hasattr(link_path_action, 'prefix_path_data') or
+                        link_path_action.prefix_path_data is None):
                     return ()
                 else:
                     return (link_path_action.prefix_path_data, )
