@@ -15,32 +15,32 @@ channels in your channel list that host the same package.
 Before conda 4.1.0
 ==================
 
-Before conda 4.1.0 was released on June 14, 2016, when two channels 
-hosted packages with the same name, conda installed the package 
-with the highest version number. If there were two packages 
-with the same version number, conda installed the one with the 
-highest build number. Only if both the version numbers and build 
-numbers were identical did the channel ordering make a 
+Before conda 4.1.0 was released on June 14, 2016, when two channels
+hosted packages with the same name, conda installed the package
+with the highest version number. If there were two packages
+with the same version number, conda installed the one with the
+highest build number. Only if both the version numbers and build
+numbers were identical did the channel ordering make a
 difference. This approach had 3 problems:
 
-* Build numbers from different channels are not comparable. 
-  Channel A could do nightly builds while Channel B does weekly 
-  builds, so build 2 from Channel B could be newer than build 4 
+* Build numbers from different channels are not comparable.
+  Channel A could do nightly builds while Channel B does weekly
+  builds, so build 2 from Channel B could be newer than build 4
   from Channel A.
 
-* Users could not specify a preferred channel. You might consider 
-  Channel B more reliable than Channel A and prefer to get 
-  packages from that channel even if the B version is older than 
-  the package in Channel A. Conda provided no way to choose that 
+* Users could not specify a preferred channel. You might consider
+  Channel B more reliable than Channel A and prefer to get
+  packages from that channel even if the B version is older than
+  the package in Channel A. Conda provided no way to choose that
   behavior. Only version and build numbers mattered.
 
-* Build numbers conflicted. This is an effect of the other 2 
-  problems. Assume you were happily using package Alpha from 
-  Channel A and package Bravo from Channel B. The provider from 
-  Channel B then added a version of Alpha with a very high build 
-  number. Your conda updates would start installing new versions 
-  of Alpha from Channel B whether you wanted that or not. This 
-  could cause unintentional problems and a risk of deliberate 
+* Build numbers conflicted. This is an effect of the other 2
+  problems. Assume you were happily using package Alpha from
+  Channel A and package Bravo from Channel B. The provider from
+  Channel B then added a version of Alpha with a very high build
+  number. Your conda updates would start installing new versions
+  of Alpha from Channel B whether you wanted that or not. This
+  could cause unintentional problems and a risk of deliberate
   attacks.
 
 
