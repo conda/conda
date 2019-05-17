@@ -836,7 +836,8 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             if isinstance(link_path_action, CompileMultiPycAction):
                 return link_path_action.target_short_paths
             else:
-                return (link_path_action.target_short_path, )
+                return ((link_path_action.target_short_path, )
+                        if link_path_action.link_type != LinkType.directory else ())
 
         def paths_from_action(link_path_action):
             if isinstance(link_path_action, CompileMultiPycAction):
