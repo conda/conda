@@ -1,3 +1,52 @@
+## 4.7.0 (2019-05-17)
+
+### Improvements
+
+* Implement support for "virtual" CUDA packages, to make conda consider the system-installed CUDA driver and act accordingly  (#8267)
+* Support and prefer new .conda file format where available  (#8265, #8639)
+* Use comma-separated env names in prompt when stacking envs  (#8431)
+* show valid choices in error messages for enums  (#8602)
+* freeze already-installed packages when running `conda install` as a first attempt, to speed up the solve in existing envs.  Fall back to full solve as necessary  (#8260, #8626)
+* add optimization criterion to prefer arch over noarch packages when otherwise equivalent  (#8267)
+* Remove `free` channel from defaults collection.  Add `restore_free_channel` config parameter if you want to keep it.  (#8579)
+* Improve unsatisfiable hints  (#8638)
+* Add capability to use custom repodata filename, for smaller subsets of repodata  (#8670)
+* Parallelize SubdirData readup  (#8670)
+* Parallelize transacation verification and execution  (#8670)
+
+### Bug fixes
+
+* Fix PATH handling with deactivate.d scripts  (#8464)
+* Fix usage of deprecated collections ABCs (#)
+* fix tcsh/csh initialization block  (#8591)
+* fix missing CWD display in powershell prompt  (#8596)
+* `wrap_subprocess_call`: fallback to sh if no bash  (#8611)
+* move `TemporaryDirectory` to avoid importing from `conda.compat`  (#8671)
+* fix missing conda-package-handling dependency in dev/start  (#8624)
+* fix `path_to_url` string index out of range error  (#8265)
+* fix conda init for xonsh  (#8644)
+* fix fish activation (#8645)
+* improve error handling for read-only filesystems  (#8665, #8674)
+* break out of minimization when bisection has nowhere to go  (#8672)
+* Handle None values for link channel name gracefully  (#8680)
+
+### Contributors
+
+* @chrisburr
+* @EternalPhane
+* @jjhelmus
+* @kalefranz
+* @mbargull
+* @msarahan
+* @rrigdon
+* @scopatz
+* @seibert
+* @soapy1
+* @nehaljwani
+* @nh3
+* @teake
+* @yuvalreches
+
 ## 4.6.14 (2019-04-17)
 
 ### Bug fixes
