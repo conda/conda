@@ -2,8 +2,10 @@
 Improving interoperability with pip
 ===================================
 
-To improve the interoperability between conda and pip,
-conda 4.6.0 added preview support. With this interoperability,
+The conda 4.6.0 release added improved support for interoperability between conda and pip.
+This feature is still experimental and is therefore off by default.
+
+With this interoperability,
 conda can use pip-installed packages to satisfy dependencies,
 cleanly remove pip-installed software, and replace them with
 conda packages when appropriate.
@@ -11,6 +13,10 @@ conda packages when appropriate.
 If you’d like to try the feature, you can set this ``.condarc`` setting::
 
    conda config --set pip_interop_enabled True
+
+.. note::
+
+   Setting ``pip_interop_enabled`` to ``True`` may slow down conda.
 
 Even without activating this feature, conda now understands pip metadata
 more intelligently. For example, if we create an environment with conda::
