@@ -48,7 +48,7 @@ PARTIAL_PYPI_SPEC_PATTERN = re.compile(r'''
     \s?
     (\[(?P<extras>.*)\])?
     \s?
-    (?P<constraints>\(? \s? ([\w\d<>=!~,\s\.\*]*) \s? \)? )?
+    (?P<constraints>\(? \s? ([\w\d<>=!~,\s\.\*-]*) \s? \)? )?
     \s?
 ''', re.VERBOSE | re.IGNORECASE)
 PY_FILE_RE = re.compile(r'^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$')
