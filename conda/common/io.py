@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, _base, as_completed  # NOQA
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Executor, Future, _base, as_completed  # NOQA
 from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
@@ -21,7 +21,7 @@ from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join
 import signal
-from threading import Event, Thread
+from threading import Event, Thread, Lock
 from time import sleep, time
 
 from .compat import StringIO, iteritems, on_win, encode_environment
@@ -495,6 +495,32 @@ class ProgressBar(object):
             sys.stdout.flush()
         elif self.enabled:
             self.pbar.close()
+
+
+# use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
+class DummyExecutor(Executor):
+    def __init__(self):
+        self._shutdown = False
+        self._shutdownLock = Lock()
+
+    def submit(self, fn, *args, **kwargs):
+        with self._shutdownLock:
+            if self._shutdown:
+                raise RuntimeError('cannot schedule new futures after shutdown')
+
+            f = Future()
+            try:
+                result = fn(*args, **kwargs)
+            except BaseException as e:
+                f.set_exception(e)
+            else:
+                f.set_result(result)
+
+            return f
+
+    def shutdown(self, wait=True):
+        with self._shutdownLock:
+            self._shutdown = True
 
 
 class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):

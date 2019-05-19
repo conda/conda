@@ -10,7 +10,7 @@ from os.path import basename, isdir, isfile, join, lexists
 import re
 
 from .._vendor.auxlib.exceptions import ValidationError
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, PREFIX_MAGIC_FILE
+from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import JSONDecodeError, itervalues, odict, string_types, with_metaclass
 from ..common.constants import NULL
@@ -73,13 +73,22 @@ class PrefixData(object):
         self.load()
         return self
 
+    def _get_json_fn(self, prefix_record):
+        fn = prefix_record.fn
+        known_ext = False
+        for ext in CONDA_PACKAGE_EXTENSIONS:
+            if fn.endswith(ext):
+                fn = fn.replace(ext, '')
+                known_ext = True
+        if not known_ext:
+            raise ValueError("Attempted to make prefix record for unknown package type: %s" % fn)
+        return fn + '.json'
+
     def insert(self, prefix_record):
         assert prefix_record.name not in self._prefix_records
 
-        assert prefix_record.fn.endswith(CONDA_PACKAGE_EXTENSION_V1)
-        filename = prefix_record.fn[:-len(CONDA_PACKAGE_EXTENSION_V1)] + '.json'
-
-        prefix_record_json_path = join(self.prefix_path, 'conda-meta', filename)
+        prefix_record_json_path = join(self.prefix_path, 'conda-meta',
+                                       self._get_json_fn(prefix_record))
         if lexists(prefix_record_json_path):
             maybe_raise(BasicClobberError(
                 source_path=None,
@@ -97,8 +106,9 @@ class PrefixData(object):
 
         prefix_record = self._prefix_records[package_name]
 
-        filename = prefix_record.fn[:-len(CONDA_PACKAGE_EXTENSION_V1)] + '.json'
-        conda_meta_full_path = join(self.prefix_path, 'conda-meta', filename)
+        prefix_record_json_path = join(self.prefix_path, 'conda-meta',
+                                       self._get_json_fn(prefix_record))
+        conda_meta_full_path = join(self.prefix_path, 'conda-meta', prefix_record_json_path)
         if self.is_writable:
             rm_rf(conda_meta_full_path)
 
