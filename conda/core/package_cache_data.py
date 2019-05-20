@@ -727,6 +727,6 @@ def rm_fetched(dist):
     raise NotImplementedError()
 
 
-def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
+def download(url, dst_path, session=None, md5sum=None, urlstxt=False, retries=3):
     from ..gateways.connection.download import download as gateway_download
-    gateway_download(url, dst_path, md5)
+    gateway_download(url, dst_path, md5sum)
