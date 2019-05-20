@@ -28,12 +28,12 @@ Then we update imagesize in that environment using pip::
    conda activate some_pip_test
    pip install -U imagesize
 
-Prior to conda 4.6, the ``conda list`` command returned ambiguous results::
+Prior to conda 4.6.0, the ``conda list`` command returned ambiguous results::
 
    imagesize                 1.1.0
 
    imagesize                 1.0.0 py37_0
 
-Conda 4.6 now shows only one entry for imagesize (the newer pip entry)::
+Conda 4.6.0 now shows only one entry for imagesize (the newer pip entry)::
  
    imagesize                 1.1.0 pypi_0    pypi
