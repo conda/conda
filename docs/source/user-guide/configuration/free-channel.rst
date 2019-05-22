@@ -95,8 +95,9 @@ This can occur if:
 - you have older environments in files you want to recreate.
   If those spec files reference packages that are in ``free``,
   they will not show up.
-- a package dependency is only available in the ``free`` channel,
-  the package will fail to work.
+- a package is dependent upon files found only in the free
+  channel. Conda will not let you install the package if it cannot
+  install the dependency, which the package requires to work.
 
 If you encounter these errors, consider using a newer package than
 the one in ``free``. If you want those older versions, you can
