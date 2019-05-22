@@ -1241,9 +1241,11 @@ class ExceptionHandler(object):
             'User-Agent': self.user_agent,
         }
         _timeout = self.http_timeout
-        data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
         username = pwd.getpwuid(os.getuid()).pw_name
-        data = data.replace(username, "USERNAME_REMOVED")
+        error_report['is_unicode'] = True if isinstance(username, bytes) else False
+        error_report['has_spaces'] = True if " " in str(username) else False
+        data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
+        data = data.replace(str(username), "USERNAME_REMOVED")
         response = None
         try:
             # requests does not follow HTTP standards for redirects of non-GET methods

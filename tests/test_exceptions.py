@@ -434,6 +434,48 @@ class ExceptionTests(TestCase):
         assert c.stdout == ''
         assert "conda version" in c.stderr
 
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    @patch('pwd.getpwuid', return_value=pwd.struct_passwd(([
+        'name with space', 'name with space', 'name with space', 'name with space',
+        'name with space', 'name with space', 'name with spaces'])
+    ))
+    def test_print_unexpected_error_message_upload_username_with_spaces(self, pwuid, post_mock):
+        with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with captured() as c:
+                ExceptionHandler()(_raise_helper, AssertionError())
+
+            error_data = json.loads(post_mock.call_args[1].get("data"))
+            assert error_data.get("has_spaces") == True
+            assert error_data.get("is_unicode") == False
+            assert post_mock.call_count == 2
+            assert c.stdout == ''
+            assert "conda version" in c.stderr
+
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    @patch('pwd.getpwuid', return_value=pwd.struct_passwd(([
+        b'unicodename', b'unicodename', b'unicodename', b'unicodename',
+        b'unicodename', b'unicodename', b'unicodename'])
+    ))
+    def test_print_unexpected_error_message_upload_username_with_unicode(self, pwuid, post_mock):
+        with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with captured() as c:
+                ExceptionHandler()(_raise_helper, AssertionError())
+
+            error_data = json.loads(post_mock.call_args[1].get("data"))
+            assert error_data.get("has_spaces") == False
+            assert error_data.get("is_unicode") == True
+            assert post_mock.call_count == 2
+            assert c.stdout == ''
+            assert "conda version" in c.stderr
+
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
     def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock):
