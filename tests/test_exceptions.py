@@ -5,7 +5,10 @@ import json
 from unittest import TestCase
 
 import sys
-import pwd
+try:
+    import pwd
+except ImportError:
+    import winpwd as pwd
 import os
 
 from conda import text_type

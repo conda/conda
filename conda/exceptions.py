@@ -10,7 +10,10 @@ import json
 from logging import getLogger
 import os
 from os.path import join
-import pwd
+try:
+    import pwd
+except ImportError:
+    import winpwd as pwd
 import sys
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
