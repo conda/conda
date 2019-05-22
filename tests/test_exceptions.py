@@ -5,6 +5,8 @@ import json
 from unittest import TestCase
 
 import sys
+import pwd
+import os
 
 from conda import text_type
 from conda._vendor.auxlib.collection import AttrDict
@@ -26,6 +28,14 @@ except ImportError:
 
 def _raise_helper(exception):
     raise exception
+
+
+def username_not_in_post_mock(post_mock, username):
+    for cal in post_mock.call_args_list:
+        for call_part in cal:
+            if username in str(call_part):
+                return False
+    return True
 
 
 class ExceptionTests(TestCase):
@@ -378,6 +388,8 @@ class ExceptionTests(TestCase):
             with captured() as c:
                 ExceptionHandler()(_raise_helper, AssertionError())
 
+            username = pwd.getpwuid(os.getuid()).pw_name
+            assert username_not_in_post_mock(post_mock, username)
             assert post_mock.call_count == 2
             assert c.stdout == ''
             assert "conda version" in c.stderr
@@ -395,6 +407,8 @@ class ExceptionTests(TestCase):
                 with captured() as c:
                     ExceptionHandler()(_raise_helper, AssertionError())
 
+                username = pwd.getpwuid(os.getuid()).pw_name
+                assert username_not_in_post_mock(post_mock, username)
                 assert post_mock.call_count == 3
                 assert len(json.loads(c.stdout)['conda_info']['channels']) >= 2
                 assert not c.stderr
@@ -410,6 +424,8 @@ class ExceptionTests(TestCase):
         with captured() as c:
             ExceptionHandler()(_raise_helper, AssertionError())
 
+        username = pwd.getpwuid(os.getuid()).pw_name
+        assert username_not_in_post_mock(post_mock, username)
         assert input_mock.call_count == 1
         assert post_mock.call_count == 2
         assert c.stdout == ''

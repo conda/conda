@@ -10,6 +10,7 @@ import json
 from logging import getLogger
 import os
 from os.path import join
+import pwd
 import sys
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
@@ -1238,6 +1239,8 @@ class ExceptionHandler(object):
         }
         _timeout = self.http_timeout
         data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
+        username = pwd.getpwuid(os.getuid()).pw_name
+        data = data.replace(username, "USERNAME_REMOVED")
         response = None
         try:
             # requests does not follow HTTP standards for redirects of non-GET methods
