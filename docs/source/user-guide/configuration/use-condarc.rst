@@ -77,8 +77,14 @@ is available at the terminal or Anaconda Prompt by running
 ``conda config --help``.
 
 .. tip::
+
    Conda supports :doc:`tab completion <enable-tab-completion>`
    with external packages instead of internal configuration.
+
+Conda supports a wide range of configuration options. This page
+gives a non-exhaustive list of the most frequently used options and
+their usage. For a complete list of all available options for your
+version of conda, use the ``conda config --describe`` command.
 
 
 General configuration
