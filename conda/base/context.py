@@ -237,6 +237,7 @@ class Context(Configuration):
     report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     shortcuts = PrimitiveParameter(True)
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
+    use_only_tar_bz2 = PrimitiveParameter(False)
 
     # ######################################################
     # ##               Solver Configuration               ##
