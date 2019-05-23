@@ -10,13 +10,10 @@ import json
 from logging import getLogger
 import os
 from os.path import join
-try:
-    import pwd
-except ImportError:
-    import winpwd as pwd
 import sys
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
+import getpass
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
@@ -1241,7 +1238,7 @@ class ExceptionHandler(object):
             'User-Agent': self.user_agent,
         }
         _timeout = self.http_timeout
-        username = pwd.getpwuid(os.getuid()).pw_name
+        username = getpass.getuser()
         error_report['is_unicode'] = True if isinstance(username, bytes) else False
         error_report['has_spaces'] = True if " " in str(username) else False
         data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'

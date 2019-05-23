@@ -5,11 +5,8 @@ import json
 from unittest import TestCase
 
 import sys
-try:
-    import pwd
-except ImportError:
-    import winpwd as pwd
 import os
+import getpass
 
 from conda import text_type
 from conda._vendor.auxlib.collection import AttrDict
@@ -391,7 +388,7 @@ class ExceptionTests(TestCase):
             with captured() as c:
                 ExceptionHandler()(_raise_helper, AssertionError())
 
-            username = pwd.getpwuid(os.getuid()).pw_name
+            username = getpass.getuser()
             assert username_not_in_post_mock(post_mock, username)
             assert post_mock.call_count == 2
             assert c.stdout == ''
@@ -410,7 +407,7 @@ class ExceptionTests(TestCase):
                 with captured() as c:
                     ExceptionHandler()(_raise_helper, AssertionError())
 
-                username = pwd.getpwuid(os.getuid()).pw_name
+                username = getpass.getuser()
                 assert username_not_in_post_mock(post_mock, username)
                 assert post_mock.call_count == 3
                 assert len(json.loads(c.stdout)['conda_info']['channels']) >= 2
@@ -427,7 +424,7 @@ class ExceptionTests(TestCase):
         with captured() as c:
             ExceptionHandler()(_raise_helper, AssertionError())
 
-        username = pwd.getpwuid(os.getuid()).pw_name
+        username = getpass.getuser()
         assert username_not_in_post_mock(post_mock, username)
         assert input_mock.call_count == 1
         assert post_mock.call_count == 2
@@ -439,10 +436,7 @@ class ExceptionTests(TestCase):
                      raise_for_status=lambda: None),
             AttrDict(raise_for_status=lambda: None),
     ))
-    @patch('pwd.getpwuid', return_value=pwd.struct_passwd(([
-        'name with space', 'name with space', 'name with space', 'name with space',
-        'name with space', 'name with space', 'name with spaces'])
-    ))
+    @patch('getpass.getuser', return_value='some name')
     def test_print_unexpected_error_message_upload_username_with_spaces(self, pwuid, post_mock):
         with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
@@ -460,10 +454,7 @@ class ExceptionTests(TestCase):
                      raise_for_status=lambda: None),
             AttrDict(raise_for_status=lambda: None),
     ))
-    @patch('pwd.getpwuid', return_value=pwd.struct_passwd(([
-        b'unicodename', b'unicodename', b'unicodename', b'unicodename',
-        b'unicodename', b'unicodename', b'unicodename'])
-    ))
+    @patch('getpass.getuser', return_value=b'unicodename')
     def test_print_unexpected_error_message_upload_username_with_unicode(self, pwuid, post_mock):
         with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
