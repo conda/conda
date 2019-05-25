@@ -666,7 +666,7 @@ class ProgressiveFetchExtract(object):
 
         progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
 
-        download_total = 0.75  # fraction of progress for download; the rest goes to extract
+        download_total = 1  # fraction of progress for download; the rest goes to extract
         try:
             if cache_axn:
                 cache_axn.verify()
