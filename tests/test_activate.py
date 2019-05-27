@@ -1693,10 +1693,12 @@ class ShellWrapperUnitTests(TestCase):
                     "CONDA_PREFIX": self.prefix,
                     "CONDA_SHLVL": 1,
                     "CONDA_DEFAULT_ENV": self.prefix,
-                    "CONDA_PROMPT_MODIFIER": '',
+                    "CONDA_PROMPT_MODIFIER": "(%s) " % self.prefix,
                     **conda_exe_export
                 },
-                "set": {},
+                "set": {
+                    "PS1": "(%s) " % self.prefix,
+                },
                 "unset": [],
             },
             "scripts": {
@@ -1728,9 +1730,11 @@ class ShellWrapperUnitTests(TestCase):
                 "vars": {
                     "export": {
                         "CONDA_SHLVL": 1,
-                        "CONDA_PROMPT_MODIFIER": '',
+                        "CONDA_PROMPT_MODIFIER": "(%s) " % self.prefix,
                     },
-                    "set": {},
+                    "set": {
+                        "PS1": "(%s) " % self.prefix,
+                    },
                     "unset": [],
                 },
                 "scripts": {
@@ -1757,7 +1761,9 @@ class ShellWrapperUnitTests(TestCase):
                         'CONDA_SHLVL': 0,
                         **conda_exe_export,
                     },
-                    "set": {},
+                    "set": {
+                        "PS1": '',
+                    },
                     "unset": ['CONDA_PREFIX', 'CONDA_DEFAULT_ENV', 'CONDA_PROMPT_MODIFIER'],
                 },
                 "scripts": {
