@@ -14,6 +14,7 @@ from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import JSONDecodeError, itervalues, odict, string_types, with_metaclass
 from ..common.constants import NULL
+from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
@@ -60,6 +61,7 @@ class PrefixData(object):
                                      if pip_interop_enabled is not None
                                      else context.pip_interop_enabled)
 
+    @time_recorder
     def load(self):
         self.__prefix_records = {}
         _conda_meta_dir = join(self.prefix_path, 'conda-meta')
@@ -76,7 +78,8 @@ class PrefixData(object):
     def _get_json_fn(self, prefix_record):
         fn = prefix_record.fn
         known_ext = False
-        for ext in CONDA_PACKAGE_EXTENSIONS:
+        # .dist-info is for things installed by pip
+        for ext in CONDA_PACKAGE_EXTENSIONS + ('.dist-info',):
             if fn.endswith(ext):
                 fn = fn.replace(ext, '')
                 known_ext = True
