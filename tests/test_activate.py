@@ -1689,13 +1689,13 @@ class ShellWrapperUnitTests(TestCase):
                 "PATH": list(new_path_parts),
             },
             "vars": {
-                "export": {
-                    "CONDA_PREFIX": self.prefix,
-                    "CONDA_SHLVL": 1,
-                    "CONDA_DEFAULT_ENV": self.prefix,
-                    "CONDA_PROMPT_MODIFIER": "(%s) " % self.prefix,
+                "export": dict(
+                    CONDA_PREFIX=self.prefix,
+                    CONDA_SHLVL=1,
+                    CONDA_DEFAULT_ENV=self.prefix,
+                    CONDA_PROMPT_MODIFIER="(%s) " % self.prefix,
                     **conda_exe_export
-                },
+                ),
                 "set": {
                     "PS1": "(%s) " % self.prefix,
                 },
@@ -1757,10 +1757,7 @@ class ShellWrapperUnitTests(TestCase):
                     "PATH": list(new_path),
                 },
                 "vars": {
-                    "export": {
-                        'CONDA_SHLVL': 0,
-                        **conda_exe_export,
-                    },
+                    "export": dict(CONDA_SHLVL=0, **conda_exe_export),
                     "set": {
                         "PS1": '',
                     },
