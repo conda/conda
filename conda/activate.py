@@ -1078,8 +1078,8 @@ class JSONFormatMixin(_Activator):
                 'CONDA_EXE': sys.executable,
                 '_CE_M': '-m',
                 '_CE_CONDA': 'conda',
-                '_CONDA_ROOT': '{python_path}{s}conda'.format(python_path=dirname(CONDA_PACKAGE_ROOT),
-                                                              s=os.sep),
+                '_CONDA_ROOT': '{python_path}{s}conda'.format(
+                    python_path=dirname(CONDA_PACKAGE_ROOT), s=os.sep),
                 '_CONDA_EXE': context.conda_exe,
             }
         else:
