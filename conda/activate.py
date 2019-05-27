@@ -1061,6 +1061,110 @@ class PowerShellActivator(_Activator):
         return None
 
 
+class JSONActivator(_Activator):
+    """Returns the necessary values for activation as JSON, so that tools can use them."""
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = list
+        self.sep = '\\' if on_win else '/'
+        self.path_conversion = path_identity
+        self.script_extension = '.json'
+        self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+        self.command_join = list
+
+        # Unused
+        # self.unset_var_tmpl = 'BID FAREWELL:/%s'
+        # self.export_var_tmpl = 'MAKE IT SO:%s = "%s"'
+        # self.set_var_tmpl = 'FOR THE MOMENT:%s = "%s"'
+        # self.run_script_tmpl = 'SOURCEFUN "%s"'
+
+        self.hook_source_path = None
+
+        super(JSONActivator, self).__init__(arguments)
+
+    def commands(self):
+        # Import locally to reduce impact on initialization time.
+        from .cli.find_commands import find_commands
+        from .cli.conda_argparse import generate_parser, find_builtin_commands
+        # return value meant to be written to stdout
+        # Hidden commands to provide metadata to shells.
+        return json.dumps(sorted(
+            find_builtin_commands(generate_parser()) +
+            tuple(find_commands(True))
+        ))
+
+    def _hook_preamble(self):
+        if context.dev:
+            return {
+                'PYTHONPATH': dirname(CONDA_PACKAGE_ROOT),
+                'CONDA_EXE': sys.executable,
+                '_CE_M': '-m',
+                '_CE_CONDA': 'conda',
+                '_CONDA_ROOT': '{python_path}{s}conda'.format(python_path=dirname(CONDA_PACKAGE_ROOT),
+                                                              s=os.sep),
+                '_CONDA_EXE': context.conda_exe,
+            }
+        else:
+            return {
+                'CONDA_EXE': context.conda_exe,
+                '_CE_M': '',
+                '_CE_CONDA': '',
+                '_CONDA_ROOT': context.conda_prefix,
+                '_CONDA_EXE': context.conda_exe,
+            }
+
+    def get_scripts_export_unset_vars(self, **kwargs):
+        export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict(kwargs))
+        script_export_vars = script_unset_vars = None
+        if export_vars:
+            script_export_vars = dict(export_vars.items())
+        if unset_vars:
+            script_unset_vars = unset_vars
+        return script_export_vars or {}, script_unset_vars or []
+
+    def _finalize(self, commands, ext):
+        merged = {}
+        for _cmds in commands:
+            merged.update(_cmds)
+
+        commands = merged
+        if ext is None:
+            return json.dumps(commands, indent=2)
+        elif ext:
+            with Utf8NamedTemporaryFile('w+', suffix=ext, delete=False) as tf:
+                # the default mode is 'w+b', and universal new lines don't work in that mode
+                # command_join should account for that
+                json.dump(commands, tf, indent=2)
+            return tf.name
+        else:
+            raise NotImplementedError()
+
+    def _yield_commands(self, cmds_dict):
+        # TODO: _Is_ defining our own object shape here any better than
+        # just dumping the `cmds_dict`?
+        path = cmds_dict.get('export_path', {})
+        export_vars = cmds_dict.get('export_vars', {})
+        # treat PATH specially
+        if 'PATH' in export_vars:
+            new_path = path.get('PATH', [])
+            new_path.extend(export_vars.pop('PATH'))
+            path['PATH'] = new_path
+
+        yield {
+            'path': path,
+            'vars': {
+                'export': export_vars,
+                'unset': cmds_dict.get('unset_vars', ()),
+                'set': cmds_dict.get('set_vars', {}),
+            },
+            'scripts': {
+                'activate': cmds_dict.get('activate_scripts', ()),
+                'deactivate': cmds_dict.get('deactivate_scripts', ()),
+            }
+        }
+
+
+
 activator_map = {
     'posix': PosixActivator,
     'ash': PosixActivator,
@@ -1073,6 +1177,7 @@ activator_map = {
     'cmd.exe': CmdExeActivator,
     'fish': FishActivator,
     'powershell': PowerShellActivator,
+    '__json__': JSONActivator,
 }
 
 
