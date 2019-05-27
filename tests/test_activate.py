@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from re import escape
 from collections import OrderedDict
 from itertools import chain
 from logging import getLogger
@@ -10,13 +11,14 @@ import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
-from conda import __version__ as conda_version
+import json
 
+from conda import __version__ as conda_version
 from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
-    PowerShellActivator, XonshActivator, JSONActivator, activator_map, \
+    PowerShellActivator, XonshActivator, JSONPosixActivator, activator_map, \
     main as activate_main, native_path_to_unix
 from conda.base.constants import ROOT_ENV_NAME, PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, \
     CONDA_ENV_VARS_UNSET_VAR
@@ -33,7 +35,6 @@ import pytest
 from tests.helpers import tempdir
 from tests.test_create import Commands, run_command
 from conda._vendor.auxlib.decorators import memoize
-from re import escape
 from .test_create import SPACER_CHARACTER
 
 try:
@@ -1672,83 +1673,99 @@ class ShellWrapperUnitTests(TestCase):
                         rc = activate_main(['', shell] + activate_args + [self.prefix])
 
     def test_json_basic(self):
-        activator = JSONActivator()
+        activator = JSONPosixActivator()
+        self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(['', 'shell.__json__'] + activate_args + [self.prefix])
+            rc = activate_main(['', 'shell.posix:json'] + activate_args + [self.prefix])
         assert not c.stderr
         assert rc == 0
         activate_data = c.stdout
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
-        e_activate_data = dals("""
-        $PATH = '%(new_path)s'
-        $CONDA_PREFIX = '%(native_prefix)s'
-        $CONDA_SHLVL = '1'
-        $CONDA_DEFAULT_ENV = '%(native_prefix)s'
-        $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
-        %(conda_exe_export)s
-        source "%(activate1)s"
-        """) % {
-            'converted_prefix': activator.path_conversion(self.prefix),
-            'native_prefix': self.prefix,
-            'new_path': activator.pathsep_join(new_path_parts),
-            'sys_executable': activator.path_conversion(sys.executable),
-            'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.xsh')),
-            'conda_exe_export': conda_exe_export,
+        e_activate_data = {
+            "path": {
+                "PATH": list(new_path_parts),
+            },
+            "vars": {
+                "export": {
+                    "CONDA_PREFIX": self.prefix,
+                    "CONDA_SHLVL": 1,
+                    "CONDA_DEFAULT_ENV": self.prefix,
+                    "CONDA_PROMPT_MODIFIER": '',
+                    **conda_exe_export
+                },
+                "set": {},
+                "unset": [],
+            },
+            "scripts": {
+                "activate": [
+                    activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh')),
+                ],
+                "deactivate": [],
+            }
         }
-        assert activate_data == e_activate_data
+        assert json.loads(activate_data) == e_activate_data
 
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
             'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
         }):
-            activator = JSONActivator()
+            activator = JSONPosixActivator()
             with captured() as c:
-                rc = activate_main(['', 'shell.__json__'] + reactivate_args)
+                rc = activate_main(['', 'shell.posix:json'] + reactivate_args)
             assert not c.stderr
             assert rc == 0
             reactivate_data = c.stdout
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
-            e_reactivate_data = dals("""
-            source "%(deactivate1)s"
-            $PATH = '%(new_path)s'
-            $CONDA_SHLVL = '1'
-            $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
-            source "%(activate1)s"
-            """) % {
-                'new_path': activator.pathsep_join(new_path_parts),
-                'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.xsh')),
-                'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh')),
-                'native_prefix': self.prefix,
+            e_reactivate_data = {
+                "path": {
+                    "PATH": list(new_path_parts),
+                },
+                "vars": {
+                    "export": {
+                        "CONDA_SHLVL": 1,
+                        "CONDA_PROMPT_MODIFIER": '',
+                    },
+                    "set": {},
+                    "unset": [],
+                },
+                "scripts": {
+                    "activate": [activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh')),],
+                    "deactivate": [activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh')),],
+                }
             }
-            assert reactivate_data == e_reactivate_data
+            assert json.loads(reactivate_data) == e_reactivate_data
 
             with captured() as c:
-                rc = activate_main(['', 'shell.xonsh'] + deactivate_args)
+                rc = activate_main(['', 'shell.posix:json'] + deactivate_args)
             assert not c.stderr
             assert rc == 0
             deactivate_data = c.stdout
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
-            e_deactivate_data = dals("""
-            $PATH = '%(new_path)s'
-            source "%(deactivate1)s"
-            del $CONDA_PREFIX
-            del $CONDA_DEFAULT_ENV
-            del $CONDA_PROMPT_MODIFIER
-            $CONDA_SHLVL = '0'
-            %(conda_exe_export)s
-            """) % {
-                'new_path': new_path,
-                'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh')),
-                'conda_exe_export': conda_exe_export,
+            e_deactivate_data = {
+                "path": {
+                    "PATH": list(new_path),
+                },
+                "vars": {
+                    "export": {
+                        'CONDA_SHLVL': 0,
+                        **conda_exe_export,
+                    },
+                    "set": {},
+                    "unset": ['CONDA_PREFIX', 'CONDA_DEFAULT_ENV', 'CONDA_PROMPT_MODIFIER'],
+                },
+                "scripts": {
+                    "activate": [],
+                    "deactivate": [activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh')),],
+                }
             }
-            assert deactivate_data == e_deactivate_data
+            assert json.loads(deactivate_data) == e_deactivate_data
 
 
 class InteractiveShell(object):
