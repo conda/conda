@@ -1061,37 +1061,15 @@ class PowerShellActivator(_Activator):
         return None
 
 
-class JSONActivator(_Activator):
+class JSONFormatMixin(_Activator):
     """Returns the necessary values for activation as JSON, so that tools can use them."""
 
     def __init__(self, arguments=None):
         self.pathsep_join = list
-        self.sep = '\\' if on_win else '/'
-        self.path_conversion = path_identity
-        self.script_extension = '.json'
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
         self.command_join = list
 
-        # Unused
-        # self.unset_var_tmpl = 'BID FAREWELL:/%s'
-        # self.export_var_tmpl = 'MAKE IT SO:%s = "%s"'
-        # self.set_var_tmpl = 'FOR THE MOMENT:%s = "%s"'
-        # self.run_script_tmpl = 'SOURCEFUN "%s"'
-
-        self.hook_source_path = None
-
-        super(JSONActivator, self).__init__(arguments)
-
-    def commands(self):
-        # Import locally to reduce impact on initialization time.
-        from .cli.find_commands import find_commands
-        from .cli.conda_argparse import generate_parser, find_builtin_commands
-        # return value meant to be written to stdout
-        # Hidden commands to provide metadata to shells.
-        return json.dumps(sorted(
-            find_builtin_commands(generate_parser()) +
-            tuple(find_commands(True))
-        ))
+        super(JSONFormatMixin, self).__init__(arguments)
 
     def _hook_preamble(self):
         if context.dev:
@@ -1164,6 +1142,9 @@ class JSONActivator(_Activator):
         }
 
 
+class JSONPosixActivator(PosixActivator, JSONFormatMixin):
+    pass
+
 
 activator_map = {
     'posix': PosixActivator,
@@ -1177,7 +1158,7 @@ activator_map = {
     'cmd.exe': CmdExeActivator,
     'fish': FishActivator,
     'powershell': PowerShellActivator,
-    '__json__': JSONActivator,
+    'posix:json': JSONPosixActivator,
 }
 
 
