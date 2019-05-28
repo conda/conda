@@ -1239,7 +1239,7 @@ class ExceptionHandler(object):
         }
         _timeout = self.http_timeout
         username = getpass.getuser()
-        error_report['is_unicode'] = True if isinstance(username, bytes) else False
+        error_report['is_ascii'] = True if all(ord(c) < 128 for c in username) else False
         error_report['has_spaces'] = True if " " in str(username) else False
         data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
         data = data.replace(str(username), "USERNAME_REMOVED")

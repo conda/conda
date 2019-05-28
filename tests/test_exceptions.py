@@ -444,7 +444,7 @@ class ExceptionTests(TestCase):
 
             error_data = json.loads(post_mock.call_args[1].get("data"))
             assert error_data.get("has_spaces") == True
-            assert error_data.get("is_unicode") == False
+            assert error_data.get("is_ascii") == True
             assert post_mock.call_count == 2
             assert c.stdout == ''
             assert "conda version" in c.stderr
@@ -454,7 +454,7 @@ class ExceptionTests(TestCase):
                      raise_for_status=lambda: None),
             AttrDict(raise_for_status=lambda: None),
     ))
-    @patch('getpass.getuser', return_value=b'unicodename')
+    @patch('getpass.getuser', return_value='my√nameΩ')
     def test_print_unexpected_error_message_upload_username_with_unicode(self, pwuid, post_mock):
         with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
@@ -462,7 +462,7 @@ class ExceptionTests(TestCase):
 
             error_data = json.loads(post_mock.call_args[1].get("data"))
             assert error_data.get("has_spaces") == False
-            assert error_data.get("is_unicode") == True
+            assert error_data.get("is_ascii") == False
             assert post_mock.call_count == 2
             assert c.stdout == ''
             assert "conda version" in c.stderr
