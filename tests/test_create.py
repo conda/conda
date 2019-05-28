@@ -983,7 +983,8 @@ class IntegrationTests(TestCase):
             flask_fname = flask_data['fn']
             tar_old_path = join(PackageCacheData.first_writable().pkgs_dir, flask_fname)
 
-            assert isfile(tar_old_path)
+            # if a .tar.bz2 is already in the file cache, it's fine.  Accept it or the .conda file here.
+            assert isfile(tar_old_path) or isfile(tar_old_path.replace('.conda', '.tar.bz2'))
 
             with pytest.raises(DryRunExit):
                 run_command(Commands.INSTALL, prefix, tar_old_path, "--dry-run")
@@ -1036,6 +1037,7 @@ class IntegrationTests(TestCase):
         # regression test for #6914
         with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "python=2.7.12") as prefix:
             assert package_is_installed(prefix, "readline=6.2")
+            # removing the history allows python to be updated too
             open(join(prefix, 'conda-meta', 'history'), 'w').close()
             PrefixData._cache_.clear()
             run_command(Commands.UPDATE, prefix, "readline")
@@ -1122,13 +1124,8 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'python=3')
             run_command(Commands.REMOVE, prefix, "flask")
             assert not package_is_installed(prefix, 'flask')
-            assert package_is_installed(prefix, 'itsdangerous')
-            assert package_is_installed(prefix, 'python=3')
-
-            run_command(Commands.INSTALL, prefix, 'pytz', '--prune')
-
+            # this should get pruned when flask is removed
             assert not package_is_installed(prefix, 'itsdangerous')
-            assert package_is_installed(prefix, 'pytz')
             assert package_is_installed(prefix, 'python=3')
 
     @pytest.mark.skipif(on_win, reason="readline is only a python dependency on unix")
@@ -1220,27 +1217,19 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "numpy")
             assert package_is_installed(prefix, "nomkl")
             assert not package_is_installed(prefix, "mkl")
-            numpy_prec = PrefixData(prefix).get("numpy")
-            assert "nomkl" in numpy_prec.build
 
         with make_temp_env("python=2", "numpy=1.13") as prefix:
             assert package_is_installed(prefix, "numpy")
             assert not package_is_installed(prefix, "nomkl")
             assert package_is_installed(prefix, "mkl")
-            numpy_prec = PrefixData(prefix).get("numpy")
-            assert "nomkl" not in numpy_prec.build
 
-            run_command(Commands.INSTALL, prefix, "nomkl")
+            run_command(Commands.INSTALL, prefix, "nomkl", no_capture=True)
             assert package_is_installed(prefix, "numpy")
             assert package_is_installed(prefix, "nomkl")
-            assert package_is_installed(prefix, "mkl")  # it's fine for mkl to still be here I guess
-            numpy_prec = PrefixData(prefix).get("numpy")
-            assert "nomkl" in numpy_prec.build
-
-            run_command(Commands.INSTALL, prefix, "nomkl", "--prune")
-            assert not package_is_installed(prefix, "mkl")
+            assert package_is_installed(prefix, "blas=1.0=openblas")
             assert not package_is_installed(prefix, "mkl_fft")
             assert not package_is_installed(prefix, "mkl_random")
+            assert not package_is_installed(prefix, "mkl")  # pruned as an indirect dep
 
     def test_clone_offline_simple(self):
         with make_temp_env("bzip2") as prefix:
@@ -1690,9 +1679,11 @@ class IntegrationTests(TestCase):
             assert not error
 
             output, _, _ = run_command(Commands.INSTALL, prefix, 'flask', '--dry-run', '--json',
-                                    use_exception_handler=True)
+                                       use_exception_handler=True)
             json_obj = json.loads(output)
             print(json_obj)
+            # itsdangerous shouldn't be in this list, because it's already present and satisfied
+            #     by the pip package
             assert any(rec["name"] == "flask" for rec in json_obj["actions"]["LINK"])
             assert not any(rec["name"] == "itsdangerous" for rec in json_obj["actions"]["LINK"])
 
@@ -1848,7 +1839,8 @@ class IntegrationTests(TestCase):
             assert not stderr
             assert "All requested packages already installed." in stdout
 
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "six")
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "six", "--repodata-fn",
+                                            "repodata.json", no_capture=True)
             assert not stderr
             assert package_is_installed(prefix, "six>=1.11")
             output, err, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
@@ -1982,7 +1974,7 @@ class IntegrationTests(TestCase):
         # Regression test for #7776
         # important to start the env with six 1.9.  That version forces an upgrade later in the test
         with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "pip=10", "six=1.9", "appdirs",
-                           use_restricted_unicode=on_win) as prefix:
+                           use_restricted_unicode=on_win, no_capture=True) as prefix:
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
             assert package_is_installed(prefix, "six=1.9")
@@ -2014,14 +2006,14 @@ class IntegrationTests(TestCase):
 
             with pytest.raises(DryRunExit):
                 run_command(Commands.INSTALL, prefix, "-c", "https://repo.anaconda.com/pkgs/free",
-                            "agate=1.6", "--dry-run")
+                            "agate=1.6", "--dry-run", no_capture=True)
 
     def test_install_freezes_env_by_default(self):
         """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
         up by not considering changes to existing stuff unless the solve ends up unsatisfiable."""
 
         # create an initial env
-        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
+        with make_temp_env("python=2", use_restricted_unicode=on_win, no_capture=True) as prefix:
             assert package_is_installed(prefix, "python=2.7.*")
             stdout, stderr, _ = run_command(Commands.LIST, prefix, '--json')
             pkgs = json.loads(stdout)
@@ -2030,8 +2022,10 @@ class IntegrationTests(TestCase):
                 if entry['name'] in DEFAULT_AGGRESSIVE_UPDATE_PACKAGES:
                     specs.append(entry['name'])
                 else:
-                    specs.append(entry['channel'] + '/' + entry['platform'] + '::' +
-                                 entry['name'] + '=' + entry['version'] + '=' + entry['build_string'])
+                    # python is the only explicit dep.  It's the only thing that enters in here.
+                    if entry['name'] == 'python':
+                        specs.append(entry['channel'] + '/' + entry['platform'] + '::' +
+                                     entry['name'] + '=' + entry['version'] + '=' + entry['build_string'])
 
             specs.append('imagesize')
             specs = {MatchSpec(s) for s in specs}
@@ -2039,11 +2033,11 @@ class IntegrationTests(TestCase):
             r = conda.core.solve.Resolve(get_index())
             reduced_index = r.get_reduced_index([MatchSpec('imagesize')])
 
-            # now add requests to that env.  The call to get_reduced_index should include our exact specs
+            # now add imagesize to that env.  The call to get_reduced_index should include our exact specs
             #     for the existing env.  doing so will greatly reduce the search space for the initial solve
             with patch.object(conda.core.solve.Resolve, 'get_reduced_index',
                               return_value=reduced_index) as mock_method:
-                run_command(Commands.INSTALL, prefix, "imagesize")
+                run_command(Commands.INSTALL, prefix, "imagesize", no_capture=True)
                 # TODO: this should match the specs above.  It does, at least as far as I can tell from text
                 #    comparison.   Unfortunately, it doesn't evaluate as a match, even though the text all matches.
                 #    I suspect some strange equality of objects issue.

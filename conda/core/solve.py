@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import deque
+import copy
 from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
@@ -257,18 +259,14 @@ class Solver(object):
 
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
-        if ssc.prune:  # or update_modifier == UpdateModifier.UPDATE_ALL  # pending conda/constructor#138  # NOQA
-            # Users are struggling with the prune functionality in --update-all, due to
-            # https://github.com/conda/constructor/issues/138.  Until that issue is resolved,
-            # and for the foreseeable future, it's best to be more conservative with --update-all.
-
+        if ssc.specs_from_history_map:
             # Start with empty specs map for UPDATE_ALL because we're optimizing the update
             # only for specs the user has requested; it's ok to remove dependencies.
 
             # However, because of https://github.com/conda/constructor/issues/138, we need
             # to hard-code keeping conda, conda-build, and anaconda, if they're already in
             # the environment.
-            for pkg_name in ('anaconda', 'conda', 'conda-build'):
+            for pkg_name in ('anaconda', 'conda', 'conda-build', 'python'):
                 if ssc.prefix_data.get(pkg_name, None):
                     ssc.specs_from_history_map[pkg_name] = MatchSpec(pkg_name)
         else:
@@ -278,6 +276,12 @@ class Solver(object):
 
         # add in historically-requested specs
         ssc.specs_map.update(ssc.specs_from_history_map)
+
+        # add in aggressively updated packages
+        ssc.specs_map.update(
+            (prec.name, MatchSpec(prec.name)) for prec in ssc.prefix_data.iter_records()
+            if MatchSpec(prec.name) in context.aggressive_update_packages
+        )
 
         prepared_specs = set(concatv(
             self.specs_to_remove,
@@ -383,6 +387,63 @@ class Solver(object):
         # TLDR: when working with MatchSpec objects,
         #  - to minimize the version change, set MatchSpec(name=name, target=prec.dist_str())
         #  - to freeze the package, set all the components of MatchSpec individually
+
+        # the only things we should consider freezing are things that don't conflict with the new
+        #    specs being added.
+        explicit_spec_package_pool = {}
+        if ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            specs_seen = set()
+            specs_pool = deque(copy.copy(self.specs_to_add))
+            while specs_pool:
+                spec = specs_pool.popleft()
+                freezes = explicit_spec_package_pool.get(spec.name, set())
+                matches = set(ssc.r.find_matches(spec))
+                explicit_spec_package_pool[spec.name] = freezes | matches
+                specs_seen.add(spec)
+                for prec in matches:
+                    for dep in prec.get('depends', []):
+                        dep = MatchSpec(dep)
+                        if dep not in specs_seen and dep not in specs_pool:
+                            specs_pool.append(dep)
+
+        def pkg_in_shared_pool(prec, shared_pool, known_bad_specs, known_good_specs):
+            """Determine if a package or its recursive deps conflict with the shared pool"""
+            if prec.name in shared_pool:
+                if prec not in shared_pool[prec.name]:
+                    return False
+
+            specs_pool = deque(MatchSpec(_) for _ in prec.depends)
+            while specs_pool:
+                spec = specs_pool.popleft()
+                matches = ssc.r.find_matches(spec)
+                # match the immediate dependencies
+                if spec.name in shared_pool:
+                    overlap = shared_pool[spec.name] & set(matches)
+                    if overlap:
+                        # restrict the space further, potentially
+                        shared_pool[spec.name] = overlap
+                        known_good_specs.add(spec)
+                    else:
+                        known_bad_specs.add(spec)
+                        return False
+                else:
+                    known_good_specs.add(spec)
+
+                # recurse into the next layer of deps
+                for prec in matches:
+                    for dep in prec.get('depends', []):
+                        dep = MatchSpec(dep)
+                        if not any(dep in col for col in (known_bad_specs, known_good_specs)):
+                            if dep.name in shared_pool:
+                                if (spec.name in shared_pool and not
+                                        (shared_pool[spec.name] & set(ssc.r.find_matches(dep)))):
+                                    continue
+                            specs_pool.append(dep)
+            return True
+
+        known_bad_specs = set()
+        known_good_specs = set()
+
         for pkg_name, spec in iteritems(ssc.specs_map):
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
             if matches_for_spec:
@@ -398,11 +459,17 @@ class Solver(object):
                     """) % (pkg_name, spec,
                             dashlist((text_type(s) for s in matches_for_spec), indent=4)))
                 target_prec = matches_for_spec[0]
+
                 if ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
-                    new_spec = MatchSpec(target_prec)
+                    if pkg_name in context.aggressive_update_packages:
+                        ssc.specs_map[pkg_name] = pkg_name
+                    elif pkg_in_shared_pool(target_prec, explicit_spec_package_pool,
+                                            known_bad_specs, known_good_specs):
+                        ssc.specs_map[pkg_name] = target_prec.to_match_spec()
+                    elif pkg_name in ssc.specs_from_history_map:
+                        ssc.specs_map[pkg_name] = ssc.specs_from_history_map[pkg_name]
                 else:
-                    new_spec = MatchSpec(spec, target=target_prec.dist_str())
-                ssc.specs_map[pkg_name] = new_spec
+                    ssc.specs_map[pkg_name] = MatchSpec(spec, target=target_prec.dist_str())
         log.debug("specs_map with targets: %s", ssc.specs_map)
 
         # If we're in UPDATE_ALL mode, we need to drop all the constraints attached to specs,

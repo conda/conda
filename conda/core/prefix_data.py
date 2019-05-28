@@ -61,7 +61,7 @@ class PrefixData(object):
                                      if pip_interop_enabled is not None
                                      else context.pip_interop_enabled)
 
-    @time_recorder
+    @time_recorder(module_name=__name__)
     def load(self):
         self.__prefix_records = {}
         _conda_meta_dir = join(self.prefix_path, 'conda-meta')

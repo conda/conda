@@ -2310,6 +2310,7 @@ def test_freeze_deps_1():
         unlink_order = (
             'channel-2::six-1.7.3-py34_0',
             'channel-2::python-3.4.5-0',
+            'channel-2::xz-5.2.3-0',
         )
         link_order = (
             'channel-2::mkl-2017.0.3-0',
