@@ -267,17 +267,7 @@ class Solver(object):
 
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
-        if ssc.specs_from_history_map:
-            # Start with empty specs map for UPDATE_ALL because we're optimizing the update
-            # only for specs the user has requested; it's ok to remove dependencies.
-
-            # However, because of https://github.com/conda/constructor/issues/138, we need
-            # to hard-code keeping conda, conda-build, and anaconda, if they're already in
-            # the environment.
-            for pkg_name in ('anaconda', 'conda', 'conda-build'):
-                if ssc.prefix_data.get(pkg_name, None):
-                    ssc.specs_from_history_map[pkg_name] = MatchSpec(pkg_name)
-        else:
+        if not ssc.specs_from_history_map:
             ssc.specs_map.update(
                 (prec.name, MatchSpec(prec.name)) for prec in ssc.prefix_data.iter_records()
             )
@@ -285,11 +275,25 @@ class Solver(object):
         # add in historically-requested specs
         ssc.specs_map.update(ssc.specs_from_history_map)
 
-        # add in aggressively updated packages
+        for pkg_name in ('anaconda', 'conda', 'conda-build'):
+            if pkg_name not in ssc.specs_map and ssc.prefix_data.get(pkg_name, None):
+                ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
+
         ssc.specs_map.update(
             (prec.name, MatchSpec(prec.name)) for prec in ssc.prefix_data.iter_records()
-            if MatchSpec(prec.name) in context.aggressive_update_packages
+            if prec.subdir == 'pypi'
         )
+        for prec in ssc.prefix_data.iter_records():
+            # first check: add in aggressively updated packages
+            #
+            # second check: add in foreign stuff (e.g. from pip) into the specs
+            #    map. We add it so that it can be left alone more. This is a
+            #    declaration that it is manually installed, much like the
+            #    history map. It may still be replaced if it is in conflict,
+            #    but it is not just an indirect dep that can be pruned.
+            if (MatchSpec(prec.name) in context.aggressive_update_packages or
+                    prec.subdir == 'pypi'):
+                ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
 
         prepared_specs = set(concatv(
             self.specs_to_remove,
@@ -396,8 +400,8 @@ class Solver(object):
 
         # the only things we should consider freezing are things that don't conflict with the new
         #    specs being added.
-        explicit_spec_package_pool = {}
-        if ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
+        def get_explicit_spec_package_pool(specs_to_add):
+            explicit_spec_package_pool = {}
             specs_seen = set()
             specs_pool = deque(copy.copy(self.specs_to_add))
             while specs_pool:
@@ -411,6 +415,9 @@ class Solver(object):
                         dep = MatchSpec(dep)
                         if dep not in specs_seen and dep not in specs_pool:
                             specs_pool.append(dep)
+            return explicit_spec_package_pool
+        if ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            explicit_spec_package_pool = get_explicit_spec_package_pool(self.specs_to_add)
 
         def pkg_in_shared_pool(prec, shared_pool, known_bad_specs, known_good_specs):
             """Determine if a package or its recursive deps conflict with the shared pool"""
@@ -496,13 +503,18 @@ class Solver(object):
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
-        if 'python' in ssc.specs_map:
+        if (any(_.name == 'python' for _ in ssc.solution_precs)
+                and not any(s.name == 'python' for s in self.specs_to_add)):
             python_prefix_rec = ssc.prefix_data.get('python')
             if python_prefix_rec:
-                python_spec = ssc.specs_map['python']
-                if not python_spec.get('version'):
-                    pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
-                    ssc.specs_map['python'] = MatchSpec(python_spec, version=pinned_version)
+                # will our prefix record conflict with any explict spec?  If so, don't add
+                #     anything here - let python float when it hasn't been explicitly specified
+                explicit_spec_package_pool = get_explicit_spec_package_pool(self.specs_to_add)
+                if pkg_in_shared_pool(python_prefix_rec, explicit_spec_package_pool, set(), set()):
+                    python_spec = ssc.specs_map.get('python', MatchSpec('python'))
+                    if not python_spec.get('version'):
+                        pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
+                        ssc.specs_map['python'] = MatchSpec(python_spec, version=pinned_version)
 
         # For the aggressive_update_packages configuration parameter, we strip any target
         # that's been set.

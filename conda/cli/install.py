@@ -266,7 +266,7 @@ def install(args, parser, command='install'):
                 force_reinstall=context.force_reinstall or context.force,
             )
 
-    except ResolvePackageNotFound as e:
+    except (ResolvePackageNotFound, PackagesNotFoundError) as e:
         if args.repodata_fn != 'repodata.json':
             args.repodata_fn = 'repodata.json'
             return install(args, parser, command)

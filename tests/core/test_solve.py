@@ -771,7 +771,15 @@ def test_conda_downgrade():
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
 
-        specs_to_add = MatchSpec("itsdangerous"), MatchSpec("conda<4.4.10"),
+        # no python in explicit specs - will not downgrade to different python version to
+        #      make things work
+        specs_to_add = MatchSpec("itsdangerous"), MatchSpec("conda<4.4.10")
+        with get_solver_aggregate_1(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                                    history_specs=specs) as solver:
+            with pytest.raises(UnsatisfiableError):
+                unlink_precs, link_precs = solver.solve_for_diff()
+
+        specs_to_add = MatchSpec("itsdangerous"), MatchSpec("conda<4.4.10"), MatchSpec("python")
         with get_solver_aggregate_1(specs_to_add=specs_to_add, prefix_records=final_state_1,
                                     history_specs=specs) as solver:
             unlink_precs, link_precs = solver.solve_for_diff()
@@ -806,49 +814,49 @@ def test_conda_downgrade():
                 'channel-4::beautifulsoup4-4.6.3-py37_0',
                 'channel-4::asn1crypto-0.24.0-py37_0',
                 'channel-4::python-3.7.0-hc3d631a_0',
+                'channel-4::sqlite-3.24.0-h84994c4_0',
                 'channel-4::readline-7.0-ha6073c6_4',
+                'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+                'channel-4::yaml-0.1.7-had09818_2',
+                'channel-4::xz-5.2.4-h14c3975_4',
                 'channel-4::tk-8.6.7-hc745277_3',
                 'channel-4::openssl-1.0.2p-h14c3975_0',
+                'channel-4::ncurses-6.1-hf484d3e_0',
             )
             link_order = (
                 'channel-2::openssl-1.0.2l-0',
                 'channel-2::readline-6.2-2',
+                'channel-2::sqlite-3.13.0-0',
                 'channel-2::tk-8.5.18-0',
-                'channel-2::python-2.7.11-0',
-                'channel-2::asn1crypto-0.22.0-py27_0',
-                'channel-4::beautifulsoup4-4.6.3-py27_0',
-                'channel-2::certifi-2016.2.28-py27_0',
-                'channel-4::chardet-3.0.4-py27_1',
-                'channel-4::contextlib2-0.5.5-py27_0',
-                'channel-4::cryptography-vectors-2.3-py27_0',
-                'channel-2::enum34-1.1.6-py27_0',
-                'channel-4::filelock-3.0.4-py27_0',
-                'channel-2::futures-3.1.1-py27_0',
-                'channel-4::glob2-0.6-py27_0',
-                'channel-2::idna-2.6-py27_0',
-                'channel-2::ipaddress-1.0.18-py27_0',
-                'channel-2::itsdangerous-0.24-py27_0',
-                'channel-2::markupsafe-1.0-py27_0',
-                'channel-4::pkginfo-1.4.2-py27_1',
-                'channel-2::psutil-5.2.2-py27_0',
-                'channel-2::pycosat-0.6.2-py27_0',
-                'channel-2::pycparser-2.18-py27_0',
-                'channel-2::pyparsing-2.2.0-py27_0',
-                'channel-4::pysocks-1.6.8-py27_0',
-                'channel-4::pyyaml-3.13-py27h14c3975_0',
-                'channel-2::requests-2.14.2-py27_0',
-                'channel-4::ruamel_yaml-0.15.46-py27h14c3975_0',
-                'channel-2::scandir-1.5-py27_0',
-                'channel-2::six-1.10.0-py27_0',
-                'channel-2::cffi-1.10.0-py27_0',
-                'channel-2::packaging-16.8-py27_0',
-                'channel-2::setuptools-36.4.0-py27_1',
-                'channel-2::cryptography-1.8.1-py27_0',
-                'channel-2::jinja2-2.9.6-py27_0',
-                'channel-2::pyopenssl-17.0.0-py27_0',
-                'channel-2::conda-4.3.30-py27h6ae6dc7_0',
-                'channel-4::urllib3-1.23-py27_0',
-                'channel-4::conda-build-3.12.1-py27_0',
+                'channel-2::xz-5.2.3-0',
+                'channel-2::yaml-0.1.6-0',
+                'channel-2::python-3.6.2-0',
+                'channel-2::asn1crypto-0.22.0-py36_0',
+                'channel-4::beautifulsoup4-4.6.3-py36_0',
+                'channel-2::certifi-2016.2.28-py36_0',
+                'channel-4::chardet-3.0.4-py36_1',
+                'channel-4::filelock-3.0.4-py36_0',
+                'channel-4::glob2-0.6-py36_0',
+                'channel-2::idna-2.6-py36_0',
+                'channel-2::itsdangerous-0.24-py36_0',
+                'channel-2::markupsafe-1.0-py36_0',
+                'channel-4::pkginfo-1.4.2-py36_1',
+                'channel-2::psutil-5.2.2-py36_0',
+                'channel-2::pycosat-0.6.2-py36_0',
+                'channel-2::pycparser-2.18-py36_0',
+                'channel-2::pyparsing-2.2.0-py36_0',
+                'channel-2::pyyaml-3.12-py36_0',
+                'channel-2::requests-2.14.2-py36_0',
+                'channel-2::ruamel_yaml-0.11.14-py36_1',
+                'channel-2::six-1.10.0-py36_0',
+                'channel-2::cffi-1.10.0-py36_0',
+                'channel-2::packaging-16.8-py36_0',
+                'channel-2::setuptools-36.4.0-py36_1',
+                'channel-2::cryptography-1.8.1-py36_0',
+                'channel-2::jinja2-2.9.6-py36_0',
+                'channel-2::pyopenssl-17.0.0-py36_0',
+                'channel-2::conda-4.3.30-py36h5d9f9f4_0',
+                'channel-4::conda-build-3.12.1-py36_0'
             )
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order

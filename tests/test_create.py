@@ -1671,7 +1671,7 @@ class IntegrationTests(TestCase):
         with make_temp_env("python=3", "pip", use_restricted_unicode=False) as prefix:
             pip_ioo, pip_ioe, _ = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             pip_o, pip_e, _ = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous",
-                                       no_capture=True)
+                                          no_capture=True)
 
             PrefixData._cache_.clear()
             output, error, _ = run_command(Commands.LIST, prefix)
@@ -1688,7 +1688,7 @@ class IntegrationTests(TestCase):
             assert not any(rec["name"] == "itsdangerous" for rec in json_obj["actions"]["LINK"])
 
             output, error, _ = run_command(Commands.SEARCH, prefix, "not-a-real-package", "--json",
-                                        use_exception_handler=True)
+                                           use_exception_handler=True)
             assert not error
             json_obj = json_loads(output.strip())
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
@@ -2626,7 +2626,7 @@ class IntegrationTests(TestCase):
 
                 # undo the conda downgrade in the env (using our current outer conda version)
                 PrefixData._cache_.clear()
-                run_command(Commands.INSTALL, prefix, "--rev", "2")
+                run_command(Commands.INSTALL, prefix, "--rev", "2", no_capture=True)
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "conda=4.5.12")
 
