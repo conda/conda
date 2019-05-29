@@ -241,9 +241,17 @@ class Solver(object):
         with Spinner("Solving environment", not context.verbosity and not context.quiet,
                      context.json):
             ssc = self._remove_specs(ssc)
-            ssc = self._find_inconsistent_packages(ssc)
             ssc = self._add_specs(ssc)
+            solution_precs = copy.copy(ssc.solution_precs)
+            ssc = self._find_inconsistent_packages(ssc)
+            # this will prune precs that are deps of precs that get removed due to conflicts
             ssc = self._run_sat(ssc)
+            # if there were any conflicts, we need to add their orphaned deps back in
+            if ssc.add_back_map:
+                orphan_precs = (set(solution_precs)
+                                - set(ssc.solution_precs)
+                                - set(ssc.add_back_map))
+                ssc.solution_precs.extend([_ for _ in orphan_precs if _.name not in ssc.specs_map])
             ssc = self._post_sat_handling(ssc)
             ssc = self._check_solution(ssc)
 
@@ -266,7 +274,7 @@ class Solver(object):
             # However, because of https://github.com/conda/constructor/issues/138, we need
             # to hard-code keeping conda, conda-build, and anaconda, if they're already in
             # the environment.
-            for pkg_name in ('anaconda', 'conda', 'conda-build', 'python'):
+            for pkg_name in ('anaconda', 'conda', 'conda-build'):
                 if ssc.prefix_data.get(pkg_name, None):
                     ssc.specs_from_history_map[pkg_name] = MatchSpec(pkg_name)
         else:
@@ -365,9 +373,7 @@ class Solver(object):
             The following packages are causing the inconsistency:"""))
             print(dashlist(inconsistent_precs))
             for prec in inconsistent_precs:
-                # pop and save matching spec in specs_map
-                spec = ssc.specs_map.pop(prec.name, None)
-                ssc.add_back_map[prec.name] = (prec, spec)
+                ssc.add_back_map[prec.name] = (prec, None)
                 # inconsistent environments should maintain the python version
                 # unless explicitly requested by the user. This along with the logic in
                 # _add_specs maintains the major.minor version
@@ -471,6 +477,12 @@ class Solver(object):
                 else:
                     ssc.specs_map[pkg_name] = MatchSpec(spec, target=target_prec.dist_str())
         log.debug("specs_map with targets: %s", ssc.specs_map)
+
+        # process everything else.  If it doesn't directly conflict, add it as a target version
+        # for (name, prec) in [(prec.name, MatchSpec(prec.name))
+        #                      for prec in ssc.prefix_data.iter_records()]:
+        #     if name not in ssc.specs_map:
+        #         ssc.specs_map[name] = MatchSpec(prec.name, target=prec.dist_str())
 
         # If we're in UPDATE_ALL mode, we need to drop all the constraints attached to specs,
         # so they can all float and the solver can find the most up-to-date solution. In the case
@@ -580,7 +592,10 @@ class Solver(object):
         # add back inconsistent packages to solution
         if ssc.add_back_map:
             for name, (prec, spec) in iteritems(ssc.add_back_map):
-                if not any(d.name == name for d in ssc.solution_precs):
+                if not any(_ == name for _ in ssc.specs_map):
+                    # filter out solution precs and reinsert the conflict.  Any resolution
+                    #    of the conflict should be explicit (i.e. it must be in ssc.specs_map)
+                    ssc.solution_precs = [_ for _ in ssc.solution_precs if _.name != name]
                     ssc.solution_precs.append(prec)
                     if spec:
                         final_environment_specs.add(spec)
