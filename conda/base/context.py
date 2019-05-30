@@ -254,7 +254,6 @@ class Context(Configuration):
     # update_specs = PrimitiveParameter(False)
     # update_all = PrimitiveParameter(False)
 
-    prune = PrimitiveParameter(False)
     force_remove = PrimitiveParameter(False)
     force_reinstall = PrimitiveParameter(False)
 
@@ -748,7 +747,6 @@ class Context(Configuration):
             'force_reinstall',
             'pinned_packages',
             'pip_interop_enabled',
-            'prune',
             'track_features',
         )),
         ('Package Linking and Install-time Configuration', (
@@ -1048,10 +1046,6 @@ class Context(Configuration):
                 the actual proxy server, and are of the form
                 'scheme://[user:password@]host[:port]'. The optional 'user:password' inclusion
                 enables HTTP Basic Auth with your proxy.
-                """),
-            'prune': dals("""
-                Remove packages that have previously been brought into an environment to satisfy
-                dependencies of user-requested packages, but are no longer needed.
                 """),
             'quiet': dals("""
                 Disable progress bar display and other output.

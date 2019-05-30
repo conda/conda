@@ -505,11 +505,11 @@ class Resolve(object):
             reduced = nnew < nold
             if reduced:
                 log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
-            if any(ms.optional for ms in _specs):
-                return reduced
-            elif nnew == 0:
+            if nnew == 0:
                 # Indicates that a conflict was found; we can exit early
                 return None
+            elif any(ms.optional for ms in _specs):
+                return reduced
 
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does

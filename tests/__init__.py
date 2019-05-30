@@ -111,7 +111,8 @@ def conda_check_versions_aligned():
     # is slow. Instead write .version if it does not exist, and also fix
     # it if it disagrees.
 
-    version_file = normpath(join(dirname(dirname(__file__)), 'conda', '.version'))
+    import conda
+    version_file = normpath(join(dirname(conda.__file__), '.version'))
     version_from_file = open(version_file, 'rt').read().split('\n')[0] if isfile(version_file) else None
 
     git_exe = 'git.exe' if sys.platform == 'win32' else 'git'

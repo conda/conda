@@ -1546,8 +1546,7 @@ def add_parser_prune(p):
         "--prune",
         action="store_true",
         default=NULL,
-        help="Remove packages that have previously been brought into the environment to satisfy "
-             "dependencies of user-requested packages, but are no longer needed.",
+        help=SUPPRESS,
     )
 
 

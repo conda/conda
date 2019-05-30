@@ -27,7 +27,7 @@ from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChe
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
 from ..common.io import Spinner, dashlist, time_recorder
-from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
+from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
@@ -174,6 +174,7 @@ class UnlinkLinkTransaction(object):
         self._pfe = None
         self._prepared = False
         self._verified = False
+        self.executor = DummyExecutor() if context.debug else ThreadLimitedThreadPoolExecutor()
 
     @property
     def nothing_to_do(self):
@@ -406,6 +407,8 @@ class UnlinkLinkTransaction(object):
             for link_path_action in axn.all_link_path_actions:
                 if isinstance(link_path_action, CompileMultiPycAction):
                     target_short_paths = link_path_action.target_short_paths
+                elif isinstance(link_path_action, CreateNonadminAction):
+                    continue
                 else:
                     target_short_paths = ((link_path_action.target_short_path, )
                                           if not hasattr(link_path_action, 'link_type') or
@@ -530,27 +533,25 @@ class UnlinkLinkTransaction(object):
                 elif not test_path_existed:
                     rm_rf(test_path)
 
-    @classmethod
-    def _verify(cls, prefix_setups, prefix_action_groups):
+    def _verify(self, prefix_setups, prefix_action_groups):
         transaction_exceptions = tuple(
-            exc for exc in cls._verify_transaction_level(prefix_setups) if exc
+            exc for exc in UnlinkLinkTransaction._verify_transaction_level(prefix_setups) if exc
         )
         if transaction_exceptions:
             return transaction_exceptions
 
         exceptions = []
-        with ThreadLimitedThreadPoolExecutor() as executor:
-            futures = list(executor.submit(cls._verify_individual_level, pg)
-                           for pg in itervalues(prefix_action_groups))
-            futures.extend(executor.submit(cls._verify_prefix_level, target_prefix, pg)
-                           for target_prefix, pg in iteritems(prefix_action_groups))
-            for future in as_completed(futures):
-                if future.result():
-                    exceptions.extend(future.result())
+        futures = list(self.executor.submit(UnlinkLinkTransaction._verify_individual_level, pg)
+                       for pg in itervalues(prefix_action_groups))
+        futures.extend(
+            self.executor.submit(UnlinkLinkTransaction._verify_prefix_level, target_prefix, pg)
+            for target_prefix, pg in iteritems(prefix_action_groups))
+        for future in as_completed(futures):
+            if future.result():
+                exceptions.extend(future.result())
         return exceptions
 
-    @classmethod
-    def _execute(cls, all_action_groups):
+    def _execute(self, all_action_groups):
         # unlink unlink_action_groups and unregister_action_groups
         unlink_actions = tuple(group for group in all_action_groups if group.type == "unlink")
         # link unlink_action_groups and register_action_groups
@@ -564,61 +565,63 @@ class UnlinkLinkTransaction(object):
                          context.json):
 
                 # Execute unlink actions
-                with ThreadLimitedThreadPoolExecutor() as executor:
-                    for (group, register_group, install_side) in (
-                            (unlink_actions, "unregister", False),
-                            (link_actions, "register", True)):
+                for (group, register_group, install_side) in (
+                        (unlink_actions, "unregister", False),
+                        (link_actions, "register", True)):
 
-                        for axngroup in group:
-                            is_unlink = axngroup.type == 'unlink'
-                            target_prefix = axngroup.target_prefix
-                            prec = axngroup.pkg_data
-                            run_script(target_prefix if is_unlink else prec.extracted_package_dir,
-                                       prec,
-                                       'pre-unlink' if is_unlink else 'pre-link',
-                                       target_prefix)
+                    for axngroup in group:
+                        is_unlink = axngroup.type == 'unlink'
+                        target_prefix = axngroup.target_prefix
+                        prec = axngroup.pkg_data
+                        run_script(target_prefix if is_unlink else prec.extracted_package_dir,
+                                   prec,
+                                   'pre-unlink' if is_unlink else 'pre-link',
+                                   target_prefix)
 
-                        # parallel block 1:
-                        futures = (executor.submit(cls._execute_actions, axngroup)
-                                   for axngroup in group)
-                        for future in as_completed(futures):
-                            exc = future.result()
-                            if exc:
-                                log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
-                                exceptions.append(exc)
+                    # parallel block 1:
+                    futures = (
+                        self.executor.submit(UnlinkLinkTransaction._execute_actions, axngroup)
+                        for axngroup in group)
+                    for future in as_completed(futures):
+                        exc = future.result()
+                        if exc:
+                            log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
+                            exceptions.append(exc)
 
-                        # Run post-link or post-unlink scripts and registering AFTER link/unlink,
-                        #    because they may depend on files in the prefix.  Additionally, run
-                        #    them serially, just in case order matters (hopefully not)
-                        for axngroup in group:
-                            exc = cls._execute_post_link_actions(axngroup)
-                            if exc:
-                                log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
-                                exceptions.append(exc)
+                    # Run post-link or post-unlink scripts and registering AFTER link/unlink,
+                    #    because they may depend on files in the prefix.  Additionally, run
+                    #    them serially, just in case order matters (hopefully not)
+                    for axngroup in group:
+                        exc = UnlinkLinkTransaction._execute_post_link_actions(axngroup)
+                        if exc:
+                            log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
+                            exceptions.append(exc)
 
-                        # parallel block 2:
-                        futures = []
-                        if install_side:
-                            futures.extend(executor.submit(cls._execute_actions, axngroup)
-                                           for axngroup in compile_actions)
-                            futures.extend(executor.submit(cls._execute_actions, axngroup)
-                                           for axngroup in record_actions)
-                        for future in as_completed(futures):
-                            exc = future.result()
-                            if exc:
-                                log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
-                                exceptions.append(exc)
+                    # parallel block 2:
+                    futures = []
+                    if install_side:
+                        futures.extend(
+                            self.executor.submit(UnlinkLinkTransaction._execute_actions, axngroup)
+                            for axngroup in compile_actions)
+                        futures.extend(
+                            self.executor.submit(UnlinkLinkTransaction._execute_actions, axngroup)
+                            for axngroup in record_actions)
+                    for future in as_completed(futures):
+                        exc = future.result()
+                        if exc:
+                            log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
+                            exceptions.append(exc)
 
-                        # must do the register actions AFTER all link/unlink is done
-                        register_actions = tuple(group for group in all_action_groups
-                                                 if group.type == register_group)
-                        for axngroup in register_actions:
-                            exc = cls._execute_actions(axngroup)
-                            if exc:
-                                log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
-                                exceptions.append(exc)
-                        if exceptions:
-                            break
+                    # must do the register actions AFTER all link/unlink is done
+                    register_actions = tuple(group for group in all_action_groups
+                                             if group.type == register_group)
+                    for axngroup in register_actions:
+                        exc = UnlinkLinkTransaction._execute_actions(axngroup)
+                        if exc:
+                            log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
+                            exceptions.append(exc)
+                    if exceptions:
+                        break
             if exceptions:
                 # might be good to show all errors, but right now we only show the first
                 e = exceptions[0]
@@ -640,7 +643,7 @@ class UnlinkLinkTransaction(object):
                                  not context.verbosity and not context.quiet, context.json):
                         reverse_actions = reversed(tuple(all_action_groups))
                         for axngroup in reverse_actions:
-                            excs = cls._reverse_actions(axngroup)
+                            excs = UnlinkLinkTransaction._reverse_actions(axngroup)
                             rollback_excs.extend(excs)
 
                 raise CondaMultiError(tuple(concatv(

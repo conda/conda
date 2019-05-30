@@ -1,11 +1,13 @@
+from functools import partial
 import os
 import sys
 import warnings
 
+import py
 import pytest
 
 from conda.common.compat import PY3
-from functools import partial
+from conda.gateways.disk.create import TemporaryDirectory
 
 win_default_shells = ["cmd.exe", "powershell", "git_bash", "cygwin"]
 shells = ["bash", "zsh"]
@@ -36,6 +38,12 @@ xref: https://github.com/kennethreitz/requests/issues/1882
     if PY3:
         warnings.filterwarnings("ignore", category=ResourceWarning)
 
+@pytest.fixture(scope='function')
+def tmpdir(tmpdir, request):
+    tmpdir = TemporaryDirectory(dir=str(tmpdir))
+    request.addfinalizer(tmpdir.cleanup)
+    return py.path.local(tmpdir.name)
+
 
 tmpdir_in_use = None
 def get_tmpdir():
@@ -52,7 +60,8 @@ def set_tmpdir(tmpdir):
     # is the full path to a tmpdir with additions to it by py.test including
     # the test name.
     assert os.sep in td
-    os.environ['CONDA_TEST_TMPDIR'] = td
+    if sys.platform == 'win32' and sys.version_info.major == 2 and hasattr(td, 'encode'):
+        os.environ['CONDA_TEST_TMPDIR'] = td.encode('utf-8')
     tmpdir_in_use = td
 
 

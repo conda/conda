@@ -666,7 +666,7 @@ class ProgressiveFetchExtract(object):
 
         progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
 
-        download_total = 0.75  # fraction of progress for download; the rest goes to extract
+        download_total = 1.0  # fraction of progress for download; the rest goes to extract
         try:
             if cache_axn:
                 cache_axn.verify()
@@ -683,10 +683,13 @@ class ProgressiveFetchExtract(object):
             if extract_axn:
                 extract_axn.verify()
 
+                # this is doing nothing right now. I'm not sure how to do any
+                #   sort of progress update with libarchive.
                 def progress_update_extract_axn(pct_completed):
                     progress_bar.update_to((1 - download_total) * pct_completed + download_total)
 
                 extract_axn.execute(progress_update_extract_axn)
+                progress_bar.update_to(1.0)
 
         except Exception as e:
             if extract_axn:
