@@ -1,11 +1,13 @@
+from functools import partial
 import os
 import sys
 import warnings
 
+import py
 import pytest
 
 from conda.common.compat import PY3
-from functools import partial
+from conda.gateways.disk.create import TemporaryDirectory
 
 win_default_shells = ["cmd.exe", "powershell", "git_bash", "cygwin"]
 shells = ["bash", "zsh"]
@@ -35,6 +37,12 @@ xref: https://github.com/kennethreitz/requests/issues/1882
 '''
     if PY3:
         warnings.filterwarnings("ignore", category=ResourceWarning)
+
+@pytest.fixture(scope='function')
+def tmpdir(tmpdir, request):
+    tmpdir = TemporaryDirectory(dir=tmpdir)
+    request.addfinalizer(tmpdir.cleanup)
+    return py.path.local(tmpdir.name)
 
 
 tmpdir_in_use = None

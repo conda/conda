@@ -771,14 +771,6 @@ def test_conda_downgrade():
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
 
-        # no python in explicit specs - will not downgrade to different python version to
-        #      make things work
-        specs_to_add = MatchSpec("itsdangerous"), MatchSpec("conda<4.4.10")
-        with get_solver_aggregate_1(specs_to_add=specs_to_add, prefix_records=final_state_1,
-                                    history_specs=specs) as solver:
-            with pytest.raises(UnsatisfiableError):
-                unlink_precs, link_precs = solver.solve_for_diff()
-
         specs_to_add = MatchSpec("itsdangerous"), MatchSpec("conda<4.4.10"), MatchSpec("python")
         with get_solver_aggregate_1(specs_to_add=specs_to_add, prefix_records=final_state_1,
                                     history_specs=specs) as solver:

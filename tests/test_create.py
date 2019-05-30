@@ -734,7 +734,7 @@ class IntegrationTests(TestCase):
             assert not isfile(join(prefix, pyc_file))
 
     def test_noarch_python_package_reinstall_on_pyver_change(self):
-        with make_temp_env("-c", "conda-test", "itsdangerous", "python=3", use_restricted_unicode=on_win) as prefix:
+        with make_temp_env("-c", "conda-test", "itsdangerous=0.24", "python=3", use_restricted_unicode=on_win) as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             assert py_ver.startswith('3')
             sp_dir = get_python_site_packages_short_path(py_ver)
@@ -1202,13 +1202,6 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "flask=0.12.2")
             assert package_is_installed(prefix, "jinja2>2.9")
 
-    @pytest.mark.skipif(on_win, reason="tensorflow package used in test not available on Windows")
-    def test_install_freeze_installed_flag(self):
-        with make_temp_env("bleach=2") as prefix:
-            assert package_is_installed(prefix, "bleach=2")
-            with pytest.raises(UnsatisfiableError):
-                run_command(Commands.INSTALL, prefix,
-                            "conda-forge::tensorflow>=1.4,<1.12", "--dry-run", "--freeze-installed")
 
     @pytest.mark.xfail(on_win, reason="nomkl not present on windows",
                        strict=True)
@@ -1223,7 +1216,7 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, "nomkl")
             assert package_is_installed(prefix, "mkl")
 
-            run_command(Commands.INSTALL, prefix, "nomkl", no_capture=True)
+            run_command(Commands.INSTALL, prefix, "nomkl")
             assert package_is_installed(prefix, "numpy")
             assert package_is_installed(prefix, "nomkl")
             assert package_is_installed(prefix, "blas=1.0=openblas")
@@ -1428,7 +1421,7 @@ class IntegrationTests(TestCase):
                     assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
     def test_package_pinning(self):
-        with make_temp_env("python=2.7", "itsdangerous=0.24", "pytz=2017.3") as prefix:
+        with make_temp_env("python=2.7", "itsdangerous=0.24", "pytz=2017.3", no_capture=True) as prefix:
             assert package_is_installed(prefix, "itsdangerous=0.24")
             assert package_is_installed(prefix, "python=2.7")
             assert package_is_installed(prefix, "pytz=2017.3")
@@ -1436,15 +1429,14 @@ class IntegrationTests(TestCase):
             with open(join(prefix, 'conda-meta', 'pinned'), 'w') as fh:
                 fh.write("itsdangerous 0.24\n")
 
-            run_command(Commands.UPDATE, prefix, "--all")
+            run_command(Commands.UPDATE, prefix, "--all", no_capture=True)
             assert package_is_installed(prefix, "itsdangerous=0.24")
             # assert not package_is_installed(prefix, "python=3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
             assert package_is_installed(prefix, "python=2.7")
-
             assert not package_is_installed(prefix, "pytz=2017.3")
             assert package_is_installed(prefix, "pytz")
 
-            run_command(Commands.UPDATE, prefix, "--all", "--no-pin")
+            run_command(Commands.UPDATE, prefix, "--all", "--no-pin", no_capture=True)
             assert package_is_installed(prefix, "python=2.7")
             assert not package_is_installed(prefix, "itsdangerous=0.24")
 
@@ -1670,8 +1662,7 @@ class IntegrationTests(TestCase):
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
         with make_temp_env("python=3", "pip", use_restricted_unicode=False) as prefix:
             pip_ioo, pip_ioe, _ = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-            pip_o, pip_e, _ = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous",
-                                          no_capture=True)
+            pip_o, pip_e, _ = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous")
 
             PrefixData._cache_.clear()
             output, error, _ = run_command(Commands.LIST, prefix)
@@ -1840,7 +1831,7 @@ class IntegrationTests(TestCase):
             assert "All requested packages already installed." in stdout
 
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "six", "--repodata-fn",
-                                            "repodata.json", no_capture=True)
+                                            "repodata.json")
             assert not stderr
             assert package_is_installed(prefix, "six>=1.11")
             output, err, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
@@ -1970,11 +1961,12 @@ class IntegrationTests(TestCase):
                 assert unlink_dists[0]["name"] == "urllib3"
                 assert unlink_dists[0]["channel"] == "pypi"
 
+
     def test_conda_pip_interop_compatible_release_operator(self):
         # Regression test for #7776
         # important to start the env with six 1.9.  That version forces an upgrade later in the test
         with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "pip=10", "six=1.9", "appdirs",
-                           use_restricted_unicode=on_win, no_capture=True) as prefix:
+                           use_restricted_unicode=on_win) as prefix:
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
             assert package_is_installed(prefix, "six=1.9")
@@ -2006,14 +1998,14 @@ class IntegrationTests(TestCase):
 
             with pytest.raises(DryRunExit):
                 run_command(Commands.INSTALL, prefix, "-c", "https://repo.anaconda.com/pkgs/free",
-                            "agate=1.6", "--dry-run", no_capture=True)
+                            "agate=1.6", "--dry-run")
 
     def test_install_freezes_env_by_default(self):
         """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
         up by not considering changes to existing stuff unless the solve ends up unsatisfiable."""
 
         # create an initial env
-        with make_temp_env("python=2", use_restricted_unicode=on_win, no_capture=True) as prefix:
+        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
             assert package_is_installed(prefix, "python=2.7.*")
             stdout, stderr, _ = run_command(Commands.LIST, prefix, '--json')
             pkgs = json.loads(stdout)
@@ -2022,10 +2014,8 @@ class IntegrationTests(TestCase):
                 if entry['name'] in DEFAULT_AGGRESSIVE_UPDATE_PACKAGES:
                     specs.append(entry['name'])
                 else:
-                    # python is the only explicit dep.  It's the only thing that enters in here.
-                    if entry['name'] == 'python':
-                        specs.append(entry['channel'] + '/' + entry['platform'] + '::' +
-                                     entry['name'] + '=' + entry['version'] + '=' + entry['build_string'])
+                    specs.append(entry['channel'] + '/' + entry['platform'] + '::' +
+                                 entry['name'] + '=' + entry['version'] + '=' + entry['build_string'])
 
             specs.append('imagesize')
             specs = {MatchSpec(s) for s in specs}
@@ -2037,7 +2027,7 @@ class IntegrationTests(TestCase):
             #     for the existing env.  doing so will greatly reduce the search space for the initial solve
             with patch.object(conda.core.solve.Resolve, 'get_reduced_index',
                               return_value=reduced_index) as mock_method:
-                run_command(Commands.INSTALL, prefix, "imagesize", no_capture=True)
+                run_command(Commands.INSTALL, prefix, "imagesize")
                 # TODO: this should match the specs above.  It does, at least as far as I can tell from text
                 #    comparison.   Unfortunately, it doesn't evaluate as a match, even though the text all matches.
                 #    I suspect some strange equality of objects issue.
@@ -2596,7 +2586,7 @@ class IntegrationTests(TestCase):
         }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             # py_ver = str(sys.version_info[0])
             py_ver = "3"
-            with make_temp_env("conda=4.5.12", "python=" + py_ver, "conda-package-handling", use_restricted_unicode=True,
+            with make_temp_env("conda=4.6.14", "python=" + py_ver, "conda-package-handling", use_restricted_unicode=True,
                                name = '_' + str(uuid4())[:8]) as prefix:  # rev 0
                 # See comment in test_init_dev_and_NoBaseEnvironmentError.
                 python_exe = join(prefix, 'python.exe') if on_win else join(prefix, 'bin', 'python')
@@ -2604,7 +2594,7 @@ class IntegrationTests(TestCase):
                 # this is used to run the python interpreter in the env and loads our dev
                 #     version of conda
                 py_co = [python_exe, "-m", "conda"]
-                assert package_is_installed(prefix, "conda=4.5.12")
+                assert package_is_installed(prefix, "conda=4.6.14")
 
                 # runs our current version of conda to install into the foreign env
                 run_command(Commands.INSTALL, prefix, "lockfile")  # rev 1
@@ -2616,9 +2606,9 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, "itsdangerous")
 
                 # downgrade the version of conda in the env, using our dev version of conda
-                subprocess_call(py_co + ["install", "-yp", prefix, "conda=4.5.11"], path=prefix)  #rev 3
+                subprocess_call(py_co + ["install", "-yp", prefix, "conda<4.6.14"], path=prefix)  #rev 3
                 PrefixData._cache_.clear()
-                assert not package_is_installed(prefix, "conda=4.5.12")
+                assert not package_is_installed(prefix, "conda=4.6.14")
 
                 # look at the revision history (for your reference, doesn't affect the test)
                 stdout, stderr, _ = run_command(Commands.LIST, prefix, "--revisions")
@@ -2626,21 +2616,21 @@ class IntegrationTests(TestCase):
 
                 # undo the conda downgrade in the env (using our current outer conda version)
                 PrefixData._cache_.clear()
-                run_command(Commands.INSTALL, prefix, "--rev", "2", no_capture=True)
+                run_command(Commands.INSTALL, prefix, "--rev", "2")
                 PrefixData._cache_.clear()
-                assert package_is_installed(prefix, "conda=4.5.12")
+                assert package_is_installed(prefix, "conda=4.6.14")
 
                 # use the conda in the env to revert to a previous state
                 subprocess_call_with_clean_env([conda_exe, "install", "-yp", prefix, "--rev", "1"], path=prefix)
                 PrefixData._cache_.clear()
                 assert not package_is_installed(prefix, "itsdangerous")
                 PrefixData._cache_.clear()
-                assert package_is_installed(prefix, "conda=4.5.12")
+                assert package_is_installed(prefix, "conda=4.6.14")
                 assert package_is_installed(prefix, "python=" + py_ver)
 
-                result = subprocess_call_with_clean_env([conda_exe, "info", "--json"])
+                result = subprocess_call_with_clean_env([conda_exe, "info", "--json"], path=prefix)
                 conda_info = json.loads(result.stdout)
-                assert conda_info["conda_version"] == "4.5.12"
+                assert conda_info["conda_version"] == "4.6.14"
 
     @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
     def test_run_script_called(self):
