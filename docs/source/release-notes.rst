@@ -6,7 +6,7 @@ This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
 4.6.14 (2019-04-17)
-------------------
+-------------------
 
 Bug fixes
 ^^^^^^^^^
