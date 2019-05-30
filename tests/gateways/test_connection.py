@@ -24,17 +24,22 @@ class CondaHttpAuthTests(TestCase):
         try:
             # token already exists in url, don't add anything
             url = "https://conda.anaconda.org/t/dont-add-a-token/biopython/linux-64/repodata.json"
-            assert CondaHttpAuth.add_binstar_token(url) == url
+            _url, _token = CondaHttpAuth.add_binstar_token(url)
+            assert _url == "https://conda.anaconda.org/biopython/linux-64/repodata.json"
+            assert _token == 'dont-add-a-token'
 
             # even if a token is there, don't use it
             set_binstar_token("https://api.anaconda.test", "tk-abacadaba-1029384756")
-            url = "https://conda.anaconda.test/t/dont-add-a-token/biopython/linux-64/repodata.json"
-            assert CondaHttpAuth.add_binstar_token(url) == url
+            url = "https://conda.anaconda.test/biopython/linux-64/repodata.json"
+            _url, _token = CondaHttpAuth.add_binstar_token(url)
+            assert url == _url
+            assert _token == "tk-abacadaba-1029384756"
 
             # now test adding the token
             url = "https://conda.anaconda.test/biopython/linux-64/repodata.json"
-            new_url = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/biopython/linux-64/repodata.json"
-            assert CondaHttpAuth.add_binstar_token(url) == new_url
+            _url, _token = CondaHttpAuth.add_binstar_token(url)
+            assert url == _url
+            assert _token == "tk-abacadaba-1029384756"
         finally:
             remove_binstar_token("https://api.anaconda.test")
 
