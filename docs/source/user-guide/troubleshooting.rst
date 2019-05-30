@@ -732,9 +732,9 @@ depends on installing Python 2.7, which conflicts with the
 specification to install python 3.
 
 Solution
-----------
+--------
 
-Use "conda info wxpython" or "conda info wxpython=3" to show
+Use ``conda info wxpython`` or ``conda info wxpython=3`` to show
 information about this package and its dependencies::
 
     wxpython 3.0 py27_0

@@ -13,6 +13,7 @@ Using the .condarc conda configuration file
 Overview
 ========
 
+
 The conda configuration file, ``.condarc``, is an optional
 runtime configuration file that allows advanced users to
 configure various aspects of conda, such as which channels it
@@ -20,6 +21,7 @@ searches for packages, proxy settings, and environment
 directories.
 
 .. note::
+
    A ``.condarc`` file can also be used in an
    administrator-controlled installation to override the users’
    configuration. See :doc:`admin-multi-user-install`.
@@ -88,6 +90,7 @@ is available at the terminal or Anaconda Prompt by running
 ``conda config --help``.
 
 .. tip::
+
    Conda supports :doc:`tab completion <enable-tab-completion>`
    with external packages instead of internal configuration.
 
@@ -495,6 +498,7 @@ set update_dependencies to ``True``:
    update_dependencies: False
 
 .. note::
+
    Conda still ensures that dependency specifications are
    satisfied. Thus, some dependencies may still be updated or,
    conversely, this may prevent packages given at the command line
@@ -542,6 +546,7 @@ EXAMPLE:
   add_anaconda_token: False
 
 .. note::
+
    Even when set to ``True``, this setting is enabled only if
    the Anaconda command-line client is installed and you are
    logged in with the ``anaconda login`` command.
@@ -637,7 +642,8 @@ EXAMPLE:
   conda-build:
       root-dir: ~/conda-builds
 
-.. _specify-output-folder:
+
+.. specify-output-folder:
 
 Specify conda build build folder (conda-build 3.16.3+) (output_folder)
 ----------------------------------------------------------------------
@@ -708,6 +714,7 @@ with the following config entry:
        filename_hashing: false
 
 .. note::
+
    Conda-build does no checking when clobbering packages. If you
    utilize conda-build 3's build matrices with a build configuration that is not
    reflected in the build string, packages will be missing due to clobbering.
@@ -770,6 +777,7 @@ If this contains sensitive or proprietary information, you can omit the recipe.
        include_recipe: false
 
 .. note::
+
    If you do not include the recipe, you cannot use conda-build to test
    the package after the build completes. This means that you cannot split your
    build and test steps across two distinct CLI commands (``conda build --notest

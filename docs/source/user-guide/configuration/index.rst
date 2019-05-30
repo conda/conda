@@ -7,6 +7,7 @@ Configuration
 
    use-condarc
    sample-condarc
+   free-channel
    admin-multi-user-install
    enable-tab-completion
    pip-interoperability
