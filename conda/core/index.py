@@ -143,7 +143,7 @@ def _supplement_index_with_features(index, features=()):
 def _supplement_index_with_system(index):
     cuda_version = context.cuda_version
     if cuda_version is not None:
-        rec = _make_virtual_package('_cuda', cuda_version)
+        rec = _make_virtual_package('__cuda', cuda_version)
         index[rec.name] = rec
 
 

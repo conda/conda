@@ -21209,7 +21209,7 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "_cuda>=9.0"
+      "__cuda>=9.0"
     ],
     "md5": "28a63f84034658e80779e88e70fad7bf",
     "name": "cudatoolkit",
@@ -21220,7 +21220,7 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "_cuda>=10.0"
+      "__cuda>=10.0"
     ],
     "md5": "28a63f84034658e80779e88e70fad7bf",
     "name": "cudatoolkit",

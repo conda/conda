@@ -13,9 +13,10 @@ real packages and not displayed by ``conda list``.  Instead ``conda`` runs a
 small bit of code to detect the presence or absence of the system feature that
 corresponds to the package.  The currently supported list of virtual packages includes:
 
-  * ``_cuda``: Maximum version of CUDA supported by the display driver
+  * ``__cuda``: Maximum version of CUDA supported by the display driver
 
-Other virtual packages will be added in future conda releases.
+Other virtual packages will be added in future conda releases.  These are denoted
+by a leading double-underscore in the package name.
 
 
 Listing detected virtual packages
@@ -40,7 +41,7 @@ section, as shown in this example::
               conda version : 4.6.3.post8+8f640d35a
         conda-build version : 3.17.8
              python version : 3.7.2.final.0
-           virtual packages : _cuda=10.0
+           virtual packages : __cuda=10.0
            base environment : /Users/demo/dev/conda/devenv  (writable)
                channel URLs : https://repo.anaconda.com/pkgs/main/osx-64
                               https://repo.anaconda.com/pkgs/main/noarch
