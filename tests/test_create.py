@@ -2026,6 +2026,32 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, "-c", "https://repo.anaconda.com/pkgs/free",
                             "agate=1.6", "--dry-run")
 
+    def test_conda_recovery_of_pip_inconsistent_env(self):
+        with make_temp_env("pip=10", "python", "anaconda-client",
+                           use_restricted_unicode=on_win) as prefix:
+            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
+            assert package_is_installed(prefix, "python")
+            assert package_is_installed(prefix, "anaconda-client>=1.7.2")
+
+            stdout, stderr, _ = run_command(Commands.REMOVE, prefix, 'requests', '--force')
+            assert not stderr
+
+            # this is incompatible with anaconda-client
+            python_binary = join(prefix, PYTHON_BINARY)
+            p = Popen([python_binary, '-m', 'pip', 'install', 'requests==2.8'],
+                      stdout=PIPE, stderr=PIPE, cwd=prefix, shell=False)
+            stdout, stderr = p.communicate()
+            rc = p.returncode
+            assert int(rc) == 0
+
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'imagesize')
+            assert not stderr
+            stdout, stderr, _ = run_command(Commands.LIST, prefix, '--json')
+            pkgs = json.loads(stdout)
+            for entry in pkgs:
+                if entry['name'] == "requests":
+                    assert VersionOrder(entry['version']) >= VersionOrder("2.9.1")
+
     def test_install_freezes_env_by_default(self):
         """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
         up by not considering changes to existing stuff unless the solve ends up unsatisfiable."""
