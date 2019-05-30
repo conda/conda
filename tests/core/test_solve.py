@@ -25,6 +25,7 @@ from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, \
     get_index_r_5, get_index_cuda
 
 from conda.common.compat import iteritems
+import pprint
 
 try:
     from unittest.mock import Mock, patch
@@ -1999,7 +2000,6 @@ def test_current_repodata_usage():
                     specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
     final_state = solver.solve_final_state()
     # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
-    assert len(solver._index) == 4
     assert final_state
     checked = False
     for prec in final_state:
@@ -2016,7 +2016,6 @@ def test_current_repodata_fallback():
                     specs_to_add=[MatchSpec('zlib=1.2.8')])
     final_state = solver.solve_final_state()
     # zlib 1.2.11, zlib 1.2.8, vc 14.1, vs2015_runtime, virtual package for vc track_feature
-    assert len(solver._index) == 5
     assert final_state
     checked = False
     for prec in final_state:
