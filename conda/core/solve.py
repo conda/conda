@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import deque
 import copy
 from genericpath import exists
 from logging import DEBUG, getLogger
@@ -400,62 +399,7 @@ class Solver(object):
 
         # the only things we should consider freezing are things that don't conflict with the new
         #    specs being added.
-        def get_explicit_spec_package_pool(specs_to_add):
-            explicit_spec_package_pool = {}
-            specs_seen = set()
-            specs_pool = deque(copy.copy(self.specs_to_add))
-            while specs_pool:
-                spec = specs_pool.popleft()
-                freezes = explicit_spec_package_pool.get(spec.name, set())
-                matches = set(ssc.r.find_matches(spec))
-                explicit_spec_package_pool[spec.name] = freezes | matches
-                specs_seen.add(spec)
-                for prec in matches:
-                    for dep in prec.get('depends', []):
-                        dep = MatchSpec(dep)
-                        if dep not in specs_seen and dep not in specs_pool:
-                            specs_pool.append(dep)
-            return explicit_spec_package_pool
-        if ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
-            explicit_spec_package_pool = get_explicit_spec_package_pool(self.specs_to_add)
-
-        def pkg_in_shared_pool(prec, shared_pool, known_bad_specs, known_good_specs):
-            """Determine if a package or its recursive deps conflict with the shared pool"""
-            if prec.name in shared_pool:
-                if prec not in shared_pool[prec.name]:
-                    return False
-
-            specs_pool = deque(MatchSpec(_) for _ in prec.depends)
-            while specs_pool:
-                spec = specs_pool.popleft()
-                matches = ssc.r.find_matches(spec)
-                # match the immediate dependencies
-                if spec.name in shared_pool:
-                    overlap = shared_pool[spec.name] & set(matches)
-                    if overlap:
-                        # restrict the space further, potentially
-                        shared_pool[spec.name] = overlap
-                        known_good_specs.add(spec)
-                    else:
-                        known_bad_specs.add(spec)
-                        return False
-                else:
-                    known_good_specs.add(spec)
-
-                # recurse into the next layer of deps
-                for prec in matches:
-                    for dep in prec.get('depends', []):
-                        dep = MatchSpec(dep)
-                        if not any(dep in col for col in (known_bad_specs, known_good_specs)):
-                            if dep.name in shared_pool:
-                                if (spec.name in shared_pool and not
-                                        (shared_pool[spec.name] & set(ssc.r.find_matches(dep)))):
-                                    continue
-                            specs_pool.append(dep)
-            return True
-
-        known_bad_specs = set()
-        known_good_specs = set()
+        explicit_spec_package_pool = ssc.r.get_reduced_index(self.specs_to_add)
 
         for pkg_name, spec in iteritems(ssc.specs_map):
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
@@ -472,17 +416,25 @@ class Solver(object):
                     """) % (pkg_name, spec,
                             dashlist((text_type(s) for s in matches_for_spec), indent=4)))
                 target_prec = matches_for_spec[0]
-
-                if ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
+                if target_prec.is_unmanageable:
+                    ssc.specs_map[pkg_name] = target_prec.to_match_spec()
+                elif ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
                     if pkg_name in context.aggressive_update_packages:
                         ssc.specs_map[pkg_name] = pkg_name
-                    elif pkg_in_shared_pool(target_prec, explicit_spec_package_pool,
-                                            known_bad_specs, known_good_specs):
+                    elif target_prec in explicit_spec_package_pool:
                         ssc.specs_map[pkg_name] = target_prec.to_match_spec()
                     elif pkg_name in ssc.specs_from_history_map:
                         ssc.specs_map[pkg_name] = ssc.specs_from_history_map[pkg_name]
                 else:
                     ssc.specs_map[pkg_name] = MatchSpec(spec, target=target_prec.dist_str())
+
+        if ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            for prec in ssc.prefix_data.iter_records():
+                if prec.name not in ssc.specs_map and (
+                        prec in explicit_spec_package_pool or
+                        prec.name not in ssc.r.groups):
+                    ssc.specs_map[prec.name] = prec.to_match_spec()
+
         log.debug("specs_map with targets: %s", ssc.specs_map)
 
         # process everything else.  If it doesn't directly conflict, add it as a target version
@@ -498,23 +450,21 @@ class Solver(object):
         # they're no longer needed, and their presence would otherwise prevent the updated solution
         # the user most likely wants.
         if ssc.update_modifier == UpdateModifier.UPDATE_ALL:
-            ssc.specs_map = odict((pkg_name, MatchSpec(spec.name, optional=spec.optional))
-                                  for pkg_name, spec in iteritems(ssc.specs_map))
+            ssc.specs_map = odict((spec, MatchSpec(spec))
+                                  for spec in ssc.specs_from_history_map)
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
         if (any(_.name == 'python' for _ in ssc.solution_precs)
                 and not any(s.name == 'python' for s in self.specs_to_add)):
             python_prefix_rec = ssc.prefix_data.get('python')
-            if python_prefix_rec:
-                # will our prefix record conflict with any explict spec?  If so, don't add
-                #     anything here - let python float when it hasn't been explicitly specified
-                explicit_spec_package_pool = get_explicit_spec_package_pool(self.specs_to_add)
-                if pkg_in_shared_pool(python_prefix_rec, explicit_spec_package_pool, set(), set()):
-                    python_spec = ssc.specs_map.get('python', MatchSpec('python'))
-                    if not python_spec.get('version'):
-                        pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
-                        ssc.specs_map['python'] = MatchSpec(python_spec, version=pinned_version)
+            # will our prefix record conflict with any explict spec?  If so, don't add
+            #     anything here - let python float when it hasn't been explicitly specified
+            if not explicit_spec_package_pool or python_prefix_rec in explicit_spec_package_pool:
+                python_spec = ssc.specs_map.get('python', MatchSpec('python'))
+                if not python_spec.get('version'):
+                    pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
+                    ssc.specs_map['python'] = MatchSpec(python_spec, version=pinned_version)
 
         # For the aggressive_update_packages configuration parameter, we strip any target
         # that's been set.
