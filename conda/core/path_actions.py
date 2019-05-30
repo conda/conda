@@ -202,6 +202,8 @@ class LinkPathAction(CreateInPrefixPathAction):
 
         def make_file_link_action(source_path_data):
             # TODO: this inner function is still kind of a mess
+            if source_path_data.path == '.nonadmin':
+                return tuple()
             noarch = package_info.repodata_record.noarch
             if noarch is None and package_info.package_metadata is not None:
                 # Look in package metadata in case it was omitted from repodata (see issue #8311)
