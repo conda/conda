@@ -40,7 +40,7 @@ xref: https://github.com/kennethreitz/requests/issues/1882
 
 @pytest.fixture(scope='function')
 def tmpdir(tmpdir, request):
-    tmpdir = TemporaryDirectory(dir=tmpdir)
+    tmpdir = TemporaryDirectory(dir=str(tmpdir))
     request.addfinalizer(tmpdir.cleanup)
     return py.path.local(tmpdir.name)
 
