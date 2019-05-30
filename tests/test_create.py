@@ -1441,7 +1441,7 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, "itsdangerous=0.24")
 
     def test_update_all_updates_pip_pkg(self):
-        with make_temp_env("python=2.7", "pip", "pytz=2017.3", no_capture=True) as prefix:
+        with make_temp_env("python=3.6", "pip", "pytz=2018", no_capture=True) as prefix:
             pip_ioo, pip_ioe, _ = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
 
             pip_o, pip_e, _ = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous==0.24")
@@ -1464,7 +1464,7 @@ class IntegrationTests(TestCase):
 
             run_command(Commands.UPDATE, prefix, "--all")
             assert package_is_installed(prefix, "itsdangerous>0.24")
-            assert package_is_installed(prefix, "pytz>2017.3")
+            assert package_is_installed(prefix, "pytz>2018")
 
     def test_package_optional_pinning(self):
         with make_temp_env() as prefix:
