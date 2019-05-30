@@ -24,9 +24,6 @@ directories.
    administrator-controlled installation to override the users’
    configuration. See :doc:`admin-multi-user-install`.
 
-The ``.condarc`` configuration file follows simple
-`YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
-
 The ``.condarc`` file can change many parameters, including:
 
 * Where conda looks for packages.
@@ -51,6 +48,9 @@ automatically created in your home directory the first time you
 run the ``conda config`` command. To create or modify a ``.condarc``
 file, open Anaconda Prompt or a terminal and enter the
 ``conda config`` command.
+
+The ``.condarc`` configuration file follows simple
+`YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
 
 EXAMPLE:
 
