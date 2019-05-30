@@ -294,7 +294,6 @@ def revert_actions(prefix, revision=-1, index=None):
 
     not_found_in_index_specs = set()
     link_precs = set()
-
     for spec in target_state:
         precs = tuple(prec for prec in itervalues(index) if spec.match(prec))
         if not precs:

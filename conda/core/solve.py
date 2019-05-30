@@ -431,12 +431,6 @@ class Solver(object):
 
         log.debug("specs_map with targets: %s", ssc.specs_map)
 
-        # process everything else.  If it doesn't directly conflict, add it as a target version
-        # for (name, prec) in [(prec.name, MatchSpec(prec.name))
-        #                      for prec in ssc.prefix_data.iter_records()]:
-        #     if name not in ssc.specs_map:
-        #         ssc.specs_map[name] = MatchSpec(prec.name, target=prec.dist_str())
-
         # If we're in UPDATE_ALL mode, we need to drop all the constraints attached to specs,
         # so they can all float and the solver can find the most up-to-date solution. In the case
         # of UPDATE_ALL, `specs_map` wasn't initialized with packages from the current environment,
