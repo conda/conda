@@ -254,7 +254,6 @@ class Context(Configuration):
     # update_specs = PrimitiveParameter(False)
     # update_all = PrimitiveParameter(False)
 
-    prune = PrimitiveParameter(False)
     force_remove = PrimitiveParameter(False)
     force_reinstall = PrimitiveParameter(False)
 

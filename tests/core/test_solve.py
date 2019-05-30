@@ -300,9 +300,11 @@ def test_force_remove_1():
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        # openssl remains because it is in the aggressive_update_packages set
+        # openssl remains because it is in the aggressive_update_packages set,
+        #    but everything else gets removed
         order = (
             'channel-1::openssl-1.0.1c-0',
+
         )
         assert convert_to_dist_str(final_state_2) == order
 
@@ -633,63 +635,6 @@ def test_broken_install():
     pandas_prec = next(prec for prec in solver._index if pandas_matcher.match(prec))
     final_state_2_mod[12] = pandas_prec
     assert not solver._r.environment_is_consistent(final_state_2_mod)
-
-    # these tests don't work because the specs_map used to determine whether to resolve an
-    #    inconsistency is derived from the history.  Since pandas is in the history, the solver
-    #    will just make it consistent - this injection of inconsistency doesn't work
-    #
-    # specs_to_add = MatchSpec("flask"),
-    # with get_solver(specs_to_add, prefix_records=final_state_2_mod, history_specs=specs) as solver:
-    #     final_state_2 = solver.solve_final_state()
-    #     # PrefixDag(final_state_2, specs).open_url()
-    #     print(convert_to_dist_str(final_state_2))
-    #     order = (
-    #         'channel-1::openssl-1.0.1c-0',
-    #         'channel-1::readline-6.2-0',
-    #         'channel-1::sqlite-3.7.13-0',
-    #         'channel-1::system-5.8-1',
-    #         'channel-1::tk-8.5.13-0',
-    #         'channel-1::zlib-1.2.7-0',
-    #         'channel-1::python-2.7.5-0',
-    #         'channel-1::jinja2-2.6-py27_0',
-    #         'channel-1::numpy-1.6.2-py27_4',
-    #         'channel-1::pytz-2013b-py27_0',
-    #         'channel-1::six-1.3.0-py27_0',
-    #         'channel-1::werkzeug-0.8.3-py27_0',
-    #         'channel-1::dateutil-2.1-py27_1',
-    #         'channel-1::flask-0.9-py27_0',
-    #         'channel-1::scipy-0.12.0-np16py27_0',
-    #         'channel-1::pandas-0.11.0-np17py27_1',
-    #     )
-    #     assert convert_to_dist_str(final_state_2) == order
-    #     assert not solver._r.environment_is_consistent(final_state_2)
-
-    # # adding pandas spec again snaps the packages back to a consistent state
-    # specs_to_add = MatchSpec("flask"), MatchSpec("pandas"),
-    # with get_solver(specs_to_add, prefix_records=final_state_2_mod, history_specs=specs) as solver:
-    #     final_state_2 = solver.solve_final_state()
-    #     # PrefixDag(final_state_2, specs).open_url()
-    #     print(convert_to_dist_str(final_state_2))
-    #     order = (
-    #         'channel-1::openssl-1.0.1c-0',
-    #         'channel-1::readline-6.2-0',
-    #         'channel-1::sqlite-3.7.13-0',
-    #         'channel-1::system-5.8-1',
-    #         'channel-1::tk-8.5.13-0',
-    #         'channel-1::zlib-1.2.7-0',
-    #         'channel-1::python-2.7.5-0',
-    #         'channel-1::jinja2-2.6-py27_0',
-    #         'channel-1::numpy-1.6.2-py27_4',
-    #         'channel-1::pytz-2013b-py27_0',
-    #         'channel-1::six-1.3.0-py27_0',
-    #         'channel-1::werkzeug-0.8.3-py27_0',
-    #         'channel-1::dateutil-2.1-py27_1',
-    #         'channel-1::flask-0.9-py27_0',
-    #         'channel-1::scipy-0.12.0-np16py27_0',
-    #         'channel-1::pandas-0.11.0-np16py27_1',
-    #     )
-    #     assert convert_to_dist_str(final_state_2) == order
-    #     assert solver._r.environment_is_consistent(final_state_2)
 
 
 def test_conda_downgrade():

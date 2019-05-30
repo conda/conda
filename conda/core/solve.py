@@ -200,7 +200,6 @@ class Solver(object):
             deps_modifier = context.deps_modifier
         else:
             deps_modifier = DepsModifier(text_type(deps_modifier).lower())
-        prune = context.prune if prune is NULL else prune
         ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
         force_remove = context.force_remove if force_remove is NULL else force_remove
 
@@ -274,7 +273,8 @@ class Solver(object):
                 ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
 
         for prec in ssc.prefix_data.iter_records():
-            # first check: add everything if we have no history to work with
+            # first check: add everything if we have no history to work with.
+            #    This happens with "update --all", for example.
             #
             # second check: add in aggressively updated packages
             #
@@ -881,7 +881,6 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 
 # def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
 #     # this function gives a "final state" for an existing prefix given just these simple inputs
-#     prune = context.prune or prune
 #     log.debug("solving prefix %s\n"
 #               "  specs_to_remove: %s\n"
 #               "  specs_to_add: %s\n"
