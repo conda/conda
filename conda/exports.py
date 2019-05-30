@@ -52,13 +52,13 @@ _toposort = _toposort
 from .gateways.disk.link import lchmod  # NOQA
 lchmod = lchmod
 
-from .gateways.connection.download import TmpDownload  # NOQA
+from .gateways.connection.download import TmpDownload, download as _download  # NOQA
 
 TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: _warnings.warn("handle_proxy_407 is deprecated. "
                                                "Now handled by CondaSession.")
-from .core.package_cache_data import download, rm_fetched  # NOQA
-download, rm_fetched = download, rm_fetched
+from .core.package_cache_data import rm_fetched  # NOQA
+rm_fetched = rm_fetched
 
 from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
 delete_trash, move_to_trash = delete_trash, move_to_trash
@@ -394,3 +394,8 @@ def is_linked(prefix, dist):
         return prefix_record
     else:
         return None
+
+
+def download(url, dst_path, session=None, md5sum=None, urlstxt=False, retries=3,
+             sha256=None, size=None):
+    return _download(url, dst_path, md5=md5sum, sha256=sha256, size=size)
