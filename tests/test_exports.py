@@ -19,7 +19,8 @@ def test_conda_subprocess():
                   shell=on_win)
     except TypeError:
         for k, v in os.environ.items():
-            print("%s (%s): %s (%s)" % (k, type(k), v, type(v)))
+            if type(k) != str or type(v) != str:
+                print("%s (%s): %s (%s)" % (k, type(k), v, type(v)))
         raise
     stdout, stderr = p.communicate()
     rc = p.returncode

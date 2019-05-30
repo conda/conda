@@ -60,7 +60,8 @@ def set_tmpdir(tmpdir):
     # is the full path to a tmpdir with additions to it by py.test including
     # the test name.
     assert os.sep in td
-    os.environ['CONDA_TEST_TMPDIR'] = td
+    if sys.platform == 'win32' and sys.version_info.major == 2 and hasattr(td, 'encode'):
+        os.environ['CONDA_TEST_TMPDIR'] = td.encode('utf-8')
     tmpdir_in_use = td
 
 
