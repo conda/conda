@@ -1440,6 +1440,32 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "python=2.7")
             assert not package_is_installed(prefix, "itsdangerous=0.24")
 
+    def test_update_all_updates_pip_pkg(self):
+        with make_temp_env("python=2.7", "pip", "pytz=2017.3", no_capture=True) as prefix:
+            pip_ioo, pip_ioe, _ = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
+
+            pip_o, pip_e, _ = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous==0.24")
+            PrefixData._cache_.clear()
+            stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
+            assert not stderr
+            json_obj = json.loads(stdout)
+            six_info = next(info for info in json_obj if info["name"] == "itsdangerous")
+            assert six_info == {
+                "base_url": "https://conda.anaconda.org/pypi",
+                "build_number": 0,
+                "build_string": "pypi_0",
+                "channel": "pypi",
+                "dist_name": "itsdangerous-0.24-pypi_0",
+                "name": "itsdangerous",
+                "platform": "pypi",
+                "version": "0.24",
+            }
+            assert package_is_installed(prefix, "itsdangerous=0.24")
+
+            run_command(Commands.UPDATE, prefix, "--all")
+            assert package_is_installed(prefix, "itsdangerous>0.24")
+            assert package_is_installed(prefix, "pytz>2017.3")
+
     def test_package_optional_pinning(self):
         with make_temp_env() as prefix:
             run_command(Commands.CONFIG, prefix,

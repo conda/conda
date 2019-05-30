@@ -444,8 +444,18 @@ class Solver(object):
         # they're no longer needed, and their presence would otherwise prevent the updated solution
         # the user most likely wants.
         if ssc.update_modifier == UpdateModifier.UPDATE_ALL:
-            ssc.specs_map = odict((spec, MatchSpec(spec))
-                                  for spec in ssc.specs_from_history_map)
+            # history is preferable because it has explicitly installed stuff in it.
+            #   that simplifies our solution.
+            if ssc.specs_from_history_map:
+                ssc.specs_map = odict((spec, MatchSpec(spec))
+                                      for spec in ssc.specs_from_history_map)
+                for prec in ssc.prefix_data.iter_records():
+                    # treat pip-installed stuff as explicitly installed, too.
+                    if prec.subdir == 'pypi':
+                        ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
+            else:
+                ssc.specs_map = odict((prec.name, MatchSpec(prec.name))
+                                      for prec in ssc.prefix_data.iter_records())
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
