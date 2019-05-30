@@ -17,24 +17,14 @@ Overview
 The conda configuration file, ``.condarc``, is an optional
 runtime configuration file that allows advanced users to
 configure various aspects of conda, such as which channels it
-searches for packages, proxy settings and environment
+searches for packages, proxy settings, and environment
 directories.
-
-The ``.condarc`` file is not included by default, but it is
-automatically created in your home directory the first time you
-run the ``conda config`` command.
-
-A ``.condarc`` file may also be located in the root environment,
-in which case it overrides any in the home directory.
 
 .. note::
 
    A ``.condarc`` file can also be used in an
    administrator-controlled installation to override the users’
    configuration. See :doc:`admin-multi-user-install`.
-
-The ``.condarc`` configuration file follows simple
-`YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
 
 The ``.condarc`` file can change many parameters, including:
 
@@ -52,16 +42,36 @@ The ``.condarc`` file can change many parameters, including:
 
 * Default packages or features to include in new environments.
 
-To create or modify a ``.condarc`` file, use
-the ``conda config`` command or use a text editor to create a
-new file named ``.condarc`` and save it to your user home
-directory or root directory.
+Creating and editing
+====================
+
+The ``.condarc`` file is not included by default, but it is
+automatically created in your home directory the first time you
+run the ``conda config`` command. To create or modify a ``.condarc``
+file, open Anaconda Prompt or a terminal and enter the
+``conda config`` command.
+
+The ``.condarc`` configuration file follows simple
+`YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
 
 EXAMPLE:
 
 .. code-block:: yaml
 
   conda config --add channels conda-forge
+
+Alternatively, you can open a text editor such as Notepad
+on Windows, TextEdit on MacOS, or VS Code. Name the new file
+``.condarc`` and save it to your user home directory or root
+directory. To edit the ``.condarc`` file, open it from your
+home or root directory and make edits in the same way you would
+with any other text file. If the ``.condarc`` file is in the root
+environment, it will override any in the home directory.
+
+You can find information about your ``.condarc`` file by typing
+``conda info`` in your terminal or Anaconda Prompt.
+This will give you information about your ``.condarc`` file,
+including where it is located.
 
 You can also download a :doc:`sample .condarc file
 <sample-condarc>` to edit in your editor and save to your user
@@ -186,10 +196,6 @@ This is especially useful for air gap and enterprise installations:
     - <anaconda_dot_org_username>
     - http://some.custom/channel
     - file:///some/local/directory
-
-As of conda 3.7, the ``free`` channel is no longer part of the
-``defaults`` channel. If you want to add ``free`` back into your
-defaults, see :doc:`free-channel`.
 
 .. _auto-update-conda:
 
@@ -636,6 +642,7 @@ EXAMPLE:
   conda-build:
       root-dir: ~/conda-builds
 
+
 .. specify-output-folder:
 
 Specify conda build build folder (conda-build 3.16.3+) (output_folder)
@@ -872,7 +879,6 @@ Obtaining information from the .condarc file
 ============================================
 
 .. note::
-
    It may be necessary to add the "force" option ``-f`` to
    the following commands.
 
