@@ -11,15 +11,15 @@ Conda channels
 What is a "conda channel"?
 ==========================
 
-Conda :doc:`packages <packages>` are downloaded from remote channels, which are
-URLs to directories containing conda packages.
-The ``conda``
-command searches a default set of channels, and packages are
-automatically downloaded and updated from
+Conda :doc:`packages <../concepts/packages>` are downloaded
+from remote channels, which are URLs to directories
+containing conda packages.
+The ``conda`` command searches a default set of channels,
+and packages are automatically downloaded and updated from
 https://repo.anaconda.com/pkgs/.
 You can modify what remote channels are automatically searched.
-You might want to do this to maintain a private or internal channel. For details,
-see how to :doc:`modify your channel lists <../tasks/create-custom-channels>`.
+You might want to do this to maintain a private or internal channel.
+For details, see how to :ref:`modify your channel lists <config-channels>`.
 
 .. _specifying-channels:
 
