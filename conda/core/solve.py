@@ -370,11 +370,16 @@ class Solver(object):
             The following packages are causing the inconsistency:"""))
             print(dashlist(inconsistent_precs))
             for prec in inconsistent_precs:
-                ssc.add_back_map[prec.name] = (prec, None)
+                # pop and save matching spec in specs_map
+                spec = ssc.specs_map.pop(prec.name, None)
+                ssc.add_back_map[prec.name] = (prec, spec)
+                # let the package float.  This is essential to keep the package's dependencies
+                #    in the solution.
+                ssc.specs_map[prec.name] = MatchSpec(prec.name, target=prec.dist_str())
                 # inconsistent environments should maintain the python version
                 # unless explicitly requested by the user. This along with the logic in
                 # _add_specs maintains the major.minor version
-                if prec.name == 'python':
+                if prec.name == 'python' and spec:
                     ssc.specs_map['python'] = spec
             ssc.solution_precs = tuple(prec for prec in ssc.solution_precs
                                        if prec not in inconsistent_precs)
@@ -552,13 +557,15 @@ class Solver(object):
         # add back inconsistent packages to solution
         if ssc.add_back_map:
             for name, (prec, spec) in iteritems(ssc.add_back_map):
-                if not any(_ == name for _ in ssc.specs_map):
+                # spec here will only be set if the conflicting prec was in the original specs_map
+                #    if it isn't there, then we restore the conflict.  If it is there, though,
+                #    we keep the new, consistent solution
+                if not spec:
                     # filter out solution precs and reinsert the conflict.  Any resolution
                     #    of the conflict should be explicit (i.e. it must be in ssc.specs_map)
                     ssc.solution_precs = [_ for _ in ssc.solution_precs if _.name != name]
                     ssc.solution_precs.append(prec)
-                    if spec:
-                        final_environment_specs.add(spec)
+                    final_environment_specs.add(spec)
 
         ssc.final_environment_specs = final_environment_specs
         return ssc

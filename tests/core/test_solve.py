@@ -294,6 +294,8 @@ def test_force_remove_1():
         )
         assert convert_to_dist_str(final_state_1) == order
 
+    # without force_remove, taking out python takes out everything that depends on it, too,
+    #    so numpy goes away.  All of pythons' deps are also pruned.
     specs_to_remove = MatchSpec("python"),
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
@@ -308,6 +310,8 @@ def test_force_remove_1():
         )
         assert convert_to_dist_str(final_state_2) == order
 
+    # with force remove, we remove only the explicit specs that we provide
+    #    this leaves an inconsistent env
     specs_to_remove = MatchSpec("python"),
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
@@ -338,7 +342,7 @@ def test_force_remove_1():
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
-            'channel-1::numpy-1.7.1-py27_0',
+            'channel-1::numpy-1.7.1-py27_0'
         )
         assert convert_to_dist_str(final_state_3) == order
 
