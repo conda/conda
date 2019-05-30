@@ -237,6 +237,7 @@ class Context(Configuration):
     report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     shortcuts = PrimitiveParameter(True)
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
+    use_only_tar_bz2 = PrimitiveParameter(False)
 
     # ######################################################
     # ##               Solver Configuration               ##
@@ -722,6 +723,7 @@ class Context(Configuration):
             'allow_non_channel_urls',
             'restore_free_channel',
             'repodata_fn',
+            'use_only_tar_bz2'
         )),
         ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
             'envs_dirs',
@@ -1129,6 +1131,9 @@ class Context(Configuration):
                 allowed, along with the --use-local command line flag, be sure to include the
                 'local' channel in the list. If the list is empty or left undefined, no
                 channel exclusions will be enforced.
+                """),
+            'use_only_tar_bz2': dals("""
+                A boolean indicating that only .tar.bz2 conda packages should be downloaded
                 """)
         })
 

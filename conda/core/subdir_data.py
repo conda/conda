@@ -382,7 +382,8 @@ class SubdirData(object):
 
         channel_url = self.url_w_credentials
         legacy_packages = json_obj.get("packages", {})
-        conda_packages = json_obj.get("packages.conda", {})
+        conda_packages = {} if context.use_only_tar_bz2 else json_obj.get("packages.conda", {})
+
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
         use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
             k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
@@ -407,6 +408,7 @@ class SubdirData(object):
                     log.debug("Ignoring record_version %d from %s",
                               info["record_version"], info['url'])
                     continue
+
                 package_record = PackageRecord(**info)
 
                 _package_records.append(package_record)

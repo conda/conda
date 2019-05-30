@@ -126,13 +126,14 @@ def get_revision(arg, json=False):
     except ValueError:
         raise CondaValueError("expected revision number, not: '%s'" % arg, json)
 
-
 def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
     context.validate_configuration()
     check_non_admin()
+    if context.use_only_tar_bz2:
+        args.repodata_fn = 'repodata.json'
 
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')

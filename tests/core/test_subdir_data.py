@@ -188,6 +188,15 @@ def test_subdir_data_prefers_conda_to_tar_bz2():
     precs = tuple(sd.query("zlib"))
     assert precs[0].fn.endswith(".conda")
 
+
+def test_only_use_tar_bz2():
+    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    context.use_only_tar_bz2 = True
+    sd = SubdirData(channel)
+    precs = tuple(sd.query("zlib"))
+    assert precs[0].fn.endswith(".tar.bz2")
+
+
 # @pytest.mark.integration
 # class SubdirDataTests(TestCase):
 #
