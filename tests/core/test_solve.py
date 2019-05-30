@@ -25,7 +25,6 @@ from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, \
     get_index_r_5, get_index_cuda
 
 from conda.common.compat import iteritems
-import pprint
 
 try:
     from unittest.mock import Mock, patch

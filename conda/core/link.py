@@ -407,6 +407,8 @@ class UnlinkLinkTransaction(object):
             for link_path_action in axn.all_link_path_actions:
                 if isinstance(link_path_action, CompileMultiPycAction):
                     target_short_paths = link_path_action.target_short_paths
+                elif isinstance(link_path_action, CreateNonadminAction):
+                    continue
                 else:
                     target_short_paths = ((link_path_action.target_short_path, )
                                           if not hasattr(link_path_action, 'link_type') or
