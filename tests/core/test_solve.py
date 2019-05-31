@@ -1419,29 +1419,28 @@ def test_pinned_1():
             )
             assert convert_to_dist_str(final_state_5) == order
 
-    # # TODO: re-enable when UPDATE_ALL gets prune behavior again, following completion of https://github.com/conda/constructor/issues/138
-    # # now update without pinning
-    # specs_to_add = MatchSpec("python"),
-    # history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
-    # with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
-    #                 history_specs=history_specs) as solver:
-    #     final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
-    #     # PrefixDag(final_state_1, specs).open_url()
-    #     print(convert_to_dist_str(final_state_5))
-    #     order = (
-    #         'channel-1::openssl-1.0.1c-0',
-    #         'channel-1::readline-6.2-0',
-    #         'channel-1::sqlite-3.7.13-0',
-    #         'channel-1::system-5.8-1',
-    #         'channel-1::tk-8.5.13-0',
-    #         'channel-1::zlib-1.2.7-0',
-    #         'channel-1::llvm-3.2-0',
-    #         'channel-1::python-3.3.2-0',
-    #         'channel-1::llvmpy-0.11.2-py33_0',
-    #         'channel-1::numpy-1.7.1-py33_0',
-    #         'channel-1::numba-0.8.1-np17py33_0',
-    #     )
-    #     assert tuple(final_state_5) == tuple(solver._index[Dist(d)] for d in order)
+    # now update without pinning
+    specs_to_add = MatchSpec("python"),
+    history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
+    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
+                    history_specs=history_specs) as solver:
+        final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
+        # PrefixDag(final_state_1, specs).open_url()
+        print(convert_to_dist_str(final_state_5))
+        order = (
+            'channel-1::openssl-1.0.1c-0',
+            'channel-1::readline-6.2-0',
+            'channel-1::sqlite-3.7.13-0',
+            'channel-1::system-5.8-1',
+            'channel-1::tk-8.5.13-0',
+            'channel-1::zlib-1.2.7-0',
+            'channel-1::llvm-3.2-0',
+            'channel-1::python-3.3.2-0',
+            'channel-1::llvmpy-0.11.2-py33_0',
+            'channel-1::numpy-1.7.1-py33_0',
+            'channel-1::numba-0.8.1-np17py33_0',
+        )
+        assert convert_to_dist_str(final_state_5) == order
 
 
 def test_no_update_deps_1():  # i.e. FREEZE_DEPS
@@ -1575,6 +1574,23 @@ def test_timestamps_1():
                                                     # than the alternate 'channel-4::python-3.6.2-hda45abc_19'
         )
         assert convert_to_dist_str(link_dists) == order
+
+def test_channel_priority_churn_minimized():
+    specs = MatchSpec("conda-build"), MatchSpec("itsdangerous"),
+    with get_solver_aggregate_2(specs) as solver:
+        final_state = solver.solve_final_state()
+
+    pprint(convert_to_dist_str(final_state))
+
+    with get_solver_aggregate_2([MatchSpec('itsdangerous')],
+                                prefix_records=final_state, history_specs=specs) as solver:
+        solver.channels.reverse()
+        unlink_dists, link_dists = solver.solve_for_diff(
+            update_modifier=UpdateModifier.FREEZE_INSTALLED)
+        pprint(convert_to_dist_str(unlink_dists))
+        pprint(convert_to_dist_str(link_dists))
+        assert len(unlink_dists) == 1
+        assert len(link_dists) == 1
 
 
 def test_remove_with_constrained_dependencies():

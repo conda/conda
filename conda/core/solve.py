@@ -399,6 +399,7 @@ class Solver(object):
         # the only things we should consider freezing are things that don't conflict with the new
         #    specs being added.
         explicit_spec_package_pool = ssc.r.get_reduced_index(self.specs_to_add)
+        explicit_spec_package_pool_names = set(_.name for _ in explicit_spec_package_pool)
 
         for pkg_name, spec in iteritems(ssc.specs_map):
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
@@ -420,7 +421,8 @@ class Solver(object):
                 elif ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
                     if pkg_name in context.aggressive_update_packages:
                         ssc.specs_map[pkg_name] = pkg_name
-                    elif target_prec in explicit_spec_package_pool:
+                    elif (target_prec in explicit_spec_package_pool or
+                          target_prec.name not in explicit_spec_package_pool_names):
                         ssc.specs_map[pkg_name] = target_prec.to_match_spec()
                     elif pkg_name in ssc.specs_from_history_map:
                         ssc.specs_map[pkg_name] = ssc.specs_from_history_map[pkg_name]
@@ -431,7 +433,8 @@ class Solver(object):
             for prec in ssc.prefix_data.iter_records():
                 if prec.name not in ssc.specs_map and (
                         prec in explicit_spec_package_pool or
-                        prec.name not in ssc.r.groups):
+                        prec.name not in ssc.r.groups or
+                        prec.name not in explicit_spec_package_pool_names):
                     ssc.specs_map[prec.name] = prec.to_match_spec()
 
         log.debug("specs_map with targets: %s", ssc.specs_map)
