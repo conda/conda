@@ -48,7 +48,7 @@ PARTIAL_PYPI_SPEC_PATTERN = re.compile(r'''
     \s?
     (\[(?P<extras>.*)\])?
     \s?
-    (?P<constraints>\(? \s? ([\w\d<>=!~,\s\.\*]*) \s? \)? )?
+    (?P<constraints>\(? \s? ([\w\d<>=!~,\s\.\*-]*) \s? \)? )?
     \s?
 ''', re.VERBOSE | re.IGNORECASE)
 PY_FILE_RE = re.compile(r'^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$')
@@ -853,6 +853,7 @@ def parse_specification(spec):
         if const.startswith('(') and const.endswith(')'):
             # Remove parens
             const = const[1:-1]
+        const = const.replace("-", ".")
 
     return PySpec(name=name, extras=extras, constraints=const, marker=marker, url=url)
 
