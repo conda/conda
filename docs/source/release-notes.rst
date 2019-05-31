@@ -5,6 +5,56 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.7.1 (2019-05-30)
+------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* Base initial solver specs map on explicitly requested specs (new and historic)  (#8689)
+* Improve anonymization of automatic error reporting  (#8715)
+* Add option to keep using .tar.bz2 files, in case new .conda isn't working for whatever reason  (#8723)
+
+Bug fixes
+^^^^^^^^^
+
+* Fix parsing hyphenated PyPI specs (change hyphens in versions to .)  (#8688)
+* Fix PrefixRecord creation when file inputs are .conda files  (#8689)
+* Fix PrefixRecord creation for pip-installed packages  (#8689)
+* Fix progress bar stopping at 75% (no extract progress with new libarchive)  (#8689)
+* Preserve pre-4.7 download() interface in conda.exports  (#8698)
+* Virtual packages (such as cuda) are represented by leading double underscores
+  by convention, to avoid confusion with existing single underscore packages
+  that serve other purposes (#8738)
+
+Deprecations/Breaking Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* The `--prune` flag no longer does anything. Pruning is implicitly the
+  standard behavior now as a result of the initial solver specs coming from
+  explicitly requested specs. Conda will remove packages that are not explicitly
+  requested and are not required directly or indirectly by any explicitly
+  installed package.
+
+Docs improvements
+^^^^^^^^^^^^^^^^^
+
+* Document removal of the `free` channel from defaults (#8682)
+* Add reference to conda config --describe  (#8712)
+* Add a tutorial for .condarc modification  (#8737)
+
+Contributors
+^^^^^^^^^^^^
+
+* @alexhall
+* @cjmartian
+* @kalefranz
+* @martinkou
+* @msarahan
+* @rrigdon
+* @soapy1
+
+
 4.7.0 (2019-05-17)
 ------------------
 
@@ -28,16 +78,16 @@ Bug fixes
 
 * Fix PATH handling with deactivate.d scripts  (#8464)
 * Fix usage of deprecated collections ABCs (#)
-* fix tcsh/csh initialization block  (#8591)
-* fix missing CWD display in powershell prompt  (#8596)
+* Fix tcsh/csh initialization block  (#8591)
+* Fix missing CWD display in powershell prompt  (#8596)
 * `wrap_subprocess_call`: fallback to sh if no bash  (#8611)
-* move `TemporaryDirectory` to avoid importing from `conda.compat`  (#8671)
-* fix missing conda-package-handling dependency in dev/start  (#8624)
-* fix `path_to_url` string index out of range error  (#8265)
-* fix conda init for xonsh  (#8644)
-* fix fish activation (#8645)
-* improve error handling for read-only filesystems  (#8665, #8674)
-* break out of minimization when bisection has nowhere to go  (#8672)
+* Fix `TemporaryDirectory` to avoid importing from `conda.compat`  (#8671)
+* Fix missing conda-package-handling dependency in dev/start  (#8624)
+* Fix `path_to_url` string index out of range error  (#8265)
+* Fix conda init for xonsh  (#8644)
+* Fix fish activation (#8645)
+* Improve error handling for read-only filesystems  (#8665, #8674)
+* Break out of minimization when bisection has nowhere to go  (#8672)
 * Handle None values for link channel name gracefully  (#8680)
 
 Contributors
