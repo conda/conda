@@ -1,3 +1,46 @@
+## 4.7.1 (2019-05-30)
+
+### Improvements
+
+* Base initial solver specs map on explicitly requested specs (new and historic)  (#8689)
+* Improve anonymization of automatic error reporting  (#8715)
+* Add option to keep using .tar.bz2 files, in case new .conda isn't working for whatever reason  (#8723)
+
+### Bug fixes
+
+* fix parsing hyphenated PyPI specs (change hyphens in versions to .)  (#8688)
+* fix PrefixRecord creation when file inputs are .conda files  (#8689)
+* fix PrefixRecord creation for pip-installed packages  (#8689)
+* fix progress bar stopping at 75% (no extract progress with new libarchive)  (#8689)
+* preserve pre-4.7 download() interface in conda.exports  (#8698)
+* virtual packages (such as cuda) are represented by leading double underscores
+  by convention, to avoid confusion with existing single underscore packages
+  that serve other purposes (#8738)
+
+### Deprecations/Breaking Changes
+
+* The `--prune` flag no longer does anything. Pruning is implicitly the
+  standard behavior now as a result of the initial solver specs coming from
+  explicitly requested specs. Conda will remove packages that are not explicitly
+  requested and are not required directly or indirectly by any explicitly
+  installed package.
+
+### Docs improvements
+
+* Document removal of the `free` channel from defaults (#8682)
+* Add reference to conda config --describe  (#8712)
+* Add a tutorial for .condarc modification  (#8737)
+
+### Contributors
+
+* @alexhall
+* @cjmartian
+* @kalefranz
+* @martinkou
+* @msarahan
+* @rrigdon
+* @soapy1
+
 ## 4.7.0 (2019-05-17)
 
 ### Improvements
