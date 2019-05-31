@@ -5,6 +5,8 @@ import json
 from unittest import TestCase
 
 import sys
+import os
+import getpass
 
 from conda import text_type
 from conda._vendor.auxlib.collection import AttrDict
@@ -26,6 +28,14 @@ except ImportError:
 
 def _raise_helper(exception):
     raise exception
+
+
+def username_not_in_post_mock(post_mock, username):
+    for cal in post_mock.call_args_list:
+        for call_part in cal:
+            if username in str(call_part):
+                return False
+    return True
 
 
 class ExceptionTests(TestCase):
@@ -378,6 +388,8 @@ class ExceptionTests(TestCase):
             with captured() as c:
                 ExceptionHandler()(_raise_helper, AssertionError())
 
+            username = getpass.getuser()
+            assert username_not_in_post_mock(post_mock, username)
             assert post_mock.call_count == 2
             assert c.stdout == ''
             assert "conda version" in c.stderr
@@ -395,6 +407,8 @@ class ExceptionTests(TestCase):
                 with captured() as c:
                     ExceptionHandler()(_raise_helper, AssertionError())
 
+                username = getpass.getuser()
+                assert username_not_in_post_mock(post_mock, username)
                 assert post_mock.call_count == 3
                 assert len(json.loads(c.stdout)['conda_info']['channels']) >= 2
                 assert not c.stderr
@@ -410,10 +424,48 @@ class ExceptionTests(TestCase):
         with captured() as c:
             ExceptionHandler()(_raise_helper, AssertionError())
 
+        username = getpass.getuser()
+        assert username_not_in_post_mock(post_mock, username)
         assert input_mock.call_count == 1
         assert post_mock.call_count == 2
         assert c.stdout == ''
         assert "conda version" in c.stderr
+
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    @patch('getpass.getuser', return_value='some name')
+    def test_print_unexpected_error_message_upload_username_with_spaces(self, pwuid, post_mock):
+        with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with captured() as c:
+                ExceptionHandler()(_raise_helper, AssertionError())
+
+            error_data = json.loads(post_mock.call_args[1].get("data"))
+            assert error_data.get("has_spaces") == True
+            assert error_data.get("is_ascii") == True
+            assert post_mock.call_count == 2
+            assert c.stdout == ''
+            assert "conda version" in c.stderr
+
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    @patch('getpass.getuser', return_value='my√nameΩ')
+    def test_print_unexpected_error_message_upload_username_with_unicode(self, pwuid, post_mock):
+        with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with captured() as c:
+                ExceptionHandler()(_raise_helper, AssertionError())
+
+            error_data = json.loads(post_mock.call_args[1].get("data"))
+            assert error_data.get("has_spaces") == False
+            assert error_data.get("is_ascii") == False
+            assert post_mock.call_count == 2
+            assert c.stdout == ''
+            assert "conda version" in c.stderr
 
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
