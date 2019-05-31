@@ -643,7 +643,7 @@ EXAMPLE:
       root-dir: ~/conda-builds
 
 
-.. specify-output-folder:
+.. _specify-output-folder:
 
 Specify conda build build folder (conda-build 3.16.3+) (output_folder)
 ----------------------------------------------------------------------
