@@ -17,7 +17,7 @@
 #
 #     For example add 
 #    
-#         conda acitvate base
+#         conda activate base
 #   
 #     to have the default environment running as in bash.
 #
