@@ -11,14 +11,13 @@ from . import common
 from .common import check_non_admin
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME, UpdateModifier
+from ..base.constants import ROOT_ENV_NAME, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
 from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
-from ..core.subdir_data import REPODATA_FN
 from ..core.solve import DepsModifier, Solver
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotACondaEnvironmentError,
@@ -133,8 +132,11 @@ def install(args, parser, command='install'):
     """
     context.validate_configuration()
     check_non_admin()
+    # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
+    #    because it deduplicates records that exist as both formats.  Forcing this to
+    #    repodata.json ensures that .tar.bz2 files are available
     if context.use_only_tar_bz2:
-        args.repodata_fn = 'repodata.json'
+        args.repodata_fns = ('repodata.json', )
 
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
@@ -243,7 +245,7 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
-    repodata_fns = args.repodata_fn
+    repodata_fns = args.repodata_fns
     if not repodata_fns:
         repodata_fns = ["current_repodata.json", "repodata.json"]
     elif REPODATA_FN not in repodata_fns:

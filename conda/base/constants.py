@@ -144,6 +144,7 @@ CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda
 CONDA_TEMP_EXTENSION = '.c~'
 
 UNKNOWN_CHANNEL = "<unknown>"
+REPODATA_FN = 'repodata.json'
 
 
 class SafetyChecks(Enum):

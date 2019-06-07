@@ -437,10 +437,12 @@ class Resolve(object):
                     for fkey in self.find_matches(MatchSpec(name)):
                         filter[fkey] = fkey in valid_pkgs
                 bad_deps.extend(self.invalid_chains(spec, filter, False))
-        if bad_deps:
-            bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
-                                               strict_channel_priority)
-            raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
+        if not bad_deps:
+            # no conflicting nor missing packages found, return the bad specs
+            bad_deps = [(ms, ) for ms in specs]
+        bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
+                                            strict_channel_priority)
+        raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
     def _get_strict_channel(self, package_name):
         try:

@@ -1440,6 +1440,7 @@ def add_parser_channels(p):
     channel_customization_options.add_argument(
         "--repodata-fn",
         action="append",
+        dest="repodata_fns",
         help=("Specify name of repodata on remote server. Conda will try "
               "whatever you specify, but will ultimately fall back to repodata.json if "
               "your specs are not satisfiable with what you specify here. This is used "

@@ -12,7 +12,7 @@ from os.path import abspath, basename, expanduser, isdir, isfile, join, split as
 import platform
 import sys
 
-from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME,
+from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
                         ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
@@ -220,7 +220,7 @@ class Context(Configuration):
     use_local = PrimitiveParameter(False)
     whitelist_channels = SequenceParameter(string_types, expandvars=True)
     restore_free_channel = PrimitiveParameter(False)
-    repodata_fn = PrimitiveParameter("current_repodata.json")
+    repodata_fns = SequenceParameter(string_types, ("current_repodata.json", REPODATA_FN))
 
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -722,7 +722,7 @@ class Context(Configuration):
             'add_anaconda_token',
             'allow_non_channel_urls',
             'restore_free_channel',
-            'repodata_fn',
+            'repodata_fns',
             'use_only_tar_bz2'
         )),
         ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
@@ -1112,12 +1112,11 @@ class Context(Configuration):
                 A list of features that are tracked by default. An entry here is similar to
                 adding an entry to the create_default_packages list.
                 """),
-            'repodata_fn': dals("""
-                Specify a filename for repodata fetching. The default is 'current_repodata.json',
-                which is a subset of the full index containing only the latest version for each
-                package.  You may want to specify something else to use an alternate index that
-                has been reduced somehow.  If this file does not exist on the remote server, or
-                if no solution is possible, conda will fall back to 'repodata.json' and retry.
+            'repodata_fns': dals("""
+                Specify filenames for repodata fetching. The default is ('current_repodata.json',
+                'repodata.json'), which tries a subset of the full index containing only the latest version for each
+                package, then falls back to repodata.json.  You may want to specify something else to use an alternate index that
+                has been reduced somehow.
                 """),
             'use_index_cache': dals("""
                 Use cache of channel index files, even if it has expired.
