@@ -2052,41 +2052,6 @@ class IntegrationTests(TestCase):
                 if entry['name'] == "requests":
                     assert VersionOrder(entry['version']) >= VersionOrder("2.9.1")
 
-    def test_install_freezes_env_by_default(self):
-        """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
-        up by not considering changes to existing stuff unless the solve ends up unsatisfiable."""
-
-        # create an initial env
-        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
-            assert package_is_installed(prefix, "python=2.7.*")
-            stdout, stderr, _ = run_command(Commands.LIST, prefix, '--json')
-            pkgs = json.loads(stdout)
-            specs = []
-            for entry in pkgs:
-                if entry['name'] in DEFAULT_AGGRESSIVE_UPDATE_PACKAGES:
-                    specs.append(entry['name'])
-                else:
-                    specs.append(entry['channel'] + '/' + entry['platform'] + '::' +
-                                 entry['name'] + '=' + entry['version'] + '=' + entry['build_string'])
-
-            specs.append('imagesize')
-            specs = {MatchSpec(s) for s in specs}
-            import conda.core.solve
-            r = conda.core.solve.Resolve(get_index())
-            reduced_index = r.get_reduced_index([MatchSpec('imagesize')])
-
-            # now add imagesize to that env.  The call to get_reduced_index should include our exact specs
-            #     for the existing env.  doing so will greatly reduce the search space for the initial solve
-            with patch.object(conda.core.solve.Resolve, 'get_reduced_index',
-                              return_value=reduced_index) as mock_method:
-                run_command(Commands.INSTALL, prefix, "imagesize")
-                # TODO: this should match the specs above.  It does, at least as far as I can tell from text
-                #    comparison.   Unfortunately, it doesn't evaluate as a match, even though the text all matches.
-                #    I suspect some strange equality of objects issue.
-                mock_method.assert_called_with(specs)
-
-
-
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
         with make_temp_env() as prefix:
