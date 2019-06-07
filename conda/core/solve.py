@@ -621,7 +621,8 @@ class Solver(object):
             if conflicting_pinned_specs.get(True):
                 in_specs_map = grouped_specs.get(True, ())
                 pinned_conflicts = conflicting_pinned_specs.get(True, ())
-                in_specs_map_or_specs_to_add = (set(in_specs_map) | set(self.specs_to_add)) - set(ssc.pinned_specs)
+                in_specs_map_or_specs_to_add = ((set(in_specs_map) | set(self.specs_to_add))
+                                                - set(ssc.pinned_specs))
 
                 raise SpecsConfigurationConflictError(
                     sorted(s.__str__() for s in in_specs_map_or_specs_to_add),

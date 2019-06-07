@@ -14,8 +14,7 @@ from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoi
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
-from .common.logic import (Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver,
-                           minimal_unsatisfiable_subset)
+from .common.logic import Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver
 from .common.toposort import toposort
 from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFound,
                          UnsatisfiableError)
@@ -297,8 +296,6 @@ class Resolve(object):
                    'direct': set()}
         specs_to_add = set(MatchSpec(_) for _ in specs_to_add or [])
         history_specs = set(MatchSpec(_) for _ in history_specs or [])
-        # the first entry in any chain is something important
-        direct_specs = {MatchSpec(c[0]) for c in bad_deps}
 
         for chain in bad_deps:
             # sometimes chains come in as strings
@@ -306,7 +303,7 @@ class Resolve(object):
             if chain[-1].name == 'python' and len(chain) > 1:
                 python_spec = next(iter(_[0] for _ in bad_deps if _[0].name == 'python'))
                 if not (set(self.find_matches(python_spec)) & set(self.find_matches(chain[-1]))):
-                        classes['python'].add((tuple(chain), python_spec))
+                    classes['python'].add((tuple(chain), python_spec))
             elif chain[0] in specs_to_add:
                 match = False
                 for spec in history_specs:
@@ -325,7 +322,6 @@ class Resolve(object):
             return matches
         sole_source_channel_name = self._get_strict_channel(ms.name)
         return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
-
 
     def find_conflicts(self, specs, specs_to_add=None, history_specs=None):
         """Perform a deeper analysis on conflicting specifications, by attempting

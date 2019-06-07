@@ -655,7 +655,8 @@ The following specifications were found
 to be incompatible with the existing python installation in your environment:\n{specs}
 
 If python is on the left-most side of the chain, that's the version you've asked for.
-When python appears to the right, that indicates that the thing on the left is somehow not available for the python version you've asked for.
+When python appears to the right, that indicates that the thing on the left is somehow
+not available for the python version you've asked for.
 Your current python version is ({ref}).
 
         '''),
