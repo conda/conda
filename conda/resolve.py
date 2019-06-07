@@ -300,10 +300,13 @@ class Resolve(object):
         for chain in bad_deps:
             # sometimes chains come in as strings
             chain = [MatchSpec(_) for _ in chain]
-            if chain[-1].name == 'python' and len(chain) > 1:
-                python_spec = next(iter(_[0] for _ in bad_deps if _[0].name == 'python'))
-                if not (set(self.find_matches(python_spec)) & set(self.find_matches(chain[-1]))):
-                    classes['python'].add((tuple(chain), python_spec))
+            if chain[-1].name == 'python' and len(chain) > 1 and \
+                    any(_[0] for _ in bad_deps if _[0].name == 'python'):
+                python_first_specs = [_[0] for _ in bad_deps if _[0].name == 'python']
+                if python_first_specs:
+                    python_spec = python_first_specs[0]
+                    if not (set(self.find_matches(python_spec)) & set(self.find_matches(chain[-1]))):
+                        classes['python'].add((tuple(chain), python_spec))
             elif chain[0] in specs_to_add:
                 match = False
                 for spec in history_specs:

@@ -21,7 +21,7 @@ if sys.platform == "win32":
     from ctypes import cdll
     path_backup = os.environ['PATH']
     # temporarily change PATH, such that implicit loads (deps of our libs) can be picked up
-    os.environ['PATH'] = ';'.join(join(sys.prefix, "Library", "bin"), path_backup)
+    os.environ['PATH'] = ';'.join((join(sys.prefix, "Library", "bin"), path_backup))
     # we have openssl 1.0.2 and 1.1.1 filenames here.  If they're not found, it doesn't matter.
     libraries = ("archive.dll",
                  "libcrypto-1_1-x64.dll", "libssl-1_1-x64.dll",
