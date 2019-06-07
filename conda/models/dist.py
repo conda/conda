@@ -12,7 +12,8 @@ from .package_info import PackageInfo
 from .records import PackageRecord
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
+from ..base.constants import (CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2,
+                              DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
 from ..common.constants import NULL
@@ -159,6 +160,8 @@ class Dist(Entity):
 
         if original_dist.endswith(CONDA_PACKAGE_EXTENSION_V1):
             original_dist = original_dist[:-len(CONDA_PACKAGE_EXTENSION_V1)]
+        elif original_dist.endswith(CONDA_PACKAGE_EXTENSION_V2):
+            original_dist = original_dist[:-len(CONDA_PACKAGE_EXTENSION_V2)]
 
         if channel_override != NULL:
             channel = channel_override
@@ -180,15 +183,18 @@ class Dist(Entity):
         try:
             string = ensure_text_type(string)
 
-            no_tar_bz2_string = (string[:-len(CONDA_PACKAGE_EXTENSION_V1)]
-                                 if string.endswith(CONDA_PACKAGE_EXTENSION_V1)
-                                 else string)
+            if string.endswith(CONDA_PACKAGE_EXTENSION_V1):
+                no_pkg_ext_string = string[:-len(CONDA_PACKAGE_EXTENSION_V1)]
+            elif string.endswith(CONDA_PACKAGE_EXTENSION_V2):
+                no_pkg_ext_string = string[:-len(CONDA_PACKAGE_EXTENSION_V2)]
+            else:
+                no_pkg_ext_string = string
 
             # remove any directory or channel information
-            if '::' in no_tar_bz2_string:
-                dist_name = no_tar_bz2_string.rsplit('::', 1)[-1]
+            if '::' in no_pkg_ext_string:
+                dist_name = no_pkg_ext_string.rsplit('::', 1)[-1]
             else:
-                dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
+                dist_name = no_pkg_ext_string.rsplit('/', 1)[-1]
 
             parts = dist_name.rsplit('-', 2)
 
@@ -208,7 +214,8 @@ class Dist(Entity):
     @classmethod
     def from_url(cls, url):
         assert is_url(url), url
-        if not url.endswith(CONDA_PACKAGE_EXTENSION_V1) and '::' not in url:
+        if not (url.endswith(CONDA_PACKAGE_EXTENSION_V1) or
+                url.endswith(CONDA_PACKAGE_EXTENSION_V2)) and '::' not in url:
             raise CondaError("url '%s' is not a conda package" % url)
 
         dist_details = cls.parse_dist_name(url)
