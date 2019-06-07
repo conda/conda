@@ -284,21 +284,6 @@ def install(args, parser, command='install'):
         if args.repodata_fn != 'repodata.json':
             args.repodata_fn = 'repodata.json'
             return install(args, parser, command)
-        # Quick solve with frozen env failed.  Try again without that.
-        if isinstall and args.update_modifier == NULL:
-            try:
-                log.info("Initial quick solve with frozen env failed.  "
-                         "Unfreezing env and trying again.")
-                unlink_link_transaction = solver.solve_for_transaction(
-                    deps_modifier=deps_modifier,
-                    update_modifier=args.update_modifier,
-                    force_reinstall=context.force_reinstall or context.force,
-                )
-            except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
-                # Unsatisfiable package specifications/no such revision/import error
-                if e.args and 'could not import' in e.args[0]:
-                    raise CondaImportError(text_type(e))
-                raise
         else:
             # Unsatisfiable package specifications/no such revision/import error
             if e.args and 'could not import' in e.args[0]:
