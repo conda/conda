@@ -305,7 +305,8 @@ class Resolve(object):
                 python_first_specs = [_[0] for _ in bad_deps if _[0].name == 'python']
                 if python_first_specs:
                     python_spec = python_first_specs[0]
-                    if not (set(self.find_matches(python_spec)) & set(self.find_matches(chain[-1]))):
+                    if not (set(self.find_matches(python_spec)) &
+                            set(self.find_matches(chain[-1]))):
                         classes['python'].add((tuple(chain), python_spec))
             elif chain[0] in specs_to_add:
                 match = False
@@ -444,7 +445,7 @@ class Resolve(object):
             # no conflicting nor missing packages found, return the bad specs
             bad_deps = [(ms, ) for ms in specs]
         bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
-                                            strict_channel_priority)
+                                           strict_channel_priority)
         raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
     def _get_strict_channel(self, package_name):

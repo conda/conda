@@ -27,7 +27,7 @@ if sys.platform == "win32":
                  "libcrypto-1_1-x64.dll", "libssl-1_1-x64.dll",
                  "libcrypto-1_1.dll", "libssl-1_1.dll",   # x86
                  "libeay32.dll", "ssleay32.dll"
-    )
+                 )
     for library in libraries:
         lib_path = join(sys.prefix, "Library", "bin", library)
         if os.path.exists(lib_path):

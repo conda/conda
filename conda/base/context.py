@@ -1114,9 +1114,10 @@ class Context(Configuration):
                 """),
             'repodata_fns': dals("""
                 Specify filenames for repodata fetching. The default is ('current_repodata.json',
-                'repodata.json'), which tries a subset of the full index containing only the latest version for each
-                package, then falls back to repodata.json.  You may want to specify something else to use an alternate index that
-                has been reduced somehow.
+                'repodata.json'), which tries a subset of the full index containing only the
+                latest version for each package, then falls back to repodata.json.  You may
+                want to specify something else to use an alternate index that has been reduced
+                somehow.
                 """),
             'use_index_cache': dals("""
                 Use cache of channel index files, even if it has expired.
