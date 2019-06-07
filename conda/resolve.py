@@ -291,7 +291,43 @@ class Resolve(object):
             raise ResolvePackageNotFound(bad_deps)
         return tuple(non_tf_specs), feature_names
 
-    def find_conflicts(self, specs):
+    def _classify_bad_deps(self, bad_deps, specs_to_add, history_specs, strict_channel_priority):
+        classes = {'python': set(),
+                   'request_conflict_with_history': set(),
+                   'direct': set()}
+        specs_to_add = set(MatchSpec(_) for _ in specs_to_add or [])
+        history_specs = set(MatchSpec(_) for _ in history_specs or [])
+        # the first entry in any chain is something important
+        direct_specs = {MatchSpec(c[0]) for c in bad_deps}
+
+        for chain in bad_deps:
+            # sometimes chains come in as strings
+            chain = [MatchSpec(_) for _ in chain]
+            if chain[-1].name == 'python' and len(chain) > 1:
+                python_spec = next(iter(_[0] for _ in bad_deps if _[0].name == 'python'))
+                if not (set(self.find_matches(python_spec)) & set(self.find_matches(chain[-1]))):
+                        classes['python'].add((tuple(chain), python_spec))
+            elif chain[0] in specs_to_add:
+                match = False
+                for spec in history_specs:
+                    if spec.name == chain[-1].name:
+                        classes['request_conflict_with_history'].add((tuple(chain), spec))
+                        match = True
+                if not match:
+                    classes['direct'].add((tuple(chain), chain[0]))
+            else:
+                classes['direct'].add((tuple(chain), chain[0]))
+        return classes
+
+    def find_matches_with_strict(self, ms, strict_channel_priority):
+        matches = self.find_matches(ms)
+        if not strict_channel_priority:
+            return matches
+        sole_source_channel_name = self._get_strict_channel(ms.name)
+        return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
+
+
+    def find_conflicts(self, specs, specs_to_add=None, history_specs=None):
         """Perform a deeper analysis on conflicting specifications, by attempting
         to find the common dependencies that might be the cause of conflicts.
 
@@ -405,10 +441,10 @@ class Resolve(object):
                     for fkey in self.find_matches(MatchSpec(name)):
                         filter[fkey] = fkey in valid_pkgs
                 bad_deps.extend(self.invalid_chains(spec, filter, False))
-        if not bad_deps:
-            # no conflicting nor missing packages found, return the bad specs
-            bad_deps = [(ms, ) for ms in specs]
-        raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
+        if bad_deps:
+            bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
+                                               strict_channel_priority)
+            raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
     def _get_strict_channel(self, package_name):
         try:
@@ -428,7 +464,7 @@ class Resolve(object):
         return ms.strictness < specs_by_name[0].strictness
 
     @time_recorder(module_name=__name__)
-    def get_reduced_index(self, explicit_specs):
+    def get_reduced_index(self, explicit_specs, sort_by_exactness=True):
         # TODO: fix this import; this is bad
         from .core.subdir_data import make_feature_record
 
@@ -945,41 +981,32 @@ class Resolve(object):
         solution = C.sat(constraints)
         return bool(solution)
 
-    def get_conflicting_specs(self, specs):
+    def get_conflicting_specs(self, specs, original_specs=None):
         if not specs:
             return ()
-        reduced_index = self.get_reduced_index(specs)
 
-        # Check if satisfiable
-        def mysat(specs, add_if=False):
-            constraints = r2.generate_spec_constraints(C, specs)
-            return C.sat(constraints, add_if)
-
+        reduced_index = self.get_reduced_index(tuple(specs), sort_by_exactness=False)
         r2 = Resolve(reduced_index, True, channels=self.channels)
-        C = r2.gen_clauses()
-        solution = mysat(specs, True)
-        if solution:
+        scp = context.channel_priority == ChannelPriority.STRICT
+        unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
+        if not unsat_specs:
             return ()
-        else:
-            # This first result is just a single unsatisfiable core. There may be several.
-            unsat_specs = list(minimal_unsatisfiable_subset(specs, sat=mysat))
-            satisfiable_specs = set(specs) - set(unsat_specs)
 
-            # In this loop, we test each unsatisfiable spec individually against the satisfiable
-            # specs to ensure there are no other unsatisfiable specs in the set.
-            final_unsat_specs = set()
-            while unsat_specs:
-                this_spec = unsat_specs.pop(0)
-                final_unsat_specs.add(this_spec)
-                test_specs = satisfiable_specs | {this_spec}
-                C = r2.gen_clauses()  # TODO: wasteful call, but Clauses() needs refactored
-                solution = mysat(test_specs, True)
-                if not solution:
-                    these_unsat = minimal_unsatisfiable_subset(test_specs, sat=mysat)
-                    if len(these_unsat) > 1:
-                        unsat_specs.extend(these_unsat)
-                        satisfiable_specs -= set(unsat_specs)
-            return tuple(final_unsat_specs)
+        # This first result is just a single unsatisfiable core. There may be several.
+        satisfiable_specs = set(specs) - set(unsat_specs)
+
+        # In this loop, we test each unsatisfiable spec individually against the satisfiable
+        # specs to ensure there are no other unsatisfiable specs in the set.
+        final_unsat_specs = set()
+        while unsat_specs:
+            this_spec = unsat_specs.pop()
+            final_unsat_specs.add(this_spec)
+            test_specs = tuple(concatv((this_spec, ), satisfiable_specs))
+            r2 = Resolve(self.get_reduced_index(test_specs), True, channels=self.channels)
+            _unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
+            unsat_specs.update(_unsat_specs - final_unsat_specs)
+            satisfiable_specs -= set(unsat_specs)
+        return tuple(final_unsat_specs)
 
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')

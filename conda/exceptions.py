@@ -615,50 +615,78 @@ class UnsatisfiableError(CondaError):
         Raises an exception with a formatted message detailing the
         unsatisfiable specifications.
     """
+    def _format_chain_str(self, bad_deps):
+        chains = {}
+        for dep in sorted(bad_deps, key=len, reverse=True):
+            dep1 = [s.partition(' ') for s in dep[1:]]
+            key = (dep[0],) + tuple(v[0] for v in dep1)
+            vals = ('',) + tuple(v[2] for v in dep1)
+            found = False
+            for key2, csets in iteritems(chains):
+                if key2[:len(key)] == key:
+                    for cset, val in zip(csets, vals):
+                        cset.add(val)
+                    found = True
+            if not found:
+                chains[key] = [{val} for val in vals]
+        for key, csets in iteritems(chains):
+            deps = []
+            for name, cset in zip(key, csets):
+                if '' not in cset:
+                    pass
+                elif len(cset) == 1:
+                    cset.clear()
+                else:
+                    cset.remove('')
+                    cset.add('*')
+                if name[0] == '@':
+                    name = 'feature:' + name[1:]
+                deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
+            chains[key] = ' -> '.join(deps)
+        bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
+        return bad_deps
 
     def __init__(self, bad_deps, chains=True, strict=False):
         from .models.match_spec import MatchSpec
 
-        # Remove any target values from the MatchSpecs, convert to strings
-        bad_deps = [list(map(lambda x: str(MatchSpec(x, target=None)), dep)) for dep in bad_deps]
-        if chains:
-            chains = {}
-            for dep in sorted(bad_deps, key=len, reverse=True):
-                dep1 = [s.partition(' ') for s in dep[1:]]
-                key = (dep[0],) + tuple(v[0] for v in dep1)
-                vals = ('',) + tuple(v[2] for v in dep1)
-                found = False
-                for key2, csets in iteritems(chains):
-                    if key2[:len(key)] == key:
-                        for cset, val in zip(csets, vals):
-                            cset.add(val)
-                        found = True
-                if not found:
-                    chains[key] = [{val} for val in vals]
-            for key, csets in iteritems(chains):
-                deps = []
-                for name, cset in zip(key, csets):
-                    if '' not in cset:
-                        pass
-                    elif len(cset) == 1:
-                        cset.clear()
-                    else:
-                        cset.remove('')
-                        cset.add('*')
-                    if name[0] == '@':
-                        name = 'feature:' + name[1:]
-                    deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
-                chains[key] = ' -> '.join(deps)
-            bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
-            msg = '''The following specifications were found to be in conflict:%s
-Use "conda search <package> --info" to see the dependencies for each package.'''
-        else:
-            bad_deps = [sorted(dep) for dep in bad_deps]
-            bad_deps = [', '.join(dep) for dep in sorted(bad_deps)]
-            msg = '''The following specifications were found to be incompatible with the
-others, or with the existing package set:%s
-Use "conda search <package> --info" to see the dependencies for each package.'''
-        msg = msg % dashlist(bad_deps)
+        messages = {'python': dals('''
+
+The following specifications were found
+to be incompatible with the existing python installation in your environment:\n{specs}
+
+If python is on the left-most side of the chain, that's the version you've asked for.
+When python appears to the right, that indicates that the thing on the left is somehow not available for the python version you've asked for.
+Your current python version is ({ref}).
+
+        '''),
+                    'request_conflict_with_history': dals('''
+
+The following specifications were found to be incompatible with a past
+explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
+
+                    '''),
+                    'direct': dals('''
+
+The following specifications were found to be incompatible with each other:\n{specs}
+
+''')}
+
+        msg = ""
+        for class_name, dep_class in bad_deps.items():
+            if dep_class:
+                _chains = []
+                for dep_chain, installed_blocker in dep_class:
+                    # Remove any target values from the MatchSpecs, convert to strings
+                    installed_blocker = str(MatchSpec(installed_blocker, target=None))
+                    dep_chain = [str(MatchSpec(dep, target=None)) for dep in dep_chain]
+                    _chains.append(dep_chain)
+
+                if _chains:
+                    _chains = self._format_chain_str(_chains)
+                else:
+                    _chains = [', '.join(c) for c in _chains]
+                msg += messages[class_name].format(specs=dashlist(_chains),
+                                                   ref=installed_blocker)
         if strict:
             msg += ('\nNote that strict channel priority may have removed '
                     'packages required for satisfiability.')
