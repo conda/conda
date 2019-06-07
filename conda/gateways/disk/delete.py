@@ -89,7 +89,8 @@ def rmtree(path, *args, **kwargs):
         if rsync and isdir('.empty'):
             try:
                 out = check_output(
-                    [rsync, '-a', '--force', '--delete', join(getcwd(), '.empty') + "/", path + "/"],
+                    [rsync, '--archive', '--force', '--delete',
+                        join(getcwd(), '.empty') + "/", path + "/"],
                     stderr=STDOUT)
             except CalledProcessError:
                 log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
