@@ -1095,21 +1095,20 @@ class IntegrationTests(TestCase):
             # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 11, 1), reason="conda-forge repodata needs vc patching")
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
-        with make_temp_env("-c", "conda-forge", "python=3.5") as prefix:
+        with make_temp_env("-c", "conda-forge", "python=3.7", no_capture=True) as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, 'conda-forge::python=3.5')
+            assert package_is_installed(prefix, 'conda-forge::python=3.7')
             run_command(Commands.INSTALL, prefix, "decorator")
-            assert package_is_installed(prefix, 'conda-forge::python=3.5')
+            assert package_is_installed(prefix, 'conda-forge::python=3.7')
 
             with make_temp_env('--clone', prefix) as clone_prefix:
-                assert package_is_installed(clone_prefix, 'conda-forge::python=3.5')
+                assert package_is_installed(clone_prefix, 'conda-forge::python=3.7')
                 assert package_is_installed(clone_prefix, "decorator")
 
             # Regression test for #2645
-            fn = glob(join(prefix, 'conda-meta', 'python-3.5*.json'))[-1]
+            fn = glob(join(prefix, 'conda-meta', 'python-3.7*.json'))[-1]
             with open(fn) as f:
                 data = json.load(f)
             for field in ('url', 'channel', 'schannel'):
@@ -1120,7 +1119,7 @@ class IntegrationTests(TestCase):
             PrefixData._cache_ = {}
 
             with make_temp_env('-c', 'conda-forge', '--clone', prefix) as clone_prefix:
-                assert package_is_installed(clone_prefix, 'python=3.5')
+                assert package_is_installed(clone_prefix, 'python=3.7')
                 assert package_is_installed(clone_prefix, 'decorator')
 
     def test_install_prune_flag(self):
