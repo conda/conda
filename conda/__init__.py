@@ -5,7 +5,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-from os.path import abspath, dirname
+from os.path import abspath, dirname, join
 import sys
 # This hack is from http://kmike.ru/python-with-strings-attached/
 # It is needed ro prevent str() conversion of %r. Against general
@@ -15,6 +15,24 @@ if sys.version_info[0] == 2:
     # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
     reload(sys)  # NOQA
     sys.setdefaultencoding('utf-8')
+
+# hack: preload openssl and libarchive on windows, so we can be sure they're loaded correctly
+if sys.platform == "win32":
+    from ctypes import cdll
+    path_backup = os.environ['PATH']
+    # temporarily change PATH, such that implicit loads (deps of our libs) can be picked up
+    os.environ['PATH'] = ';'.join(join(sys.prefix, "Library", "bin"), path_backup)
+    # we have openssl 1.0.2 and 1.1.1 filenames here.  If they're not found, it doesn't matter.
+    libraries = ("archive.dll",
+                 "libcrypto-1_1-x64.dll", "libssl-1_1-x64.dll",
+                 "libcrypto-1_1.dll", "libssl-1_1.dll",   # x86
+                 "libeay32.dll", "ssleay32.dll"
+    )
+    for library in libraries:
+        lib_path = join(sys.prefix, "Library", "bin", library)
+        if os.path.exists(lib_path):
+            cdll.LoadLibrary(lib_path)
+    os.environ['path'] = path_backup
 
 from ._vendor.auxlib.packaging import get_version
 from .common.compat import text_type, iteritems
