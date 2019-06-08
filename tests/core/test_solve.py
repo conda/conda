@@ -1963,19 +1963,21 @@ class PrivateEnvTests(TestCase):
 
 
 def test_current_repodata_usage():
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('win-64',),
-                    specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
-    final_state = solver.solve_final_state()
-    # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
-    assert final_state
-    checked = False
-    for prec in final_state:
-        if prec.name == 'zlib':
-            assert prec.version == '1.2.11'
-            assert prec.fn.endswith('.conda')
-            checked = True
-    if not checked:
-        raise ValueError("Didn't have expected state in solve (needed zlib record)")
+    # force this to False, because otherwise tests fail when run with old conda-build
+    with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('win-64',),
+                        specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
+        final_state = solver.solve_final_state()
+        # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
+        assert final_state
+        checked = False
+        for prec in final_state:
+            if prec.name == 'zlib':
+                assert prec.version == '1.2.11'
+                assert prec.fn.endswith('.conda')
+                checked = True
+        if not checked:
+            raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
 def test_current_repodata_fallback():

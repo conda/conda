@@ -221,6 +221,8 @@ class Context(Configuration):
     whitelist_channels = SequenceParameter(string_types, expandvars=True)
     restore_free_channel = PrimitiveParameter(False)
     repodata_fns = SequenceParameter(string_types, ("current_repodata.json", REPODATA_FN))
+    _use_only_tar_bz2 = PrimitiveParameter(None, element_type=(bool, NoneType),
+                                           aliases=('use_only_tar_bz2',))
 
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -237,7 +239,6 @@ class Context(Configuration):
     report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     shortcuts = PrimitiveParameter(True)
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
-    use_only_tar_bz2 = PrimitiveParameter(False)
 
     # ######################################################
     # ##               Solver Configuration               ##
@@ -619,14 +620,21 @@ class Context(Configuration):
     @property
     def use_only_tar_bz2(self):
         from ..models.version import VersionOrder
-        try:
-            import conda_build
-            use_only_tar_bz2 = VersionOrder(conda_build.__version__) < VersionOrder("3.18.3")
-        except ImportError:
-            use_only_tar_bz2 = False
-        if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
-            use_only_tar_bz2 &= self._argparse_args['use_only_tar_bz2']
-        return use_only_tar_bz2
+        use_only_tar_bz2 = False
+        if self._use_only_tar_bz2 is None:
+            try:
+                import conda_build
+                use_only_tar_bz2 = VersionOrder(conda_build.__version__) < VersionOrder("3.18.3")
+                if use_only_tar_bz2:
+                    log.warn("Conda is constrained to only using the old .tar.bz2 file format "
+                             "because you have conda-build installed, and it is <3.18.3.  Update "
+                             "or remove conda-build to get smaller downloads and faster "
+                             "extractions.")
+            except ImportError:
+                pass
+            if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
+                use_only_tar_bz2 &= self._argparse_args['use_only_tar_bz2']
+        return self._use_only_tar_bz2 or use_only_tar_bz2
 
     @property
     def binstar_upload(self):
@@ -735,7 +743,7 @@ class Context(Configuration):
             'allow_non_channel_urls',
             'restore_free_channel',
             'repodata_fns',
-            'use_only_tar_bz2'
+            'use_only_tar_bz2',
         )),
         ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
             'envs_dirs',
@@ -1145,7 +1153,9 @@ class Context(Configuration):
                 channel exclusions will be enforced.
                 """),
             'use_only_tar_bz2': dals("""
-                A boolean indicating that only .tar.bz2 conda packages should be downloaded
+                A boolean indicating that only .tar.bz2 conda packages should be downloaded.
+                This is forced to True if conda-build is installed and older than 3.18.3,
+                because older versions of conda break when conda feeds it the new file format.
                 """)
         })
 

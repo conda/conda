@@ -184,17 +184,23 @@ class FetchLocalRepodataTests(TestCase):
 
 def test_subdir_data_prefers_conda_to_tar_bz2():
     channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
-    sd = SubdirData(channel)
-    precs = tuple(sd.query("zlib"))
-    assert precs[0].fn.endswith(".conda")
+    # force this to False, because otherwise tests fail when run with old conda-build
+    with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        sd = SubdirData(channel)
+        precs = tuple(sd.query("zlib"))
+        assert precs[0].fn.endswith(".conda")
 
 
-def test_only_use_tar_bz2():
+def test_use_only_tar_bz2():
     channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
-    context.use_only_tar_bz2 = True
-    sd = SubdirData(channel)
-    precs = tuple(sd.query("zlib"))
-    assert precs[0].fn.endswith(".tar.bz2")
+    with env_var('CONDA_USE_ONLY_TAR_BZ2', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        sd = SubdirData(channel)
+        precs = tuple(sd.query("zlib"))
+        assert precs[0].fn.endswith(".tar.bz2")
+    with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        sd = SubdirData(channel)
+        precs = tuple(sd.query("zlib"))
+        assert precs[0].fn.endswith(".conda")
 
 
 # @pytest.mark.integration
