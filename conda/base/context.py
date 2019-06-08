@@ -617,6 +617,18 @@ class Context(Configuration):
         return tuple(IndexedSet(concatv(local_add, self._channels)))
 
     @property
+    def use_only_tar_bz2(self):
+        from ..models.version import VersionOrder
+        try:
+            import conda_build
+            use_only_tar_bz2 = VersionOrder(conda_build.__version__) < VersionOrder("3.18.3")
+        except ImportError:
+            use_only_tar_bz2 = False
+        if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
+            use_only_tar_bz2 &= self._argparse_args['use_only_tar_bz2']
+        return use_only_tar_bz2
+
+    @property
     def binstar_upload(self):
         # backward compatibility for conda-build
         return self.anaconda_upload
