@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, deque
 import copy
 from logging import DEBUG, getLogger
 
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
-from ._vendor.toolz import concat, groupby
+from ._vendor.toolz import concat, concatv, groupby
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
@@ -190,6 +190,7 @@ class Resolve(object):
             else:
                 return is_valid_prec(_spec_or_prec)
 
+        @memoizemethod
         def is_valid_spec(_spec):
             return optional and _spec.optional or any(
                 is_valid_prec(_prec) for _prec in self.find_matches(_spec)
@@ -290,7 +291,44 @@ class Resolve(object):
             raise ResolvePackageNotFound(bad_deps)
         return tuple(non_tf_specs), feature_names
 
-    def find_conflicts(self, specs):
+    def _classify_bad_deps(self, bad_deps, specs_to_add, history_specs, strict_channel_priority):
+        classes = {'python': set(),
+                   'request_conflict_with_history': set(),
+                   'direct': set()}
+        specs_to_add = set(MatchSpec(_) for _ in specs_to_add or [])
+        history_specs = set(MatchSpec(_) for _ in history_specs or [])
+
+        for chain in bad_deps:
+            # sometimes chains come in as strings
+            chain = [MatchSpec(_) for _ in chain]
+            if chain[-1].name == 'python' and len(chain) > 1 and \
+                    any(_[0] for _ in bad_deps if _[0].name == 'python'):
+                python_first_specs = [_[0] for _ in bad_deps if _[0].name == 'python']
+                if python_first_specs:
+                    python_spec = python_first_specs[0]
+                    if not (set(self.find_matches(python_spec)) &
+                            set(self.find_matches(chain[-1]))):
+                        classes['python'].add((tuple(chain), python_spec))
+            elif chain[0] in specs_to_add:
+                match = False
+                for spec in history_specs:
+                    if spec.name == chain[-1].name:
+                        classes['request_conflict_with_history'].add((tuple(chain), spec))
+                        match = True
+                if not match:
+                    classes['direct'].add((tuple(chain), chain[0]))
+            else:
+                classes['direct'].add((tuple(chain), chain[0]))
+        return classes
+
+    def find_matches_with_strict(self, ms, strict_channel_priority):
+        matches = self.find_matches(ms)
+        if not strict_channel_priority:
+            return matches
+        sole_source_channel_name = self._get_strict_channel(ms.name)
+        return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
+
+    def find_conflicts(self, specs, specs_to_add=None, history_specs=None):
         """Perform a deeper analysis on conflicting specifications, by attempting
         to find the common dependencies that might be the cause of conflicts.
 
@@ -321,25 +359,18 @@ class Resolve(object):
         # if only a single package matches the spec use the packages depends
         # rather than the spec itself
         if len(specs) == 1:
-            matches = self.find_matches(specs[0])
+            matches = self.find_matches(next(iter(specs)))
             if len(matches) == 1:
                 specs = self.ms_depends(matches[0])
 
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
-
-        def find_matches_with_strict(ms):
-            matches = self.find_matches(ms)
-            if not strict_channel_priority:
-                return matches
-            sole_source_channel_name = self._get_strict_channel(ms.name)
-            return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
 
         sdeps = {}
         # For each spec, assemble a dictionary of dependencies, with package
         # name as key, and all of the matching packages as values.
         for top_level_spec in specs:
             # find all packages matching a top level specification
-            top_level_pkgs = find_matches_with_strict(top_level_spec)
+            top_level_pkgs = self.find_matches_with_strict(top_level_spec, strict_channel_priority)
             top_level_sdeps = {top_level_spec.name: set(top_level_pkgs)}
 
             # find all depends specs for in top level packages
@@ -355,7 +386,7 @@ class Resolve(object):
             slist = []
             for ms in second_level_specs:
                 deps = top_level_sdeps.setdefault(ms.name, set())
-                for fkey in find_matches_with_strict(ms):
+                for fkey in self.find_matches_with_strict(ms, strict_channel_priority):
                     deps.add(fkey)
                     slist.extend(
                         ms2 for ms2 in self.ms_depends(fkey) if ms2.name != top_level_spec.name)
@@ -364,9 +395,10 @@ class Resolve(object):
             # have been fully considered and not additions should be make to
             # the package list for that name
             locked_names = [top_level_spec.name]
-            for name in top_level_pkg_dep_names[0]:
-                if all(name in names for names in top_level_pkg_dep_names):
-                    locked_names.append(name)
+            if top_level_pkg_dep_names:
+                for name in top_level_pkg_dep_names[0]:
+                    if all(name in names for names in top_level_pkg_dep_names):
+                        locked_names.append(name)
 
             # build out the rest of the dependency tree
             while slist:
@@ -374,7 +406,7 @@ class Resolve(object):
                 if ms2.name in locked_names:
                     continue
                 deps = top_level_sdeps.setdefault(ms2.name, set())
-                for fkey in find_matches_with_strict(ms2):
+                for fkey in self.find_matches_with_strict(ms2, strict_channel_priority):
                     if fkey not in deps:
                         deps.add(fkey)
                         slist.extend(ms3 for ms3 in self.ms_depends(fkey)
@@ -413,6 +445,8 @@ class Resolve(object):
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
             bad_deps = [(ms, ) for ms in specs]
+        bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
+                                           strict_channel_priority)
         raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
     def _get_strict_channel(self, package_name):
@@ -433,7 +467,7 @@ class Resolve(object):
         return ms.strictness < specs_by_name[0].strictness
 
     @time_recorder(module_name=__name__)
-    def get_reduced_index(self, explicit_specs):
+    def get_reduced_index(self, explicit_specs, sort_by_exactness=True):
         # TODO: fix this import; this is bad
         from .core.subdir_data import make_feature_record
 
@@ -453,11 +487,11 @@ class Resolve(object):
         snames = set()
         top_level_spec = None
         cp_filter_applied = set()  # values are package names
-
-        # prioritize specs that are more exact.  Exact specs will evaluate to 3,
-        #    constrained specs will evaluate to 2, and name only will be 1
-        explicit_specs = sorted(list(explicit_specs), key=lambda x: (
-            exactness_and_number_of_deps(self, x), x.name), reverse=True)
+        if sort_by_exactness:
+            # prioritize specs that are more exact.  Exact specs will evaluate to 3,
+            #    constrained specs will evaluate to 2, and name only will be 1
+            explicit_specs = sorted(list(explicit_specs), key=lambda x: (
+                exactness_and_number_of_deps(self, x), x.name), reverse=True)
         # tuple because it needs to be hashable
         explicit_specs = tuple(explicit_specs)
 
@@ -526,7 +560,8 @@ class Resolve(object):
                 ))
                 _dep_specs.pop("*", None)  # discard track_features specs
 
-                for deps in itervalues(_dep_specs):
+                for deps_name, deps in sorted(_dep_specs.items(),
+                                              key=lambda x: any(_.optional for _ in x[1])):
                     if len(deps) >= nnew:
                         res = filter_group(set(deps))
                         if res:
@@ -544,10 +579,10 @@ class Resolve(object):
         # perfect about this, so performance matters.
         for _ in range(2):
             snames.clear()
-            slist = list(explicit_specs)
+            slist = deque(explicit_specs)
             reduced = False
             while slist:
-                s = slist.pop()
+                s = slist.popleft()
                 top_level_spec = s
                 reduced = filter_group([s])
                 if reduced:
@@ -1121,7 +1156,7 @@ class Resolve(object):
         return pkgs
 
     @time_recorder(module_name=__name__)
-    def solve(self, specs, returnall=False, _remove=False):
+    def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None):
         # type: (List[str], bool) -> List[PackageRecord]
         if log.isEnabledFor(DEBUG):
             log.debug('Solving for: %s', dashlist(sorted(text_type(s) for s in specs)))
@@ -1168,8 +1203,7 @@ class Resolve(object):
         C = r2.gen_clauses()
         solution = mysat(specs, True)
         if not solution:
-            specs = minimal_unsatisfiable_subset(specs, sat=mysat)
-            self.find_conflicts(specs)
+            self.find_conflicts(specs, specs_to_add, history_specs)
 
         speco = []  # optional packages
         specr = []  # requested packages

@@ -13,19 +13,20 @@ from textwrap import dedent
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
-from .subdir_data import SubdirData, REPODATA_FN
+from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier
+from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError
+from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
+                          ResolvePackageNotFound)
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -69,6 +70,7 @@ class Solver(object):
         self.channels = IndexedSet(Channel(c) for c in channels or context.channels)
         self.subdirs = tuple(s for s in subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
+        self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
 
         assert all(s in context.known_subdirs for s in self.subdirs)
@@ -374,7 +376,7 @@ class Solver(object):
                 spec = ssc.specs_map.pop(prec.name, None)
                 ssc.add_back_map[prec.name] = (prec, spec)
                 # let the package float.  This is essential to keep the package's dependencies
-                #    in the solution.
+                #    in the solution
                 ssc.specs_map[prec.name] = MatchSpec(prec.name, target=prec.dist_str())
                 # inconsistent environments should maintain the python version
                 # unless explicitly requested by the user. This along with the logic in
@@ -384,6 +386,58 @@ class Solver(object):
             ssc.solution_precs = tuple(prec for prec in ssc.solution_precs
                                        if prec not in inconsistent_precs)
         return ssc
+
+    def _get_package_pool(self, ssc, specs):
+        pool = ssc.r.get_reduced_index(specs)
+        grouped_pool = groupby(lambda x: x.name, pool)
+        return {k: set(v) for k, v in iteritems(grouped_pool)}
+
+    def _package_has_updates(self, ssc, spec, installed_pool):
+        installed_prec = installed_pool.get(spec.name)
+        has_update = installed_prec and any(_.version > installed_prec[0].version
+                                            for _ in ssc.r.groups.get(spec.name, []))
+        return (MatchSpec(spec.name, version=">" + str(installed_prec[0].version))
+                if has_update else None)
+
+    def _should_freeze(self, ssc, target_prec, conflict_specs, explicit_pool, installed_pool):
+        # never, ever freeze anything if we have no history.
+        if not ssc.specs_from_history_map:
+            return False
+        pkg_name = target_prec.name
+        # if we are FREEZE_INSTALLED (first pass for install)
+        freeze = ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED
+
+        if not freeze:
+            # we are UPDATE_SPECS (solve_for_diff or update specs),
+            #       AND the spec is not an explicit spec
+            update_added = (ssc.update_modifier == UpdateModifier.UPDATE_SPECS and
+                            pkg_name not in self.specs_to_add_names)
+            # more expensive, but better check.  If anything in the package pool for this spec
+            #    overlaps with the explicit package pool (by name), but they don't share any
+            #    actual records, then this target_prec conflicts and should not be pinned
+            if update_added:
+                spec_package_pool = self._get_package_pool(ssc, (target_prec.to_match_spec(), ))
+                for spec in self.specs_to_add_names:
+
+                    new_explicit_pool = explicit_pool
+                    ms = MatchSpec(spec)
+                    updated_spec = self._package_has_updates(ssc, ms, installed_pool)
+                    if updated_spec:
+                        try:
+                            new_explicit_pool = self._get_package_pool(ssc, (updated_spec, ))
+                        except ResolvePackageNotFound:
+                            update_added = False
+                            break
+
+                    if ms.name in spec_package_pool:
+                        update_added &= bool(spec_package_pool[ms.name] &
+                                             new_explicit_pool[ms.name])
+                    if not update_added:
+                        break
+
+        # if all package specs have overlapping package choices (satisfiable in at least one way)
+        no_conflict = (freeze or update_added) and pkg_name not in conflict_specs
+        return no_conflict
 
     def _add_specs(self, ssc):
         # For the remaining specs in specs_map, add target to each spec. `target` is a reference
@@ -396,9 +450,17 @@ class Solver(object):
         #  - to minimize the version change, set MatchSpec(name=name, target=prec.dist_str())
         #  - to freeze the package, set all the components of MatchSpec individually
 
+        installed_pool = groupby(lambda x: x.name, ssc.prefix_data.iter_records())
+
         # the only things we should consider freezing are things that don't conflict with the new
         #    specs being added.
-        explicit_spec_package_pool = ssc.r.get_reduced_index(self.specs_to_add)
+        explicit_pool = self._get_package_pool(ssc, self.specs_to_add)
+
+        conflict_specs = ssc.r.get_conflicting_specs(list(concatv(
+            self.specs_to_add,
+            (MatchSpec(_.to_match_spec(), optional=True)
+             for _ in ssc.prefix_data.iter_records())))) or []
+        conflict_specs = set(_.name for _ in conflict_specs)
 
         for pkg_name, spec in iteritems(ssc.specs_map):
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
@@ -417,23 +479,37 @@ class Solver(object):
                 target_prec = matches_for_spec[0]
                 if target_prec.is_unmanageable:
                     ssc.specs_map[pkg_name] = target_prec.to_match_spec()
-                elif ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
-                    if pkg_name in context.aggressive_update_packages:
-                        ssc.specs_map[pkg_name] = pkg_name
-                    elif target_prec in explicit_spec_package_pool:
-                        ssc.specs_map[pkg_name] = target_prec.to_match_spec()
-                    elif pkg_name in ssc.specs_from_history_map:
-                        ssc.specs_map[pkg_name] = ssc.specs_from_history_map[pkg_name]
+                elif MatchSpec(pkg_name) in context.aggressive_update_packages:
+                    ssc.specs_map[pkg_name] = pkg_name
+                elif self._should_freeze(ssc, target_prec, conflict_specs, explicit_pool,
+                                         installed_pool):
+                    ssc.specs_map[pkg_name] = target_prec.to_match_spec()
+                elif pkg_name in ssc.specs_from_history_map:
+                    ssc.specs_map[pkg_name] = ssc.specs_from_history_map[pkg_name]
                 else:
-                    ssc.specs_map[pkg_name] = MatchSpec(spec, target=target_prec.dist_str())
+                    ssc.specs_map[pkg_name] = MatchSpec(pkg_name, target=target_prec.dist_str())
+
+        pin_overrides = set()
+        for s in ssc.pinned_specs:
+            if s.name in explicit_pool:
+                if s.name not in self.specs_to_add_names:
+                    ssc.specs_map[s.name] = s
+                elif explicit_pool[s.name] & self._get_package_pool(ssc, [s])[s.name]:
+                    ssc.specs_map[s.name] = MatchSpec(s, optional=False)
+                    pin_overrides.add(s.name)
+                else:
+                    log.warn("pinned spec %s conflicts with explicit specs.  "
+                             "Overriding pinned spec.", s)
 
         if ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
             for prec in ssc.prefix_data.iter_records():
-                if prec.name not in ssc.specs_map and (
-                        prec in explicit_spec_package_pool or
-                        prec.name not in ssc.r.groups):
-                    ssc.specs_map[prec.name] = prec.to_match_spec()
-
+                if prec.name not in ssc.specs_map:
+                    if (prec.name not in conflict_specs and
+                            (prec.name not in explicit_pool or prec in explicit_pool[prec.name])):
+                        ssc.specs_map[prec.name] = prec.to_match_spec()
+                    else:
+                        ssc.specs_map[prec.name] = MatchSpec(
+                            prec.name, target=prec.to_match_spec(), optional=True)
         log.debug("specs_map with targets: %s", ssc.specs_map)
 
         # If we're in UPDATE_ALL mode, we need to drop all the constraints attached to specs,
@@ -447,23 +523,35 @@ class Solver(object):
             #   that simplifies our solution.
             if ssc.specs_from_history_map:
                 ssc.specs_map = odict((spec, MatchSpec(spec))
-                                      for spec in ssc.specs_from_history_map)
+                                      if MatchSpec(spec).name not in
+                                      (_.name for _ in ssc.pinned_specs)
+                                      else (MatchSpec(spec).name,
+                                            ssc.specs_map[MatchSpec(spec).name])
+                                      for spec in ssc.specs_from_history_map
+                                      )
                 for prec in ssc.prefix_data.iter_records():
                     # treat pip-installed stuff as explicitly installed, too.
                     if prec.subdir == 'pypi':
                         ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
             else:
                 ssc.specs_map = odict((prec.name, MatchSpec(prec.name))
-                                      for prec in ssc.prefix_data.iter_records())
+                                      if prec.name not in (_.name for _ in ssc.pinned_specs) else
+                                      (prec.name, ssc.specs_map[prec.name])
+                                      for prec in ssc.prefix_data.iter_records()
+                                      )
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
         if (any(_.name == 'python' for _ in ssc.solution_precs)
                 and not any(s.name == 'python' for s in self.specs_to_add)):
-            python_prefix_rec = ssc.prefix_data.get('python')
+
             # will our prefix record conflict with any explict spec?  If so, don't add
             #     anything here - let python float when it hasn't been explicitly specified
-            if not explicit_spec_package_pool or python_prefix_rec in explicit_spec_package_pool:
+            python_prefix_rec = ssc.prefix_data.get('python')
+            if ('python' not in conflict_specs and
+                    ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED):
+                ssc.specs_map['python'] = python_prefix_rec.to_match_spec()
+            else:
                 python_spec = ssc.specs_map.get('python', MatchSpec('python'))
                 if not python_spec.get('version'):
                     pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
@@ -478,7 +566,7 @@ class Solver(object):
 
         # add in explicitly requested specs from specs_to_add
         # this overrides any name-matching spec already in the spec map
-        ssc.specs_map.update((s.name, s) for s in self.specs_to_add)
+        ssc.specs_map.update((s.name, s) for s in self.specs_to_add if s.name not in pin_overrides)
 
         # As a business rule, we never want to downgrade conda below the current version,
         # unless that's requested explicitly by the user (which we actively discourage).
@@ -486,14 +574,12 @@ class Solver(object):
             conda_prefix_rec = ssc.prefix_data.get('conda')
             if conda_prefix_rec:
                 conda_spec = ssc.specs_map['conda']
-                conda_in_specs_to_add_version = next(
-                    (spec.get('version') for spec in self.specs_to_add if spec.name == "conda"),
-                    None
-                )
+
+                conda_in_specs_to_add_version = ssc.specs_map.get('conda', {}).get('version')
                 if not conda_in_specs_to_add_version:
                     conda_spec = MatchSpec(conda_spec, version=">=%s" % conda_prefix_rec.version)
                 if context.auto_update_conda:
-                    conda_spec = MatchSpec(conda_spec, target=None)
+                    conda_spec = MatchSpec('conda', target=None)
                 ssc.specs_map['conda'] = conda_spec
 
         return ssc
@@ -503,7 +589,7 @@ class Solver(object):
         final_environment_specs = IndexedSet(concatv(
             itervalues(ssc.specs_map),
             ssc.track_features_specs,
-            ssc.pinned_specs,
+            # pinned specs removed here - added to specs_map in _add_specs instead
         ))
 
         # We've previously checked `solution` for consistency (which at that point was the
@@ -517,33 +603,45 @@ class Solver(object):
         # get_conflicting_specs() returns a "minimal unsatisfiable subset" which
         # may not be the only unsatisfiable subset. We may have to call get_conflicting_specs()
         # several times, each time making modifications to loosen constraints.
-        conflicting_specs = ssc.r.get_conflicting_specs(tuple(final_environment_specs))
+
+        conflicting_specs = set(ssc.r.get_conflicting_specs(final_environment_specs) or [])
+
         while conflicting_specs:
             specs_modified = False
             if log.isEnabledFor(DEBUG):
-                log.debug("conflicting specs: %s", dashlist(conflicting_specs))
+                log.debug("conflicting specs: %s", dashlist(
+                    s.target if s.target else s for s in conflicting_specs))
 
             # Are all conflicting specs in specs_map? If not, that means they're in
             # track_features_specs or pinned_specs, which we should raise an error on.
             specs_map_set = set(itervalues(ssc.specs_map))
             grouped_specs = groupby(lambda s: s in specs_map_set, conflicting_specs)
-            not_in_specs_map = grouped_specs.get(False, ())
-            if not_in_specs_map:
+            conflicting_pinned_specs = groupby(lambda s: s in ssc.pinned_specs, conflicting_specs)
+
+            if conflicting_pinned_specs.get(True):
                 in_specs_map = grouped_specs.get(True, ())
-                in_specs_map_and_specs_to_add = set(in_specs_map) & set(self.specs_to_add)
+                pinned_conflicts = conflicting_pinned_specs.get(True, ())
+                in_specs_map_or_specs_to_add = ((set(in_specs_map) | set(self.specs_to_add))
+                                                - set(ssc.pinned_specs))
+
                 raise SpecsConfigurationConflictError(
-                    sorted(s.__str__() for s in in_specs_map_and_specs_to_add),
-                    sorted(s.__str__() for s in not_in_specs_map),
+                    sorted(s.__str__() for s in in_specs_map_or_specs_to_add),
+                    sorted(s.__str__() for s in {s for s in pinned_conflicts}),
                     self.prefix
                 )
             for spec in conflicting_specs:
                 if spec.target and not spec.optional:
                     specs_modified = True
                     final_environment_specs.remove(spec)
-                    neutered_spec = MatchSpec(spec.name, target=spec.target, optional=True)
+                    if spec.get('version'):
+                        neutered_spec = MatchSpec(spec.name, version=spec.version)
+                    else:
+                        neutered_spec = MatchSpec(spec.name)
                     final_environment_specs.add(neutered_spec)
+                    ssc.specs_map[spec.name] = neutered_spec
             if specs_modified:
-                conflicting_specs = ssc.r.get_conflicting_specs(tuple(final_environment_specs))
+                conflicting_specs = set(ssc.r.get_conflicting_specs(
+                    tuple(final_environment_specs)))
             else:
                 # Let r.solve() use r.find_conflicts() to report conflict chains.
                 break
@@ -552,7 +650,9 @@ class Solver(object):
         if log.isEnabledFor(DEBUG):
             log.debug("final specs to add: %s",
                       dashlist(sorted(text_type(s) for s in final_environment_specs)))
-        ssc.solution_precs = ssc.r.solve(tuple(final_environment_specs))
+        ssc.solution_precs = ssc.r.solve(tuple(final_environment_specs),
+                                         specs_to_add=self.specs_to_add,
+                                         history_specs=ssc.specs_from_history_map)
 
         # add back inconsistent packages to solution
         if ssc.add_back_map:
@@ -750,6 +850,8 @@ class Solver(object):
     def _check_solution(self, ssc):
         # Ensure that solution is consistent with pinned specs.
         for spec in ssc.pinned_specs:
+            if spec.name in self.specs_to_add_names:
+                continue
             spec = MatchSpec(spec, optional=False)
             if not any(spec.match(d) for d in ssc.solution_precs):
                 # if the spec doesn't match outright, make sure there's no package by that

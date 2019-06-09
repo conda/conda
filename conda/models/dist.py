@@ -12,7 +12,8 @@ from .package_info import PackageInfo
 from .records import PackageRecord
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
+from ..base.constants import (CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSIONS,
+                              DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
 from ..common.constants import NULL
@@ -157,8 +158,9 @@ class Dist(Entity):
                      )
         channel, original_dist, w_f_d = re.search(REGEX_STR, string).groups()
 
-        if original_dist.endswith(CONDA_PACKAGE_EXTENSION_V1):
-            original_dist = original_dist[:-len(CONDA_PACKAGE_EXTENSION_V1)]
+        for ext in CONDA_PACKAGE_EXTENSIONS:
+            if original_dist.endswith(ext):
+                original_dist = original_dist[:-len(ext)]
 
         if channel_override != NULL:
             channel = channel_override

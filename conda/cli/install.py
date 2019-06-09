@@ -11,7 +11,7 @@ from . import common
 from .common import check_non_admin
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME, UpdateModifier
+from ..base.constants import ROOT_ENV_NAME, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
 from ..common.constants import NULL
@@ -132,8 +132,11 @@ def install(args, parser, command='install'):
     """
     context.validate_configuration()
     check_non_admin()
+    # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
+    #    because it deduplicates records that exist as both formats.  Forcing this to
+    #    repodata.json ensures that .tar.bz2 files are available
     if context.use_only_tar_bz2:
-        args.repodata_fn = 'repodata.json'
+        args.repodata_fns = ('repodata.json', )
 
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
@@ -242,68 +245,61 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
-    try:
-        update_modifier = context.update_modifier
-        if isinstall and args.revision:
-            index = get_index(channel_urls=index_args['channel_urls'],
-                              prepend=index_args['prepend'], platform=None,
-                              use_local=index_args['use_local'], use_cache=index_args['use_cache'],
-                              unknown=index_args['unknown'], prefix=prefix,
-                              repodata_fn=args.repodata_fn)
-            unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
-        else:
-            solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
-                            repodata_fn=args.repodata_fn)
-            if isinstall and args.update_modifier == NULL:
-                # try to do a quick solve with then existing env frozen by default
-                update_modifier = UpdateModifier.FREEZE_INSTALLED
-            if isupdate:
-                deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
-            else:
-                deps_modifier = context.deps_modifier
-            unlink_link_transaction = solver.solve_for_transaction(
-                deps_modifier=deps_modifier,
-                update_modifier=update_modifier,
-                force_reinstall=context.force_reinstall or context.force,
-            )
+    repodata_fns = args.repodata_fns
+    if not repodata_fns:
+        repodata_fns = ["current_repodata.json", "repodata.json"]
+    elif REPODATA_FN not in repodata_fns:
+        repodata_fns.append(REPODATA_FN)
 
-    except (ResolvePackageNotFound, PackagesNotFoundError) as e:
-        if args.repodata_fn != 'repodata.json':
-            args.repodata_fn = 'repodata.json'
-            return install(args, parser, command)
-        else:
+    for repodata_fn in repodata_fns:
+        try:
+            update_modifier = context.update_modifier
+            if isinstall and args.revision:
+                index = get_index(channel_urls=index_args['channel_urls'],
+                                  prepend=index_args['prepend'], platform=None,
+                                  use_local=index_args['use_local'],
+                                  use_cache=index_args['use_cache'],
+                                  unknown=index_args['unknown'], prefix=prefix,
+                                  repodata_fn=repodata_fn)
+                unlink_link_transaction = revert_actions(prefix, get_revision(args.revision),
+                                                         index)
+            else:
+                solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
+                                repodata_fn=repodata_fn)
+                if isinstall and args.update_modifier == NULL:
+                    # try to do a quick solve with then existing env frozen by default
+                    update_modifier = UpdateModifier.FREEZE_INSTALLED
+                if isupdate:
+                    deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
+                else:
+                    deps_modifier = context.deps_modifier
+                unlink_link_transaction = solver.solve_for_transaction(
+                    deps_modifier=deps_modifier,
+                    update_modifier=update_modifier,
+                    force_reinstall=context.force_reinstall or context.force,
+                )
+            # we only need one of these to work.  If we haven't raised an exception,
+            #   we're good.
+            break
+
+        except (ResolvePackageNotFound, PackagesNotFoundError) as e:
             channels_urls = tuple(calculate_channel_urls(
                 channel_urls=index_args['channel_urls'],
                 prepend=index_args['prepend'],
                 platform=None,
                 use_local=index_args['use_local'],
             ))
-            raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+            # end of the line.  Raise the exception
+            if repodata_fn == repodata_fns[-1]:
+                raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
-    except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
-        if args.repodata_fn != 'repodata.json':
-            args.repodata_fn = 'repodata.json'
-            return install(args, parser, command)
-        # Quick solve with frozen env failed.  Try again without that.
-        if isinstall and args.update_modifier == NULL:
-            try:
-                log.info("Initial quick solve with frozen env failed.  "
-                         "Unfreezing env and trying again.")
-                unlink_link_transaction = solver.solve_for_transaction(
-                    deps_modifier=deps_modifier,
-                    update_modifier=args.update_modifier,
-                    force_reinstall=context.force_reinstall or context.force,
-                )
-            except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+        except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+            # end of the line.  Raise the exception
+            if repodata_fn == repodata_fns[-1]:
                 # Unsatisfiable package specifications/no such revision/import error
                 if e.args and 'could not import' in e.args[0]:
                     raise CondaImportError(text_type(e))
                 raise
-        else:
-            # Unsatisfiable package specifications/no such revision/import error
-            if e.args and 'could not import' in e.args[0]:
-                raise CondaImportError(text_type(e))
-            raise
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 

@@ -12,7 +12,7 @@ from os.path import abspath, basename, expanduser, isdir, isfile, join, split as
 import platform
 import sys
 
-from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME,
+from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
                         ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
@@ -220,7 +220,9 @@ class Context(Configuration):
     use_local = PrimitiveParameter(False)
     whitelist_channels = SequenceParameter(string_types, expandvars=True)
     restore_free_channel = PrimitiveParameter(False)
-    repodata_fn = PrimitiveParameter("current_repodata.json")
+    repodata_fns = SequenceParameter(string_types, ("current_repodata.json", REPODATA_FN))
+    _use_only_tar_bz2 = PrimitiveParameter(None, element_type=(bool, NoneType),
+                                           aliases=('use_only_tar_bz2',))
 
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -237,7 +239,6 @@ class Context(Configuration):
     report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     shortcuts = PrimitiveParameter(True)
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
-    use_only_tar_bz2 = PrimitiveParameter(False)
 
     # ######################################################
     # ##               Solver Configuration               ##
@@ -617,6 +618,25 @@ class Context(Configuration):
         return tuple(IndexedSet(concatv(local_add, self._channels)))
 
     @property
+    def use_only_tar_bz2(self):
+        from ..models.version import VersionOrder
+        use_only_tar_bz2 = False
+        if self._use_only_tar_bz2 is None:
+            try:
+                import conda_build
+                use_only_tar_bz2 = VersionOrder(conda_build.__version__) < VersionOrder("3.18.3")
+                if use_only_tar_bz2:
+                    log.warn("Conda is constrained to only using the old .tar.bz2 file format "
+                             "because you have conda-build installed, and it is <3.18.3.  Update "
+                             "or remove conda-build to get smaller downloads and faster "
+                             "extractions.")
+            except ImportError:
+                pass
+            if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
+                use_only_tar_bz2 &= self._argparse_args['use_only_tar_bz2']
+        return self._use_only_tar_bz2 or use_only_tar_bz2
+
+    @property
     def binstar_upload(self):
         # backward compatibility for conda-build
         return self.anaconda_upload
@@ -722,8 +742,8 @@ class Context(Configuration):
             'add_anaconda_token',
             'allow_non_channel_urls',
             'restore_free_channel',
-            'repodata_fn',
-            'use_only_tar_bz2'
+            'repodata_fns',
+            'use_only_tar_bz2',
         )),
         ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
             'envs_dirs',
@@ -1112,12 +1132,12 @@ class Context(Configuration):
                 A list of features that are tracked by default. An entry here is similar to
                 adding an entry to the create_default_packages list.
                 """),
-            'repodata_fn': dals("""
-                Specify a filename for repodata fetching. The default is 'current_repodata.json',
-                which is a subset of the full index containing only the latest version for each
-                package.  You may want to specify something else to use an alternate index that
-                has been reduced somehow.  If this file does not exist on the remote server, or
-                if no solution is possible, conda will fall back to 'repodata.json' and retry.
+            'repodata_fns': dals("""
+                Specify filenames for repodata fetching. The default is ('current_repodata.json',
+                'repodata.json'), which tries a subset of the full index containing only the
+                latest version for each package, then falls back to repodata.json.  You may
+                want to specify something else to use an alternate index that has been reduced
+                somehow.
                 """),
             'use_index_cache': dals("""
                 Use cache of channel index files, even if it has expired.
@@ -1133,7 +1153,9 @@ class Context(Configuration):
                 channel exclusions will be enforced.
                 """),
             'use_only_tar_bz2': dals("""
-                A boolean indicating that only .tar.bz2 conda packages should be downloaded
+                A boolean indicating that only .tar.bz2 conda packages should be downloaded.
+                This is forced to True if conda-build is installed and older than 3.18.3,
+                because older versions of conda break when conda feeds it the new file format.
                 """)
         })
 

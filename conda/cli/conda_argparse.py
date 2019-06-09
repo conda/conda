@@ -1439,11 +1439,14 @@ def add_parser_channels(p):
     )
     channel_customization_options.add_argument(
         "--repodata-fn",
-        default="current_repodata.json",
+        action="append",
+        dest="repodata_fns",
         help=("Specify name of repodata on remote server. Conda will try "
               "whatever you specify, but will ultimately fall back to repodata.json if "
               "your specs are not satisfiable with what you specify here. This is used "
-              "to employ repodata that is reduced in time scope.")
+              "to employ repodata that is reduced in time scope.  You may pass this flag"
+              "more than once.  Leftmost entries are tried first, and the fallback to"
+              "repodata.json is added for you automatically.")
     )
     return channel_customization_options
 

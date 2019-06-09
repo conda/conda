@@ -40,7 +40,7 @@ LAST_CHANNEL_URLS = []
 @time_recorder("get_index")
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None,
-              repodata_fn=context.repodata_fn):
+              repodata_fn=context.repodata_fns[-1]):
     """
     Return the index of packages available on the channels
 
@@ -70,7 +70,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     return index
 
 
-def fetch_index(channel_urls, use_cache=False, index=None, repodata_fn=context.repodata_fn):
+def fetch_index(channel_urls, use_cache=False, index=None, repodata_fn=context.repodata_fns[-1]):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
     with ThreadLimitedThreadPoolExecutor() as executor:
