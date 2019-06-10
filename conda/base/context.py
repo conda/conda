@@ -630,6 +630,7 @@ class Context(Configuration):
                              "because you have conda-build installed, and it is <3.18.3.  Update "
                              "or remove conda-build to get smaller downloads and faster "
                              "extractions.")
+                    self._use_only_tar_bz2 = True
             except ImportError:
                 pass
             if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
