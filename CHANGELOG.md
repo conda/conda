@@ -1,3 +1,15 @@
+## 4.7.2 (2019-06-09)
+
+### Behavior changes
+
+* 
+
+### Improvements
+
+*
+
+### Bug fixes
+
 ## 4.7.1 (2019-05-30)
 
 ### Improvements

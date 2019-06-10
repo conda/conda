@@ -346,8 +346,8 @@ class PackageCacheData(object):
                                 rm_rf(package_tarball_full_path)
                                 rm_rf(extracted_package_dir)
                                 log.warn("Encountered corrupt package tarball at %s. Conda has "
-                                        "removed it, but you need to re-run conda to download "
-                                        "it again." % package_tarball_full_path)
+                                         "removed it, but you need to re-run conda to download "
+                                         "it again." % package_tarball_full_path)
                                 return None
                         try:
                             raw_json_record = read_index_json(extracted_package_dir)
