@@ -141,6 +141,7 @@ def install(args, parser, command='install'):
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
+    isremove = bool(command == 'remove')
     if newenv:
         common.ensure_name_or_prefix(args, command)
     prefix = context.target_prefix
@@ -266,7 +267,7 @@ def install(args, parser, command='install'):
             else:
                 solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
                                 repodata_fn=repodata_fn)
-                if isinstall and args.update_modifier == NULL:
+                if (isinstall or isremove) and args.update_modifier == NULL:
                     # try to do a quick solve with then existing env frozen by default
                     update_modifier = UpdateModifier.FREEZE_INSTALLED
                 if isupdate:

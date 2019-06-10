@@ -12,6 +12,8 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 
+from conda_package_handling.api import InvalidArchiveError
+
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -40,7 +42,10 @@ from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
 
 log = getLogger(__name__)
-
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
 
 class PackageCacheType(type):
     """
@@ -299,7 +304,7 @@ class PackageCacheData(object):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (EnvironmentError, JSONDecodeError, ValueError) as e:
+        except (EnvironmentError, JSONDecodeError, ValueError, FileNotFoundError) as e:
             # EnvironmentError if info/repodata_record.json doesn't exists
             # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
             #   python 2.7 raises ValueError instead of JsonDecodeError
@@ -310,7 +315,7 @@ class PackageCacheData(object):
             # try reading info/index.json
             try:
                 raw_json_record = read_index_json(extracted_package_dir)
-            except (EnvironmentError, JSONDecodeError, ValueError) as e:
+            except (EnvironmentError, JSONDecodeError, ValueError, FileNotFoundError) as e:
                 # EnvironmentError if info/index.json doesn't exist
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
                 #   python 2.7 raises ValueError instead of JsonDecodeError
@@ -332,7 +337,7 @@ class PackageCacheData(object):
                             rm_rf(extracted_package_dir)
                         try:
                             extract_tarball(package_tarball_full_path, extracted_package_dir)
-                        except EnvironmentError as e:
+                        except (EnvironmentError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
                                 # FileNotFoundError(2, 'No such file or directory')
                                 # At this point, we can assume the package tarball is bad.
@@ -340,17 +345,24 @@ class PackageCacheData(object):
                                 # see https://github.com/conda/conda/issues/6707
                                 rm_rf(package_tarball_full_path)
                                 rm_rf(extracted_package_dir)
+                                log.warn("Encountered corrupt package tarball at %s. Conda has "
+                                        "removed it, but you need to re-run conda to download "
+                                        "it again." % package_tarball_full_path)
+                                return None
                         try:
                             raw_json_record = read_index_json(extracted_package_dir)
-                        except (IOError, OSError, JSONDecodeError):
+                        except (IOError, OSError, JSONDecodeError, FileNotFoundError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
                             rm_rf(package_tarball_full_path)
                             rm_rf(extracted_package_dir)
+                            log.warn("Encountered corrupt package tarball at %s. Conda has "
+                                     "removed it, but you need to re-run conda to download "
+                                     "it again." % package_tarball_full_path)
                             return None
                     else:
                         raw_json_record = read_index_json_from_tarball(package_tarball_full_path)
-                except (EOFError, ReadError) as e:
+                except (EOFError, ReadError, FileNotFoundError, InvalidArchiveError) as e:
                     # EOFError: Compressed file ended before the end-of-stream marker was reached
                     # tarfile.ReadError: file could not be opened successfully
                     # We have a corrupted tarball. Remove the tarball so it doesn't affect
