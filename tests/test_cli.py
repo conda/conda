@@ -150,9 +150,9 @@ class TestJson(unittest.TestCase):
         with make_temp_env() as prefix:
             stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "*/linux-64::nose==1.3.7[build=py37_2]", "--info", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
-            assert "file name   : nose-1.3.7-py37_2.conda" in result
+            assert "file name   : nose-1.3.7-py37_2" in result
             assert "name        : nose" in result
-            assert "url         : https://repo.anaconda.com/pkgs/main/linux-64/nose-1.3.7-py37_2.conda" in result
+            assert "url         : https://repo.anaconda.com/pkgs/main/linux-64/nose-1.3.7-py37_2" in result
             # assert "md5         : ff390a1e44d77e54914ca1a2c9e75445" in result
 
     @pytest.mark.integration

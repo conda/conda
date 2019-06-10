@@ -254,24 +254,15 @@ def test_prune_1():
         pprint(convert_to_dist_str(link_precs))
         unlink_order = (
             'channel-1::accelerate-1.1.0-np16py27_p0',
-            'channel-1::mkl-11.0-np16py27_p0',
-            'channel-1::scikit-learn-0.13.1-np16py27_p0',
             'channel-1::numbapro-0.11.0-np16py27_p0',
-            'channel-1::scipy-0.12.0-np16py27_p0',
-            'channel-1::numexpr-2.1-np16py27_p0',
             'channel-1::numba-0.8.1-np16py27_0',
-            'channel-1::numpy-1.6.2-py27_p4',
-            'channel-1::mkl-service-1.0.0-py27_p0',
             'channel-1::meta-0.4.2.dev-py27_0',
             'channel-1::llvmpy-0.11.2-py27_0',
             'channel-1::bitarray-0.8.1-py27_0',
             'channel-1::llvm-3.2-0',
-            'channel-1::mkl-rt-11.0-p0',
             'channel-1::libnvvm-1.0-p0',
         )
-        link_order = (
-            'channel-1::numpy-1.6.2-py27_4',
-        )
+        link_order = tuple()
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -461,11 +452,17 @@ def test_only_deps_2():
             'channel-1::meta-0.4.2.dev-py27_0',
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.1-py27_0',
-            # 'channel-1::numba-0.5.0-np17py27_0',
+            # 'channel-1::numba-0.5.0-np17py27_0',  # not in the order because only_deps
         )
         assert convert_to_dist_str(final_state_2) == order
 
+    # fails because numpy=1.5 is in our history as an explicit spec
     specs_to_add = MatchSpec("numba=0.5"),
+    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        with pytest.raises(UnsatisfiableError):
+            final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
+
+    specs_to_add = MatchSpec("numba=0.5"), MatchSpec("numpy")
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
@@ -483,7 +480,7 @@ def test_only_deps_2():
             'channel-1::meta-0.4.2.dev-py27_0',
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.1-py27_0',
-            # 'channel-1::numba-0.5.0-np17py27_0',
+            # 'channel-1::numba-0.5.0-np17py27_0',   # not in the order because only_deps
         )
         assert convert_to_dist_str(final_state_2) == order
 
@@ -1252,18 +1249,12 @@ def test_fast_update_with_update_modifier_not_set():
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
         unlink_order = (
-            'channel-4::python-2.7.14-h89e7a4a_22',
             'channel-4::sqlite-3.21.0-h1bed415_2',
-            'channel-4::libedit-3.1-heed3624_0',
             'channel-4::openssl-1.0.2l-h077ae2c_5',
-            'channel-4::ncurses-6.0-h9df7e31_2',
         )
         link_order = (
-            'channel-4::ncurses-6.1-hf484d3e_0',
             'channel-4::openssl-1.0.2p-h14c3975_0',
-            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
-            'channel-4::sqlite-3.24.0-h84994c4_0',  # sqlite is upgraded
-            'channel-4::python-2.7.15-h1571d57_0',  # python is not upgraded
+            'channel-4::sqlite-3.23.1-he433501_0',
         )
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
@@ -1341,14 +1332,14 @@ def test_pinned_1():
             assert convert_to_dist_str(final_state_2) == order
 
         # incompatible CLI and configured specs
-        specs_to_add = MatchSpec("python=2.7"),
+        specs_to_add = MatchSpec("scikit-learn==0.13"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             with pytest.raises(SpecsConfigurationConflictError) as exc:
                 solver.solve_final_state(ignore_pinned=False)
             kwargs = exc.value._kwargs
-            assert kwargs["requested_specs"] == ["python=2.7",]
-            assert kwargs["pinned_specs"] == ["python=2.6",]
+            assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
+            assert kwargs["pinned_specs"] == ["python=2.6"]
 
         specs_to_add = MatchSpec("numba"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"),
@@ -1419,29 +1410,28 @@ def test_pinned_1():
             )
             assert convert_to_dist_str(final_state_5) == order
 
-    # # TODO: re-enable when UPDATE_ALL gets prune behavior again, following completion of https://github.com/conda/constructor/issues/138
-    # # now update without pinning
-    # specs_to_add = MatchSpec("python"),
-    # history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
-    # with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
-    #                 history_specs=history_specs) as solver:
-    #     final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
-    #     # PrefixDag(final_state_1, specs).open_url()
-    #     print(convert_to_dist_str(final_state_5))
-    #     order = (
-    #         'channel-1::openssl-1.0.1c-0',
-    #         'channel-1::readline-6.2-0',
-    #         'channel-1::sqlite-3.7.13-0',
-    #         'channel-1::system-5.8-1',
-    #         'channel-1::tk-8.5.13-0',
-    #         'channel-1::zlib-1.2.7-0',
-    #         'channel-1::llvm-3.2-0',
-    #         'channel-1::python-3.3.2-0',
-    #         'channel-1::llvmpy-0.11.2-py33_0',
-    #         'channel-1::numpy-1.7.1-py33_0',
-    #         'channel-1::numba-0.8.1-np17py33_0',
-    #     )
-    #     assert tuple(final_state_5) == tuple(solver._index[Dist(d)] for d in order)
+    # now update without pinning
+    specs_to_add = MatchSpec("python"),
+    history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
+    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
+                    history_specs=history_specs) as solver:
+        final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
+        # PrefixDag(final_state_1, specs).open_url()
+        print(convert_to_dist_str(final_state_5))
+        order = (
+            'channel-1::openssl-1.0.1c-0',
+            'channel-1::readline-6.2-0',
+            'channel-1::sqlite-3.7.13-0',
+            'channel-1::system-5.8-1',
+            'channel-1::tk-8.5.13-0',
+            'channel-1::zlib-1.2.7-0',
+            'channel-1::llvm-3.2-0',
+            'channel-1::python-3.3.2-0',
+            'channel-1::llvmpy-0.11.2-py33_0',
+            'channel-1::numpy-1.7.1-py33_0',
+            'channel-1::numba-0.8.1-np17py33_0',
+        )
+        assert convert_to_dist_str(final_state_5) == order
 
 
 def test_no_update_deps_1():  # i.e. FREEZE_DEPS
@@ -1483,6 +1473,12 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("zope.interface>4.1"),
+    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        with pytest.raises(UnsatisfiableError):
+            final_state_2 = solver.solve_final_state()
+
+    # allow python to float
+    specs_to_add = MatchSpec("zope.interface>4.1"), MatchSpec("python")
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -1575,6 +1571,23 @@ def test_timestamps_1():
                                                     # than the alternate 'channel-4::python-3.6.2-hda45abc_19'
         )
         assert convert_to_dist_str(link_dists) == order
+
+def test_channel_priority_churn_minimized():
+    specs = MatchSpec("conda-build"), MatchSpec("itsdangerous"),
+    with get_solver_aggregate_2(specs) as solver:
+        final_state = solver.solve_final_state()
+
+    pprint(convert_to_dist_str(final_state))
+
+    with get_solver_aggregate_2([MatchSpec('itsdangerous')],
+                                prefix_records=final_state, history_specs=specs) as solver:
+        solver.channels.reverse()
+        unlink_dists, link_dists = solver.solve_for_diff(
+            update_modifier=UpdateModifier.FREEZE_INSTALLED)
+        pprint(convert_to_dist_str(unlink_dists))
+        pprint(convert_to_dist_str(link_dists))
+        assert len(unlink_dists) == 1
+        assert len(link_dists) == 1
 
 
 def test_remove_with_constrained_dependencies():
@@ -1829,7 +1842,13 @@ def test_freeze_deps_1():
         assert convert_to_dist_str(link_precs) == link_order
 
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
-    specs_to_add = MatchSpec("bokeh=0.12.5"),
+    with pytest.raises(UnsatisfiableError):
+        specs_to_add = MatchSpec("bokeh=0.12.5"),
+        with get_solver_2(specs_to_add, prefix_records=final_state_1,
+                        history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
+            unlink_precs, link_precs = solver.solve_for_diff()
+
+    specs_to_add = MatchSpec("bokeh=0.12.5"), MatchSpec("python")
     with get_solver_2(specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
@@ -1944,19 +1963,21 @@ class PrivateEnvTests(TestCase):
 
 
 def test_current_repodata_usage():
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('win-64',),
-                    specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
-    final_state = solver.solve_final_state()
-    # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
-    assert final_state
-    checked = False
-    for prec in final_state:
-        if prec.name == 'zlib':
-            assert prec.version == '1.2.11'
-            assert prec.fn.endswith('.conda')
-            checked = True
-    if not checked:
-        raise ValueError("Didn't have expected state in solve (needed zlib record)")
+    # force this to False, because otherwise tests fail when run with old conda-build
+    with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('win-64',),
+                        specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
+        final_state = solver.solve_final_state()
+        # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
+        assert final_state
+        checked = False
+        for prec in final_state:
+            if prec.name == 'zlib':
+                assert prec.version == '1.2.11'
+                assert prec.fn.endswith('.conda')
+                checked = True
+        if not checked:
+            raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
 def test_current_repodata_fallback():

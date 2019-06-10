@@ -6,7 +6,7 @@ import pytest
 from conda import CondaMultiError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
-from conda.common.io import env_vars
+from conda.common.io import env_vars, env_var
 from conda.core.index import get_index
 from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from conda.core.path_actions import CacheUrlAction
@@ -67,13 +67,15 @@ zlib_conda_prec = PackageRecord.from_objects({
 )
 
 def test_ProgressiveFetchExtract_prefers_conda_v2_format():
-    index = get_index([CONDA_PKG_REPO], prepend=False)
-    rec = next(iter(index))
-    for rec in index:
-        # zlib is the one package in the test index that has a .conda file record
-        if rec.name == 'zlib':
-            break
-    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(rec)
+    # force this to False, because otherwise tests fail when run with old conda-build
+    with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        index = get_index([CONDA_PKG_REPO], prepend=False)
+        rec = next(iter(index))
+        for rec in index:
+            # zlib is the one package in the test index that has a .conda file record
+            if rec.name == 'zlib':
+                break
+        cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(rec)
     assert cache_action.target_package_basename.endswith('.conda')
     assert extract_action.source_full_path.endswith('.conda')
 
