@@ -272,6 +272,9 @@ class Context(Configuration):
         if search_path is None:
             search_path = SEARCH_PATH
 
+        # used to show the warning only once, and to keep the setting unset
+        self._has_warned_about_only_tar_bz2 = False
+
         if argparse_args:
             # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
             # configuration can be properly loaded from those locations
@@ -625,12 +628,12 @@ class Context(Configuration):
             try:
                 import conda_build
                 use_only_tar_bz2 = VersionOrder(conda_build.__version__) < VersionOrder("3.18.3")
-                if use_only_tar_bz2:
+                if use_only_tar_bz2 and not self._has_warned_about_only_tar_bz2:
                     log.warn("Conda is constrained to only using the old .tar.bz2 file format "
                              "because you have conda-build installed, and it is <3.18.3.  Update "
                              "or remove conda-build to get smaller downloads and faster "
                              "extractions.")
-                    self._use_only_tar_bz2 = True
+                    self._has_warned_about_only_tar_bz2 = True
             except ImportError:
                 pass
             if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
