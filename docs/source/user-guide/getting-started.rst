@@ -110,7 +110,7 @@ If a newer version of conda is available, type ``y`` to update:
 
 .. _managing-envs:
 
-Managing Environments
+Managing environments
 =====================
 
 Conda allows you to create separate environments containing files, packages
