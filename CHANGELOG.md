@@ -1,14 +1,46 @@
-## 4.7.2 (2019-06-09)
+## 4.7.2 (2019-06-10)
 
 ### Behavior changes
 
-* 
+* unsatisfiability is determined in a slightly different way now. It no longer
+  uses the SAT solver, but rather determines whether any specs have no
+  candidates at all after running through get_reduced_index. This has been
+  faster in benchmarks, but we welcome further data from your use cases about
+  whether this was a good change.  (#8741)
+* when using the --only-deps flag for the `install` command, conda now
+  explicitly records those specs in your history. This primarily serves to
+  reduce conda accidentally removing packages that you have actually requested.  (#8766)
 
 ### Improvements
 
-*
+* UnsatisfiableError messages are now grouped into categories and explained a bit better.  (#8741)
+* --repodata-fn argument can be passed multiple times to have more fallback
+  paths. `repodata_fns` conda config setting does the same thing, but saves you
+  from needing to do it for every command invocation.  (#8741)
 
 ### Bug fixes
+
+* fix channel flip-flopping that was happening when adding a channel other than earlier ones  (#8741)
+* refactor flow control for multiple repodata files to not use exceptions  (#8741)
+* force conda to use only old .tar.bz2 files if conda-build <3.18.3 is
+  installed. Conda-build breaks when inspecting file contents, and this is fixed
+  in conda-build 3.18.3 (#8741)
+* use --force when using rsync to improve behavior with folders that may exist
+  in the destination somehow. (#8750)
+* handle EPERM errors when renaming, because MacOS lets you remove or create
+  files, but not rename them. Thanks Apple. (#8755)
+* fix conda removing packages installed via `install` with --only-deps flag when
+  either `update` or `remove` commands are run. See behavior changes above.
+  (#8766)
+
+### Contributors
+
+* @csosborn
+* @jjhelmus
+* @katietz
+* @msarahan
+* @rrigdon
+
 
 ## 4.7.1 (2019-05-30)
 
