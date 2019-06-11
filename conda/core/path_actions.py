@@ -624,7 +624,8 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         else:
             target_python_version = self.transaction_context['target_python_version']
             python_short_path = get_python_short_path(target_python_version)
-            python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
+            python_full_path = join(
+                context.target_prefix_override or self.target_prefix, win_path_ok(python_short_path))
 
         create_python_entry_point(self.target_full_path, python_full_path,
                                   self.module, self.func)
