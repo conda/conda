@@ -713,6 +713,14 @@ class Solver(object):
             # direct dependencies of flask.
             graph = PrefixGraph(ssc.solution_precs, self.specs_to_add)
             removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
+            self.specs_to_add = set(self.specs_to_add)
+            for prec in removed_nodes:
+                for dep in prec.depends:
+                    dep = MatchSpec(dep)
+                    if dep.name not in ssc.specs_map:
+                        self.specs_to_add.add(dep)
+            # unfreeze
+            self.specs_to_add = frozenset(self.specs_to_add)
 
             # Add back packages that are already in the prefix.
             specs_to_remove_names = set(spec.name for spec in self.specs_to_remove)
