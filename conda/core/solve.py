@@ -403,6 +403,7 @@ class Solver(object):
         # never, ever freeze anything if we have no history.
         if not ssc.specs_from_history_map:
             return False
+
         pkg_name = target_prec.name
         # if we are FREEZE_INSTALLED (first pass for install)
         freeze = ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED
@@ -461,6 +462,13 @@ class Solver(object):
             (MatchSpec(_.to_match_spec(), optional=True)
              for _ in ssc.prefix_data.iter_records())))) or []
         conflict_specs = set(_.name for _ in conflict_specs)
+        # PrefixGraph here does a toposort, so that we're iterating from parents downward.  This
+        #    ensures that any conflict from an indirect child should also get picked up.
+        for prec in PrefixGraph(ssc.prefix_data.iter_records()).records:
+            if prec.name in conflict_specs:
+                continue
+            if any(MatchSpec(dep).name in conflict_specs for dep in prec.get("depends", [])):
+                conflict_specs.add(prec.name)
 
         for pkg_name, spec in iteritems(ssc.specs_map):
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
@@ -492,8 +500,8 @@ class Solver(object):
         pin_overrides = set()
         for s in ssc.pinned_specs:
             if s.name in explicit_pool:
-                if s.name not in self.specs_to_add_names:
-                    ssc.specs_map[s.name] = s
+                if s.name not in self.specs_to_add_names and not ssc.ignore_pinned:
+                    ssc.specs_map[s.name] = MatchSpec(s, optional=False)
                 elif explicit_pool[s.name] & self._get_package_pool(ssc, [s])[s.name]:
                     ssc.specs_map[s.name] = MatchSpec(s, optional=False)
                     pin_overrides.add(s.name)
@@ -616,13 +624,18 @@ class Solver(object):
             # track_features_specs or pinned_specs, which we should raise an error on.
             specs_map_set = set(itervalues(ssc.specs_map))
             grouped_specs = groupby(lambda s: s in specs_map_set, conflicting_specs)
-            conflicting_pinned_specs = groupby(lambda s: s in ssc.pinned_specs, conflicting_specs)
+            # force optional to true. This is what it is originally in
+            # pinned_specs, but we override that in _add_specs to make it
+            # non-optional when there's a name match in the explicit package
+            # pool
+            conflicting_pinned_specs = groupby(lambda s: MatchSpec(s, optional=True)
+                                               in ssc.pinned_specs, conflicting_specs)
 
             if conflicting_pinned_specs.get(True):
                 in_specs_map = grouped_specs.get(True, ())
                 pinned_conflicts = conflicting_pinned_specs.get(True, ())
                 in_specs_map_or_specs_to_add = ((set(in_specs_map) | set(self.specs_to_add))
-                                                - set(ssc.pinned_specs))
+                                                - set(pinned_conflicts))
 
                 raise SpecsConfigurationConflictError(
                     sorted(s.__str__() for s in in_specs_map_or_specs_to_add),
