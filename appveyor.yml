@@ -44,6 +44,6 @@ test_script:
   #- py.test %ADD_COV% -m "not integration and not installed" -v --basetemp=C:\tmp
   #- py.test %ADD_COV% --cov-append -m "integration and not installed" -v --basetemp=C:\tmp
   - DEL /Q /F conda.egg-info
-  - conda build conda.recipe
-  - codecov --env PYTHON_VERSION --required
-  - python -m conda.common.io
+  # - conda build conda.recipe
+  # - codecov --env PYTHON_VERSION --required
+  # - python -m conda.common.io
