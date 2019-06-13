@@ -270,7 +270,7 @@ class _Activator(object):
             yield self.export_var_tmpl % (key, value)
 
         for script in cmds_dict.get('deactivate_scripts', ()):
-            yield self.run_script_tmpl % script
+            yield self.run_script_tmpl.format(script=script)
 
         for key in cmds_dict.get('unset_vars', ()):
             yield self.unset_var_tmpl % key
@@ -282,7 +282,7 @@ class _Activator(object):
             yield self.export_var_tmpl % (key, value)
 
         for script in cmds_dict.get('activate_scripts', ()):
-            yield self.run_script_tmpl % script
+            yield self.run_script_tmpl.format(script=script)
 
     def build_activate(self, env_name_or_prefix):
         return self._build_activate_stack(env_name_or_prefix, False)
@@ -748,7 +748,7 @@ class PosixActivator(_Activator):
         self.unset_var_tmpl = 'unset %s'
         self.export_var_tmpl = "export %s='%s'"
         self.set_var_tmpl = "%s='%s'"
-        self.run_script_tmpl = '. "%s"'
+        self.run_script_tmpl = 'conda locking --lock "{script}"; . "{script}"; conda locking --unlock "{script}"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')
 
@@ -800,7 +800,7 @@ class CshActivator(_Activator):
         self.unset_var_tmpl = 'unsetenv %s'
         self.export_var_tmpl = 'setenv %s "%s"'
         self.set_var_tmpl = "set %s='%s'"
-        self.run_script_tmpl = 'source "%s"'
+        self.run_script_tmpl = 'conda locking --lock "{script}"; source "{script}"; conda locking --unlock "{script}"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.csh')
 
@@ -844,7 +844,7 @@ class XonshActivator(_Activator):
         self.unset_var_tmpl = 'del $%s'
         self.export_var_tmpl = "$%s = '%s'"
         self.set_var_tmpl = "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
-        self.run_script_tmpl = 'source "%s"'
+        self.run_script_tmpl = 'conda locking --lock "{script}"; source "{script}"; conda locking --unlock "{script}"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
 
@@ -867,7 +867,7 @@ class CmdExeActivator(_Activator):
         self.unset_var_tmpl = '@SET %s='
         self.export_var_tmpl = '@SET "%s=%s"'
         self.set_var_tmpl = '@SET "%s=%s"'  # TODO: determine if different than export_var_tmpl
-        self.run_script_tmpl = '@CALL "%s"'
+        self.run_script_tmpl = 'conda locking --lock "{script}"; @CALL "{script}"; conda locking --unlock "{script}"''
 
         self.hook_source_path = None
         # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
@@ -893,7 +893,7 @@ class FishActivator(_Activator):
         self.unset_var_tmpl = 'set -e %s'
         self.export_var_tmpl = 'set -gx %s "%s"'
         self.set_var_tmpl = 'set -g %s "%s"'
-        self.run_script_tmpl = 'source "%s"'
+        self.run_script_tmpl = 'conda locking --lock "{script}"; source "{script}"; conda locking --unlock "{script}"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d',
                                      'conda.fish')
@@ -928,7 +928,7 @@ class PowerShellActivator(_Activator):
         self.unset_var_tmpl = 'Remove-Item Env:/%s'
         self.export_var_tmpl = '$Env:%s = "%s"'
         self.set_var_tmpl = '$Env:%s = "%s"'
-        self.run_script_tmpl = '. "%s"'
+        self.run_script_tmpl = 'conda locking --lock "{script}"; . "{script}"; conda locking --unlock "{script}"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda-hook.ps1')
 
