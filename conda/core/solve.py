@@ -419,7 +419,6 @@ class Solver(object):
             if update_added:
                 spec_package_pool = self._get_package_pool(ssc, (target_prec.to_match_spec(), ))
                 for spec in self.specs_to_add_names:
-
                     new_explicit_pool = explicit_pool
                     ms = MatchSpec(spec)
                     updated_spec = self._package_has_updates(ssc, ms, installed_pool)
@@ -437,8 +436,21 @@ class Solver(object):
                         break
 
         # if all package specs have overlapping package choices (satisfiable in at least one way)
-        no_conflict = (freeze or update_added) and pkg_name not in conflict_specs
+        no_conflict = ((freeze or update_added) and
+                       pkg_name not in conflict_specs and
+                       (pkg_name not in explicit_pool or
+                        target_prec in explicit_pool[pkg_name]) and
+                       self._compare_pools(ssc, explicit_pool, target_prec.to_match_spec()))
         return no_conflict
+
+    def _compare_pools(self, ssc, explicit_pool, ms):
+        other_pool = self._get_package_pool(ssc, (ms, ))
+        match = True
+        for k in set(other_pool.keys()) & set(explicit_pool.keys()):
+            if not bool(other_pool[k] & explicit_pool[k]):
+                match = False
+                break
+        return match
 
     def _add_specs(self, ssc):
         # For the remaining specs in specs_map, add target to each spec. `target` is a reference
@@ -462,6 +474,12 @@ class Solver(object):
             (MatchSpec(_.to_match_spec(), optional=True)
              for _ in ssc.prefix_data.iter_records())))) or []
         conflict_specs = set(_.name for _ in conflict_specs)
+
+        for spec in ssc.specs_map.values():
+            ms = MatchSpec(spec)
+            if (ms.name in explicit_pool and
+                    not bool(set(ssc.r.find_matches(ms)) & explicit_pool[ms.name])):
+                conflict_specs.add(ms.name)
         # PrefixGraph here does a toposort, so that we're iterating from parents downward.  This
         #    ensures that any conflict from an indirect child should also get picked up.
         for prec in PrefixGraph(ssc.prefix_data.iter_records()).records:
@@ -513,7 +531,13 @@ class Solver(object):
             for prec in ssc.prefix_data.iter_records():
                 if prec.name not in ssc.specs_map:
                     if (prec.name not in conflict_specs and
-                            (prec.name not in explicit_pool or prec in explicit_pool[prec.name])):
+                            (prec.name not in explicit_pool or
+                             prec in explicit_pool[prec.name]) and
+                            # because it's not just immediate deps, but also
+                            # upstream things that matter, we must ensure
+                            # overlap for dependencies of things that have
+                            # otherwise passed our tests
+                            self._compare_pools(ssc, explicit_pool, prec.to_match_spec())):
                         ssc.specs_map[prec.name] = prec.to_match_spec()
                     else:
                         ssc.specs_map[prec.name] = MatchSpec(

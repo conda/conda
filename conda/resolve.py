@@ -422,8 +422,8 @@ class Resolve(object):
             sdeps_with_dep = {k: v.get(dep) for k, v in sdeps.items() if dep in v.keys()}
             if len(sdeps_with_dep) <= 1:
                 continue
-            intersection = set.intersection(*sdeps_with_dep.values())
-            if len(intersection) != 0:
+            # if the two pools overlap, we're good.  Next dep.
+            if bool(set.intersection(*sdeps_with_dep.values())):
                 continue
             filter = {}
             for fkeys in sdeps_with_dep.values():
