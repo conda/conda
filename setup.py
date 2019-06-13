@@ -38,6 +38,7 @@ install_requires = [
     "enum34 ; python_version<'3.4'",
     "futures ; python_version<'3.4'",
     "menuinst ; platform_system=='Windows'",
+    "flufl.lock >=3.2"
 ]
 
 if os.getenv('CONDA_BUILD', None) == '1':
