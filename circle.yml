@@ -12,6 +12,10 @@ main_test: &main_test
   <<: *defaults
   steps:
     - checkout
+    # TODO remove the next again once the dockerfile is updated
+    - run:
+        name: temporal dependencies
+        command: pip install flufl.lock
     - run:
         name: unit tests
         command: |
