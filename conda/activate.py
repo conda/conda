@@ -867,7 +867,7 @@ class CmdExeActivator(_Activator):
         self.unset_var_tmpl = '@SET %s='
         self.export_var_tmpl = '@SET "%s=%s"'
         self.set_var_tmpl = '@SET "%s=%s"'  # TODO: determine if different than export_var_tmpl
-        self.run_script_tmpl = 'conda locking --lock "{script}"; @CALL "{script}"; conda locking --unlock "{script}"''
+        self.run_script_tmpl = 'conda locking --lock "{script}"; @CALL "{script}"; conda locking --unlock "{script}"'
 
         self.hook_source_path = None
         # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
