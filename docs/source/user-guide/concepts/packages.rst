@@ -76,6 +76,59 @@ Package structure
 
 * info contains package metadata
 
+.. _noarch:
+
+Noarch packages
+===============
+Noarch packages are packages that are not architecture specific
+and therefore only have to be built once.
+
+Declaring these packages as ``noarch`` in the ``build`` section of
+the meta.yaml reduces shared CI resources. Therefore, all packages
+that qualify to be noarch packages should be declared as such.
+
+Noarch Python
+-------------
+The ``noarch: python`` directive in the build section
+makes pure-Python packages that only need to be built once.
+
+In order to qualify as a noarch Python package, all of the following
+criteria must be fulfilled:
+
+* No compiled extensions
+
+* No post-link or pre-link or pre-unlink scripts
+
+* No OS-specific build scripts
+
+* No python version specific requirements
+
+* No skips except for Python version. If the recipe is py3 only,
+  remove skip statement and add version constraint on Python in host
+  and run section.
+
+* 2to3 is not used
+
+* Scripts argument in setup.py is not used
+
+* If ``console_script`` entrypoints are in setup.py,
+  they are listed in meta.yaml
+
+* No activate scripts
+
+* Not a dependency of conda
+
+.. note::
+   While ``noarch: python`` does not work with selectors, it does
+   work with version constraints. ``skip: True  # [py2k]`` can sometimes
+   be replaced with a constrained Python version in the host and run
+   subsections, for example:  ``python >=3`` instead of just ``python``.
+
+.. note::
+   Only ``console_script`` entry points have to be listed in meta.yaml.
+   Other entry points do not conflict with ``noarch`` and therefore do
+   not require extra treatment.
+
 .. _link_unlink:
 
 Link and unlink scripts
