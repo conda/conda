@@ -69,6 +69,7 @@ def generate_parser():
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers)
     configure_parser_update(sub_parsers, name='upgrade')
+    configure_parser_locking(sub_parsers)
 
     return p
 
@@ -200,6 +201,37 @@ class NullCountAction(_CountAction):
 # sub-parsers
 #
 # #############################################################################################
+
+def configure_parser_locking(sub_parsers):
+    descr = dedent("""
+    Acquire the lock with a given ID.
+    """)
+    example = dedent("""
+    Examples:
+
+        conda locking --lock <lockid>
+        <cmd>
+        conda locking --unlock <lockid>
+    """)
+    p = sub_parsers.add_parser(
+        'locking',
+        description=descr,
+        help=descr,
+        epilog=example,
+    )
+
+    action = p.add_mutually_exclusive_group()
+    action.add_argument("--lock", action="store_true", help="Acquire the lock.")
+    action.add_argument("--unlock", action="store_true", help="Release the lock.")
+
+    p.add_argument(
+        "lockid",
+        help="ID of the lock. All calls requesting the "
+        "same lock ID will wait for the same lock."
+    )
+
+    p.set_defaults(func='.main_lock.execute')
+
 
 def configure_parser_clean(sub_parsers):
     descr = dedent("""
