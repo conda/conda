@@ -477,23 +477,8 @@ class Solver(object):
         explicit_pool = self._get_package_pool(ssc, self.specs_to_add)
 
         conflict_specs = ssc.r.get_conflicting_specs(list(concatv(
-            self.specs_to_add,
-            (MatchSpec(_.to_match_spec(), optional=True)
-             for _ in ssc.prefix_data.iter_records())))) or []
+            self.specs_to_add, (_.to_match_spec() for _ in ssc.prefix_data.iter_records())))) or []
         conflict_specs = set(_.name for _ in conflict_specs)
-
-        for spec in ssc.specs_map.values():
-            ms = MatchSpec(spec)
-            if (ms.name in explicit_pool and
-                    not bool(set(ssc.r.find_matches(ms)) & explicit_pool[ms.name])):
-                conflict_specs.add(ms.name)
-        # PrefixGraph here does a toposort, so that we're iterating from parents downward.  This
-        #    ensures that any conflict from an indirect child should also get picked up.
-        for prec in PrefixGraph(ssc.prefix_data.iter_records()).records:
-            if prec.name in conflict_specs:
-                continue
-            if any(MatchSpec(dep).name in conflict_specs for dep in prec.get("depends", [])):
-                conflict_specs.add(prec.name)
 
         for pkg_name, spec in iteritems(ssc.specs_map):
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
