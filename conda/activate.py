@@ -28,7 +28,7 @@ log = getLogger(__name__)
 
 
 LOCKING_TEMPLATE = ('conda locking --lock "{{script}}"; '
-                    '{cmd}; '
+                    '{0}; '
                     'conda locking --unlock "{{script}}"')
 
 
