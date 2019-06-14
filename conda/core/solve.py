@@ -389,6 +389,7 @@ class Solver(object):
         return ssc
 
     def _get_package_pool(self, ssc, specs):
+        specs = frozenset(specs)
         if specs in self._pool_cache:
             pool = self._pool_cache[specs]
         else:
