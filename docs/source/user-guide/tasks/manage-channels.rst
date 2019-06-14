@@ -71,7 +71,7 @@ bottom of the channel list, making it the lowest priority::
 Strict channel priority
 =======================
 
-Conda has a strict channel priority feature. Details about it
+As of version 4.6.0, Conda has a strict channel priority feature. Details about it
 can be seen by typing ``conda config --describe channel_priority``.
 
 .. code-block:: none
