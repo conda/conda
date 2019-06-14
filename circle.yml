@@ -12,10 +12,6 @@ main_test: &main_test
   <<: *defaults
   steps:
     - checkout
-    # TODO remove the next again once the dockerfile is updated
-    - run:
-        name: temporal dependencies
-        command: pip install flufl.lock
     - run:
         name: unit tests
         command: |
@@ -93,7 +89,8 @@ conda_build_test: &conda_build_test
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           rm -rf ~/conda/conda.egg-info
-          conda build ~/conda/conda.recipe
+          # TODO remove channels again once flufl.lock is in the defaults channel
+          conda build -c defaults -c conda-forge ~/conda/conda.recipe
 
     - run:
         name: conda-build tests [parallel]
