@@ -9,12 +9,13 @@ from logging import DEBUG, getLogger
 
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
-from ._vendor.toolz import concat, concatv, groupby
+from ._vendor.toolz import concat, groupby
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
-from .common.logic import Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver
+from .common.logic import (Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver,
+                           minimal_unsatisfiable_subset)
 from .common.toposort import toposort
 from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFound,
                          UnsatisfiableError)
@@ -421,8 +422,8 @@ class Resolve(object):
             sdeps_with_dep = {k: v.get(dep) for k, v in sdeps.items() if dep in v.keys()}
             if len(sdeps_with_dep) <= 1:
                 continue
-            intersection = set.intersection(*sdeps_with_dep.values())
-            if len(intersection) != 0:
+            # if the two pools overlap, we're good.  Next dep.
+            if bool(set.intersection(*sdeps_with_dep.values())):
                 continue
             filter = {}
             for fkeys in sdeps_with_dep.values():
@@ -586,6 +587,18 @@ class Resolve(object):
                 reduced = filter_group([s])
                 if reduced:
                     slist.append(s)
+                elif reduced is None:
+                    break
+            if reduced is None:
+                # This filter reset means that unsatisfiable indexes leak through.
+                filter_out = {prec: False if val else "feature not enabled"
+                              for prec, val in iteritems(self.default_filter(features))}
+                # TODO: raise unsatisfiable exception here
+                # Messaging to users should be more descriptive.
+                # 1. Are there no direct matches?
+                # 2. Are there no matches for first-level dependencies?
+                # 3. Have the first level dependencies been invalidated?
+                break
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
@@ -983,31 +996,40 @@ class Resolve(object):
         solution = C.sat(constraints)
         return bool(solution)
 
-    def get_conflicting_specs(self, specs, original_specs=None):
+    def get_conflicting_specs(self, specs):
         if not specs:
             return ()
+        reduced_index = self.get_reduced_index(specs)
 
-        reduced_index = self.get_reduced_index(tuple(specs), sort_by_exactness=False)
+        # Check if satisfiable
+        def mysat(specs, add_if=False):
+            constraints = r2.generate_spec_constraints(C, specs)
+            return C.sat(constraints, add_if)
+
         r2 = Resolve(reduced_index, True, channels=self.channels)
-        scp = context.channel_priority == ChannelPriority.STRICT
-        unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
-        if not unsat_specs:
+        C = r2.gen_clauses()
+        solution = mysat(specs, True)
+        if solution:
             return ()
+        else:
+            # This first result is just a single unsatisfiable core. There may be several.
+            unsat_specs = list(minimal_unsatisfiable_subset(specs, sat=mysat))
+            satisfiable_specs = set(specs) - set(unsat_specs)
 
-        # This first result is just a single unsatisfiable core. There may be several.
-        satisfiable_specs = set(specs) - set(unsat_specs)
-
-        # In this loop, we test each unsatisfiable spec individually against the satisfiable
-        # specs to ensure there are no other unsatisfiable specs in the set.
-        final_unsat_specs = set()
-        while unsat_specs:
-            this_spec = unsat_specs.pop()
-            final_unsat_specs.add(this_spec)
-            test_specs = tuple(concatv((this_spec, ), satisfiable_specs))
-            r2 = Resolve(self.get_reduced_index(test_specs), True, channels=self.channels)
-            _unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
-            unsat_specs.update(_unsat_specs - final_unsat_specs)
-            satisfiable_specs -= set(unsat_specs)
+            # In this loop, we test each unsatisfiable spec individually against the satisfiable
+            # specs to ensure there are no other unsatisfiable specs in the set.
+            final_unsat_specs = set()
+            while unsat_specs:
+                this_spec = unsat_specs.pop(0)
+                final_unsat_specs.add(this_spec)
+                test_specs = satisfiable_specs | {this_spec}
+                C = r2.gen_clauses()  # TODO: wasteful call, but Clauses() needs refactored
+                solution = mysat(test_specs, True)
+                if not solution:
+                    these_unsat = minimal_unsatisfiable_subset(test_specs, sat=mysat)
+                    if len(these_unsat) > 1:
+                        unsat_specs.extend(these_unsat)
+                        satisfiable_specs -= set(unsat_specs)
         return tuple(final_unsat_specs)
 
     def bad_installed(self, installed, new_specs):
