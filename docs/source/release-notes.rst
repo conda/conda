@@ -5,6 +5,27 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+
+4.7.3 (2019-06-14)
+------------------
+
+Bug fixes
+^^^^^^^^^
+
+* Target prefix overrid applies to entry points in addition to replacements in standard files  (#8769)
+* Revert to solver-based unsatisfiability determination  (#8775)
+* Fix renaming of existing prompt function in powershell  (#8774)
+
+
+Contributors
+^^^^^^^^^^^^
+
+* @jjhelmus
+* @msarahan
+* @rrigdon
+* @ScottEvtuch
+
+
 4.7.2 (2019-06-10)
 ------------------
 
