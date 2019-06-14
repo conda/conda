@@ -263,16 +263,18 @@ function TabExpansion($line, $lastWord) {
         Causes the current session's prompt to display the currently activated
         conda environment.
 #>
-function Add-CondaEnvironmentToPrompt() {
-    # We use the same procedure to nest prompts as we did for nested tab completion.
-    if (Test-Path Function:\prompt) {
-        Rename-Item Function:\prompt script:CondaPromptBackup
-    } else {
-        function script:CondaPromptBackup() {
-            # Restore a basic prompt if the definition is missing.
-            "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
-        }
+
+# We use the same procedure to nest prompts as we did for nested tab completion.
+if (Test-Path Function:\prompt) {
+    Rename-Item Function:\prompt CondaPromptBackup
+} else {
+    function CondaPromptBackup() {
+        # Restore a basic prompt if the definition is missing.
+        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
     }
+}
+
+function Add-CondaEnvironmentToPrompt() {
     function global:prompt() {
         if ($Env:CONDA_PROMPT_MODIFIER) {
             $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
