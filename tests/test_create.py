@@ -2788,7 +2788,7 @@ class IntegrationTests(TestCase):
         with pytest.raises(DryRunExit):
             stdout, stderr, _ = run_command(Commands.CREATE, "dummy_channel_incompat_test",
                                             '--dry-run', '-c', 'conda-forge', 'python',
-                                            'boost==1.70.0', 'boost-cpp==1.70.0')
+                                            'boost==1.70.0', 'boost-cpp==1.70.0', no_capture=True)
 
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")
 @pytest.mark.integration
