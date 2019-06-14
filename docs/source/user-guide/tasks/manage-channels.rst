@@ -71,8 +71,13 @@ bottom of the channel list, making it the lowest priority::
 Strict channel priority
 =======================
 
-As of version 4.6.0, Conda has a strict channel priority feature. Details about it
-can be seen by typing ``conda config --describe channel_priority``.
+As of version 4.6.0, Conda has a strict channel priority feature. 
+Strict channel priority can dramatically speed up conda operations and
+also reduce package incompatibility problems. We recommend it as a default.
+However, it may break old environment files, so we plan to delay making it
+conda's out-of-the-box default until the next major version bump, conda 5.0.
+
+Details about it can be seen by typing ``conda config --describe channel_priority``.
 
 .. code-block:: none
 
@@ -89,4 +94,7 @@ can be seen by typing ``conda config --describe channel_priority``.
     True or False. True is now an alias to 'flexible'.
  
     channel_priority: flexible
+
+
+
 
