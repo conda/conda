@@ -78,6 +78,7 @@ class Solver(object):
         self._index = None
         self._r = None
         self._prepared = False
+        self._pool_cache = {}
 
     def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
                               ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL):
@@ -388,9 +389,14 @@ class Solver(object):
         return ssc
 
     def _get_package_pool(self, ssc, specs):
-        pool = ssc.r.get_reduced_index(specs)
-        grouped_pool = groupby(lambda x: x.name, pool)
-        return {k: set(v) for k, v in iteritems(grouped_pool)}
+        if specs in self._pool_cache:
+            pool = self._pool_cache[specs]
+        else:
+            pool = ssc.r.get_reduced_index(specs)
+            grouped_pool = groupby(lambda x: x.name, pool)
+            pool = {k: set(v) for k, v in iteritems(grouped_pool)}
+            self._pool_cache[specs] = pool
+        return pool
 
     def _package_has_updates(self, ssc, spec, installed_pool):
         installed_prec = installed_pool.get(spec.name)
