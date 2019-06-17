@@ -100,7 +100,7 @@ def execute(args, parser):
         env.add_channels(args.channel)
 
     if args.file is None:
-        print(env.to_yaml())
+        print(env.to_dict()) if args.json else print(env.to_yaml())
     else:
         fp = open(args.file, 'wb')
-        env.to_yaml(stream=fp)
+        env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)
