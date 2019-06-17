@@ -44,7 +44,9 @@ The conda package and environment manager is included in all versions of
 Conda is also included in `Anaconda Enterprise
 <https://www.anaconda.com/enterprise/>`_ , which provides on-site enterprise
 package and environment management for Python, R, Node.js, Java, and other
-application stacks. Conda is also available on `PyPI <https://pypi.org/>`_, although
+application stacks. Conda is also available on
+`conda-forge <https://anaconda.org/conda-forge/conda>`_, a community channel.
+You may also get conda on `PyPI <https://pypi.org/>`_, but
 that approach may not be as up to date.
 
 .. toctree::

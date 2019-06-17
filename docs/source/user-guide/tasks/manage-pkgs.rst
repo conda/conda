@@ -12,7 +12,7 @@ Managing packages
 
 
 Searching for packages
-=======================
+======================
 
 Use the terminal or an Anaconda Prompt for the following steps.
 
@@ -96,13 +96,12 @@ see :doc:`../troubleshooting`.
 
 
 Installing packages from Anaconda.org
-=======================================
+=====================================
 
 Packages that are not available using conda install can be
-obtained from Anaconda.org. Formerly Binstar.org, Anaconda.org,
-is a package management service for both public and private
-package repositories. Anaconda.org is an Anaconda
-product, just like Anaconda and Miniconda.
+obtained from Anaconda.org, a package management service for
+both public and private package repositories. Anaconda.org
+is an Anaconda product, just like Anaconda and Miniconda.
 
 To install a package from Anaconda.org:
 
@@ -146,11 +145,16 @@ Installing non-conda packages
 =============================
 
 If a package is not available from conda or Anaconda.org, you may be able to
-find and install the package with another package manager like pip.
+find and install the package via conda-forge or with another package manager
+like pip.
 
 Pip packages do not have all the features of conda packages and we recommend
 first trying to install any package with conda. If the package is unavailable
-through conda, try installing it with pip. The differences between pip and
+through conda, try finding and installing it with
+`conda-forge <https://conda-forge.org/search.html>`_.
+
+If you still cannot install the package, you can try
+installing it with pip. The differences between pip and
 conda packages cause certain unavoidable limits in compatibility but conda
 works hard to be as compatible with pip as possible.
 

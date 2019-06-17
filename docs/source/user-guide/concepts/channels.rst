@@ -21,6 +21,12 @@ You can modify what remote channels are automatically searched.
 You might want to do this to maintain a private or internal channel.
 For details, see how to :ref:`modify your channel lists <config-channels>`.
 
+We use conda-forge as an example channel.
+`Conda-forge <https://conda-forge.org/>`_ is a community channel
+made up of thousands of contributors. Conda-forge itself is analogous to PyPI
+but with a unified, automated build infrastructure and more peer review of
+recipes.
+
 .. _specifying-channels:
 
 Specifying channels when installing packages
