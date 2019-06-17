@@ -14,7 +14,6 @@ from .common import get_prefix, stdout_json
 from ..env import from_environment
 from ..exceptions import CondaEnvException
 
-
 description = """
 Export a given environment
 """
