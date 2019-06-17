@@ -230,7 +230,6 @@ class Environment(object):
             return d
         stream.write(json.dumps(d))
 
-
     def to_yaml(self, stream=None):
         d = self.to_dict()
         out = compat.u(dump(d))
