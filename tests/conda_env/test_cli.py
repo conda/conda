@@ -16,6 +16,7 @@ from conda.utils import massage_arguments
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import EnvironmentFileExtensionNotValid, EnvironmentFileNotFound
 from conda_env.yaml import load as yaml_load
+from conda_env.yaml import odict
 
 from . import support_file
 
@@ -302,6 +303,36 @@ class NewIntegrationTests(unittest.TestCase):
             snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2, '--no-builds')
             assert not e.strip()
             env_description = yaml_load(snowflake)
+            assert len(env_description['dependencies'])
+            for spec_str in env_description['dependencies']:
+                assert spec_str.count('=') == 1
+
+        run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+        assert not env_is_created(test_env_name_2)
+
+    def test_env_export_json(self):
+        """
+            Test conda env export
+        """
+
+        run_conda_command(Commands.CREATE, test_env_name_2, "flask")
+        assert env_is_created(test_env_name_2)
+
+        snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2, '--json')
+
+        with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_json:
+            env_json.write(snowflake)
+            env_json.flush()
+            env_json.close()
+
+            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+            self.assertFalse(env_is_created(test_env_name_2))
+
+            # regression test for #6220
+            snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2, '--no-builds', '--json')
+            assert not e.strip()
+
+            env_description = odict(json.loads(snowflake))
             assert len(env_description['dependencies'])
             for spec_str in env_description['dependencies']:
                 assert spec_str.count('=') == 1

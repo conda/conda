@@ -7,6 +7,7 @@ from collections import OrderedDict
 from itertools import chain
 import os
 import re
+import json
 
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
@@ -217,7 +218,7 @@ class Environment(object):
     def remove_channels(self):
         self.channels = []
 
-    def to_dict(self):
+    def to_dict(self, stream=None):
         d = yaml.dict([('name', self.name)])
         if self.channels:
             d['channels'] = self.channels
@@ -225,7 +226,10 @@ class Environment(object):
             d['dependencies'] = self.dependencies.raw
         if self.prefix:
             d['prefix'] = self.prefix
-        return d
+        if stream is None:
+            return d
+        stream.write(json.dumps(d))
+
 
     def to_yaml(self, stream=None):
         d = self.to_dict()

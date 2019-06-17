@@ -6,6 +6,7 @@ from __future__ import absolute_import, print_function
 from argparse import RawDescriptionHelpFormatter
 import os
 import textwrap
+import json
 
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 
@@ -100,7 +101,7 @@ def execute(args, parser):
         env.add_channels(args.channel)
 
     if args.file is None:
-        print(env.to_dict()) if args.json else print(env.to_yaml())
+        print(json.dumps(env.to_dict())) if args.json else print(env.to_yaml())
     else:
         fp = open(args.file, 'wb')
         env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)
