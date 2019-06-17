@@ -1192,20 +1192,14 @@ def _bashrc_content(conda_prefix, shell):
         }
     else:
         conda_exe = join(conda_prefix, 'bin', 'conda')
-
         if shell in ("csh", "tcsh"):
             conda_initialize_content = dals("""
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
-            set __conda_setup="`%(conda_exe)s shell.%(shell)s hook >& /dev/null`"
-            if ( $? == 0 ) then
-                eval "$__conda_setup"
+            if ( -f "%(conda_prefix)s/etc/profile.d/conda.csh" ) then
+                source "%(conda_prefix)s/etc/profile.d/conda.csh"
             else
-                if ( -f "%(conda_prefix)s/etc/profile.d/conda.sh" ) then
-                    . "%(conda_prefix)s/etc/profile.d/conda.sh"
-                else
-                    export PATH="%(conda_bin)s:$PATH"
-                endif
+                setenv PATH="%(conda_bin)s:$PATH"
             endif
             unset __conda_setup
             # <<< conda initialize <<<
