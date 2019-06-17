@@ -6,14 +6,14 @@ from __future__ import absolute_import, print_function
 from argparse import RawDescriptionHelpFormatter
 import os
 import textwrap
-import json
 
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 
 # conda env import
-from .common import get_prefix
+from .common import get_prefix, stdout_json
 from ..env import from_environment
 from ..exceptions import CondaEnvException
+
 
 description = """
 Export a given environment
@@ -101,7 +101,7 @@ def execute(args, parser):
         env.add_channels(args.channel)
 
     if args.file is None:
-        print(json.dumps(env.to_dict())) if args.json else print(env.to_yaml())
+        stdout_json(env.to_dict()) if args.json else print(env.to_yaml())
     else:
         fp = open(args.file, 'wb')
         env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)
