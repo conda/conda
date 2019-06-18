@@ -220,7 +220,7 @@ instead.
 info/about.json
 ---------------
 
-Optional file. Contains the entries in the :ref:`about-section`
+Optional file. Contains the entries in the `about section <https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#about-section>`_
 of the ``meta.yaml`` file. The following keys are
 added to ``info/about.json`` if present in the build recipe:
 
@@ -242,10 +242,10 @@ meta.yaml.rendered
 ------------------
 
 The fully rendered build recipe. See
-`./commands/build/conda-render`.
+`conda render <https://docs.conda.io/projects/conda-build/en/latest/resources/commands/conda-render.html>`_.
 
 This directory is present only when the the include_recipe flag
-is ``True`` in the :ref:`meta-build`.
+is ``True`` in the `build section <https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#build-section>`_.
 
 
 .. _repo-si:
@@ -260,7 +260,7 @@ file ``repodata.json`` lists all conda packages in the platform
 subdirectory. Use ``conda index`` to create such an index from
 the conda packages within a directory. It is simple mapping of
 the full conda package filename to the dictionary object in
-``info/index.json`` described in :doc:`link-scripts`.
+``info/index.json`` described in `link scripts <https://docs.conda.io/projects/conda-build/en/latest/resources/link-scripts.html>`_.
 
 In the following example, a repository provides the conda package
 ``misc-1.0-np17py27_0.tar.bz2`` on 64-bit Linux and 32-bit
