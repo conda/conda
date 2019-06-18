@@ -1201,7 +1201,6 @@ def _bashrc_content(conda_prefix, shell):
             else
                 setenv PATH="%(conda_bin)s:$PATH"
             endif
-            unset __conda_setup
             # <<< conda initialize <<<
             """) % {
                 'conda_exe': conda_exe,

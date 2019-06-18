@@ -787,6 +787,22 @@ class InitializeTests(TestCase):
             print(reversed_content)
             assert reversed_content == expected_reversed_content
 
+    @pytest.mark.skipif(on_win, reason="unix-only test")
+    def test_init_sh_user_tcsh_unix(self):
+        with tempdir() as conda_temp_prefix:
+            target_path = join(conda_temp_prefix, '.tcshrc')
+            init_sh_user(target_path, conda_temp_prefix, 'tcsh')
+
+            with open(target_path) as fh:
+                tcshrc_contet = fh.read()
+
+            conda_csh = "%s/etc/profile.d/conda.csh" % conda_temp_prefix
+            # tcsh/csh doesn't give users the ability to register a function.
+            # Make sure that conda doesn't try to register a function
+            conda_eval_string = "eval \"$__conda_setup\""
+            assert conda_csh in tcshrc_contet
+            assert conda_eval_string not in tcshrc_contet
+
     @pytest.mark.skipif(not on_win, reason="windows-only test")
     def test_init_sh_user_windows(self):
         with tempdir() as conda_temp_prefix:
