@@ -27,8 +27,9 @@
 @REM @FOR /F %%i IN ('%CONDA_EXES% shell.cmd.exe %*') DO @SET _TEMP_SCRIPT_PATH=%%i not return error
 @REM This method will not work if %TMP% contains any spaces.
 :tmpName
-@SET UNIQUE=%TMP%\conda-%RANDOM%.tmp
+@SET UNIQUE=%TMP%\conda-%RANDOM%-%RANDOM%.tmp
 @IF EXIST "%UNIQUE%" goto :tmpName
+@TYPE NUL 1>%UNIQUE%
 @"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE%
 @IF %ErrorLevel% NEQ 0 @EXIT /B %ErrorLevel%
 @FOR /F %%i IN (%UNIQUE%) DO @SET _TEMP_SCRIPT_PATH=%%i
