@@ -10,7 +10,7 @@ import textwrap
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 
 # conda env import
-from .common import get_prefix
+from .common import get_prefix, stdout_json
 from ..env import from_environment
 from ..exceptions import CondaEnvException
 
@@ -100,7 +100,7 @@ def execute(args, parser):
         env.add_channels(args.channel)
 
     if args.file is None:
-        print(env.to_yaml())
+        stdout_json(env.to_dict()) if args.json else print(env.to_yaml())
     else:
         fp = open(args.file, 'wb')
-        env.to_yaml(stream=fp)
+        env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)
