@@ -1,3 +1,32 @@
+## 4.7.4 (2019-06-19)
+
+### Improvements
+
+* Revert to and improve the unsatisfiability determination from 4.7.2 that was reverted in 4.7.3.  It's faster.  (#8783)
+
+### Bug fixes
+
+* fix tcsh/csh init scripts  (#8792)
+
+### Docs improvements
+
+* clean up docs of run_command
+* fix broken links
+* update docs environment.yaml file to update conda-package-handling
+* conda logo favicon
+* update strict channel priority info
+* noarch package content ported from conda-forge
+* add info about conda-forge
+* remove references to things as they were before conda 4.1.  That was a long time ago.  This is not a history book.
+
+### Contributors
+
+* @jjhelmus
+* @msarahan
+* @rrigdon
+* @soapy1
+
+
 ## 4.7.3 (2019-06-14)
 
 ### Bug fixes
