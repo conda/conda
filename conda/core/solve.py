@@ -174,11 +174,11 @@ class Solver(object):
                 default solver behavior is to be as conservative as possible with dependency
                 updates (in the case the dependency already exists in the environment), while
                 still ensuring all dependencies are satisfied.  Options include
-                    * NO_DEPS
-                    * ONLY_DEPS
-                    * UPDATE_DEPS
-                    * UPDATE_DEPS_ONLY_DEPS
-                    * FREEZE_INSTALLED
+                * NO_DEPS
+                * ONLY_DEPS
+                * UPDATE_DEPS
+                * UPDATE_DEPS_ONLY_DEPS
+                * FREEZE_INSTALLED
             prune (bool):
                 If ``True``, the solution will not contain packages that were
                 previously brought into the environment as dependencies but are no longer
