@@ -491,12 +491,12 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
-                log.info("Unable to retrieve repodata (%d error) for %s", status_code,
+                log.info("Unable to retrieve repodata (response: %d) for %s", status_code,
                          url + '/' + repodata_fn)
                 return None
             else:
                 if context.allow_non_channel_urls:
-                    stderrlog.warning("Unable to retrieve repodata (%d error) for %s",
+                    stderrlog.warning("Unable to retrieve repodata (response: %d) for %s",
                                       status_code, url + '/' + repodata_fn)
                     return None
                 else:
