@@ -5,6 +5,39 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.7.4 (2019-06-19)
+------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* Revert to and improve the unsatisfiability determination from 4.7.2 that was reverted in 4.7.3.  It's faster.  (#8783)
+
+Bug fixes
+^^^^^^^^^
+
+* Fix tcsh/csh init scripts  (#8792)
+
+Docs improvements
+^^^^^^^^^^^^^^^^^
+
+* Clean up docs of run_command
+* Fix broken links
+* Update docs environment.yaml file to update conda-package-handling
+* Conda logo favicon
+* Update strict channel priority info
+* Noarch package content ported from conda-forge
+* Add info about conda-forge
+* Remove references to things as they were before conda 4.1.  That was a long time ago.  This is not a history book.
+
+Contributors
+^^^^^^^^^^^^
+
+* @jjhelmus
+* @msarahan
+* @rrigdon
+* @soapy1
+
 
 4.7.3 (2019-06-14)
 ------------------
