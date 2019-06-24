@@ -449,13 +449,15 @@ class Resolve(object):
         raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
     def _get_strict_channel(self, package_name):
+        channel_name = None
         try:
             channel_name = self._strict_channel_cache[package_name]
         except KeyError:
-            all_channel_names = set(prec.channel.name for prec in self.groups[package_name])
-            by_cp = {self._channel_priorities_map.get(cn, 1): cn for cn in all_channel_names}
-            highest_priority = sorted(by_cp)[0]  # highest priority is the lowest number
-            channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
+            if package_name in self.groups:
+                all_channel_names = set(prec.channel.name for prec in self.groups[package_name])
+                by_cp = {self._channel_priorities_map.get(cn, 1): cn for cn in all_channel_names}
+                highest_priority = sorted(by_cp)[0]  # highest priority is the lowest number
+                channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
         return channel_name
 
     @memoizemethod
