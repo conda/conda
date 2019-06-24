@@ -2778,6 +2778,7 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'moto=1.3.7')
 
+    @pytest.mark.skipif(context.subdir == "win-32", reason="dependencies not available for win-32")
     def test_cross_channel_incompatibility(self):
         # regression test for https://github.com/conda/conda/issues/8772
         # conda-forge puts a run_constrains on libboost, which they don't have on conda-forge.
@@ -3062,4 +3063,3 @@ class PrivateEnvIntegrationTests(TestCase):
         assert package_is_installed(self.prefix, "spiffy-test-app=2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
-
