@@ -1,3 +1,23 @@
+## 4.7.5 (2019-06-24)
+
+### Improvements
+
+* improve wording in informational message when a particular `*_repodata.json` can't be found.  No need for alarm.  (#8808)
+
+### Bug fixes
+
+* restore tests being run on win-32 appveyor  (#8801)
+* fix Dist class handling of .conda files  (#8816)
+* fix strict channel priority handling when a package is unsatisfiable and thus not present in the collection  (#8819)
+* handle JSONDecodeError better when package is corrupted at extract time  (#8820)
+
+### Contributors
+
+* @dhirschfeld
+* @msarahan
+* @rrigdon
+
+
 ## 4.7.4 (2019-06-19)
 
 ### Improvements
