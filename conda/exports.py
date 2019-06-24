@@ -83,6 +83,9 @@ md5_file = compute_md5sum
 from .models.version import VersionOrder, normalized_version  # NOQA
 VersionOrder, normalized_version = VersionOrder, normalized_version  # NOQA
 
+from .models.channel import Channel  # NOQA
+Channel = Channel  # NOQA
+
 import conda.base.context  # NOQA
 from .base.context import get_prefix, non_x86_linux_machines, reset_context, sys_rc_path  # NOQA
 non_x86_linux_machines, sys_rc_path = non_x86_linux_machines, sys_rc_path
