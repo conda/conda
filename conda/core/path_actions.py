@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, join
 import re
+import sys
 from uuid import uuid4
 
 from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
@@ -18,7 +19,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.toolz import concat
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
-from ..common.compat import iteritems, on_win, text_type
+from ..common.compat import iteritems, on_win, text_type, JSONDecodeError
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
@@ -42,6 +43,11 @@ from ..models.enums import LinkType, NoarchType, PathType
 from ..models.match_spec import MatchSpec
 from ..models.records import (Link, PackageCacheRecord, PackageRecord, PathDataV1, PathsData,
                               PrefixRecord)
+
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
 
 log = getLogger(__name__)
 
@@ -1217,7 +1223,16 @@ class ExtractPackageAction(PathAction):
         extract_tarball(self.source_full_path, self.target_full_path,
                         progress_update_callback=progress_update_callback)
 
-        raw_index_json = read_index_json(self.target_full_path)
+        try:
+            raw_index_json = read_index_json(self.target_full_path)
+        except (IOError, OSError, JSONDecodeError, FileNotFoundError):
+            # At this point, we can assume the package tarball is bad.
+            # Remove everything and move on.
+            print("ERROR: Encountered corrupt package tarball at %s. Conda has "
+                  "left it in place.  Please report this to the maintainers "
+                  "of your package.  For the defaults channel, please report "
+                  "to https://github.com/continuumio/anaconda-issues" % self.source_full_path)
+            sys.exit(1)
 
         if isinstance(self.record_or_spec, MatchSpec):
             url = self.record_or_spec.get_raw_value('url')
