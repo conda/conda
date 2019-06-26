@@ -87,9 +87,6 @@ In these steps, we assume `git` is installed and available on `PATH`.
        cd "%CONDA_PROJECT_ROOT%"
        git remote add %GITHUB_USERNAME% git@github.com:%GITHUB_USERNAME%/conda
 
-   To be sure that the conda code being interpreted is the code in the project directory,
-   look at the value of `conda location:` in the output of `conda info --all`.
-
 3. Create a local development environment, and activate that environment
 
        .\dev\start.bat
@@ -97,6 +94,9 @@ In these steps, we assume `git` is installed and available on `PATH`.
    This command will create a project-specific base environment at `.\devenv`. If
    the environment already exists, this command will just quickly activate the
    already-created `.\devenv` environment.
+
+   To be sure that the conda code being interpreted is the code in the project directory,
+   look at the value of `conda location:` in the output of `conda info --all`.
 
 
 ## Conda Contributor License Agreement
