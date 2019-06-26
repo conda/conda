@@ -381,10 +381,6 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, pr
     if len(py_full_paths) == 0:
         return []
 
-    for pyc_full_path in pyc_full_paths:
-        if lexists(pyc_full_path):
-            maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
-
     fd, filename = tempfile.mkstemp()
     try:
         for f in py_full_paths:

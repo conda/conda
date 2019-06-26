@@ -575,6 +575,24 @@ class CompileMultiPycAction(MultiPathAction):
                 rm_rf(target_full_path)
 
 
+class AggregateCompileMultiPycAction(CompileMultiPycAction):
+    """Bunch up all of our compile actions, so that they all get carried out at once.
+    This avoids clobbering and is faster when we have several individual packages requiring compilation"""
+    def __init__(self, *individuals, **kw):
+        transaction_context = individuals[0].transaction_context
+        # not used; doesn't matter
+        package_info = individuals[0].package_info
+        target_prefix = individuals[0].target_prefix
+        source_short_paths = set()
+        target_short_paths = set()
+        for individual in individuals:
+            source_short_paths.update(individual.source_short_paths)
+            target_short_paths.update(individual.target_short_paths)
+        super(AggregateCompileMultiPycAction, self).__init__(
+            transaction_context, package_info, target_prefix,
+            source_short_paths, target_short_paths)
+
+
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     @classmethod

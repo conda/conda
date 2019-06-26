@@ -17,7 +17,7 @@ from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePr
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
-                           UpdateHistoryAction)
+                           UpdateHistoryAction, AggregateCompileMultiPycAction)
 from .prefix_data import PrefixData, get_python_version_for_prefix
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -130,7 +130,8 @@ PrefixActionGroup = namedtuple('PrefixActionGroup', (
     'link_action_groups',
     'register_action_groups',
     'compile_action_groups',
-    'prefix_record_groups'
+    'entry_point_action_groups',
+    'prefix_record_groups',
 ))
 
 # each PrefixGroup item is a sequence of ActionGroups
@@ -319,6 +320,14 @@ class UnlinkLinkTransaction(object):
                                           matchspecs_for_link_dists)
         )
 
+        entry_point_action_groups = tuple(
+            ActionGroup('entry_point', pkg_info, cls._make_entry_point_actions(
+                transaction_context, pkg_info, target_prefix, lt, spec, link_action_groups),
+                        target_prefix)
+            for pkg_info, lt, spec in zip(packages_info_to_link, link_types,
+                                          matchspecs_for_link_dists)
+        )
+
         compile_action_groups = tuple(
             ActionGroup('compile', pkg_info, cls._make_compile_actions(
                 transaction_context, pkg_info, target_prefix, lt, spec, link_action_groups),
@@ -332,7 +341,8 @@ class UnlinkLinkTransaction(object):
                                       matchspecs_for_link_dists):
             link_ag = next(ag for ag in link_action_groups if ag.pkg_data == pkg_info)
             compile_ag = next(ag for ag in compile_action_groups if ag.pkg_data == pkg_info)
-            all_link_path_actions = concatv(link_ag.actions, compile_ag.actions)
+            entry_point_ag = next(ag for ag in entry_point_action_groups if ag.pkg_data == pkg_info)
+            all_link_path_actions = concatv(link_ag.actions, compile_ag.actions, entry_point_ag.actions)
             record_axns.extend(CreatePrefixRecordAction.create_actions(
                 transaction_context, pkg_info, target_prefix, lt, spec, all_link_path_actions))
         prefix_record_groups = [ActionGroup('record', None, record_axns, target_prefix)]
@@ -349,8 +359,9 @@ class UnlinkLinkTransaction(object):
             unlink_action_groups,
             unregister_action_groups,
             link_action_groups,
-            compile_action_groups,
             register_action_groups,
+            compile_action_groups,
+            entry_point_action_groups,
             prefix_record_groups,
         )
 
@@ -557,6 +568,7 @@ class UnlinkLinkTransaction(object):
         # link unlink_action_groups and register_action_groups
         link_actions = list(group for group in all_action_groups if group.type == "link")
         compile_actions = list(group for group in all_action_groups if group.type == "compile")
+        entry_point_actions = list(group for group in all_action_groups if group.type == "entry_point")
         record_actions = list(group for group in all_action_groups if group.type == "record")
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
@@ -602,14 +614,21 @@ class UnlinkLinkTransaction(object):
                     if install_side:
                         futures.extend(
                             self.executor.submit(UnlinkLinkTransaction._execute_actions, axngroup)
-                            for axngroup in compile_actions)
+                            for axngroup in entry_point_actions)
+
+                        # consolidate compile actions into one big'un for better parallel efficiency
+                        individual_actions = [axn for ag in compile_actions for axn in ag.actions]
+                        if individual_actions:
+                            composite = AggregateCompileMultiPycAction(*individual_actions)
+                            ag = ActionGroup('compile', None, [composite], composite.target_prefix)
+                            futures.append(
+                                self.executor.submit(UnlinkLinkTransaction._execute_actions, ag))
                         futures.extend(
                             self.executor.submit(UnlinkLinkTransaction._execute_actions, axngroup)
                             for axngroup in record_actions)
                     for future in as_completed(futures):
                         exc = future.result()
                         if exc:
-                            log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
                             exceptions.append(exc)
 
                     # must do the register actions AFTER all link/unlink is done
@@ -827,17 +846,18 @@ class UnlinkLinkTransaction(object):
         ))
 
     @staticmethod
+    def _make_entry_point_actions(transaction_context, package_info, target_prefix,
+                                  requested_link_type, requested_spec, link_action_groups):
+        required_quad = transaction_context, package_info, target_prefix, requested_link_type
+        return CreatePythonEntryPointAction.create_actions(*required_quad)
+
+    @staticmethod
     def _make_compile_actions(transaction_context, package_info, target_prefix,
                               requested_link_type, requested_spec, link_action_groups):
         required_quad = transaction_context, package_info, target_prefix, requested_link_type
-        python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
         link_action_group = next(ag for ag in link_action_groups if ag.pkg_data == package_info)
-        compile_pyc_actions = CompileMultiPycAction.create_actions(
-            *required_quad, file_link_actions=link_action_group.actions)
-        return tuple(concatv(
-            python_entry_point_actions,
-            compile_pyc_actions,
-        ))
+        return CompileMultiPycAction.create_actions(*required_quad,
+                                                    file_link_actions=link_action_group.actions)
 
     def _make_legacy_action_groups(self):
         # this code reverts json output for plan back to previous behavior
