@@ -7,7 +7,6 @@ from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, join
-from subprocess import CalledProcessError
 import sys
 from traceback import format_exception_only
 import warnings
@@ -341,8 +340,11 @@ class UnlinkLinkTransaction(object):
                                       matchspecs_for_link_dists):
             link_ag = next(ag for ag in link_action_groups if ag.pkg_data == pkg_info)
             compile_ag = next(ag for ag in compile_action_groups if ag.pkg_data == pkg_info)
-            entry_point_ag = next(ag for ag in entry_point_action_groups if ag.pkg_data == pkg_info)
-            all_link_path_actions = concatv(link_ag.actions, compile_ag.actions, entry_point_ag.actions)
+            entry_point_ag = next(ag for ag in entry_point_action_groups
+                                  if ag.pkg_data == pkg_info)
+            all_link_path_actions = concatv(link_ag.actions,
+                                            compile_ag.actions,
+                                            entry_point_ag.actions)
             record_axns.extend(CreatePrefixRecordAction.create_actions(
                 transaction_context, pkg_info, target_prefix, lt, spec, all_link_path_actions))
         prefix_record_groups = [ActionGroup('record', None, record_axns, target_prefix)]
@@ -568,7 +570,8 @@ class UnlinkLinkTransaction(object):
         # link unlink_action_groups and register_action_groups
         link_actions = list(group for group in all_action_groups if group.type == "link")
         compile_actions = list(group for group in all_action_groups if group.type == "compile")
-        entry_point_actions = list(group for group in all_action_groups if group.type == "entry_point")
+        entry_point_actions = list(group for group in all_action_groups
+                                   if group.type == "entry_point")
         record_actions = list(group for group in all_action_groups if group.type == "record")
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
@@ -597,7 +600,6 @@ class UnlinkLinkTransaction(object):
                     for future in as_completed(futures):
                         exc = future.result()
                         if exc:
-                            log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
                             exceptions.append(exc)
 
                     # Run post-link or post-unlink scripts and registering AFTER link/unlink,
@@ -606,7 +608,6 @@ class UnlinkLinkTransaction(object):
                     for axngroup in group:
                         exc = UnlinkLinkTransaction._execute_post_link_actions(axngroup)
                         if exc:
-                            log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
                             exceptions.append(exc)
 
                     # parallel block 2:
@@ -616,7 +617,7 @@ class UnlinkLinkTransaction(object):
                             self.executor.submit(UnlinkLinkTransaction._execute_actions, axngroup)
                             for axngroup in entry_point_actions)
 
-                        # consolidate compile actions into one big'un for better parallel efficiency
+                        # consolidate compile actions into one big'un for better efficiency
                         individual_actions = [axn for ag in compile_actions for axn in ag.actions]
                         if individual_actions:
                             composite = AggregateCompileMultiPycAction(*individual_actions)
@@ -637,7 +638,6 @@ class UnlinkLinkTransaction(object):
                     for axngroup in register_actions:
                         exc = UnlinkLinkTransaction._execute_actions(axngroup)
                         if exc:
-                            log.debug('%r'.encode('utf-8'), exc.errors[0], exc_info=True)
                             exceptions.append(exc)
                     if exceptions:
                         break
@@ -649,11 +649,10 @@ class UnlinkLinkTransaction(object):
                 action, is_unlink = (None, axngroup.type == 'unlink')
                 prec = axngroup.pkg_data
 
-                log.error("An error occurred while %s package '%s'.\n"
-                          "%r\n"
-                          "Attempting to roll back.\n",
-                          'uninstalling' if is_unlink else 'installing',
-                          prec and prec.dist_str(), e.errors[0])
+                if prec:
+                    log.error("An error occurred while %s package '%s'." % (
+                            'uninstalling' if is_unlink else 'installing',
+                            prec.dist_str()))
 
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
@@ -705,13 +704,8 @@ class UnlinkLinkTransaction(object):
                 action.execute()
         except Exception as e:  # this won't be a multi error
             # reverse this package
-            log.debug("Error in action %r", action, exc_info=True)
             reverse_excs = ()
             if context.rollback_enabled:
-                # log.error("An error occurred while %s package '%s'.\n"
-                #           "%r\n"
-                #           "Attempting to roll back.\n",
-                #           'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
                 reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
             return CondaMultiError(tuple(concatv(
                 (e,),
@@ -730,13 +724,8 @@ class UnlinkLinkTransaction(object):
                            activate=True)
             except Exception as e:  # this won't be a multi error
                 # reverse this package
-                log.debug("Error in post-link", exc_info=True)
                 reverse_excs = ()
                 if context.rollback_enabled:
-                    log.error("An error occurred while %s package '%s'.\n"
-                              "%r\n"
-                              "Attempting to roll back.\n",
-                              'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
                     reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
                 return CondaMultiError(tuple(concatv(
                     (e,),
@@ -1146,34 +1135,37 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
     env['PKG_BUILDNUM'] = prec.build_number
     env['PATH'] = os.pathsep.join((dirname(path), env.get('PATH', '')))
 
+    log.debug("for %s at %s, executing script: $ %s",
+              prec.dist_str(), env['PREFIX'], ' '.join(command_args))
     try:
-        log.debug("for %s at %s, executing script: $ %s",
-                  prec.dist_str(), env['PREFIX'], ' '.join(command_args))
-
-        subprocess_call(command_args, env=env, path=dirname(path))
-    except CalledProcessError:
-        m = messages(prefix)
-        if action in ('pre-link', 'post-link'):
-            if 'openssl' in prec.dist_str():
-                # this is a hack for conda-build string parsing in the conda_build/build.py
-                #   create_env function
-                message = "%s failed for: %s" % (action, prec)
+        response = subprocess_call(command_args, env=env, path=dirname(path), raise_on_error=False)
+        if response.rc != 0:
+            m = messages(prefix)
+            if action in ('pre-link', 'post-link'):
+                if 'openssl' in prec.dist_str():
+                    # this is a hack for conda-build string parsing in the conda_build/build.py
+                    #   create_env function
+                    message = "%s failed for: %s" % (action, prec)
+                else:
+                    message = dals("""
+                    %s script failed for package %s
+                    location of failed script: %s
+                    ==> script messages <==
+                    %s
+                    ==> script output <==
+                    stdout: %s
+                    stderr: %s
+                    return code: %s
+                    """) % (action, prec.dist_str(), path, m or "<None>",
+                            response.stdout, response.stderr, response.rc)
+                raise LinkError(message)
             else:
-                message = dals("""
-                %s script failed for package %s
-                running your command again with `-v` will provide additional information
-                location of failed script: %s
-                ==> script messages <==
-                %s
-                """) % (action, prec.dist_str(), path, m or "<None>")
-            raise LinkError(message)
+                log.warn("%s script failed for package %s\n"
+                         "consider notifying the package maintainer", action, prec.dist_str())
+                return False
         else:
-            log.warn("%s script failed for package %s\n"
-                     "consider notifying the package maintainer", action, prec.dist_str())
-            return False
-    else:
-        messages(prefix)
-        return True
+            messages(prefix)
+            return True
     finally:
         if script_caller is not None:
             if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
