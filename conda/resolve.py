@@ -109,6 +109,7 @@ class Resolve(object):
         self._cached_find_matches = {}  # Dict[MatchSpec, Set[PackageRecord]]
         self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
         self._reduced_index_cache = {}
+        self._pool_cache = {}
         self._strict_channel_cache = {}
 
         # sorting these in reverse order is effectively prioritizing
@@ -470,6 +471,17 @@ class Resolve(object):
         if not specs_by_name:
             return False
         return ms.strictness < specs_by_name[0].strictness
+
+    def _get_package_pool(self, specs):
+        specs = frozenset(specs)
+        if specs in self._pool_cache:
+            pool = self._pool_cache[specs]
+        else:
+            pool = self.get_reduced_index(specs)
+            grouped_pool = groupby(lambda x: x.name, pool)
+            pool = {k: set(v) for k, v in iteritems(grouped_pool)}
+            self._pool_cache[specs] = pool
+        return pool
 
     @time_recorder(module_name=__name__)
     def get_reduced_index(self, explicit_specs, sort_by_exactness=True):

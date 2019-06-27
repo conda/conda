@@ -2030,6 +2030,20 @@ When python appears to the right, that indicates that the thing on the left is s
 not available for the python version you are constrained to.  Your current python version
 is (python=2.6).  Note that conda will not change your python version to a diferent minor version
 unless you explicitly specify that.""")
-        # kwargs = exc.value._kwargs
-        # assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
-        # assert kwargs["pinned_specs"] == ["python=2.6"]
+
+    specs_to_add = MatchSpec("unsatisfiable-with-py26"),
+    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                    history_specs=specs) as solver:
+        with pytest.raises(UnsatisfiableError) as exc:
+            solver.solve_final_state()
+
+        assert str(exc.value).strip() == dals("""The following specifications were found
+to be incompatible with the existing python installation in your environment:
+
+  - unsatisfiable-with-py26 -> scikit-learn==0.13 -> python=2.7
+
+If python is on the left-most side of the chain, that's the version you've asked for.
+When python appears to the right, that indicates that the thing on the left is somehow
+not available for the python version you are constrained to.  Your current python version
+is (python=2.6).  Note that conda will not change your python version to a diferent minor version
+unless you explicitly specify that.""")

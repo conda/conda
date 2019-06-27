@@ -388,17 +388,6 @@ class Solver(object):
                                        if prec not in inconsistent_precs)
         return ssc
 
-    def _get_package_pool(self, ssc, specs):
-        specs = frozenset(specs)
-        if specs in self._pool_cache:
-            pool = self._pool_cache[specs]
-        else:
-            pool = ssc.r.get_reduced_index(specs)
-            grouped_pool = groupby(lambda x: x.name, pool)
-            pool = {k: set(v) for k, v in iteritems(grouped_pool)}
-            self._pool_cache[specs] = pool
-        return pool
-
     def _package_has_updates(self, ssc, spec, installed_pool):
         installed_prec = installed_pool.get(spec.name)
         has_update = installed_prec and any(_.version > installed_prec[0].version
@@ -424,14 +413,14 @@ class Solver(object):
             #    overlaps with the explicit package pool (by name), but they don't share any
             #    actual records, then this target_prec conflicts and should not be pinned
             if update_added:
-                spec_package_pool = self._get_package_pool(ssc, (target_prec.to_match_spec(), ))
+                spec_package_pool = ssc.r._get_package_pool((target_prec.to_match_spec(), ))
                 for spec in self.specs_to_add_names:
                     new_explicit_pool = explicit_pool
                     ms = MatchSpec(spec)
                     updated_spec = self._package_has_updates(ssc, ms, installed_pool)
                     if updated_spec:
                         try:
-                            new_explicit_pool = self._get_package_pool(ssc, (updated_spec, ))
+                            new_explicit_pool = ssc.r._get_package_pool((updated_spec, ))
                         except ResolvePackageNotFound:
                             update_added = False
                             break
@@ -451,7 +440,7 @@ class Solver(object):
         return no_conflict
 
     def _compare_pools(self, ssc, explicit_pool, ms):
-        other_pool = self._get_package_pool(ssc, (ms, ))
+        other_pool = ssc.r._get_package_pool((ms, ))
         match = True
         for k in set(other_pool.keys()) & set(explicit_pool.keys()):
             if not bool(other_pool[k] & explicit_pool[k]):
@@ -474,7 +463,7 @@ class Solver(object):
 
         # the only things we should consider freezing are things that don't conflict with the new
         #    specs being added.
-        explicit_pool = self._get_package_pool(ssc, self.specs_to_add)
+        explicit_pool = ssc.r._get_package_pool(self.specs_to_add)
 
         conflict_specs = ssc.r.get_conflicting_specs(list(concatv(
             self.specs_to_add, (_.to_match_spec() for _ in ssc.prefix_data.iter_records())))) or []
@@ -512,7 +501,7 @@ class Solver(object):
             if s.name in explicit_pool:
                 if s.name not in self.specs_to_add_names and not ssc.ignore_pinned:
                     ssc.specs_map[s.name] = MatchSpec(s, optional=False)
-                elif explicit_pool[s.name] & self._get_package_pool(ssc, [s])[s.name]:
+                elif explicit_pool[s.name] & ssc.r._get_package_pool([s])[s.name]:
                     ssc.specs_map[s.name] = MatchSpec(s, optional=False)
                     pin_overrides.add(s.name)
                 else:
