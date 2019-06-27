@@ -569,17 +569,23 @@ class Solver(object):
         if (any(_.name == 'python' for _ in ssc.solution_precs)
                 and not any(s.name == 'python' for s in self.specs_to_add)):
 
-            # will our prefix record conflict with any explict spec?  If so, don't add
-            #     anything here - let python float when it hasn't been explicitly specified
             python_prefix_rec = ssc.prefix_data.get('python')
             if ('python' not in conflict_specs and
                     ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED):
                 ssc.specs_map['python'] = python_prefix_rec.to_match_spec()
             else:
+                # will our prefix record conflict with any explict spec?  If so, don't add
+                #     anything here - let python float when it hasn't been explicitly specified
                 python_spec = ssc.specs_map.get('python', MatchSpec('python'))
                 if not python_spec.get('version'):
                     pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
-                    ssc.specs_map['python'] = MatchSpec(python_spec, version=pinned_version)
+                    python_spec = MatchSpec(python_spec, version=pinned_version)
+
+                spec_set = (python_spec, ) + tuple(self.specs_to_add)
+                if ssc.r.get_conflicting_specs(spec_set):
+                    # raises a hopefully helpful error message
+                    ssc.r.find_conflicts(spec_set)
+                ssc.specs_map['python'] = python_spec
 
         # For the aggressive_update_packages configuration parameter, we strip any target
         # that's been set.

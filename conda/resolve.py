@@ -318,6 +318,10 @@ class Resolve(object):
                     classes['direct'].add((tuple(chain), chain[0]))
             else:
                 classes['direct'].add((tuple(chain), chain[0]))
+        if classes['python']:
+            # filter out plain single-entry python conflicts.  The python section explains these.
+            classes['direct'] = [_ for _ in classes['direct']
+                                 if _[1].name != 'python' or len(_[0]) > 1]
         return classes
 
     def find_matches_with_strict(self, ms, strict_channel_priority):
@@ -435,7 +439,7 @@ class Resolve(object):
         if not bad_deps:
             for spec in specs:
                 filter = {}
-                for name, valid_pkgs in sdeps[spec].items():
+                for name, valid_pkgs in sdeps.get(spec, {}).items():
                     if name == spec.name:
                         continue
                     for fkey in self.find_matches(MatchSpec(name)):
