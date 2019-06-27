@@ -2019,7 +2019,6 @@ def test_downgrade_python_prevented_with_sane_message():
                     history_specs=specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
-        
         assert str(exc.value).strip() == dals("""The following specifications were found
 to be incompatible with the existing python installation in your environment:
 
@@ -2036,7 +2035,6 @@ unless you explicitly specify that.""")
                     history_specs=specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
-
         assert str(exc.value).strip() == dals("""The following specifications were found
 to be incompatible with the existing python installation in your environment:
 

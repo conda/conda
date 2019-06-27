@@ -21,6 +21,7 @@ from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFou
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType
 from .models.match_spec import MatchSpec
+from .models.prefix_graph import GeneralGraph
 from .models.records import PackageRecord
 from .models.version import VersionOrder
 
@@ -215,19 +216,15 @@ class Resolve(object):
 
         A dependency chain is a tuple of MatchSpec objects, starting with
         the requested spec, proceeding down the dependency tree, ending at
-        a specification that cannot be satisfied. Uses self.valid_ as a
-        filter, both to prevent chains and to allow other routines to
-        prune the list of valid packages with additional criteria.
+        a specification that cannot be satisfied.
 
         Args:
             spec: a package key or MatchSpec
             filter: a dictionary of (prec, valid) pairs to be used when
                 testing for package validity.
-            optional: if True (default), do not enforce optional specifications
-                when considering validity. If False, enforce them.
 
         Returns:
-            A generator of tuples, empty if the MatchSpec is valid.
+            A tuple of tuples, empty if the MatchSpec is valid.
         """
         def chains_(spec, names):
             if spec.name in names:
@@ -237,31 +234,20 @@ class Resolve(object):
                 return
             precs = self.find_matches(spec)
             found = False
-            for prec in precs:
-                for m2 in self.ms_depends(prec):
-                    for x in chains_(m2, names):
-                        found = True
-                        yield (spec,) + x
-            if not found:
-                yield (spec,)
-        return chains_(spec, set())
 
-    def invalid_chains2(self, spec, filter_out, optional=True):
-        def chains_(spec, names):
-            if spec.name in names:
-                return
-            names.add(spec.name)
-            if self.valid2(spec, filter_out, optional):
-                return
-            precs = self.find_matches(spec)
-            found = False
+            conflict_deps = set()
             for prec in precs:
                 for m2 in self.ms_depends(prec):
                     for x in chains_(m2, names):
                         found = True
                         yield (spec,) + x
+                    else:
+                        conflict_deps.add(m2)
             if not found:
-                yield (spec,)
+                conflict_groups = groupby(lambda x: x.name, conflict_deps)
+                for group in conflict_groups.values():
+                    yield (spec,) + MatchSpec.merge(group)
+
         return chains_(spec, set())
 
     def verify_specs(self, specs):
@@ -285,8 +271,9 @@ class Resolve(object):
             else:
                 non_tf_specs.append(ms)
         filter = self.default_filter(feature_names)
-        for ms in non_tf_specs:
-            bad_deps.extend(self.invalid_chains(ms, filter.copy()))
+
+        bad_deps.extend((spec, ) for spec in non_tf_specs if (not spec.optional and
+                                                              not self.find_matches(spec)))
         if bad_deps:
             raise ResolvePackageNotFound(bad_deps)
         return tuple(non_tf_specs), feature_names
@@ -300,8 +287,8 @@ class Resolve(object):
 
         for chain in bad_deps:
             # sometimes chains come in as strings
-            chain = [MatchSpec(_) for _ in chain]
             if chain[-1].name == 'python' and len(chain) > 1 and \
+                    not any(_[0].name == 'python' for _ in specs_to_add) and \
                     any(_[0] for _ in bad_deps if _[0].name == 'python'):
                 python_first_specs = [_[0] for _ in bad_deps if _[0].name == 'python']
                 if python_first_specs:
@@ -318,7 +305,8 @@ class Resolve(object):
                 if not match:
                     classes['direct'].add((tuple(chain), chain[0]))
             else:
-                classes['direct'].add((tuple(chain), chain[0]))
+                if len(chain) > 1 or not any(len(c) > 1 and c[0] == chain[0] for c in bad_deps):
+                    classes['direct'].add((tuple(chain), chain[0]))
         if classes['python']:
             # filter out plain single-entry python conflicts.  The python section explains these.
             classes['direct'] = [_ for _ in classes['direct']
@@ -369,83 +357,40 @@ class Resolve(object):
 
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
-        sdeps = {}
         # For each spec, assemble a dictionary of dependencies, with package
         # name as key, and all of the matching packages as values.
-        for top_level_spec in specs:
-            # find all packages matching a top level specification
-            top_level_pkgs = self.find_matches_with_strict(top_level_spec, strict_channel_priority)
-            top_level_sdeps = {top_level_spec.name: set(top_level_pkgs)}
-
-            # find all depends specs for in top level packages
-            # find the depends names for each top level packages
-            second_level_specs = set()
-            top_level_pkg_dep_names = []
-            for pkg in top_level_pkgs:
-                pkg_deps = self.ms_depends(pkg)
-                second_level_specs.update(pkg_deps)
-                top_level_pkg_dep_names.append([d.name for d in pkg_deps])
-
-            # find all second level packages and their specs
-            slist = []
-            for ms in second_level_specs:
-                deps = top_level_sdeps.setdefault(ms.name, set())
-                for fkey in self.find_matches_with_strict(ms, strict_channel_priority):
-                    deps.add(fkey)
-                    slist.extend(
-                        ms2 for ms2 in self.ms_depends(fkey) if ms2.name != top_level_spec.name)
-
-            # dependency names which appear in all top level packages
-            # have been fully considered and not additions should be make to
-            # the package list for that name
-            locked_names = [top_level_spec.name]
-            if top_level_pkg_dep_names:
-                for name in top_level_pkg_dep_names[0]:
-                    if all(name in names for names in top_level_pkg_dep_names):
-                        locked_names.append(name)
-
-            # build out the rest of the dependency tree
-            while slist:
-                ms2 = slist.pop()
-                if ms2.name in locked_names:
-                    continue
-                deps = top_level_sdeps.setdefault(ms2.name, set())
-                for fkey in self.find_matches_with_strict(ms2, strict_channel_priority):
-                    if fkey not in deps:
-                        deps.add(fkey)
-                        slist.extend(ms3 for ms3 in self.ms_depends(fkey)
-                                     if ms3.name != top_level_spec.name)
-            sdeps[top_level_spec] = top_level_sdeps
+        sdeps = {k: self._get_package_pool((k, )) for k in specs}
 
         # find deps with zero intersection between specs which include that dep
         bad_deps = []
-        deps = set()
-        for sdep in sdeps.values():
-            deps.update(sdep.keys())
+        deps = set.union(*tuple(set(sdep.keys()) for sdep in sdeps.values()))
+        # for each possible package being considered, look at how pools interact
         for dep in deps:
-            sdeps_with_dep = {k: v.get(dep) for k, v in sdeps.items() if dep in v.keys()}
+            sdeps_with_dep = {}
+            for k, v in sdeps.items():
+                if dep in v:
+                    sdeps_with_dep[k] = v
             if len(sdeps_with_dep) <= 1:
                 continue
-            # if the two pools overlap, we're good.  Next dep.
-            if bool(set.intersection(*sdeps_with_dep.values())):
+            # if all of the pools overlap, we're good.  Next dep.
+            if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
                 continue
-            filter = {}
-            for fkeys in sdeps_with_dep.values():
-                for fkey in fkeys:
-                    filter[fkey] = False
-            for spec in sdeps_with_dep.keys():
-                ndeps = set(self.invalid_chains(spec, filter, False))
-                ndeps = [nd for nd in ndeps if nd[-1].name == dep]
-                bad_deps.extend(ndeps)
-        if not bad_deps:
-            for spec in specs:
-                filter = {}
-                for name, valid_pkgs in sdeps.get(spec, {}).items():
-                    if name == spec.name:
-                        continue
-                    for fkey in self.find_matches(MatchSpec(name)):
-                        filter[fkey] = fkey in valid_pkgs
-                bad_deps.extend(self.invalid_chains(spec, filter, False))
+            # start out filtering nothing.  invalid_chains will tweak this dict to filter more
+            #    as it goes
+            records = set.union(*tuple(rec for records in sdeps_with_dep.values() for rec in records.values()))
+            filter = {fkey: False for fkey in records}
+            # determine the invalid chains for each specific spec.  Each of these chains
+            #    should start with `spec` and end with the first encountered conflict.  A
+            #    conflict is something that is either not available at all, or is present in
+            #    more than one pool, but those pools do not all overlap.
+
+            g = GeneralGraph(records)
+            spec_order = sorted(sdeps_with_dep.keys(),
+                                key=lambda x: list(g.graph_by_name.keys()).index(x.name))
+            for spec in spec_order:
+                # the DFS approach works well when things are actually in the graph
+                bad_deps.extend(g.depth_first_search_by_name(spec, dep, sdeps[spec]))
+
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
             bad_deps = [(ms, ) for ms in specs]
