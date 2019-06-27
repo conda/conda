@@ -47,7 +47,7 @@ class PackageInfo(ImmutableEntity):
     package_tarball_full_path = StringField()
     channel = ComposableField(Channel)
     repodata_record = ComposableField(PackageRecord)
-    url = StringField()
+    url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
 
     # attributes within the package tarball
     icondata = StringField(required=False, nullable=True)
