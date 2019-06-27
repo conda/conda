@@ -59,7 +59,7 @@ from conda.gateways.disk.create import mkdir_p, extract_tarball
 from conda.gateways.disk.delete import rm_rf, path_is_clean
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
-from conda.gateways.subprocess import subprocess_call, subprocess_call_with_clean_env
+from conda.gateways.subprocess import subprocess_call, subprocess_call_with_clean_env, Response
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.models.version import VersionOrder
@@ -2709,6 +2709,7 @@ class IntegrationTests(TestCase):
     def test_run_script_called(self):
         import conda.core.link
         with patch.object(conda.core.link, 'subprocess_call') as rs:
+            rs.return_value = Response(None, None, 0)
             with make_temp_env("-c", "http://repo.anaconda.com/pkgs/free", "openssl=1.0.2j", "--no-deps") as prefix:
                 assert package_is_installed(prefix, 'openssl')
                 assert rs.call_count == 1
