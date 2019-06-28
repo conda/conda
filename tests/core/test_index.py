@@ -49,7 +49,7 @@ def test_supplement_index_with_system():
     with env_vars({'CONDA_OVERRIDE_CUDA': '3.2'}):
         _supplement_index_with_system(index)
 
-    cuda_pkg = index['__cuda']
+    cuda_pkg = next(iter(_ for _ in index if _.name == '__cuda'))
     assert cuda_pkg.version == '3.2'
     assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 

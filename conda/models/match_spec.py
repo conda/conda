@@ -449,7 +449,7 @@ class MatchSpec(object):
 
     @classmethod
     def merge(cls, match_specs):
-        match_specs = tuple(cls(s) for s in match_specs if s)
+        match_specs = sorted(tuple(cls(s) for s in match_specs if s), key=str)
         name_groups = groupby(attrgetter('name'), match_specs)
         unmergeable = name_groups.pop('*', []) + name_groups.pop(None, [])
 

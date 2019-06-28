@@ -144,7 +144,7 @@ def _supplement_index_with_system(index):
     cuda_version = context.cuda_version
     if cuda_version is not None:
         rec = _make_virtual_package('__cuda', cuda_version)
-        index[rec.name] = rec
+        index[rec] = rec
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):

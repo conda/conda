@@ -872,6 +872,7 @@ class Solver(object):
             reduced_index = get_reduced_index(self.prefix, self.channels,
                                               self.subdirs, prepared_specs, self._repodata_fn)
             _supplement_index_with_system(reduced_index)
+
             self._prepared_specs = prepared_specs
             self._index = reduced_index
             self._r = Resolve(reduced_index, channels=self.channels)

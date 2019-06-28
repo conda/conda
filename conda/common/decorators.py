@@ -10,6 +10,7 @@ def env_override(envvar_name, convert_empty_to_none=False):
     def decorator(func):
         def wrapper(*args, **kwargs):
             value = os.environ.get(envvar_name, None)
+
             if value is not None:
                 if value == '' and convert_empty_to_none:
                     return None

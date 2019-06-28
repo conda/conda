@@ -2230,7 +2230,7 @@ class IntegrationTests(TestCase):
         SubdirData._cache_.clear()
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        with make_temp_env(prefix=prefix):
+        with make_temp_env(prefix=prefix, no_capture=True):
             # First, clear the index cache to make sure we start with an empty cache.
             index_cache_dir = create_cache_dir()
             run_command(Commands.CLEAN, '', "--index-cache")

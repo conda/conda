@@ -657,7 +657,7 @@ to be incompatible with the existing python installation in your environment:\n{
 If python is on the left-most side of the chain, that's the version you've asked for.
 When python appears to the right, that indicates that the thing on the left is somehow
 not available for the python version you are constrained to.  Your current python version
-is ({ref}).  Note that conda will not change your python version to a diferent minor version
+is ({ref}).  Note that conda will not change your python version to a different minor version
 unless you explicitly specify that.
 
         '''),
@@ -671,6 +671,12 @@ explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
 
 The following specifications were found to be incompatible with each other:\n{specs}
 
+                    '''),
+                            'cuda': dals('''
+
+The following specifications were found to be incompatible with your CUDA driver:\n{specs}
+
+Your installed CUDA driver is: {ref}
 ''')}
 
         msg = ""
@@ -679,7 +685,6 @@ The following specifications were found to be incompatible with each other:\n{sp
                 _chains = []
                 for dep_chain, installed_blocker in dep_class:
                     # Remove any target values from the MatchSpecs, convert to strings
-                    installed_blocker = str(MatchSpec(installed_blocker, target=None))
                     dep_chain = [str(MatchSpec(dep, target=None)) for dep in dep_chain]
                     _chains.append(dep_chain)
 

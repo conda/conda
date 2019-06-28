@@ -274,7 +274,7 @@ class PrefixGraph(object):
         In the case of a tie, use the node with the alphabetically-first package name.
         """
         node_with_fewest_parents = sorted(
-            (len(parents), node.name, node) for node, parents in iteritems(graph)
+            (len(parents), node.dist_str(), node) for node, parents in iteritems(graph)
         )[0][2]
         graph.pop(node_with_fewest_parents)
 
