@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import defaultdict, OrderedDict
 from logging import getLogger
 
 from .enums import NoarchType
@@ -32,18 +33,19 @@ class PrefixGraph(object):
     def __init__(self, records, specs=()):
         records = tuple(records)
         specs = set(specs)
-        graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]
+        self.graph = graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]
         self.spec_matches = spec_matches = {}  # Dict[PrefixRecord, Set[MatchSpec]]
         for node in records:
             parent_match_specs = tuple(MatchSpec(d) for d in node.depends)
             parent_nodes = set(
-                rec for rec in records if any(m.match(rec) for m in parent_match_specs)
+                rec for rec in records
+                if any(m.match(rec) for m in parent_match_specs)
             )
             graph[node] = parent_nodes
             matching_specs = IndexedSet(s for s in specs if s.match(node))
             if matching_specs:
                 spec_matches[node] = matching_specs
-        self.graph = graph
+
         self._toposort()
 
     def remove_spec(self, spec):
@@ -271,7 +273,7 @@ class PrefixGraph(object):
         In the case of a tie, use the node with the alphabetically-first package name.
         """
         node_with_fewest_parents = sorted(
-            (len(parents), node.name, node) for node, parents in iteritems(graph)
+            (len(parents), node.dist_str(), node) for node, parents in iteritems(graph)
         )[0][2]
         graph.pop(node_with_fewest_parents)
 
@@ -321,7 +323,6 @@ class PrefixGraph(object):
                     if (hasattr(node, 'noarch') and node.noarch == NoarchType.python
                             and node not in conda_parents):
                         parents.add(conda_node)
-
 
 #     def dot_repr(self, title=None):  # pragma: no cover
 #         # graphviz DOT graph description language
@@ -379,6 +380,84 @@ class PrefixGraph(object):
 #         except webbrowser.Error:
 #             browser = webbrowser.get()
 #         browser.open_new_tab(path_to_url(location))
+
+class GeneralGraph(PrefixGraph):
+    """
+    Compared with PrefixGraph, this class takes in more than one record of a given name,
+    and operates on that graph from the higher view across any matching dependencies.  It is
+    not a Prefix thing, but more like a "graph of all possible candidates" thing, and is used
+    for unsatisfiability analysis
+    """
+
+    def __init__(self, records, specs=()):
+        records = tuple(records)
+        super(GeneralGraph, self).__init__(records, specs)
+        self.specs_by_name = defaultdict(dict)
+        for node in records:
+            parent_dict = self.specs_by_name.get(node.name, OrderedDict())
+            for dep in tuple(MatchSpec(d) for d in node.depends):
+                deps = parent_dict.get(dep.name, set())
+                deps.add(dep)
+                parent_dict[dep.name] = deps
+            self.specs_by_name[node.name] = parent_dict
+
+        consolidated_graph = OrderedDict()
+        # graph is toposorted, so looping over it is in dependency order
+        for node, parent_nodes in reversed(self.graph.items()):
+            cg = consolidated_graph.get(node.name, set())
+            cg.update(_.name for _ in parent_nodes)
+            consolidated_graph[node.name] = cg
+        self.graph_by_name = consolidated_graph
+
+    def depth_first_search_by_name(self, root_spec, spec_name, allowed_specs):
+        """Return paths from root_spec to spec_name"""
+        if root_spec.name == spec_name:
+            return [[root_spec]]
+        visited = set()
+
+        def try_children(node, spec_name, chains=None):
+            visited.add(node)
+            if not chains:
+                chains = [[node]]
+            if node == spec_name:
+                return chains
+            new_chains = []
+            for chain in chains[:]:
+                children = sorted(self.graph_by_name.get(chain[-1], set()),
+                                  key=lambda x: list(self.graph_by_name.keys()).index(x))
+                # short circuit because it is the answer we're looking for
+                if spec_name in children:
+                    children = [spec_name]
+                for child in children:
+                    if child == chain[0]:
+                        new_chains.append([root_spec])
+                        continue
+                    new_chains.extend([chain + [child] for chain in chains])
+                    if child == spec_name:
+                        break
+                    elif child not in visited:
+                        # if we have other children, or if we've found a match
+                        new_chains = try_children(child, spec_name, new_chains)[:]
+            return new_chains
+
+        chains = try_children(root_spec.name, spec_name)
+
+        final_chains = []
+        for chain in sorted(chains, key=len):
+            if chain[0] == root_spec.name and chain[-1] == spec_name:
+                # remap to matchspecs
+                #   specs_by_name has two keys: parent, then name of spec
+                matchspecs_for_chain = []
+                for idx, name in enumerate(chain[1:]):
+                    matchspecs_to_merge = []
+                    matchspecs = self.specs_by_name[chain[idx]][name]
+                    for ms in matchspecs:
+                        if any(ms.match(rec) for rec in allowed_specs[ms.name]):
+                            matchspecs_to_merge.append(ms)
+                    matchspecs_for_chain.append(MatchSpec.merge(matchspecs_to_merge)[0])
+                final_chains.append([root_spec] + matchspecs_for_chain)
+                break
+        return final_chains
 
 
 # if __name__ == "__main__":

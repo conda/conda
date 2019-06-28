@@ -12,6 +12,7 @@ from os.path import join, abspath, dirname
 
 import pytest
 
+from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, Context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
@@ -200,8 +201,15 @@ def test_cuda_fail_1():
     # No cudatoolkit in index for CUDA 8.0
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
         with get_solver_cuda(specs) as solver:
-            with pytest.raises(ResolvePackageNotFound):
+            with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
+
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
+
+  - cudatoolkit -> __cuda[version='>=10.0,>=9.0']
+
+Your installed CUDA driver is: 8.0""")
+
 
 
 def test_cuda_fail_2():
@@ -210,9 +218,13 @@ def test_cuda_fail_2():
     # No CUDA on system
     with env_var('CONDA_OVERRIDE_CUDA', ''):
         with get_solver_cuda(specs) as solver:
-            with pytest.raises(ResolvePackageNotFound):
+            with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
 
+  - cudatoolkit -> __cuda[version='>=10.0,>=9.0']
+
+Your installed CUDA driver is: not available""")
 
 def test_prune_1():
     specs = MatchSpec("numpy=1.6"), MatchSpec("python=2.7.3"), MatchSpec("accelerate"),
@@ -1993,3 +2005,54 @@ def test_current_repodata_fallback():
             checked = True
     if not checked:
         raise ValueError("Didn't have expected state in solve (needed zlib record)")
+
+
+def test_downgrade_python_prevented_with_sane_message():
+    specs = MatchSpec("python=2.6"),
+    with get_solver(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+    # PrefixDag(final_state_1, specs).open_url()
+    pprint(convert_to_dist_str(final_state_1))
+    order = (
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+        'channel-1::python-2.6.8-6',
+    )
+    assert convert_to_dist_str(final_state_1) == order
+
+    # incompatible CLI and configured specs
+    specs_to_add = MatchSpec("scikit-learn==0.13"),
+    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                    history_specs=specs) as solver:
+        with pytest.raises(UnsatisfiableError) as exc:
+            solver.solve_final_state()
+        assert str(exc.value).strip() == dals("""The following specifications were found
+to be incompatible with the existing python installation in your environment:
+
+  - scikit-learn==0.13 -> python=2.7
+
+If python is on the left-most side of the chain, that's the version you've asked for.
+When python appears to the right, that indicates that the thing on the left is somehow
+not available for the python version you are constrained to.  Your current python version
+is (python=2.6).  Note that conda will not change your python version to a different minor version
+unless you explicitly specify that.""")
+
+    specs_to_add = MatchSpec("unsatisfiable-with-py26"),
+    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                    history_specs=specs) as solver:
+        with pytest.raises(UnsatisfiableError) as exc:
+            solver.solve_final_state()
+        assert str(exc.value).strip() == dals("""The following specifications were found
+to be incompatible with the existing python installation in your environment:
+
+  - unsatisfiable-with-py26 -> scikit-learn==0.13 -> python=2.7
+
+If python is on the left-most side of the chain, that's the version you've asked for.
+When python appears to the right, that indicates that the thing on the left is somehow
+not available for the python version you are constrained to.  Your current python version
+is (python=2.6).  Note that conda will not change your python version to a different minor version
+unless you explicitly specify that.""")
