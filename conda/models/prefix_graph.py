@@ -9,7 +9,6 @@ from logging import getLogger
 from .enums import NoarchType
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import groupby
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, on_win
 from ..exceptions import CyclicalDependencyError

@@ -272,8 +272,6 @@ class Resolve(object):
                 feature_names.update(_feature_names)
             else:
                 non_tf_specs.append(ms)
-        filter = self.default_filter(feature_names)
-
         bad_deps.extend((spec, ) for spec in non_tf_specs if (not spec.optional and
                                                               not self.find_matches(spec)))
         if bad_deps:
@@ -284,7 +282,7 @@ class Resolve(object):
         classes = {'python': set(),
                    'request_conflict_with_history': set(),
                    'direct': set(),
-                   'cuda': set(),}
+                   'cuda': set(), }
         specs_to_add = set(MatchSpec(_) for _ in specs_to_add or [])
         history_specs = set(MatchSpec(_) for _ in history_specs or [])
 
@@ -392,8 +390,8 @@ class Resolve(object):
                 continue
             # start out filtering nothing.  invalid_chains will tweak this dict to filter more
             #    as it goes
-            records = set.union(*tuple(rec for records in sdeps_with_dep.values() for rec in records.values()))
-            filter = {fkey: False for fkey in records}
+            records = set.union(*tuple(rec for records in sdeps_with_dep.values()
+                                       for rec in records.values()))
             # determine the invalid chains for each specific spec.  Each of these chains
             #    should start with `spec` and end with the first encountered conflict.  A
             #    conflict is something that is either not available at all, or is present in

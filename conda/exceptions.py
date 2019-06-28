@@ -672,7 +672,7 @@ explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
 The following specifications were found to be incompatible with each other:\n{specs}
 
                     '''),
-                            'cuda': dals('''
+                    'cuda': dals('''
 
 The following specifications were found to be incompatible with your CUDA driver:\n{specs}
 
