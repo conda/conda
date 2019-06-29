@@ -501,7 +501,7 @@ class Solver(object):
             if s.name in explicit_pool:
                 if s.name not in self.specs_to_add_names and not ssc.ignore_pinned:
                     ssc.specs_map[s.name] = MatchSpec(s, optional=False)
-                elif explicit_pool[s.name] & ssc.r._get_package_pool([s])[s.name]:
+                elif explicit_pool[s.name] & ssc.r._get_package_pool([s]).get(s.name, set()):
                     ssc.specs_map[s.name] = MatchSpec(s, optional=False)
                     pin_overrides.add(s.name)
                 else:
