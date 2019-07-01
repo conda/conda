@@ -598,7 +598,7 @@ class Solver(object):
                 if not conda_in_specs_to_add_version:
                     conda_spec = MatchSpec(conda_spec, version=">=%s" % conda_prefix_rec.version)
                 if context.auto_update_conda:
-                    conda_spec = MatchSpec('conda', target=None)
+                    conda_spec = MatchSpec(conda_spec, target=None)
                 ssc.specs_map['conda'] = conda_spec
 
         return ssc
