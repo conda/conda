@@ -2056,3 +2056,44 @@ When python appears to the right, that indicates that the thing on the left is s
 not available for the python version you are constrained to.  Your current python version
 is (python=2.6).  Note that conda will not change your python version to a different minor version
 unless you explicitly specify that.""")
+
+
+def test_indirect_dep_optimized_by_version_over_package_count():
+    """We need to adjust the Anaconda metapackage - custom version - so that it keeps
+    dependencies on all of its components.  That custom package is intended to free up constraints.  However,
+    We learned the hard way that the changes in conda 4.7 can end up removing all components, because
+    anaconda-custom doesn't actually depend on them.
+
+    So, here we go: a new metapackage that we hotfix anaconda-custom to depend on.  This new metapackage
+    is versioned similarly to the real anaconda metapackages, for the sake of accounting for
+    different package collections in different anaconda versions.  This test is for the case where a newer
+    version of that new metapackage has fewer deps (but newer version).  We want it to prefer the newer
+    version.
+    """
+    specs = MatchSpec("anaconda=1.4"),
+    with get_solver(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+
+    # start out with the oldest anaconda.  Using that state, free up zeromq.  Doing this should result in
+    #    two things:
+    #    * the anaconda metapackage goes to the "custom" version
+    #    * zeromq goes up one build number, from 0 to 1.
+    #    * all the other packages from the original anaconda metapackage get removed.
+    #      Only the packages from the _dummy_anaconda_impl remain, but they are new.
+    specs_to_add = MatchSpec("zeromq"),
+    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                    history_specs=specs) as solver:
+        final_state = solver.solve_final_state()
+
+        # anaconda, _dummy_anaconda_impl, zeromq.  NOT bzip2
+        #    note that bzip2 is extra - it would be one less removal - that's the big test here.
+        #    bzip2 is part of the older _dummy_anaconda_impl
+        assert len(final_state) == 3
+
+        for prec in final_state:
+            if prec.name == 'anaconda':
+                assert prec.version == 'custom'
+            elif prec.name == 'zeromq':
+                assert prec.build_number == 1
+            elif prec.name == '_dummy_anaconda_impl':
+                assert prec.version == "2.0"

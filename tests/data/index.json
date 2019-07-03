@@ -21004,5 +21004,39 @@
     "name": "unsatisfiable-with-py26",
     "pub_date": "2013-01-14",
     "version": "1.0"
+  },
+  "anaconda-custom-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+          "_dummy_anaconda_impl"
+      ],
+      "md5": "28a63f84034658e80779e88e70fad7bf",
+      "name": "dummy-anaconda",
+      "pub_date": "2013-01-14",
+      "version": "custom"
+  },
+  "_dummy_anaconda_impl-1.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+          "zeromq",
+          "bzip2"
+      ],
+      "md5": "28a63f84034658e80779e88e70fad7bf",
+      "name": "_dummy_anaconda_impl-1.0-0.tar.bz2",
+      "pub_date": "2013-01-14",
+      "version": "1.0"
+  },
+  "_dummy_anaconda_impl-2.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+          "zeromq"
+      ],
+      "md5": "28a63f84034658e80779e88e70fad7bf",
+      "name": "_dummy_anaconda_impl-1.0-0.tar.bz2",
+      "pub_date": "2013-01-14",
+      "version": "2.0"
   }
 }
