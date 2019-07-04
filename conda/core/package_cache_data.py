@@ -507,7 +507,7 @@ class ProgressiveFetchExtract(object):
                                           for pkgs_dir in context.pkgs_dirs)
                 if pcrec.is_extracted
             ), None)
-            if extracted_pcrec and pcrec_matches(extracted_pcrec):
+            if extracted_pcrec and pcrec_matches(extracted_pcrec) and extracted_pcrec.get('url'):
                 return None, None
 
         # there is no extracted dist that can work, so now we look for tarballs that
@@ -521,7 +521,8 @@ class ProgressiveFetchExtract(object):
             ) if pcrec.is_fetched),
             None
         )
-        if pcrec_from_writable_cache and pcrec_matches(pcrec_from_writable_cache):
+        if pcrec_from_writable_cache and pcrec_matches(pcrec_from_writable_cache) \
+            and pcrec_from_writable_cache.get('url'):
             # extract in place
             extract_axn = ExtractPackageAction(
                 source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
