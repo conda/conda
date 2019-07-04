@@ -522,18 +522,18 @@ class ProgressiveFetchExtract(object):
             None
         )
         if (pcrec_from_writable_cache and pcrec_matches(pcrec_from_writable_cache) and
-        pcrec_from_writable_cache.get('url')):
-            # extract in place
-            extract_axn = ExtractPackageAction(
-                source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
-                target_pkgs_dir=dirname(pcrec_from_writable_cache.package_tarball_full_path),
-                target_extracted_dirname=basename(pcrec_from_writable_cache.extracted_package_dir),
-                record_or_spec=pcrec_from_writable_cache,
-                sha256=pcrec_from_writable_cache.sha256 or sha256,
-                size=pcrec_from_writable_cache.size or size,
-                md5=pcrec_from_writable_cache.md5 or md5,
-            )
-            return None, extract_axn
+            pcrec_from_writable_cache.get('url')):
+                # extract in place
+                extract_axn = ExtractPackageAction(
+                    source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
+                    target_pkgs_dir=dirname(pcrec_from_writable_cache.package_tarball_full_path),
+                    target_extracted_dirname=basename(pcrec_from_writable_cache.extracted_package_dir),
+                    record_or_spec=pcrec_from_writable_cache,
+                    sha256=pcrec_from_writable_cache.sha256 or sha256,
+                    size=pcrec_from_writable_cache.size or size,
+                    md5=pcrec_from_writable_cache.md5 or md5,
+                )
+                return None, extract_axn
 
         pcrec_from_read_only_cache = next((
             pcrec for pcrec in concat(pcache.query(pref_or_spec)
