@@ -522,7 +522,7 @@ class ProgressiveFetchExtract(object):
             None
         )
         if pcrec_from_writable_cache and pcrec_matches(pcrec_from_writable_cache) \
-            and pcrec_from_writable_cache.get('url'):
+        and pcrec_from_writable_cache.get('url'):
             # extract in place
             extract_axn = ExtractPackageAction(
                 source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
