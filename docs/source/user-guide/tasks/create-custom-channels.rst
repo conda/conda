@@ -38,11 +38,11 @@ To create a custom channel:
      win-32/
       package-1.0-0.tar.bz2
 
-#. Run ``conda index`` on each of the platform subdirectories:
+#. Run ``conda index`` on the channel root directory:
 
    .. code::
 
-      conda index channel/linux-64 channel/osx-64
+      conda index channel/
 
    The conda index command generates a file ``repodata.json``, 
    saved to each repository directory, which conda uses to get 
