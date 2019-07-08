@@ -2176,7 +2176,7 @@ class IntegrationTests(TestCase):
         # Step 1. Make sure without the token we don't see the anyjson package
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
-            channel_url = "https://conda.anaconda.org/conda-test"
+            channel_url = "https://conda.anaconda.org/kalefranz"
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             output, _, _ = run_command(Commands.CONFIG, prefix, "--show")
@@ -2195,13 +2195,13 @@ class IntegrationTests(TestCase):
         # Step 2. Now with the token make sure we can see the anyjson package
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
-            channel_url = "https://conda.anaconda.org/t/co-3f5c68c1-4eec-415a-8131-e1cb93a8d7b3/conda-test"
+            channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
 
-            assert yml_obj['channels'] == ["https://conda.anaconda.org/t/<TOKEN>/conda-test"]
+            assert yml_obj['channels'] == ["https://conda.anaconda.org/t/<TOKEN>/kalefranz"]
 
             stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
                                          "linux-64", "--json")

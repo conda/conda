@@ -25,7 +25,7 @@ name: env-1
 dependencies:
   - python
 channels:
-  - conda-test
+  - defaults
 '''
 
 environment_2 = '''
@@ -34,7 +34,7 @@ dependencies:
   - python
   - flask
 channels:
-  - conda-test
+  - defaults
 '''
 
 environment_3_invalid = '''
@@ -43,7 +43,7 @@ dependecies:
   - python
   - flask
 channels:
-  - conda-test
+  - defaults
 foo: bar
 '''
 
