@@ -246,6 +246,21 @@ class Solver(object):
             ssc = self._remove_specs(ssc)
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)
+            if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
+                for pkg in self.specs_to_add:
+                    update_pkg_request = pkg.name
+                    if len([i for i in solution_precs if i.name != update_pkg_request]) > 0:
+                        print('\n\nTrying to update package %s however it seems like '
+                            'you already have this package constrained. If you are '
+                            'sure you want an updated version and are happy with the '
+                            'possibility of a big change to your environment you can '
+                            'force an update by running: \n'
+                            '    $ conda install %s=<version>\n'
+                            % (update_pkg_request, update_pkg_request)
+                        )
+
+            ssc.solution_precs = solution_precs
+
             ssc = self._find_inconsistent_packages(ssc)
             # this will prune precs that are deps of precs that get removed due to conflicts
             ssc = self._run_sat(ssc)
