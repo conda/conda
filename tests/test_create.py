@@ -1051,6 +1051,13 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "python=2.7")
             assert not package_is_installed(prefix, "python=2.7.12")
 
+    def test_pinned_override_with_explicit_spec(self):
+        with make_temp_env("python=3.6") as prefix:
+            run_command(Commands.CONFIG, prefix,
+                        "--add", "pinned_packages", "python=3.6.5")
+            run_command(Commands.INSTALL, prefix, "python=3.7", no_capture=True)
+            assert package_is_installed(prefix, "python=3.7")
+
     def test_remove_all(self):
         with make_temp_env("python") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
