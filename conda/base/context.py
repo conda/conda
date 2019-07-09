@@ -272,9 +272,6 @@ class Context(Configuration):
         if search_path is None:
             search_path = SEARCH_PATH
 
-        # used to show the warning only once, and to keep the setting unset
-        self._has_warned_about_only_tar_bz2 = False
-
         if argparse_args:
             # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
             # configuration can be properly loaded from those locations
