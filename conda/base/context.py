@@ -628,12 +628,6 @@ class Context(Configuration):
             try:
                 import conda_build
                 use_only_tar_bz2 = VersionOrder(conda_build.__version__) < VersionOrder("3.18.3")
-                if use_only_tar_bz2 and not self._has_warned_about_only_tar_bz2:
-                    log.warn("Conda is constrained to only using the old .tar.bz2 file format "
-                             "because you have conda-build installed, and it is <3.18.3.  Update "
-                             "or remove conda-build to get smaller downloads and faster "
-                             "extractions.")
-                    self._has_warned_about_only_tar_bz2 = True
             except ImportError:
                 pass
             if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
