@@ -271,7 +271,8 @@ class Solver(object):
         # add in historically-requested specs
         ssc.specs_map.update(ssc.specs_from_history_map)
 
-        for pkg_name in ('anaconda', 'conda', 'conda-build'):
+        for pkg_name in ('anaconda', 'conda', 'conda-build',
+                         'console_shortcut', 'powershell_shortcut'):
             if pkg_name not in ssc.specs_map and ssc.prefix_data.get(pkg_name, None):
                 ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
 
