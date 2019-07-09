@@ -575,7 +575,12 @@ class Solver(object):
                 if ssc.r.get_conflicting_specs(spec_set):
                     # raises a hopefully helpful error message
                     ssc.r.find_conflicts(spec_set)
-                ssc.specs_map['python'] = python_spec
+                python_prefix_rec = ssc.prefix_data.get('python')
+                if python_prefix_rec:
+                    python_target = python_prefix_rec.dist_str()
+                    ssc.specs_map['python'] = MatchSpec(python_spec, target=python_target)
+                else:
+                    ssc.specs_map['python'] = python_spec
 
         # For the aggressive_update_packages configuration parameter, we strip any target
         # that's been set.
