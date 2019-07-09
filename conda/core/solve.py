@@ -556,12 +556,13 @@ class Solver(object):
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
-        if (any(_.name == 'python' for _ in ssc.solution_precs)
-                and not any(s.name == 'python' for s in self.specs_to_add)):
+        py_in_prefix = any(_.name == 'python' for _ in ssc.solution_precs)
+        py_requested_explicitly = any(s.name == 'python' for s in self.specs_to_add)
+        if py_in_prefix and not py_requested_explicitly:
 
             python_prefix_rec = ssc.prefix_data.get('python')
-            if ('python' not in conflict_specs and
-                    ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED):
+            freeze_installed = ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED
+            if 'python' not in conflict_specs and freeze_installed:
                 ssc.specs_map['python'] = python_prefix_rec.to_match_spec()
             else:
                 # will our prefix record conflict with any explict spec?  If so, don't add
