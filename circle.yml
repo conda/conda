@@ -219,13 +219,13 @@ jobs:
       - image: condatest/linux-64-python-2.7
     environment:
       - CONDA_INSTRUMENTATION_ENABLED: true
-  3.10 conda-build:
+  3.18 conda-build:
     <<: *conda_build_test
     # mpi4py test in conda-build needs py<3.7
     docker:
       - image: condatest/linux-64-python-3.6
     environment:
-      - CONDA_BUILD: 3.10.1
+      - CONDA_BUILD: 3.18.6
       - CONDA_INSTRUMENTATION_ENABLED: true
   flake8: *flake8
   build_docs: *build_docs
@@ -238,6 +238,6 @@ workflows:
       - py37 main tests
       # - py36 main tests
       - py27 main tests
-      - 3.10 conda-build
+      - 3.18 conda-build
       - flake8
       - build_docs
