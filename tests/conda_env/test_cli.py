@@ -25,7 +25,7 @@ name: env-1
 dependencies:
   - python
 channels:
-  - malev
+  - defaults
 '''
 
 environment_2 = '''
@@ -34,7 +34,7 @@ dependencies:
   - python
   - flask
 channels:
-  - malev
+  - defaults
 '''
 
 environment_3_invalid = '''
@@ -43,7 +43,7 @@ dependecies:
   - python
   - flask
 channels:
-  - malev
+  - defaults
 foo: bar
 '''
 
@@ -174,7 +174,7 @@ class IntegrationTests(unittest.TestCase):
             self.assertIsInstance(e, EnvironmentFileNotFound)
 
     def test_create_valid_remote_env(self):
-        run_env_command(Commands.ENV_CREATE, None, 'goanpeca/env-42')
+        run_env_command(Commands.ENV_CREATE, None, 'conda-test/env-42')
         self.assertTrue(env_is_created(test_env_name_42))
 
         o, e = run_conda_command(Commands.INFO, None, "--json")
@@ -373,9 +373,9 @@ class NewIntegrationTests(unittest.TestCase):
         self.assertTrue(env_is_created(test_env_name_2))
 
         # install something from other channel not in config file
-        run_conda_command(Commands.INSTALL, test_env_name_2, "-c", "numba", "llvmlite")
+        run_conda_command(Commands.INSTALL, test_env_name_2, "-c", "conda-test", "test_timestamp_sort")
         snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
-        assert 'numba' in snowflake
+        assert 'conda-test' in snowflake
 
         check1, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
 
