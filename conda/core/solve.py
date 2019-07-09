@@ -593,13 +593,14 @@ class Solver(object):
         if 'conda' in ssc.specs_map and paths_equal(self.prefix, context.conda_prefix):
             conda_prefix_rec = ssc.prefix_data.get('conda')
             if conda_prefix_rec:
+                version_req = ">=%s" % conda_prefix_rec.version
+                conda_requested_explicitly = any(s.name == 'conda' for s in self.specs_to_add)
                 conda_spec = ssc.specs_map['conda']
-
                 conda_in_specs_to_add_version = ssc.specs_map.get('conda', {}).get('version')
                 if not conda_in_specs_to_add_version:
-                    conda_spec = MatchSpec(conda_spec, version=">=%s" % conda_prefix_rec.version)
-                if context.auto_update_conda:
-                    conda_spec = MatchSpec('conda', target=None)
+                    conda_spec = MatchSpec(conda_spec, version=version_req)
+                if context.auto_update_conda and not conda_requested_explicitly:
+                    conda_spec = MatchSpec('conda', version=version_req, target=None)
                 ssc.specs_map['conda'] = conda_spec
 
         return ssc
