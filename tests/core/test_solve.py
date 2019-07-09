@@ -903,6 +903,92 @@ def test_auto_update_conda():
         sys.prefix = saved_sys_prefix
 
 
+def test_explicit_conda_downgrade():
+    specs = MatchSpec("conda=1.5"),
+    with get_solver(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # PrefixDag(final_state_1, specs).open_url()
+        print(convert_to_dist_str(final_state_1))
+        order = (
+            'channel-1::openssl-1.0.1c-0',
+            'channel-1::readline-6.2-0',
+            'channel-1::sqlite-3.7.13-0',
+            'channel-1::system-5.8-1',
+            'channel-1::tk-8.5.13-0',
+            'channel-1::yaml-0.1.4-0',
+            'channel-1::zlib-1.2.7-0',
+            'channel-1::python-2.7.5-0',
+            'channel-1::pyyaml-3.10-py27_0',
+            'channel-1::conda-1.5.2-py27_0',
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        specs_to_add = MatchSpec("conda=1.3"),
+        with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            final_state_2 = solver.solve_final_state()
+            # PrefixDag(final_state_2, specs).open_url()
+            print(convert_to_dist_str(final_state_2))
+            order = (
+                'channel-1::openssl-1.0.1c-0',
+                'channel-1::readline-6.2-0',
+                'channel-1::sqlite-3.7.13-0',
+                'channel-1::system-5.8-1',
+                'channel-1::tk-8.5.13-0',
+                'channel-1::yaml-0.1.4-0',
+                'channel-1::zlib-1.2.7-0',
+                'channel-1::python-2.7.5-0',
+                'channel-1::pyyaml-3.10-py27_0',
+                'channel-1::conda-1.3.5-py27_0',
+            )
+            assert convert_to_dist_str(final_state_2) == order
+
+    saved_sys_prefix = sys.prefix
+    try:
+        sys.prefix = TEST_PREFIX
+        with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            specs_to_add = MatchSpec("conda=1.3"),
+            with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+                final_state_2 = solver.solve_final_state()
+                # PrefixDag(final_state_2, specs).open_url()
+                print(convert_to_dist_str(final_state_2))
+                order = (
+                    'channel-1::openssl-1.0.1c-0',
+                    'channel-1::readline-6.2-0',
+                    'channel-1::sqlite-3.7.13-0',
+                    'channel-1::system-5.8-1',
+                    'channel-1::tk-8.5.13-0',
+                    'channel-1::yaml-0.1.4-0',
+                    'channel-1::zlib-1.2.7-0',
+                    'channel-1::python-2.7.5-0',
+                    'channel-1::pyyaml-3.10-py27_0',
+                    'channel-1::conda-1.3.5-py27_0',
+                )
+                assert convert_to_dist_str(final_state_2) == order
+
+        with env_vars({"CONDA_AUTO_UPDATE_CONDA": "no"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            specs_to_add = MatchSpec("conda=1.3"),
+            with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+                final_state_2 = solver.solve_final_state()
+                # PrefixDag(final_state_2, specs).open_url()
+                print(convert_to_dist_str(final_state_2))
+                order = (
+                    'channel-1::openssl-1.0.1c-0',
+                    'channel-1::readline-6.2-0',
+                    'channel-1::sqlite-3.7.13-0',
+                    'channel-1::system-5.8-1',
+                    'channel-1::tk-8.5.13-0',
+                    'channel-1::yaml-0.1.4-0',
+                    'channel-1::zlib-1.2.7-0',
+                    'channel-1::python-2.7.5-0',
+                    'channel-1::pyyaml-3.10-py27_0',
+                    'channel-1::conda-1.3.5-py27_0',
+                )
+                assert convert_to_dist_str(final_state_2) == order
+    finally:
+        sys.prefix = saved_sys_prefix
+
+
 def test_aggressive_update_packages():
     def solve(prev_state, specs_to_add, order):
         final_state_1, specs = prev_state
