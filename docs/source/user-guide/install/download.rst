@@ -29,7 +29,7 @@ installer.
 
 
 Anaconda or Miniconda?
-=======================
+======================
 
 Choose Anaconda if you:
 
@@ -56,7 +56,7 @@ Choose Miniconda if you:
 
 
 Choosing a version of Anaconda or Miniconda
-=============================================
+===========================================
 
 * Whether you use Anaconda or Miniconda, select the most recent
   version.
@@ -70,7 +70,7 @@ Choosing a version of Anaconda or Miniconda
 
 
 GUI versus command line installer
-==================================
+=================================
 
 Both GUI and command line installers are available for Windows,
 macOS and Linux:
@@ -82,7 +82,7 @@ macOS and Linux:
 
 
 Choosing a version of Python
-================================
+============================
 
 * The last version of Python 2 is 2.7, which is included with
   Anaconda and Miniconda.
@@ -94,7 +94,7 @@ Choosing a version of Python
 
 
 Cryptographic hash verification
-=================================
+===============================
 
 MD5 checksums are available for
 `Miniconda <http://repo.continuum.io/miniconda/>`_ and both MD5 and SHA-256

@@ -23,8 +23,8 @@ For details, see how to :ref:`modify your channel lists <config-channels>`.
 
 We use conda-forge as an example channel.
 `Conda-forge <https://conda-forge.org/>`_ is a community channel
-made up of thousands of contributors. Conda-forge itself is analogous to PyPI
-but with a unified, automated build infrastructure and more peer review of
+made up of thousands of contributors. Conda-forge has a unified,
+automated build infrastructure and more peer review of
 recipes.
 
 .. _specifying-channels:

@@ -53,3 +53,84 @@ environment:
 
 Other conda environments usually contain the same subdirectories
 as the default environment.
+
+Virtual environments
+====================
+
+A virtual environment is a tool that helps to
+keep dependencies required by different projects
+separate by creating isolated Python virtual environments
+for them.
+
+Users can select a Python virtual environment, such as
+Pipenv or Poetry, or a conda virtual
+environment. Some characteristics of the two:
+
+.. list-table::
+   :widths: 20 40 40
+   :header-rows: 1
+
+   * - 
+     - Python virtual environment
+     - Conda virtual environment
+   * - **Libraries**
+     - Statically link, vendor libraries in wheels,
+       or use apt/yum/brew/etc.
+     - Install system-level libraries as conda dependencies
+   * - **System**
+     - Depend on base system install of Python
+     - Python is independent from system
+   * - **Extending environment**
+     - Extend environment with pip
+     - Extended environment with conda or pip
+   * - **Non-Python dependencies**
+     -
+     - Manages non-Python dependencies (R, Perl,
+       arbitrary executables)
+   * - **Tracking dependencies**
+     -
+     - Tracks binary dependencies explicitly
+
+|
+
+Why use Python virtual environments
+===================================
+- You prefer their workflow or spec formats
+- You prefer to use the system Python and libraries
+- You prefer packages that come more directly from the project maintainers
+
+Why use conda virtual environments?
+===================================
+
+- You want control over binary compatibility choices
+- You want to utilize newer language standards
+- You need libraries beyond what the system Python offers
+- You want to manage packages from languages other than Python
+  in the same space
+
+Workflow differentiators
+========================
+
+Some questions to consider as you determine your preferred
+workflow and virtual environment: 
+
+- Is your environment shared across multiple code projects?
+- Does your environment live alongside your code or in a separate place?
+- Do your install steps involve installing any external libraries?
+- Do you want to ship your environment as a speckle of some sort
+  of a big blob of actual stuff?
+- Is a dependency solver a good thing or a bad thing?
+
+Package system differentiators
+==============================
+
+There are potential benefits for choosing PyPI or conda.
+
+PyPI has one global namespace and distributed ownership of that namespace.
+Because of this, it is easier within PyPI to have single sources for a package
+directly from package maintainers.
+
+Conda has unlimited namespaces (channels) and distributed ownership of a
+given channel.
+As such, it is easier to ensure binary compatibility within a channel using
+conda.
