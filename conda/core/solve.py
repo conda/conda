@@ -246,12 +246,12 @@ class Solver(object):
             ssc = self._remove_specs(ssc)
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)
-            if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
-                self.determine_non_update(solution_precs, ssc.specs_map)
+            ssc = self.packages_in_solution_change(ssc)
+            # ssc = self._find_inconsistent_packages(ssc)
+            # # this will prune precs that are deps of precs that get removed due to conflicts
+            # ssc = self._run_sat(ssc)
 
-            ssc = self._find_inconsistent_packages(ssc)
-            # this will prune precs that are deps of precs that get removed due to conflicts
-            ssc = self._run_sat(ssc)
+
             # if there were any conflicts, we need to add their orphaned deps back in
             if ssc.add_back_map:
                 orphan_precs = (set(solution_precs)
@@ -271,25 +271,44 @@ class Solver(object):
 
         return ssc.solution_precs
 
-    def determine_non_update(self, solution_precs, specs_map):
+    def get_request_package_in_solution(self, solution_precs, specs_map):
+        requested_packages_in_solution = {}
         for pkg in self.specs_to_add:
             update_pkg_request = pkg.name
 
-            installed_requested_packages = [(i.name, i.version) for i in solution_precs if i.name == update_pkg_request]
-            installed_requested_packages.extend([(v.name, v.version) for k, v in specs_map.items() if k == update_pkg_request])
+            requested_packages_in_solution[update_pkg_request] = [
+                (i.name, i.version) for i in solution_precs if i.name == update_pkg_request
+            ]
+            requested_packages_in_solution[update_pkg_request].extend(
+                [(v.name, v.version) for k, v in specs_map.items() if k == update_pkg_request])
 
-            if len(installed_requested_packages) > 0:
-                most_restricted_package = [i for i in installed_requested_packages if i[1] is not None][0]
+        return requested_packages_in_solution
 
+    def packages_in_solution_change(self, ssc):
+        pre_packages_in_solution = self.get_request_package_in_solution\
+            (ssc.solution_precs, ssc.specs_map)
+
+        ssc = self._find_inconsistent_packages(ssc)
+        # this will prune precs that are deps of precs that get removed due to conflicts
+        ssc = self._run_sat(ssc)
+
+        post_packages_in_solution = self.get_request_package_in_solution \
+            (ssc.solution_precs, ssc.specs_map)
+
+        if post_packages_in_solution == pre_packages_in_solution:
+            for pkg_name, matches in post_packages_in_solution.items():
+                pkg_match = [m for m in matches if m[1] is not None][0]
                 print('\n\nTrying to update package {update_pkg} however it seems like you already have this package '
-                      'constrained to \n {const_pkg} {const_ver} \nIf you are sure you want an updated version and are '
-                      'happy with the possibility of a big change to your environment you can force an update by '
+                      'constrained to \n    {const_pkg} {const_ver} \nIf you are sure you want an updated version and '
+                      'are happy with the possibility of a big change to your environment you can force an update by '
                       'running: \n'
                       '    $ conda install {update_pkg}=<version>\n'.format(
-                        update_pkg=update_pkg_request,
-                        const_pkg=most_restricted_package[0],
-                        const_ver=most_restricted_package[1])
+                        update_pkg=pkg_name,
+                        const_pkg=pkg_match[0],
+                        const_ver=pkg_match[1])
                       )
+
+        return ssc
 
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):

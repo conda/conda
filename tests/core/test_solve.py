@@ -2142,3 +2142,6 @@ When python appears to the right, that indicates that the thing on the left is s
 not available for the python version you are constrained to.  Your current python version
 is (python=2.6).  Note that conda will not change your python version to a different minor version
 unless you explicitly specify that.""")
+
+def test_determine_non_update():
+    pass
