@@ -247,16 +247,14 @@ class Solver(object):
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)
 
-            pre_packages_in_solution = self.get_request_package_in_solution \
-                (ssc.solution_precs, ssc.specs_map)
+            pre_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
             ssc = self._find_inconsistent_packages(ssc)
             # this will prune precs that are deps of precs that get removed due to conflicts
             ssc = self._run_sat(ssc)
-            post_packages_in_solution = self.get_request_package_in_solution \
-                (ssc.solution_precs, ssc.specs_map)
+            post_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
 
             if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
-                self.packages_in_solution_change(pre_packages_in_solution, post_packages_in_solution, ssc.index.keys())
+                self.packages_in_solution_change(pre_packages, post_packages, ssc.index.keys())
 
             # if there were any conflicts, we need to add their orphaned deps back in
             if ssc.add_back_map:
@@ -278,37 +276,39 @@ class Solver(object):
         return ssc.solution_precs
 
     def get_request_package_in_solution(self, solution_precs, specs_map):
-        requested_packages_in_solution = {}
+        requested_packages = {}
         for pkg in self.specs_to_add:
             update_pkg_request = pkg.name
 
-            requested_packages_in_solution[update_pkg_request] = [
-                (i.name, str(i.version)) for i in solution_precs if i.name == update_pkg_request and i.version is not None
+            requested_packages[update_pkg_request] = [
+                (i.name, str(i.version)) for i in solution_precs
+                if i.name == update_pkg_request and i.version is not None
             ]
-            requested_packages_in_solution[update_pkg_request].extend(
-                [(v.name, str(v.version)) for k, v in specs_map.items() if k == update_pkg_request and v.version is not None])
+            requested_packages[update_pkg_request].extend(
+                [(v.name, str(v.version)) for k, v in specs_map.items()
+                 if k == update_pkg_request and v.version is not None])
 
-        return requested_packages_in_solution
+        return requested_packages
 
-    def packages_in_solution_change(self, pre_packages_in_solution, post_packages_in_solution, index_keys):
+    def packages_in_solution_change(self, pre_packages, post_packages, index_keys):
         update_constrained = False
         for pkg in self.specs_to_add:
-            current_version = max(i[1] for i in pre_packages_in_solution[pkg.name])
+            current_version = max(i[1] for i in pre_packages[pkg.name])
             if current_version == max(i.version for i in index_keys if i.name == pkg.name):
                 continue
             else:
-                if post_packages_in_solution == pre_packages_in_solution:
-                    for pkg_name, matches in post_packages_in_solution.items():
+                if post_packages == pre_packages:
+                    for pkg_name, matches in post_packages.items():
                         pkg_match = [m for m in matches if m[1] is not None][0]
-                        print('\n\nTrying to update package {update_pkg} however it seems like you already have this '
-                              'package constrained to \n    {const_pkg} {const_ver} \nIf you are sure you want an '
-                              'updated version and are happy with the possibility of a big change to your environment '
-                              'you can force an update by running: \n'
+                        print('\n\nTrying to update package {update_pkg} however it seems like '
+                              'you already have this package constrained to \n    {const_pkg} '
+                              '{const_ver} \nIf you are sure you want an updated version and '
+                              'are happy with the possibility of a big change  to your '
+                              'environment you can force an update by running: \n'
                               '    $ conda install {update_pkg}=<version>\n'.format(
-                                update_pkg=pkg_name,
-                                const_pkg=pkg_match[0],
-                                const_ver=pkg_match[1])
-                              )
+                                    update_pkg=pkg_name,
+                                    const_pkg=pkg_match[0],
+                                    const_ver=pkg_match[1]))
                         update_constrained = True
         return update_constrained
 
