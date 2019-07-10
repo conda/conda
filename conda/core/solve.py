@@ -246,12 +246,17 @@ class Solver(object):
             ssc = self._remove_specs(ssc)
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)
+
+            pre_packages_in_solution = self.get_request_package_in_solution \
+                (ssc.solution_precs, ssc.specs_map)
+            ssc = self._find_inconsistent_packages(ssc)
+            # this will prune precs that are deps of precs that get removed due to conflicts
+            ssc = self._run_sat(ssc)
+            post_packages_in_solution = self.get_request_package_in_solution \
+                (ssc.solution_precs, ssc.specs_map)
+
             if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
-                ssc = self.packages_in_solution_change(ssc)
-            else:
-                ssc = self._find_inconsistent_packages(ssc)
-                # this will prune precs that are deps of precs that get removed due to conflicts
-                ssc = self._run_sat(ssc)
+                self.packages_in_solution_change(pre_packages_in_solution, post_packages_in_solution, ssc.index.keys())
 
             # if there were any conflicts, we need to add their orphaned deps back in
             if ssc.add_back_map:
@@ -285,22 +290,13 @@ class Solver(object):
 
         return requested_packages_in_solution
 
-    def packages_in_solution_change(self, ssc):
-        pre_packages_in_solution = self.get_request_package_in_solution\
-            (ssc.solution_precs, ssc.specs_map)
-
-        ssc = self._find_inconsistent_packages(ssc)
-        # this will prune precs that are deps of precs that get removed due to conflicts
-        ssc = self._run_sat(ssc)
-
+    def packages_in_solution_change(self, pre_packages_in_solution, post_packages_in_solution, index_keys):
+        update_constrained = False
         for pkg in self.specs_to_add:
             current_version = max(i[1] for i in pre_packages_in_solution[pkg.name])
-            if current_version == max(i.version for i in ssc.index.keys() if i.name == pkg.name):
+            if current_version == max(i.version for i in index_keys if i.name == pkg.name):
                 continue
             else:
-                post_packages_in_solution = self.get_request_package_in_solution \
-                    (ssc.solution_precs, ssc.specs_map)
-
                 if post_packages_in_solution == pre_packages_in_solution:
                     for pkg_name, matches in post_packages_in_solution.items():
                         pkg_match = [m for m in matches if m[1] is not None][0]
@@ -313,8 +309,8 @@ class Solver(object):
                                 const_pkg=pkg_match[0],
                                 const_ver=pkg_match[1])
                               )
-
-        return ssc
+                        update_constrained = True
+        return update_constrained
 
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):

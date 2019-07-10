@@ -21,6 +21,7 @@ from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
+from conda.models.enums import PackageType
 from conda.resolve import MatchSpec
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, \
     get_index_r_5, get_index_cuda
@@ -2143,5 +2144,44 @@ not available for the python version you are constrained to.  Your current pytho
 is (python=2.6).  Note that conda will not change your python version to a different minor version
 unless you explicitly specify that.""")
 
-def test_determine_non_update():
-    pass
+
+fake_index = [
+    PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test", fn="mypkg-0.1.1",
+        build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+    ),
+    PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test", subdir="conda-test", fn="mypkgnot-1.1.1",
+        build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+    )
+]
+
+
+def test_packages_in_solution_change_already_newest():
+    specs = MatchSpec("mypkg")
+    pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
+    post_packages = {"mypkg": [("mypkg", "0.1.1")]}
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[specs])
+    constrained = solver.packages_in_solution_change(pre_packages, post_packages, fake_index)
+    assert constrained is False
+
+
+def test_packages_in_solution_change_needs_update():
+    specs = MatchSpec("mypkg")
+    pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
+    post_packages = {"mypkg": [("mypkg", "0.1.1")]}
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[specs])
+    constrained = solver.packages_in_solution_change(pre_packages, post_packages, fake_index)
+    assert constrained is False
+
+
+def test_packages_in_solution_change_constrained():
+    specs = MatchSpec("mypkg")
+    pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
+    post_packages = {"mypkg": [("mypkg", "0.1.0")]}
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[specs])
+    constrained = solver.packages_in_solution_change(pre_packages, post_packages, fake_index)
+    assert constrained is True
