@@ -292,6 +292,16 @@ class Solver(object):
 
     def packages_in_solution_change(self, pre_packages, post_packages, index_keys):
         update_constrained = False
+
+        def empty_package_list(pkg):
+            for k, v in pkg.items():
+                if len(v) == 0:
+                    return True
+            return False
+
+        if empty_package_list(pre_packages) or empty_package_list(post_packages):
+            return update_constrained
+
         for pkg in self.specs_to_add:
             current_version = max(i[1] for i in pre_packages[pkg.name])
             if current_version == max(i.version for i in index_keys if i.name == pkg.name):
