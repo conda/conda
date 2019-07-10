@@ -624,7 +624,11 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     # url must be right-padded with '/' to not invalidate any existing caches
     if not url.endswith('/'):
         url += '/'
-    url += repodata_fn
+    # add the repodata_fn in for uniqueness, but keep it off for standard stuff.
+    #    It would be more sane to add it for everything, but old programs (Navigator)
+    #    are looking for the cache under keys without this.
+    if repodata_fn != REPODATA_FN:
+        url += repodata_fn
     md5 = hashlib.md5(ensure_binary(url)).hexdigest()
     return '%s.json' % (md5[:8],)
 

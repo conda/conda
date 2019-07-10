@@ -136,11 +136,11 @@ class StaticFunctionTests(TestCase):
     def test_cache_fn_url_repo_continuum_io(self):
         hash1 = cache_fn_url("http://repo.continuum.io/pkgs/free/osx-64/")
         hash2 = cache_fn_url("http://repo.continuum.io/pkgs/free/osx-64")
-        assert "f98ef494.json" == hash1 == hash2
+        assert "aa99d924.json" == hash1 == hash2
 
         hash3 = cache_fn_url("https://repo.continuum.io/pkgs/free/osx-64/")
         hash4 = cache_fn_url("https://repo.continuum.io/pkgs/free/osx-64")
-        assert "1bd6ed8e.json" == hash3 == hash4 != hash1
+        assert "d85a531e.json" == hash3 == hash4 != hash1
 
         hash5 = cache_fn_url("https://repo.continuum.io/pkgs/free/linux-64/")
         assert hash4 != hash5
@@ -151,11 +151,11 @@ class StaticFunctionTests(TestCase):
     def test_cache_fn_url_repo_anaconda_com(self):
         hash1 = cache_fn_url("http://repo.anaconda.com/pkgs/free/osx-64/")
         hash2 = cache_fn_url("http://repo.anaconda.com/pkgs/free/osx-64")
-        assert "e52e9094.json" == hash1 == hash2
+        assert "1e817819.json" == hash1 == hash2
 
         hash3 = cache_fn_url("https://repo.anaconda.com/pkgs/free/osx-64/")
         hash4 = cache_fn_url("https://repo.anaconda.com/pkgs/free/osx-64")
-        assert "f58e011b.json" == hash3 == hash4 != hash1
+        assert "3ce78580.json" == hash3 == hash4 != hash1
 
         hash5 = cache_fn_url("https://repo.anaconda.com/pkgs/free/linux-64/")
         assert hash4 != hash5
