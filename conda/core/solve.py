@@ -556,12 +556,13 @@ class Solver(object):
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
-        if (any(_.name == 'python' for _ in ssc.solution_precs)
-                and not any(s.name == 'python' for s in self.specs_to_add)):
+        py_in_prefix = any(_.name == 'python' for _ in ssc.solution_precs)
+        py_requested_explicitly = any(s.name == 'python' for s in self.specs_to_add)
+        if py_in_prefix and not py_requested_explicitly:
 
             python_prefix_rec = ssc.prefix_data.get('python')
-            if ('python' not in conflict_specs and
-                    ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED):
+            freeze_installed = ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED
+            if 'python' not in conflict_specs and freeze_installed:
                 ssc.specs_map['python'] = python_prefix_rec.to_match_spec()
             else:
                 # will our prefix record conflict with any explict spec?  If so, don't add
@@ -593,13 +594,14 @@ class Solver(object):
         if 'conda' in ssc.specs_map and paths_equal(self.prefix, context.conda_prefix):
             conda_prefix_rec = ssc.prefix_data.get('conda')
             if conda_prefix_rec:
+                version_req = ">=%s" % conda_prefix_rec.version
+                conda_requested_explicitly = any(s.name == 'conda' for s in self.specs_to_add)
                 conda_spec = ssc.specs_map['conda']
-
                 conda_in_specs_to_add_version = ssc.specs_map.get('conda', {}).get('version')
                 if not conda_in_specs_to_add_version:
-                    conda_spec = MatchSpec(conda_spec, version=">=%s" % conda_prefix_rec.version)
-                if context.auto_update_conda:
-                    conda_spec = MatchSpec('conda', target=None)
+                    conda_spec = MatchSpec(conda_spec, version=version_req)
+                if context.auto_update_conda and not conda_requested_explicitly:
+                    conda_spec = MatchSpec('conda', version=version_req, target=None)
                 ssc.specs_map['conda'] = conda_spec
 
         return ssc
