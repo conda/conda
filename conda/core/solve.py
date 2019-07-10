@@ -247,19 +247,7 @@ class Solver(object):
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)
             if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
-                for pkg in self.specs_to_add:
-                    update_pkg_request = pkg.name
-                    if len([i for i in solution_precs if i.name != update_pkg_request]) > 0:
-                        print('\n\nTrying to update package %s however it seems like '
-                            'you already have this package constrained. If you are '
-                            'sure you want an updated version and are happy with the '
-                            'possibility of a big change to your environment you can '
-                            'force an update by running: \n'
-                            '    $ conda install %s=<version>\n'
-                            % (update_pkg_request, update_pkg_request)
-                        )
-
-            ssc.solution_precs = solution_precs
+                self.determine_non_update(solution_precs, ssc.specs_map)
 
             ssc = self._find_inconsistent_packages(ssc)
             # this will prune precs that are deps of precs that get removed due to conflicts
@@ -282,6 +270,26 @@ class Solver(object):
                   self.prefix, "\n    ".join(prec.dist_str() for prec in ssc.solution_precs))
 
         return ssc.solution_precs
+
+    def determine_non_update(self, solution_precs, specs_map):
+        for pkg in self.specs_to_add:
+            update_pkg_request = pkg.name
+
+            installed_requested_packages = [(i.name, i.version) for i in solution_precs if i.name == update_pkg_request]
+            installed_requested_packages.extend([(v.name, v.version) for k, v in specs_map.items() if k == update_pkg_request])
+
+            if len(installed_requested_packages) > 0:
+                most_restricted_package = [i for i in installed_requested_packages if i[1] is not None][0]
+
+                print('\n\nTrying to update package {update_pkg} however it seems like you already have this package '
+                      'constrained to \n {const_pkg} {const_ver} \nIf you are sure you want an updated version and are '
+                      'happy with the possibility of a big change to your environment you can force an update by '
+                      'running: \n'
+                      '    $ conda install {update_pkg}=<version>\n'.format(
+                        update_pkg=update_pkg_request,
+                        const_pkg=most_restricted_package[0],
+                        const_ver=most_restricted_package[1])
+                      )
 
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
