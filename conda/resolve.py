@@ -1122,7 +1122,10 @@ class Resolve(object):
     def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None):
         # type: (List[str], bool) -> List[PackageRecord]
         if log.isEnabledFor(DEBUG):
-            log.debug('Solving for: %s', dashlist(sorted(text_type(s) for s in specs)))
+            dlist = dashlist(text_type(
+                '%i: %s target=%s optional=%s' % (i, s, s.target, s.optional))
+                for i, s in enumerate(specs))
+            log.debug('Solving for: %s', dlist)
 
         if specs and not isinstance(specs[0], MatchSpec):
             specs = tuple(MatchSpec(_) for _ in specs)
@@ -1199,6 +1202,12 @@ class Resolve(object):
                 speco.append(s)
                 speca.append(s)
         speca.extend(MatchSpec(s) for s in specm)
+
+        if log.isEnabledFor(DEBUG):
+            log.debug('Requested specs: %s', dashlist(sorted(text_type(s) for s in specr)))
+            log.debug('Optional specs: %s', dashlist(sorted(text_type(s) for s in speco)))
+            log.debug('All other specs: %s', dashlist(sorted(text_type(s) for s in speca)))
+            log.debug('missing specs: %s', dashlist(sorted(text_type(s) for s in specm)))
 
         # Removed packages: minimize count
         log.debug("Solve: minimize removed packages")
