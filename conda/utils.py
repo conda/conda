@@ -12,7 +12,7 @@ from ._vendor.auxlib.decorators import memoize
 from ._vendor.auxlib.compat import shlex_split_unicode, string_types, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
 
-from .common.path import win_path_to_unix
+from .common.path import win_path_to_unix, which
 from .common.url import path_to_url
 from os.path import abspath, join, isfile, basename
 from os import environ
@@ -384,7 +384,6 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
     else:
-        from shutil import which
         shell_path = which('bash') or which('sh')
         if shell_path is None:
             raise Exception("No compatible shell found!")

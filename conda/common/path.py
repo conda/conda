@@ -14,6 +14,7 @@ from .compat import on_win, string_types
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.toolz import accumulate, concat, take
+from distutils.spawn import find_executable
 
 try:
     # Python 3
@@ -308,7 +309,6 @@ def win_path_to_unix(path, root_prefix=""):
 
 
 def which(executable):
-    from distutils.spawn import find_executable
     return find_executable(executable)
 
 
