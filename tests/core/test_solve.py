@@ -279,15 +279,24 @@ def test_prune_1():
         pprint(convert_to_dist_str(link_precs))
         unlink_order = (
             'channel-1::accelerate-1.1.0-np16py27_p0',
+            'channel-1::mkl-11.0-np16py27_p0',
+            'channel-1::scikit-learn-0.13.1-np16py27_p0',
             'channel-1::numbapro-0.11.0-np16py27_p0',
+            'channel-1::scipy-0.12.0-np16py27_p0',
+            'channel-1::numexpr-2.1-np16py27_p0',
             'channel-1::numba-0.8.1-np16py27_0',
+            'channel-1::numpy-1.6.2-py27_p4',
+            'channel-1::mkl-service-1.0.0-py27_p0',
             'channel-1::meta-0.4.2.dev-py27_0',
             'channel-1::llvmpy-0.11.2-py27_0',
             'channel-1::bitarray-0.8.1-py27_0',
             'channel-1::llvm-3.2-0',
+            'channel-1::mkl-rt-11.0-p0',
             'channel-1::libnvvm-1.0-p0',
         )
-        link_order = tuple()
+        link_order = (
+            'channel-1::numpy-1.6.2-py27_4',
+        )
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -1415,12 +1424,18 @@ def test_fast_update_with_update_modifier_not_set():
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
         unlink_order = (
+            'channel-4::python-2.7.14-h89e7a4a_22',
             'channel-4::sqlite-3.21.0-h1bed415_2',
+            'channel-4::libedit-3.1-heed3624_0',
             'channel-4::openssl-1.0.2l-h077ae2c_5',
+            'channel-4::ncurses-6.0-h9df7e31_2',
         )
         link_order = (
+            'channel-4::ncurses-6.1-hf484d3e_0',
             'channel-4::openssl-1.0.2p-h14c3975_0',
-            'channel-4::sqlite-3.23.1-he433501_0',
+            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4::sqlite-3.24.0-h84994c4_0',  # sqlite is upgraded
+            'channel-4::python-2.7.15-h1571d57_0',  # python is not upgraded
         )
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
