@@ -25,8 +25,7 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
-                          ResolvePackageNotFound)
+from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
