@@ -8,7 +8,6 @@ science.
 
 Conda’s benefits include:
 
-* Facilitating reproducibility of research workflows.
 * Providing prebuilt packages which avoid the need to deal with compilers or
   figuring out how to set up a specific tool.
 * Managing one-step installation of tools that
