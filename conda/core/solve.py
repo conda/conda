@@ -254,10 +254,11 @@ class Solver(object):
             post_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
 
             if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
-                constrained = self.get_constrained_packages(pre_packages, post_packages, ssc.index.keys())
+                constrained = self.get_constrained_packages(
+                    pre_packages, post_packages, ssc.index.keys())
                 if len(constrained) > 0:
                     for spec in constrained:
-                        self.determine_conflicting_specs(spec, ssc.solution_precs)
+                        self.determine_constricting_specs(spec, ssc.solution_precs)
 
             # if there were any conflicts, we need to add their orphaned deps back in
             if ssc.add_back_map:
@@ -278,7 +279,7 @@ class Solver(object):
 
         return ssc.solution_precs
 
-    def determine_conflicting_specs(self, spec, solution_precs):
+    def determine_constricting_specs(self, spec, solution_precs):
         constricting = [
             (i.name, [k for k in i.depends
                       if MatchSpec(k).name == spec.name and MatchSpec(k).version is not None])
@@ -295,6 +296,7 @@ class Solver(object):
         print("\nIf you are sure you want an update of your package either try "
               "`conda update --all` or install a specific version of the "
               "package you want using `conda install <pkg>=<version>`\n")
+        return constricting
 
     def get_request_package_in_solution(self, solution_precs, specs_map):
         requested_packages = {}
@@ -329,18 +331,7 @@ class Solver(object):
                 continue
             else:
                 if post_packages == pre_packages:
-                    for pkg_name, matches in post_packages.items():
-                        pkg_match = [m for m in matches if m[1] is not None][0]
-                        # print('\n\nTrying to update package {update_pkg} however it seems like '
-                        #       'you already have this package constrained to \n    {const_pkg} '
-                        #       '{const_ver} \nIf you are sure you want an updated version and '
-                        #       'are happy with the possibility of a big change  to your '
-                        #       'environment you can force an update by running: \n'
-                        #       '    $ conda install {update_pkg}=<version>\n'.format(
-                        #             update_pkg=pkg_name,
-                        #             const_pkg=pkg_match[0],
-                        #             const_ver=pkg_match[1]))
-                        update_constrained = update_constrained | set([pkg])
+                    update_constrained = update_constrained | set([pkg])
         return update_constrained
 
     @time_recorder(module_name=__name__)
