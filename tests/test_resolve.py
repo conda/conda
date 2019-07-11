@@ -154,10 +154,10 @@ def test_pseudo_boolean():
 
 
 def test_get_dists():
-    reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.5.0"), ))
+    reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.4.0"), ))
     dist_strs = [prec.dist_str() for prec in reduced_index]
-    assert 'channel-1::anaconda-1.5.0-np17py27_0' in dist_strs
-    assert 'channel-1::dynd-python-0.3.0-np17py33_0' in dist_strs
+    assert 'channel-1::anaconda-1.4.0-np17py27_0' in dist_strs
+    assert 'channel-1::freetype-2.4.10-0' in dist_strs
 
 
 def test_get_reduced_index_unmanageable():

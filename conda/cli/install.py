@@ -245,7 +245,6 @@ def install(args, parser, command='install'):
                 solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
                                 repodata_fn=repodata_fn)
                 if (isinstall or isremove) and args.update_modifier == NULL:
-                    # try to do a quick solve with then existing env frozen by default
                     update_modifier = UpdateModifier.FREEZE_INSTALLED
                 if isupdate:
                     deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS

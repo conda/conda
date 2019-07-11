@@ -14,7 +14,8 @@ from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoi
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
-from .common.logic import Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver
+from .common.logic import (Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver,
+                           minimal_unsatisfiable_subset)
 from .common.toposort import toposort
 from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFound,
                          UnsatisfiableError)
@@ -249,7 +250,7 @@ class Resolve(object):
             if not found:
                 conflict_groups = groupby(lambda x: x.name, conflict_deps)
                 for group in conflict_groups.values():
-                    yield (spec,) + MatchSpec.merge(group)
+                    yield (spec,) + MatchSpec.union(group)
 
         return chains_(spec, set())
 
@@ -366,14 +367,14 @@ class Resolve(object):
         """
         # if only a single package matches the spec use the packages depends
         # rather than the spec itself
+        strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
+
+        specs = set(specs) | (specs_to_add or set())
         if len(specs) == 1:
             matches = self.find_matches(next(iter(specs)))
             if len(matches) == 1:
-                specs = self.ms_depends(matches[0])
-
-        strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
-
-        specs = set(specs) | {_.to_match_spec() for _ in self._system_precs}
+                specs = set(self.ms_depends(matches[0]))
+        specs.update({_.to_match_spec() for _ in self._system_precs})
 
         # For each spec, assemble a dictionary of dependencies, with package
         # name as key, and all of the matching packages as values.
@@ -417,7 +418,8 @@ class Resolve(object):
                 precs = self.find_matches(spec)
                 deps = set.union(*[set(self.ms_depends_.get(prec)) for prec in precs])
                 deps = groupby(lambda x: x.name, deps)
-                bad_deps.extend([[spec, MatchSpec.merge(_)[0]] for _ in deps.values()])
+
+                bad_deps.extend([[spec, MatchSpec.union(_)[0]] for _ in deps.values()])
         bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
                                            strict_channel_priority)
         return bad_deps
@@ -972,30 +974,66 @@ class Resolve(object):
         solution = C.sat(constraints)
         return bool(solution)
 
+    # def get_conflicting_specs(self, specs):
+    #     if not specs:
+    #         return ()
+    #     reduced_index = self.get_reduced_index(tuple(specs), sort_by_exactness=False)
+    #     r2 = Resolve(reduced_index, True, channels=self.channels)
+    #     scp = context.channel_priority == ChannelPriority.STRICT
+    #     unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
+    #     if not unsat_specs:
+    #         return ()
+    #     else:
+    #         # This first result is just a single unsatisfiable core. There may be several.
+    #         satisfiable_specs = set(specs) - set(unsat_specs)
+
+    #         # In this loop, we test each unsatisfiable spec individually against the satisfiable
+    #         # specs to ensure there are no other unsatisfiable specs in the set.
+    #         final_unsat_specs = set()
+    #         while unsat_specs:
+    #             this_spec = unsat_specs.pop()
+    #             final_unsat_specs.add(this_spec)
+    #             test_specs = tuple(concatv((this_spec, ), satisfiable_specs))
+    #             r2 = Resolve(self.get_reduced_index(test_specs), True, channels=self.channels)
+    #             _unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
+    #             unsat_specs.update(_unsat_specs - final_unsat_specs)
+    #             satisfiable_specs -= set(unsat_specs)
+    #     return tuple(final_unsat_specs)
+
     def get_conflicting_specs(self, specs):
         if not specs:
             return ()
-        reduced_index = self.get_reduced_index(tuple(specs), sort_by_exactness=False)
+        reduced_index = self.get_reduced_index(specs)
+
+        # Check if satisfiable
+        def mysat(specs, add_if=False):
+            constraints = r2.generate_spec_constraints(C, specs)
+            return C.sat(constraints, add_if)
+
         r2 = Resolve(reduced_index, True, channels=self.channels)
-        scp = context.channel_priority == ChannelPriority.STRICT
-        unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
-        if not unsat_specs:
-            return ()
+        C = r2.gen_clauses()
+        solution = mysat(specs, True)
+        if solution:
+            final_unsat_specs = ()
         else:
             # This first result is just a single unsatisfiable core. There may be several.
+            unsat_specs = list(minimal_unsatisfiable_subset(specs, sat=mysat))
             satisfiable_specs = set(specs) - set(unsat_specs)
 
             # In this loop, we test each unsatisfiable spec individually against the satisfiable
             # specs to ensure there are no other unsatisfiable specs in the set.
             final_unsat_specs = set()
             while unsat_specs:
-                this_spec = unsat_specs.pop()
+                this_spec = unsat_specs.pop(0)
                 final_unsat_specs.add(this_spec)
-                test_specs = tuple(concatv((this_spec, ), satisfiable_specs))
-                r2 = Resolve(self.get_reduced_index(test_specs), True, channels=self.channels)
-                _unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
-                unsat_specs.update(_unsat_specs - final_unsat_specs)
-                satisfiable_specs -= set(unsat_specs)
+                test_specs = satisfiable_specs | {this_spec}
+                C = r2.gen_clauses()  # TODO: wasteful call, but Clauses() needs refactored
+                solution = mysat(test_specs, True)
+                if not solution:
+                    these_unsat = minimal_unsatisfiable_subset(test_specs, sat=mysat)
+                    if len(these_unsat) > 1:
+                        unsat_specs.extend(these_unsat)
+                        satisfiable_specs -= set(unsat_specs)
         return tuple(final_unsat_specs)
 
     def bad_installed(self, installed, new_specs):
