@@ -81,25 +81,26 @@ priority channels.
 This can dramatically reduce package search space and reduces the use of
 improperly constrained packages.
 
-One thing to consider is that setting strict channel priorty may make
+One thing to consider is that setting strict channel priority may make
 environments unsatisfiable. Learn more about :ref:`strict`.
 
 
 Reduce the index
 ----------------
-
 One option for speeding up conda is to reduce the index. It's likely that
 your repodata contains package data that is not used in the solving stage.
 Filtering out unnecessary packages before solving can save time.
+Reducing the index takes specs and reduces the problem size so that the
+SAT doesn’t have as much work to do.
 
 Additionally, it is beneficial to be as specific as possible in your package
-specifications. Simply listing a version for each of your specs may
-dramatically reduce the number of packages that are considered when solving.
+specifications. Listing a version and build string for each of your specs can
+dramatically reduce the number of packages that are considered when solving. 
 
-Reducing the index:
+ Reducing the index:
     * Reduces unnecessary input into generating solver clauses.
     * Reduces solve complexity.
     * Prefers newer packages that apply constraints.
 
-Read more on `Understanding and Improving Conda's Performance
+ Read more on `Understanding and Improving Conda's Performance
 <https://www.anaconda.com/understanding-and-improving-condas-performance/>`_.
