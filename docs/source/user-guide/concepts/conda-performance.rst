@@ -87,15 +87,16 @@ environments unsatisfiable. Learn more about :ref:`strict`.
 
 Reduce the index
 ----------------
-One option for speeding up conda is to reduce the index. It's likely that
+One option for speeding up conda is to reduce the index. The index is
+reduced by conda based upon the user's input specs. It's likely that
 your repodata contains package data that is not used in the solving stage.
-Filtering out unnecessary packages before solving can save time.
-Reducing the index takes specs and reduces the problem size so that the
-SAT doesn’t have as much work to do.
+Filtering out these unnecessary packages before solving can save time. 
 
-Additionally, it is beneficial to be as specific as possible in your package
-specifications. Listing a version and build string for each of your specs can
-dramatically reduce the number of packages that are considered when solving. 
+Making your input specifications more specific improves
+the effectiveness of the index reduction and, thus, speeds up the
+process. Listing a version and build string for each of your specs can
+dramatically reduce the number of packages that are considered when solving
+so that the SAT doesn’t have as much work to do.
 
  Reducing the index:
     * Reduces unnecessary input into generating solver clauses.
