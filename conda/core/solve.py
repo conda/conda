@@ -493,7 +493,9 @@ class Solver(object):
                                          installed_pool):
                     ssc.specs_map[pkg_name] = target_prec.to_match_spec()
                 elif pkg_name in ssc.specs_from_history_map:
-                    ssc.specs_map[pkg_name] = ssc.specs_from_history_map[pkg_name]
+                    ssc.specs_map[pkg_name] = MatchSpec(
+                        ssc.specs_from_history_map[pkg_name],
+                        target=target_prec.dist_str())
                 else:
                     ssc.specs_map[pkg_name] = MatchSpec(pkg_name, target=target_prec.dist_str())
 
