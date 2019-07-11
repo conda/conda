@@ -62,9 +62,15 @@ keep dependencies required by different projects
 separate by creating isolated Python virtual environments
 for them.
 
-Users can select a Python virtual environment, such as
+Users can create virtual environments 
+using one of several tools such as
 Pipenv or Poetry, or a conda virtual
-environment. Some characteristics of the two:
+environment. Pipenv and Poetry are based around Python's
+built-in venv library, whereas conda has its own notion of virtual
+environments that is lower-level (Python itself is a dependency provided
+in conda environments).
+
+Some other traits are:
 
 .. list-table::
    :widths: 20 40 40
@@ -93,17 +99,17 @@ environment. Some characteristics of the two:
 
 |
 
-Why use Python virtual environments
+Why use venv-based virtual environments
 ===================================
 - You prefer their workflow or spec formats
 - You prefer to use the system Python and libraries
-- You prefer packages that come more directly from the project maintainers
+- Your project maintainers only publish to PyPI, and you prefer packages that come more directly from the project maintainers,   rather than someone else providing builds based on the same code
 
 Why use conda virtual environments?
 ===================================
 
 - You want control over binary compatibility choices
-- You want to utilize newer language standards
+- You want to utilize newer language standards, such as C++ 17
 - You need libraries beyond what the system Python offers
 - You want to manage packages from languages other than Python
   in the same space
@@ -117,9 +123,8 @@ workflow and virtual environment:
 - Is your environment shared across multiple code projects?
 - Does your environment live alongside your code or in a separate place?
 - Do your install steps involve installing any external libraries?
-- Do you want to ship your environment as a speckle of some sort
-  of a big blob of actual stuff?
-- Is a dependency solver a good thing or a bad thing?
+- Do you want to ship your environment as an archive of some sort
+  containing the actual files of the environment?
 
 Package system differentiators
 ==============================
