@@ -254,7 +254,10 @@ class Solver(object):
             post_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
 
             if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
-                self.packages_in_solution_change(pre_packages, post_packages, ssc.index.keys())
+                constrained = self.packages_in_solution_change(pre_packages, post_packages, ssc.index.keys())
+                if constrained:
+                    for spec in self.specs_to_add:
+                        self.determine_conflicting_specs(spec, ssc.solution_precs)
 
             # if there were any conflicts, we need to add their orphaned deps back in
             if ssc.add_back_map:
@@ -274,6 +277,20 @@ class Solver(object):
                   self.prefix, "\n    ".join(prec.dist_str() for prec in ssc.solution_precs))
 
         return ssc.solution_precs
+
+    def determine_conflicting_specs(self, spec, solution_precs):
+        constricting = [
+            (i.name, [k for k in i.depends
+                      if MatchSpec(k).name == spec.name and MatchSpec(k).version is not None])
+            for i in solution_precs if any(j for j in i.depends if spec.name in j)]
+        print("\n\nUpdating {spec} is constricted by \n".format(spec=spec))
+        for const in constricting:
+            if len(const[1]) > 0:
+                print("{package} -> requires {conflict_dep}".format(
+                    package=const[0], conflict_dep=" ".join(const[1])))
+        print("\nIf you are sure you want an update of your package either try "
+              "`conda update --all` or install a specific version of the "
+              "package you want using `conda install <pkg>=<version>`\n")
 
     def get_request_package_in_solution(self, solution_precs, specs_map):
         requested_packages = {}
@@ -310,15 +327,15 @@ class Solver(object):
                 if post_packages == pre_packages:
                     for pkg_name, matches in post_packages.items():
                         pkg_match = [m for m in matches if m[1] is not None][0]
-                        print('\n\nTrying to update package {update_pkg} however it seems like '
-                              'you already have this package constrained to \n    {const_pkg} '
-                              '{const_ver} \nIf you are sure you want an updated version and '
-                              'are happy with the possibility of a big change  to your '
-                              'environment you can force an update by running: \n'
-                              '    $ conda install {update_pkg}=<version>\n'.format(
-                                    update_pkg=pkg_name,
-                                    const_pkg=pkg_match[0],
-                                    const_ver=pkg_match[1]))
+                        # print('\n\nTrying to update package {update_pkg} however it seems like '
+                        #       'you already have this package constrained to \n    {const_pkg} '
+                        #       '{const_ver} \nIf you are sure you want an updated version and '
+                        #       'are happy with the possibility of a big change  to your '
+                        #       'environment you can force an update by running: \n'
+                        #       '    $ conda install {update_pkg}=<version>\n'.format(
+                        #             update_pkg=pkg_name,
+                        #             const_pkg=pkg_match[0],
+                        #             const_ver=pkg_match[1]))
                         update_constrained = True
         return update_constrained
 

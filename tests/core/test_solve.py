@@ -2151,8 +2151,12 @@ fake_index = [
         build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
     ),
     PrefixRecord(
-        package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test", subdir="conda-test", fn="mypkgnot-1.1.1",
+        package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.0", channel="test", subdir="conda-test", fn="mypkg-0.1.1",
         build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+    ),
+    PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test", subdir="conda-test", fn="mypkgnot-1.1.1",
+        build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg 0.1.0'], constrains=[]
     )
 ]
 
@@ -2185,3 +2189,4 @@ def test_packages_in_solution_change_constrained():
                     specs_to_add=[specs])
     constrained = solver.packages_in_solution_change(pre_packages, post_packages, fake_index)
     assert constrained is True
+
