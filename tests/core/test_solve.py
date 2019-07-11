@@ -2167,8 +2167,8 @@ def test_packages_in_solution_change_already_newest():
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
     solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
-    constrained = solver.packages_in_solution_change(pre_packages, post_packages, fake_index)
-    assert constrained is False
+    constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
+    assert len(constrained) == 0
 
 
 def test_packages_in_solution_change_needs_update():
@@ -2177,8 +2177,8 @@ def test_packages_in_solution_change_needs_update():
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
     solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
-    constrained = solver.packages_in_solution_change(pre_packages, post_packages, fake_index)
-    assert constrained is False
+    constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
+    assert len(constrained) == 0
 
 
 def test_packages_in_solution_change_constrained():
@@ -2187,6 +2187,6 @@ def test_packages_in_solution_change_constrained():
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
     solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
-    constrained = solver.packages_in_solution_change(pre_packages, post_packages, fake_index)
-    assert constrained is True
+    constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
+    assert len(constrained) == 1
 

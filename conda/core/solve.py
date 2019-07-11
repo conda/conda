@@ -254,9 +254,9 @@ class Solver(object):
             post_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
 
             if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
-                constrained = self.packages_in_solution_change(pre_packages, post_packages, ssc.index.keys())
-                if constrained:
-                    for spec in self.specs_to_add:
+                constrained = self.get_constrained_packages(pre_packages, post_packages, ssc.index.keys())
+                if len(constrained) > 0:
+                    for spec in constrained:
                         self.determine_conflicting_specs(spec, ssc.solution_precs)
 
             # if there were any conflicts, we need to add their orphaned deps back in
@@ -283,6 +283,10 @@ class Solver(object):
             (i.name, [k for k in i.depends
                       if MatchSpec(k).name == spec.name and MatchSpec(k).version is not None])
             for i in solution_precs if any(j for j in i.depends if spec.name in j)]
+
+        if len(constricting) == 0 or all(len(i[1]) == 0 for i in constricting):
+            return None
+
         print("\n\nUpdating {spec} is constricted by \n".format(spec=spec))
         for const in constricting:
             if len(const[1]) > 0:
@@ -307,8 +311,8 @@ class Solver(object):
 
         return requested_packages
 
-    def packages_in_solution_change(self, pre_packages, post_packages, index_keys):
-        update_constrained = False
+    def get_constrained_packages(self, pre_packages, post_packages, index_keys):
+        update_constrained = set()
 
         def empty_package_list(pkg):
             for k, v in pkg.items():
@@ -336,7 +340,7 @@ class Solver(object):
                         #             update_pkg=pkg_name,
                         #             const_pkg=pkg_match[0],
                         #             const_ver=pkg_match[1]))
-                        update_constrained = True
+                        update_constrained = update_constrained | set([pkg])
         return update_constrained
 
     @time_recorder(module_name=__name__)
