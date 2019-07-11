@@ -1542,6 +1542,14 @@ def add_parser_update_modifiers(solver_mode_options):
         help="Update all installed packages in the environment.",
         default=NULL,
     )
+    update_modifiers.add_argument(
+        "--update-specs",
+        action="store_const",
+        const=UpdateModifier.UPDATE_SPECS,
+        dest="update_modifier",
+        help="Update based on provided specifications.",
+        default=NULL,
+    )
 
 
 def add_parser_prune(p):

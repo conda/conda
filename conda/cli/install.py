@@ -295,12 +295,27 @@ def install(args, parser, command='install'):
                 raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
         except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
-            # end of the line.  Raise the exception
-            if repodata_fn == repodata_fns[-1]:
-                # Unsatisfiable package specifications/no such revision/import error
-                if e.args and 'could not import' in e.args[0]:
-                    raise CondaImportError(text_type(e))
-                raise
+            # Quick solve with frozen env failed.  Try again without that.
+            if isinstall and args.update_modifier == NULL:
+                try:
+                    log.info("Initial quick solve with frozen env failed.  "
+                             "Unfreezing env and trying again.")
+                    unlink_link_transaction = solver.solve_for_transaction(
+                        deps_modifier=deps_modifier,
+                        update_modifier=UpdateModifier.UPDATE_SPECS,
+                        force_reinstall=context.force_reinstall or context.force,
+                    )
+                except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+                    # Unsatisfiable package specifications/no such revision/import error
+                    if e.args and 'could not import' in e.args[0]:
+                        raise CondaImportError(text_type(e))
+            else:
+                # end of the line.  Raise the exception
+                if repodata_fn == repodata_fns[-1]:
+                    # Unsatisfiable package specifications/no such revision/import error
+                    if e.args and 'could not import' in e.args[0]:
+                        raise CondaImportError(text_type(e))
+                    raise
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 

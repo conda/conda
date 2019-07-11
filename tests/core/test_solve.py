@@ -23,7 +23,7 @@ from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.resolve import MatchSpec
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, \
-    get_index_r_5, get_index_cuda
+    get_index_r_5, get_index_cuda, get_index_must_unfreeze
 
 from conda.common.compat import iteritems
 
@@ -113,6 +113,19 @@ def get_solver_aggregate_2(specs_to_add=(), specs_to_remove=(), prefix_records=(
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-4'), Channel('channel-2')),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        yield solver
+
+
+@contextmanager
+def get_solver_must_unfreeze(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    PrefixData._cache_.clear()
+    pd = PrefixData(TEST_PREFIX)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    get_index_must_unfreeze(context.subdir)
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(TEST_PREFIX, (Channel('channel-freeze'),), (context.subdir,),
+                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
@@ -266,15 +279,24 @@ def test_prune_1():
         pprint(convert_to_dist_str(link_precs))
         unlink_order = (
             'channel-1::accelerate-1.1.0-np16py27_p0',
+            'channel-1::mkl-11.0-np16py27_p0',
+            'channel-1::scikit-learn-0.13.1-np16py27_p0',
             'channel-1::numbapro-0.11.0-np16py27_p0',
+            'channel-1::scipy-0.12.0-np16py27_p0',
+            'channel-1::numexpr-2.1-np16py27_p0',
             'channel-1::numba-0.8.1-np16py27_0',
+            'channel-1::numpy-1.6.2-py27_p4',
+            'channel-1::mkl-service-1.0.0-py27_p0',
             'channel-1::meta-0.4.2.dev-py27_0',
             'channel-1::llvmpy-0.11.2-py27_0',
             'channel-1::bitarray-0.8.1-py27_0',
             'channel-1::llvm-3.2-0',
+            'channel-1::mkl-rt-11.0-p0',
             'channel-1::libnvvm-1.0-p0',
         )
-        link_order = tuple()
+        link_order = (
+            'channel-1::numpy-1.6.2-py27_4',
+        )
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -814,6 +836,62 @@ def test_conda_downgrade():
         sys.prefix = saved_sys_prefix
 
 
+def test_unfreeze_when_required():
+    # The available packages are:
+    # libfoo 1.0, 2.0
+    # libbar 1.0, 2.0
+    # foobar 1.0 : depends on libfoo 1.0, libbar 2.0
+    # foobar 2.0 : depends on libfoo 2.0, libbar 2.0
+    # qux 1.0: depends on libfoo 1.0, libbar 2.0
+    # qux 2.0: depends on libfoo 2.0, libbar 1.0
+    #
+    # qux 1.0 and foobar 1.0 can be installed at the same time but
+    # if foobar is installed first it must be downgraded from 2.0.
+    # If foobar is frozen then no solution exists.
+
+    specs = [MatchSpec("foobar"), MatchSpec('qux')]
+    with get_solver_must_unfreeze(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        print(convert_to_dist_str(final_state_1))
+        order = (
+            'channel-freeze::libbar-2.0-0',
+            'channel-freeze::libfoo-1.0-0',
+            'channel-freeze::foobar-1.0-0',
+            'channel-freeze::qux-1.0-0',
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    specs = MatchSpec("foobar"),
+    with get_solver_must_unfreeze(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        print(convert_to_dist_str(final_state_1))
+        order = (
+            'channel-freeze::libbar-2.0-0',
+            'channel-freeze::libfoo-2.0-0',
+            'channel-freeze::foobar-2.0-0',
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    # When frozen there is no solution
+    specs_to_add = MatchSpec("qux"),
+    with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        with pytest.raises(UnsatisfiableError):
+            solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
+
+    specs_to_add = MatchSpec("qux"),
+    with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_SPECS)
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        order = (
+            'channel-freeze::libbar-2.0-0',
+            'channel-freeze::libfoo-1.0-0',
+            'channel-freeze::foobar-1.0-0',
+            'channel-freeze::qux-1.0-0',
+        )
+        assert convert_to_dist_str(final_state_2) == order
+
+
 def test_auto_update_conda():
     specs = MatchSpec("conda=1.3"),
     with get_solver(specs) as solver:
@@ -1346,12 +1424,18 @@ def test_fast_update_with_update_modifier_not_set():
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
         unlink_order = (
+            'channel-4::python-2.7.14-h89e7a4a_22',
             'channel-4::sqlite-3.21.0-h1bed415_2',
+            'channel-4::libedit-3.1-heed3624_0',
             'channel-4::openssl-1.0.2l-h077ae2c_5',
+            'channel-4::ncurses-6.0-h9df7e31_2',
         )
         link_order = (
+            'channel-4::ncurses-6.1-hf484d3e_0',
             'channel-4::openssl-1.0.2p-h14c3975_0',
-            'channel-4::sqlite-3.23.1-he433501_0',
+            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4::sqlite-3.24.0-h84994c4_0',  # sqlite is upgraded
+            'channel-4::python-2.7.15-h1571d57_0',  # python is not upgraded
         )
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
