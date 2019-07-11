@@ -385,7 +385,7 @@ class Spinner(object):
     # spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
     spinner_cycle = cycle('/-\\|')
 
-    def __init__(self, message, enabled=True, json=False):
+    def __init__(self, message, enabled=True, json=False, fail_message="failed\n"):
         self.message = message
         self.enabled = enabled
         self.json = json
@@ -395,6 +395,7 @@ class Spinner(object):
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
         self.show_spin = enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
+        self.fail_message = fail_message
 
     def start(self):
         if self.show_spin:
@@ -434,7 +435,7 @@ class Spinner(object):
         if not self.json:
             with swallow_broken_pipe:
                 if exc_type or exc_val:
-                    sys.stdout.write("failed\n")
+                    sys.stdout.write(self.fail_message)
                 else:
                     sys.stdout.write("done\n")
                 sys.stdout.flush()

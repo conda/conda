@@ -239,8 +239,10 @@ class Solver(object):
                      context.json):
             ssc = self._collect_all_metadata(ssc)
 
+        fail_message = ("failed\n" if self._repodata_fn == REPODATA_FN else "failed with %s, "
+                        "will retry with next repodata source.\n" % self._repodata_fn)
         with Spinner("Solving environment", not context.verbosity and not context.quiet,
-                     context.json):
+                     context.json, fail_message=fail_message):
             ssc = self._remove_specs(ssc)
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)
