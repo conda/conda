@@ -1,3 +1,38 @@
+## 4.7.6 (2019-07-11)
+
+### Improvements
+
+* Improve cuda virtual package conflict messages to show the `__cuda` virtual package as part of the conflict (#8834)
+* add additional debugging info to Resolve.solve (#8895)
+
+### Bug fixes
+
+* deduplicate error messages being shown for post-link scripts.  Show captured stdout/stderr on failure  (#8833)
+* fix the checkout step in the Windows dev env setup instructions (#8827)
+* bail out early when implicit python pinning renders an explicit spec unsatisfiable (#8834)
+* handle edge cases in pinned specs better (#8843)
+* extract package again if url is None (#8868)
+* update docs regarding indexing and subdirs (#8874)
+* remove warning about conda-build needing an update that was bothering people (#8884)
+* only add repodata fn into cache key when fn is not repodata.json (#8900)
+* allow conda to be downgraded with an explicit spec (#8892)
+* add target to specs from historic specs (#8901)
+* improve message when solving with a repodata file before repodata.json fails (#8907)
+* fix distutils usage for "which" functionality.  Fix inability to change python version in envs with noarch packages (#8909)
+* fix anaconda metapackage being removed because history matching was too restrictive (#8911)
+* make freezing less aggressive; add fallback to non-frozen solve (#8912)
+
+### Contributors
+
+* @forrestwaters
+* @jjhelmus
+* @mcopes73
+* @msarahan
+* @richardjgowers
+* @rrigdon
+* @soapy1
+* @twinssbc
+
 ## 4.7.5 (2019-06-24)
 
 ### Improvements
