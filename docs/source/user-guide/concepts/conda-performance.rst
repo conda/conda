@@ -41,7 +41,7 @@ Improving conda performance
 ===========================
 
 To address these challenges, you can move packages to archive
-channels and follow the methods below to present a reduced view of
+channels and follow the methods below to present conda with a smaller, simpler view than
 all available packages.
 
 To speed up conda, we offer the following recommendations.
