@@ -400,41 +400,13 @@ class Solver(object):
         # never, ever freeze anything if we have no history.
         if not ssc.specs_from_history_map:
             return False
-
-        pkg_name = target_prec.name
-        # if we are FREEZE_INSTALLED (first pass for install)
-        freeze = ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED
-
-        if not freeze:
-            # we are UPDATE_SPECS (solve_for_diff or update specs),
-            #       AND the spec is not an explicit spec
-            update_added = (ssc.update_modifier == UpdateModifier.UPDATE_SPECS and
-                            pkg_name not in self.specs_to_add_names)
-            # more expensive, but better check.  If anything in the package pool for this spec
-            #    overlaps with the explicit package pool (by name), but they don't share any
-            #    actual records, then this target_prec conflicts and should not be pinned
-            if update_added:
-                spec_package_pool = ssc.r._get_package_pool((target_prec.to_match_spec(), ))
-                for spec in self.specs_to_add_names:
-                    new_explicit_pool = explicit_pool
-                    ms = MatchSpec(spec)
-                    updated_spec = self._package_has_updates(ssc, ms, installed_pool)
-                    if updated_spec:
-                        try:
-                            new_explicit_pool = ssc.r._get_package_pool((updated_spec, ))
-                        except ResolvePackageNotFound:
-                            update_added = False
-                            break
-
-                    if ms.name in spec_package_pool:
-                        update_added &= bool(spec_package_pool[ms.name] &
-                                             new_explicit_pool[ms.name])
-                    if not update_added:
-                        break
+        # never freeze if not in FREEZE_INSTALLED mode
+        if ssc.update_modifier != UpdateModifier.FREEZE_INSTALLED:
+            return False
 
         # if all package specs have overlapping package choices (satisfiable in at least one way)
-        no_conflict = ((freeze or update_added) and
-                       pkg_name not in conflict_specs and
+        pkg_name = target_prec.name
+        no_conflict = (pkg_name not in conflict_specs and
                        (pkg_name not in explicit_pool or
                         target_prec in explicit_pool[pkg_name]) and
                        self._compare_pools(ssc, explicit_pool, target_prec.to_match_spec()))
