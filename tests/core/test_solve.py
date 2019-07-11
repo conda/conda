@@ -23,7 +23,7 @@ from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.resolve import MatchSpec
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, \
-    get_index_r_5, get_index_cuda
+    get_index_r_5, get_index_cuda, get_index_must_unfreeze
 
 from conda.common.compat import iteritems
 
@@ -113,6 +113,19 @@ def get_solver_aggregate_2(specs_to_add=(), specs_to_remove=(), prefix_records=(
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-4'), Channel('channel-2')),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        yield solver
+
+
+@contextmanager
+def get_solver_must_unfreeze(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    PrefixData._cache_.clear()
+    pd = PrefixData(TEST_PREFIX)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    get_index_must_unfreeze(context.subdir)
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(TEST_PREFIX, (Channel('channel-freeze'),), (context.subdir,),
+                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
@@ -812,6 +825,62 @@ def test_conda_downgrade():
             assert convert_to_dist_str(link_precs) == link_order
     finally:
         sys.prefix = saved_sys_prefix
+
+
+def test_unfreeze_when_required():
+    # The available packages are:
+    # libfoo 1.0, 2.0
+    # libbar 1.0, 2.0
+    # foobar 1.0 : depends on libfoo 1.0, libbar 2.0
+    # foobar 2.0 : depends on libfoo 2.0, libbar 2.0
+    # qux 1.0: depends on libfoo 1.0, libbar 2.0
+    # qux 2.0: depends on libfoo 2.0, libbar 1.0
+    #
+    # qux 1.0 and foobar 1.0 can be installed at the same time but
+    # if foobar is installed first it must be downgraded from 2.0.
+    # If foobar is frozen then no solution exists.
+
+    specs = [MatchSpec("foobar"), MatchSpec('qux')]
+    with get_solver_must_unfreeze(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        print(convert_to_dist_str(final_state_1))
+        order = (
+            'channel-freeze::libbar-2.0-0',
+            'channel-freeze::libfoo-1.0-0',
+            'channel-freeze::foobar-1.0-0',
+            'channel-freeze::qux-1.0-0',
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    specs = MatchSpec("foobar"),
+    with get_solver_must_unfreeze(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        print(convert_to_dist_str(final_state_1))
+        order = (
+            'channel-freeze::libbar-2.0-0',
+            'channel-freeze::libfoo-2.0-0',
+            'channel-freeze::foobar-2.0-0',
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    # When frozen there is no solution
+    specs_to_add = MatchSpec("qux"),
+    with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        with pytest.raises(UnsatisfiableError):
+            solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
+
+    specs_to_add = MatchSpec("qux"),
+    with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_SPECS)
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        order = (
+            'channel-freeze::libbar-2.0-0',
+            'channel-freeze::libfoo-1.0-0',
+            'channel-freeze::foobar-1.0-0',
+            'channel-freeze::qux-1.0-0',
+        )
+        assert convert_to_dist_str(final_state_2) == order
 
 
 def test_auto_update_conda():
