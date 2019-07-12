@@ -113,7 +113,8 @@ class Resolve(object):
         self._pool_cache = {}
         self._strict_channel_cache = {}
 
-        self._system_precs = {_ for _ in index if _.package_type == PackageType.VIRTUAL_SYSTEM}
+        self._system_precs = {_ for _ in index if (
+            hasattr(_, 'package_type') and _.package_type == PackageType.VIRTUAL_SYSTEM)}
 
         # sorting these in reverse order is effectively prioritizing
         # contstraint behavior from newer packages. It is applying broadening
