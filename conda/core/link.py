@@ -602,6 +602,11 @@ class UnlinkLinkTransaction(object):
                         if exc:
                             exceptions.append(exc)
 
+                    # post link scripts may employ entry points.  Do them before post-link.
+                    if install_side:
+                        for axngroup in entry_point_actions:
+                            UnlinkLinkTransaction._execute_actions(axngroup)
+
                     # Run post-link or post-unlink scripts and registering AFTER link/unlink,
                     #    because they may depend on files in the prefix.  Additionally, run
                     #    them serially, just in case order matters (hopefully not)
@@ -613,10 +618,6 @@ class UnlinkLinkTransaction(object):
                     # parallel block 2:
                     futures = []
                     if install_side:
-                        futures.extend(
-                            self.executor.submit(UnlinkLinkTransaction._execute_actions, axngroup)
-                            for axngroup in entry_point_actions)
-
                         # consolidate compile actions into one big'un for better efficiency
                         individual_actions = [axn for ag in compile_actions for axn in ag.actions]
                         if individual_actions:
