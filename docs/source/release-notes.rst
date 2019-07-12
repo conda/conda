@@ -5,6 +5,45 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.7.6 (2019-07-11)
+==================
+
+Improvements
+^^^^^^^^^^^^
+
+* Improve cuda virtual package conflict messages to show the `__cuda` virtual package as part of the conflict (#8834)
+* Add additional debugging info to Resolve.solve (#8895)
+
+Bug fixes
+^^^^^^^^^
+
+* Deduplicate error messages being shown for post-link scripts.  Show captured stdout/stderr on failure  (#8833)
+* Fix the checkout step in the Windows dev env setup instructions (#8827)
+* Bail out early when implicit Python pinning renders an explicit spec unsatisfiable (#8834)
+* Handle edge cases in pinned specs better (#8843)
+* Extract package again if url is None (#8868)
+* Update docs regarding indexing and subdirs (#8874)
+* Remove warning about conda-build needing an update that was bothering people (#8884)
+* Only add repodata fn into cache key when fn is not repodata.json (#8900)
+* Allow conda to be downgraded with an explicit spec (#8892)
+* Add target to specs from historic specs (#8901)
+* Improve message when solving with a repodata file before repodata.json fails (#8907)
+* Fix distutils usage for "which" functionality.  Fix inability to change Python version in envs with noarch packages (#8909)
+* Fix Anaconda metapackage being removed because history matching was too restrictive (#8911)
+* Make freezing less aggressive; add fallback to non-frozen solve (#8912)
+
+Contributors
+^^^^^^^^^^^^
+
+* @forrestwaters
+* @jjhelmus
+* @mcopes73
+* @msarahan
+* @richardjgowers
+* @rrigdon
+* @soapy1
+* @twinssbc
+
 4.7.5 (2019-06-24)
 ==================
 
