@@ -83,11 +83,13 @@ class SubdirData(object):
             subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
         check_whitelist(channel_urls)
+        subdir_query = lambda url: tuple(SubdirData(Channel(url), repodata_fn=repodata_fn).query(
+            package_ref_or_match_spec))
+
+        # TODO test timing with ProcessPoolExecutor
         with ThreadLimitedThreadPoolExecutor() as executor:
-            futures = tuple(executor.submit(
-                SubdirData(Channel(url), repodata_fn=repodata_fn).query, package_ref_or_match_spec
-            ) for url in channel_urls)
-            return tuple(concat(future.result() for future in futures))
+            result = tuple(concat(executor.map(subdir_query, channel_urls)))
+        return result
 
     def query(self, package_ref_or_match_spec):
         if not self._loaded:
