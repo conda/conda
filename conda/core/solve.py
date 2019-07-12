@@ -258,8 +258,7 @@ class Solver(object):
                     pre_packages, post_packages, ssc.index.keys())
                 if len(constrained) > 0:
                     for spec in constrained:
-                        pkg_pool = ssc.r._get_package_pool([i.to_match_spec() for i in ssc.solution_precs])
-                        self.determine_constricting_specs(spec, ssc.solution_precs, pkg_pool[spec.name])
+                        self.determine_constricting_specs(spec, ssc.solution_precs)
 
             # if there were any conflicts, we need to add their orphaned deps back in
             if ssc.add_back_map:
@@ -280,22 +279,26 @@ class Solver(object):
 
         return ssc.solution_precs
 
-    def determine_constricting_specs(self, spec, solution_precs, pkg_pool_spec):
+    def determine_constricting_specs(self, spec, solution_precs):
+        highest_version = [VersionOrder(sp.version) for sp in solution_precs
+                           if sp.name == spec.name][0]
         constricting = []
         for prec in solution_precs:
             if any(j for j in prec.depends if spec.name in j):
-                dep_conflict = list(MatchSpec(k) for k in prec.depends if
-                                MatchSpec(k).name == spec.name and
-                                MatchSpec(k).version is not None and
-                                MatchSpec(k).version.exact_value is not None)
-                if len(dep_conflict) > 0:
-                    constricting.append((prec.name, dep_conflict[0]))
+                for dep in prec.depends:
+                    m_dep = MatchSpec(dep)
+                    if m_dep.name == spec.name and \
+                            m_dep.version is not None and \
+                            (m_dep.version.exact_value or "<" in m_dep.version.spec):
+                        if "," in m_dep.version.spec:
+                            constricting.extend([
+                                (prec.name, MatchSpec("%s %s" % (m_dep.name, v)))
+                                for v in m_dep.version.tup if "<" in v.spec])
+                        else:
+                            constricting.append((prec.name, m_dep))
 
-        hard_constricting = []
-        for spec in pkg_pool_spec:
-            hard_constricting.extend(i for i in constricting if i[1].version.exact_match(spec.version))
-
-        if len(constricting) == 0:
+        hard_constricting = [i for i in constricting if i[1].version.matcher_vo <= highest_version]
+        if len(hard_constricting) == 0:
             return None
 
         print("\n\nUpdating {spec} is constricted by \n".format(spec=spec.name))
