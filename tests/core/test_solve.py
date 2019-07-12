@@ -2231,6 +2231,32 @@ def test_determine_constricting_specs_conflicts_upperbound():
     assert any(i for i in constricting if i[0] == "mypkgnot")
 
 
+def test_determine_constricting_specs_multi_conflicts():
+    solution_prec = [
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
+            fn="mypkg-0.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+        ),
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test",
+            subdir="conda-test", fn="mypkgnot-1.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg <=0.1.1'], constrains=[]
+        ),
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="notmypkg", version="1.1.1", channel="test",
+            subdir="conda-test", fn="mypkgnot-1.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg 0.1.1'], constrains=[]
+        )
+    ]
+    spec = MatchSpec("mypkg")
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[spec])
+    constricting = solver.determine_constricting_specs(spec, solution_prec)
+    assert any(i for i in constricting if i[0] == "mypkgnot")
+    assert any(i for i in constricting if i[0] == "notmypkg")
+
+
 def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends():
     solution_prec = [
         PrefixRecord(
