@@ -245,9 +245,20 @@ class Solver(object):
             ssc = self._remove_specs(ssc)
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)
+
+            pre_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
             ssc = self._find_inconsistent_packages(ssc)
             # this will prune precs that are deps of precs that get removed due to conflicts
             ssc = self._run_sat(ssc)
+            post_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
+
+            if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
+                constrained = self.get_constrained_packages(
+                    pre_packages, post_packages, ssc.index.keys())
+                if len(constrained) > 0:
+                    for spec in constrained:
+                        self.determine_constricting_specs(spec, ssc.solution_precs)
+
             # if there were any conflicts, we need to add their orphaned deps back in
             if ssc.add_back_map:
                 orphan_precs = (set(solution_precs)
@@ -266,6 +277,73 @@ class Solver(object):
                   self.prefix, "\n    ".join(prec.dist_str() for prec in ssc.solution_precs))
 
         return ssc.solution_precs
+
+    def determine_constricting_specs(self, spec, solution_precs):
+        highest_version = [VersionOrder(sp.version) for sp in solution_precs
+                           if sp.name == spec.name][0]
+        constricting = []
+        for prec in solution_precs:
+            if any(j for j in prec.depends if spec.name in j):
+                for dep in prec.depends:
+                    m_dep = MatchSpec(dep)
+                    if m_dep.name == spec.name and \
+                            m_dep.version is not None and \
+                            (m_dep.version.exact_value or "<" in m_dep.version.spec):
+                        if "," in m_dep.version.spec:
+                            constricting.extend([
+                                (prec.name, MatchSpec("%s %s" % (m_dep.name, v)))
+                                for v in m_dep.version.tup if "<" in v.spec])
+                        else:
+                            constricting.append((prec.name, m_dep))
+
+        hard_constricting = [i for i in constricting if i[1].version.matcher_vo <= highest_version]
+        if len(hard_constricting) == 0:
+            return None
+
+        print("\n\nUpdating {spec} is constricted by \n".format(spec=spec.name))
+        for const in hard_constricting:
+            print("{package} -> requires {conflict_dep}".format(
+                package=const[0], conflict_dep=const[1]))
+        print("\nIf you are sure you want an update of your package either try "
+              "`conda update --all` or install a specific version of the "
+              "package you want using `conda install <pkg>=<version>`\n")
+        return hard_constricting
+
+    def get_request_package_in_solution(self, solution_precs, specs_map):
+        requested_packages = {}
+        for pkg in self.specs_to_add:
+            update_pkg_request = pkg.name
+
+            requested_packages[update_pkg_request] = [
+                (i.name, str(i.version)) for i in solution_precs
+                if i.name == update_pkg_request and i.version is not None
+            ]
+            requested_packages[update_pkg_request].extend(
+                [(v.name, str(v.version)) for k, v in specs_map.items()
+                 if k == update_pkg_request and v.version is not None])
+
+        return requested_packages
+
+    def get_constrained_packages(self, pre_packages, post_packages, index_keys):
+        update_constrained = set()
+
+        def empty_package_list(pkg):
+            for k, v in pkg.items():
+                if len(v) == 0:
+                    return True
+            return False
+
+        if empty_package_list(pre_packages) or empty_package_list(post_packages):
+            return update_constrained
+
+        for pkg in self.specs_to_add:
+            current_version = max(i[1] for i in pre_packages[pkg.name])
+            if current_version == max(i.version for i in index_keys if i.name == pkg.name):
+                continue
+            else:
+                if post_packages == pre_packages:
+                    update_constrained = update_constrained | set([pkg])
+        return update_constrained
 
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):

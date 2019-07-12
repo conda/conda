@@ -21,6 +21,7 @@ from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
+from conda.models.enums import PackageType
 from conda.resolve import MatchSpec
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, \
     get_index_r_5, get_index_cuda, get_index_must_unfreeze
@@ -2226,3 +2227,190 @@ When python appears to the right, that indicates that the thing on the left is s
 not available for the python version you are constrained to.  Your current python version
 is (python=2.6).  Note that conda will not change your python version to a different minor version
 unless you explicitly specify that.""")
+
+
+fake_index = [
+    PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test", fn="mypkg-0.1.1",
+        build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+    ),
+    PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.0", channel="test", subdir="conda-test", fn="mypkg-0.1.1",
+        build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+    ),
+    PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test", subdir="conda-test", fn="mypkgnot-1.1.1",
+        build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg 0.1.0'], constrains=[]
+    )
+]
+
+
+def test_packages_in_solution_change_already_newest():
+    specs = MatchSpec("mypkg")
+    pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
+    post_packages = {"mypkg": [("mypkg", "0.1.1")]}
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[specs])
+    constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
+    assert len(constrained) == 0
+
+
+def test_packages_in_solution_change_needs_update():
+    specs = MatchSpec("mypkg")
+    pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
+    post_packages = {"mypkg": [("mypkg", "0.1.1")]}
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[specs])
+    constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
+    assert len(constrained) == 0
+
+
+def test_packages_in_solution_change_constrained():
+    specs = MatchSpec("mypkg")
+    pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
+    post_packages = {"mypkg": [("mypkg", "0.1.0")]}
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[specs])
+    constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
+    assert len(constrained) == 1
+
+
+def test_determine_constricting_specs_conflicts():
+    solution_prec = [
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.0", channel="test", subdir="conda-test",
+            fn="mypkg-0.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+        ),
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test",
+            subdir="conda-test", fn="mypkgnot-1.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg 0.1.0'], constrains=[]
+        )
+    ]
+    spec = MatchSpec("mypkg")
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[spec])
+    constricting = solver.determine_constricting_specs(spec, solution_prec)
+    assert any(i for i in constricting if i[0] == "mypkgnot")
+
+
+def test_determine_constricting_specs_conflicts_upperbound():
+    solution_prec = [
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
+            fn="mypkg-0.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+        ),
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test",
+            subdir="conda-test", fn="mypkgnot-1.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg <=0.1.1'], constrains=[]
+        )
+    ]
+    spec = MatchSpec("mypkg")
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[spec])
+    constricting = solver.determine_constricting_specs(spec, solution_prec)
+    assert any(i for i in constricting if i[0] == "mypkgnot")
+
+
+def test_determine_constricting_specs_multi_conflicts():
+    solution_prec = [
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
+            fn="mypkg-0.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+        ),
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test",
+            subdir="conda-test", fn="mypkgnot-1.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg <=0.1.1'], constrains=[]
+        ),
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="notmypkg", version="1.1.1", channel="test",
+            subdir="conda-test", fn="mypkgnot-1.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg 0.1.1'], constrains=[]
+        )
+    ]
+    spec = MatchSpec("mypkg")
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[spec])
+    constricting = solver.determine_constricting_specs(spec, solution_prec)
+    assert any(i for i in constricting if i[0] == "mypkgnot")
+    assert any(i for i in constricting if i[0] == "notmypkg")
+
+
+def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends():
+    solution_prec = [
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
+            fn="mypkg-0.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+        ),
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test",
+            subdir="conda-test", fn="mypkgnot-1.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg >=0.1.1,<0.2.1'], constrains=[]
+        )
+    ]
+    spec = MatchSpec("mypkg")
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[spec])
+    constricting = solver.determine_constricting_specs(spec, solution_prec)
+    assert constricting is None
+
+
+def test_determine_constricting_specs_no_conflicts_version_star():
+    solution_prec = [
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
+            fn="mypkg-0.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+        ),
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test",
+            subdir="conda-test", fn="mypkgnot-1.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg 0.1.*'], constrains=[]
+        )
+    ]
+    spec = MatchSpec("mypkg")
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[spec])
+    constricting = solver.determine_constricting_specs(spec, solution_prec)
+    assert constricting is None
+
+
+def test_determine_constricting_specs_no_conflicts_free():
+    solution_prec = [
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
+            fn="mypkg-0.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+        ),
+    ]
+    spec = MatchSpec("mypkg")
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[spec])
+    constricting = solver.determine_constricting_specs(spec, solution_prec)
+    assert constricting is None
+
+
+def test_determine_constricting_specs_no_conflicts_no_upperbound():
+    solution_prec = [
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
+            fn="mypkg-0.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=[], constrains=[]
+        ),
+        PrefixRecord(
+            package_type=PackageType.NOARCH_GENERIC, name="mypkgnot", version="1.1.1", channel="test",
+            subdir="conda-test", fn="mypkgnot-1.1.1",
+            build="pypi_0", build_number=1, paths_data=None, files=None, depends=['mypkg >=0.0.5'], constrains=[]
+        )
+    ]
+    spec = MatchSpec("mypkg")
+    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+                    specs_to_add=[spec])
+    constricting = solver.determine_constricting_specs(spec, solution_prec)
+    assert constricting is None
