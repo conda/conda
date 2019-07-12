@@ -258,7 +258,8 @@ class Solver(object):
                     pre_packages, post_packages, ssc.index.keys())
                 if len(constrained) > 0:
                     for spec in constrained:
-                        self.determine_constricting_specs(spec, ssc.solution_precs)
+                        pkg_pool = ssc.r._get_package_pool([i.to_match_spec() for i in ssc.solution_precs])
+                        self.determine_constricting_specs(spec, ssc.solution_precs, pkg_pool[spec.name])
 
             # if there were any conflicts, we need to add their orphaned deps back in
             if ssc.add_back_map:
@@ -279,24 +280,32 @@ class Solver(object):
 
         return ssc.solution_precs
 
-    def determine_constricting_specs(self, spec, solution_precs):
-        constricting = [
-            (i.name, [k for k in i.depends
-                      if MatchSpec(k).name == spec.name and MatchSpec(k).version is not None])
-            for i in solution_precs if any(j for j in i.depends if spec.name in j)]
+    def determine_constricting_specs(self, spec, solution_precs, pkg_pool_spec):
+        constricting = []
+        for prec in solution_precs:
+            if any(j for j in prec.depends if spec.name in j):
+                dep_conflict = list(MatchSpec(k) for k in prec.depends if
+                                MatchSpec(k).name == spec.name and
+                                MatchSpec(k).version is not None and
+                                MatchSpec(k).version.exact_value is not None)
+                if len(dep_conflict) > 0:
+                    constricting.append((prec.name, dep_conflict[0]))
 
-        if len(constricting) == 0 or all(len(i[1]) == 0 for i in constricting):
+        hard_constricting = []
+        for spec in pkg_pool_spec:
+            hard_constricting.extend(i for i in constricting if i[1].version.exact_match(spec.version))
+
+        if len(constricting) == 0:
             return None
 
-        print("\n\nUpdating {spec} is constricted by \n".format(spec=spec))
-        for const in constricting:
-            if len(const[1]) > 0:
-                print("{package} -> requires {conflict_dep}".format(
-                    package=const[0], conflict_dep=" ".join(const[1])))
+        print("\n\nUpdating {spec} is constricted by \n".format(spec=spec.name))
+        for const in hard_constricting:
+            print("{package} -> requires {conflict_dep}".format(
+                package=const[0], conflict_dep=const[1]))
         print("\nIf you are sure you want an update of your package either try "
               "`conda update --all` or install a specific version of the "
               "package you want using `conda install <pkg>=<version>`\n")
-        return constricting
+        return hard_constricting
 
     def get_request_package_in_solution(self, solution_precs, specs_map):
         requested_packages = {}
