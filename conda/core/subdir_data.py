@@ -87,7 +87,7 @@ class SubdirData(object):
             futures = tuple(executor.submit(
                 SubdirData(Channel(url), repodata_fn=repodata_fn).query, package_ref_or_match_spec
             ) for url in channel_urls)
-            return tuple(concat(future.result() for future in as_completed(futures)))
+            return tuple(concat(future.result() for future in futures))
 
     def query(self, package_ref_or_match_spec):
         if not self._loaded:
