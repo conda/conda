@@ -26,7 +26,7 @@ from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REP
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
                              string_types, text_type, with_metaclass)
-from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
+from ..common.io import ThreadLimitedThreadPoolExecutor
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
