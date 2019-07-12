@@ -13,7 +13,7 @@ from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv
 from ..base.context import context
 from ..common.compat import itervalues
-from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, time_recorder
+from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
