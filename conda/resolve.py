@@ -332,6 +332,11 @@ class Resolve(object):
         return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
 
     def find_conflicts(self, specs, specs_to_add=None, history_specs=None):
+        bad_deps = self.build_conflict_map(specs, specs_to_add, history_specs)
+        strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
+        raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
+
+    def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
         """Perform a deeper analysis on conflicting specifications, by attempting
         to find the common dependencies that might be the cause of conflicts.
 
@@ -416,7 +421,7 @@ class Resolve(object):
                 bad_deps.extend([[spec, MatchSpec.merge(_)[0]] for _ in deps.values()])
         bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
                                            strict_channel_priority)
-        raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
+        return bad_deps
 
     def _get_strict_channel(self, package_name):
         channel_name = None
