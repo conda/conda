@@ -74,10 +74,9 @@ def fetch_index(channel_urls, use_cache=False, index=None, repodata_fn=context.r
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
     with ThreadLimitedThreadPoolExecutor() as executor:
-        futures = tuple(executor.submit(SubdirData, Channel(url), repodata_fn=repodata_fn)
-                        for url in channel_urls)
-        for sd in (future.result() for future in as_completed(futures)):
-            index.update((rec, rec) for rec in sd.iter_records())
+        subdir_instantiator = lambda url: SubdirData(Channel(url), repodata_fn=repodata_fn)
+        for f in executor.map(subdir_instantiator, channel_urls):
+            index.update((rec, rec) for rec in f.iter_records())
     return index
 
 
