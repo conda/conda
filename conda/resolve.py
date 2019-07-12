@@ -396,8 +396,7 @@ class Resolve(object):
             #    should start with `spec` and end with the first encountered conflict.  A
             #    conflict is something that is either not available at all, or is present in
             #    more than one pool, but those pools do not all overlap.
-
-            g = GeneralGraph(records)
+            g = GeneralGraph((r for r in records if isinstance(r, PackageRecord)))
             spec_order = sorted(sdeps_with_dep.keys(),
                                 key=lambda x: list(g.graph_by_name.keys()).index(x.name))
             for spec in spec_order:
