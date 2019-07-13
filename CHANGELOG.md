@@ -1,3 +1,24 @@
+## 4.7.7 (2019-07-12)
+
+### Improvements
+
+* When an update command doesn't do anything because installed software conflicts with the update, information about the conflict is shown, rather than just saying "all requests are already satisfied"  (#8899)
+
+### Bug fixes
+
+* fix missing package_type attr in finding virtual packages  (#8917)
+* fix parallel operations of loading index to preserve channel ordering  (#8921, #8922)
+* filter PrefixRecords out from PackageRecords when making a graph to show unsatisfiable deps.  Fixes comparison error between mismatched types.  (#8924)
+* install entry points before running post-link scripts, because post link scripts may depend on entry points.  (#8925)
+
+### Contributors
+
+* @jjhelmus
+* @msarahan
+* @rrigdon
+* @soapy1
+
+
 ## 4.7.6 (2019-07-11)
 
 ### Improvements
