@@ -486,8 +486,8 @@ allow them to quickly reproduce your environment, with all of its
 packages and versions, give them a copy of your
 ``environment.yml file``.
 
-Exporting the environment file
--------------------------------
+Exporting the environment.yml file
+----------------------------------
 
 .. note::
    If you already have an ``environment.yml`` file in your
