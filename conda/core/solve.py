@@ -626,7 +626,7 @@ class Solver(object):
                     python_spec = MatchSpec(python_spec, version=pinned_version)
 
                 spec_set = (python_spec, ) + tuple(self.specs_to_add)
-                if len(conflict_specs) > 0 and self._repodata_fn == "current_repodata.json":
+                if len(conflict_specs) > 0 and self._repodata_fn != "repodata.json":
                     return ssc
                 if ssc.r.get_conflicting_specs(spec_set):
                     # raises a hopefully helpful error message
