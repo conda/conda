@@ -84,39 +84,16 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 def print_activate(env_name_or_prefix):  # pragma: no cover
     if not context.quiet and not context.json:
-        if 'CONDA_SHLVL' in os.environ or os.path.split(os.environ.get('SHELL', ''))[-1] == 'fish':
-            message = dals("""
-            #
-            # To activate this environment, use
-            #
-            #     $ conda activate %s
-            #
-            # To deactivate an active environment, use
-            #
-            #     $ conda deactivate
-            """) % env_name_or_prefix
-        elif on_win:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > activate %s
-            #
-            # To deactivate an active environment, use:
-            # > deactivate
-            #
-            # * for power-users using bash, you must source
-            #
-            """) % env_name_or_prefix
-        else:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > conda activate %s
-            #
-            # To deactivate an active environment, use:
-            # > conda deactivate
-            #
-            """) % env_name_or_prefix
+        message = dals("""
+        #
+        # To activate this environment, use
+        #
+        #     $ conda activate %s
+        #
+        # To deactivate an active environment, use
+        #
+        #     $ conda deactivate
+        """) % env_name_or_prefix
         print(message)  # TODO: use logger
 
 
