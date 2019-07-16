@@ -210,14 +210,6 @@ class Solver(object):
                   "  specs_to_add: %s\n"
                   "  prune: %s", self.prefix, self.specs_to_remove, self.specs_to_add, prune)
 
-        # force_remove is a special case where we return early
-        if self.specs_to_remove and force_remove:
-            if self.specs_to_add:
-                raise NotImplementedError()
-            solution = tuple(prec for prec in ssc.solution_precs
-                             if not any(spec.match(prec) for spec in self.specs_to_remove))
-            return IndexedSet(PrefixGraph(solution).graph)
-
         retrying = hasattr(self, 'ssc')
 
         if not retrying:
@@ -229,6 +221,14 @@ class Solver(object):
             ssc = self.ssc
             ssc.update_modifier = update_modifier
             ssc.deps_modifier = deps_modifier
+
+        # force_remove is a special case where we return early
+        if self.specs_to_remove and force_remove:
+            if self.specs_to_add:
+                raise NotImplementedError()
+            solution = tuple(prec for prec in ssc.solution_precs
+                             if not any(spec.match(prec) for spec in self.specs_to_remove))
+            return IndexedSet(PrefixGraph(solution).graph)
 
         # Check if specs are satisfied by current environment. If they are, exit early.
         if (update_modifier == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE

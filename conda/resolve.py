@@ -403,9 +403,13 @@ class Resolve(object):
             #    should start with `spec` and end with the first encountered conflict.  A
             #    conflict is something that is either not available at all, or is present in
             #    more than one pool, but those pools do not all overlap.
+
             records_for_graph = groupby(lambda r: r.name,
                                         (r for r in records if isinstance(r, PackageRecord)))
-            g = GeneralGraph([v[0] for v in records_for_graph.values()])
+            # seven is a completely arbitrary number here.  It is meant to gather more than just
+            #    one record, to explore the space of dependencies a bit.  Doing all of them
+            #    can be an enormous problem, though.  This is hopefully a good compromise.
+            g = GeneralGraph([_ for v in records_for_graph.values() for _ in v[:7]])
             spec_order = sorted(sdeps_with_dep.keys(),
                                 key=lambda x: list(g.graph_by_name.keys()).index(x.name))
             for spec in spec_order:
