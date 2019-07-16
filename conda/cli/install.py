@@ -274,12 +274,13 @@ def install(args, parser, command='install'):
             # Quick solve with frozen env failed.  Try again without that.
             if isinstall and args.update_modifier == NULL:
                 try:
-                    log.info("Initial quick solve with frozen env failed.  "
+                    print("Initial quick solve with frozen env failed.  "
                              "Unfreezing env and trying again.")
                     unlink_link_transaction = solver.solve_for_transaction(
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
                         force_reinstall=context.force_reinstall or context.force,
+                        retrying=True
                     )
                 except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
                     # Unsatisfiable package specifications/no such revision/import error
@@ -291,7 +292,6 @@ def install(args, parser, command='install'):
                     # Unsatisfiable package specifications/no such revision/import error
                     if e.args and 'could not import' in e.args[0]:
                         raise CondaImportError(text_type(e))
-                    raise
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 

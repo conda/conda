@@ -80,7 +80,8 @@ class Solver(object):
         self._pool_cache = {}
 
     def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL):
+                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
+                              retrying=False):
         """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
@@ -108,7 +109,8 @@ class Solver(object):
         else:
             unlink_precs, link_precs = self.solve_for_diff(update_modifier, deps_modifier,
                                                            prune, ignore_pinned,
-                                                           force_remove, force_reinstall)
+                                                           force_remove, force_reinstall,
+                                                           retrying=retrying)
             stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
                               self.specs_to_remove, self.specs_to_add)
             # TODO: Only explicitly requested remove and update specs are being included in
@@ -118,7 +120,8 @@ class Solver(object):
             return UnlinkLinkTransaction(stp)
 
     def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL):
+                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
+                       retrying=False):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -146,7 +149,7 @@ class Solver(object):
 
         """
         final_precs = self.solve_final_state(update_modifier, deps_modifier, prune, ignore_pinned,
-                                             force_remove)
+                                             force_remove, retrying=retrying)
         unlink_precs, link_precs = diff_for_unlink_link_precs(
             self.prefix, final_precs, self.specs_to_add, force_reinstall
         )
@@ -160,7 +163,7 @@ class Solver(object):
         return unlink_precs, link_precs
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                          ignore_pinned=NULL, force_remove=NULL):
+                          ignore_pinned=NULL, force_remove=NULL, retrying=False):
         """Gives the final, solved state of the environment.
 
         Args:
@@ -187,6 +190,8 @@ class Solver(object):
                 for the prefix.
             force_remove (bool):
                 Forces removal of a package without removing packages that depend on it.
+            retrying (bool):
+                Silences some output for a cleaner user interface
 
         Returns:
             Tuple[PackageRef]:
@@ -205,9 +210,10 @@ class Solver(object):
         ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
         force_remove = context.force_remove if force_remove is NULL else force_remove
 
-        ssc = SolverStateContainer(
-            self.prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove
-        )
+        if not ssc:
+            ssc = SolverStateContainer(
+                self.prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove
+            )
 
         log.debug("solving prefix %s\n"
                   "  specs_to_remove: %s\n"
@@ -233,10 +239,11 @@ class Solver(object):
                 # Return early, with a solution that should just be PrefixData().iter_records()
                 return IndexedSet(PrefixGraph(ssc.solution_precs).graph)
 
-        with Spinner("Collecting package metadata (%s)" % self._repodata_fn,
-                     not context.verbosity and not context.quiet,
-                     context.json):
-            ssc = self._collect_all_metadata(ssc)
+        if not ssc.r:
+            with Spinner("Collecting package metadata (%s)" % self._repodata_fn,
+                        (not context.verbosity and not context.quiet and not retrying),
+                        context.json):
+                ssc = self._collect_all_metadata(ssc)
 
         fail_message = ("failed\n" if self._repodata_fn == REPODATA_FN else "failed with %s, "
                         "will retry with next repodata source.\n" % self._repodata_fn)
@@ -693,6 +700,10 @@ class Solver(object):
             ssc.track_features_specs,
             # pinned specs removed here - added to specs_map in _add_specs instead
         ))
+
+        absent_specs = [s for s in ssc.specs_map.values() if not ssc.r.find_matches(s)]
+        if absent_specs:
+            raise PackagesNotFoundError(absent_specs)
 
         # We've previously checked `solution` for consistency (which at that point was the
         # pre-solve state of the environment). Now we check our compiled set of

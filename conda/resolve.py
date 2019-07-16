@@ -403,7 +403,9 @@ class Resolve(object):
             #    should start with `spec` and end with the first encountered conflict.  A
             #    conflict is something that is either not available at all, or is present in
             #    more than one pool, but those pools do not all overlap.
-            g = GeneralGraph((r for r in records if isinstance(r, PackageRecord)))
+            records_for_graph = groupby(lambda r: r.name,
+                                        (r for r in records if isinstance(r, PackageRecord)))
+            g = GeneralGraph([v[0] for v in records_for_graph.values()])
             spec_order = sorted(sdeps_with_dep.keys(),
                                 key=lambda x: list(g.graph_by_name.keys()).index(x.name))
             for spec in spec_order:
@@ -973,32 +975,6 @@ class Resolve(object):
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
         return bool(solution)
-
-    # def get_conflicting_specs(self, specs):
-    #     if not specs:
-    #         return ()
-    #     reduced_index = self.get_reduced_index(tuple(specs), sort_by_exactness=False)
-    #     r2 = Resolve(reduced_index, True, channels=self.channels)
-    #     scp = context.channel_priority == ChannelPriority.STRICT
-    #     unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
-    #     if not unsat_specs:
-    #         return ()
-    #     else:
-    #         # This first result is just a single unsatisfiable core. There may be several.
-    #         satisfiable_specs = set(specs) - set(unsat_specs)
-
-    #         # In this loop, we test each unsatisfiable spec individually against the satisfiable
-    #         # specs to ensure there are no other unsatisfiable specs in the set.
-    #         final_unsat_specs = set()
-    #         while unsat_specs:
-    #             this_spec = unsat_specs.pop()
-    #             final_unsat_specs.add(this_spec)
-    #             test_specs = tuple(concatv((this_spec, ), satisfiable_specs))
-    #             r2 = Resolve(self.get_reduced_index(test_specs), True, channels=self.channels)
-    #             _unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
-    #             unsat_specs.update(_unsat_specs - final_unsat_specs)
-    #             satisfiable_specs -= set(unsat_specs)
-    #     return tuple(final_unsat_specs)
 
     def get_conflicting_specs(self, specs):
         if not specs:
