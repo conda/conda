@@ -25,7 +25,7 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError
+from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -627,8 +627,11 @@ class Solver(object):
 
                 spec_set = (python_spec, ) + tuple(self.specs_to_add)
                 if ssc.r.get_conflicting_specs(spec_set):
-                    # raises a hopefully helpful error message
-                    ssc.r.find_conflicts(spec_set)
+                    if self._repodata_fn == REPODATA_FN:
+                        # raises a hopefully helpful error message
+                        ssc.r.find_conflicts(spec_set)
+                    else:
+                        raise UnsatisfiableError([])
                 ssc.specs_map['python'] = python_spec
 
         # For the aggressive_update_packages configuration parameter, we strip any target
