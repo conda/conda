@@ -298,8 +298,7 @@ class Resolve(object):
                     python_spec = python_first_specs[0]
                     if not (set(self.find_matches(python_spec)) &
                             set(self.find_matches(chain[-1]))):
-
-                        classes['python'].add((tuple(chain),
+                        classes['python'].add((tuple([chain[0], chain[-1]]),
                                                str(MatchSpec(python_spec, target=None))))
             elif chain[-1].name == '__cuda':
                 cuda_version = [_ for _ in self._system_precs if _.name == '__cuda']
@@ -319,6 +318,7 @@ class Resolve(object):
                 if len(chain) > 1 or not any(len(c) > 1 and c[0] == chain[0] for c in bad_deps):
                     classes['direct'].add((tuple(chain),
                                            str(MatchSpec(chain[0], target=None))))
+
         if classes['python']:
             # filter out plain single-entry python conflicts.  The python section explains these.
             classes['direct'] = [_ for _ in classes['direct']
