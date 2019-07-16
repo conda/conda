@@ -13,7 +13,7 @@ from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
-from ..common.compat import on_win, text_type
+from ..common.compat import text_type
 from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
