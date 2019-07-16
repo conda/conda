@@ -80,8 +80,7 @@ class Solver(object):
         self._pool_cache = {}
 
     def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
-                              retrying=False):
+                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL):
         """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
@@ -109,8 +108,7 @@ class Solver(object):
         else:
             unlink_precs, link_precs = self.solve_for_diff(update_modifier, deps_modifier,
                                                            prune, ignore_pinned,
-                                                           force_remove, force_reinstall,
-                                                           retrying=retrying)
+                                                           force_remove, force_reinstall)
             stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
                               self.specs_to_remove, self.specs_to_add)
             # TODO: Only explicitly requested remove and update specs are being included in
@@ -120,8 +118,7 @@ class Solver(object):
             return UnlinkLinkTransaction(stp)
 
     def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
-                       retrying=False):
+                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -149,7 +146,7 @@ class Solver(object):
 
         """
         final_precs = self.solve_final_state(update_modifier, deps_modifier, prune, ignore_pinned,
-                                             force_remove, retrying=retrying)
+                                             force_remove)
         unlink_precs, link_precs = diff_for_unlink_link_precs(
             self.prefix, final_precs, self.specs_to_add, force_reinstall
         )
@@ -163,7 +160,7 @@ class Solver(object):
         return unlink_precs, link_precs
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                          ignore_pinned=NULL, force_remove=NULL, retrying=False):
+                          ignore_pinned=NULL, force_remove=NULL):
         """Gives the final, solved state of the environment.
 
         Args:
@@ -190,8 +187,6 @@ class Solver(object):
                 for the prefix.
             force_remove (bool):
                 Forces removal of a package without removing packages that depend on it.
-            retrying (bool):
-                Silences some output for a cleaner user interface
 
         Returns:
             Tuple[PackageRef]:
@@ -210,11 +205,6 @@ class Solver(object):
         ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
         force_remove = context.force_remove if force_remove is NULL else force_remove
 
-        if not ssc:
-            ssc = SolverStateContainer(
-                self.prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove
-            )
-
         log.debug("solving prefix %s\n"
                   "  specs_to_remove: %s\n"
                   "  specs_to_add: %s\n"
@@ -227,6 +217,18 @@ class Solver(object):
             solution = tuple(prec for prec in ssc.solution_precs
                              if not any(spec.match(prec) for spec in self.specs_to_remove))
             return IndexedSet(PrefixGraph(solution).graph)
+
+        retrying = hasattr(self, 'ssc')
+
+        if not retrying:
+            ssc = SolverStateContainer(
+                self.prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove
+            )
+            self.ssc = ssc
+        else:
+            ssc = self.ssc
+            ssc.update_modifier = update_modifier
+            ssc.deps_modifier = deps_modifier
 
         # Check if specs are satisfied by current environment. If they are, exit early.
         if (update_modifier == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
@@ -658,11 +660,12 @@ class Solver(object):
 
                 spec_set = (python_spec, ) + tuple(self.specs_to_add)
                 if ssc.r.get_conflicting_specs(spec_set):
-                    if self._repodata_fn == REPODATA_FN:
+                    if (self._repodata_fn == REPODATA_FN and
+                            ssc.update_modifier == UpdateModifier.UPDATE_SPECS):
                         # raises a hopefully helpful error message
                         ssc.r.find_conflicts(spec_set)
                     else:
-                        raise UnsatisfiableError([])
+                        raise UnsatisfiableError({})
                 ssc.specs_map['python'] = python_spec
 
         # For the aggressive_update_packages configuration parameter, we strip any target

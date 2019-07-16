@@ -280,18 +280,21 @@ def install(args, parser, command='install'):
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
                         force_reinstall=context.force_reinstall or context.force,
-                        retrying=True
                     )
                 except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
                     # Unsatisfiable package specifications/no such revision/import error
                     if e.args and 'could not import' in e.args[0]:
                         raise CondaImportError(text_type(e))
+                    # we want to fall through without raising if we're not at the end of the list of fns
+                    #    that way, we fall to the next fn.
+                    if repodata_fn == repodata_fns[-1]:
+                        raise e
             else:
                 # end of the line.  Raise the exception
-                if repodata_fn == repodata_fns[-1]:
-                    # Unsatisfiable package specifications/no such revision/import error
-                    if e.args and 'could not import' in e.args[0]:
-                        raise CondaImportError(text_type(e))
+                # Unsatisfiable package specifications/no such revision/import error
+                if e.args and 'could not import' in e.args[0]:
+                    raise CondaImportError(text_type(e))
+                raise e
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 
