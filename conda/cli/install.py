@@ -13,7 +13,7 @@ from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
-from ..common.compat import on_win, text_type
+from ..common.compat import text_type
 from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
@@ -84,39 +84,16 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 def print_activate(env_name_or_prefix):  # pragma: no cover
     if not context.quiet and not context.json:
-        if 'CONDA_SHLVL' in os.environ or os.path.split(os.environ.get('SHELL', ''))[-1] == 'fish':
-            message = dals("""
-            #
-            # To activate this environment, use
-            #
-            #     $ conda activate %s
-            #
-            # To deactivate an active environment, use
-            #
-            #     $ conda deactivate
-            """) % env_name_or_prefix
-        elif on_win:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > activate %s
-            #
-            # To deactivate an active environment, use:
-            # > deactivate
-            #
-            # * for power-users using bash, you must source
-            #
-            """) % env_name_or_prefix
-        else:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > conda activate %s
-            #
-            # To deactivate an active environment, use:
-            # > conda deactivate
-            #
-            """) % env_name_or_prefix
+        message = dals("""
+        #
+        # To activate this environment, use
+        #
+        #     $ conda activate %s
+        #
+        # To deactivate an active environment, use
+        #
+        #     $ conda deactivate
+        """) % env_name_or_prefix
         print(message)  # TODO: use logger
 
 
