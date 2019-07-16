@@ -415,32 +415,25 @@ class GeneralGraph(PrefixGraph):
             return [[root_spec]]
         visited = set()
 
-        def try_children(node, spec_name, chains=None):
+        def build_dependency_chain(node, spc, chains=None):
             visited.add(node)
             if not chains:
-                chains = [[node]]
-            if node == spec_name:
-                return chains
-            new_chains = []
-            for chain in chains[:]:
-                children = sorted(self.graph_by_name.get(chain[-1], set()),
+                chains = [[]]
+            chain = chains[-1]
+            if node == spc:
+                chain.append(spc)
+                return [chain]
+            else:
+                chain.append(node)
+                children = sorted(self.graph_by_name.get(node, set()),
                                   key=lambda x: list(self.graph_by_name.keys()).index(x))
-                # short circuit because it is the answer we're looking for
-                if spec_name in children:
-                    children = [spec_name]
                 for child in children:
-                    if child == chain[0]:
-                        new_chains.append([root_spec])
-                        continue
-                    new_chains.extend([chain + [child] for chain in chains])
-                    if child == spec_name:
-                        break
-                    elif child not in visited:
-                        # if we have other children, or if we've found a match
-                        new_chains = try_children(child, spec_name, new_chains)[:]
-            return new_chains
+                    if child not in visited:
+                        new_chain = [[c for c in chain]]
+                        chains.extend(build_dependency_chain(child, spc, new_chain))
+            return chains
 
-        chains = try_children(root_spec.name, spec_name)
+        chains = build_dependency_chain(root_spec.name, spec_name)
 
         final_chains = []
         for chain in sorted(chains, key=len):

@@ -2201,10 +2201,11 @@ def test_downgrade_python_prevented_with_sane_message():
                     history_specs=specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
+
         assert str(exc.value).strip() == dals("""The following specifications were found
 to be incompatible with the existing python installation in your environment:
 
-  - scikit-learn==0.13 -> python=2.7
+  - scikit-learn==0.13 -> scipy==0.11.0 -> numpy[version='1.5.*,1.6.*,1.7.*'] -> nose -> python=2.7
 
 If python is on the left-most side of the chain, that's the version you've asked for.
 When python appears to the right, that indicates that the thing on the left is somehow
@@ -2220,7 +2221,7 @@ unless you explicitly specify that.""")
         assert str(exc.value).strip() == dals("""The following specifications were found
 to be incompatible with the existing python installation in your environment:
 
-  - unsatisfiable-with-py26 -> scikit-learn==0.13 -> python=2.7
+  - unsatisfiable-with-py26 -> scikit-learn==0.13 -> scipy==0.11.0 -> numpy[version='1.5.*,1.6.*,1.7.*'] -> nose -> python=2.7
 
 If python is on the left-most side of the chain, that's the version you've asked for.
 When python appears to the right, that indicates that the thing on the left is somehow
