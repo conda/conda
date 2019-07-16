@@ -91,7 +91,15 @@ def _supplement_index_with_prefix(index, prefix):
     for prefix_record in PrefixData(prefix).iter_records():
         if prefix_record in index:
             current_record = index[prefix_record]
-            if current_record.channel != prefix_record.channel:
+            if current_record.channel == prefix_record.channel:
+                # The downloaded repodata takes priority, so we do not overwrite.
+                # We do, however, copy the link information so that the solver (i.e. resolve)
+                # knows this package is installed.
+                link = prefix_record.get('link') or EMPTY_LINK
+                index[prefix_record] = PrefixRecord.from_objects(
+                    current_record, prefix_record, link=link
+                )
+            else:
                 # If the local packages channel information does not agree with
                 # the channel information in the index then they are most
                 # likely referring to different packages.  This can occur if a
@@ -102,14 +110,6 @@ def _supplement_index_with_prefix(index, prefix):
                 prefix_channel._Channel__canonical_name = prefix_channel.url()
                 del prefix_record._PackageRecord__pkey
                 index[prefix_record] = prefix_record
-            else:
-                # The downloaded repodata takes priority, so we do not overwrite.
-                # We do, however, copy the link information so that the solver (i.e. resolve)
-                # knows this package is installed.
-                link = prefix_record.get('link') or EMPTY_LINK
-                index[prefix_record] = PrefixRecord.from_objects(
-                    current_record, prefix_record, link=link
-                )
         else:
             # If the package is not in the repodata, use the local data.
             # If the channel is known but the package is not in the index, it
