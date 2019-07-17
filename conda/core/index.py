@@ -90,14 +90,26 @@ def _supplement_index_with_prefix(index, prefix):
     assert prefix
     for prefix_record in PrefixData(prefix).iter_records():
         if prefix_record in index:
-            # The downloaded repodata takes priority, so we do not overwrite.
-            # We do, however, copy the link information so that the solver (i.e. resolve)
-            # knows this package is installed.
             current_record = index[prefix_record]
-            link = prefix_record.get('link') or EMPTY_LINK
-            index[prefix_record] = PrefixRecord.from_objects(
-                current_record, prefix_record, link=link
-            )
+            if current_record.channel == prefix_record.channel:
+                # The downloaded repodata takes priority, so we do not overwrite.
+                # We do, however, copy the link information so that the solver (i.e. resolve)
+                # knows this package is installed.
+                link = prefix_record.get('link') or EMPTY_LINK
+                index[prefix_record] = PrefixRecord.from_objects(
+                    current_record, prefix_record, link=link
+                )
+            else:
+                # If the local packages channel information does not agree with
+                # the channel information in the index then they are most
+                # likely referring to different packages.  This can occur if a
+                # multi-channel changes configuration, e.g. defaults with and
+                # without the free channel. In this case we need to fake the
+                # channel data for the existing package.
+                prefix_channel = prefix_record.channel
+                prefix_channel._Channel__canonical_name = prefix_channel.url()
+                del prefix_record._PackageRecord__pkey
+                index[prefix_record] = prefix_record
         else:
             # If the package is not in the repodata, use the local data.
             # If the channel is known but the package is not in the index, it
