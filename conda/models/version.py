@@ -586,6 +586,7 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
         #    this info is for visual display only, not for feeding into actual matches
         return '|'.join(options)
 
+
 # TODO: someday switch out these class names for consistency
 VersionMatch = VersionSpec
 

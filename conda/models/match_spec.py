@@ -493,7 +493,7 @@ class MatchSpec(object):
                     try:
                         final = this_component.union(that_component)
                     except (AttributeError, ValueError):
-                        final = '%s|%s' %(this_component, that_component)
+                        final = '%s|%s' % (this_component, that_component)
                 else:
                     final = this_component.merge(that_component)
                 final_components[component_name] = final

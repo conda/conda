@@ -276,7 +276,7 @@ def install(args, parser, command='install'):
                 try:
                     if not args.json:
                         print("Initial quick solve with frozen env failed.  "
-                                "Unfreezing env and trying again.")
+                              "Unfreezing env and trying again.")
                     unlink_link_transaction = solver.solve_for_transaction(
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
@@ -286,8 +286,8 @@ def install(args, parser, command='install'):
                     # Unsatisfiable package specifications/no such revision/import error
                     if e.args and 'could not import' in e.args[0]:
                         raise CondaImportError(text_type(e))
-                    # we want to fall through without raising if we're not at the end of the list of fns
-                    #    that way, we fall to the next fn.
+                    # we want to fall through without raising if we're not at the end of the list
+                    #    of fns.  That way, we fall to the next fn.
                     if repodata_fn == repodata_fns[-1]:
                         raise e
             else:

@@ -9,7 +9,7 @@ from logging import DEBUG, getLogger
 
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
-from ._vendor.toolz import concat, concatv, groupby
+from ._vendor.toolz import concat, groupby
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice, REPODATA_FN
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type

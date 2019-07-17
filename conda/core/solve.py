@@ -243,8 +243,8 @@ class Solver(object):
 
         if not ssc.r:
             with Spinner("Collecting package metadata (%s)" % self._repodata_fn,
-                        (not context.verbosity and not context.quiet and not retrying),
-                        context.json):
+                         (not context.verbosity and not context.quiet and not retrying),
+                         context.json):
                 ssc = self._collect_all_metadata(ssc)
 
         fail_message = ("failed\n" if self._repodata_fn == REPODATA_FN else "failed with %s, "
