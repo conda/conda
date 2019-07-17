@@ -274,8 +274,9 @@ def install(args, parser, command='install'):
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
             if not hasattr(args, 'update_modifier') or args.update_modifier == NULL:
                 try:
-                    print("Initial quick solve with frozen env failed.  "
-                             "Unfreezing env and trying again.")
+                    if not args.json:
+                        print("Initial quick solve with frozen env failed.  "
+                                "Unfreezing env and trying again.")
                     unlink_link_transaction = solver.solve_for_transaction(
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
