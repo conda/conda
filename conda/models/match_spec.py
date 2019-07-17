@@ -448,7 +448,7 @@ class MatchSpec(object):
         return val
 
     @classmethod
-    def merge(cls, match_specs):
+    def merge(cls, match_specs, union=False):
         match_specs = sorted(tuple(cls(s) for s in match_specs if s), key=str)
         name_groups = groupby(attrgetter('name'), match_specs)
         unmergeable = name_groups.pop('*', []) + name_groups.pop(None, [])
@@ -464,11 +464,16 @@ class MatchSpec(object):
             if len(target_groups) > 1:
                 raise ValueError("Incompatible MatchSpec merge:%s" % dashlist(group))
             merged_specs.append(
-                reduce(lambda x, y: x._merge(y), group) if len(group) > 1 else group[0]
+                reduce(lambda x, y: x._merge(y, union), group) if len(group) > 1 else group[0]
             )
         return tuple(concatv(merged_specs, unmergeable))
 
-    def _merge(self, other):
+    @classmethod
+    def union(cls, match_specs):
+        return cls.merge(match_specs, union=True)
+
+    def _merge(self, other, union=False):
+
         if self.optional != other.optional or self.target != other.target:
             raise ValueError("Incompatible MatchSpec merge:  - %s\n  - %s" % (self, other))
 
@@ -484,8 +489,14 @@ class MatchSpec(object):
             elif that_component is None:
                 final_components[component_name] = this_component
             else:
-                final_components[component_name] = this_component.merge(that_component)
-
+                if union:
+                    try:
+                        final = this_component.union(that_component)
+                    except (AttributeError, ValueError):
+                        final = '%s|%s' % (this_component, that_component)
+                else:
+                    final = this_component.merge(that_component)
+                final_components[component_name] = final
         return self.__class__(optional=self.optional, target=self.target, **final_components)
 
 
@@ -739,6 +750,10 @@ class MatchInterface(object):
             raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
                              % (self.raw_value, other.raw_value))
         return self.raw_value
+
+    def union(self, other):
+        options = set((self.raw_value, other.raw_value))
+        return '|'.join(options)
 
 
 class _StrMatchMixin(object):

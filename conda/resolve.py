@@ -9,12 +9,13 @@ from logging import DEBUG, getLogger
 
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
-from ._vendor.toolz import concat, concatv, groupby
-from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
+from ._vendor.toolz import concat, groupby
+from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice, REPODATA_FN
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
-from .common.logic import Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver
+from .common.logic import (Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver,
+                           minimal_unsatisfiable_subset)
 from .common.toposort import toposort
 from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFound,
                          UnsatisfiableError)
@@ -249,7 +250,7 @@ class Resolve(object):
             if not found:
                 conflict_groups = groupby(lambda x: x.name, conflict_deps)
                 for group in conflict_groups.values():
-                    yield (spec,) + MatchSpec.merge(group)
+                    yield (spec,) + MatchSpec.union(group)
 
         return chains_(spec, set())
 
@@ -297,8 +298,7 @@ class Resolve(object):
                     python_spec = python_first_specs[0]
                     if not (set(self.find_matches(python_spec)) &
                             set(self.find_matches(chain[-1]))):
-
-                        classes['python'].add((tuple(chain),
+                        classes['python'].add((tuple([chain[0], chain[-1]]),
                                                str(MatchSpec(python_spec, target=None))))
             elif chain[-1].name == '__cuda':
                 cuda_version = [_ for _ in self._system_precs if _.name == '__cuda']
@@ -313,11 +313,12 @@ class Resolve(object):
                         match = True
 
                 if not match:
-                    classes['direct'].add((tuple(chain), chain[0]))
+                    classes['direct'].add((tuple(chain), str(MatchSpec(chain[0], target=None))))
             else:
                 if len(chain) > 1 or not any(len(c) > 1 and c[0] == chain[0] for c in bad_deps):
                     classes['direct'].add((tuple(chain),
                                            str(MatchSpec(chain[0], target=None))))
+
         if classes['python']:
             # filter out plain single-entry python conflicts.  The python section explains these.
             classes['direct'] = [_ for _ in classes['direct']
@@ -366,14 +367,14 @@ class Resolve(object):
         """
         # if only a single package matches the spec use the packages depends
         # rather than the spec itself
+        strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
+
+        specs = set(specs) | (specs_to_add or set())
         if len(specs) == 1:
             matches = self.find_matches(next(iter(specs)))
             if len(matches) == 1:
-                specs = self.ms_depends(matches[0])
-
-        strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
-
-        specs = set(specs) | {_.to_match_spec() for _ in self._system_precs}
+                specs = set(self.ms_depends(matches[0]))
+        specs.update({_.to_match_spec() for _ in self._system_precs})
 
         # For each spec, assemble a dictionary of dependencies, with package
         # name as key, and all of the matching packages as values.
@@ -402,7 +403,13 @@ class Resolve(object):
             #    should start with `spec` and end with the first encountered conflict.  A
             #    conflict is something that is either not available at all, or is present in
             #    more than one pool, but those pools do not all overlap.
-            g = GeneralGraph((r for r in records if isinstance(r, PackageRecord)))
+
+            records_for_graph = groupby(lambda r: r.name,
+                                        (r for r in records if isinstance(r, PackageRecord)))
+            # seven is a completely arbitrary number here.  It is meant to gather more than just
+            #    one record, to explore the space of dependencies a bit.  Doing all of them
+            #    can be an enormous problem, though.  This is hopefully a good compromise.
+            g = GeneralGraph([_ for v in records_for_graph.values() for _ in v[:7]])
             spec_order = sorted(sdeps_with_dep.keys(),
                                 key=lambda x: list(g.graph_by_name.keys()).index(x.name))
             for spec in spec_order:
@@ -417,7 +424,8 @@ class Resolve(object):
                 precs = self.find_matches(spec)
                 deps = set.union(*[set(self.ms_depends_.get(prec)) for prec in precs])
                 deps = groupby(lambda x: x.name, deps)
-                bad_deps.extend([[spec, MatchSpec.merge(_)[0]] for _ in deps.values()])
+
+                bad_deps.extend([[spec, MatchSpec.union(_)[0]] for _ in deps.values()])
         bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
                                            strict_channel_priority)
         return bad_deps
@@ -477,7 +485,7 @@ class Resolve(object):
             # prioritize specs that are more exact.  Exact specs will evaluate to 3,
             #    constrained specs will evaluate to 2, and name only will be 1
             explicit_specs = sorted(list(explicit_specs), key=lambda x: (
-                exactness_and_number_of_deps(self, x), x.name), reverse=True)
+                exactness_and_number_of_deps(self, x), x.dist_str()), reverse=True)
         # tuple because it needs to be hashable
         explicit_specs = tuple(explicit_specs)
 
@@ -975,27 +983,37 @@ class Resolve(object):
     def get_conflicting_specs(self, specs):
         if not specs:
             return ()
-        reduced_index = self.get_reduced_index(tuple(specs), sort_by_exactness=False)
+        reduced_index = self.get_reduced_index(specs)
+
+        # Check if satisfiable
+        def mysat(specs, add_if=False):
+            constraints = r2.generate_spec_constraints(C, specs)
+            return C.sat(constraints, add_if)
+
         r2 = Resolve(reduced_index, True, channels=self.channels)
-        scp = context.channel_priority == ChannelPriority.STRICT
-        unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
-        if not unsat_specs:
-            return ()
+        C = r2.gen_clauses()
+        solution = mysat(specs, True)
+        if solution:
+            final_unsat_specs = ()
         else:
             # This first result is just a single unsatisfiable core. There may be several.
+            unsat_specs = list(minimal_unsatisfiable_subset(specs, sat=mysat))
             satisfiable_specs = set(specs) - set(unsat_specs)
 
             # In this loop, we test each unsatisfiable spec individually against the satisfiable
             # specs to ensure there are no other unsatisfiable specs in the set.
             final_unsat_specs = set()
             while unsat_specs:
-                this_spec = unsat_specs.pop()
+                this_spec = unsat_specs.pop(0)
                 final_unsat_specs.add(this_spec)
-                test_specs = tuple(concatv((this_spec, ), satisfiable_specs))
-                r2 = Resolve(self.get_reduced_index(test_specs), True, channels=self.channels)
-                _unsat_specs = {s for s in specs if not r2.find_matches_with_strict(s, scp)}
-                unsat_specs.update(_unsat_specs - final_unsat_specs)
-                satisfiable_specs -= set(unsat_specs)
+                test_specs = satisfiable_specs | {this_spec}
+                C = r2.gen_clauses()  # TODO: wasteful call, but Clauses() needs refactored
+                solution = mysat(test_specs, True)
+                if not solution:
+                    these_unsat = minimal_unsatisfiable_subset(test_specs, sat=mysat)
+                    if len(these_unsat) > 1:
+                        unsat_specs.extend(these_unsat)
+                        satisfiable_specs -= set(unsat_specs)
         return tuple(final_unsat_specs)
 
     def bad_installed(self, installed, new_specs):
@@ -1124,7 +1142,8 @@ class Resolve(object):
         return pkgs
 
     @time_recorder(module_name=__name__)
-    def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None):
+    def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None,
+              repodata_fn=REPODATA_FN):
         # type: (List[str], bool) -> List[PackageRecord]
         if log.isEnabledFor(DEBUG):
             dlist = dashlist(text_type(
@@ -1158,6 +1177,9 @@ class Resolve(object):
                 raise ResolvePackageNotFound(not_found_packages)
             elif wrong_version_packages:
                 raise UnsatisfiableError([[d] for d in wrong_version_packages], chains=False)
+            if repodata_fn != REPODATA_FN:
+                # bail out until we have the full repodata.
+                raise UnsatisfiableError({})
             self.find_conflicts(specs, specs_to_add, history_specs)
 
         # Check if satisfiable
@@ -1191,6 +1213,9 @@ class Resolve(object):
         solution = mysat(specs, True)
 
         if not solution:
+            if repodata_fn != REPODATA_FN:
+                # bail out until we have the full repodata.
+                raise UnsatisfiableError({})
             self.find_conflicts(specs, specs_to_add, history_specs)
 
         speco = []  # optional packages

@@ -243,9 +243,8 @@ def install(args, parser, command='install'):
                                                          index)
             else:
                 solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
-                                repodata_fn=repodata_fn)
+                                repodata_fn=repodata_fn, command=args.cmd)
                 if (isinstall or isremove) and args.update_modifier == NULL:
-                    # try to do a quick solve with then existing env frozen by default
                     update_modifier = UpdateModifier.FREEZE_INSTALLED
                 if isupdate:
                     deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
@@ -272,11 +271,15 @@ def install(args, parser, command='install'):
                 raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
         except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
-            # Quick solve with frozen env failed.  Try again without that.
-            if isinstall and args.update_modifier == NULL:
+            # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
+            if not hasattr(args, 'update_modifier'):
+                if repodata_fn == repodata_fns[-1]:
+                    raise e
+            elif args.update_modifier == NULL:
                 try:
-                    log.info("Initial quick solve with frozen env failed.  "
-                             "Unfreezing env and trying again.")
+                    if not args.json:
+                        print("Initial quick solve with frozen env failed.  "
+                              "Unfreezing env and trying again.")
                     unlink_link_transaction = solver.solve_for_transaction(
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
@@ -286,13 +289,16 @@ def install(args, parser, command='install'):
                     # Unsatisfiable package specifications/no such revision/import error
                     if e.args and 'could not import' in e.args[0]:
                         raise CondaImportError(text_type(e))
+                    # we want to fall through without raising if we're not at the end of the list
+                    #    of fns.  That way, we fall to the next fn.
+                    if repodata_fn == repodata_fns[-1]:
+                        raise e
             else:
                 # end of the line.  Raise the exception
-                if repodata_fn == repodata_fns[-1]:
-                    # Unsatisfiable package specifications/no such revision/import error
-                    if e.args and 'could not import' in e.args[0]:
-                        raise CondaImportError(text_type(e))
-                    raise
+                # Unsatisfiable package specifications/no such revision/import error
+                if e.args and 'could not import' in e.args[0]:
+                    raise CondaImportError(text_type(e))
+                raise e
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 

@@ -669,7 +669,7 @@ explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
                     '''),
                     'direct': dals('''
 
-The following specifications were found to be incompatible with each other:\n{specs}
+The following specifications were found to be incompatible with each other:\n
 
                     '''),
                     'cuda': dals('''
@@ -683,17 +683,30 @@ Your installed CUDA driver is: {ref}
         for class_name, dep_class in bad_deps.items():
             if dep_class:
                 _chains = []
-                for dep_chain, installed_blocker in dep_class:
-                    # Remove any target values from the MatchSpecs, convert to strings
-                    dep_chain = [str(MatchSpec(dep, target=None)) for dep in dep_chain]
-                    _chains.append(dep_chain)
-
-                if _chains:
-                    _chains = self._format_chain_str(_chains)
+                if class_name == "direct":
+                    msg += messages["direct"]
+                    last_dep_entry = set(d[0][-1].name for d in dep_class)
+                    dep_constraint_map = {}
+                    for dep in dep_class:
+                        if dep[0][-1].name in last_dep_entry:
+                            if not dep_constraint_map.get(dep[0][-1].name):
+                                dep_constraint_map[dep[0][-1].name] = []
+                            dep_constraint_map[dep[0][-1].name].append(dep[0])
+                    for dep, chain in dep_constraint_map.items():
+                        msg += "\nPackage %s conflicts for:\n" % dep
+                        msg += "\n".join([" -> ".join([str(i) for i in c]) for c in chain])
                 else:
-                    _chains = [', '.join(c) for c in _chains]
-                msg += messages[class_name].format(specs=dashlist(_chains),
-                                                   ref=installed_blocker)
+                    for dep_chain, installed_blocker in dep_class:
+                        # Remove any target values from the MatchSpecs, convert to strings
+                        dep_chain = [str(MatchSpec(dep, target=None)) for dep in dep_chain]
+                        _chains.append(dep_chain)
+
+                    if _chains:
+                        _chains = self._format_chain_str(_chains)
+                    else:
+                        _chains = [', '.join(c) for c in _chains]
+                    msg += messages[class_name].format(specs=dashlist(_chains),
+                                                       ref=installed_blocker)
         if strict:
             msg += ('\nNote that strict channel priority may have removed '
                     'packages required for satisfiability.')
