@@ -629,7 +629,8 @@ class Solver(object):
         if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
             for spec in self.specs_to_add:
                 spec = MatchSpec(spec)
-                if (spec.name in pin_overrides and not ssc.ignore_pinned):
+                if (spec.name in pin_overrides and not ssc.ignore_pinned
+                        or spec.name in ssc.specs_from_history_map):
                     # skip this spec, because it is constrained by pins
                     continue
                 # the index is sorted, so the first record here gives us what we want.
