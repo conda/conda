@@ -10,7 +10,7 @@ from logging import DEBUG, getLogger
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
 from ._vendor.toolz import concat, concatv, groupby
-from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
+from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice, REPODATA_FN
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
@@ -1142,7 +1142,8 @@ class Resolve(object):
         return pkgs
 
     @time_recorder(module_name=__name__)
-    def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None):
+    def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None,
+              repodata_fn=REPODATA_FN):
         # type: (List[str], bool) -> List[PackageRecord]
         if log.isEnabledFor(DEBUG):
             dlist = dashlist(text_type(
@@ -1176,6 +1177,9 @@ class Resolve(object):
                 raise ResolvePackageNotFound(not_found_packages)
             elif wrong_version_packages:
                 raise UnsatisfiableError([[d] for d in wrong_version_packages], chains=False)
+            if repodata_fn != REPODATA_FN:
+                # bail out until we have the full repodata.
+                raise UnsatisfiableError({})
             self.find_conflicts(specs, specs_to_add, history_specs)
 
         # Check if satisfiable
@@ -1209,6 +1213,9 @@ class Resolve(object):
         solution = mysat(specs, True)
 
         if not solution:
+            if repodata_fn != REPODATA_FN:
+                # bail out until we have the full repodata.
+                raise UnsatisfiableError({})
             self.find_conflicts(specs, specs_to_add, history_specs)
 
         speco = []  # optional packages

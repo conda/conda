@@ -271,8 +271,8 @@ def install(args, parser, command='install'):
                 raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
         except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
-            # Quick solve with frozen env failed.  Try again without that.
-            if isinstall and args.update_modifier == NULL:
+            # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
+            if not hasattr(args, 'update_modifier') or args.update_modifier == NULL:
                 try:
                     print("Initial quick solve with frozen env failed.  "
                              "Unfreezing env and trying again.")
