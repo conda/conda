@@ -664,7 +664,7 @@ class Solver(object):
                 if ssc.r.get_conflicting_specs(spec_set):
                     if self._command != 'install' or (
                             self._repodata_fn == REPODATA_FN and
-                            ssc.update_modifier == UpdateModifier.UPDATE_SPECS):
+                            ssc.update_modifier != UpdateModifier.FREEZE_INSTALLED):
                         # raises a hopefully helpful error message
                         ssc.r.find_conflicts(spec_set)
                     else:
