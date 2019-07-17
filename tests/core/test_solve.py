@@ -220,7 +220,7 @@ def test_cuda_fail_1():
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
 
-  - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
+  - cudatoolkit -> __cuda[version='>=9.0|>=10.0']
 
 Your installed CUDA driver is: 8.0""")
 
@@ -236,7 +236,7 @@ def test_cuda_fail_2():
                 final_state = solver.solve_final_state()
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
 
-  - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
+  - cudatoolkit -> __cuda[version='>=9.0|>=10.0']
 
 Your installed CUDA driver is: not available""")
 
