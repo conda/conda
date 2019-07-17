@@ -52,8 +52,11 @@ def download(
         # if version 1.1 is not found, try to load 1.0
         if not exists(libssl_path2 + ".dll"):
             # print("prior not exits? %s\n" % libssl_path2+".dll")
-            libssl_version = '-1_0'
-            so_name = libssl_dllname + libssl_version + libssl_arch
+            libssl_version = ''
+            libssl_arch = ''
+            libssl_dllname = 'ssleay32'
+            libcrypto_dllname = 'libeay32'
+            so_name = libssl_dllname
             libssl_path2 = os.path.join(libbin_path, so_name)
 
         libssl_path = find_library(so_name)
