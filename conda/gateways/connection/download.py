@@ -33,6 +33,43 @@ def disable_ssl_verify_warning():
     warnings.simplefilter('ignore', InsecureRequestWarning)
 
 
+def preload_openssl():
+    """Because our openssl library lives in Librar/bin, and because that may not be on PATH
+    if conda.exe in Scripts is called directly, try this preload to avoid user issues."""
+    libbin_path = os.path.join(sys.prefix, 'Library', 'bin')
+    libssl_dllname = 'libssl'
+    libcrypto_dllname = 'libcrypto'
+    libssl_version = '-1_1'
+    libssl_arch = ''
+    if sys.maxsize > 2**32:
+        libssl_arch = '-x64'
+    so_name = libssl_dllname + libssl_version + libssl_arch
+    libssl_path2 = os.path.join(libbin_path, so_name)
+    # if version 1.1 is not found, try to load 1.0
+    if not exists(libssl_path2 + ".dll"):
+        libssl_version = ''
+        libssl_arch = ''
+        libssl_dllname = 'ssleay32'
+        libcrypto_dllname = 'libeay32'
+        so_name = libssl_dllname
+        libssl_path2 = os.path.join(libbin_path, so_name)
+    libssl_path = find_library(so_name)
+    if not libssl_path:
+        libssl_path = libssl_path2
+    # crypto library might exists ...
+    so_name = libcrypto_dllname + libssl_version + libssl_arch
+    libcrypto_path = find_library(so_name)
+    if not libcrypto_path:
+        libcrypto_path = os.path.join(sys.prefix, 'Library', 'bin', so_name)
+    kernel32 = ctypes.windll.kernel32
+    h_mod = kernel32.GetModuleHandleA(libcrypto_path)
+    if not h_mod:
+        ctypes.WinDLL(libcrypto_path)
+    h_mod = kernel32.GetModuleHandleA(libssl_path)
+    if not h_mod:
+        ctypes.WinDLL(libssl_path)
+
+
 @time_recorder("download")
 def download(
         url, target_full_path, md5=None, sha256=None, size=None, progress_update_callback=None
@@ -40,45 +77,7 @@ def download(
     if exists(target_full_path):
         maybe_raise(BasicClobberError(target_full_path, url, context), context)
     if sys.platform == 'win32':
-        libbin_path = os.path.join(sys.prefix, 'Library', 'bin')
-        libssl_dllname = 'libssl'
-        libcrypto_dllname = 'libcrypto'
-        libssl_version = '-1_1'
-        libssl_arch = ''
-        if sys.maxsize > 2**32:
-            libssl_arch = '-x64'
-        so_name = libssl_dllname + libssl_version + libssl_arch
-        libssl_path2 = os.path.join(libbin_path, so_name)
-        # if version 1.1 is not found, try to load 1.0
-        if not exists(libssl_path2 + ".dll"):
-            # print("prior not exits? %s\n" % libssl_path2+".dll")
-            libssl_version = ''
-            libssl_arch = ''
-            libssl_dllname = 'ssleay32'
-            libcrypto_dllname = 'libeay32'
-            so_name = libssl_dllname
-            libssl_path2 = os.path.join(libbin_path, so_name)
-
-        libssl_path = find_library(so_name)
-        if not libssl_path:
-            libssl_path = libssl_path2
-        # crypto library might exists ...
-        so_name = libcrypto_dllname + libssl_version + libssl_arch
-        libcrypto_path = find_library(so_name)
-        if not libcrypto_path:
-            libcrypto_path = os.path.join(sys.prefix, 'Library', 'bin', so_name)
-        # print("Attempt to load %s lib\n" % libssl_path)
-        # print("  and %s lib\n" % libcrypto_path)
-        kernel32 = ctypes.windll.kernel32
-        h_mod = kernel32.GetModuleHandleA(libcrypto_path)
-        if h_mod == False:
-            libcrypto = ctypes.WinDLL(libcrypto_path)
-            # print("crypto loaded\n")
-        h_mod = kernel32.GetModuleHandleA(libssl_path)
-        if h_mod == False:
-            libssl = ctypes.WinDLL(libssl_path)
-            # print("ssl loaded\n")
-
+        preload_openssl()
     if not context.ssl_verify:
         disable_ssl_verify_warning()
 
