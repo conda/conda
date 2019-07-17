@@ -422,7 +422,7 @@ class Resolve(object):
 
             for spec in specs:
                 precs = self.find_matches(spec)
-                deps = set.union(*[set(self.ms_depends_.get(prec)) for prec in precs])
+                deps = set.union(*[set(self.ms_depends_.get(prec) or []) for prec in precs])
                 deps = groupby(lambda x: x.name, deps)
 
                 bad_deps.extend([[spec, MatchSpec.union(_)[0]] for _ in deps.values()])
