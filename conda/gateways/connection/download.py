@@ -8,6 +8,10 @@ from logging import DEBUG, getLogger
 from os.path import basename, exists, join
 import tempfile
 import warnings
+import sys
+import os
+import ctypes
+from ctypes.util import find_library
 
 from . import (ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema,
                SSLError, RequestsProxyError)
@@ -35,6 +39,29 @@ def download(
 ):
     if exists(target_full_path):
         maybe_raise(BasicClobberError(target_full_path, url, context), context)
+    if sys.platform == 'win32':
+        libssl_dllname = 'libssl-1_1-x64'
+        libcrypto_dllname = 'libcrypto-1_1-x64'
+        if sys.maxsize <= 2**32:
+            libssl_dllname = 'libssl-1_1'
+            libcrypto_dllname = 'libcrypto-1_1'
+        libssl_path = find_library(libssl_dllname)
+        if not libssl_path:
+            libssl_path = os.path.join(sys.prefix, 'Library', 'bin', libssl_dllname)
+        libcrypto_path = find_library(libcrypto_dllname)
+        if not libcrypto_path:
+            libcrypto_path = os.path.join(sys.prefix, 'Library', 'bin', libcrypto_dllname)
+        # print("Attempt to load %s lib\n" % libssl_path)
+        # print("  and %s lib\n" % libcrypto_path)
+        kernel32 = ctypes.windll.kernel32
+        h_mod = kernel32.GetModuleHandleA(libcrypto_path)
+        if h_mod == False:
+            libcrypto = ctypes.WinDLL(libcrypto_path)
+            # print("crypto loaded\n")
+        h_mod = kernel32.GetModuleHandleA(libssl_path)
+        if h_mod == False:
+            libssl = ctypes.WinDLL(libssl_path)
+            # print("ssl loaded\n")
 
     if not context.ssl_verify:
         disable_ssl_verify_warning()
