@@ -632,14 +632,14 @@ class Solver(object):
                 if (spec.name in pin_overrides and not ssc.ignore_pinned):
                     # skip this spec, because it is constrained by pins
                     continue
+                # the index is sorted, so the first record here gives us what we want.
+                latest_pkg = ssc.r.find_matches(spec)[0]
                 for ms in list(ssc.specs_map.values()):
                     ms = MatchSpec(ms)
-                    # the index is sorted, so the first record here gives us what we want.
-                    latest_pkg = ssc.r.find_matches(spec)[0]
                     spec_pool = ssc.r._get_package_pool([ms])
                     if spec_pool.get(spec.name) and latest_pkg not in spec_pool[spec.name]:
                         # neuter the spec due to a conflict
-                        ssc.specs_map[ms.name] = MatchSpec(spec)
+                        ssc.specs_map[ms.name] = MatchSpec(ms.name)
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).

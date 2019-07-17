@@ -2031,6 +2031,10 @@ def test_freeze_deps_1():
                         history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
             unlink_precs, link_precs = solver.solve_for_diff()
 
+    # adding the explicit python spec allows conda to change the python versions.
+    # one possible outcome is that this updates to python 3.6.  That is not desirable because of the
+    #    explicit "six=1.7" request in the history.  It should only neuter that spec if there's no way
+    #    to solve it with that spec.
     specs_to_add = MatchSpec("bokeh=0.12.5"), MatchSpec("python")
     with get_solver_2(specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
