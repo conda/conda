@@ -584,7 +584,7 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
         options = set((self.raw_value, other.raw_value))
         # important: we only return a string here because the parens get gobbled otherwise
         #    this info is for visual display only, not for feeding into actual matches
-        return '|'.join(options)
+        return '|'.join(sorted(options))
 
 
 # TODO: someday switch out these class names for consistency
