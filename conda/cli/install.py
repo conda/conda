@@ -243,7 +243,7 @@ def install(args, parser, command='install'):
                                                          index)
             else:
                 solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
-                                repodata_fn=repodata_fn)
+                                repodata_fn=repodata_fn, command=args.cmd)
                 if (isinstall or isremove) and args.update_modifier == NULL:
                     update_modifier = UpdateModifier.FREEZE_INSTALLED
                 if isupdate:
@@ -272,7 +272,10 @@ def install(args, parser, command='install'):
 
         except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
-            if not hasattr(args, 'update_modifier') or args.update_modifier == NULL:
+            if not hasattr(args, 'update_modifier'):
+                if repodata_fn == repodata_fns[-1]:
+                    raise e
+            elif args.update_modifier == NULL:
                 try:
                     if not args.json:
                         print("Initial quick solve with frozen env failed.  "

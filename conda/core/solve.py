@@ -49,7 +49,7 @@ class Solver(object):
     """
 
     def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=(),
-                 repodata_fn=REPODATA_FN):
+                 repodata_fn=REPODATA_FN, command=NULL):
         """
         Args:
             prefix (str):
@@ -71,6 +71,7 @@ class Solver(object):
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
+        self._command = command
 
         assert all(s in context.known_subdirs for s in self.subdirs)
         self._repodata_fn = repodata_fn
@@ -626,7 +627,7 @@ class Solver(object):
                                       for prec in ssc.prefix_data.iter_records()
                                       )
 
-        if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
+        elif ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
             for spec in self.specs_to_add:
                 spec = MatchSpec(spec)
                 if (spec.name in pin_overrides and not ssc.ignore_pinned
@@ -661,7 +662,8 @@ class Solver(object):
 
                 spec_set = (python_spec, ) + tuple(self.specs_to_add)
                 if ssc.r.get_conflicting_specs(spec_set):
-                    if (self._repodata_fn == REPODATA_FN and
+                    if self._command != 'install' or (
+                            self._repodata_fn == REPODATA_FN and
                             ssc.update_modifier == UpdateModifier.UPDATE_SPECS):
                         # raises a hopefully helpful error message
                         ssc.r.find_conflicts(spec_set)
