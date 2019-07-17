@@ -119,66 +119,10 @@ class TestSolve(unittest.TestCase):
         assert 'channel-1::scipy-0.12.0-np17py27_0' in dist_strs
 
 
-def test_pseudo_boolean():
-    # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-    installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True)
-    installed = [rec.dist_str() for rec in installed]
-    assert installed == [
-        'channel-1::iopro-1.4.3-np15py27_p0',
-        'channel-1::numpy-1.5.1-py27_4',
-        'channel-1::openssl-1.0.1c-0',
-        'channel-1::python-2.7.5-0',
-        'channel-1::readline-6.2-0',
-        'channel-1::sqlite-3.7.13-0',
-        'channel-1::system-5.8-1',
-        'channel-1::tk-8.5.13-0',
-        'channel-1::unixodbc-2.3.1-0',
-        'channel-1::zlib-1.2.7-0',
-    ]
-
-    installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], returnall=True)
-    installed = [rec.dist_str() for rec in installed]
-    assert installed == [
-        'channel-1::iopro-1.4.3-np15py27_p0',
-        'channel-1::mkl-rt-11.0-p0',
-        'channel-1::numpy-1.5.1-py27_p4',
-        'channel-1::openssl-1.0.1c-0',
-        'channel-1::python-2.7.5-0',
-        'channel-1::readline-6.2-0',
-        'channel-1::sqlite-3.7.13-0',
-        'channel-1::system-5.8-1',
-        'channel-1::tk-8.5.13-0',
-        'channel-1::unixodbc-2.3.1-0',
-        'channel-1::zlib-1.2.7-0',
-    ]
-
-
-def test_get_dists():
-    reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.4.0"), ))
-    dist_strs = [prec.dist_str() for prec in reduced_index]
-    assert 'channel-1::anaconda-1.4.0-np17py27_0' in dist_strs
-    assert 'channel-1::freetype-2.4.10-0' in dist_strs
-
-
-def test_get_reduced_index_unmanageable():
-    index, r = get_index_r_4()
-    index = index.copy()
-    channels = r.channels
-    prefix_path = join(TEST_DATA_DIR, "env_metadata", "envpy27osx")
-    if not isdir(prefix_path):
-        pytest.skip("test files not found: %s" % prefix_path)
-    anchor_file = "lib/python2.7/site-packages/requests-2.19.1-py2.7.egg/EGG-INFO/PKG-INFO"
-    py_rec = read_python_record(prefix_path, anchor_file, "2.7")
-    assert py_rec.package_type == PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
-
-    index[py_rec] = py_rec
-    new_r = Resolve(index, channels=channels)
-    reduced_index = new_r.get_reduced_index((MatchSpec("requests"),))
-    new_r2 = Resolve(reduced_index, True, channels=channels)
-    assert len(new_r2.groups["requests"]) == 1, new_r2.groups["requests"]
-
-
 def test_generate_eq_1():
+    # avoid cache from other tests which may have different result
+    r._reduced_index_cache = {}
+
     reduced_index = r.get_reduced_index((MatchSpec('anaconda'), ))
     r2 = Resolve(reduced_index, True)
     C = r2.gen_clauses()
@@ -304,6 +248,65 @@ def test_generate_eq_1():
 
     # No timestamps in the current data set
     assert eqt == {}
+
+
+def test_pseudo_boolean():
+    # The latest version of iopro, 1.5.0, was not built against numpy 1.5
+    installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True)
+    installed = [rec.dist_str() for rec in installed]
+    assert installed == [
+        'channel-1::iopro-1.4.3-np15py27_p0',
+        'channel-1::numpy-1.5.1-py27_4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::unixodbc-2.3.1-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
+
+    installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], returnall=True)
+    installed = [rec.dist_str() for rec in installed]
+    assert installed == [
+        'channel-1::iopro-1.4.3-np15py27_p0',
+        'channel-1::mkl-rt-11.0-p0',
+        'channel-1::numpy-1.5.1-py27_p4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::unixodbc-2.3.1-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
+
+
+def test_get_dists():
+    reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.4.0"), ))
+    dist_strs = [prec.dist_str() for prec in reduced_index]
+    assert 'channel-1::anaconda-1.4.0-np17py27_0' in dist_strs
+    assert 'channel-1::freetype-2.4.10-0' in dist_strs
+
+
+def test_get_reduced_index_unmanageable():
+    index, r = get_index_r_4()
+    index = index.copy()
+    channels = r.channels
+    prefix_path = join(TEST_DATA_DIR, "env_metadata", "envpy27osx")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    anchor_file = "lib/python2.7/site-packages/requests-2.19.1-py2.7.egg/EGG-INFO/PKG-INFO"
+    py_rec = read_python_record(prefix_path, anchor_file, "2.7")
+    assert py_rec.package_type == PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
+
+    index[py_rec] = py_rec
+    new_r = Resolve(index, channels=channels)
+    reduced_index = new_r.get_reduced_index((MatchSpec("requests"),))
+    new_r2 = Resolve(reduced_index, True, channels=channels)
+    assert len(new_r2.groups["requests"]) == 1, new_r2.groups["requests"]
 
 
 def test_unsat_from_r1():

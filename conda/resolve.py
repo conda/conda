@@ -485,7 +485,7 @@ class Resolve(object):
             # prioritize specs that are more exact.  Exact specs will evaluate to 3,
             #    constrained specs will evaluate to 2, and name only will be 1
             explicit_specs = sorted(list(explicit_specs), key=lambda x: (
-                exactness_and_number_of_deps(self, x), x.name), reverse=True)
+                exactness_and_number_of_deps(self, x), x.dist_str()), reverse=True)
         # tuple because it needs to be hashable
         explicit_specs = tuple(explicit_specs)
 
