@@ -1,3 +1,28 @@
+## 4.7.8 (2019-07-17)
+
+### Improvements
+
+* improve unsatisfiable messages - try to group and explain output better.  Remove lots of extraneous stuff that was showing up in 4.7.7 (#8910)
+* preload openssl on windows to avoid library conflicts and missing library issues (#8949)
+
+### Bug fixes
+
+* fix handling of channels where more than one channel contains packages with similar name, subdir, version and build_number.  This was causing mysterious unsatisfiable errors for some users.  (#8938)
+* reverse logic check in checking channel equality, because == is not reciprocal to != with py27 (no `__ne__`) (#8938)
+* fix an infinite loop or otherwise large process with building the unsatisfiable info.  Improve the depth-first search implementation.  (#8941)
+* streamline fallback paths to unfrozen solve in case frozen fails. (#8942)
+* Environment activation output only shows `conda activate envname` now, instead of sometimes showing just `activate`.  (#8947)
+
+### Contributors:
+
+* @forrestwaters
+* @jjhelmus
+* @katietz
+* @msarahan
+* @rrigdon
+* @soapy1
+
+
 ## 4.7.7 (2019-07-12)
 
 ### Improvements
