@@ -1,3 +1,17 @@
+## 4.7.9 (2019-07-18)
+
+### Bug fixes
+
+* fix Non records in comprehension
+* fix potential keyerror in depth-first search
+* fix PackageNotFound attribute error
+
+### Contributors:
+
+* @jjhelmus
+* @msarahan
+
+
 ## 4.7.8 (2019-07-17)
 
 ### Improvements
