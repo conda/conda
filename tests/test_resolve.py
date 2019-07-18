@@ -314,7 +314,7 @@ def test_unsat_from_r1():
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['numpy 1.5*', 'scipy 0.12.0b1'])
     assert "numpy=1.5" in str(excinfo.value)
-    assert "scipy==0.12.0b1 -> numpy[version='1.6.*,1.7.*']" in str(excinfo.value)
+    assert "scipy==0.12.0b1 -> numpy" in str(excinfo.value)
     # numpy 1.5 does not have a python 3 package
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['numpy 1.5*', 'python 3*'])
