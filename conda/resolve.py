@@ -406,10 +406,11 @@ class Resolve(object):
 
             records_for_graph = groupby(lambda r: r.name,
                                         (r for r in records if isinstance(r, PackageRecord)))
-            # seven is a completely arbitrary number here.  It is meant to gather more than just
-            #    one record, to explore the space of dependencies a bit.  Doing all of them
+            # records_per_name is a completely arbitrary number here.  It is meant to gather more
+            # than just one record, to explore the space of dependencies a bit.  Doing all of them
             #    can be an enormous problem, though.  This is hopefully a good compromise.
-            g = GeneralGraph([_ for v in records_for_graph.values() for _ in v[:7]])
+            records_per_name = 7
+            g = GeneralGraph([_ for v in records_for_graph.values() for _ in v[:records_per_name]])
             spec_order = sorted(sdeps_with_dep.keys(),
                                 key=lambda x: list(g.graph_by_name.keys()).index(x.name))
             for spec in spec_order:
@@ -422,7 +423,7 @@ class Resolve(object):
 
             for spec in specs:
                 precs = self.find_matches(spec)
-                deps = set.union(*[set(self.ms_depends_.get(prec)) for prec in precs])
+                deps = set.union(*[set(self.ms_depends_.get(prec) or []) for prec in precs])
                 deps = groupby(lambda x: x.name, deps)
 
                 bad_deps.extend([[spec, MatchSpec.union(_)[0]] for _ in deps.values()])

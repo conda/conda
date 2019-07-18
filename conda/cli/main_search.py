@@ -6,13 +6,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from datetime import datetime
 
-from .install import calculate_channel_urls
 from .._vendor.boltons.timeutils import UTC
 from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.compat import text_type
 from ..common.io import Spinner
 from ..core.envs_manager import query_all_prefixes
+from ..core.index import calculate_channel_urls
 from ..core.subdir_data import SubdirData
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord

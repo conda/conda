@@ -268,7 +268,13 @@ def install(args, parser, command='install'):
             ))
             # end of the line.  Raise the exception
             if repodata_fn == repodata_fns[-1]:
-                raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+                # PackagesNotFoundError is the only exception type we want to raise.
+                #    Over time, we should try to get rid of ResolvePackageNotFound
+                if isinstance(e, PackagesNotFoundError):
+                    raise e
+                else:
+                    # convert the ResolvePackageNotFound into PackagesNotFoundError
+                    raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
         except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.

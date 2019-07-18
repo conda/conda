@@ -445,7 +445,7 @@ class GeneralGraph(PrefixGraph):
                     matchspecs_to_merge = []
                     matchspecs = self.specs_by_name[chain[idx]][name]
                     for ms in matchspecs:
-                        if any(ms.match(rec) for rec in allowed_specs[ms.name]):
+                        if any(ms.match(rec) for rec in allowed_specs.get(ms.name, [])):
                             matchspecs_to_merge.append(ms)
                     matchspecs_for_chain.append(MatchSpec.merge(matchspecs_to_merge)[0])
                 final_chains.append([root_spec] + matchspecs_for_chain)
