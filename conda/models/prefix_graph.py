@@ -447,7 +447,9 @@ class GeneralGraph(PrefixGraph):
                     for ms in matchspecs:
                         if any(ms.match(rec) for rec in allowed_specs.get(ms.name, [])):
                             matchspecs_to_merge.append(ms)
-                    matchspecs_for_chain.append(MatchSpec.merge(matchspecs_to_merge)[0])
+                    merged = MatchSpec.merge(matchspecs_to_merge)
+                    if merged:
+                        matchspecs_for_chain.append(merged[0])
                 final_chains.append([root_spec] + matchspecs_for_chain)
                 break
         return final_chains
