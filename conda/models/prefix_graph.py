@@ -440,17 +440,24 @@ class GeneralGraph(PrefixGraph):
             if chain[0] == root_spec.name and chain[-1] == spec_name:
                 # remap to matchspecs
                 #   specs_by_name has two keys: parent, then name of spec
-                matchspecs_for_chain = []
+                matchspecs_for_chain = [[]]
                 for idx, name in enumerate(chain[1:]):
                     matchspecs_to_merge = []
                     matchspecs = self.specs_by_name[chain[idx]][name]
                     for ms in matchspecs:
                         if any(ms.match(rec) for rec in allowed_specs.get(ms.name, [])):
                             matchspecs_to_merge.append(ms)
-                    merged = MatchSpec.merge(matchspecs_to_merge)
-                    if merged:
-                        matchspecs_for_chain.append(merged[0])
-                final_chains.append([root_spec] + matchspecs_for_chain)
+                    try:
+                        merged = MatchSpec.merge(matchspecs_to_merge)
+                        if merged:
+                            for ms_chain in matchspecs_for_chain:
+                                ms_chain.append(merged[0])
+                    except ValueError:
+                        matchspecs_for_chain = [_[:] for _ in matchspecs_for_chain * 3]
+                        for idx, ms in enumerate(matchspecs_to_merge):
+                            matchspecs_for_chain[idx].append(ms)
+                for ms_chain in matchspecs_for_chain:
+                    final_chains.append([root_spec] + ms_chain)
                 break
         return final_chains
 

@@ -746,8 +746,10 @@ class MatchInterface(object):
         raise NotImplementedError()
 
     def merge(self, other):
-        options = set((self.raw_value, other.raw_value))
-        return ','.join(options)
+        if self.raw_value != other.raw_value:
+            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
+                             % (self.raw_value, other.raw_value))
+        return self.raw_value
 
     def union(self, other):
         options = set((self.raw_value, other.raw_value))
