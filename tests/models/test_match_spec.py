@@ -930,7 +930,7 @@ class MatchSpecMergeTests(TestCase):
         specs = (MatchSpec('python[build=py27_1]'), MatchSpec('python=1.2.3=py27_1'), MatchSpec('conda-forge::python<=8'))
         merged = MatchSpec.merge(specs)
         assert len(merged) == 1
-        assert str(merged[0]) == "conda-forge::python[version='<=8,1.2.3',build=py27_1]"
+        assert str(merged[0]) == "conda-forge::python[version='1.2.3,<=8',build=py27_1]"
 
         specs = (MatchSpec('python[build=py27_1]'), MatchSpec('python=1.2.3=1'), MatchSpec('conda-forge::python<=8[build=py27_1]'))
         with pytest.raises(ValueError):
@@ -940,7 +940,7 @@ class MatchSpecMergeTests(TestCase):
         specs = (MatchSpec('python[build_number=1]'), MatchSpec('python=1.2.3=py27_7'), MatchSpec('conda-forge::python<=8[build_number=1]'))
         merged = MatchSpec.merge(specs)
         assert len(merged) == 1
-        assert str(merged[0]) == "conda-forge::python[version='<=8,1.2.3',build=py27_7,build_number=1]"
+        assert str(merged[0]) == "conda-forge::python[version='1.2.3,<=8',build=py27_7,build_number=1]"
 
         specs = (MatchSpec('python[build_number=2]'), MatchSpec('python=1.2.3=py27_7'), MatchSpec('python<=8[build_number=1]'))
         with pytest.raises(ValueError):

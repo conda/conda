@@ -577,7 +577,7 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
 
     def merge(self, other):
         assert isinstance(other, self.__class__)
-        return self.__class__('%s,%s' % (self.raw_value, other.raw_value))
+        return self.__class__(','.join(sorted((self.raw_value, other.raw_value))))
 
     def union(self, other):
         assert isinstance(other, self.__class__)
