@@ -5,6 +5,36 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.7.8 (2019-07-17)
+==================
+
+Improvements
+^^^^^^^^^^^^
+* Improve unsatisfiable messages - try to group and explain output better.  Remove lots of extraneous stuff that was showing up in 4.7.7 (#8910)
+* Preload openssl on Windows to avoid library conflicts and missing library issues (#8949)
+
+
+Bug fixes
+^^^^^^^^^
+
+* Fix handling of channels where more than one channel contains packages with similar name, subdir, version, and build_number.  This was causing mysterious unsatisfiable errors for some users.  (#8938)
+* Reverse logic check in checking channel equality, because == is not reciprocal to != with py27 (no ``__ne__``) (#8938)
+* Fix an infinite loop or otherwise large process with building the unsatisfiable info.  Improve the depth-first search implementation.  (#8941)
+* Streamline fallback paths to unfrozen solve in case frozen fails. (#8942)
+* Environment activation output only shows ``conda activate envname`` now, instead of sometimes showing just ``activate``.  (#8947)
+
+Contributors
+^^^^^^^^^^^^
+
+* @forrestwaters
+* @jjhelmus
+* @katietz
+* @msarahan
+* @rrigdon
+* @soapy1
+
+
+
 4.7.7 (2019-07-12)
 ==================
 
@@ -20,7 +50,7 @@ Bug fixes
 * Fix missing package_type attr in finding virtual packages  (#8917)
 * Fix parallel operations of loading index to preserve channel ordering  (#8921, #8922)
 * Filter PrefixRecords out from PackageRecords when making a graph to show unsatisfiable deps.  Fixes comparison error between mismatched types.  (#8924)
-* Install entry points before running post-link scripts, because post link scripts may depend on entry points.  (#8925)
+* Install entry points before running post-link scripts, because post-link scripts may depend on entry points.  (#8925)
 
 
 Contributors
