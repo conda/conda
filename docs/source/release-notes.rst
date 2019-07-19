@@ -5,6 +5,24 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+
+4.7.9 (2019-07-18)
+==================
+
+Bug fixes
+^^^^^^^^^
+
+* Fix Non records in comprehension
+* Fix potential keyerror in depth-first search
+* Fix PackageNotFound attribute error
+
+Contributors
+^^^^^^^^^^^^
+
+* @jjhelmus
+* @msarahan
+
+
 4.7.8 (2019-07-17)
 ==================
 
@@ -333,7 +351,7 @@ Contributors
 * @yuvalreches
 
 4.6.14 (2019-04-17)
-==================
+===================
 
 Bug fixes
 ^^^^^^^^^
@@ -347,7 +365,7 @@ Contributors
 
 
 4.6.13 (2019-04-16)
-==================
+===================
 
 Bug fixes
 ^^^^^^^^^
@@ -372,7 +390,7 @@ Contributors
 
 
 4.6.12 (2019-04-10)
-==================
+===================
 
 Bug fixes
 ^^^^^^^^^
@@ -409,7 +427,7 @@ Contributors
 
 
 4.6.11 (2019-04-04)
-==================
+===================
 
 Bug fixes
 ^^^^^^^^^
@@ -431,7 +449,7 @@ Contributors
 
 
 4.6.10 (2019-04-01)
-==================
+===================
 
 Bug fixes
 ^^^^^^^^^
@@ -709,7 +727,7 @@ Contributors
 
 
 4.5.13 (2019-01-29)
-==================
+===================
 
 Improvements
 ^^^^^^^^^^^^
@@ -1166,7 +1184,7 @@ Non-user-facing changes
 
 
 4.4.11 (2018-02-23)
-==================
+===================
 
 Improvements
 ^^^^^^^^^^^^
@@ -2363,8 +2381,8 @@ Bug fixes
 * Fix #4097 keep split in PREFIX_PLACEHOLDER (#4100)
 
 
- 4.3.0 (2016-12-14) Safety
-==========================
+4.3.0 (2016-12-14) Safety
+=========================
 
 New features
 ^^^^^^^^^^^^
@@ -2917,7 +2935,7 @@ Non-user-facing changes
 
 
 4.1.8 (2016-07-12)
-=================
+==================
 
 * Fix #3004 UNAUTHORIZED for url (null binstar token), #3008
 * Fix overwrite existing redirect shortcuts when symlinking envs, #3025
@@ -3447,7 +3465,7 @@ Complete list:
 
 
 2015-04-06   3.10.1:
-===================
+====================
 
 * Fix logic in @memoized for unhashable args
 * restored json cache of repodata, see #1249
@@ -3460,7 +3478,7 @@ Complete list:
 
 
 2015-03-12   3.10.0:
-===================
+====================
 
 * change default repo urls to be https
 * Add --offline to conda search
