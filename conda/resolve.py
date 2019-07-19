@@ -329,7 +329,7 @@ class Resolve(object):
         matches = self.find_matches(ms)
         if not strict_channel_priority:
             return matches
-        sole_source_channel_name = self._get_strict_channel(ms.name)
+        sole_source_channel_name = self._get_strict_channel(ms)
         return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
 
     def find_conflicts(self, specs, specs_to_add=None, history_specs=None):
@@ -431,16 +431,27 @@ class Resolve(object):
                                            strict_channel_priority)
         return bad_deps
 
-    def _get_strict_channel(self, package_name):
+    def _get_strict_channel(self, ms):
         channel_name = None
+        package_name = ms.name
+        if isinstance(ms, PackageRecord):
+            # it's already a specific package record
+            # convert to MatchSpec without channel info
+            ms = ms.to_match_spec(include_channel=False)
+
         try:
-            channel_name = self._strict_channel_cache[package_name]
+            channel_name = self._strict_channel_cache[ms]
         except KeyError:
             if package_name in self.groups:
-                all_channel_names = set(prec.channel.name for prec in self.groups[package_name])
+                # filter to channels that match the spec
+                all_channel_names = set(
+                    prec.channel.name
+                    for prec in self.groups[package_name]
+                    if ms.match(prec)
+                )
                 by_cp = {self._channel_priorities_map.get(cn, 1): cn for cn in all_channel_names}
                 highest_priority = sorted(by_cp)[0]  # highest priority is the lowest number
-                channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
+                channel_name = self._strict_channel_cache[ms] = by_cp[highest_priority]
         return channel_name
 
     @memoizemethod
@@ -497,12 +508,13 @@ class Resolve(object):
 
         def filter_group(_specs):
             # all _specs should be for the same package name
-            name = next(iter(_specs)).name
+            spec = next(iter(_specs))
+            name = spec.name
             group = self.groups.get(name, ())
 
             # implement strict channel priority
             if group and strict_channel_priority and name not in cp_filter_applied:
-                sole_source_channel_name = self._get_strict_channel(name)
+                sole_source_channel_name = self._get_strict_channel(spec)
                 for prec in group:
                     if prec.channel.name != sole_source_channel_name:
                         filter_out[prec] = "removed due to strict channel priority"
@@ -596,7 +608,7 @@ class Resolve(object):
                 if prec not in reduced_index2 and self.valid2(prec, filter_out))
 
             if strict_channel_priority and add_these_precs2:
-                strict_channel_name = self._get_strict_channel(add_these_precs2[0].name)
+                strict_channel_name = self._get_strict_channel(add_these_precs2[0])
 
                 add_these_precs2 = tuple(
                     prec for prec in add_these_precs2 if prec.channel.name == strict_channel_name
@@ -631,7 +643,7 @@ class Resolve(object):
                         # expand the reduced index if not using strict channel priority,
                         #    or if using it and this package is in the appropriate channel
                         if (not strict_channel_priority or
-                                (self._get_strict_channel(dep_pkg.name) ==
+                                (self._get_strict_channel(dep_pkg) ==
                                  dep_pkg.channel.name)):
                             reduced_index2[dep_pkg] = dep_pkg
 

@@ -343,14 +343,17 @@ class PackageRecord(DictSafeMixin, Entity):
         return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
                                      self.version, self.build)
 
-    def to_match_spec(self):
-        return MatchSpec(
-            channel=self.channel,
+    def to_match_spec(self, include_channel=True):
+
+        kwargs = dict(
             subdir=self.subdir,
             name=self.name,
             version=self.version,
             build=self.build,
         )
+        if include_channel:
+            kwargs['channel'] = self.channel
+        return MatchSpec(**kwargs)
 
     @property
     def namekey(self):
