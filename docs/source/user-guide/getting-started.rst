@@ -208,9 +208,17 @@ specify the version of Python that you want.
    When conda asks if you want to proceed, type "y" and press Enter.
 
 #. Activate the new environment:
+     
+   * Windows: ``conda activate snakes``
+   * Linux and macOS: ``conda activate snakes``
 
-     * Windows:  ``activate snakes``
-     * Linux, macOS: ``source activate snakes``
+   .. note::
+      ``conda activate`` only works on conda 4.6 and later versions.
+
+   For conda versions prior to 4.6, type:
+
+   * Windows: ``activate snakes``
+   * Linux and macOS: ``source activate snakes``
 
 #. Verify that the snakes environment has been added and is active:
 
