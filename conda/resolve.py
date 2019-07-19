@@ -440,9 +440,7 @@ class Resolve(object):
             ms = ms.to_match_spec(include_channel=False)
 
         try:
-            # use name as cache key
-            # so only one channel is considered per package
-            channel_name = self._strict_channel_cache[ms.name]
+            channel_name = self._strict_channel_cache[ms]
         except KeyError:
             if package_name in self.groups:
                 # filter to channels that match the spec
@@ -453,7 +451,7 @@ class Resolve(object):
                 )
                 by_cp = {self._channel_priorities_map.get(cn, 1): cn for cn in all_channel_names}
                 highest_priority = sorted(by_cp)[0]  # highest priority is the lowest number
-                channel_name = self._strict_channel_cache[ms.name] = by_cp[highest_priority]
+                channel_name = self._strict_channel_cache[ms] = by_cp[highest_priority]
         return channel_name
 
     @memoizemethod
