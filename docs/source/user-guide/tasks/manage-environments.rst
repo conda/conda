@@ -202,7 +202,7 @@ This will edit your ``.condarc`` file if you already have one
 or create a ``.condarc`` file if you do not.
 
 Now your command prompt will display the active environment’s
-generic name:
+generic name, which is the name of the environment's root folder:
 
 .. code-block::
 
