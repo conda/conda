@@ -453,13 +453,14 @@ class GeneralGraph(PrefixGraph):
                             for ms_chain in matchspecs_for_chain:
                                 ms_chain.append(merged[0])
                     except ValueError:
-                        matchspecs_for_chain = [_[:] for _ in matchspecs_for_chain * 3]
+                        matchspecs_for_chain = [_[:] for _ in
+                                                matchspecs_for_chain * len(matchspecs_to_merge)]
                         for idx, ms in enumerate(matchspecs_to_merge):
                             matchspecs_for_chain[idx].append(ms)
                 for ms_chain in matchspecs_for_chain:
-                    final_chains.append([root_spec] + ms_chain)
+                    final_chains.append(tuple([root_spec] + ms_chain))
                 break
-        return final_chains
+        return set(final_chains)
 
 
 # if __name__ == "__main__":
