@@ -28,8 +28,9 @@ Creating an environment with commands
 
 .. tip::
    By default, environments are installed into the ``envs``
-   directory in your conda directory. Run ``conda create --help``
-   for information on specifying a different path.
+   directory in your conda directory. See :ref:`specifying-location`
+   or run ``conda create --help`` for information on specifying
+   a different path.
 
 Use the terminal or an Anaconda Prompt for the following steps:
 
@@ -143,9 +144,98 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
       conda list
 
+.. _specifying-location:
+
+Specifying a location for an environment
+========================================
+
+You can control where a conda environment lives by providing a path
+to a target directory when creating the environment. For example,
+the following command will create a new environment in a subdirectory
+of the current working directory called ``envs``::
+
+  conda create --prefix ./envs jupyterlab=0.35 matplotlib=3.1 numpy=1.16
+
+You then activate an environment created with a prefix using the same
+command used to activate environments created by name::
+ 
+  conda activate ./envs
+ 
+Specifying a path to a subdirectory of your project directory when
+creating an environment has the following benefits: 
+
+  * It makes it easy to tell if your project uses an isolated environment
+    by including the environment as a subdirectory.
+  * It makes your project more self-contained as everything, including
+    the required software, is contained in a single project directory.
+
+An additional benefit of creating your project’s environment inside a
+subdirectory is that you can then use the same name for all your
+environments. If you keep all of your environments in your ``envs``
+folder, you’ll have to give each environment a different name.
+
+There are a few things to be aware of when placing conda environments
+outside of the default ``envs`` folder.
+ 
+#. Conda can no longer find your environment with the ``--name`` flag.
+   You’ll generally need to pass the ``--prefix`` flag along with the
+   environment’s full path to find the environment.
+#. Specifying an install path when creating your conda environments
+   makes it so that your command prompt is now prefixed with the active
+   environment’s absolute path rather than the environment’s name.
+
+After activating an environment using its prefix, your prompt will
+look similar to the following::
+
+(/absolute/path/to/envs) $
+
+This can result in long prefixes::
+
+(/Users/USER_NAME/research/data-science/PROJECT_NAME/envs) $
+
+To remove this long prefix in your shell prompt, modify the env_prompt
+setting in your ``.condarc`` file::
+
+$ conda config --set env_prompt '({name})'
+
+This will edit your ``.condarc`` file if you already have one
+or create a ``.condarc`` file if you do not.
+
+Now your command prompt will display the active environment’s
+generic name:
+
+.. code-block::
+
+  $ cd project-directory
+  $ conda activate ./env
+  (env) project-directory $
+
+.. _update-env:
+
+Updating an environment
+=======================
+You may need to update your environment for a variety of reasons.
+For example, it may be the case that:
+
+* one of your core dependencies just released a new version
+  (dependency version number update).
+* you need an additional package for data analysis
+  (add a new dependency).
+* you have found a better package and no longer need the older
+  package (add new dependency and remove old dependency).
+
+If any of these occur, all you need to do is update the contents of
+your environment.yml file accordingly and then run the following
+command::
+
+$ conda env update --prefix ./env --file environment.yml  --prune
+ 
+Note that the --prune option causes conda to remove any dependencies
+that are no longer required from the environment.
+
 
 Cloning an environment
-=======================
+======================
 
 Use the terminal or an Anaconda Prompt for the following steps:
 
@@ -269,6 +359,16 @@ with any child environment active. In general, calling any executable in
 an environment without first activating that environment will likely not work.
 For the ability to run executables in activated environments, you may be
 interested in the ``conda run`` command.
+
+Earlier versions of conda introduced scripts to make activation
+behavior uniform across operating systems. Conda 4.4 allowed
+``conda activate myenv``. Conda 4.6 added extensive initialization
+support so that conda works more quickly and less disruptively on
+a wide variety of shells (bash, zsh, csh, fish, xonsh, and more).
+Now these shells can use the ``conda activate`` command.
+Removing the need to modify PATH makes conda less disruptive to
+other software on your system. For more information, read the
+output from ``conda init --help``.
 
 
 Deactivating an environment
@@ -514,7 +614,8 @@ Exporting the environment.yml file
 Creating an environment file manually
 -------------------------------------
 
-You can create an environment file manually to share with others.
+You can create an environment file (environment.yml) manually
+to share with others.
 
 EXAMPLE: A simple environment file:
 
@@ -540,6 +641,14 @@ EXAMPLE: A more complex environment file:
      - flask
      - pip:
        - Flask-Testing
+
+.. note:: 
+   Note the use of the wildcard * when defining the patch version
+   number. Defining the version number by fixing the major and minor
+   version numbers while allowing the patch version number to vary
+   allows us to use our environment file to update our environment
+   to get any bug fixes whilst still maintaining consistency of
+   software environment.
 
 You can exclude the default channels by adding ``nodefaults``
 to the channels list.
