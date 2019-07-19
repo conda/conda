@@ -1,3 +1,15 @@
+## 4.7.10 (2019-07-19)
+
+### Bug fixes
+
+* fix merging of specs
+* fix bugs in building of chains in prefix graph
+
+### Contributors:
+
+* @msarahan
+
+
 ## 4.7.9 (2019-07-18)
 
 ### Bug fixes
