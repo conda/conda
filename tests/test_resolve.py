@@ -457,8 +457,8 @@ def test_unsat_channel_priority():
         simple_rec(name='c', version='2.0', channel='channel-2'),
     )
     channels = (
-        Channel('channel-1'),  # higher priority
-        Channel('channel-2'),  # lower priority, missing c 2.0
+        Channel('channel-1'),  # higher priority, missing c 2.0
+        Channel('channel-2'),  # lower priority
     )
     r = Resolve(OrderedDict((prec, prec) for prec in index), channels=channels)
     with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -476,14 +476,45 @@ def test_unsat_channel_priority():
             r.install(['a', 'b'])
         assert "b -> c[version='>=2,<3']" in str(excinfo.value)
 
-    # strict channel priority allows
+def test_strict_channel_priority_exact():
+    # b depends on c 2.x which is only available in channel-2
+    # d depends on c==2 via exact version pin
+    index = (
+        simple_rec(name='a', version='1.0', depends=['c'], channel='channel-1'),
+        simple_rec(name='b', version='1.0', depends=['c >=2,<3'], channel='channel-1'),
+        simple_rec(name='c', version='1.0', channel='channel-1'),
+        simple_rec(name='d', version='1.0', depends=['c==2'], channel='channel-1'),
+
+        simple_rec(name='a', version='2.0', depends=['c'], channel='channel-2'),
+        simple_rec(name='b', version='2.0', depends=['c >=2,<3'], channel='channel-2'),
+        simple_rec(name='c', version='1.0', channel='channel-2'),
+        simple_rec(name='c', version='2.0', channel='channel-2'),
+    )
+    channels = (
+        Channel('channel-1'),  # higher priority, missing c 2.0
+        Channel('channel-2'),  # lower priority
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index), channels=channels)
+    # strict channel priority allows lower-priority channels
+    # in the event of exact version matches not present in top priority
+    # test a few cases where the exact dependency can come from:
+
+    # direct user input
     with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         installed = r.install(['a', 'b', 'c==2.0'])
-        print(installed)
         assert any(k.name == 'a' and k.version == '1.0' for k in installed)
         assert any(k.name == 'b' and k.version == '1.0' for k in installed)
         assert any(k.name == 'c' and k.version == '2.0' and k.channel == 'channel-2' for k in installed)
-
+    # dependency (d -> c==2.0)
+    with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        installed = r.install(['d'])
+        assert any(k.name == 'd' and k.version == '1.0' for k in installed)
+        assert any(k.name == 'c' and k.version == '2.0' and k.channel == 'channel-2' for k in installed)
+    # exact in dependency, range in user input
+    with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        installed = r.install(['d',  'c>=2'])
+        assert any(k.name == 'd' and k.version == '1.0' for k in installed)
+        assert any(k.name == 'c' and k.version == '2.0' and k.channel == 'channel-2' for k in installed)
 
 def test_nonexistent():
     assert not r.find_matches(MatchSpec('notarealpackage 2.0*'))
