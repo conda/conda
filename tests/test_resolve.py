@@ -476,6 +476,14 @@ def test_unsat_channel_priority():
             r.install(['a', 'b'])
         assert "b -> c[version='>=2,<3']" in str(excinfo.value)
 
+    # strict channel priority allows
+    with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        installed = r.install(['a', 'b', 'c==2.0'])
+        print(installed)
+        assert any(k.name == 'a' and k.version == '1.0' for k in installed)
+        assert any(k.name == 'b' and k.version == '1.0' for k in installed)
+        assert any(k.name == 'c' and k.version == '2.0' and k.channel == 'channel-2' for k in installed)
+
 
 def test_nonexistent():
     assert not r.find_matches(MatchSpec('notarealpackage 2.0*'))

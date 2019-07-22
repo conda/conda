@@ -439,6 +439,23 @@ class Resolve(object):
             # convert to MatchSpec without channel info
             ms = ms.to_match_spec(include_channel=False)
 
+        # strict channel priority has two choices:
+        # 1. if names and/or ranges are specified,
+        #    only the first channel with the named package is considered
+        #    even if only lower-priority channels satisfy
+        #    the requested range (conda 4.6 behavior).
+        # 2. if an *exact* version or build is specified,
+        #    the first matching channel will be used,
+        #    if the top-priority channel has the package
+        #    but not a matching version and/or build
+        #    (new in conda 4.7).
+        if not (
+            ms.get_exact_value('version') or ms.get_exact_value('build')
+        ):
+            # exact version or build not specified,
+            # select channel only by package name
+            ms = MatchSpec(ms.name)
+
         try:
             channel_name = self._strict_channel_cache[ms]
         except KeyError:
