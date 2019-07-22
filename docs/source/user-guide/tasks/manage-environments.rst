@@ -360,6 +360,9 @@ an environment without first activating that environment will likely not work.
 For the ability to run executables in activated environments, you may be
 interested in the ``conda run`` command.
 
+Conda init
+----------
+
 Earlier versions of conda introduced scripts to make activation
 behavior uniform across operating systems. Conda 4.4 allowed
 ``conda activate myenv``. Conda 4.6 added extensive initialization
@@ -369,6 +372,19 @@ Now these shells can use the ``conda activate`` command.
 Removing the need to modify PATH makes conda less disruptive to
 other software on your system. For more information, read the
 output from ``conda init --help``.
+
+One setting may be useful to you when using ``conda init`` is:
+
+``auto_activate_base: bool``
+
+This setting controls whether or not conda activates your base
+environment when it first starts up. You'll have the ``conda``
+command available either way, but without activating the environment,
+none of the other programs in the environment will be available until
+the environment is activated with ``conda activate base``. People
+sometimes choose this setting to speed up the time their shell takes
+to start up or to keep conda-installed software from automatically
+hiding their other software.
 
 
 Deactivating an environment
