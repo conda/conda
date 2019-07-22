@@ -643,7 +643,7 @@ class Resolve(object):
                         # expand the reduced index if not using strict channel priority,
                         #    or if using it and this package is in the appropriate channel
                         if (not strict_channel_priority or
-                                (self._get_strict_channel(dep_pkg) ==
+                                (self._get_strict_channel(ms) ==
                                  dep_pkg.channel.name)):
                             reduced_index2[dep_pkg] = dep_pkg
 
