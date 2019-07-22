@@ -68,6 +68,8 @@ bottom of the channel list, making it the lowest priority::
 
   conda config --append channels new_channel
 
+.. _strict:
+
 Strict channel priority
 =======================
 
