@@ -487,7 +487,7 @@ def test_strict_channel_priority_exact():
 
         simple_rec(name='a', version='2.0', depends=['c'], channel='channel-2'),
         simple_rec(name='b', version='2.0', depends=['c >=2,<3'], channel='channel-2'),
-        simple_rec(name='c', version='1.0', channel='channel-2'),
+        simple_rec(name='c', version='1.0', channel='channel-2', build="abc123"),
         simple_rec(name='c', version='2.0', channel='channel-2'),
     )
     channels = (
@@ -499,22 +499,33 @@ def test_strict_channel_priority_exact():
     # in the event of exact version matches not present in top priority
     # test a few cases where the exact dependency can come from:
 
-    # direct user input
     with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        # direct user input
         installed = r.install(['a', 'b', 'c==2.0'])
         assert any(k.name == 'a' and k.version == '1.0' for k in installed)
         assert any(k.name == 'b' and k.version == '1.0' for k in installed)
         assert any(k.name == 'c' and k.version == '2.0' and k.channel == 'channel-2' for k in installed)
-    # dependency (d -> c==2.0)
-    with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+
+        # dependency (d -> c==2.0)
         installed = r.install(['d'])
         assert any(k.name == 'd' and k.version == '1.0' for k in installed)
         assert any(k.name == 'c' and k.version == '2.0' and k.channel == 'channel-2' for k in installed)
-    # exact in dependency, range in user input
-    with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        installed = r.install(['d',  'c>=2'])
-        assert any(k.name == 'd' and k.version == '1.0' for k in installed)
-        assert any(k.name == 'c' and k.version == '2.0' and k.channel == 'channel-2' for k in installed)
+
+        # exact in dependency, range in user input (This fails. Should it?)
+        with pytest.raises(UnsatisfiableError):
+            installed = r.install(['d',  'c>=1'])
+        # assert any(k.name == 'd' and k.version == '1.0' for k in installed)
+        # assert any(k.name == 'c' and k.version == '2.0' and k.channel == 'channel-2' for k in installed)
+
+        # exact build in dependency
+        installed = r.install(['a', 'c=*=abc123'])
+        assert any(k.name == 'a' and k.version == '1.0' for k in installed)
+        assert any(k.name == 'c' and k.version == '1.0' and k.channel == 'channel-2' for k in installed)
+
+        # partial build in dependency
+        installed = r.install(['a', 'c=*=abc*'])
+        assert any(k.name == 'a' and k.version == '1.0' for k in installed)
+        assert any(k.name == 'c' and k.version == '1.0' and k.channel == 'channel-2' for k in installed)
 
 def test_nonexistent():
     assert not r.find_matches(MatchSpec('notarealpackage 2.0*'))

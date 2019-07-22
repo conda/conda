@@ -450,7 +450,7 @@ class Resolve(object):
         #    but not a matching version and/or build
         #    (new in conda 4.7).
         if not (
-            ms.get_exact_value('version') or ms.get_exact_value('build')
+            ms.get_exact_value("version") or ms.get("build")
         ):
             # exact version or build not specified,
             # select channel only by package name
