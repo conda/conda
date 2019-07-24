@@ -274,7 +274,11 @@ class Solver(object):
                 orphan_precs = (set(solution_precs)
                                 - set(ssc.solution_precs)
                                 - set(ssc.add_back_map))
-                ssc.solution_precs.extend([_ for _ in orphan_precs if _.name not in ssc.specs_map])
+                solution_prec_names = [_.name for _ in ssc.solution_precs]
+                ssc.solution_precs.extend(
+                    [_ for _ in orphan_precs
+                     if _.name not in ssc.specs_map and _.name not in solution_prec_names])
+
             ssc = self._post_sat_handling(ssc)
 
         time_recorder.log_totals()
