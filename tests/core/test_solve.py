@@ -6,6 +6,7 @@ import os
 from pprint import pprint
 import sys
 from textwrap import dedent
+import copy
 from unittest import TestCase
 
 from os.path import join, abspath, dirname
@@ -181,6 +182,57 @@ def test_solve_1():
             'channel-1::numpy-1.7.1-py27_0',
         )
         assert convert_to_dist_str(final_state) == order
+
+
+def test_solve_2():
+    specs = MatchSpec("numpy"),
+
+    with get_solver_aggregate_1(specs) as solver:
+        final_state = solver.solve_final_state()
+        # print(convert_to_dist_str(final_state))
+        order = (
+            'channel-2::mkl-2017.0.3-0',
+            'channel-2::openssl-1.0.2l-0',
+            'channel-2::readline-6.2-2',
+            'channel-2::sqlite-3.13.0-0',
+            'channel-2::tk-8.5.18-0',
+            'channel-2::xz-5.2.3-0',
+            'channel-2::zlib-1.2.11-0',
+            'channel-2::python-3.6.2-0',
+            'channel-2::numpy-1.13.1-py36_0'
+        )
+        assert convert_to_dist_str(final_state) == order
+
+    specs_to_add = MatchSpec("channel-4::numpy"),
+    with get_solver_aggregate_1(specs_to_add=specs_to_add,
+                    prefix_records=final_state, history_specs=specs) as solver:
+        solver.solve_final_state()
+        extra_prec = PrefixRecord(_hash=5842798532132402024, name='mkl', version='2017.0.3',
+                                  build='0', build_number=0, channel=Channel("channel-2/osx-64"),
+                                  subdir='osx-64', fn='mkl-2017.0.3-0.tar.bz2',
+                                  md5='76cfa5d21e73db338ffccdbe0af8a727',
+                                  url='https://conda.anaconda.org/channel-2/osx-64/mkl-2017.0.3-0.tar.bz2',
+                                  arch='x86_64', platform='darwin', depends=(), constrains=(),
+                                  track_features=(), features=(), license='proprietary - Intel',
+                                  license_family='Proprietary', timestamp=0, date='2017-06-26', size=135839394)
+
+        solver_ssc = copy.copy(solver.ssc)
+        ssc = solver.ssc
+        ssc.add_back_map = [MatchSpec("mkl")]
+        # Do a transformation from set -> list for precs (done in _run_sat)
+        sol_precs = [_ for _ in ssc.solution_precs]
+        ssc.solution_precs = copy.copy(sol_precs)
+        # Add extra prec to the ssc being used
+        sol_precs.append(extra_prec)
+        solver_ssc.solution_precs = sol_precs
+
+        # Last modification to ssc before finding orphaned packages is done by run_sat
+        solver._run_sat = Mock(return_value=ssc)
+        # Give solver the modified ssc
+        solver.ssc = solver_ssc
+        final_state = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
+        prec_names = [_.name for _ in final_state]
+        assert len(prec_names) == len(set(prec_names))
 
 
 def test_cuda_1():
