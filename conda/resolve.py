@@ -1214,9 +1214,6 @@ class Resolve(object):
         solution = mysat(specs, True)
 
         if not solution:
-            if repodata_fn != REPODATA_FN:
-                # bail out until we have the full repodata.
-                raise UnsatisfiableError({})
             if repodata_fn != REPODATA_FN or update_modifier == UpdateModifier.FREEZE_INSTALLED:
                 # we don't want to call find_conflicts until our last try
                 raise UnsatisfiableError({})
