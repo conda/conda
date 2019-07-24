@@ -789,7 +789,8 @@ class Solver(object):
         ssc.solution_precs = ssc.r.solve(tuple(final_environment_specs),
                                          specs_to_add=self.specs_to_add,
                                          history_specs=ssc.specs_from_history_map,
-                                         repodata_fn=self._repodata_fn)
+                                         repodata_fn=self._repodata_fn,
+                                         update_modifier=ssc.update_modifier)
 
         # add back inconsistent packages to solution
         if ssc.add_back_map:

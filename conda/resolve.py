@@ -10,7 +10,7 @@ from logging import DEBUG, getLogger
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
 from ._vendor.toolz import concat, groupby
-from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice, REPODATA_FN
+from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice, REPODATA_FN, UpdateModifier
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
@@ -1144,7 +1144,7 @@ class Resolve(object):
 
     @time_recorder(module_name=__name__)
     def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None,
-              repodata_fn=REPODATA_FN):
+              repodata_fn=REPODATA_FN, update_modifier=None):
         # type: (List[str], bool) -> List[PackageRecord]
         if log.isEnabledFor(DEBUG):
             dlist = dashlist(text_type(
@@ -1178,8 +1178,8 @@ class Resolve(object):
                 raise ResolvePackageNotFound(not_found_packages)
             elif wrong_version_packages:
                 raise UnsatisfiableError([[d] for d in wrong_version_packages], chains=False)
-            if repodata_fn != REPODATA_FN:
-                # bail out until we have the full repodata.
+            if repodata_fn != REPODATA_FN or update_modifier == UpdateModifier.FREEZE_INSTALLED:
+                # we don't want to call find_conflicts until our last try
                 raise UnsatisfiableError({})
             self.find_conflicts(specs, specs_to_add, history_specs)
 
@@ -1216,6 +1216,9 @@ class Resolve(object):
         if not solution:
             if repodata_fn != REPODATA_FN:
                 # bail out until we have the full repodata.
+                raise UnsatisfiableError({})
+            if repodata_fn != REPODATA_FN or update_modifier == UpdateModifier.FREEZE_INSTALLED:
+                # we don't want to call find_conflicts until our last try
                 raise UnsatisfiableError({})
             self.find_conflicts(specs, specs_to_add, history_specs)
 
