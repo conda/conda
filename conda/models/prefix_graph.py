@@ -413,10 +413,8 @@ class GeneralGraph(PrefixGraph):
         """Return paths from root_spec to spec_name"""
         if root_spec.name == spec_name:
             return [[root_spec]]
-        visited = set()
 
         def build_dependency_chain(node, spc, chains=None):
-            visited.add(node)
             if not chains:
                 chains = [[]]
             chain = chains[-1]
@@ -424,17 +422,16 @@ class GeneralGraph(PrefixGraph):
                 chain.append(spc)
                 return [chain]
             else:
-                chain.append(node)
                 children = sorted(self.graph_by_name.get(node, set()),
                                   key=lambda x: list(self.graph_by_name.keys()).index(x))
-                for child in children:
-                    if child not in visited:
+                if len(children) > 0:
+                    chain.append(node)
+                    for child in children:
                         new_chain = [[c for c in chain]]
                         chains.extend(build_dependency_chain(child, spc, new_chain))
             return chains
 
         chains = build_dependency_chain(root_spec.name, spec_name)
-
         final_chains = []
         for chain in sorted(chains, key=len):
             if chain[0] == root_spec.name and chain[-1] == spec_name:

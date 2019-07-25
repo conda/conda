@@ -375,7 +375,7 @@ def test_unsat_chain():
     assert "e -> c[version='>=2,<3'] -> d[version='>=2,<3']" in str(excinfo.value)
 
 
-def test_unsat_chain_depth():
+def test_unsat_shorted_chain():
     index = (
         simple_rec(name='a', depends=['d', 'c <1.3.0']),
         simple_rec(name='b', depends=['c']),
