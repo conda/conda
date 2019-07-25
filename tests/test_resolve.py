@@ -375,6 +375,22 @@ def test_unsat_chain():
     assert "e -> c[version='>=2,<3'] -> d[version='>=2,<3']" in str(excinfo.value)
 
 
+def test_unsat_chain_depth():
+    index = (
+        simple_rec(name='a', depends=['d', 'c <1.3.0']),
+        simple_rec(name='b', depends=['c']),
+        simple_rec(name='c', version='1.3.6',),
+        simple_rec(name='c', version='1.2.8',),
+        simple_rec(name='d', depends=['c >=0.8.0']),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['c=1.3.6', 'a', 'b'])
+    assert "a -> c[version='<1.3.0']" in str(excinfo.value)
+    assert "b -> c" in str(excinfo.value)
+    assert "c=1.3.6" in str(excinfo.value)
+
+
 def test_unsat_any_two_not_three():
     # can install any two of a, b and c but not all three
     index = (
