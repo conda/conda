@@ -229,6 +229,8 @@ def install(args, parser, command='install'):
     elif REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
+    args_set_update_modifier = args.update_modifier != NULL
+
     for repodata_fn in repodata_fns:
         try:
             update_modifier = context.update_modifier
@@ -281,9 +283,12 @@ def install(args, parser, command='install'):
             if not hasattr(args, 'update_modifier'):
                 if repodata_fn == repodata_fns[-1]:
                     raise e
-            elif args.update_modifier == NULL:
+            elif not args_set_update_modifier or args.update_modifier not in (
+                    UpdateModifier.FREEZE_INSTALLED,
+                    UpdateModifier.UPDATE_SPECS):
                 try:
-                    if not args.json:
+                    if not args.json and (not args_set_update_modifier or
+                                          args.update_modifier == UpdateModifier.FREEZE_INSTALLED):
                         print("Initial quick solve with frozen env failed.  "
                               "Unfreezing env and trying again.")
                     unlink_link_transaction = solver.solve_for_transaction(
