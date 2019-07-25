@@ -195,8 +195,10 @@ class Solver(object):
                 the solved state of the environment.
 
         """
+        update_modifier_set = True
         if update_modifier is NULL:
             update_modifier = context.update_modifier
+            update_modifier_set = False
         else:
             update_modifier = UpdateModifier(text_type(update_modifier).lower())
         if deps_modifier is NULL:
@@ -248,8 +250,14 @@ class Solver(object):
                          context.json):
                 ssc = self._collect_all_metadata(ssc)
 
-        fail_message = ("failed\n" if self._repodata_fn == REPODATA_FN else "failed with %s, "
-                        "will retry with next repodata source.\n" % self._repodata_fn)
+        if not update_modifier_set or update_modifier != UpdateModifier.UPDATE_SPECS:
+            fail_message = "failed with initial quick frozen solve.  Retrying with flexible solve\n"
+        elif self._repodata_fn != REPODATA_FN:
+            fail_message = ("failed with repodata from %s, will retry with next repodata"
+                            " source.\n" % self._repodata_fn)
+        else:
+            fail_message = "failed\n"
+
         with Spinner("Solving environment", not context.verbosity and not context.quiet,
                      context.json, fail_message=fail_message):
             ssc = self._remove_specs(ssc)

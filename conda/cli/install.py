@@ -229,7 +229,7 @@ def install(args, parser, command='install'):
     elif REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
-    args_set_update_modifier = args.update_modifier != NULL
+    args_set_update_modifier = hasattr(args, "update_modifier") and args.update_modifier != NULL
 
     for repodata_fn in repodata_fns:
         try:
