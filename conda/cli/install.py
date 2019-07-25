@@ -225,8 +225,8 @@ def install(args, parser, command='install'):
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
-        repodata_fns = ["current_repodata.json", "repodata.json"]
-    elif REPODATA_FN not in repodata_fns:
+        repodata_fns = context.repodata_fns
+    if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
     for repodata_fn in repodata_fns:
