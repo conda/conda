@@ -355,7 +355,7 @@ def test_unsat_simple():
     assert "b -> c[version='>=2,<3']" in str(excinfo.value)
 
 
-def test_unsat_shortest_chain():
+def test_unsat_shortest_chain_1():
     index = (
         simple_rec(name='a', depends=['d', 'c <1.3.0']),
         simple_rec(name='b', depends=['c']),
@@ -371,7 +371,7 @@ def test_unsat_shortest_chain():
     assert "c=1.3.6" in str(excinfo.value)
 
 
-def test_unsat_shortest_reverse_chain():
+def test_unsat_shortest_chain_2():
     index = (
         simple_rec(name='a', depends=['d', 'c >=0.8.0']),
         simple_rec(name='b', depends=['c']),
@@ -387,7 +387,7 @@ def test_unsat_shortest_reverse_chain():
     assert "c=1.3.6" in str(excinfo.value)
 
 
-def test_unsat_shortest_long_chain():
+def test_unsat_shortest_chain_3():
     index = (
         simple_rec(name='a', depends=['f', 'e']),
         simple_rec(name='b', depends=['c']),
