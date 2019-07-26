@@ -251,7 +251,7 @@ class Solver(object):
                 ssc = self._collect_all_metadata(ssc)
 
         if not update_modifier_set or update_modifier != UpdateModifier.UPDATE_SPECS:
-            fail_message = "failed with initial quick frozen solve.  Retrying with flexible solve\n"
+            fail_message = "failed with initial frozen solve. Retrying with flexible solve.\n"
         elif self._repodata_fn != REPODATA_FN:
             fail_message = ("failed with repodata from %s, will retry with next repodata"
                             " source.\n" % self._repodata_fn)
