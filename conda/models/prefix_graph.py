@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import copy
 from collections import defaultdict, OrderedDict
 from logging import getLogger
 
@@ -437,14 +436,14 @@ class GeneralGraph(PrefixGraph):
         chains = build_dependency_chain(root_spec.name, spec_name)
         return chains
 
-    def breadth_first_search_by_name(self, root_spec, spec_name):
+    def breadth_first_search_by_name(self, root_spec, target_spec):
         """Return shorted path from root_spec to spec_name"""
         queue = []
         queue.append([root_spec])
         while queue:
             path = queue.pop(0)
             node = path[-1]
-            if node == spec_name:
+            if node == target_spec:
                 return path
             children = [list(ii)[0] for jj,ii in self.specs_by_name.get(node.name).items()]
             for adj in children:
@@ -452,20 +451,9 @@ class GeneralGraph(PrefixGraph):
                 new_path.append(adj)
                 queue.append(new_path)
 
-    def get_dependency_chains(self, root_spec, spec_name, sdeps):
+    def get_dependency_chains(self, root_spec, spec_name, allowed_specs):
         final_chains = []
-        allowed_specs = sdeps[root_spec]
-        dep_vers = [list(val)[0].depends for key,val in allowed_specs.items() if key != spec_name]
-        dep_ms = []
-        for pkgs in dep_vers:
-            dep_ms.extend([MatchSpec(p) for p in pkgs if spec_name in p])
-        for spec, deps in sdeps.items():
-            if spec.name == spec_name:
-                dep_ms.append(spec)
-
-        import ipdb; ipdb.set_trace()
-
-        chains = [self.breadth_first_search_by_name(root_spec, spec_name)]
+        chains = self.depth_first_search_by_name(root_spec, spec_name)
         for chain in sorted(chains, key=len):
             if chain[0] == root_spec.name and chain[-1] == spec_name:
                 # remap to matchspecs

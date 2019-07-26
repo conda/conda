@@ -415,7 +415,19 @@ class Resolve(object):
                                 key=lambda x: list(g.graph_by_name.keys()).index(x.name))
             for spec in spec_order:
                 # the DFS approach works well when things are actually in the graph
-                bad_deps.extend(g.get_dependency_chains(spec, dep, sdeps))
+                allowed_specs = sdeps[spec]
+                dep_vers = [list(val)[0].depends for key, val in allowed_specs.items() if key != dep]
+                dep_ms = []
+                for pkgs in dep_vers:
+                    dep_ms.extend([MatchSpec(p) for p in pkgs if dep in p])
+                for msspec, deps in sdeps.items():
+                    if msspec.name == dep:
+                        dep_ms.append(msspec)
+
+                for conflicting_spec in dep_ms:
+                    chain = g.breadth_first_search_by_name(spec, conflicting_spec)
+                    if chain:
+                        bad_deps.append(chain)
 
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
