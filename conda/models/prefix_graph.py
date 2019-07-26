@@ -409,7 +409,23 @@ class GeneralGraph(PrefixGraph):
             consolidated_graph[node.name] = cg
         self.graph_by_name = consolidated_graph
 
-    def depth_first_search_by_name(self, root_spec, spec_name, allowed_specs):
+    def breadth_first_search_by_name(self, root_spec, spec_name):
+        """Return shorted path from root_spec to spec_name"""
+        queue = []
+        queue.append([root_spec.name])
+        while queue:
+            path = queue.pop(0)
+            node = path[-1]
+            if node == spec_name:
+                return path
+            children = sorted(self.graph_by_name.get(node, set()),
+                              key=lambda x: list(self.graph_by_name.keys()).index(x))
+            for adj in children:
+                new_path = list(path)
+                new_path.append(adj)
+                queue.append(new_path)
+
+    def depth_first_search_by_name(self, root_spec, spec_name):
         """Return paths from root_spec to spec_name"""
         if root_spec.name == spec_name:
             return [[root_spec]]
@@ -434,8 +450,11 @@ class GeneralGraph(PrefixGraph):
             return chains
 
         chains = build_dependency_chain(root_spec.name, spec_name)
+        return chains
 
+    def get_dependency_chains(self, root_spec, spec_name, allowed_specs):
         final_chains = []
+        chains = [self.breadth_first_search_by_name(root_spec, spec_name)]
         for chain in sorted(chains, key=len):
             if chain[0] == root_spec.name and chain[-1] == spec_name:
                 # remap to matchspecs

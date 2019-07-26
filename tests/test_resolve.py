@@ -355,6 +355,56 @@ def test_unsat_simple():
     assert "b -> c[version='>=2,<3']" in str(excinfo.value)
 
 
+def test_unsat_shortest_chain():
+    index = (
+        simple_rec(name='a', depends=['d', 'c <1.3.0']),
+        simple_rec(name='b', depends=['c']),
+        simple_rec(name='c', version='1.3.6',),
+        simple_rec(name='c', version='1.2.8',),
+        simple_rec(name='d', depends=['c >=0.8.0']),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['c=1.3.6', 'a', 'b'])
+    assert "a -> c[version='<1.3.0']" in str(excinfo.value)
+    assert "b -> c" in str(excinfo.value)
+    assert "c=1.3.6" in str(excinfo.value)
+
+
+def test_unsat_shortest_reverse_chain():
+    index = (
+        simple_rec(name='a', depends=['d', 'c >=0.8.0']),
+        simple_rec(name='b', depends=['c']),
+        simple_rec(name='c', version='1.3.6',),
+        simple_rec(name='c', version='1.2.8',),
+        simple_rec(name='d', depends=['c <1.3.0']),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['c=1.3.6', 'a', 'b'])
+    assert "a -> d -> c[version='<1.3.0']" in str(excinfo.value)
+    assert "b -> c" in str(excinfo.value)
+    assert "c=1.3.6" in str(excinfo.value)
+
+
+def test_unsat_shortest_long_chain():
+    index = (
+        simple_rec(name='a', depends=['f', 'e']),
+        simple_rec(name='b', depends=['c']),
+        simple_rec(name='c', version='1.3.6',),
+        simple_rec(name='c', version='1.2.8',),
+        simple_rec(name='d', depends=['c >=0.8.0']),
+        simple_rec(name='e', depends=['c <1.3.0']),
+        simple_rec(name='f', depends=['d']),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['c=1.3.6', 'a', 'b'])
+    assert "a -> e -> c[version='<1.3.0']" in str(excinfo.value)
+    assert "b -> c" in str(excinfo.value)
+    assert "c=1.3.6" in str(excinfo.value)
+
+
 def test_unsat_chain():
     # a -> b -> c=1.x -> d=1.x
     # e      -> c=2.x -> d=2.x
