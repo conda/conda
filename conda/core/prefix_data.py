@@ -88,7 +88,10 @@ class PrefixData(object):
         return fn + '.json'
 
     def insert(self, prefix_record):
-        assert prefix_record.name not in self._prefix_records
+        assert prefix_record.name not in self._prefix_records, \
+            "Prefix record insertion error: a record with name %s already exists " \
+            "in the prefix. This is a bug in conda. Please report it at " \
+            "https://github.com/conda/conda/issues" % prefix_record.name
 
         prefix_record_json_path = join(self.prefix_path, 'conda-meta',
                                        self._get_json_fn(prefix_record))
