@@ -5,6 +5,21 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.7.10 (2019-07-19)
+===================
+
+
+Bug fixes
+^^^^^^^^^
+
+* Fix merging of specs
+* Fix bugs in building of chains in prefix graph
+
+Contributors
+^^^^^^^^^^^^
+
+* @msarahan
+
 
 4.7.9 (2019-07-18)
 ==================
