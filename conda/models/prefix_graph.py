@@ -434,7 +434,7 @@ class GeneralGraph(PrefixGraph):
         chains = build_dependency_chain(root_spec.name, spec_name)
         final_chains = []
         for chain in sorted(chains, key=len):
-            if chain[0] == root_spec.name and chain[-1] == spec_name:
+            if len(chain) > 0 and chain[0] == root_spec.name and chain[-1] == spec_name:
                 # remap to matchspecs
                 #   specs_by_name has two keys: parent, then name of spec
                 matchspecs_for_chain = [[]]
