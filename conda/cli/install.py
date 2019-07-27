@@ -103,6 +103,7 @@ def get_revision(arg, json=False):
     except ValueError:
         raise CondaValueError("expected revision number, not: '%s'" % arg, json)
 
+
 def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
@@ -230,7 +231,8 @@ def install(args, parser, command='install'):
         repodata_fns.append(REPODATA_FN)
 
     args_set_update_modifier = hasattr(args, "update_modifier") and args.update_modifier != NULL
-    # args.update_modifier is different from update_modifier
+    # This helps us differentiate between an update, the --freeze-installed option, and the retry
+    # behavior in our initial fast frozen solve
     _should_retry_solve = not args_set_update_modifier or args.update_modifier not in (
                     UpdateModifier.FREEZE_INSTALLED,
                     UpdateModifier.UPDATE_SPECS)

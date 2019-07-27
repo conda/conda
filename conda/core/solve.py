@@ -81,7 +81,8 @@ class Solver(object):
         self._pool_cache = {}
 
     def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL, should_retry_solve=False):
+                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
+                              should_retry_solve=False):
         """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
@@ -96,6 +97,8 @@ class Solver(object):
                 See :meth:`solve_final_state`.
             force_reinstall (bool):
                 See :meth:`solve_for_diff`.
+            should_retry_solve (bool):
+                See :meth:`solve_final_state`.
 
         Returns:
             UnlinkLinkTransaction:
@@ -137,6 +140,8 @@ class Solver(object):
                     instructs the solver to remove the package and spec from the environment,
                     and then add it back--possibly with the exact package instance modified,
                     depending on the spec exactness.
+            should_retry_solve (bool):
+                See :meth:`solve_final_state`.
 
         Returns:
             Tuple[PackageRef], Tuple[PackageRef]:
@@ -188,6 +193,9 @@ class Solver(object):
                 for the prefix.
             force_remove (bool):
                 Forces removal of a package without removing packages that depend on it.
+            should_retry_solve (bool):
+                Indicates whether this solve will be retried. This allows us to control
+                find_conflicts in ssc.r.solve
 
         Returns:
             Tuple[PackageRef]:
