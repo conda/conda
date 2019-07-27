@@ -230,11 +230,13 @@ def install(args, parser, command='install'):
         repodata_fns.append(REPODATA_FN)
 
     args_set_update_modifier = hasattr(args, "update_modifier") and args.update_modifier != NULL
-    should_retry_solve = not args_set_update_modifier or args.update_modifier not in (
+    # args.update_modifier is different from update_modifier
+    _should_retry_solve = not args_set_update_modifier or args.update_modifier not in (
                     UpdateModifier.FREEZE_INSTALLED,
                     UpdateModifier.UPDATE_SPECS)
 
     for repodata_fn in repodata_fns:
+        should_retry_solve = _should_retry_solve and repodata_fn != REPODATA_FN
         try:
             update_modifier = context.update_modifier
             if isinstall and args.revision:
@@ -259,6 +261,7 @@ def install(args, parser, command='install'):
                     deps_modifier=deps_modifier,
                     update_modifier=update_modifier,
                     force_reinstall=context.force_reinstall or context.force,
+                    should_retry_solve=should_retry_solve,
                 )
             # we only need one of these to work.  If we haven't raised an exception,
             #   we're good.
@@ -298,6 +301,7 @@ def install(args, parser, command='install'):
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
                         force_reinstall=context.force_reinstall or context.force,
+                        should_retry_solve=should_retry_solve,
                     )
                 except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
                     # Unsatisfiable package specifications/no such revision/import error

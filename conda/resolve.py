@@ -1144,7 +1144,7 @@ class Resolve(object):
 
     @time_recorder(module_name=__name__)
     def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None,
-              repodata_fn=REPODATA_FN, update_modifier=None):
+              update_modifier=None, should_retry_solve=False):
         # type: (List[str], bool) -> List[PackageRecord]
         if log.isEnabledFor(DEBUG):
             dlist = dashlist(text_type(
@@ -1178,10 +1178,11 @@ class Resolve(object):
                 raise ResolvePackageNotFound(not_found_packages)
             elif wrong_version_packages:
                 raise UnsatisfiableError([[d] for d in wrong_version_packages], chains=False)
-            if repodata_fn != REPODATA_FN or update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            if should_retry_solve:
                 # we don't want to call find_conflicts until our last try
                 raise UnsatisfiableError({})
-            self.find_conflicts(specs, specs_to_add, history_specs)
+            else:
+                self.find_conflicts(specs, specs_to_add, history_specs)
 
         # Check if satisfiable
         log.debug("Solve: determining satisfiability")
@@ -1214,10 +1215,11 @@ class Resolve(object):
         solution = mysat(specs, True)
 
         if not solution:
-            if repodata_fn != REPODATA_FN or update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            if should_retry_solve:
                 # we don't want to call find_conflicts until our last try
                 raise UnsatisfiableError({})
-            self.find_conflicts(specs, specs_to_add, history_specs)
+            else:
+                self.find_conflicts(specs, specs_to_add, history_specs)
 
         speco = []  # optional packages
         specr = []  # requested packages

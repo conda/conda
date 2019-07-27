@@ -81,7 +81,7 @@ class Solver(object):
         self._pool_cache = {}
 
     def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL):
+                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL, should_retry_solve=False):
         """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
@@ -109,7 +109,7 @@ class Solver(object):
         else:
             unlink_precs, link_precs = self.solve_for_diff(update_modifier, deps_modifier,
                                                            prune, ignore_pinned,
-                                                           force_remove, force_reinstall)
+                                                           force_remove, force_reinstall, should_retry_solve)
             stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
                               self.specs_to_remove, self.specs_to_add)
             # TODO: Only explicitly requested remove and update specs are being included in
@@ -119,7 +119,7 @@ class Solver(object):
             return UnlinkLinkTransaction(stp)
 
     def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL):
+                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL, should_retry_solve=False):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -147,7 +147,7 @@ class Solver(object):
 
         """
         final_precs = self.solve_final_state(update_modifier, deps_modifier, prune, ignore_pinned,
-                                             force_remove)
+                                             force_remove, should_retry_solve)
         unlink_precs, link_precs = diff_for_unlink_link_precs(
             self.prefix, final_precs, self.specs_to_add, force_reinstall
         )
@@ -161,7 +161,7 @@ class Solver(object):
         return unlink_precs, link_precs
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                          ignore_pinned=NULL, force_remove=NULL):
+                          ignore_pinned=NULL, force_remove=NULL, should_retry_solve=False):
         """Gives the final, solved state of the environment.
 
         Args:
@@ -217,7 +217,7 @@ class Solver(object):
 
         if not retrying:
             ssc = SolverStateContainer(
-                self.prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove
+                self.prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove, should_retry_solve,
             )
             self.ssc = ssc
         else:
@@ -789,8 +789,9 @@ class Solver(object):
         ssc.solution_precs = ssc.r.solve(tuple(final_environment_specs),
                                          specs_to_add=self.specs_to_add,
                                          history_specs=ssc.specs_from_history_map,
-                                         repodata_fn=self._repodata_fn,
-                                         update_modifier=ssc.update_modifier)
+                                         update_modifier=ssc.update_modifier,
+                                         should_retry_solve=ssc.should_retry_solve
+                                         )
 
         # add back inconsistent packages to solution
         if ssc.add_back_map:
@@ -999,7 +1000,7 @@ class SolverStateContainer(object):
     # A mutable container with defined attributes to help keep method signatures clean
     # and also keep track of important state variables.
 
-    def __init__(self, prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove):
+    def __init__(self, prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove, should_retry_solve):
         # prefix, channels, subdirs, specs_to_add, specs_to_remove
         # self.prefix = prefix
         # self.channels = channels
@@ -1013,6 +1014,7 @@ class SolverStateContainer(object):
         self.prune = prune
         self.ignore_pinned = ignore_pinned
         self.force_remove = force_remove
+        self.should_retry_solve = should_retry_solve
 
         # Group 2. System state
         self.prefix = prefix
