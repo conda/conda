@@ -112,7 +112,8 @@ class Solver(object):
         else:
             unlink_precs, link_precs = self.solve_for_diff(update_modifier, deps_modifier,
                                                            prune, ignore_pinned,
-                                                           force_remove, force_reinstall, should_retry_solve)
+                                                           force_remove, force_reinstall,
+                                                           should_retry_solve)
             stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
                               self.specs_to_remove, self.specs_to_add)
             # TODO: Only explicitly requested remove and update specs are being included in
@@ -122,7 +123,8 @@ class Solver(object):
             return UnlinkLinkTransaction(stp)
 
     def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL, should_retry_solve=False):
+                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
+                       should_retry_solve=False):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -225,7 +227,8 @@ class Solver(object):
 
         if not retrying:
             ssc = SolverStateContainer(
-                self.prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove, should_retry_solve,
+                self.prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove,
+                should_retry_solve,
             )
             self.ssc = ssc
         else:
@@ -1008,7 +1011,8 @@ class SolverStateContainer(object):
     # A mutable container with defined attributes to help keep method signatures clean
     # and also keep track of important state variables.
 
-    def __init__(self, prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove, should_retry_solve):
+    def __init__(self, prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove,
+                 should_retry_solve):
         # prefix, channels, subdirs, specs_to_add, specs_to_remove
         # self.prefix = prefix
         # self.channels = channels
