@@ -427,10 +427,20 @@ class Resolve(object):
                 for msspec, deps in sdeps.items():
                     if msspec.name == dep:
                         dep_ms.append(msspec)
+                bad_deps_for_spec = []
                 for conflicting_spec in dep_ms:
                     chain = gg.breadth_first_search_by_name(spec, conflicting_spec)
                     if chain:
-                        bad_deps.append(chain)
+                        bad_deps_for_spec.append(chain)
+                if bad_deps_for_spec:
+                    bd = groupby(lambda x: x[-1].name and len(x), bad_deps_for_spec)
+                    for _, group in bd.items():
+                        last_merged_spec = MatchSpec.union(ch[-1] for ch in group)
+                        bad_dep = group[0][0:-1]
+                        bad_dep.append(last_merged_spec)
+                        bad_dep.append(bad_dep)
+                    else:
+                        bad_deps.extend(bad_deps_for_spec)
 
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
