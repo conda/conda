@@ -410,22 +410,25 @@ class Resolve(object):
             # than just one record, to explore the space of dependencies a bit.  Doing all of them
             #    can be an enormous problem, though.  This is hopefully a good compromise.
             records_per_name = 7
-            g = GeneralGraph([_ for v in records_for_graph.values() for _ in v[:records_per_name]])
+            gg = GeneralGraph(
+                [_ for v in records_for_graph.values() for _ in v[:records_per_name]])
             spec_order = sorted(sdeps_with_dep.keys(),
-                                key=lambda x: list(g.graph_by_name.keys()).index(x.name))
+                                key=lambda x: list(gg.graph_by_name.keys()).index(x.name))
+
             for spec in spec_order:
-                # the DFS approach works well when things are actually in the graph
                 allowed_specs = sdeps[spec]
-                dep_vers = [list(val)[0].depends for key, val in allowed_specs.items() if key != dep]
+                dep_vers = []
+                for key, val in allowed_specs.items():
+                    if key != dep:
+                        dep_vers.extend([v.depends for v in val])
                 dep_ms = []
                 for pkgs in dep_vers:
                     dep_ms.extend([MatchSpec(p) for p in pkgs if dep in p])
                 for msspec, deps in sdeps.items():
                     if msspec.name == dep:
                         dep_ms.append(msspec)
-
                 for conflicting_spec in dep_ms:
-                    chain = g.breadth_first_search_by_name(spec, conflicting_spec)
+                    chain = gg.breadth_first_search_by_name(spec, conflicting_spec)
                     if chain:
                         bad_deps.append(chain)
 

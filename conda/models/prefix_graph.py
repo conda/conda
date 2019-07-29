@@ -445,7 +445,9 @@ class GeneralGraph(PrefixGraph):
             node = path[-1]
             if node == target_spec:
                 return path
-            children = [list(ii)[0] for jj,ii in self.specs_by_name.get(node.name).items()]
+            children = []
+            for _, deps in self.specs_by_name.get(node.name).items():
+                children.extend(list(deps))
             for adj in children:
                 new_path = list(path)
                 new_path.append(adj)

@@ -314,11 +314,11 @@ def test_unsat_from_r1():
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['numpy 1.5*', 'scipy 0.12.0b1'])
     assert "numpy=1.5" in str(excinfo.value)
-    assert "scipy==0.12.0b1 -> numpy" in str(excinfo.value)
+    assert "scipy==0.12.0b1 -> numpy=1.6" in str(excinfo.value)
     # numpy 1.5 does not have a python 3 package
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['numpy 1.5*', 'python 3*'])
-    assert "numpy=1.5 -> python[version='2.6.*,2.7.*']" in str(excinfo.value)
+    assert "numpy=1.5 -> python=2.6" in str(excinfo.value)
     assert "python=3" in str(excinfo.value)
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['numpy 1.5*', 'numpy 1.6*'])
@@ -457,13 +457,9 @@ def test_unsat_any_two_not_three():
     # a, b and c cannot be installed
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a', 'b', 'c'])
-    assert "a -> d[version='>=1,<2,>=2,<3']" in str(excinfo.value)
-    assert "b -> d[version='>=1,<2,>=3,<4']" in str(excinfo.value)
-    assert "c -> d[version='>=2,<3,>=3,<4']" in str(excinfo.value)
-    # TODO would also like to see these
-    #assert "a -> d[version='>=1,<2']" in str(excinfo.value)
-    #assert "b -> d[version='>=1,<2']" in str(excinfo.value)
-    #assert "c -> d[version='>=2,<3']" in str(excinfo.value)
+    assert "a -> d[version='>=1,<2|>=2,<3']" in str(excinfo.value)
+    assert "b -> d[version='>=1,<2|>=3,<4']" in str(excinfo.value)
+    assert "c -> d[version='>=2,<3|>=3,<4']" in str(excinfo.value)
 
 
 def test_unsat_expand_single():
