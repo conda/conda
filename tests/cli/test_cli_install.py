@@ -1,9 +1,9 @@
-import shutil
 import tempfile
 from unittest import TestCase
 from tests.test_create import run_command, Commands
 from conda.models.match_spec import MatchSpec
 from conda.exceptions import UnsatisfiableError
+from conda.gateways.disk.delete import rm_rf
 
 try:
     from unittest.mock import patch
@@ -17,7 +17,7 @@ class TestCliInstall(TestCase):
         run_command(Commands.CREATE, self.prefix, 'python=3.7')
 
     def tearDown(self):
-        shutil.rmtree(self.prefix)
+        rm_rf(self.prefix)
 
     def test_find_conflicts_called_once(self):
         bad_deps = {'python': {((MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")), 'python=3')}}
