@@ -431,7 +431,8 @@ class Resolve(object):
 
             for spec in spec_order:
                 allowed_specs = sdeps[spec]
-                ga = GeneralGraph([_ for allowed_pkgs in allowed_specs.values() for _ in allowed_pkgs])
+                ga = GeneralGraph([_ for allowed_pkgs in allowed_specs.values()
+                                   for _ in allowed_pkgs])
                 dep_vers = []
                 for key, val in allowed_specs.items():
                     if key != [_.name for _ in spec_order]:

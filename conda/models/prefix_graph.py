@@ -423,7 +423,10 @@ class GeneralGraph(PrefixGraph):
             if node == target_spec:
                 return path
             children = []
-            for _, deps in self.specs_by_name.get(node.name).items():
+            specs = self.specs_by_name.get(node.name)
+            if specs is None:
+                continue
+            for _, deps in specs.items():
                 children.extend(list(deps))
             for adj in children:
                 if adj.name == target_spec.name and adj.version != target_spec.version:
