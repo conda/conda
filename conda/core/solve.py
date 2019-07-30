@@ -382,7 +382,10 @@ class Solver(object):
         # add in historically-requested specs
         ssc.specs_map.update(ssc.specs_from_history_map)
 
-        for pkg_name in ('anaconda', 'conda', 'conda-build',
+        # these are things that we want to keep even if they're not explicitly specified.  This
+        #     is to compensate for older installers not recording these appropriately for them
+        #     to be preserved.
+        for pkg_name in ('anaconda', 'conda', 'conda-build', 'python.app',
                          'console_shortcut', 'powershell_shortcut'):
             if pkg_name not in ssc.specs_map and ssc.prefix_data.get(pkg_name, None):
                 ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
@@ -582,7 +585,7 @@ class Solver(object):
                 if target_prec.is_unmanageable:
                     ssc.specs_map[pkg_name] = target_prec.to_match_spec()
                 elif MatchSpec(pkg_name) in context.aggressive_update_packages:
-                    ssc.specs_map[pkg_name] = pkg_name
+                    ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
                 elif self._should_freeze(ssc, target_prec, conflict_specs, explicit_pool,
                                          installed_pool):
                     ssc.specs_map[pkg_name] = target_prec.to_match_spec()
@@ -657,6 +660,7 @@ class Solver(object):
                         or spec.name in ssc.specs_from_history_map):
                     # skip this spec, because it is constrained by pins
                     continue
+                ssc.specs_map[spec.name] = spec
                 # the index is sorted, so the first record here gives us what we want.
                 latest_pkg = ssc.r.find_matches(spec)[0]
                 for ms in list(ssc.specs_map.values()):

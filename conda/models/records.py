@@ -322,9 +322,9 @@ class PackageRecord(DictSafeMixin, Entity):
     def combined_depends(self):
         from .match_spec import MatchSpec
         result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
-        result.update({ms.name: ms for ms in MatchSpec.merge(
-            MatchSpec(spec, optional=True) for spec in self.constrains or ()
-        )})
+        for spec in (self.constrains or ()):
+            ms = MatchSpec(spec)
+            result[ms.name] = MatchSpec(ms, optional=(ms.name not in result))
         return tuple(itervalues(result))
 
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
