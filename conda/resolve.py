@@ -341,10 +341,13 @@ class Resolve(object):
         bd = groupby(lambda x: x[-1].name and len(x), bad_deps_for_spec)
         for _, group in bd.items():
             if len(group) > 1:
-                last_merged_spec = MatchSpec.union(ch[-1] for ch in group)[0]
-                bad_dep = group[0][0:-1]
-                bad_dep.append(last_merged_spec)
-                bad_deps.append(bad_dep)
+                try:
+                    last_merged_spec = MatchSpec.union(ch[-1] for ch in group)[0]
+                    bad_dep = group[0][0:-1]
+                    bad_dep.append(last_merged_spec)
+                    bad_deps.append(bad_dep)
+                except ValueError:
+                    bad_deps.extend(group)
             else:
                 bad_deps.extend(group)
         return bad_deps
