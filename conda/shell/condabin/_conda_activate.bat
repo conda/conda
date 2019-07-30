@@ -28,8 +28,7 @@
 @REM This method will not work if %TMP% contains any spaces.
 :tmpName
 @SET UNIQUE=%TMP%\conda-%RANDOM%-%RANDOM%.tmp
-@IF EXIST "%UNIQUE%" goto :tmpName
-@TYPE NUL 1>%UNIQUE%
+@IF EXIST "%UNIQUE%" (goto :tmpName) ELSE (TYPE NUL 1>%UNIQUE%)
 @"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE%
 @IF %ErrorLevel% NEQ 0 @EXIT /B %ErrorLevel%
 @FOR /F %%i IN (%UNIQUE%) DO @SET _TEMP_SCRIPT_PATH=%%i
