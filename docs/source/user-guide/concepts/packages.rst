@@ -11,7 +11,8 @@ Conda packages
 What is a conda package?
 ========================
 
-A conda package is a compressed tarball file (.tar.bz2) that contains:
+A conda package is a compressed tarball file (.tar.bz2) or
+.conda file that contains:
 
 * system-level libraries
 * Python or other modules
