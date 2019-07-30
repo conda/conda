@@ -202,6 +202,8 @@ def test_parse_specification():
             PySpec('', [], '>=2.7,!=3.0.*,!=3.1.*,!=3.2.*', '', ''),
         'name>=1.0.0-beta.1,<2.0.0':
             PySpec('name', [], '>=1.0.0.beta.1,<2.0.0', '', ''),
+        'name==1.0.0+localhash':
+            PySpec('name', [], '==1.0.0+localhash', '', ''),
     }
     for req, expected_req in test_reqs.items():
         parsed_req = parse_specification(req)
