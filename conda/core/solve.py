@@ -197,7 +197,7 @@ class Solver(object):
                 Forces removal of a package without removing packages that depend on it.
             should_retry_solve (bool):
                 Indicates whether this solve will be retried. This allows us to control
-                find_conflicts in ssc.r.solve
+                whether to call find_conflicts (slow) in ssc.r.solve
 
         Returns:
             Tuple[PackageRef]:

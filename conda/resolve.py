@@ -1179,7 +1179,9 @@ class Resolve(object):
             elif wrong_version_packages:
                 raise UnsatisfiableError([[d] for d in wrong_version_packages], chains=False)
             if should_retry_solve:
-                # we don't want to call find_conflicts until our last try
+                # We don't want to call find_conflicts until our last try.
+                # This jumps back out to conda/cli/install.py, where the
+                # retries happen
                 raise UnsatisfiableError({})
             else:
                 self.find_conflicts(specs, specs_to_add, history_specs)
