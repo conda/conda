@@ -100,7 +100,7 @@ Some other traits are:
 |
 
 Why use venv-based virtual environments
-===================================
+=======================================
 - You prefer their workflow or spec formats
 - You prefer to use the system Python and libraries
 - Your project maintainers only publish to PyPI, and you prefer packages that come more directly from the project maintainers,   rather than someone else providing builds based on the same code
@@ -118,7 +118,7 @@ Workflow differentiators
 ========================
 
 Some questions to consider as you determine your preferred
-workflow and virtual environment: 
+workflow and virtual environment:
 
 - Is your environment shared across multiple code projects?
 - Does your environment live alongside your code or in a separate place?
