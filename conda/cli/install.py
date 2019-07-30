@@ -311,7 +311,7 @@ def install(args, parser, command='install'):
                     if repodata_fn == repodata_fns[-1]:
                         raise e
             elif repodata_fn != repodata_fns[-1]:
-                continue # if we hit this, we should retry with next repodata source
+                continue  # if we hit this, we should retry with next repodata source
             else:
                 # end of the line.  Raise the exception
                 # Unsatisfiable package specifications/no such revision/import error
