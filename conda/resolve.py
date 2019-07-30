@@ -287,7 +287,6 @@ class Resolve(object):
                    'cuda': set(), }
         specs_to_add = set(MatchSpec(_) for _ in specs_to_add or [])
         history_specs = set(MatchSpec(_) for _ in history_specs or [])
-
         for chain in bad_deps:
             # sometimes chains come in as strings
             if chain[-1].name == 'python' and len(chain) > 1 and \
@@ -315,7 +314,7 @@ class Resolve(object):
                 if not match:
                     classes['direct'].add((tuple(chain), str(MatchSpec(chain[0], target=None))))
             else:
-                if len(chain) > 1 or not any(len(c) > 1 and c[0] == chain[0] for c in bad_deps):
+                if len(chain) > 1 or any(len(c) >= 1 and c[0] == chain[0] for c in bad_deps):
                     classes['direct'].add((tuple(chain),
                                            str(MatchSpec(chain[0], target=None))))
 
@@ -416,9 +415,10 @@ class Resolve(object):
 
             for spec in spec_order:
                 allowed_specs = sdeps[spec]
+                ga = GeneralGraph([tt for vv in allowed_specs.values() for tt in vv])
                 dep_vers = []
                 for key, val in allowed_specs.items():
-                    if key != dep:
+                    if key != [_.name for _ in spec_order]:
                         dep_vers.extend([v.depends for v in val])
                 dep_ms = []
                 for pkgs in dep_vers:
@@ -428,20 +428,23 @@ class Resolve(object):
                         dep_ms.append(msspec)
                 bad_deps_for_spec = []
                 for conflicting_spec in set(dep_ms):
-                    chain = gg.breadth_first_search_by_name(spec, conflicting_spec)
+                    if conflicting_spec.name == spec.name:
+                        chain = [conflicting_spec] if conflicting_spec.version == spec.version \
+                            else None
+                    else:
+                        chain = ga.breadth_first_search_by_name(spec, conflicting_spec)
                     if chain:
                         bad_deps_for_spec.append(chain)
                 if bad_deps_for_spec:
                     bd = groupby(lambda x: x[-1].name and len(x), bad_deps_for_spec)
                     for _, group in bd.items():
                         if len(group) > 1:
-                            last_merged_spec = MatchSpec.union(ch[-1] for ch in group)
+                            last_merged_spec = MatchSpec.union(ch[-1] for ch in group)[0]
                             bad_dep = group[0][0:-1]
                             bad_dep.append(last_merged_spec)
-                            bad_dep.append(bad_dep)
+                            bad_deps.append(bad_dep)
                         else:
                             bad_deps.extend(group)
-
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
             bad_deps = []
@@ -452,6 +455,7 @@ class Resolve(object):
                 deps = groupby(lambda x: x.name, deps)
 
                 bad_deps.extend([[spec, MatchSpec.union(_)[0]] for _ in deps.values()])
+
         bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
                                            strict_channel_priority)
         return bad_deps
