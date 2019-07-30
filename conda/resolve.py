@@ -409,7 +409,6 @@ class Resolve(object):
             # records_per_name is a completely arbitrary number here.  It is meant to gather more
             # than just one record, to explore the space of dependencies a bit.  Doing all of them
             #    can be an enormous problem, though.  This is hopefully a good compromise.
-            records_per_name = 7
             gg = GeneralGraph(
                 [_ for v in records_for_graph.values() for _ in v])
             spec_order = sorted(sdeps_with_dep.keys(),
@@ -428,9 +427,6 @@ class Resolve(object):
                     if msspec.name == dep:
                         dep_ms.append(msspec)
                 bad_deps_for_spec = []
-
-                import ipdb; ipdb.set_trace()
-
                 for conflicting_spec in set(dep_ms):
                     chain = gg.breadth_first_search_by_name(spec, conflicting_spec)
                     if chain:
@@ -438,12 +434,13 @@ class Resolve(object):
                 if bad_deps_for_spec:
                     bd = groupby(lambda x: x[-1].name and len(x), bad_deps_for_spec)
                     for _, group in bd.items():
-                        last_merged_spec = MatchSpec.union(ch[-1] for ch in group)
-                        bad_dep = group[0][0:-1]
-                        bad_dep.append(last_merged_spec)
-                        bad_dep.append(bad_dep)
-                    else:
-                        bad_deps.extend(bad_deps_for_spec)
+                        if len(group) > 1:
+                            last_merged_spec = MatchSpec.union(ch[-1] for ch in group)
+                            bad_dep = group[0][0:-1]
+                            bad_dep.append(last_merged_spec)
+                            bad_dep.append(bad_dep)
+                        else:
+                            bad_deps.extend(group)
 
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
