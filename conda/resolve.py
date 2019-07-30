@@ -336,6 +336,19 @@ class Resolve(object):
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
         raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
+    def group_and_merge_specs(self, bad_deps_for_spec):
+        bad_deps = []
+        bd = groupby(lambda x: x[-1].name and len(x), bad_deps_for_spec)
+        for _, group in bd.items():
+            if len(group) > 1:
+                last_merged_spec = MatchSpec.union(ch[-1] for ch in group)[0]
+                bad_dep = group[0][0:-1]
+                bad_dep.append(last_merged_spec)
+                bad_deps.append(bad_dep)
+            else:
+                bad_deps.extend(group)
+        return bad_deps
+
     def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
         """Perform a deeper analysis on conflicting specifications, by attempting
         to find the common dependencies that might be the cause of conflicts.
@@ -415,17 +428,14 @@ class Resolve(object):
 
             for spec in spec_order:
                 allowed_specs = sdeps[spec]
-                ga = GeneralGraph([tt for vv in allowed_specs.values() for tt in vv])
+                ga = GeneralGraph([_ for allowed_pkgs in allowed_specs.values() for _ in allowed_pkgs])
                 dep_vers = []
                 for key, val in allowed_specs.items():
                     if key != [_.name for _ in spec_order]:
                         dep_vers.extend([v.depends for v in val])
-                dep_ms = []
-                for pkgs in dep_vers:
-                    dep_ms.extend([MatchSpec(p) for p in pkgs if dep in p])
-                for msspec, deps in sdeps.items():
-                    if msspec.name == dep:
-                        dep_ms.append(msspec)
+                dep_ms = [MatchSpec(p) for pkgs in dep_vers for p in pkgs if dep in p]
+                dep_ms.extend(msspec for msspec in sdeps.keys() if msspec.name == dep)
+
                 bad_deps_for_spec = []
                 for conflicting_spec in set(dep_ms):
                     if conflicting_spec.name == spec.name:
@@ -436,15 +446,7 @@ class Resolve(object):
                     if chain:
                         bad_deps_for_spec.append(chain)
                 if bad_deps_for_spec:
-                    bd = groupby(lambda x: x[-1].name and len(x), bad_deps_for_spec)
-                    for _, group in bd.items():
-                        if len(group) > 1:
-                            last_merged_spec = MatchSpec.union(ch[-1] for ch in group)[0]
-                            bad_dep = group[0][0:-1]
-                            bad_dep.append(last_merged_spec)
-                            bad_deps.append(bad_dep)
-                        else:
-                            bad_deps.extend(group)
+                    bad_deps.extend(self.group_and_merge_specs(bad_deps_for_spec))
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
             bad_deps = []
