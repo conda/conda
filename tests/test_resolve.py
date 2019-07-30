@@ -313,6 +313,7 @@ def test_unsat_from_r1():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['numpy 1.5*', 'scipy 0.12.0b1'])
+    # import ipdb; ipdb.set_trace()
     assert "numpy=1.5" in str(excinfo.value)
     assert "scipy==0.12.0b1 -> numpy=1.6" in str(excinfo.value)
     # numpy 1.5 does not have a python 3 package

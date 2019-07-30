@@ -449,9 +449,12 @@ class GeneralGraph(PrefixGraph):
             for _, deps in self.specs_by_name.get(node.name).items():
                 children.extend(list(deps))
             for adj in children:
-                new_path = list(path)
-                new_path.append(adj)
-                queue.append(new_path)
+                if adj.name == target_spec.name and adj.version != target_spec.version:
+                    pass
+                else:
+                    new_path = list(path)
+                    new_path.append(adj)
+                    queue.append(new_path)
 
     def get_dependency_chains(self, root_spec, spec_name, allowed_specs):
         final_chains = []

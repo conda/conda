@@ -411,7 +411,7 @@ class Resolve(object):
             #    can be an enormous problem, though.  This is hopefully a good compromise.
             records_per_name = 7
             gg = GeneralGraph(
-                [_ for v in records_for_graph.values() for _ in v[:records_per_name]])
+                [_ for v in records_for_graph.values() for _ in v])
             spec_order = sorted(sdeps_with_dep.keys(),
                                 key=lambda x: list(gg.graph_by_name.keys()).index(x.name))
 
@@ -428,7 +428,10 @@ class Resolve(object):
                     if msspec.name == dep:
                         dep_ms.append(msspec)
                 bad_deps_for_spec = []
-                for conflicting_spec in dep_ms:
+
+                import ipdb; ipdb.set_trace()
+
+                for conflicting_spec in set(dep_ms):
                     chain = gg.breadth_first_search_by_name(spec, conflicting_spec)
                     if chain:
                         bad_deps_for_spec.append(chain)
