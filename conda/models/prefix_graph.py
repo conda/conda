@@ -409,33 +409,6 @@ class GeneralGraph(PrefixGraph):
             consolidated_graph[node.name] = cg
         self.graph_by_name = consolidated_graph
 
-    def depth_first_search_by_name(self, root_spec, spec_name):
-        """Return paths from root_spec to spec_name"""
-        if root_spec.name == spec_name:
-            return [[root_spec]]
-        visited = set()
-
-        def build_dependency_chain(node, spc, chains=None):
-            visited.add(node)
-            if not chains:
-                chains = [[]]
-            chain = chains[-1]
-            if node == spc:
-                chain.append(spc)
-                return [chain]
-            else:
-                chain.append(node)
-                children = sorted(self.graph_by_name.get(node, set()),
-                                  key=lambda x: list(self.graph_by_name.keys()).index(x))
-                for child in children:
-                    if child not in visited:
-                        new_chain = [[c for c in chain]]
-                        chains.extend(build_dependency_chain(child, spc, new_chain))
-            return chains
-
-        chains = build_dependency_chain(root_spec.name, spec_name)
-        return chains
-
     def breadth_first_search_by_name(self, root_spec, target_spec):
         """Return shorted path from root_spec to spec_name"""
         queue = []
@@ -459,35 +432,6 @@ class GeneralGraph(PrefixGraph):
                     new_path = list(path)
                     new_path.append(adj)
                     queue.append(new_path)
-
-    def get_dependency_chains(self, root_spec, spec_name, allowed_specs):
-        final_chains = []
-        chains = self.depth_first_search_by_name(root_spec, spec_name)
-        for chain in sorted(chains, key=len):
-            if chain[0] == root_spec.name and chain[-1] == spec_name:
-                # remap to matchspecs
-                #   specs_by_name has two keys: parent, then name of spec
-                matchspecs_for_chain = [[]]
-                for idx, name in enumerate(chain[1:]):
-                    matchspecs_to_merge = []
-                    matchspecs = self.specs_by_name[chain[idx]][name]
-                    for ms in matchspecs:
-                        if any(ms.match(rec) for rec in allowed_specs.get(ms.name, [])):
-                            matchspecs_to_merge.append(ms)
-                    try:
-                        merged = MatchSpec.merge(matchspecs_to_merge)
-                        if merged:
-                            for ms_chain in matchspecs_for_chain:
-                                ms_chain.append(merged[0])
-                    except ValueError:
-                        matchspecs_for_chain = [_[:] for _ in
-                                                matchspecs_for_chain * len(matchspecs_to_merge)]
-                        for idx, ms in enumerate(matchspecs_to_merge):
-                            matchspecs_for_chain[idx].append(ms)
-                for ms_chain in matchspecs_for_chain:
-                    final_chains.append(tuple([root_spec] + ms_chain))
-                break
-        return set(final_chains)
 
 
 # if __name__ == "__main__":
