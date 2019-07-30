@@ -440,9 +440,13 @@ class GeneralGraph(PrefixGraph):
         """Return shorted path from root_spec to spec_name"""
         queue = []
         queue.append([root_spec])
+        visited = []
         while queue:
             path = queue.pop(0)
             node = path[-1]
+            if node in visited:
+                continue
+            visited.append(node)
             if node == target_spec:
                 return path
             children = []
