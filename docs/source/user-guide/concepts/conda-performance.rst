@@ -98,10 +98,10 @@ process. Listing a version and build string for each of your specs can
 dramatically reduce the number of packages that are considered when solving
 so that the SAT doesn’t have as much work to do.
 
- Reducing the index:
-    * Reduces unnecessary input into generating solver clauses.
-    * Reduces solve complexity.
-    * Prefers newer packages that apply constraints.
+Reducing the index:
+  * Reduces unnecessary input into generating solver clauses.
+  * Reduces solve complexity.
+  * Prefers newer packages that apply constraints.
 
- Read more on `Understanding and Improving Conda's Performance
+Read more on `Understanding and Improving Conda's Performance
 <https://www.anaconda.com/understanding-and-improving-condas-performance/>`_.
