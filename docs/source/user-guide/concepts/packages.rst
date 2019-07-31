@@ -29,6 +29,29 @@ package. Directories are not included. Directories are created
 and removed as needed, but you cannot create an empty directory
 from the tar archive directly.
 
+.conda file format
+==================
+
+
+The .conda file format was introduced in conda 4.7 as a more
+compact, and thus faster, alternative to a tarball. 
+
+The .conda file format consists of an outer, uncompressed
+ZIP-format container, with two inner compressed .tar files.
+These compressed files can be significantly smaller than their
+bzip2 equivalents. In addition, they decompress much more quickly.
+.conda is the preferred file format to use where available,
+although we continue to support .tar.bzip2 files.
+
+Read more about the `introduction of the .conda file format <https://www.anaconda.com/understanding-and-improving-condas-performance/>`_.
+
+.. note::
+
+  In conda 4.7 and later, you cannot use filenames that
+  end in “.conda” as they conflict with the .conda file format
+  for packages.
+
+
 Using packages
 ==============
 
