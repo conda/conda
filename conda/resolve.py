@@ -399,6 +399,7 @@ class Resolve(object):
         bad_deps = []
         dep_collections = tuple(set(sdep.keys()) for sdep in sdeps.values())
         deps = set.union(*dep_collections) if dep_collections else []
+
         # for each possible package being considered, look at how pools interact
         for dep in deps:
             sdeps_with_dep = {}
@@ -412,27 +413,36 @@ class Resolve(object):
                 continue
             # start out filtering nothing.  invalid_chains will tweak this dict to filter more
             #    as it goes
-            records = set.union(*tuple(rec for records in sdeps_with_dep.values()
-                                       for rec in records.values()))
-            # determine the invalid chains for each specific spec.  Each of these chains
-            #    should start with `spec` and end with the first encountered conflict.  A
-            #    conflict is something that is either not available at all, or is present in
-            #    more than one pool, but those pools do not all overlap.
+            # records = set.union(*tuple(rec for records in sdeps_with_dep.values()
+            #                            for rec in records.values()))
+            # # determine the invalid chains for each specific spec.  Each of these chains
+            # #    should start with `spec` and end with the first encountered conflict.  A
+            # #    conflict is something that is either not available at all, or is present in
+            # #    more than one pool, but those pools do not all overlap.
+            #
+            # records_for_graph = groupby(lambda r: r.name,
+            #                             (r for r in records if isinstance(r, PackageRecord)))
+            # # records_per_name is a completely arbitrary number here.  It is meant to gather more
+            # # than just one record, to explore the space of dependencies a bit.  Doing all of them
+            # #    can be an enormous problem, though.  This is hopefully a good compromise.
+            # records_per_name = 7
+            # gg = GeneralGraph(
+            #     [_ for v in records_for_graph.values() for _ in v[:records_per_name]])
+            # spec_order = sorted(sdeps_with_dep.keys(),
+            #                     key=lambda x: list(gg.graph_by_name.keys()).index(x.name))
+            #
+            # import ipdb; ipdb.set_trace()
+            records_per_name = 7
+            all_specs = [list(_)[0:records_per_name] for s in sdeps.values() for _ in s.values()]
+            ga = GeneralGraph([_ for allowed_pkgs in all_specs
+                               for _ in allowed_pkgs])
 
-            records_for_graph = groupby(lambda r: r.name,
-                                        (r for r in records if isinstance(r, PackageRecord)))
-            # records_per_name is a completely arbitrary number here.  It is meant to gather more
-            # than just one record, to explore the space of dependencies a bit.  Doing all of them
-            #    can be an enormous problem, though.  This is hopefully a good compromise.
-            gg = GeneralGraph(
-                [_ for v in records_for_graph.values() for _ in v])
-            spec_order = sorted(sdeps_with_dep.keys(),
-                                key=lambda x: list(gg.graph_by_name.keys()).index(x.name))
+            spec_order =  sdeps_with_dep.keys()
 
             for spec in spec_order:
                 allowed_specs = sdeps[spec]
-                ga = GeneralGraph([_ for allowed_pkgs in allowed_specs.values()
-                                   for _ in allowed_pkgs])
+                # ga = GeneralGraph([_ for allowed_pkgs in allowed_specs.values()
+                #                    for _ in allowed_pkgs])
                 dep_vers = []
                 for key, val in allowed_specs.items():
                     if key != [_.name for _ in spec_order]:
@@ -446,7 +456,7 @@ class Resolve(object):
                         chain = [conflicting_spec] if conflicting_spec.version == spec.version \
                             else None
                     else:
-                        chain = ga.breadth_first_search_by_name(spec, conflicting_spec)
+                        chain = ga.breadth_first_search_by_spec(spec, conflicting_spec)
                     if chain:
                         bad_deps_for_spec.append(chain)
                 if bad_deps_for_spec:

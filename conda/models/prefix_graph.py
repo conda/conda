@@ -394,12 +394,12 @@ class GeneralGraph(PrefixGraph):
         super(GeneralGraph, self).__init__(records, specs)
         self.specs_by_name = defaultdict(dict)
         for node in records:
-            parent_dict = self.specs_by_name.get(node.name, OrderedDict())
+            parent_dict = self.specs_by_name.get(node.to_simple_match_spec(), OrderedDict())
             for dep in tuple(MatchSpec(d) for d in node.depends):
-                deps = parent_dict.get(dep.name, set())
+                deps = parent_dict.get(dep, set())
                 deps.add(dep)
-                parent_dict[dep.name] = deps
-            self.specs_by_name[node.name] = parent_dict
+                parent_dict[dep] = deps
+            self.specs_by_name[node.to_simple_match_spec()] = parent_dict
 
         consolidated_graph = OrderedDict()
         # graph is toposorted, so looping over it is in dependency order
@@ -409,7 +409,7 @@ class GeneralGraph(PrefixGraph):
             consolidated_graph[node.name] = cg
         self.graph_by_name = consolidated_graph
 
-    def breadth_first_search_by_name(self, root_spec, target_spec):
+    def breadth_first_search_by_spec(self, root_spec, target_spec):
         """Return shorted path from root_spec to spec_name"""
         queue = []
         queue.append([root_spec])
@@ -423,7 +423,7 @@ class GeneralGraph(PrefixGraph):
             if node == target_spec:
                 return path
             children = []
-            specs = self.specs_by_name.get(node.name)
+            specs = self.specs_by_name.get(node)
             if specs is None:
                 continue
             for _, deps in specs.items():

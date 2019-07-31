@@ -934,19 +934,19 @@ def test_general_graph_bfs_simple():
     records = [a, b, c, d, e, f, g]
     graph = GeneralGraph(records)
 
-    a_to_c = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("c"))
+    a_to_c = graph.breadth_first_search_by_spec(MatchSpec("a"), MatchSpec("c"))
     assert a_to_c == [MatchSpec("a"), MatchSpec("c")]
 
-    a_to_f = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("f"))
+    a_to_f = graph.breadth_first_search_by_spec(MatchSpec("a"), MatchSpec("f"))
     assert a_to_f == [MatchSpec("a"), MatchSpec("d"), MatchSpec("f")]
 
-    a_to_a = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("a"))
+    a_to_a = graph.breadth_first_search_by_spec(MatchSpec("a"), MatchSpec("a"))
     assert a_to_a == [MatchSpec("a")]
 
-    a_to_not_exist = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("z"))
+    a_to_not_exist = graph.breadth_first_search_by_spec(MatchSpec("a"), MatchSpec("z"))
     assert a_to_not_exist is None
 
-    backwards = graph.breadth_first_search_by_name(MatchSpec("d"), MatchSpec("a"))
+    backwards = graph.breadth_first_search_by_spec(MatchSpec("d"), MatchSpec("a"))
     assert backwards is None
 
 
@@ -962,9 +962,9 @@ def test_general_graph_bfs_version():
     records = [a, b, c, d, e, f, g1, g2]
     graph = GeneralGraph(records)
 
-    a_to_g1 = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("g=1"))
+    a_to_g1 = graph.breadth_first_search_by_spec(MatchSpec("a"), MatchSpec("g=1"))
     assert a_to_g1 == [MatchSpec("a"), MatchSpec("c"), MatchSpec("g=1")]
 
-    a_to_g2 = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("g=2"))
+    a_to_g2 = graph.breadth_first_search_by_spec(MatchSpec("a"), MatchSpec("g=2"))
     assert a_to_g2 == [MatchSpec("a"), MatchSpec("d"), MatchSpec("g=2")]
 

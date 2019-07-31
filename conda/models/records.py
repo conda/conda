@@ -352,6 +352,12 @@ class PackageRecord(DictSafeMixin, Entity):
             build=self.build,
         )
 
+    def to_simple_match_spec(self):
+        return MatchSpec(
+            name=self.name,
+            version=self.version,
+        )
+
     @property
     def namekey(self):
         return "global:" + self.name
