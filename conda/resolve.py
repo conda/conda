@@ -10,6 +10,7 @@ from logging import DEBUG, getLogger
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
 from ._vendor.toolz import concat, groupby
+from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
@@ -22,7 +23,6 @@ from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFou
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
-from .models.prefix_graph import GeneralGraph
 from .models.records import PackageRecord
 from .models.version import VersionOrder
 
@@ -332,6 +332,7 @@ class Resolve(object):
         return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
 
     def find_conflicts(self, specs, specs_to_add=None, history_specs=None):
+        print("\nFound conflicts! Looking for incompatible packages")
         bad_deps = self.build_conflict_map(specs, specs_to_add, history_specs)
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
         raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
@@ -366,7 +367,8 @@ class Resolve(object):
             if node == target_spec:
                 return path
             children = []
-            specs = [_.depends for _ in allowed_specs.get(node.name)]
+            specs = [_.depends for _ in allowed_specs.get(node.name)] \
+                if node.name in allowed_specs.keys() else None
             if specs is None:
                 continue
             for deps in specs:
@@ -427,39 +429,41 @@ class Resolve(object):
         dep_collections = tuple(set(sdep.keys()) for sdep in sdeps.values())
         deps = set.union(*dep_collections) if dep_collections else []
 
-        # for each possible package being considered, look at how pools interact
-        for dep in deps:
-            sdeps_with_dep = {}
-            for k, v in sdeps.items():
-                if dep in v:
-                    sdeps_with_dep[k] = v
-            if len(sdeps_with_dep) <= 1:
-                continue
-            # if all of the pools overlap, we're good.  Next dep.
-            if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
-                continue
+        with tqdm(desc="Finding conflicts", total=100) as pb:
+            for dep in deps:
+                sdeps_with_dep = {}
+                for k, v in sdeps.items():
+                    if dep in v:
+                        sdeps_with_dep[k] = v
+                if len(sdeps_with_dep) <= 1:
+                    continue
+                # if all of the pools overlap, we're good.  Next dep.
+                if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
+                    continue
+                spec_order = sdeps_with_dep.keys()
+                for spec in spec_order:
+                    allowed_specs = sdeps[spec]
+                    dep_vers = []
+                    for key, val in allowed_specs.items():
+                        if key != [_.name for _ in spec_order]:
+                            dep_vers.extend([v.depends for v in val])
+                    dep_ms = [MatchSpec(p) for pkgs in dep_vers for p in pkgs if dep in p]
+                    dep_ms.extend(msspec for msspec in sdeps.keys() if msspec.name == dep)
+                    bad_deps_for_spec = []
+                    for conflicting_spec in set(dep_ms):
+                        if conflicting_spec.name == spec.name:
+                            chain = [conflicting_spec] if \
+                                conflicting_spec.version == spec.version else None
+                        else:
+                            chain = self.breadth_first_search_by_spec(
+                                spec, conflicting_spec, allowed_specs)
+                        if chain:
+                            bad_deps_for_spec.append(chain)
+                    if bad_deps_for_spec:
+                        bad_deps.extend(self.group_and_merge_specs(bad_deps_for_spec))
+                    pb.update(100/len(deps))
+            pb.update(100)
 
-            spec_order = sdeps_with_dep.keys()
-            for spec in spec_order:
-                allowed_specs = sdeps[spec]
-                dep_vers = []
-                for key, val in allowed_specs.items():
-                    if key != [_.name for _ in spec_order]:
-                        dep_vers.extend([v.depends for v in val])
-                dep_ms = [MatchSpec(p) for pkgs in dep_vers for p in pkgs if dep in p]
-                dep_ms.extend(msspec for msspec in sdeps.keys() if msspec.name == dep)
-
-                bad_deps_for_spec = []
-                for conflicting_spec in set(dep_ms):
-                    if conflicting_spec.name == spec.name:
-                        chain = [conflicting_spec] if conflicting_spec.version == spec.version \
-                            else None
-                    else:
-                        chain = self.breadth_first_search_by_spec(spec, conflicting_spec, allowed_specs)
-                    if chain:
-                        bad_deps_for_spec.append(chain)
-                if bad_deps_for_spec:
-                    bad_deps.extend(self.group_and_merge_specs(bad_deps_for_spec))
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
             bad_deps = []
