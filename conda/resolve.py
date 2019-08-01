@@ -332,7 +332,9 @@ class Resolve(object):
         return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
 
     def find_conflicts(self, specs, specs_to_add=None, history_specs=None):
-        print("\nFound conflicts! Looking for incompatible packages")
+        if not context.json:
+            print("\nFound conflicts! Looking for incompatible packages.\n"
+                  "This can take several minutes.  Press CTRL-C to abort.")
         bad_deps = self.build_conflict_map(specs, specs_to_add, history_specs)
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
         raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
@@ -429,8 +431,11 @@ class Resolve(object):
         dep_collections = tuple(set(sdep.keys()) for sdep in sdeps.values())
         deps = set.union(*dep_collections) if dep_collections else []
 
-        with tqdm(desc="Finding conflicts", total=100) as pb:
+        with tqdm(total=len(deps), desc="Finding conflicts",
+                  leave=False, disable=context.json) as t:
             for dep in deps:
+                t.set_description("Examining {}".format(dep))
+                t.update()
                 sdeps_with_dep = {}
                 for k, v in sdeps.items():
                     if dep in v:
@@ -441,7 +446,8 @@ class Resolve(object):
                 if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
                     continue
                 spec_order = sdeps_with_dep.keys()
-                for spec in spec_order:
+                for spec in tqdm(spec_order, desc="Comparing specs that have this dependency",
+                                 leave=False, disable=context.json):
                     allowed_specs = sdeps[spec]
                     dep_vers = []
                     for key, val in allowed_specs.items():
@@ -450,19 +456,27 @@ class Resolve(object):
                     dep_ms = [MatchSpec(p) for pkgs in dep_vers for p in pkgs if dep in p]
                     dep_ms.extend(msspec for msspec in sdeps.keys() if msspec.name == dep)
                     bad_deps_for_spec = []
-                    for conflicting_spec in set(dep_ms):
-                        if conflicting_spec.name == spec.name:
-                            chain = [conflicting_spec] if \
-                                conflicting_spec.version == spec.version else None
-                        else:
-                            chain = self.breadth_first_search_by_spec(
-                                spec, conflicting_spec, allowed_specs)
-                        if chain:
-                            bad_deps_for_spec.append(chain)
+                    # sort specs from least specific to most specific.  Only continue
+                    #   to examine a dep if a conflict hasn't been found for its name
+                    dep_ms = sorted(list(dep_ms), key=lambda x: (
+                        exactness_and_number_of_deps(self, x), x.dist_str()))
+                    conflicts_found = set()
+                    with tqdm(total=len(dep_ms), desc="Finding conflict paths",
+                              leave=False, disable=context.json) as t2:
+                        for conflicting_spec in dep_ms:
+                            t2.set_description("Finding shortest conflict path for {}"
+                                               .format(conflicting_spec))
+                            t2.update()
+                            if conflicting_spec.name == spec.name:
+                                chain = [conflicting_spec] if \
+                                    conflicting_spec.version == spec.version else None
+                            else:
+                                chain = self.breadth_first_search_by_spec(
+                                    spec, conflicting_spec, allowed_specs)
+                            if chain:
+                                bad_deps_for_spec.append(chain)
                     if bad_deps_for_spec:
                         bad_deps.extend(self.group_and_merge_specs(bad_deps_for_spec))
-                    pb.update(100/len(deps))
-            pb.update(100)
 
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
