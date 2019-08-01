@@ -9,7 +9,8 @@ from conda.common.io import env_var
 from conda.exceptions import CyclicalDependencyError
 from conda.models.match_spec import MatchSpec
 import conda.models.prefix_graph
-from conda.models.prefix_graph import PrefixGraph
+from conda.models.prefix_graph import PrefixGraph, GeneralGraph
+from conda.models.records import PackageRecord
 import pytest
 from tests.core.test_solve import get_solver_4, get_solver_5
 
@@ -920,3 +921,50 @@ def test_deep_cyclical_dependency():
         'sqlite',
     )
     assert nodes == order
+
+
+def test_general_graph_bfs_simple():
+    a = PackageRecord(name="a", version="1", build="0", build_number=0, depends=["b", "c", "d"])
+    b = PackageRecord(name="b", version="1", build="0", build_number=0, depends=["e"])
+    c = PackageRecord(name="c", version="1", build="0", build_number=0)
+    d = PackageRecord(name="d", version="1", build="0", build_number=0, depends=["f", "g"])
+    e = PackageRecord(name="e", version="1", build="0", build_number=0)
+    f = PackageRecord(name="f", version="1", build="0", build_number=0)
+    g = PackageRecord(name="g", version="1", build="0", build_number=0)
+    records = [a, b, c, d, e, f, g]
+    graph = GeneralGraph(records)
+
+    a_to_c = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("c"))
+    assert a_to_c == [MatchSpec("a"), MatchSpec("c")]
+
+    a_to_f = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("f"))
+    assert a_to_f == [MatchSpec("a"), MatchSpec("d"), MatchSpec("f")]
+
+    a_to_a = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("a"))
+    assert a_to_a == [MatchSpec("a")]
+
+    a_to_not_exist = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("z"))
+    assert a_to_not_exist is None
+
+    backwards = graph.breadth_first_search_by_name(MatchSpec("d"), MatchSpec("a"))
+    assert backwards is None
+
+
+def test_general_graph_bfs_version():
+    a = PackageRecord(name="a", version="1", build="0", build_number=0, depends=["b", "c", "d"])
+    b = PackageRecord(name="b", version="1", build="0", build_number=0, depends=["e"])
+    c = PackageRecord(name="c", version="1", build="0", build_number=0, depends=["g=1"])
+    d = PackageRecord(name="d", version="1", build="0", build_number=0, depends=["f", "g=2"])
+    e = PackageRecord(name="e", version="1", build="0", build_number=0)
+    f = PackageRecord(name="f", version="1", build="0", build_number=0)
+    g1 = PackageRecord(name="g", version="1", build="0", build_number=0)
+    g2 = PackageRecord(name="g", version="2", build="0", build_number=0)
+    records = [a, b, c, d, e, f, g1, g2]
+    graph = GeneralGraph(records)
+
+    a_to_g1 = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("g=1"))
+    assert a_to_g1 == [MatchSpec("a"), MatchSpec("c"), MatchSpec("g=1")]
+
+    a_to_g2 = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("g=2"))
+    assert a_to_g2 == [MatchSpec("a"), MatchSpec("d"), MatchSpec("g=2")]
+
