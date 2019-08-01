@@ -453,14 +453,14 @@ class Resolve(object):
                     for key, val in allowed_specs.items():
                         if key != [_.name for _ in spec_order]:
                             dep_vers.extend([v.depends for v in val])
-                    dep_ms = [MatchSpec(p) for pkgs in dep_vers for p in pkgs if dep in p]
-                    dep_ms.extend(msspec for msspec in sdeps.keys() if msspec.name == dep)
+                    dep_ms = {MatchSpec(p) for pkgs in dep_vers for p in pkgs if dep in p}
+                    dep_ms.update(msspec for msspec in sdeps.keys() if msspec.name == dep)
                     bad_deps_for_spec = []
-                    # sort specs from least specific to most specific.  Only continue
-                    #   to examine a dep if a conflict hasn't been found for its name
-                    dep_ms = sorted(list(dep_ms), key=lambda x: (
-                        exactness_and_number_of_deps(self, x), x.dist_str()))
-                    conflicts_found = set()
+                    # # sort specs from least specific to most specific.  Only continue
+                    # #   to examine a dep if a conflict hasn't been found for its name
+                    # dep_ms = sorted(list(dep_ms), key=lambda x: (
+                    #     exactness_and_number_of_deps(self, x), x.dist_str()))
+                    # conflicts_found = set()
                     with tqdm(total=len(dep_ms), desc="Finding conflict paths",
                               leave=False, disable=context.json) as t2:
                         for conflicting_spec in dep_ms:
