@@ -1043,40 +1043,23 @@ class Resolve(object):
         solution = C.sat(constraints)
         return bool(solution)
 
-    def get_conflicting_specs(self, specs):
+    def get_conflicting_specs(self, specs, explicit_specs):
         if not specs:
             return ()
-        reduced_index = self.get_reduced_index(specs)
 
         # Check if satisfiable
         def mysat(specs, add_if=False):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, channels=self.channels)
+        r2 = Resolve(self.index, True, channels=self.channels)
         C = r2.gen_clauses()
-        solution = mysat(specs, True)
-        if solution:
-            final_unsat_specs = ()
-        else:
+        solution = mysat((set(specs) | set(explicit_specs)), True)
+        final_unsat_specs = ()
+        if not solution:
             # This first result is just a single unsatisfiable core. There may be several.
-            unsat_specs = list(minimal_unsatisfiable_subset(specs, sat=mysat))
-            satisfiable_specs = set(specs) - set(unsat_specs)
-
-            # In this loop, we test each unsatisfiable spec individually against the satisfiable
-            # specs to ensure there are no other unsatisfiable specs in the set.
-            final_unsat_specs = set()
-            while unsat_specs:
-                this_spec = unsat_specs.pop(0)
-                final_unsat_specs.add(this_spec)
-                test_specs = satisfiable_specs | {this_spec}
-                C = r2.gen_clauses()  # TODO: wasteful call, but Clauses() needs refactored
-                solution = mysat(test_specs, True)
-                if not solution:
-                    these_unsat = minimal_unsatisfiable_subset(test_specs, sat=mysat)
-                    if len(these_unsat) > 1:
-                        unsat_specs.extend(these_unsat)
-                        satisfiable_specs -= set(unsat_specs)
+            final_unsat_specs = minimal_unsatisfiable_subset(specs, sat=mysat,
+                                                             explicit_specs=explicit_specs)
         return tuple(final_unsat_specs)
 
     def bad_installed(self, installed, new_specs):

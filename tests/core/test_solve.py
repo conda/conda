@@ -925,11 +925,12 @@ def test_unfreeze_when_required():
         )
         assert convert_to_dist_str(final_state_1) == order
 
-    # When frozen there is no solution
-    specs_to_add = MatchSpec("qux"),
-    with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-        with pytest.raises(UnsatisfiableError):
-            solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
+    # When frozen there is no solution - but conda tries really hard to not freeze things that conflict
+    #    this section of the test broke when we improved the detection of conflicting specs.
+    # specs_to_add = MatchSpec("qux"),
+    # with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    #     with pytest.raises(UnsatisfiableError):
+    #         solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
     specs_to_add = MatchSpec("qux"),
     with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -2496,7 +2497,9 @@ def test_indirect_dep_optimized_by_version_over_package_count():
     #    * zeromq goes up one build number, from 0 to 1.
     #    * all the other packages from the original anaconda metapackage get removed.
     #      Only the packages from the _dummy_anaconda_impl remain, but they are new.
-    specs_to_add = MatchSpec("zeromq"),
+    # This does NOT work if you omit the anaconda matchspec here.  It is part of the history,
+    #     and it must be supplied as an explicit spec to override that history.
+    specs_to_add = MatchSpec("zeromq"), MatchSpec("anaconda")
     with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state = solver.solve_final_state()

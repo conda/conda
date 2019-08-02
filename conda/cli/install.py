@@ -239,7 +239,6 @@ def install(args, parser, command='install'):
 
     for repodata_fn in repodata_fns:
         try:
-            update_modifier = context.update_modifier
             if isinstall and args.revision:
                 index = get_index(channel_urls=index_args['channel_urls'],
                                   prepend=index_args['prepend'], platform=None,
@@ -252,12 +251,13 @@ def install(args, parser, command='install'):
             else:
                 solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
                                 repodata_fn=repodata_fn, command=args.cmd)
+                update_modifier = context.update_modifier
                 if (isinstall or isremove) and args.update_modifier == NULL:
                     update_modifier = UpdateModifier.FREEZE_INSTALLED
+                deps_modifier = context.deps_modifier
                 if isupdate:
                     deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
-                else:
-                    deps_modifier = context.deps_modifier
+
                 unlink_link_transaction = solver.solve_for_transaction(
                     deps_modifier=deps_modifier,
                     update_modifier=update_modifier,
@@ -269,12 +269,6 @@ def install(args, parser, command='install'):
             break
 
         except (ResolvePackageNotFound, PackagesNotFoundError) as e:
-            channels_urls = tuple(calculate_channel_urls(
-                channel_urls=index_args['channel_urls'],
-                prepend=index_args['prepend'],
-                platform=None,
-                use_local=index_args['use_local'],
-            ))
             # end of the line.  Raise the exception
             if repodata_fn == repodata_fns[-1]:
                 # PackagesNotFoundError is the only exception type we want to raise.
@@ -282,6 +276,12 @@ def install(args, parser, command='install'):
                 if isinstance(e, PackagesNotFoundError):
                     raise e
                 else:
+                    channels_urls = tuple(calculate_channel_urls(
+                        channel_urls=index_args['channel_urls'],
+                        prepend=index_args['prepend'],
+                        platform=None,
+                        use_local=index_args['use_local'],
+                    ))
                     # convert the ResolvePackageNotFound into PackagesNotFoundError
                     raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
@@ -292,10 +292,6 @@ def install(args, parser, command='install'):
                     raise e
             elif _should_retry_unfrozen:
                 try:
-                    if not args.json and (not args_set_update_modifier or
-                                          args.update_modifier == UpdateModifier.FREEZE_INSTALLED):
-                        print("Initial quick solve with frozen env failed.  "
-                              "Unfreezing env and trying again.")
                     unlink_link_transaction = solver.solve_for_transaction(
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
