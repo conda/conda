@@ -634,7 +634,7 @@ class ProgressiveFetchExtract(object):
 
         assert not context.dry_run
 
-        if not self.cache_actions or not self.extract_actions:
+        if not self.cache_actions and not self.extract_actions:
             return
 
         if not context.verbosity and not context.quiet and not context.json:
