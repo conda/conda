@@ -33,6 +33,7 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..common.decorators import env_override
 
 from .. import CONDA_PACKAGE_ROOT
+import conda_package_handling.api
 
 try:
     os.getcwd()
@@ -625,11 +626,15 @@ class Context(Configuration):
             try:
                 import conda_build
                 use_only_tar_bz2 = VersionOrder(conda_build.__version__) < VersionOrder("3.18.3")
+
             except ImportError:
                 pass
             if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
                 use_only_tar_bz2 &= self._argparse_args['use_only_tar_bz2']
-        return self._use_only_tar_bz2 or use_only_tar_bz2
+        return ((hasattr(conda_package_handling.api, 'libarchive_enabled') and
+                 not conda_package_handling.api.libarchive_enabled) or
+                self._use_only_tar_bz2 or
+                use_only_tar_bz2)
 
     @property
     def binstar_upload(self):
