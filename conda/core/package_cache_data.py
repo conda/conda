@@ -504,7 +504,7 @@ class ProgressiveFetchExtract(object):
         extracted_pcrec = next((
             pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
                                       for pkgs_dir in context.pkgs_dirs)
-            if pcrec.is_extracteda
+            if pcrec.is_extracted
         ), None)
         if extracted_pcrec and pcrec_matches(extracted_pcrec) and extracted_pcrec.get('url'):
             return None, None
