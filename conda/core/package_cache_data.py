@@ -501,14 +501,13 @@ class ProgressiveFetchExtract(object):
                 matches = pcrec.md5 in (md5, legacy_bz2_md5)
             return matches
 
-        if md5:
-            extracted_pcrec = next((
-                pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
-                                          for pkgs_dir in context.pkgs_dirs)
-                if pcrec.is_extracted
-            ), None)
-            if extracted_pcrec and pcrec_matches(extracted_pcrec) and extracted_pcrec.get('url'):
-                return None, None
+        extracted_pcrec = next((
+            pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
+                                      for pkgs_dir in context.pkgs_dirs)
+            if pcrec.is_extracted
+        ), None)
+        if extracted_pcrec and pcrec_matches(extracted_pcrec) and extracted_pcrec.get('url'):
+            return None, None
 
         # there is no extracted dist that can work, so now we look for tarballs that
         #   aren't extracted
