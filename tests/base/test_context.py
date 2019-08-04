@@ -16,7 +16,7 @@ from conda.base.constants import PathConflict, ChannelPriority
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import odict, iteritems
 from conda.common.configuration import ValidationError, YamlRawParameter
-from conda.common.io import env_var
+from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
 from conda.common.serialize import yaml_load
@@ -278,6 +278,50 @@ class ContextCustomRcTests(TestCase):
         with env_var('CONDA_OVERRIDE_CUDA', ''):
             version = context.cuda_version
             assert version is None
+
+    def test_threads(self):
+        default_value = 1 if on_win else None
+        assert context.default_threads == default_value
+        assert context.repodata_threads == default_value
+        assert context.verify_threads == 1
+        assert context.execute_threads == 1
+
+        with env_var('CONDA_DEFAULT_THREADS', '3',
+                     stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            assert context.default_threads == 3
+            assert context.verify_threads == 3
+            assert context.repodata_threads == 3
+            assert context.execute_threads == 3
+
+        with env_var('CONDA_VERIFY_THREADS', '3',
+                     stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            assert context.default_threads == default_value
+            assert context.verify_threads == 3
+            assert context.repodata_threads == default_value
+            assert context.execute_threads == 1
+
+        with env_var('CONDA_REPODATA_THREADS', '3',
+                     stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            assert context.default_threads == default_value
+            assert context.verify_threads == 1
+            assert context.repodata_threads == 3
+            assert context.execute_threads == 1
+
+        with env_var('CONDA_EXECUTE_THREADS', '3',
+                     stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            assert context.default_threads == default_value
+            assert context.verify_threads == 1
+            assert context.repodata_threads == default_value
+            assert context.execute_threads == 3
+
+        with env_vars({'CONDA_EXECUTE_THREADS': '3',
+                       'CONDA_DEFAULT_THREADS': '1'},
+                      stack_callback=conda_tests_ctxt_mgmt_def_pol):
+
+            assert context.default_threads == 1
+            assert context.verify_threads == 1
+            assert context.repodata_threads == 1
+            assert context.execute_threads == 3
 
 
 class ContextDefaultRcTests(TestCase):

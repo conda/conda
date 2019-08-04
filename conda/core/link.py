@@ -26,7 +26,7 @@ from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChe
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
 from ..common.io import Spinner, dashlist, time_recorder
-from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, as_completed
+from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
@@ -171,7 +171,12 @@ class UnlinkLinkTransaction(object):
         self._pfe = None
         self._prepared = False
         self._verified = False
-        self.executor = DummyExecutor() if context.debug else ThreadLimitedThreadPoolExecutor()
+        # this can be CPU-bound.  Use ProcessPoolExecutor.
+        self.verify_executor = (DummyExecutor() if context.debug or context.verify_threads == 1
+                                else ThreadLimitedThreadPoolExecutor(context.verify_threads))
+        # this is more I/O bound.  Use ThreadPoolExecutor.
+        self.execute_executor = (DummyExecutor() if context.debug or context.execute_threads == 1
+                                 else ThreadLimitedThreadPoolExecutor(context.execute_threads))
 
     @property
     def nothing_to_do(self):
@@ -392,7 +397,7 @@ class UnlinkLinkTransaction(object):
                              for action_groups in prefix_action_group
                              for axngroup in action_groups)
 
-        # run all per-action verify methods
+        # run all per-action (per-package) verify methods
         #   one of the more important of these checks is to verify that a file listed in
         #   the packages manifest (i.e. info/files) is actually contained within the package
         error_results = []
@@ -407,7 +412,7 @@ class UnlinkLinkTransaction(object):
         return error_results
 
     @staticmethod
-    def _verify_prefix_level(target_prefix, prefix_action_group):
+    def _verify_prefix_level(target_prefix_AND_prefix_action_group_tuple):
         # further verification of the whole transaction
         # for each path we are creating in link_actions, we need to make sure
         #   1. each path either doesn't already exist in the prefix, or will be unlinked
@@ -416,6 +421,11 @@ class UnlinkLinkTransaction(object):
         #   4. make sure conda-meta/history file is writable
         #   5. make sure envs/catalog.json is writable; done with RegisterEnvironmentLocationAction
         # TODO: 3, 4
+
+        # this strange unpacking is to help the parallel execution work.  Unpacking
+        #    tuples in the map call could be done with a lambda, but that is then not picklable,
+        #    which precludes the use of ProcessPoolExecutor (but not ThreadPoolExecutor)
+        target_prefix, prefix_action_group = target_prefix_AND_prefix_action_group_tuple
 
         unlink_action_groups = prefix_action_group.unlink_action_groups
         prefix_record_groups = prefix_action_group.prefix_record_groups
@@ -572,14 +582,15 @@ class UnlinkLinkTransaction(object):
             return transaction_exceptions
 
         exceptions = []
-        futures = list(self.executor.submit(UnlinkLinkTransaction._verify_individual_level, pg)
-                       for pg in itervalues(prefix_action_groups))
-        futures.extend(
-            self.executor.submit(UnlinkLinkTransaction._verify_prefix_level, target_prefix, pg)
-            for target_prefix, pg in iteritems(prefix_action_groups))
-        for future in as_completed(futures):
-            if future.result():
-                exceptions.extend(future.result())
+        for exc in self.verify_executor.map(UnlinkLinkTransaction._verify_individual_level,
+                                            itervalues(prefix_action_groups)):
+            if exc:
+                exceptions.extend(exc)
+        for exc in self.verify_executor.map(
+                UnlinkLinkTransaction._verify_prefix_level,
+                iteritems(prefix_action_groups)):
+            if exc:
+                exceptions.extend(exc)
         return exceptions
 
     def _execute(self, all_action_groups):
@@ -622,11 +633,8 @@ class UnlinkLinkTransaction(object):
                                    target_prefix)
 
                     # parallel block 1:
-                    futures = (
-                        self.executor.submit(UnlinkLinkTransaction._execute_actions, axngroup)
-                        for axngroup in group)
-                    for future in as_completed(futures):
-                        exc = future.result()
+                    for exc in self.execute_executor.map(UnlinkLinkTransaction._execute_actions,
+                                                         group):
                         if exc:
                             exceptions.append(exc)
 
@@ -644,20 +652,18 @@ class UnlinkLinkTransaction(object):
                             exceptions.append(exc)
 
                     # parallel block 2:
-                    futures = []
+                    composite_ag = []
                     if install_side:
+                        composite_ag.extend(record_actions)
                         # consolidate compile actions into one big'un for better efficiency
                         individual_actions = [axn for ag in compile_actions for axn in ag.actions]
                         if individual_actions:
                             composite = AggregateCompileMultiPycAction(*individual_actions)
-                            ag = ActionGroup('compile', None, [composite], composite.target_prefix)
-                            futures.append(
-                                self.executor.submit(UnlinkLinkTransaction._execute_actions, ag))
-                        futures.extend(
-                            self.executor.submit(UnlinkLinkTransaction._execute_actions, axngroup)
-                            for axngroup in record_actions)
-                    for future in as_completed(futures):
-                        exc = future.result()
+                            composite_ag.append(ActionGroup('compile', None, [composite],
+                                                            composite.target_prefix))
+                    # functions return None unless there was an exception
+                    for exc in self.execute_executor.map(UnlinkLinkTransaction._execute_actions,
+                                                         composite_ag):
                         if exc:
                             exceptions.append(exc)
 
