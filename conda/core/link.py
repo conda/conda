@@ -65,10 +65,6 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
                                                  target_prefix, trgt)
                                 for trgt in prefix_record.files)
 
-    remove_menu_actions = RemoveMenuAction.create_actions(transaction_context,
-                                                          prefix_record,
-                                                          target_prefix)
-
     try:
         extracted_package_dir = basename(prefix_record.extracted_package_dir)
     except AttributeError:
@@ -95,7 +91,6 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
     # )
 
     return tuple(concatv(
-        remove_menu_actions,
         unlink_path_actions,
         directory_remove_actions,
         # unregister_private_package_actions,
@@ -124,11 +119,13 @@ PrefixSetup = namedtuple('PrefixSetup', (
 ))
 
 PrefixActionGroup = namedtuple('PrefixActionGroup', (
+    'remove_menu_action_groups',
     'unlink_action_groups',
     'unregister_action_groups',
     'link_action_groups',
     'register_action_groups',
     'compile_action_groups',
+    'make_menu_action_groups',
     'entry_point_action_groups',
     'prefix_record_groups',
 ))
@@ -297,72 +294,94 @@ class UnlinkLinkTransaction(object):
 
         transaction_context['temp_dir'] = join(target_prefix, '.condatmp')
 
-        unlink_action_groups = tuple(ActionGroup(
-            'unlink',
-            prefix_rec,
-            make_unlink_actions(transaction_context, target_prefix, prefix_rec),
-            target_prefix,
-        ) for prefix_rec in prefix_recs_to_unlink)
+        remove_menu_action_groups = []
+        unlink_action_groups = []
+        for prefix_rec in prefix_recs_to_unlink:
+            unlink_action_groups.append(ActionGroup(
+                'unlink',
+                prefix_rec,
+                make_unlink_actions(transaction_context, target_prefix, prefix_rec),
+                target_prefix))
+
+            remove_menu_action_groups.append(ActionGroup(
+                'remove_menus',
+                prefix_rec,
+                RemoveMenuAction.create_actions(
+                    transaction_context, prefix_rec, target_prefix),
+                target_prefix))
 
         if unlink_action_groups:
             axns = UnregisterEnvironmentLocationAction(transaction_context, target_prefix),
-            unregister_action_groups = ActionGroup('unregister', None, axns, target_prefix),
+            unregister_action_groups = [ActionGroup('unregister', None, axns, target_prefix)]
         else:
             unregister_action_groups = ()
 
         matchspecs_for_link_dists = match_specs_to_dists(packages_info_to_link, update_specs)
-        link_action_groups = tuple(
-            ActionGroup('link', pkg_info, cls._make_link_actions(transaction_context, pkg_info,
-                                                                 target_prefix, lt, spec),
-                        target_prefix)
-            for pkg_info, lt, spec in zip(packages_info_to_link, link_types,
-                                          matchspecs_for_link_dists)
-        )
-
-        entry_point_action_groups = tuple(
-            ActionGroup('entry_point', pkg_info, cls._make_entry_point_actions(
-                transaction_context, pkg_info, target_prefix, lt, spec, link_action_groups),
-                        target_prefix)
-            for pkg_info, lt, spec in zip(packages_info_to_link, link_types,
-                                          matchspecs_for_link_dists)
-        )
-
-        compile_action_groups = tuple(
-            ActionGroup('compile', pkg_info, cls._make_compile_actions(
-                transaction_context, pkg_info, target_prefix, lt, spec, link_action_groups),
-                        target_prefix)
-            for pkg_info, lt, spec in zip(packages_info_to_link, link_types,
-                                          matchspecs_for_link_dists)
-        )
-
+        link_action_groups = []
+        entry_point_action_groups = []
+        compile_action_groups = []
+        make_menu_action_groups = []
         record_axns = []
         for pkg_info, lt, spec in zip(packages_info_to_link, link_types,
                                       matchspecs_for_link_dists):
-            link_ag = next(ag for ag in link_action_groups if ag.pkg_data == pkg_info)
-            compile_ag = next(ag for ag in compile_action_groups if ag.pkg_data == pkg_info)
-            entry_point_ag = next(ag for ag in entry_point_action_groups
-                                  if ag.pkg_data == pkg_info)
+            link_ag = ActionGroup(
+                'link',
+                pkg_info,
+                cls._make_link_actions(transaction_context, pkg_info,
+                                       target_prefix, lt, spec),
+                target_prefix)
+            link_action_groups.append(link_ag)
+
+            entry_point_ag = ActionGroup(
+                'entry_point',
+                pkg_info,
+                cls._make_entry_point_actions(
+                    transaction_context, pkg_info, target_prefix,
+                    lt, spec, link_action_groups),
+                target_prefix)
+            entry_point_action_groups.append(entry_point_ag)
+
+            compile_ag = ActionGroup(
+                'compile',
+                pkg_info,
+                cls._make_compile_actions(
+                    transaction_context, pkg_info, target_prefix,
+                    lt, spec, link_action_groups),
+                target_prefix)
+            compile_action_groups.append(compile_ag)
+
+            make_menu_ag = ActionGroup(
+                'make_menus',
+                pkg_info,
+                MakeMenuAction.create_actions(
+                    transaction_context, pkg_info, target_prefix, lt),
+                target_prefix)
+            make_menu_action_groups.append(make_menu_ag)
+
             all_link_path_actions = concatv(link_ag.actions,
                                             compile_ag.actions,
-                                            entry_point_ag.actions)
+                                            entry_point_ag.actions,
+                                            make_menu_ag.actions)
             record_axns.extend(CreatePrefixRecordAction.create_actions(
                 transaction_context, pkg_info, target_prefix, lt, spec, all_link_path_actions))
+
         prefix_record_groups = [ActionGroup('record', None, record_axns, target_prefix)]
 
         history_actions = UpdateHistoryAction.create_actions(
             transaction_context, target_prefix, remove_specs, update_specs,
         )
         register_actions = RegisterEnvironmentLocationAction(transaction_context, target_prefix),
-
-        register_action_groups = ActionGroup('register', None,
-                                             register_actions + history_actions,
-                                             target_prefix),
+        register_action_groups = [ActionGroup('register', None,
+                                              register_actions + history_actions,
+                                              target_prefix)]
         return PrefixActionGroup(
+            remove_menu_action_groups,
             unlink_action_groups,
             unregister_action_groups,
             link_action_groups,
             register_action_groups,
             compile_action_groups,
+            make_menu_action_groups,
             entry_point_action_groups,
             prefix_record_groups,
         )
@@ -572,6 +591,10 @@ class UnlinkLinkTransaction(object):
         entry_point_actions = list(group for group in all_action_groups
                                    if group.type == "entry_point")
         record_actions = list(group for group in all_action_groups if group.type == "record")
+        make_menu_actions = list(group for group in all_action_groups
+                                 if group.type == "make_menus")
+        remove_menu_actions = list(group for group in all_action_groups
+                                   if group.type == "remove_menus")
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
@@ -582,6 +605,12 @@ class UnlinkLinkTransaction(object):
                 for (group, register_group, install_side) in (
                         (unlink_actions, "unregister", False),
                         (link_actions, "register", True)):
+
+                    if not install_side:
+                        # uninstalling menus must happen prior to unlinking, or else they might
+                        #   call something that isn't there anymore
+                        for axngroup in remove_menu_actions:
+                            UnlinkLinkTransaction._execute_actions(axngroup)
 
                     for axngroup in group:
                         is_unlink = axngroup.type == 'unlink'
@@ -641,6 +670,11 @@ class UnlinkLinkTransaction(object):
                             exceptions.append(exc)
                     if exceptions:
                         break
+                    if install_side:
+                        # uninstalling menus must happen prior to unlinking, or else they might
+                        #   call something that isn't there anymore
+                        for axngroup in make_menu_actions:
+                            UnlinkLinkTransaction._execute_actions(axngroup)
             if exceptions:
                 # might be good to show all errors, but right now we only show the first
                 e = exceptions[0]
@@ -671,9 +705,6 @@ class UnlinkLinkTransaction(object):
                     rollback_excs,
                 )))
             else:
-
-                link_actions = tuple(
-                    group for group in all_action_groups if group.type in ("link", "register"))
                 for axngroup in all_action_groups:
                     for action in axngroup.actions:
                         action.cleanup()
@@ -681,7 +712,6 @@ class UnlinkLinkTransaction(object):
     @staticmethod
     def _execute_actions(axngroup):
         target_prefix = axngroup.target_prefix
-        action = None
         prec = axngroup.pkg_data
 
         conda_meta_dir = join(target_prefix, 'conda-meta')
@@ -800,7 +830,6 @@ class UnlinkLinkTransaction(object):
             *required_quad, file_link_actions=file_link_actions
         )
         create_nonadmin_actions = CreateNonadminAction.create_actions(*required_quad)
-        create_menu_actions = MakeMenuAction.create_actions(*required_quad)
 
         # if requested_spec:
         #     application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
@@ -829,7 +858,6 @@ class UnlinkLinkTransaction(object):
             create_directory_actions,
             file_link_actions,
             create_nonadmin_actions,
-            create_menu_actions,
             # application_entry_point_actions,
             # register_private_env_actions,
         ))
