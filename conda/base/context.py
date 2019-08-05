@@ -377,7 +377,7 @@ class Context(Configuration):
 
     @property
     def default_threads(self):
-        return self._default_threads if self._default_threads else  None
+        return self._default_threads if self._default_threads else None
 
     @property
     def repodata_threads(self):

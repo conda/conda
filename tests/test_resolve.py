@@ -1297,6 +1297,7 @@ def test_channel_priority_1():
     assert installed2 == installed3
 
 
+@pytest.mark.integration
 def test_channel_priority_2():
     this_index = index.copy()
     index4, r4 = get_index_r_4()

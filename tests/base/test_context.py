@@ -280,7 +280,7 @@ class ContextCustomRcTests(TestCase):
             assert version is None
 
     def test_threads(self):
-        default_value = 1 if on_win else None
+        default_value = None
         assert context.default_threads == default_value
         assert context.repodata_threads == default_value
         assert context.verify_threads == 1
