@@ -14,10 +14,12 @@ except ImportError:
 class TestCliInstall(TestCase):
     def setUp(self):
         self.prefix = tempfile.mkdtemp()
+        self.testenv = tempfile.mkdtemp()
         run_command(Commands.CREATE, self.prefix, 'python=3.7')
 
     def tearDown(self):
         rm_rf(self.prefix)
+        rm_rf(self.testenv)
 
     def test_find_conflicts_called_once(self):
         bad_deps = {'python': {((MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")), 'python=3')}}
@@ -31,4 +33,8 @@ class TestCliInstall(TestCase):
             monkey.reset_mock()
             with self.assertRaises(UnsatisfiableError):
                 stdout, stderr, _ = run_command(Commands.INSTALL, self.prefix, 'statistics', '--freeze-installed')
+            self.assertEqual(monkey.call_count, 1)
+            monkey.reset_mock()
+            with self.assertRaises(UnsatisfiableError):
+                stdout, stderr, _ = run_command(Commands.CREATE, self.testenv, 'statistics', 'python=3.7')
             self.assertEqual(monkey.call_count, 1)
