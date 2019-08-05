@@ -47,7 +47,7 @@ do with it.
 These compressed files can be significantly smaller than their
 bzip2 equivalents. In addition, they decompress much more quickly.
 .conda is the preferred file format to use where available,
-although we continue to support .tar.bzip2 files.
+although we continue to provide .tar.bz2 files in tandem.
 
 Read more about the `introduction of the .conda file format <https://www.anaconda.com/understanding-and-improving-condas-performance/>`_.
 
