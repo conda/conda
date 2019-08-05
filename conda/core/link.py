@@ -512,14 +512,13 @@ class UnlinkLinkTransaction(object):
                                            or ())
             conda_linked_depends = conda_prec.depends
 
-        for conda_dependency in conda_linked_depends:
-            dep_name = MatchSpec(conda_dependency).name
-            if dep_name not in pkg_names_being_lnkd and (dep_name not in pkg_names_already_lnkd
-                                                         or dep_name in pkg_names_being_unlnkd):
-                # equivalent to not (dep_name in pkg_names_being_lnkd or
-                #  (dep_name in pkg_names_already_lnkd and dep_name not in pkg_names_being_unlnkd))
-                yield RemoveError("'%s' is a dependency of conda and cannot be removed from\n"
-                                  "conda's operating environment." % dep_name)
+        if conda_final_prefix in prefix_setups:
+            for conda_dependency in conda_linked_depends:
+                dep_name = MatchSpec(conda_dependency).name
+                if dep_name not in pkg_names_being_lnkd and (dep_name not in pkg_names_already_lnkd
+                                                             or dep_name in pkg_names_being_unlnkd):
+                    yield RemoveError("'%s' is a dependency of conda and cannot be removed from\n"
+                                      "conda's operating environment." % dep_name)
 
         # Verification 3. enforce disallowed_packages
         disallowed = tuple(MatchSpec(s) for s in context.disallowed_packages)
