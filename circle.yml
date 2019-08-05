@@ -146,7 +146,8 @@ conda_build_test: &conda_build_test
             conda config --add default_channels https://repo.anaconda.com/pkgs/main
             conda info
             cd ~/conda-build
-            py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
+            # py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
+            py.test --basetemp /tmp/cb -v --durations=20 tests -k "$CONDABUILD_SKIP"
           fi
 
     - run:
