@@ -66,6 +66,8 @@ Are you:
           and harder to solve. Working with small, dedicated environments can
           be much faster.
 
+Read more about `how we made conda faster <https://www.anaconda.com/how-we-made-conda-faster-4-7/>`_.
+
 Set strict channel priority
 ---------------------------
 
