@@ -920,7 +920,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
                     " Instead found: {}.  These are often left over from "
                     "legacy operations that did not clean up correctly.  Please "
                     "remove all but one of these.".format(egg_link_contents,
-                    egg_link_file, egg_info_fnames))
+                                                          egg_link_file, egg_info_fnames))
 
         egg_info_full_path = join(egg_link_contents, egg_info_fnames[0])
 
