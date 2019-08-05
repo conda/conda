@@ -39,10 +39,13 @@ compact, and thus faster, alternative to a tarball.
 The .conda file format consists of an outer, uncompressed
 ZIP-format container, with two inner compressed .tar files.
 The inner files are compressed using Zstandard (ztsd). 
-Ztsd is the current implementation but it is not
-part of the spec. This means that the inside format
-does not matter as long as libarchive knows what to
-do with it.
+
+For the .conda format's initial internal compression format support,
+we chose Zstandard (zstd). The actual compression format used does not
+matter, as long as the format is supported by libarchive. The compression
+format may change in the future as more advanced compression algorithms are
+developed and no change to the .conda format is necessary. Only an updated
+libarchive would be required to add a new compression format to .conda files.
 
 These compressed files can be significantly smaller than their
 bzip2 equivalents. In addition, they decompress much more quickly.
