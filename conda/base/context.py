@@ -33,7 +33,6 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..common.decorators import env_override
 
 from .. import CONDA_PACKAGE_ROOT
-import conda_package_handling.api
 
 try:
     os.getcwd()
@@ -621,6 +620,9 @@ class Context(Configuration):
     @property
     def use_only_tar_bz2(self):
         from ..models.version import VersionOrder
+        # we avoid importing this at the top to avoid PATH issues.  Ensure that this
+        #    is only called when use_only_tar_bz2 is first called.
+        import conda_package_handling.api
         use_only_tar_bz2 = False
         if self._use_only_tar_bz2 is None:
             try:
