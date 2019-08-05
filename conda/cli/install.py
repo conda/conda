@@ -233,9 +233,9 @@ def install(args, parser, command='install'):
     args_set_update_modifier = hasattr(args, "update_modifier") and args.update_modifier != NULL
     # This helps us differentiate between an update, the --freeze-installed option, and the retry
     # behavior in our initial fast frozen solve
-    _should_retry_unfrozen = not args_set_update_modifier or args.update_modifier not in (
+    _should_retry_unfrozen = (not args_set_update_modifier or args.update_modifier not in (
         UpdateModifier.FREEZE_INSTALLED,
-        UpdateModifier.UPDATE_SPECS)
+        UpdateModifier.UPDATE_SPECS)) and not newenv
 
     for repodata_fn in repodata_fns:
         try:
