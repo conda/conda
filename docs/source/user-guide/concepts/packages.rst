@@ -53,7 +53,7 @@ Read more about the `introduction of the .conda file format <https://www.anacond
 
 .. note::
 
-  In conda 4.7 and later, you cannot use filenames that
+  In conda 4.7 and later, you cannot use package names that
   end in “.conda” as they conflict with the .conda file format
   for packages.
 
