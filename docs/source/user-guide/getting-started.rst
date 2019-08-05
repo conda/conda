@@ -84,7 +84,7 @@ Verify that conda is installed and running on your system by typing:
 Conda displays the number of the version that you have installed. You do not
 need to navigate to the Anaconda directory.
 
-EXAMPLE: ``conda 4.4.9``
+EXAMPLE: ``conda 4.7.10``
 
 .. note::
    If you get an error message, make sure you closed and re-opened the
@@ -255,6 +255,7 @@ specify the version of Python that you want.
    ``conda activate``
 
    .. note::
+   
       For versions prior to conda 4.6, use:
          * Windows:  ``activate``
          * Linux, macOS: ``source activate``
