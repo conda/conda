@@ -12,8 +12,6 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 
-from conda_package_handling.api import InvalidArchiveError
-
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -291,6 +289,9 @@ class PackageCacheData(object):
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
     def _make_single_record(self, package_filename):
+        # delay-load this to help make sure libarchive can be found
+        from conda_package_handling.api import InvalidArchiveError
+
         package_tarball_full_path = join(self.pkgs_dir, package_filename)
         log.trace("adding to package cache %s", package_tarball_full_path)
         extracted_package_dir, pkg_ext = strip_pkg_extension(package_tarball_full_path)

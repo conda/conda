@@ -544,8 +544,9 @@ class UnlinkLinkTransaction(object):
         if conda_final_prefix in prefix_setups:
             for conda_dependency in conda_linked_depends:
                 dep_name = MatchSpec(conda_dependency).name
-                if dep_name not in pkg_names_being_lnkd and (dep_name not in pkg_names_already_lnkd
-                                                             or dep_name in pkg_names_being_unlnkd):
+                if dep_name not in pkg_names_being_lnkd and (
+                        dep_name not in pkg_names_already_lnkd or
+                        dep_name in pkg_names_being_unlnkd):
                     yield RemoveError("'%s' is a dependency of conda and cannot be removed from\n"
                                       "conda's operating environment." % dep_name)
 
