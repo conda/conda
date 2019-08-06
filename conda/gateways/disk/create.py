@@ -14,8 +14,6 @@ import sys
 import tempfile
 import warnings as _warnings
 
-import conda_package_handling.api
-
 from . import mkdir_p
 from .delete import path_is_clean, rm_rf
 from .link import islink, lexists, link, readlink, symlink
@@ -201,6 +199,8 @@ class ProgressFileWrapper(object):
 
 
 def extract_tarball(tarball_full_path, destination_directory=None, progress_update_callback=None):
+    import conda_package_handling.api
+
     if destination_directory is None:
         if tarball_full_path[-8:] == CONDA_PACKAGE_EXTENSION_V1:
             destination_directory = tarball_full_path[:-8]
