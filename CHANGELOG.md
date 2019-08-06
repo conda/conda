@@ -1,9 +1,51 @@
+## 4.7.11 (2019-08-06)
+
+### Enhancements
+
+* add config for control of number of threads. These can be set in condarc or using environment variables. Names/default values are: `default_threads/None`, `repodata_threads/None`, `verify_threads/1`, `execute_threads/1` (#9044)
+
+### Bug fixes
+
+* fix repodata_fns from condarc not being respected (#8998)
+* Fix handling of UpdateModifiers other than FREEZE_INSTALLED (#8999)
+* Improve conflict finding graph traversal (#9006)
+* Fix setuptools being removed due to conda run_constrains (#9014)
+* Avoid calling find_conflicts until all retries are spent (#9015)
+* refactor _conda_activate.bat in hopes of improving behavior in parallel environments (#9021)
+* Add support for local version specs in PYPI installed packages (#9025)
+* fix boto3 initialization race condition (#9037)
+* Fix return condition in package_cache_data (#9039)
+* utilize libarchive_enabled attribute provided by conda-package-handling to fall back to .tar.bz2 files only. (#9041, #9053)
+* Fix menu creation on windows having race condition, leading to popups about python.exe not being found (#9044)
+* Improve list error when egg-link leads to extra egg-infos (#9045)
+* Fix incorrect RemoveError when operating on an env that has one of conda's deps, but is not the env in which the current conda in use resides (#9054)
+
+### Docs
+
+* Document new package format better
+* Document `conda init` command
+* Document availability of RSS feed for CDN-backed channels that clone
+
+### Contributors
+
+* @Bezier89
+* @forrestwaters
+* @hajapy
+* @ihnorton
+* @matthewwardrop
+* @msarahan
+* @rogererens
+* @rrigdon
+* @soapy1
+
+
 ## 4.7.10 (2019-07-19)
 
 ### Bug fixes
 
 * fix merging of specs
 * fix bugs in building of chains in prefix graph
+
 
 ### Contributors:
 
