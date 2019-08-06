@@ -7,6 +7,7 @@ import bz2
 from collections import defaultdict
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
+from functools import partial
 from genericpath import getmtime, isfile
 import hashlib
 from io import open as io_open
@@ -26,7 +27,7 @@ from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REP
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
                              string_types, text_type, with_metaclass)
-from ..common.io import ThreadLimitedThreadPoolExecutor
+from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
@@ -87,7 +88,10 @@ class SubdirData(object):
             package_ref_or_match_spec))
 
         # TODO test timing with ProcessPoolExecutor
-        with ThreadLimitedThreadPoolExecutor() as executor:
+        Executor = (DummyExecutor if context.debug or context.repodata_threads == 1
+                    else partial(ThreadLimitedThreadPoolExecutor,
+                                 max_workers=context.repodata_threads))
+        with Executor() as executor:
             result = tuple(concat(executor.map(subdir_query, channel_urls)))
         return result
 

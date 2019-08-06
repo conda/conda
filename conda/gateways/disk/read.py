@@ -14,7 +14,6 @@ import json
 from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
-import conda_package_handling.api
 
 from .link import islink, lexists
 from .create import TemporaryDirectory
@@ -119,6 +118,7 @@ def read_index_json(extracted_package_directory):
 
 
 def read_index_json_from_tarball(package_tarball_full_path):
+    import conda_package_handling.api
     with TemporaryDirectory() as tmpdir:
         conda_package_handling.api.extract(package_tarball_full_path, tmpdir, 'info')
         with open(join(tmpdir, 'info', 'index.json')) as f:

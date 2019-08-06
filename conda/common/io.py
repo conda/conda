@@ -519,6 +519,11 @@ class DummyExecutor(Executor):
 
             return f
 
+    def map(self, func, *iterables):
+        for iterable in iterables:
+            for thing in iterable:
+                yield func(thing)
+
     def shutdown(self, wait=True):
         with self._shutdownLock:
             self._shutdown = True

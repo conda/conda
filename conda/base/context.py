@@ -143,6 +143,17 @@ class Context(Configuration):
 
     pip_interop_enabled = PrimitiveParameter(False)
 
+    # multithreading in various places
+    _default_threads = PrimitiveParameter(0, element_type=int,
+                                          aliases=('default_threads',))
+    _repodata_threads = PrimitiveParameter(0, element_type=int,
+                                           aliases=('repodata_threads',))
+    _verify_threads = PrimitiveParameter(0, element_type=int,
+                                         aliases=('verify_threads',))
+    # this one actually defaults to 1 - that is handled in the property below
+    _execute_threads = PrimitiveParameter(0, element_type=int,
+                                          aliases=('execute_threads',))
+
     # Safety & Security
     _aggressive_update_packages = SequenceParameter(string_types,
                                                     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
@@ -363,6 +374,34 @@ class Context(Configuration):
     @property
     def platform(self):
         return _platform_map.get(sys.platform, 'unknown')
+
+    @property
+    def default_threads(self):
+        return self._default_threads if self._default_threads else None
+
+    @property
+    def repodata_threads(self):
+        return self._repodata_threads if self._repodata_threads else self.default_threads
+
+    @property
+    def verify_threads(self):
+        if self._verify_threads:
+            threads = self._verify_threads
+        elif self.default_threads:
+            threads = self.default_threads
+        else:
+            threads = 1
+        return threads
+
+    @property
+    def execute_threads(self):
+        if self._execute_threads:
+            threads = self._execute_threads
+        elif self.default_threads:
+            threads = self.default_threads
+        else:
+            threads = 1
+        return threads
 
     @property
     def subdir(self):
@@ -746,10 +785,12 @@ class Context(Configuration):
             'restore_free_channel',
             'repodata_fns',
             'use_only_tar_bz2',
+            'repodata_threads',
         )),
         ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
             'envs_dirs',
             'pkgs_dirs',
+            'default_threads',
         )),
         ('Network Configuration', (
             'client_ssl_cert',
@@ -783,7 +824,9 @@ class Context(Configuration):
             'extra_safety_checks',
             'shortcuts',
             'non_admin_enabled',
-            'separate_format_cache'
+            'separate_format_cache',
+            'verify_threads',
+            'execute_threads',
         )),
         ('Conda-build Configuration', (
             'bld_path',
@@ -974,6 +1017,14 @@ class Context(Configuration):
             #     version of Python (2/3) to be used in new environments. Defaults to
             #     the version used by conda itself.
             #     """),
+            'default_threads': dals("""
+                Threads to use by default for parallel operations.  Default is None,
+                which allows operations to choose themselves.  For more specific
+                control, see the other *_threads parameters:
+                    * repodata_threads - for fetching/loading repodata
+                    * verify_threads - for verifying package contents in transactions
+                    * execute_threads - for carrying out the unlinking and linking steps
+            """),
             'disallowed_packages': dals("""
                 Package specifications to disallow installing. The default is to allow
                 all packages.
@@ -996,6 +1047,11 @@ class Context(Configuration):
                 flag), or otherwise holds the value of '{prefix}'. Templating uses python's
                 str.format() method.
                 """),
+            'execute_threads': dals("""
+                Threads to use when performing the unlink/link transaction.  When not set,
+                defaults to 1.  This step is pretty strongly I/O limited, and you may not
+                see much benefit here.
+            """),
             'force_reinstall': dals("""
                 Ensure that any user-requested package for the current operation is uninstalled
                 and reinstalled, even if that package already exists in the environment.
@@ -1086,6 +1142,10 @@ class Context(Configuration):
                 read timeout is the number of seconds conda will wait for the server to send
                 a response.
                 """),
+            'repodata_threads': dals("""
+                Threads to use when downloading and reading repodata.  When not set,
+                defaults to None, which uses the default ThreadPoolExecutor behavior.
+            """),
             'report_errors': dals("""
                 Opt in, or opt out, of automatic error reporting to core maintainers. Error
                 reports are anonymous, with only the error stack trace and information given
@@ -1144,9 +1204,18 @@ class Context(Configuration):
             'use_index_cache': dals("""
                 Use cache of channel index files, even if it has expired.
                 """),
+            'use_only_tar_bz2': dals("""
+                A boolean indicating that only .tar.bz2 conda packages should be downloaded.
+                This is forced to True if conda-build is installed and older than 3.18.3,
+                because older versions of conda break when conda feeds it the new file format.
+                """),
             'verbosity': dals("""
                 Sets output log level. 0 is warn. 1 is info. 2 is debug. 3 is trace.
                 """),
+            'verify_threads': dals("""
+                Threads to use when performing the transaction verification step.  When not set,
+                defaults to 1.
+            """),
             'whitelist_channels': dals("""
                 The exclusive list of channels allowed to be used on the system. Use of any
                 other channels will result in an error. If conda-build channels are to be
@@ -1154,11 +1223,7 @@ class Context(Configuration):
                 'local' channel in the list. If the list is empty or left undefined, no
                 channel exclusions will be enforced.
                 """),
-            'use_only_tar_bz2': dals("""
-                A boolean indicating that only .tar.bz2 conda packages should be downloaded.
-                This is forced to True if conda-build is installed and older than 3.18.3,
-                because older versions of conda break when conda feeds it the new file format.
-                """)
+
         })
 
 

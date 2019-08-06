@@ -21,6 +21,7 @@ from .match_spec import MatchSpec
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
@@ -318,7 +319,7 @@ class PackageRecord(DictSafeMixin, Entity):
 
     timestamp = TimestampField()
 
-    @property
+    @memoizedproperty
     def combined_depends(self):
         from .match_spec import MatchSpec
         result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}

@@ -1502,6 +1502,7 @@ def test_fast_update_with_update_modifier_not_set():
         assert convert_to_dist_str(final_state_2) == order1
 
 
+@pytest.mark.integration
 def test_pinned_1():
     specs = MatchSpec("numpy"),
     with get_solver(specs) as solver:
@@ -2475,6 +2476,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound():
     assert constricting is None
 
 
+@pytest.mark.integration
 def test_indirect_dep_optimized_by_version_over_package_count():
     """We need to adjust the Anaconda metapackage - custom version - so that it keeps
     dependencies on all of its components.  That custom package is intended to free up constraints.  However,

@@ -1,6 +1,9 @@
 import tempfile
 from unittest import TestCase
 from tests.test_create import run_command, Commands
+
+import pytest
+
 from conda.models.match_spec import MatchSpec
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.delete import rm_rf
@@ -21,6 +24,7 @@ class TestCliInstall(TestCase):
         rm_rf(self.prefix)
         rm_rf(self.testenv)
 
+    @pytest.mark.integration
     def test_find_conflicts_called_once(self):
         bad_deps = {'python': {((MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")), 'python=3')}}
 

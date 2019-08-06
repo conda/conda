@@ -553,8 +553,9 @@ class Solver(object):
         #    specs being added.
         explicit_pool = ssc.r._get_package_pool(self.specs_to_add)
 
-        conflict_specs = ssc.r.get_conflicting_specs(list(concatv(
-            (_.to_match_spec() for _ in ssc.prefix_data.iter_records()))), self.specs_to_add) or []
+        conflict_specs = ssc.r.get_conflicting_specs(tuple(concatv(
+            (_.to_match_spec() for _ in ssc.prefix_data.iter_records()))), self.specs_to_add
+        ) or tuple()
         conflict_specs = set(_.name for _ in conflict_specs)
 
         for pkg_name, spec in iteritems(ssc.specs_map):
@@ -651,10 +652,11 @@ class Solver(object):
                                not ssc.ignore_pinned) or
                               x.name in ssc.specs_from_history_map)
 
-            specs_to_add = [self._package_has_updates(ssc, _, installed_pool)
-                            for _ in self.specs_to_add if not skip(_)]
+            specs_to_add = tuple(self._package_has_updates(ssc, _, installed_pool)
+                                 for _ in self.specs_to_add if not skip(_))
             # the index is sorted, so the first record here gives us what we want.
-            conflicts = ssc.r.get_conflicting_specs([MatchSpec(_) for _ in ssc.specs_map.values()],
+            conflicts = ssc.r.get_conflicting_specs(tuple(MatchSpec(_)
+                                                          for _ in ssc.specs_map.values()),
                                                     specs_to_add)
             for conflict in conflicts:
                 # neuter the spec due to a conflict
@@ -745,7 +747,7 @@ class Solver(object):
         # may not be the only unsatisfiable subset. We may have to call get_conflicting_specs()
         # several times, each time making modifications to loosen constraints.
 
-        conflicting_specs = set(ssc.r.get_conflicting_specs(final_environment_specs,
+        conflicting_specs = set(ssc.r.get_conflicting_specs(tuple(final_environment_specs),
                                                             self.specs_to_add) or [])
         while conflicting_specs:
             specs_modified = False
