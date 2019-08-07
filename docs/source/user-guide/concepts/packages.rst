@@ -34,11 +34,10 @@ from the tar archive directly.
 
 
 The .conda file format was introduced in conda 4.7 as a more
-compact, and thus faster, alternative to a tarball. 
+compact, and thus faster, alternative to a tarball.
 
 The .conda file format consists of an outer, uncompressed
 ZIP-format container, with two inner compressed .tar files.
-The inner files are compressed using Zstandard (ztsd). 
 
 For the .conda format's initial internal compression format support,
 we chose Zstandard (zstd). The actual compression format used does not
@@ -114,7 +113,10 @@ Package structure
 Noarch packages
 ===============
 Noarch packages are packages that are not architecture specific
-and therefore only have to be built once.
+and therefore only have to be built once. Noarch packages are
+either generic or Python. Noarch generic packages allow users to
+distribute docs, datasets, and source code in conda packages.
+Noarch Python packages are described below.
 
 Declaring these packages as ``noarch`` in the ``build`` section of
 the meta.yaml reduces shared CI resources. Therefore, all packages
@@ -124,6 +126,11 @@ Noarch Python
 -------------
 The ``noarch: python`` directive in the build section
 makes pure-Python packages that only need to be built once.
+
+Noarch Python packages cut down on the overhead of building multiple
+different pure Python packages on different architectures and Python
+versions by sorting out platform and Python version-specific differences
+at install time.
 
 In order to qualify as a noarch Python package, all of the following
 criteria must be fulfilled:
@@ -155,12 +162,14 @@ criteria must be fulfilled:
    While ``noarch: python`` does not work with selectors, it does
    work with version constraints. ``skip: True  # [py2k]`` can sometimes
    be replaced with a constrained Python version in the host and run
-   subsections, for example:  ``python >=3`` instead of just ``python``.
+   subsections, for example: ``python >=3`` instead of just ``python``.
 
 .. note::
    Only ``console_script`` entry points have to be listed in meta.yaml.
    Other entry points do not conflict with ``noarch`` and therefore do
    not require extra treatment.
+
+
 
 .. _link_unlink:
 
@@ -168,7 +177,7 @@ Link and unlink scripts
 =======================
 
 You may optionally execute scripts before and after the link
-and unlink steps. For more information, see `Adding pre-link, post-link and pre-unlink scripts <https://docs.conda.io/projects/conda-build/en/latest/resources/link-scripts.html>`_.
+and unlink steps. For more information, see `Adding pre-link, post-link, and pre-unlink scripts <https://docs.conda.io/projects/conda-build/en/latest/resources/link-scripts.html>`_.
 
 .. _package_specs:
 
@@ -177,5 +186,5 @@ More information
 
 Go deeper on how to :ref:`manage packages <managing-pkgs>`.
 Learn more about package metadata, repository structure and index,
-and package match specifications at :doc:`Package specifications <../concepts/pkg-specs>`. 
+and package match specifications at :doc:`Package specifications <../concepts/pkg-specs>`.
 
