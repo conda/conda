@@ -244,13 +244,24 @@ class _Activator(object):
                 context.dev = True
 
         if command == 'activate':
+            self.stack = context.auto_stack and context.shlvl <= context.auto_stack
             try:
                 stack_idx = remainder_args.index('--stack')
             except ValueError:
-                self.stack = False
-            else:
-                del remainder_args[stack_idx]
+                stack_idx = -1
+            try:
+                no_stack_idx = remainder_args.index('--no-stack')
+            except ValueError:
+                no_stack_idx = -1
+            if stack_idx >= 0 and no_stack_idx >= 0:
+                from .exceptions import ArgumentError
+                raise ArgumentError('cannot specify both --stack and --no-stack to ' + command)
+            if stack_idx >= 0:
                 self.stack = True
+                del remainder_args[stack_idx]
+            if no_stack_idx >= 0:
+                self.stack = False
+                del remainder_args[no_stack_idx]
             if len(remainder_args) > 1:
                 from .exceptions import ArgumentError
                 raise ArgumentError(command + ' does not accept more than one argument:\n'

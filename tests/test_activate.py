@@ -1685,6 +1685,8 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' in PATH4
         assert PATH4 == PATH2
 
+        # TODO - test --no-stack and auto_stack config setting
+
     @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
