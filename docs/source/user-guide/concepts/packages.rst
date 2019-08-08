@@ -169,7 +169,7 @@ criteria must be fulfilled:
    Other entry points do not conflict with ``noarch`` and therefore do
    not require extra treatment.
 
-
+Read more about `conda's noarch packages <https://www.anaconda.com/condas-new-noarch-packages/>`_.
 
 .. _link_unlink:
 
