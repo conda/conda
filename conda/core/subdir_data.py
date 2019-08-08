@@ -78,6 +78,8 @@ class SubdirData(object):
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
                   repodata_fn=REPODATA_FN):
         from .index import check_whitelist  # TODO: fix in-line import
+        # ensure that this is not called by threaded code
+        create_cache_dir()
         if channels is None:
             channels = context.channels
         if subdirs is None:
