@@ -18,6 +18,7 @@ from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda_env.yaml import dump
 from . import compat, exceptions, yaml
+from conda.history import History
 
 try:
     from cytoolz.itertoolz import concatv, groupby
@@ -79,7 +80,7 @@ def load_from_directory(directory):
 
 
 # TODO tests!!!
-def from_environment(name, prefix, no_builds=False, ignore_channels=False):
+def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_history=None):
     """
         Get environment object from prefix
     Args:
@@ -87,10 +88,16 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
         prefix: The path of prefix
         no_builds: Whether has build requirement
         ignore_channels: whether ignore_channels
+        from_history: Whether environment file should be based on explicit specs in history
 
     Returns:     Environment object
     """
     # requested_specs_map = History(prefix).get_requested_specs_map()
+    if from_history:
+        history = History(prefix).get_requested_specs_map()
+        deps = [str(package) for package in history.values()]
+        return Environment(name=name, dependencies=deps, channels=list(context.channels),
+                           prefix=prefix)
     pd = PrefixData(prefix, pip_interop_enabled=True)
 
     precs = tuple(PrefixGraph(pd.iter_records()).graph)
