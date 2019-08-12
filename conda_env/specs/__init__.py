@@ -5,6 +5,7 @@
 import os
 
 from .binstar import BinstarSpec
+from .meta_file import MetaFileSpec
 from .notebook import NotebookSpec
 from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
@@ -25,6 +26,8 @@ def detect(**kwargs):
     if file_exists:
         if ext == '' or ext not in all_valid_exts:
             raise EnvironmentFileExtensionNotValid(filename)
+        elif ext in YamlFileSpec.extensions and ext in MetaFileSpec.extensions:
+            specs = [MetaFileSpec, YamlFileSpec]
         elif ext in YamlFileSpec.extensions:
             specs = [YamlFileSpec]
         elif ext in RequirementsSpec.extensions:

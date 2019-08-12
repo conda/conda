@@ -64,6 +64,12 @@ def configure_parser(sub_parsers):
         action='store_true',
         default=False,
     )
+    p.add_argument(
+        '--test',
+        action='store_true',
+        default=False,
+        help='install test requirements from meta.yaml file',
+    )
     add_parser_json(p)
     p.set_defaults(func='.main_create.execute')
 
@@ -74,7 +80,7 @@ def execute(args, parser):
 
     try:
         spec = specs.detect(name=name, filename=expand(args.file),
-                            directory=os.getcwd())
+                            directory=os.getcwd(), install_test=args.test)
         env = spec.environment
 
         # FIXME conda code currently requires args to have a name or prefix

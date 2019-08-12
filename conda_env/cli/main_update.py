@@ -57,6 +57,12 @@ def configure_parser(sub_parsers):
         default=None,
         nargs='?'
     )
+    p.add_argument(
+        '--test',
+        action='store_true',
+        default=False,
+        help='install test requirements from meta.yaml file',
+    )
     add_parser_json(p)
     p.set_defaults(func='.main_update.execute')
 
@@ -66,7 +72,7 @@ def execute(args, parser):
 
     try:
         spec = install_specs.detect(name=name, filename=expand(args.file),
-                                    directory=os.getcwd())
+                                    directory=os.getcwd(), install_test=args.test)
         env = spec.environment
     except exceptions.SpecNotFound:
         raise

@@ -124,6 +124,21 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
     return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix)
 
 
+def from_meta(metadata, install_test=False, **kwargs):
+    dependencies = []
+    for typ in ('run', 'host', ):
+        dependencies.extend(metadata.get_value('requirements/{}'.format(typ)))
+
+    if install_test:
+        dependencies.extend(metadata.get_value('test/requires'))
+
+    return Environment(
+        name=metadata.name(),
+        filename=metadata.meta_path,
+        dependencies=dependencies
+    )
+
+
 def from_yaml(yamlstr, **kwargs):
     """Load and return a ``Environment`` from a given ``yaml string``"""
     data = yaml_load_standard(yamlstr)
