@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
+from conda.models.match_spec import MatchSpec
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_load
 from conda.install import on_win
@@ -14,6 +15,13 @@ from conda.install import on_win
 from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
 from tests.test_utils import is_prefix_activated_PATHwise
+
+from conda_env.env import from_environment
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
@@ -383,3 +391,22 @@ class SaveExistingEnvTestCase(unittest.TestCase):
                 with open(out_file) as f:
                     d = yaml_load(f)
                 assert {'pip': ['argh==0.26.2']} in d['dependencies']
+
+
+class TestFromEnvironment(unittest.TestCase):
+    def test_from_history(self):
+        # We're not testing that get_requested_specs_map() actually works
+        # assume it gives us back a dict of MatchSpecs
+        with patch('conda.history.History.get_requested_specs_map') as m:
+            m.return_value = {
+                'python': MatchSpec('python=3'),
+                'pytest': MatchSpec('pytest!=3.7.3'),
+                'mock': MatchSpec('mock'),
+                'yaml': MatchSpec('yaml>=0.1')
+            }
+            out = from_environment('mock_env', 'mock_prefix', from_history=True)
+            assert "yaml[version='>=0.1']" in out.to_dict()['dependencies']
+            assert "pytest!=3.7.3" in out.to_dict()['dependencies']
+            assert len(out.to_dict()['dependencies']) == 4
+
+            m.assert_called()
