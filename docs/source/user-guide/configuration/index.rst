@@ -13,3 +13,4 @@ Configuration
    pip-interoperability
    use-winxp-with-proxy
    disable-ssl-verification
+   non-standard-certs
