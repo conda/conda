@@ -71,10 +71,10 @@ def configure_parser(sub_parsers):
 
     p.add_argument(
         '--from-history',
-        default=None,
+        default=False,
         action='store_true',
         required=False,
-        help='Build environment map from explicit specs in history'
+        help='Build environment spec from explicit specs in history'
     )
     p.set_defaults(func='.main_export.execute')
 

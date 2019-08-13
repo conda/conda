@@ -80,7 +80,7 @@ def load_from_directory(directory):
 
 
 # TODO tests!!!
-def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_history=None):
+def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_history=False):
     """
         Get environment object from prefix
     Args:
