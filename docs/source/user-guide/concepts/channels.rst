@@ -23,7 +23,7 @@ For details, see how to :ref:`modify your channel lists <config-channels>`.
 
 We use conda-forge as an example channel.
 `Conda-forge <https://conda-forge.org/>`_ is a community channel
-made up of thousands of contributors. Conda-forge itself is 
+made up of thousands of contributors. Conda-forge itself is
 analogous to PyPI but with a unified,
 automated build infrastructure and more peer review of
 recipes.
@@ -53,7 +53,7 @@ Priority decreases from left to right - the first argument is higher priority th
 
   $ conda search scipy --channel file:/<path to>/local-channel --override-channels
 
-* In .condarc, use the key `channels` to see a list of channels for conda to search for packages.
+* In .condarc, use the key ``channels`` to see a list of channels for conda to search for packages.
 
 Learn more about :doc:`managing channels <../tasks/manage-channels>`.
 
@@ -67,7 +67,7 @@ that have been cloned by the channel clone and are
 now available behind the CDN (content delivery network).
 The RSS feed shows what has happened on a rolling,
 two-week time frame and is useful for seeing where
-packages are or if a sync has been run. 
+packages are or if a sync has been run.
 
 Let's look at the `conda-forge channel RSS feed <https://conda-static.anaconda.org/conda-forge/rss.xml>`_
 as an example.

@@ -59,10 +59,10 @@ Virtual environments
 
 A virtual environment is a tool that helps to
 keep dependencies required by different projects
-separate by creating isolated spaces for them that contain per-project dependencies.
-for them.
+separate by creating isolated spaces for them that
+contain per-project dependencies for them.
 
-Users can create virtual environments 
+Users can create virtual environments
 using one of several tools such as
 Pipenv or Poetry, or a conda virtual
 environment. Pipenv and Poetry are based around Python's

@@ -22,9 +22,9 @@ traffic to continue.
 from a PyPI server over HTTPS.
 
 .. warning::
-   This opion causes your computer to download and execute arbitrary
+   This option causes your computer to download and execute arbitrary
    code over a connection that it cannot verify as secure. This option is not
-   recommended. Use this option only if necessary. Use this option at your own
+   recommended and should only be used if necessary. Use this option at your own
    risk.
 
 To disable SSL verification when using ``conda skeleton pypi``, set the
