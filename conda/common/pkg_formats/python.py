@@ -246,8 +246,8 @@ class PythonDistribution(object):
                                                                 cleaned_path, checksum)
                         checksum = checksum[7:]
                     else:
-                        checksum = None
-                    size = int(size) if size else None
+                        checksum = ''
+                    size = int(size) if size else ''
                 else:
                     checksum = size = None
                 return cleaned_path, checksum, size
@@ -266,7 +266,7 @@ class PythonDistribution(object):
             missing_pyc_files = (ff for ff in (
                 _pyc_path(f, py_ver_mm) for f in files_set if _py_file_re.match(f)
             ) if ff not in files_set)
-            records = sorted(concatv(records, ((pf, "", "") for pf in missing_pyc_files)))
+            records = sorted(concatv(records, ((pf, '', '') for pf in missing_pyc_files)))
             return records
 
         return []
