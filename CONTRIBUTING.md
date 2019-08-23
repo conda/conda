@@ -30,7 +30,7 @@ To set up an environment to start developing on conda code, we recommend the fol
        GITHUB_USERNAME=kalefranz
        git clone git@github.com:$GITHUB_USERNAME/conda "$CONDA_PROJECT_ROOT"
        cd "$CONDA_PROJECT_ROOT"
-       git remote --add upstream git@github.com:conda/conda
+       git remote add upstream git@github.com:conda/conda
 
 2. Create a local development environment, and activate that environment
 
@@ -55,6 +55,21 @@ To set up an environment to start developing on conda code, we recommend the fol
 
        py.test tests/test_create.py -k create_install_update_remove_smoketest
 
+3.1  Test-suite issues
+
+       If you do not have git installed and your test does not install it then
+       queries to conda --version will except (yeah, this should get fixed). To
+       workaround:
+
+       git describe > conda/.version
+
+       .. Then make this file PEP440 compliant.
+
+       .. (initially an every time you commit).
+
+       The tests-suite is very sensitive to the initial environment. We have make
+       some effort to make the tests runnable in popular IDEs, and in PyCharm's
+       case, many tests can be run from a clean environment (variable-wise)
 
 ## Development Environment, Windows cmd.exe shell
 
@@ -70,10 +85,7 @@ In these steps, we assume `git` is installed and available on `PATH`.
        set GITHUB_USERNAME=kalefranz
        git clone git@github.com:conda/conda "%CONDA_PROJECT_ROOT%"
        cd "%CONDA_PROJECT_ROOT%"
-       git remote --add %GITHUB_USERNAME% git@github.com:%GITHUB_USERNAME%/conda
-
-   To be sure that the conda code being interpreted is the code in the project directory,
-   look at the value of `conda location:` in the output of `conda info --all`.
+       git remote add %GITHUB_USERNAME% git@github.com:%GITHUB_USERNAME%/conda
 
 3. Create a local development environment, and activate that environment
 
@@ -82,6 +94,9 @@ In these steps, we assume `git` is installed and available on `PATH`.
    This command will create a project-specific base environment at `.\devenv`. If
    the environment already exists, this command will just quickly activate the
    already-created `.\devenv` environment.
+
+   To be sure that the conda code being interpreted is the code in the project directory,
+   look at the value of `conda location:` in the output of `conda info --all`.
 
 
 ## Conda Contributor License Agreement
@@ -92,10 +107,11 @@ In case you're new to CLAs, this is rather standard procedure for larger project
 
 ### Process
 
-New contributors should email kfranz@anaconda.com to request a Contributor License Agreement that
-can be electronically signed. A signed contributor license agreement for a pull request author
-needs to be on file with Anaconda, Inc. for pull requests to be merged. A record of signatories is
-kept in the [`.cla-signers`](https://github.com/conda/conda/blob/master/.cla-signers) file in the
+New contributors should complete the Conda Contributor License Agreement located
+[here](https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement). A 
+signed contributor license agreement for a pull request author needs to be on file with 
+Anaconda, Inc. for pull requests to be merged. A record of signatories is kept in the 
+[`.cla-signers`](https://github.com/conda/conda/blob/master/.cla-signers) file in the
 project root.
 
 ### Individual Contributor License Agreement – Conda Code Organization

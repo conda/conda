@@ -14,14 +14,14 @@ import json
 from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
-import shlex
-import tarfile
 
 from .link import islink, lexists
+from .create import TemporaryDirectory
 from ..._vendor.auxlib.collection import first
+from ..._vendor.auxlib.compat import shlex_split_unicode
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import ensure_text_type, open
+from ...common.compat import open
 from ...common.pkg_formats.python import (
     PythonDistribution, PythonEggInfoDistribution, PythonEggLinkDistribution,
     PythonInstalledDistribution,
@@ -101,6 +101,7 @@ def read_package_info(record, package_cache_record):
 
     return PackageInfo(
         extracted_package_dir=epd,
+        package_tarball_full_path=package_cache_record.package_tarball_full_path,
         channel=Channel(record.schannel or record.channel),
         repodata_record=record,
         url=package_cache_record.url,
@@ -117,9 +118,12 @@ def read_index_json(extracted_package_directory):
 
 
 def read_index_json_from_tarball(package_tarball_full_path):
-    with tarfile.open(package_tarball_full_path) as tf:
-        contents = tf.extractfile('info/index.json').read()
-        return json.loads(ensure_text_type(contents))
+    import conda_package_handling.api
+    with TemporaryDirectory() as tmpdir:
+        conda_package_handling.api.extract(package_tarball_full_path, tmpdir, 'info')
+        with open(join(tmpdir, 'info', 'index.json')) as f:
+            json_data = json.load(f)
+    return json_data
 
 
 def read_repodata_json(extracted_package_directory):
@@ -216,7 +220,7 @@ def read_has_prefix(path):
 
     def parse_line(line):
         # placeholder, filemode, filepath
-        parts = tuple(x.strip('"\'') for x in shlex.split(line, posix=False))
+        parts = tuple(x.strip('"\'') for x in shlex_split_unicode(line, posix=False))
         if len(parts) == 1:
             return ParseResult(PREFIX_PLACEHOLDER, FileMode.text, parts[0])
         elif len(parts) == 3:

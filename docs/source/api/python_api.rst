@@ -1,4 +1,4 @@
-``conda.api.python_api``
+``conda.cli.python_api``
 ========================
 
 .. py:module:: conda.cli.python_api

@@ -1,8 +1,6 @@
-# New contributors should email kfranz@anaconda.com to request a Contributor License Agreement
-# that can be electronically signed. A signed contributor license agreement for a pull request
-# author needs to be on file with Anaconda, Inc. for pull requests to be merged. This file,
-# while not an official record, is used by conda-bot for the purposes of CLA status on pull
-# requests.
+# A signed contributor license agreement for a pull request author needs to be on file with
+# Anaconda, Inc. for pull requests to be merged. This file, while not an official record,
+# is used by conda-bot for the purposes of CLA status on pull requests.
 
 # Each row in this file has three fields. The first field is github username. The second field
 # is git id, the output of `git log -n1 --format="%aN <%aE>"` when HEAD is at a specific user's
@@ -13,11 +11,15 @@
 # work in conjunction with the .mailmap file at the root of this repository.
 
 3kwa | Eugene Van den Bulke <eugene.vandenbulke@gmail.com> | 2018-06-01
+ab12gu | Abhay Gupta <ab18gu@gmail.com> | 2018-03-02
 aburgm | Armin Burgmeier <aburgmeier@bloomberg.net> | 2018-07-24
 alanhdu | Alan Du <alanhdu@gmail.com> | 2018-06-05
+albertmichaelj | Michael Albert <albertmichaelj@gmail.com> | 2019-02-27
 aldanor | Ivan Smirnov <i.s.smirnov@gmail.com> | 2018-07-24
 alexbw | Alex Wiltschko <alex.bw@gmail.com> | 2018-05-23
+alexhall | Alex Hall <alexhall99@gmail.com> | 2019-05-22
 almarklein | Almar Klein <almar.klein@gmail.com> | 2018-06-04
+analog-cbarber | Christopher Barber <christopher.barber@analog.com> | 2019-03-22
 arkottke | Albert Kottke <albert.kottke@gmail.com> | 2018-07-23
 asmeurer | Aaron Meurer <aaron.meurer@continuum.io> | Anaconda, Inc.
 aterrel | Andy R. Terrel <andy.terrel@gmail.com> | Anaconda, Inc.
@@ -27,6 +29,7 @@ beenje | Benjamin Bertrand <beenje@gmail.com> | 2019-01-14
 Bezier89 | James Sexton <TwistedLadder@gmail.com> | 2018-07-23
 bilderbuchi | Christoph Buchner <bilderbuchi@users.noreply.github.com> | 2018-07-25
 bkreider | Bradley Kreider <bkreider@continuum.io> | Anaconda, Inc.
+blackgear | Daniel Zeng <daniel65536@gmail.com> | 2019-02-27
 bluekeyes | Billy Keyes <bluekeyes@gmail.com> | 2018-05-23
 bradsaracik | Brad S <35494318+bradsaracik@users.noreply.github.com> | 2018-07-28
 brentp | Brent Pedersen <bpederse@gmail.com> | 2018-07-23
@@ -36,8 +39,11 @@ certik | Ondřej Čertík <ondrej.certik@gmail.com> | 2018-07-24
 cgranade | Christopher Granade <cgranade@cgranade.com> | 2018-09-21
 chdoig | Christine Doig <christine.doig.cardet@gmail.com> | Anaconda, Inc.
 chrislf | Chris Linton-Ford <chris.lintonford@gmail.com> | 2018-08-01
+chrisburr | Chris Burr <chrisburr73@gmail.com> | 2019-05-13
 CJ-Wright | christopher <cjwright4242@gmail.com> | 2018-08-20
+cjmartian | Connor Martin <connormartin7@gmail.com> | Anaconda, Inc.
 csoja | Crystal Soja <crystal.soja@continuum.io> | Anaconda, Inc.
+csosborn | Chris Osborn <csosborn@gmail.com> | 2019-06-04
 cstich | Christoph Stich <christoph.n.stich@gmail.com> | 2018-06-13
 dan-blanchard | Dan Blanchard <dan.blanchard@gmail.com> | 2018-07-24
 davemasino | Dave Masino <davem@slalom.com> | 2019-02-07
@@ -45,18 +51,22 @@ dawehner | Daniel Wehner <dawehner@users.noreply.github.com> | 2018-06-02
 ddale | Darren Dale <dsdale24@gmail.com> | 2018-07-26
 dedalusj | Jacopo <dedalusj@gmail.com> | 2018-06-01
 delicb | Bojan Delic <bojan@delic.in.rs> | 2018-07-24
+dennispg | Dennis George <dennispg@gmail.com> | 2019-03-29
 desilinguist | Nitin Madnani <nmadnani@gmail.com> | 2018-06-01
 dhirschfeld | David Hirschfeld <david.hirschfeld@gazprom-mt.com> | 2018-07-25
 dmkent | David Kent <davidkent@fastmail.com.au> | 2018-07-23
 dorzel | Dylan Orzel <dylan.orzel@gmail.com> | Anaconda, Inc.
 dsludwig | Derek Ludwig <dludwig@continuum.io> | Anaconda, Inc.
+duncanmmacleod | Duncan Macleod <duncanmmacleod@gmail.com> | 2019-04-02
 electronwill | Will Warner <electronwill@gmail.com> | Anaconda, Inc.
 elehcim | Michele Mastropietro <michele.mastropietro@gmail.com> | 2018-07-24
 ericdill | Eric Dill <edill@bnl.gov> | 2018-06-04
 esc | Valentin Haenel <valentin@haenel.co> | 2018-07-24
+EternalPhane | Zongyuan Zuo <eternalphane@gmail.com> | 2019-04-24
 faph | Florenz A. P. Hollebrandse <faph@users.noreply.github.com> | 2018-09-19
 flaviomartins | Flavio Martins <flaviomartins@acm.org> | 2018-06-05
 frol | Vlad Frolov <frolvlad@gmail.com> | 2018-06-04
+gabrielcnr | Gabriel Reis <gabrielcnr@gmail.com> | 2019-02-20
 geremih | Mihir Rege <mihirrege@mail.com> | 2018-12-11
 goanpeca | Gonzalo Peña-Castellanos <goanpeca@gmail.com> | Anaconda, Inc.
 gomyhr | Geir Ove Myhr <Geir.Ove.Myhr@lr.org> | 2018-06-07
@@ -69,12 +79,15 @@ hubmann | Patricio Hubmann <phubmann@machinalis.com> | 2018-07-24
 HugoTian | Tian Zhang <zhangtian1000@gmail.com> | Anaconda, Inc.
 ijstokes | Ian Stokes-Rees <ijstokes@continuum.io> | Anaconda, Inc.
 ilanschnell | Ilan Schnell <ilan@continuum.io> | Anaconda, Inc.
+ilango100 | Ilango R <ilangokul@gmail.com> | 2019-04-02
 immerrr | immerrr <immerrr@gmail.com> | 2018-07-30
+ivigamberdiev | Igor <ivigamberdiev@gmail.com> | 2019-04-08
 jacoblsmith | Jacob Smith <jacoblsmith@gmail.com> | 2018-08-01
 jaimergp | Jaime RGP <jaime.rogue@gmail.com> | 2018-06-01
 jakirkham | John Kirkham <kirkhamj@janelia.hhmi.org> | 2018-08-02
 jameswinegar | James Winegar <jameswinegar@users.noreply.github.com> | 2018-07-23
 JarnoRFB | Rüdiger Busche <ruedigerbusche@web.de> | 2018-07-23
+javabrett | Brett Randall <javabrett@gmail.com> | 2019-04-02
 jerowe | Jillian Rowe <jillian.e.rowe@gmail.com> | 2018-07-23
 jesse- | Jesse Hamer <4989897+jesse-@users.noreply.github.com> | 2018-08-05
 jharriman | Justyn Harriman <justyn@nextdoor.com> | 2018-07-30
@@ -83,12 +96,14 @@ jjhelmus | Jonathan J. Helmus <jjhelmus@gmail.com> | 2018-06-07
 jni | Juan Nunez-Iglesias <juan.n@unimelb.edu.au> | 2018-06-01
 joelhullcio | joel.hull@continuum.io <joel.hull@continuum.io> | Anaconda, Inc.
 joelkim | Joel Kim <kim.dohhyoung@gmail.com> | 2018-07-24
+jpgill86 | Jeffrey Gill <jeffrey.p.gill@gmail.com> | 2019-04-10
 jrovegno | jrovegno <tatadeluxe@gmail.com> | 2018-07-31
 jseabold | Skipper Seabold <jsseabold@gmail.com> | 2018-06-01
 Juanlu001 | Juan Luis Cano Rodríguez <juanlu001@gmail.com> | 2018-06-01
 jusjusjus | jusjusjus <jschwabedal@gmail.com> | 2018-06-04
 jwkvam | Jacques Kvam <jwkvam@gmail.com> | 2018-06-04
 kalefranz | Kale Franz <kfranz@continuum.io> | Anaconda, Inc.
+katietz | Kai Tietz <ktietz@anaconda.com> | Anaconda, Inc.
 kdeldycke | Kevin Deldycke <kevin@deldycke.com> | 2018-06-05
 kurtwheeler | Kurt Wheeler <kurt.wheeler91@gmail.com> | 2018-07-30
 lidavidm | David Li <li.davidm96@gmail.com> | Anaconda, Inc.
@@ -98,9 +113,12 @@ m-rossi | Marco Rossi <developer@marco-rossi.com> | 2018-06-09
 Maggie-M | Maggie Mari <maggie.mari@continuum.io> | Anaconda, Inc.
 majidaldo | majidaldo <majidaldosar-github@yahoo.com> | 2018-07-24
 malev | Marcos Vanetta <marcosvanetta@gmail.com> | Anaconda, Inc.
-marcelotrevisani | Marcelo Duarte Trevisani <marceloduartetrevisani@gmail.com> | 2018-06-04
 mandeep | mandeep <mbhutani@continuum.io> | 2018-09-04
+marcelotrevisani | Marcelo Duarte Trevisani <marceloduartetrevisani@gmail.com> | 2018-06-04
+MarckK | Kara de la Marck <karadelamarck@gmail.com> | 2019-02-19
 mariusvniekerk | Marius van Niekerk <marius.v.niekerk@gmail.com> | 2019-01-04
+martinkou | Man Tong Kou <bitanarch@gmail.com> | 2019-05-19
+matta9001 | Matthew Anderson <matta9001@gmail.com> | 2019-02-23
 MaxNoe | Maximilian Noethe <maximilian.noethe@tu-dortmund.de> | 2018-07-24
 mbargull | Marcel Bargull <mbargull@users.noreply.github.com> | 2018-06-04
 mcg1969 | Michael Grant <mgrant@continuum.io> | Anaconda, Inc.
@@ -113,14 +131,20 @@ mika-fischer | Mika Fischer <mika.fischer@zoopnet.de> | 2018-07-05
 mingwandroid | Ray Donnelly <mingw.android@gmail.com> | Anaconda, Inc.
 minrk | MinRK <benjaminrk@gmail.com> | 2018-07-30
 mmarchetti | Michael Marchetti <mmarchetti@continuum.io> | Anaconda, Inc.
+MrKriss | Chris Musselle <chris.j.musselle@gmail.com> | 2019-05-09
 msarahan | Michael Sarahan <msarahan@continuum.io> | Anaconda, Inc.
 murraryreadccdc | M.G. Read <read@ccdc.cam.ac.uk> | 2019-02-05
 mutirri | irritum <kamil.kwiek@continuum.io> | Anaconda, Inc.
+mwabumba | Mohamed Mwabumba <mwabbumba@gmail.com> | 2019-04-25
 mwiebe | Mark Wiebe <mwiebe@continuum.io> | Anaconda, Inc.
+Naftali | Naftali Eichen <naftalieichen@gmail.com | 2019-06-03
+necaris | Rami R Chowdhury <rami.chowdhury@gmail.com  2019-05-27
 nehaljwani | Nehal J Wani <nehaljw.kkd1@gmail.com> | 2018-06-01
+nh3 | Ni Huang <ni.huang@sanger.ac.uk> | 2019-03-20
 nickeubank | Nick Eubank <nickeubank@users.noreply.github.com> | 2018-06-04
 nicoddemus | Bruno Oliveira <nicoddemus@gmail.com> | 2018-05-23
 njalerikson | Odegard, Ken <ken.odegard@gmail.com> | 2018-06-01
+noahp | Noah Pendleton <noah.pendleton@gmail.com> | 2019-04-15
 nok | Darius Moraweic <darius.morawiec@nok.onl> | 2018-12-28
 nouiz | Frederic Bastien <nouiz@nouiz.org> | 2018-06-11
 ofek | Ofek Lev <ofekmeister@gmail.com> | 2018-06-04
@@ -139,6 +163,7 @@ remram44 | Remi Rampin <remirampin@gmail.com> | 2018-06-01
 rgommers | Ralf Gommers <ralf.gommers@googlemail.com> | 2018-07-23
 rrigdon | Rachel Rigdon <rrigdon@anaconda.com> | Anaconda, Inc.
 sachinbiradar9 | Sachin G Biradar <sachin@wirelessprvnat-172-16-196-108.near.illinois.edu> | 2018-07-23
+satoshi | Satoshi Yagi <satoshi.yagi@yahoo.com> | 2019-05-07
 scopatz | Anthony Scopatz <scopatz@gmail.com> | 2018-06-04
 scw | Shaun Walbridge <shaun.walbridge@gmail.com> | 2018-05-24
 sdvillal | santi <sdvillal@gmail.com> | 2018-06-01
@@ -146,11 +171,13 @@ shadowwalkersb | shadow_walker <shadowwalkersb@gmail.com> | 2018-06-04
 ShannonGreen | Shannon Green <sgreen@cochlear.com> | 2018-07-26
 soapy1 | Sophia Castellarin <scastellarin@continuum.io> | Anaconda, Inc.
 soxofaan | Stefaan Lippens <stefaan@netlog.com> | 2018-06-06
+spamlrot-tic | Stephen Palmroth <spalmrot@tudor.com> | 2019-03-26
 srossross | srossross <srossross@gmail.com> | Anaconda, Inc.
 stefanseefeld | Stefan Seefeld <stefan@seefeld.name> | Anaconda, Inc.
 stuarteberg | Stuart Berg <bergs@janelia.hhmi.org> | 2018-06-04
 tadeu | Tadeu Manoel <tadeu@esss.com.br> | 2018-06-04
 takluyver | Thomas Kluyver <takowl@gmail.com> | 2018-06-15
+tarasama | Tara Samander <tarasamander@yahoo.co.uk> | 2019-04-07
 teake | Teake Nutma <t.a.nutma@rug.nl> | 2018-07-24
 teoliphant | Travis E. Oliphant <teoliphant@gmail.com> | Anaconda, Inc.
 tdhopper| Tim Hopper <tdhopper@gmail.com> | 2018-08-01
@@ -164,7 +191,9 @@ ukoethe | Ullrich Koethe <ullrich.koethe@iwr.uni-heidelberg.de> | 2018-07-24
 vestuto | Jason Vestuto <jvestuto@continuum.io> | Anaconda, Inc.
 wojdyr | Marcin Wojdyr <wojdyr@gmail.com> | 2018-06-01
 wulmer | Wolfgang Ulmer <wolfgang.ulmer@de.bosch.com> | 2018-06-11
+yuvalreches | Yuval <bigbirds@gmail.com> | 2019-05-05
 Zaharid | Zahari <zaharid@gmail.com> | 2018-07-24
+zdog234 | Zane Dufour <zane.dufour@gmail.com | 2019-03-26
 zzag | Vlad Zagorodniy <vladzzag@gmail.com> | 2018-07-24
 
 

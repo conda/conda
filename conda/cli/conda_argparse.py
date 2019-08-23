@@ -546,6 +546,15 @@ def configure_parser_create(sub_parsers):
         action="store_true",
         help=SUPPRESS,
     )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+             "This is mainly for use during tests where we test new conda source "
+             "against old Python versions.",
+        dest="dev",
+        default=NULL,
+    )
     p.set_defaults(func='.main_create.execute')
 
 
@@ -638,6 +647,12 @@ def configure_parser_init(sub_parsers):
         action="store_true",
         # help="Initialize conda for all users on the system.",
         help=SUPPRESS,
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--reverse",
+        action="store_true",
+        help="Undo past effects of conda init.",
         default=NULL,
     )
 
@@ -751,6 +766,15 @@ def configure_parser_install(sub_parsers):
         default=NULL,
         help="Allow clobbering of overlapping file paths within packages, "
              "and suppress related warnings.",
+    )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+             "This is mainly for use during tests where we test new conda source "
+             "against old Python versions.",
+        dest="dev",
+        default=NULL,
     )
     p.set_defaults(func='.main_install.execute')
 
@@ -964,6 +988,15 @@ def configure_parser_remove(sub_parsers, name='remove'):
         nargs='*',
         help="Package names to %s from the environment." % name,
     )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+             "This is mainly for use during tests where we test new conda source "
+             "against old Python versions.",
+        dest="dev",
+        default=NULL,
+    )
 
     p.set_defaults(func='.main_remove.execute')
 
@@ -998,6 +1031,31 @@ def configure_parser_run(sub_parsers):
         help="Use once for info, twice for debug, three times for trace.",
         dest="verbosity",
         default=NULL,
+    )
+
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains"
+             "the root of conda development sources.  This is mainly for use"
+             "during tests where we test new conda source against old Python"
+             "versions.",
+        dest="dev",
+        default=NULL,
+    )
+
+    p.add_argument(
+        "--debug-wrapper-scripts",
+        action=NullCountAction,
+        help="When this is set, where implemented, the shell wrapper scripts"
+             "will echo to stderr a lot of debugging information.",
+        dest="debug_wrapper_scripts",
+        default=NULL,
+    )
+    p.add_argument(
+        "--cwd",
+        help="Current working directory for command to run in.  Defaults to cwd",
+        default=os.getcwd()
     )
 
     p.add_argument(
@@ -1374,6 +1432,17 @@ def add_parser_channels(p):
         action="store_true",
         help="""Do not search default or .condarc channels.  Requires --channel.""",
     )
+    channel_customization_options.add_argument(
+        "--repodata-fn",
+        action="append",
+        dest="repodata_fns",
+        help=("Specify name of repodata on remote server. Conda will try "
+              "whatever you specify, but will ultimately fall back to repodata.json if "
+              "your specs are not satisfiable with what you specify here. This is used "
+              "to employ repodata that is reduced in time scope.  You may pass this flag"
+              "more than once.  Leftmost entries are tried first, and the fallback to"
+              "repodata.json is added for you automatically.")
+    )
     return channel_customization_options
 
 
@@ -1468,6 +1537,14 @@ def add_parser_update_modifiers(solver_mode_options):
         help="Update all installed packages in the environment.",
         default=NULL,
     )
+    update_modifiers.add_argument(
+        "--update-specs",
+        action="store_const",
+        const=UpdateModifier.UPDATE_SPECS,
+        dest="update_modifier",
+        help="Update based on provided specifications.",
+        default=NULL,
+    )
 
 
 def add_parser_prune(p):
@@ -1475,8 +1552,7 @@ def add_parser_prune(p):
         "--prune",
         action="store_true",
         default=NULL,
-        help="Remove packages that have previously been brought into the environment to satisfy "
-             "dependencies of user-requested packages, but are no longer needed.",
+        help=SUPPRESS,
     )
 
 

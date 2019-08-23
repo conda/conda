@@ -20,7 +20,7 @@ function Get-CondaEnvironment {
     process {
         # NB: the JSON output of conda env list does not include the names
         #     of each env, so we need to parse the fragile output instead.
-        & $Env:CONDA_EXE env list | `
+        & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA env list | `
             Where-Object { -not $_.StartsWith("#") } | `
             Where-Object { -not $_.Trim().Length -eq 0 } | `
             ForEach-Object {
@@ -39,7 +39,36 @@ function Get-CondaEnvironment {
 
 <#
     .SYNOPSIS
-        Activates a conda enviroment, placing its commands and packages at
+        Adds the entries of sys.prefix to PATH and returns the old PATH.
+
+    .EXAMPLE
+        $OldPath = Add-Sys-Prefix-To-Path
+#>
+function Add-Sys-Prefix-To-Path() {
+    $OldPath = $Env:PATH;
+    if ($Env:_CE_CONDA -eq '' -And $Env:OS -eq 'Windows_NT') {
+        # Windows has a different layout for the python exe than other platforms.
+        $sysp = Split-Path $Env:CONDA_EXE -Parent;
+    } else {
+        $sysp = Split-Path $Env:CONDA_EXE -Parent;
+        $sysp = Split-Path $sysp -Parent;
+    }
+    if ($Env:OS -eq 'Windows_NT') {
+        $Env:PATH = $sysp + ';' +
+                    $sysp + '\Library\mingw-w64\bin;' +
+                    $sysp + '\Library\usr\bin;' +
+                    $sysp + '\Library\bin;' +
+                    $sysp + '\Scripts;' +
+                    $sysp + '\bin;' + $Env:PATH;
+    } else {
+        $Env:PATH = $sysp + '/bin:' + $Env:PATH;
+    }
+    return $OldPath;
+}
+
+<#
+    .SYNOPSIS
+        Activates a conda environment, placing its commands and packages at
         the head of $Env:PATH.
 
     .EXAMPLE
@@ -60,11 +89,13 @@ function Enter-CondaEnvironment {
     );
 
     begin {
+        $OldPath = Add-Sys-Prefix-To-Path;
         If ($Stack) {
-            $activateCommand = (& $Env:CONDA_EXE shell.powershell activate --stack $Name | Out-String);
+            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
         } Else {
-            $activateCommand = (& $Env:CONDA_EXE shell.powershell activate $Name | Out-String);
+            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
         }
+        $Env:PATH = $OldPath;
 
         Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
@@ -91,7 +122,10 @@ function Exit-CondaEnvironment {
     param();
 
     begin {
-        $deactivateCommand = (& $Env:CONDA_EXE shell.powershell deactivate | Out-String);
+        $OldPath = Add-Sys-Prefix-To-Path;
+        $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate | Out-String);
+        $Env:PATH = $OldPath;
+
         # If deactivate returns an empty string, we have nothing more to do,
         # so return early.
         if ($deactivateCommand.Trim().Length -eq 0) {
@@ -122,7 +156,7 @@ function Invoke-Conda() {
     # so that we can capture everything, INCLUDING short options (e.g. -n).
     if ($Args.Count -eq 0) {
         # No args, just call the underlying conda executable.
-        & $Env:CONDA_EXE;
+        & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA;
     }
     else {
         $Command = $Args[0];
@@ -143,7 +177,9 @@ function Invoke-Conda() {
                 # There may be a command we don't know want to handle
                 # differently in the shell wrapper, pass it through
                 # verbatim.
-                & $Env:CONDA_EXE $Command @OtherArgs;
+                $OldPath = Add-Sys-Prefix-To-Path;
+                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
+                $Env:PATH = $OldPath;
             }
         }
     }
@@ -191,7 +227,7 @@ function Expand-CondaSubcommands() {
         | Where-Object { $_ -like "$Filter*" } `
         | Sort-Object `
         | Write-Output;
-    
+
 }
 
 function TabExpansion($line, $lastWord) {
@@ -216,16 +252,6 @@ function TabExpansion($line, $lastWord) {
 }
 
 ## PROMPT MANAGEMENT ###########################################################
-# We use the same procedure to nest prompts as we did for nested tab completion.
-
-if (Test-Path Function:\prompt) {
-    Rename-Item Function:\prompt CondaPromptBackup
-} else {
-    function CondaPromptBackup() {
-        # Restore a basic prompt if the definition is missing.
-        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
-    }
-}
 
 <#
     .SYNOPSIS
@@ -237,11 +263,24 @@ if (Test-Path Function:\prompt) {
         Causes the current session's prompt to display the currently activated
         conda environment.
 #>
-function prompt() {
-    if ($Env:CONDA_PROMPT_MODIFIER) {
-        $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
+
+# We use the same procedure to nest prompts as we did for nested tab completion.
+if (Test-Path Function:\prompt) {
+    Rename-Item Function:\prompt CondaPromptBackup
+} else {
+    function CondaPromptBackup() {
+        # Restore a basic prompt if the definition is missing.
+        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
     }
-    CondaPromptBackup;
+}
+
+function Add-CondaEnvironmentToPrompt() {
+    function global:prompt() {
+        if ($Env:CONDA_PROMPT_MODIFIER) {
+            $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
+        }
+        CondaPromptBackup;
+    }
 }
 
 ## ALIASES #####################################################################
@@ -257,6 +296,6 @@ Export-ModuleMember `
     -Alias * `
     -Function `
         Invoke-Conda, `
-        Get-CondaEnvironment, `
+        Get-CondaEnvironment, Add-CondaEnvironmentToPrompt, `
         Enter-CondaEnvironment, Exit-CondaEnvironment, `
         TabExpansion, prompt

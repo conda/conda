@@ -6,12 +6,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 import fnmatch
 from logging import getLogger
-from os import listdir, lstat, walk, unlink
-from os.path import getsize, isdir, join, exists
+from os import listdir, lstat, unlink, walk
+from os.path import exists, getsize, isdir, join
 import sys
 
-from ..base.constants import CONDA_TARBALL_EXTENSION
-from ..common.constants import CONDA_TEMP_EXTENSION
+from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSION
 from ..base.context import context
 
 log = getLogger(__name__)
@@ -21,14 +20,14 @@ def find_tarballs():
     from ..core.package_cache_data import PackageCacheData
     pkgs_dirs = defaultdict(list)
     totalsize = 0
-    part_ext = CONDA_TARBALL_EXTENSION + '.part'
+    part_ext = tuple(e + '.part' for e in CONDA_PACKAGE_EXTENSIONS)
     for package_cache in PackageCacheData.writable_caches(context.pkgs_dirs):
         pkgs_dir = package_cache.pkgs_dir
         if not isdir(pkgs_dir):
             continue
         root, _, filenames = next(walk(pkgs_dir))
         for fn in filenames:
-            if fn.endswith(CONDA_TARBALL_EXTENSION) or fn.endswith(part_ext):
+            if fn.endswith(CONDA_PACKAGE_EXTENSIONS) or fn.endswith(part_ext):
                 pkgs_dirs[pkgs_dir].append(fn)
                 totalsize += getsize(join(root, fn))
 
@@ -51,7 +50,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
 
     if verbose:
         print("Will remove the following tarballs:")
-        print()
+        print('')
 
         for pkgs_dir in pkgs_dirs:
             print(pkgs_dir)
@@ -60,10 +59,10 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
             for fn in pkgs_dirs[pkgs_dir]:
                 size = getsize(join(pkgs_dir, fn))
                 print(fmt % (fn, human_bytes(size)))
-            print()
+            print('')
         print('-' * 51)  # From 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
-        print()
+        print('')
 
     if not context.json or not context.always_yes:
         confirm_yn()
@@ -156,14 +155,14 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
         for pkgs_dir in pkgs_dirs:
             print(pkgs_dir)
             print('-' * len(pkgs_dir))
-            print()
+            print('')
             fmt = "%-40s %10s"
             for pkg, pkgsize in zip(pkgs_dirs[pkgs_dir], pkgsizes[pkgs_dir]):
                 print(fmt % (pkg, human_bytes(pkgsize)))
-            print()
+            print('')
         print('-' * 51)  # 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
-        print()
+        print('')
 
     if not context.json or not context.always_yes:
         confirm_yn()

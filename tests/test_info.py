@@ -5,7 +5,7 @@ import json
 import pytest
 import sys
 
-from conda.base.context import context, reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.cli.python_api import Commands, run_command
 from conda.common.io import env_var
 from tests.helpers import assert_equals, assert_in
@@ -43,19 +43,19 @@ def test_info():
 
 @pytest.mark.integration
 def test_info_package_json():
-    out, err, rc = run_command(Commands.INFO, "--json", "numpy=1.11.0=py35_0")
+    out, err, rc = run_command(Commands.INFO, "--json", "itsdangerous=1.0.0=py37_0")
 
     out = json.loads(out)
-    assert set(out.keys()) == {"numpy=1.11.0=py35_0"}
-    assert len(out["numpy=1.11.0=py35_0"]) == 1
-    assert isinstance(out["numpy=1.11.0=py35_0"], list)
+    assert set(out.keys()) == {"itsdangerous=1.0.0=py37_0"}
+    assert len(out["itsdangerous=1.0.0=py37_0"]) == 1
+    assert isinstance(out["itsdangerous=1.0.0=py37_0"], list)
 
-    out, err, rc = run_command(Commands.INFO, "--json", "numpy")
+    out, err, rc = run_command(Commands.INFO, "--json", "itsdangerous")
 
     out = json.loads(out)
-    assert set(out.keys()) == {"numpy"}
-    assert len(out["numpy"]) > 1
-    assert isinstance(out["numpy"], list)
+    assert set(out.keys()) == {"itsdangerous"}
+    assert len(out["itsdangerous"]) > 1
+    assert isinstance(out["itsdangerous"], list)
 
 
 @pytest.mark.skipif(True, reason="only temporary")
@@ -64,9 +64,9 @@ def test_get_info_dict(cli_install_mock):
     # This test patches conda.cli.install.install to throw an artificial exception.
     # What we're looking for here is the proper behavior for how error reports work with
     # collecting `conda info` in this situation.
-    with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
-        out, err, rc = run_command(Commands.CREATE, "-n blargblargblarg blarg --dry-run --json",
-                                   use_exception_handler=True)
+    with env_var('CONDA_REPORT_ERRORS', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        out, err, _ = run_command(Commands.CREATE, "-n", "blargblargblarg", "blarg", "--dry-run", "--json",
+                                  use_exception_handler=True)
         assert cli_install_mock.call_count == 1
         sys.stdout.write(out)
         sys.stderr.write(err)
@@ -74,8 +74,8 @@ def test_get_info_dict(cli_install_mock):
         json_obj = json.loads(out)
         assert json_obj['conda_info']['conda_version']
 
-        out, err, rc = run_command(Commands.CREATE, "-n blargblargblarg blarg --dry-run",
-                                   use_exception_handler=True)
+        out, err, _ = run_command(Commands.CREATE, "-n", "blargblargblarg", "blarg", "--dry-run",
+                                  use_exception_handler=True)
         sys.stderr.write(out)
         sys.stderr.write(err)
         assert "conda info could not be constructed" not in err

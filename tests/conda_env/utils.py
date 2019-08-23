@@ -1,7 +1,6 @@
 from argparse import ArgumentParser
 from contextlib import contextmanager
 from tempfile import mkdtemp
-from shlex import split
 
 from conda.gateways.disk.delete import rm_rf
 
@@ -10,6 +9,7 @@ from conda_env.cli.main_create import configure_parser as create_configure_parse
 from conda_env.cli.main_update import configure_parser as update_configure_parser
 from conda_env.cli.main_export import configure_parser as export_configure_parser
 
+from conda.utils import massage_arguments
 
 class Commands:
     CREATE = "create"
@@ -24,10 +24,6 @@ parser_config = {
 }
 
 
-def escape_for_winpath(p):
-    return p.replace('\\', '\\\\')
-
-
 @contextmanager
 def make_temp_envs_dir():
     envs_dir = mkdtemp()
@@ -38,12 +34,12 @@ def make_temp_envs_dir():
 
 
 def run_command(command, env_name, *arguments):
+    arguments = massage_arguments(arguments)
+    args = [command, "-n", env_name, "-f"] + arguments
+
     p = ArgumentParser()
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     parser_config[command](sub_parsers)
+    args = p.parse_args(args)
 
-    arguments = list(map(escape_for_winpath, arguments))
-    command_line = "{0} -n {1} -f {2}".format(command, env_name, " ".join(arguments))
-
-    args = p.parse_args(split(command_line))
     do_call_conda_env(args, p)

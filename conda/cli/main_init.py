@@ -37,7 +37,6 @@ def execute(args, parser):
     if args.dev:
         assert len(selected_shells) == 1, "--dev can only handle one shell at a time right now"
         shell = selected_shells[0]
-        # assert shell == 'bash'
         return initialize_dev(shell)
 
     else:
@@ -49,4 +48,4 @@ def execute(args, parser):
 
         anaconda_prompt = on_win and args.anaconda_prompt
         return initialize(context.conda_prefix, selected_shells, for_user, args.system,
-                          anaconda_prompt)
+                          anaconda_prompt, args.reverse)

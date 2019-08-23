@@ -182,9 +182,9 @@ def _environ_cols_windows(fp):  # pragma: no cover
 def _environ_cols_tput(*_):  # pragma: no cover
     """cygwin xterm (windows)"""
     try:
-        import shlex
-        cols = int(subprocess.check_call(shlex.split('tput cols')))
-        # rows = int(subprocess.check_call(shlex.split('tput lines')))
+        from conda._vendor.auxlib.compat import shlex_split_unicode
+        cols = int(subprocess.check_call(shlex_split_unicode('tput cols')))
+        # rows = int(subprocess.check_call(shlex_split_unicode('tput lines')))
         return cols
     except:
         pass

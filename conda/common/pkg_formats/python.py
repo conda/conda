@@ -17,6 +17,7 @@ import re
 import sys
 import warnings
 
+from ... import CondaError
 from ..compat import PY2, StringIO, itervalues, odict, open, string_types
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
@@ -48,7 +49,7 @@ PARTIAL_PYPI_SPEC_PATTERN = re.compile(r'''
     \s?
     (\[(?P<extras>.*)\])?
     \s?
-    (?P<constraints>\(? \s? ([\w\d<>=!~,\s\.\*]*) \s? \)? )?
+    (?P<constraints>\(? \s? ([\w\d<>=!~,\s\.\*+-]*) \s? \)? )?
     \s?
 ''', re.VERBOSE | re.IGNORECASE)
 PY_FILE_RE = re.compile(r'^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$')
@@ -853,6 +854,7 @@ def parse_specification(spec):
         if const.startswith('(') and const.endswith(')'):
             # Remove parens
             const = const[1:-1]
+        const = const.replace("-", ".")
 
     return PySpec(name=name, extras=extras, constraints=const, marker=marker, url=url)
 
@@ -912,7 +914,14 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
         egg_info_fnames = ()
 
     if egg_info_fnames:
-        assert len(egg_info_fnames) == 1, (egg_link_file, egg_info_fnames)
+        if len(egg_info_fnames) != 1:
+            raise CondaError(
+                    "Expected exactly one `egg-info` directory in '{}', via egg-link '{}'."
+                    " Instead found: {}.  These are often left over from "
+                    "legacy operations that did not clean up correctly.  Please "
+                    "remove all but one of these.".format(egg_link_contents,
+                                                          egg_link_file, egg_info_fnames))
+
         egg_info_full_path = join(egg_link_contents, egg_info_fnames[0])
 
         if isdir(egg_info_full_path):

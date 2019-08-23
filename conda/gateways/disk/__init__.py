@@ -94,4 +94,9 @@ def mkdir_p_sudo_safe(path):
     if not on_win:
         # set newly-created directory permissions to 02775
         # https://github.com/conda/conda/issues/6610#issuecomment-354478489
-        os.chmod(path, 0o2775)
+        try:
+            os.chmod(path, 0o2775)
+        except (OSError, IOError) as e:
+            log.trace("Failed to set permissions to 2775 on %s (%d %d)",
+                      path, e.errno, errorcode[e.errno])
+            pass

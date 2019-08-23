@@ -7,14 +7,15 @@ from unittest import TestCase
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import context, reset_context
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems
-from conda.common.io import env_var
-from conda.core.index import check_whitelist, get_index, get_reduced_index
+from conda.common.io import env_vars
+from conda.core.index import check_whitelist, get_index, get_reduced_index, _supplement_index_with_system
 from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
+from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
-from tests.core.test_repodata import platform_in_record
+from tests.core.test_subdir_data import platform_in_record
 
 try:
     from unittest.mock import patch
@@ -23,15 +24,13 @@ except ImportError:
 
 log = getLogger(__name__)
 
-
 def test_check_whitelist():
-    # get_index(channel_urls=(), prepend=True, platform=None, use_local=False, use_cache=False, unknown=None, prefix=None)
     whitelist = (
         'defaults',
         'conda-forge',
         'https://beta.conda.anaconda.org/conda-test'
     )
-    with env_var('CONDA_WHITELIST_CHANNELS', ','.join(whitelist), reset_context):
+    with env_vars({'CONDA_WHITELIST_CHANNELS': ','.join(whitelist)}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with pytest.raises(ChannelNotAllowed):
             get_index(("conda-canary",))
 
@@ -44,6 +43,15 @@ def test_check_whitelist():
 
     check_whitelist(("conda-canary",))
 
+
+def test_supplement_index_with_system():
+    index = {}
+    with env_vars({'CONDA_OVERRIDE_CUDA': '3.2'}):
+        _supplement_index_with_system(index)
+
+    cuda_pkg = next(iter(_ for _ in index if _.name == '__cuda'))
+    assert cuda_pkg.version == '3.2'
+    assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
 @pytest.mark.integration
@@ -73,4 +81,4 @@ class ReducedIndexTests(TestCase):
 
     def test_basic_get_reduced_index(self):
         get_reduced_index(None, (Channel('defaults'), Channel('conda-test')), context.subdirs,
-                          (MatchSpec('flask'), ))
+                          (MatchSpec('flask'), ), 'repodata.json')

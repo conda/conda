@@ -1,36 +1,30 @@
-============================================
+===========================================
 Using the .condarc conda configuration file
-============================================
+===========================================
+
+.. toctree::
 
 .. contents::
    :local:
-   :depth: 2
-
+   :depth: 1
 
 .. _config-overview:
 
 Overview
 ========
 
+
 The conda configuration file, ``.condarc``, is an optional
 runtime configuration file that allows advanced users to
 configure various aspects of conda, such as which channels it
-searches for packages, proxy settings and environment
+searches for packages, proxy settings, and environment
 directories.
 
-The ``.condarc`` file is not included by default, but it is
-automatically created in your home directory the first time you
-run the ``conda config`` command.
+.. note::
 
-A ``.condarc`` file may also be located in the root environment,
-in which case it overrides any in the home directory.
-
-NOTE: A ``.condarc`` file can also be used in an
-administrator-controlled installation to override the users’
-configuration. See :doc:`admin-multi-user-install`.
-
-The ``.condarc`` configuration file follows simple
-`YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
+   A ``.condarc`` file can also be used in an
+   administrator-controlled installation to override the users’
+   configuration. See :doc:`admin-multi-user-install`.
 
 The ``.condarc`` file can change many parameters, including:
 
@@ -48,16 +42,36 @@ The ``.condarc`` file can change many parameters, including:
 
 * Default packages or features to include in new environments.
 
-To create or modify a ``.condarc`` file, use
-the ``conda config`` command or use a text editor to create a
-new file named ``.condarc`` and save it to your user home
-directory or root directory.
+Creating and editing
+====================
+
+The ``.condarc`` file is not included by default, but it is
+automatically created in your home directory the first time you
+run the ``conda config`` command. To create or modify a ``.condarc``
+file, open Anaconda Prompt or a terminal and enter the
+``conda config`` command.
+
+The ``.condarc`` configuration file follows simple
+`YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
 
 EXAMPLE:
 
 .. code-block:: yaml
 
   conda config --add channels conda-forge
+
+Alternatively, you can open a text editor such as Notepad
+on Windows, TextEdit on MacOS, or VS Code. Name the new file
+``.condarc`` and save it to your user home directory or root
+directory. To edit the ``.condarc`` file, open it from your
+home or root directory and make edits in the same way you would
+with any other text file. If the ``.condarc`` file is in the root
+environment, it will override any in the home directory.
+
+You can find information about your ``.condarc`` file by typing
+``conda info`` in your terminal or Anaconda Prompt.
+This will give you information about your ``.condarc`` file,
+including where it is located.
 
 You can also download a :doc:`sample .condarc file
 <sample-condarc>` to edit in your editor and save to your user
@@ -71,16 +85,36 @@ EXAMPLE: To set the auto_update_conda option to ``False``, run::
   conda config --set auto_update_conda False
 
 For a complete list of conda config commands, see the
-:doc:`command reference <../../commands/conda-config>`. The same list
+:doc:`command reference <../../commands/config>`. The same list
 is available at the terminal or Anaconda Prompt by running
 ``conda config --help``.
 
-TIP: Conda supports :doc:`tab completion <enable-tab-completion>`
-with external packages instead of internal configuration.
+.. tip::
+
+   Conda supports :doc:`tab completion <enable-tab-completion>`
+   with external packages instead of internal configuration.
+
+Conda supports a wide range of configuration options. This page
+gives a non-exhaustive list of the most frequently used options and
+their usage. For a complete list of all available options for your
+version of conda, use the ``conda config --describe`` command.
 
 
 General configuration
 =====================
+
+* :ref:`config-channels`
+* :ref:`allow-other-channels`
+* :ref:`default-channels`
+* :ref:`auto-update-conda`
+* :ref:`always-yes`
+* :ref:`show-channel-urls`
+* :ref:`change-command-prompt`
+* :ref:`add-pip-python-dependency`
+* :ref:`use-pip`
+* :ref:`config-proxy`
+* :ref:`SSL_verification`
+* :ref:`offline-mode-only`
 
 .. _config-channels:
 
@@ -116,6 +150,7 @@ path may be::
 
   ~/miniconda3/envs/flowers/.condarc
 
+.. _allow-other-channels:
 
 Allow other channels (allow_other_channels)
 -------------------------------------------
@@ -144,6 +179,9 @@ If the system ``.condarc`` file specifies a channel_alias,
 it overrides any channel aliases set in a user's ``.condarc``
 file. See :ref:`channel-alias`.
 
+
+.. _default-channels:
+
 Default channels (default_channels)
 -----------------------------------
 
@@ -159,6 +197,8 @@ This is especially useful for air gap and enterprise installations:
     - http://some.custom/channel
     - file:///some/local/directory
 
+.. _auto-update-conda:
+
 Update conda automatically (auto_update_conda)
 ----------------------------------------------
 
@@ -173,6 +213,7 @@ EXAMPLE:
 
   auto_update_conda: False
 
+.. _always-yes:
 
 Always yes (always_yes)
 -----------------------
@@ -187,6 +228,7 @@ EXAMPLE:
 
   always_yes: True
 
+.. _show-channel-urls:
 
 Show channel URLs (show_channel_urls)
 -------------------------------------
@@ -200,6 +242,7 @@ EXAMPLE:
 
   show_channel_urls: True
 
+.. _change-command-prompt:
 
 Change command prompt (changeps1)
 ---------------------------------
@@ -213,6 +256,7 @@ EXAMPLE:
 
   changeps1: False
 
+.. _add-pip-python-dependency:
 
 Add pip as Python dependency (add_pip_as_python_dependency)
 -----------------------------------------------------------
@@ -227,6 +271,7 @@ EXAMPLE:
 
   add_pip_as_python_dependency: False
 
+.. _use-pip:
 
 Use pip (use_pip)
 -----------------
@@ -303,6 +348,7 @@ which can be used to verify SSL connections:
 
   ssl_verify: corp.crt
 
+.. _offline-mode-only:
 
 Offline mode only (offline)
 ---------------------------
@@ -319,7 +365,17 @@ EXAMPLE:
 
 Advanced configuration
 ======================
+* :ref:`disallow-soft-linking`
+* :ref:`set-ch-alias`
+* :ref:`config-add-default-pkgs`
+* :ref:`track-features`
+* :ref:`disable-updating`
+* :ref:`disallow-install`
+* :ref:`add-anaconda-token`
+* :ref:`specify-env-directories`
+* :ref:`specify-pkg-directories`
 
+.. _disallow-soft-linking:
 
 Disallow soft-linking (allow_softlinks)
 ---------------------------------------
@@ -406,6 +462,7 @@ EXAMPLE:
     - ipython
     - scipy=0.15.0
 
+.. _track-features:
 
 Track features (track_features)
 -------------------------------
@@ -420,6 +477,8 @@ EXAMPLE:
 
   track_features:
     - mkl
+
+.. _disable-updating:
 
 Disable updating of dependencies (update_dependencies)
 ------------------------------------------------------
@@ -438,17 +497,20 @@ set update_dependencies to ``True``:
 
    update_dependencies: False
 
-NOTE: Conda still ensures that dependency specifications are
-satisfied. Thus, some dependencies may still be updated or,
-conversely, this may prevent packages given at the command line
-from being updated to their latest versions. You can always
-specify versions at the command line to force conda to install a
-given version, such as ``conda install numpy=1.9.3``.
+.. note::
+
+   Conda still ensures that dependency specifications are
+   satisfied. Thus, some dependencies may still be updated or,
+   conversely, this may prevent packages given at the command line
+   from being updated to their latest versions. You can always
+   specify versions at the command line to force conda to install a
+   given version, such as ``conda install numpy=1.9.3``.
 
 To avoid updating only specific packages in an environment, a
 better option may be to pin them. For more information, see
 :ref:`pinning-packages`.
 
+.. _disallow-install:
 
 Disallow installation of specific packages (disallow)
 -----------------------------------------------------
@@ -463,6 +525,7 @@ EXAMPLE:
   disallow:
     - anaconda
 
+.. _add-anaconda-token:
 
 Add Anaconda.org token to automatically see private packages (add_anaconda_token)
 ---------------------------------------------------------------------------------
@@ -482,10 +545,13 @@ EXAMPLE:
 
   add_anaconda_token: False
 
-NOTE: Even when set to ``True``, this setting is enabled only if
-the Anaconda command-line client is installed and you are
-logged in with the ``anaconda login`` command.
+.. note::
 
+   Even when set to ``True``, this setting is enabled only if
+   the Anaconda command-line client is installed and you are
+   logged in with the ``anaconda login`` command.
+
+.. _specify-env-directories:
 
 Specify environment directories (envs_dirs)
 -------------------------------------------
@@ -515,6 +581,7 @@ The CONDA_ENVS_PATH environment variable overwrites this setting:
 * For Windows:
   ``set CONDA_ENVS_PATH=C:\Users\joe\envs;C:\Anaconda\envs``
 
+.. _specify-pkg-directories:
 
 Specify package directories (pkgs_dirs)
 ---------------------------------------
@@ -541,6 +608,23 @@ The CONDA_PKGS_DIRS environment variable overwrites this setting:
 Conda build configuration
 =========================
 
+:ref:`specify-root-dir`
+:ref:`specify-output-folder`
+:ref:`auto-upload`
+:ref:`anaconda-token`
+:ref:`quiet`
+:ref:`filename-hashing`
+:ref:`no-verify`
+:ref:`set-build-id`
+:ref:`skip-existing`
+:ref:`include-recipe`
+:ref:`disable-activation`
+:ref:`long-test-prefix`
+:ref:`pypi-upload-settings`
+:ref:`pypi-repository`
+
+
+.. _specify-root-dir:
 
 Specify conda build output root directory (root-dir)
 ----------------------------------------------------
@@ -559,6 +643,8 @@ EXAMPLE:
       root-dir: ~/conda-builds
 
 
+.. _specify-output-folder:
+
 Specify conda build build folder (conda-build 3.16.3+) (output_folder)
 ----------------------------------------------------------------------
 
@@ -571,6 +657,7 @@ the root build directory (``root-dir``).
    conda-build:
        output_folder: conda-bld
 
+.. _auto-upload:
 
 Automatically upload conda build packages to Anaconda.org (anaconda_upload)
 ---------------------------------------------------------------------------
@@ -584,6 +671,7 @@ EXAMPLE:
 
   anaconda_upload: True
 
+.. _anaconda-token:
 
 Token to be used for Anaconda.org uploads (conda-build 3.0+) (anaconda_token)
 -----------------------------------------------------------------------------
@@ -598,6 +686,7 @@ anaconda_upload.
      conda-build:
          anaconda_token: gobbledygook
 
+.. _quiet:
 
 Limit build output verbosity (conda-build 3.0+) (quiet)
 -------------------------------------------------------
@@ -610,6 +699,7 @@ more verbosity use the CLI flag ``--debug``.
    conda-build:
        quiet: true
 
+.. _filename-hashing:
 
 Disable filename hashing (conda-build 3.0+) (filename_hashing)
 --------------------------------------------------------------
@@ -623,22 +713,27 @@ with the following config entry:
    conda-build:
        filename_hashing: false
 
-NOTE: conda-build does no checking when clobbering packages. If you
-utilize conda-build 3's build matrices with a build configuration that is not
-reflected in the build string, packages will be missing due to clobbering.
+.. note::
 
+   Conda-build does no checking when clobbering packages. If you
+   utilize conda-build 3's build matrices with a build configuration that is not
+   reflected in the build string, packages will be missing due to clobbering.
+
+.. _no-verify:
 
 Disable recipe and package verification (conda-build 3.0+) (no_verify)
 ----------------------------------------------------------------------
 
-By default, conda-build uses conda-verify to ensure that your recipe and package
-meet some minimum sanity checks. You can disable these:
+By default, conda-build uses conda-verify to ensure that your recipe
+and package meet some minimum sanity checks. You can disable these:
 
 .. code-block:: yaml
 
    conda-build:
        no_verify: true
 
+
+.. _set-build-id:
 
 Disable per-build folder creation (conda-build 3.0+) (set_build_id)
 -------------------------------------------------------------------
@@ -654,6 +749,7 @@ setting described above, but fall back to this as necessary:
    conda-build:
        set_build_id: false
 
+.. _skip-existing:
 
 Skip building packages that already exist (conda-build 3.0+) (skip_existing)
 ----------------------------------------------------------------------------
@@ -667,6 +763,7 @@ its outputs are available on your currently configured channels.
    conda-build:
        skip_existing: true
 
+.. _include-recipe:
 
 Omit recipe from package (conda-build 3.0+) (include_recipe)
 ------------------------------------------------------------
@@ -679,14 +776,17 @@ If this contains sensitive or proprietary information, you can omit the recipe.
    conda-build:
        include_recipe: false
 
-NOTE: If you do not include the recipe, you cannot use conda-build to test
-the package after the build completes. This means that you cannot split your
-build and test steps across two distinct CLI commands (``conda build --notest
-recipe`` and ``conda build -t recipe``). If you need to omit the recipe and
-split your steps, your only option is to remove the recipe files from the
-tarball artifacts after your test step. Conda-build does not provide tools for
-doing that.
+.. note::
 
+   If you do not include the recipe, you cannot use conda-build to test
+   the package after the build completes. This means that you cannot split your
+   build and test steps across two distinct CLI commands (``conda build --notest
+   recipe`` and ``conda build -t recipe``). If you need to omit the recipe and
+   split your steps, your only option is to remove the recipe files from the
+   tarball artifacts after your test step. Conda-build does not provide tools for
+   doing that.
+
+.. _disable-activation:
 
 Disable activation of environments during build/test (conda-build 3.0+) (activate)
 ----------------------------------------------------------------------------------
@@ -702,6 +802,7 @@ recommended, but some people prefer this.
    conda-build:
        activate: false
 
+.. _long-test-prefix:
 
 Disable long prefix during test (conda-build 3.16.3+) (long_test_prefix)
 ------------------------------------------------------------------------
@@ -717,6 +818,7 @@ can disable the long test prefix. This is not recommended.
 
 The default is ``true``.
 
+.. _pypi-upload-settings:
 
 PyPI upload settings (conda-build 3.0+) (pypirc)
 ------------------------------------------------
@@ -730,6 +832,7 @@ setting using credentials from this file path.
    conda-build:
        pypirc: ~/.pypirc
 
+.. _pypi-repository:
 
 PyPI repository to upload to (conda-build 3.0+) (pypi_repository)
 -----------------------------------------------------------------
@@ -773,10 +876,11 @@ environment variable, like so:
 
 
 Obtaining information from the .condarc file
-==============================================
+============================================
 
-NOTE: It may be necessary to add the "force" option ``-f`` to
-the following commands.
+.. note::
+   It may be necessary to add the "force" option ``-f`` to
+   the following commands.
 
 To get all keys and their values:
 

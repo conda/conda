@@ -19,7 +19,7 @@ import sys
 from ._vendor.boltons.setutils import IndexedSet
 from ._vendor.toolz import concatv
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
-from .base.context import context, reset_context
+from .base.context import context, stack_context_default
 from .common.compat import itervalues, text_type
 from .common.io import env_vars, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
@@ -40,6 +40,7 @@ from .utils import human_bytes
 
 log = getLogger(__name__)
 
+# TODO: Remove conda/plan.py.  This module should be almost completely deprecated now.
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
@@ -245,7 +246,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         print("\nThe following empty environments will be CREATED:\n")
         print(actions['PREFIX'])
 
-    print()
+    print('')
 
 
 def add_unlink(actions, dist):
@@ -441,7 +442,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     with env_vars({
         'CONDA_ALLOW_NON_CHANNEL_URLS': 'true',
         'CONDA_SOLVER_IGNORE_TIMESTAMPS': 'false',
-    }, reset_context):
+    }, stack_callback=stack_context_default):
         from os.path import basename
         from ._vendor.boltons.setutils import IndexedSet
         from .core.solve import Solver

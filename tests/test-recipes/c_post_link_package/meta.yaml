@@ -1,0 +1,13 @@
+package:
+  name: c_post_link_package
+  version: 1.0.0
+
+build:
+  number: 0
+
+requirements:
+  run:
+    - b_post_link_package
+
+about:
+  summary: Test that post link scripts get run last

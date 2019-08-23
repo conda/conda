@@ -11,10 +11,11 @@ from . import common
 from .common import check_non_admin
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME, UpdateModifier
+from ..base.constants import ROOT_ENV_NAME, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
-from ..common.compat import on_win, text_type
-from ..common.path import paths_equal
+from ..common.compat import text_type
+from ..common.constants import NULL
+from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
 from ..core.solve import DepsModifier, Solver
@@ -22,7 +23,8 @@ from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSy
                           CondaValueError, DirectoryNotACondaEnvironmentError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
                           NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
-                          TooManyArgumentsError, UnsatisfiableError)
+                          TooManyArgumentsError, UnsatisfiableError,
+                          SpecsConfigurationConflictError)
 from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..misc import clone_env, explicit, touch_nonadmin
@@ -48,9 +50,9 @@ def check_prefix(prefix, json=False):
         raise CondaValueError(error, json)
 
     if ' ' in prefix:
-        stderrlog.warn("WARNING: A space was detected in your requested environment path\n"
-                       "'%s'\n"
-                       "Spaces in paths can sometimes be problematic." % prefix)
+        stderrlog.warning("WARNING: A space was detected in your requested environment path\n"
+                          "'%s'\n"
+                          "Spaces in paths can sometimes be problematic." % prefix)
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
@@ -82,39 +84,16 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 def print_activate(env_name_or_prefix):  # pragma: no cover
     if not context.quiet and not context.json:
-        if 'CONDA_SHLVL' in os.environ or os.path.split(os.environ.get('SHELL', ''))[-1] == 'fish':
-            message = dals("""
-            #
-            # To activate this environment, use
-            #
-            #     $ conda activate %s
-            #
-            # To deactivate an active environment, use
-            #
-            #     $ conda deactivate
-            """) % env_name_or_prefix
-        elif on_win:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > activate %s
-            #
-            # To deactivate an active environment, use:
-            # > deactivate
-            #
-            # * for power-users using bash, you must source
-            #
-            """) % env_name_or_prefix
-        else:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > source activate %s
-            #
-            # To deactivate an active environment, use:
-            # > source deactivate
-            #
-            """) % env_name_or_prefix
+        message = dals("""
+        #
+        # To activate this environment, use
+        #
+        #     $ conda activate %s
+        #
+        # To deactivate an active environment, use
+        #
+        #     $ conda deactivate
+        """) % env_name_or_prefix
         print(message)  # TODO: use logger
 
 
@@ -131,10 +110,16 @@ def install(args, parser, command='install'):
     """
     context.validate_configuration()
     check_non_admin()
+    # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
+    #    because it deduplicates records that exist as both formats.  Forcing this to
+    #    repodata.json ensures that .tar.bz2 files are available
+    if context.use_only_tar_bz2:
+        args.repodata_fns = ('repodata.json', )
 
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
+    isremove = bool(command == 'remove')
     if newenv:
         common.ensure_name_or_prefix(args, command)
     prefix = context.target_prefix
@@ -189,7 +174,7 @@ def install(args, parser, command='install'):
         'use_local': args.use_local
     }
 
-    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
+    num_cp = sum(is_package_file(s) for s in args_packages)
     if num_cp:
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not context.quiet)
@@ -201,7 +186,11 @@ def install(args, parser, command='install'):
     specs = []
     if args.file:
         for fpath in args.file:
-            specs.extend(common.specs_from_url(fpath, json=context.json))
+            try:
+                specs.extend(common.specs_from_url(fpath, json=context.json))
+            except UnicodeError:
+                raise CondaError("Error reading file, file should be a text file containing"
+                                 " packages \nconda create --help for details")
         if '@EXPLICIT' in specs:
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
@@ -235,39 +224,96 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
-    try:
-        if isinstall and args.revision:
-            index = get_index(channel_urls=index_args['channel_urls'],
-                              prepend=index_args['prepend'], platform=None,
-                              use_local=index_args['use_local'], use_cache=index_args['use_cache'],
-                              unknown=index_args['unknown'], prefix=prefix)
-            unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
-        else:
-            if isupdate:
-                deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
+    repodata_fns = args.repodata_fns
+    if not repodata_fns:
+        repodata_fns = context.repodata_fns
+    if REPODATA_FN not in repodata_fns:
+        repodata_fns.append(REPODATA_FN)
+
+    args_set_update_modifier = hasattr(args, "update_modifier") and args.update_modifier != NULL
+    # This helps us differentiate between an update, the --freeze-installed option, and the retry
+    # behavior in our initial fast frozen solve
+    _should_retry_unfrozen = (not args_set_update_modifier or args.update_modifier not in (
+        UpdateModifier.FREEZE_INSTALLED,
+        UpdateModifier.UPDATE_SPECS)) and not newenv
+
+    for repodata_fn in repodata_fns:
+        try:
+            if isinstall and args.revision:
+                index = get_index(channel_urls=index_args['channel_urls'],
+                                  prepend=index_args['prepend'], platform=None,
+                                  use_local=index_args['use_local'],
+                                  use_cache=index_args['use_cache'],
+                                  unknown=index_args['unknown'], prefix=prefix,
+                                  repodata_fn=repodata_fn)
+                unlink_link_transaction = revert_actions(prefix, get_revision(args.revision),
+                                                         index)
             else:
+                solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
+                                repodata_fn=repodata_fn, command=args.cmd)
+                update_modifier = context.update_modifier
+                if (isinstall or isremove) and args.update_modifier == NULL:
+                    update_modifier = UpdateModifier.FREEZE_INSTALLED
                 deps_modifier = context.deps_modifier
-            solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
-            unlink_link_transaction = solver.solve_for_transaction(
-                deps_modifier=deps_modifier,
-                force_reinstall=context.force_reinstall or context.force,
-            )
+                if isupdate:
+                    deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
 
-    except ResolvePackageNotFound as e:
-        channels_urls = tuple(calculate_channel_urls(
-            channel_urls=index_args['channel_urls'],
-            prepend=index_args['prepend'],
-            platform=None,
-            use_local=index_args['use_local'],
-        ))
-        raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+                unlink_link_transaction = solver.solve_for_transaction(
+                    deps_modifier=deps_modifier,
+                    update_modifier=update_modifier,
+                    force_reinstall=context.force_reinstall or context.force,
+                    should_retry_solve=(_should_retry_unfrozen or repodata_fn != repodata_fns[-1]),
+                )
+            # we only need one of these to work.  If we haven't raised an exception,
+            #   we're good.
+            break
 
-    except (UnsatisfiableError, SystemExit) as e:
-        # Unsatisfiable package specifications/no such revision/import error
-        if e.args and 'could not import' in e.args[0]:
-            raise CondaImportError(text_type(e))
-        raise
+        except (ResolvePackageNotFound, PackagesNotFoundError) as e:
+            # end of the line.  Raise the exception
+            if repodata_fn == repodata_fns[-1]:
+                # PackagesNotFoundError is the only exception type we want to raise.
+                #    Over time, we should try to get rid of ResolvePackageNotFound
+                if isinstance(e, PackagesNotFoundError):
+                    raise e
+                else:
+                    channels_urls = tuple(calculate_channel_urls(
+                        channel_urls=index_args['channel_urls'],
+                        prepend=index_args['prepend'],
+                        platform=None,
+                        use_local=index_args['use_local'],
+                    ))
+                    # convert the ResolvePackageNotFound into PackagesNotFoundError
+                    raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
+        except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+            # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
+            if not hasattr(args, 'update_modifier'):
+                if repodata_fn == repodata_fns[-1]:
+                    raise e
+            elif _should_retry_unfrozen:
+                try:
+                    unlink_link_transaction = solver.solve_for_transaction(
+                        deps_modifier=deps_modifier,
+                        update_modifier=UpdateModifier.UPDATE_SPECS,
+                        force_reinstall=context.force_reinstall or context.force,
+                        should_retry_solve=(repodata_fn != repodata_fns[-1]),
+                    )
+                except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+                    # Unsatisfiable package specifications/no such revision/import error
+                    if e.args and 'could not import' in e.args[0]:
+                        raise CondaImportError(text_type(e))
+                    # we want to fall through without raising if we're not at the end of the list
+                    #    of fns.  That way, we fall to the next fn.
+                    if repodata_fn == repodata_fns[-1]:
+                        raise e
+            elif repodata_fn != repodata_fns[-1]:
+                continue  # if we hit this, we should retry with next repodata source
+            else:
+                # end of the line.  Raise the exception
+                # Unsatisfiable package specifications/no such revision/import error
+                if e.args and 'could not import' in e.args[0]:
+                    raise CondaImportError(text_type(e))
+                raise e
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 

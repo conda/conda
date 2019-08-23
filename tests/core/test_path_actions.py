@@ -385,7 +385,7 @@ class PathActionsTests(TestCase):
     #     target_full_path = join(self.prefix, test_file)
     #     mkdir_p(join(dirname(target_full_path)))
     #
-    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, stack_callback=conda_tests_ctxt_mgmt_def_pol):
     #         axns = CreateApplicationSoftlinkAction.create_actions({}, package_info, source_prefix,
     #                                                               None)
     #         assert len(axns) == 1
@@ -432,7 +432,7 @@ class PathActionsTests(TestCase):
     #     target_full_path_2 = join(self.prefix, test_file_2)
     #     mkdir_p(join(dirname(target_full_path_1)))
     #
-    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, stack_callback=conda_tests_ctxt_mgmt_def_pol):
     #         softlink_supported_test_file = join(source_prefix, PREFIX_MAGIC_FILE)
     #         from conda.gateways.disk.test import softlink_supported
     #         softlink_actually_supported = softlink_supported(softlink_supported_test_file,
@@ -503,7 +503,7 @@ class PathActionsTests(TestCase):
     #     target_full_path_2 = join(self.prefix, test_file_2)
     #     mkdir_p(join(dirname(target_full_path_1)))
     #
-    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, stack_callback=conda_tests_ctxt_mgmt_def_pol):
     #         softlink_supported_test_file = join(source_prefix, PREFIX_MAGIC_FILE)
     #         from conda.gateways.disk.test import softlink_supported
     #         softlink_actually_supported = softlink_supported(softlink_supported_test_file,

@@ -10,7 +10,7 @@ Installing on macOS
 
 #. Install:
 
-   * Miniconda---In your Terminal window, run:
+   * Miniconda---In your terminal window, run:
 
      .. code::
 
@@ -24,7 +24,7 @@ Installing on macOS
    can change them later.
 
 #. To make the changes take effect, close and then re-open your
-   Terminal window.
+   terminal window.
 
 #. :doc:`Test your installation <test-installation>`.
 
@@ -34,8 +34,9 @@ Installing on macOS
 Installing in silent mode
 =========================
 
-NOTE: The following instructions are for Miniconda. For Anaconda,
-substitute ``Anaconda`` for ``Miniconda`` in all of the commands.
+.. note::
+   The following instructions are for Miniconda. For Anaconda,
+   substitute ``Anaconda`` for ``Miniconda`` in all of the commands.
 
 To run the :ref:`silent installation <silent-mode-glossary>` of
 Miniconda for macOS or Linux, specify the -b and -p arguments of
@@ -51,21 +52,23 @@ EXAMPLE:
 
 .. code-block:: bash
 
-    wget https://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O ~/miniconda.sh
+    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
     bash ~/miniconda.sh -b -p $HOME/miniconda
     export PATH="$HOME/miniconda/bin:$PATH"
 
-NOTE: This sets the PATH only for the current session, not
-permanently. Trying to use conda when conda is not in your
-PATH causes errors such as "command not found."
+.. note::
+   This sets the PATH only for the current session, not
+   permanently. Trying to use conda when conda is not in your
+   PATH causes errors such as "command not found."
 
 In each new bash session, before using conda, set the PATH and
 run the activation scripts of your conda packages by running::
 
   source $HOME/miniconda/bin/activate
 
-NOTE: Replace ``$HOME/miniconda/bin/activate``
-with the path to the activate script in your conda installation.
+.. note::
+   Replace ``$HOME/miniconda/bin/activate``
+   with the path to the activate script in your conda installation.
 
 To set the PATH permanently, you can add a line to your
 ``.bashrc`` file. However, this makes it possible to use conda
@@ -80,7 +83,7 @@ EXAMPLE::
 Updating Anaconda or Miniconda
 ==============================
 
-#. Open a Terminal window.
+#. Open a terminal window.
 
 #. Navigate to the ``anaconda`` directory.
 
@@ -90,7 +93,7 @@ Updating Anaconda or Miniconda
 Uninstalling Anaconda or Miniconda
 ==================================
 
-#. Open a Terminal window.
+#. Open a terminal window.
 
 #. Remove the entire Miniconda install directory with::
 

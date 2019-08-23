@@ -3,11 +3,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES, ENOENT, EPERM
-from functools import reduce
+import codecs
+from collections import defaultdict
+from errno import EACCES, ENOENT, EPERM, EROFS
 from logging import getLogger
 from os import listdir
-from os.path import basename, dirname, join
+from os.path import basename, dirname, getsize, join
+from sys import platform
 from tarfile import ReadError
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
@@ -15,28 +17,33 @@ from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
+from ..base.constants import (CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_EXTENSION_V1,
+                              CONDA_PACKAGE_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
                              text_type, with_metaclass)
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
-from ..common.path import expand, url_to_path
+from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..exceptions import NoWritablePkgsDirError, NotWritableError
 from ..gateways.disk.create import (create_package_cache_directory, extract_tarball,
                                     write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
-                                  read_index_json_from_tarball, read_repodata_json)
+from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink,
+                                  read_index_json, read_index_json_from_tarball,
+                                  read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
 
 log = getLogger(__name__)
-
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
 
 class PackageCacheType(type):
     """
@@ -79,12 +86,13 @@ class PackageCacheData(object):
             # no directory exists, and we didn't have permissions to create it
             return
 
+        _CONDA_TARBALL_EXTENSIONS = CONDA_PACKAGE_EXTENSIONS
         for base_name in self._dedupe_pkgs_dir_contents(listdir(self.pkgs_dir)):
             full_path = join(self.pkgs_dir, base_name)
             if islink(full_path):
                 continue
             elif (isdir(full_path) and isfile(join(full_path, 'info', 'index.json'))
-                  or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
+                  or isfile(full_path) and full_path.endswith(_CONDA_TARBALL_EXTENSIONS)):
                 package_cache_record = self._make_single_record(base_name)
                 if package_cache_record:
                     _package_cache_records[package_cache_record] = package_cache_record
@@ -211,8 +219,7 @@ class PackageCacheData(object):
     @classmethod
     def tarball_file_in_cache(cls, tarball_path, md5sum=None, exclude_caches=()):
         tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
-        pc_entry = first(cls(pkgs_dir).tarball_file_in_this_cache(tarball_full_path,
-                                                                  md5sum)
+        pc_entry = first(cls(pkgs_dir).tarball_file_in_this_cache(tarball_full_path, md5sum)
                          for pkgs_dir in context.pkgs_dirs
                          if pkgs_dir not in exclude_caches)
         return pc_entry
@@ -222,12 +229,12 @@ class PackageCacheData(object):
         cls._cache_.clear()
 
     def tarball_file_in_this_cache(self, tarball_path, md5sum=None):
-        tarball_full_path, md5sum = self._clean_tarball_path_and_get_md5sum(tarball_path,
-                                                                            md5sum=md5sum)
+        tarball_full_path, md5sum = self._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
         tarball_basename = basename(tarball_full_path)
-        pc_entry = first((pc_entry for pc_entry in itervalues(self)),
-                         key=lambda pce: pce.tarball_basename == tarball_basename
-                                         and pce.md5 == md5sum)  # NOQA
+        pc_entry = first(
+            (pc_entry for pc_entry in itervalues(self)),
+            key=lambda pce: pce.tarball_basename == tarball_basename and pce.md5 == md5sum
+        )
         return pc_entry
 
     @property
@@ -282,12 +289,12 @@ class PackageCacheData(object):
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
     def _make_single_record(self, package_filename):
-        if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
-            package_filename += CONDA_TARBALL_EXTENSION
+        # delay-load this to help make sure libarchive can be found
+        from conda_package_handling.api import InvalidArchiveError
 
         package_tarball_full_path = join(self.pkgs_dir, package_filename)
         log.trace("adding to package cache %s", package_tarball_full_path)
-        extracted_package_dir = package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
+        extracted_package_dir, pkg_ext = strip_pkg_extension(package_tarball_full_path)
 
         # try reading info/repodata_record.json
         try:
@@ -298,8 +305,8 @@ class PackageCacheData(object):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (IOError, OSError, JSONDecodeError) as e:
-            # IOError / OSError if info/repodata_record.json doesn't exists
+        except (EnvironmentError, JSONDecodeError, ValueError, FileNotFoundError) as e:
+            # EnvironmentError if info/repodata_record.json doesn't exists
             # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
             #   python 2.7 raises ValueError instead of JsonDecodeError
             #   ValueError("No JSON object could be decoded")
@@ -309,8 +316,8 @@ class PackageCacheData(object):
             # try reading info/index.json
             try:
                 raw_json_record = read_index_json(extracted_package_dir)
-            except (IOError, OSError, JSONDecodeError) as e:
-                # IOError / OSError if info/index.json doesn't exist
+            except (EnvironmentError, JSONDecodeError, ValueError, FileNotFoundError) as e:
+                # EnvironmentError if info/index.json doesn't exist
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
                 #   python 2.7 raises ValueError instead of JsonDecodeError
                 #   ValueError("No JSON object could be decoded")
@@ -331,7 +338,7 @@ class PackageCacheData(object):
                             rm_rf(extracted_package_dir)
                         try:
                             extract_tarball(package_tarball_full_path, extracted_package_dir)
-                        except EnvironmentError as e:
+                        except (EnvironmentError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
                                 # FileNotFoundError(2, 'No such file or directory')
                                 # At this point, we can assume the package tarball is bad.
@@ -339,9 +346,10 @@ class PackageCacheData(object):
                                 # see https://github.com/conda/conda/issues/6707
                                 rm_rf(package_tarball_full_path)
                                 rm_rf(extracted_package_dir)
+                                return None
                         try:
                             raw_json_record = read_index_json(extracted_package_dir)
-                        except (IOError, OSError, JSONDecodeError):
+                        except (IOError, OSError, JSONDecodeError, FileNotFoundError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
                             rm_rf(package_tarball_full_path)
@@ -349,7 +357,7 @@ class PackageCacheData(object):
                             return None
                     else:
                         raw_json_record = read_index_json_from_tarball(package_tarball_full_path)
-                except (EOFError, ReadError) as e:
+                except (EOFError, ReadError, FileNotFoundError, InvalidArchiveError) as e:
                     # EOFError: Compressed file ended before the end-of-stream marker was reached
                     # tarfile.ReadError: file could not be opened successfully
                     # We have a corrupted tarball. Remove the tarball so it doesn't affect
@@ -369,7 +377,9 @@ class PackageCacheData(object):
             package_cache_record = PackageCacheRecord.from_objects(
                 raw_json_record,
                 url=url,
+                fn=basename(package_tarball_full_path),
                 md5=md5,
+                size=getsize(package_tarball_full_path),
                 package_tarball_full_path=package_tarball_full_path,
                 extracted_package_dir=extracted_package_dir,
             )
@@ -381,7 +391,7 @@ class PackageCacheData(object):
                 try:
                     write_as_json_to_file(repodata_record_path, repodata_record)
                 except (IOError, OSError) as e:
-                    if e.errno in (EACCES, EPERM) and isdir(dirname(repodata_record_path)):
+                    if e.errno in (EACCES, EPERM, EROFS) and isdir(dirname(repodata_record_path)):
                         raise NotWritableError(repodata_record_path, e.errno, caused_by=e)
                     else:
                         raise
@@ -394,17 +404,21 @@ class PackageCacheData(object):
         #   only 'six-1.10.0-py35_0.tar.bz2' will be in the return contents
         if not pkgs_dir_contents:
             return []
-
-        contents = []
-
-        def _process(x, y):
-            if x + CONDA_TARBALL_EXTENSION != y:
-                contents.append(x)
-            return y
-
-        last = reduce(_process, sorted(pkgs_dir_contents))
-        _process(last, contents and contents[-1] or '')
-        return contents
+        _CONDA_TARBALL_EXTENSION_V1 = CONDA_PACKAGE_EXTENSION_V1
+        _CONDA_TARBALL_EXTENSION_V2 = CONDA_PACKAGE_EXTENSION_V2
+        _strip_pkg_extension = strip_pkg_extension
+        groups = defaultdict(set)
+        any(groups[ext].add(fn_root) for fn_root, ext in (
+            _strip_pkg_extension(fn) for fn in pkgs_dir_contents
+        ))
+        conda_extensions = groups[_CONDA_TARBALL_EXTENSION_V2]
+        tar_bz2_extensions = groups[_CONDA_TARBALL_EXTENSION_V1] - conda_extensions
+        others = groups[None] - conda_extensions - tar_bz2_extensions
+        return sorted(concatv(
+            (p + _CONDA_TARBALL_EXTENSION_V2 for p in conda_extensions),
+            (p + _CONDA_TARBALL_EXTENSION_V1 for p in tar_bz2_extensions),
+            others,
+        ))
 
 
 class UrlsData(object):
@@ -416,8 +430,8 @@ class UrlsData(object):
         self.pkgs_dir = pkgs_dir
         self.urls_txt_path = urls_txt_path = join(pkgs_dir, 'urls.txt')
         if isfile(urls_txt_path):
-            with open(urls_txt_path, 'r') as fh:
-                self._urls_data = [line.strip() for line in fh]
+            with open(urls_txt_path, 'rb') as fh:
+                self._urls_data = [line.strip().decode('utf-8') for line in fh]
                 self._urls_data.reverse()
         else:
             self._urls_data = []
@@ -429,8 +443,9 @@ class UrlsData(object):
         return iter(self._urls_data)
 
     def add_url(self, url):
-        with open(self.urls_txt_path, 'a') as fh:
-            fh.write(url + '\n')
+        with codecs.open(self.urls_txt_path, mode='ab', encoding='utf-8') as fh:
+            linefeed = '\r\n' if platform == 'win32' else '\n'
+            fh.write(url + linefeed)
         self._urls_data.insert(0, url)
 
     @memoizemethod
@@ -438,8 +453,12 @@ class UrlsData(object):
         # package path can be a full path or just a basename
         #   can be either an extracted directory or tarball
         package_path = basename(package_path)
-        if not package_path.endswith(CONDA_TARBALL_EXTENSION):
-            package_path += CONDA_TARBALL_EXTENSION
+        # NOTE: This makes an assumption that all extensionless packages came from a .tar.bz2.
+        #       That's probably a good assumption going forward, because we should now always
+        #       be recording the extension in urls.txt.  The extensionless situation should be
+        #       legacy behavior only.
+        if not package_path.endswith(CONDA_PACKAGE_EXTENSION_V1):
+            package_path += CONDA_PACKAGE_EXTENSION_V1
         return first(self, lambda url: basename(url) == package_path)
 
 
@@ -459,35 +478,54 @@ class ProgressiveFetchExtract(object):
         #   (1) already extracted, and
         #   (2) matches the md5
         # If one exists, no actions are needed.
-        md5 = pref_or_spec.get('md5')
-        if md5:
-            extracted_pcrec = next((
-                pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
-                                          for pkgs_dir in context.pkgs_dirs)
-                if pcrec.is_extracted
-            ), None)
-            if extracted_pcrec:
-                return None, None
+        sha256 = pref_or_spec.get("sha256")
+        size = pref_or_spec.get("size")
+        md5 = pref_or_spec.get("md5")
+        legacy_bz2_size = pref_or_spec.get("legacy_bz2_size")
+        legacy_bz2_md5 = pref_or_spec.get("legacy_bz2_md5")
+
+        def pcrec_matches(pcrec):
+            matches = True
+            # sha256 is overkill for things that are already in the package cache.
+            #     It's just a quick match.
+            # if sha256 is not None and pcrec.sha256 is not None:
+            #     matches = sha256 == pcrec.sha256
+            if size is not None and pcrec.get('size') is not None:
+                matches = pcrec.size in (size, legacy_bz2_size)
+            if matches and md5 is not None and pcrec.get('md5') is not None:
+                matches = pcrec.md5 in (md5, legacy_bz2_md5)
+            return matches
+
+        extracted_pcrec = next((
+            pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
+                                      for pkgs_dir in context.pkgs_dirs)
+            if pcrec.is_extracted
+        ), None)
+        if extracted_pcrec and pcrec_matches(extracted_pcrec) and extracted_pcrec.get('url'):
+            return None, None
 
         # there is no extracted dist that can work, so now we look for tarballs that
         #   aren't extracted
         # first we look in all writable caches, and if we find a match, we extract in place
         # otherwise, if we find a match in a non-writable cache, we link it to the first writable
         #   cache, and then extract
-        first_writable_cache = PackageCacheData.first_writable()
-        pcrec_from_writable_cache = next((
-            pcrec for pcrec in concat(pcache.query(pref_or_spec)
-                                      for pcache in PackageCacheData.writable_caches())
-            if pcrec.is_fetched
-        ), None)
-        if pcrec_from_writable_cache:
+        pcrec_from_writable_cache = next(
+            (pcrec for pcrec in concat(
+                pcache.query(pref_or_spec) for pcache in PackageCacheData.writable_caches()
+            ) if pcrec.is_fetched),
+            None
+        )
+        if (pcrec_from_writable_cache and pcrec_matches(pcrec_from_writable_cache) and
+                pcrec_from_writable_cache.get('url')):
             # extract in place
             extract_axn = ExtractPackageAction(
                 source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
                 target_pkgs_dir=dirname(pcrec_from_writable_cache.package_tarball_full_path),
                 target_extracted_dirname=basename(pcrec_from_writable_cache.extracted_package_dir),
                 record_or_spec=pcrec_from_writable_cache,
-                md5sum=pcrec_from_writable_cache.md5,
+                sha256=pcrec_from_writable_cache.sha256 or sha256,
+                size=pcrec_from_writable_cache.size or size,
+                md5=pcrec_from_writable_cache.md5 or md5,
             )
             return None, extract_axn
 
@@ -497,28 +535,28 @@ class ProgressiveFetchExtract(object):
             if pcrec.is_fetched
         ), None)
 
-        if pcrec_from_read_only_cache:
+        first_writable_cache = PackageCacheData.first_writable()
+        if pcrec_from_read_only_cache and pcrec_matches(pcrec_from_read_only_cache):
             # we found a tarball, but it's in a read-only package cache
             # we need to link the tarball into the first writable package cache,
             #   and then extract
-            try:
-                expected_size_in_bytes = pref_or_spec.size
-            except AttributeError:
-                expected_size_in_bytes = None
             cache_axn = CacheUrlAction(
                 url=path_to_url(pcrec_from_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
-                md5sum=md5,
-                expected_size_in_bytes=expected_size_in_bytes,
+                sha256=pcrec_from_read_only_cache.get("sha256") or sha256,
+                size=pcrec_from_read_only_cache.get("size") or size,
+                md5=pcrec_from_read_only_cache.get("md5") or md5,
             )
-            trgt_extracted_dirname = pcrec_from_read_only_cache.fn[:-len(CONDA_TARBALL_EXTENSION)]
+            trgt_extracted_dirname = strip_pkg_extension(pcrec_from_read_only_cache.fn)[0]
             extract_axn = ExtractPackageAction(
                 source_full_path=cache_axn.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_extracted_dirname=trgt_extracted_dirname,
                 record_or_spec=pcrec_from_read_only_cache,
-                md5sum=pcrec_from_read_only_cache.md5,
+                sha256=pcrec_from_read_only_cache.get("sha256") or sha256,
+                size=pcrec_from_read_only_cache.get("size") or size,
+                md5=pcrec_from_read_only_cache.get("md5") or md5,
             )
             return cache_axn, extract_axn
 
@@ -526,23 +564,23 @@ class ProgressiveFetchExtract(object):
         #   we'll have to download one; fetch and extract
         url = pref_or_spec.get('url')
         assert url
-        try:
-            expected_size_in_bytes = pref_or_spec.size
-        except AttributeError:
-            expected_size_in_bytes = None
+
         cache_axn = CacheUrlAction(
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=pref_or_spec.fn,
-            md5sum=md5,
-            expected_size_in_bytes=expected_size_in_bytes,
+            sha256=sha256,
+            size=size,
+            md5=md5,
         )
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_extracted_dirname=pref_or_spec.fn[:-len(CONDA_TARBALL_EXTENSION)],
+            target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
             record_or_spec=pref_or_spec,
-            md5sum=md5,
+            sha256=sha256,
+            size=size,
+            md5=md5,
         )
         return cache_axn, extract_axn
 
@@ -590,7 +628,7 @@ class ProgressiveFetchExtract(object):
 
         assert not context.dry_run
 
-        if not self.cache_actions or not self.extract_actions:
+        if not self.cache_actions and not self.extract_actions:
             return
 
         if not context.verbosity and not context.quiet and not context.json:
@@ -610,7 +648,7 @@ class ProgressiveFetchExtract(object):
             for prec_or_spec, prec_actions in iteritems(self.paired_actions):
                 exc = self._execute_actions(prec_or_spec, prec_actions)
                 if exc:
-                    log.debug('%r', exc, exc_info=True)
+                    log.debug('%r'.encode('utf-8'), exc, exc_info=True)
                     exceptions.append(exc)
 
         if exceptions:
@@ -635,7 +673,7 @@ class ProgressiveFetchExtract(object):
 
         progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
 
-        download_total = 0.75  # fraction of progress for download; the rest goes to extract
+        download_total = 1.0  # fraction of progress for download; the rest goes to extract
         try:
             if cache_axn:
                 cache_axn.verify()
@@ -652,10 +690,13 @@ class ProgressiveFetchExtract(object):
             if extract_axn:
                 extract_axn.verify()
 
+                # this is doing nothing right now. I'm not sure how to do any
+                #   sort of progress update with libarchive.
                 def progress_update_extract_axn(pct_completed):
                     progress_bar.update_to((1 - download_total) * pct_completed + download_total)
 
                 extract_axn.execute(progress_update_extract_axn)
+                progress_bar.update_to(1.0)
 
         except Exception as e:
             if extract_axn:
@@ -693,6 +734,6 @@ def rm_fetched(dist):
     raise NotImplementedError()
 
 
-def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
+def download(url, dst_path, session=None, md5sum=None, urlstxt=False, retries=3):
     from ..gateways.connection.download import download as gateway_download
-    gateway_download(url, dst_path, md5)
+    gateway_download(url, dst_path, md5sum)

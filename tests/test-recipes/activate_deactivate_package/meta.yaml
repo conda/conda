@@ -1,0 +1,16 @@
+package:
+  name: activate_deactivate_package
+  version: 1.0.0
+
+source:
+  path: ./src
+
+build:
+  number: 0
+  noarch: True
+  script:
+    - cp -r etc ${PREFIX}            #[not win]
+    - cp -r etc %LIBRARY_PREFIX%     #[win]
+
+about:
+  summary: Test activate and deactivate scripts effecting environment variables

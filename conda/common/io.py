@@ -4,12 +4,16 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, _base, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Executor, Future, _base, as_completed  # NOQA
 from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
-from functools import wraps
+from functools import partial, wraps
+import sys
+if sys.version_info[0] > 2:
+    # Not used at present.
+    from io import BytesIO
 from itertools import cycle
 import json
 import logging  # lgtm [py/import-and-import-from]
@@ -17,11 +21,10 @@ from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join
 import signal
-import sys
-from threading import Event, Thread
+from threading import Event, Thread, Lock
 from time import sleep, time
 
-from .compat import StringIO, iteritems, on_win
+from .compat import StringIO, iteritems, on_win, encode_environment
 from .constants import NULL
 from .path import expand
 from .._vendor.auxlib.decorators import memoizemethod
@@ -114,35 +117,21 @@ class CaptureTarget(Enum):
 
 
 @contextmanager
-def env_var(name, value, callback=None):
-    # NOTE: will likely want to call reset_context() when using this function, so pass
-    #       it as callback
-    name, value = str(name), str(value)
-    saved_env_var = os.environ.get(name)
-    try:
+def env_vars(var_map=None, callback=None, stack_callback=None):
+
+    if var_map is None:
+        var_map = {}
+
+    new_var_map = encode_environment(var_map)
+    saved_vars = {}
+    for name, value in iteritems(new_var_map):
+        saved_vars[name] = os.environ.get(name, NULL)
         os.environ[name] = value
-        if callback:
-            callback()
-        yield
-    finally:
-        if saved_env_var:
-            os.environ[name] = saved_env_var
-        else:
-            del os.environ[name]
-        if callback:
-            callback()
-
-
-@contextmanager
-def env_vars(var_map, callback=None):
-    # NOTE: will likely want to call reset_context() when using this function, so pass
-    #       it as callback
-    saved_vars = {str(name): os.environ.get(name, NULL) for name in var_map}
     try:
-        for name, value in iteritems(var_map):
-            os.environ[str(name)] = str(value)
         if callback:
             callback()
+        if stack_callback:
+            stack_callback(True)
         yield
     finally:
         for name, value in iteritems(saved_vars):
@@ -152,6 +141,23 @@ def env_vars(var_map, callback=None):
                 os.environ[name] = value
         if callback:
             callback()
+        if stack_callback:
+            stack_callback(False)
+
+@contextmanager
+def env_var(name, value, callback=None, stack_callback=None):
+    # Maybe, but in env_vars, not here:
+    #    from conda.compat import ensure_fs_path_encoding
+    #    d = dict({name: ensure_fs_path_encoding(value)})
+    d = {name: value}
+    with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
+        yield es
+
+
+@contextmanager
+def env_unmodified(callback=None):
+    with env_vars(callback=callback) as es:
+        yield es
 
 
 @contextmanager
@@ -188,17 +194,48 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
     # >>> c.stdout
     # 'hello world!\n'
     # """
+    def write_wrapper(self, to_write):
+        # This may have to deal with a *lot* of text.
+        if hasattr(self, 'mode') and 'b' in self.mode:
+            wanted = bytes
+        elif sys.version_info[0] == 3 and isinstance(self, BytesIO):
+            wanted = bytes
+        else:
+            # ignore flake8 on this because it finds an error on py3 even though it is guarded
+            if sys.version_info[0] == 2:
+                wanted = unicode  # NOQA
+            else:
+                wanted = str
+        if not isinstance(to_write, wanted):
+            if hasattr(to_write, 'decode'):
+                decoded = to_write.decode('utf-8')
+                self.old_write(decoded)
+            elif hasattr(to_write, 'encode'):
+                b = to_write.encode('utf-8')
+                self.old_write(b)
+        else:
+            self.old_write(to_write)
+
     class CapturedText(object):
         pass
+    # sys.stdout.write(u'unicode out')
+    # sys.stdout.write(bytes('bytes out', encoding='utf-8'))
+    # sys.stdout.write(str('str out'))
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
     if stdout == CaptureTarget.STRING:
-        sys.stdout = outfile = StringIO()
+        outfile = StringIO()
+        outfile.old_write = outfile.write
+        outfile.write = partial(write_wrapper, outfile)
+        sys.stdout = outfile
     else:
         outfile = stdout
         if outfile is not None:
             sys.stdout = outfile
     if stderr == CaptureTarget.STRING:
-        sys.stderr = errfile = StringIO()
+        errfile = StringIO()
+        errfile.old_write = errfile.write
+        errfile.write = partial(write_wrapper, errfile)
+        sys.stderr = errfile
     elif stderr == CaptureTarget.STDOUT:
         sys.stderr = errfile = outfile
     else:
@@ -348,7 +385,7 @@ class Spinner(object):
     # spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
     spinner_cycle = cycle('/-\\|')
 
-    def __init__(self, message, enabled=True, json=False):
+    def __init__(self, message, enabled=True, json=False, fail_message="failed\n"):
         self.message = message
         self.enabled = enabled
         self.json = json
@@ -358,6 +395,7 @@ class Spinner(object):
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
         self.show_spin = enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
+        self.fail_message = fail_message
 
     def start(self):
         if self.show_spin:
@@ -397,7 +435,7 @@ class Spinner(object):
         if not self.json:
             with swallow_broken_pipe:
                 if exc_type or exc_val:
-                    sys.stdout.write("failed\n")
+                    sys.stdout.write(self.fail_message)
                 else:
                     sys.stdout.write("done\n")
                 sys.stdout.flush()
@@ -458,6 +496,37 @@ class ProgressBar(object):
             sys.stdout.flush()
         elif self.enabled:
             self.pbar.close()
+
+
+# use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
+class DummyExecutor(Executor):
+    def __init__(self):
+        self._shutdown = False
+        self._shutdownLock = Lock()
+
+    def submit(self, fn, *args, **kwargs):
+        with self._shutdownLock:
+            if self._shutdown:
+                raise RuntimeError('cannot schedule new futures after shutdown')
+
+            f = Future()
+            try:
+                result = fn(*args, **kwargs)
+            except BaseException as e:
+                f.set_exception(e)
+            else:
+                f.set_result(result)
+
+            return f
+
+    def map(self, func, *iterables):
+        for iterable in iterables:
+            for thing in iterable:
+                yield func(thing)
+
+    def shutdown(self, wait=True):
+        with self._shutdownLock:
+            self._shutdown = True
 
 
 class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):

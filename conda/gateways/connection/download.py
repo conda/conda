@@ -8,10 +8,15 @@ from logging import DEBUG, getLogger
 from os.path import basename, exists, join
 import tempfile
 import warnings
+import sys
+import os
+import ctypes
+from ctypes.util import find_library
 
-from . import ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema, SSLError
+from . import (ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema,
+               SSLError, RequestsProxyError)
 from .session import CondaSession
-from ..disk.delete import rmtree
+from ..disk.delete import rm_rf
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ..._vendor.auxlib.logz import stringify
@@ -19,7 +24,7 @@ from ...base.context import context
 from ...common.compat import text_type
 from ...common.io import time_recorder
 from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
-                           MD5MismatchError, maybe_raise)
+                           ChecksumMismatchError, maybe_raise, ProxyError)
 
 log = getLogger(__name__)
 
@@ -28,14 +33,51 @@ def disable_ssl_verify_warning():
     warnings.simplefilter('ignore', InsecureRequestWarning)
 
 
+def preload_openssl():
+    """Because our openssl library lives in Librar/bin, and because that may not be on PATH
+    if conda.exe in Scripts is called directly, try this preload to avoid user issues."""
+    libbin_path = os.path.join(sys.prefix, 'Library', 'bin')
+    libssl_dllname = 'libssl'
+    libcrypto_dllname = 'libcrypto'
+    libssl_version = '-1_1'
+    libssl_arch = ''
+    if sys.maxsize > 2**32:
+        libssl_arch = '-x64'
+    so_name = libssl_dllname + libssl_version + libssl_arch
+    libssl_path2 = os.path.join(libbin_path, so_name)
+    # if version 1.1 is not found, try to load 1.0
+    if not exists(libssl_path2 + ".dll"):
+        libssl_version = ''
+        libssl_arch = ''
+        libssl_dllname = 'ssleay32'
+        libcrypto_dllname = 'libeay32'
+        so_name = libssl_dllname
+        libssl_path2 = os.path.join(libbin_path, so_name)
+    libssl_path = find_library(so_name)
+    if not libssl_path:
+        libssl_path = libssl_path2
+    # crypto library might exists ...
+    so_name = libcrypto_dllname + libssl_version + libssl_arch
+    libcrypto_path = find_library(so_name)
+    if not libcrypto_path:
+        libcrypto_path = os.path.join(sys.prefix, 'Library', 'bin', so_name)
+    kernel32 = ctypes.windll.kernel32
+    h_mod = kernel32.GetModuleHandleA(libcrypto_path)
+    if not h_mod:
+        ctypes.WinDLL(libcrypto_path)
+    h_mod = kernel32.GetModuleHandleA(libssl_path)
+    if not h_mod:
+        ctypes.WinDLL(libssl_path)
+
+
 @time_recorder("download")
-def download(url, target_full_path, md5sum, progress_update_callback=None):
-    # TODO: For most downloads, we should know the size of the artifact from what's reported
-    #       in repodata.  We should validate that here also, in addition to the 'Content-Length'
-    #       header.
+def download(
+        url, target_full_path, md5=None, sha256=None, size=None, progress_update_callback=None
+):
     if exists(target_full_path):
         maybe_raise(BasicClobberError(target_full_path, url, context), context)
-
+    if sys.platform == 'win32':
+        preload_openssl()
     if not context.ssl_verify:
         disable_ssl_verify_warning()
 
@@ -49,7 +91,18 @@ def download(url, target_full_path, md5sum, progress_update_callback=None):
 
         content_length = int(resp.headers.get('Content-Length', 0))
 
-        digest_builder = hashlib.new('md5')
+        # prefer sha256 over md5 when both are available
+        checksum_builder = checksum_type = checksum = None
+        if sha256:
+            checksum_builder = hashlib.new("sha256")
+            checksum_type = "sha256"
+            checksum = sha256
+        elif md5:
+            checksum_builder = hashlib.new("md5") if md5 else None
+            checksum_type = "md5"
+            checksum = md5
+
+        size_builder = 0
         try:
             with open(target_full_path, 'wb') as fh:
                 streamed_bytes = 0
@@ -64,7 +117,8 @@ def download(url, target_full_path, md5sum, progress_update_callback=None):
                         # TODO: make this CondaIOError
                         raise CondaError(message, target_path=target_full_path, errno=e.errno)
 
-                    digest_builder.update(chunk)
+                    checksum_builder and checksum_builder.update(chunk)
+                    size_builder += len(chunk)
 
                     if content_length and 0 <= streamed_bytes <= content_length:
                         if progress_update_callback:
@@ -89,11 +143,22 @@ def download(url, target_full_path, md5sum, progress_update_callback=None):
                 log.debug("%s, trying again" % e)
             raise
 
-        actual_md5sum = digest_builder.hexdigest()
-        if md5sum and actual_md5sum != md5sum:
-            log.debug("MD5 sums mismatch for download: %s (%s != %s), "
-                      "trying again" % (url, digest_builder.hexdigest(), md5sum))
-            raise MD5MismatchError(url, target_full_path, md5sum, actual_md5sum)
+        if checksum:
+            actual_checksum = checksum_builder.hexdigest()
+            if actual_checksum != checksum:
+                log.debug("%s mismatch for download: %s (%s != %s)",
+                          checksum_type, url, actual_checksum, checksum)
+                raise ChecksumMismatchError(
+                    url, target_full_path, checksum_type, checksum, actual_checksum
+                )
+        if size is not None:
+            actual_size = size_builder
+            if actual_size != size:
+                log.debug("size mismatch for download: %s (%s != %s)", url, actual_size, size)
+                raise ChecksumMismatchError(url, target_full_path, "size", size, actual_size)
+
+    except RequestsProxyError:
+        raise ProxyError()  # see #3962
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):
@@ -137,9 +202,9 @@ class TmpDownload(object):
         else:
             self.tmp_dir = tempfile.mkdtemp()
             dst = join(self.tmp_dir, basename(self.url))
-            download(self.url, dst, None)
+            download(self.url, dst)
             return dst
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.tmp_dir:
-            rmtree(self.tmp_dir)
+            rm_rf(self.tmp_dir)

@@ -1,3 +1,559 @@
+## 4.7.11 (2019-08-06)
+
+### Enhancements
+
+* add config for control of number of threads. These can be set in condarc or using environment variables. Names/default values are: `default_threads/None`, `repodata_threads/None`, `verify_threads/1`, `execute_threads/1` (#9044)
+
+### Bug fixes
+
+* fix repodata_fns from condarc not being respected (#8998)
+* Fix handling of UpdateModifiers other than FREEZE_INSTALLED (#8999)
+* Improve conflict finding graph traversal (#9006)
+* Fix setuptools being removed due to conda run_constrains (#9014)
+* Avoid calling find_conflicts until all retries are spent (#9015)
+* refactor _conda_activate.bat in hopes of improving behavior in parallel environments (#9021)
+* Add support for local version specs in PYPI installed packages (#9025)
+* fix boto3 initialization race condition (#9037)
+* Fix return condition in package_cache_data (#9039)
+* utilize libarchive_enabled attribute provided by conda-package-handling to fall back to .tar.bz2 files only. (#9041, #9053)
+* Fix menu creation on windows having race condition, leading to popups about python.exe not being found (#9044)
+* Improve list error when egg-link leads to extra egg-infos (#9045)
+* Fix incorrect RemoveError when operating on an env that has one of conda's deps, but is not the env in which the current conda in use resides (#9054)
+
+### Docs
+
+* Document new package format better
+* Document `conda init` command
+* Document availability of RSS feed for CDN-backed channels that clone
+
+### Contributors
+
+* @Bezier89
+* @forrestwaters
+* @hajapy
+* @ihnorton
+* @matthewwardrop
+* @msarahan
+* @rogererens
+* @rrigdon
+* @soapy1
+
+
+## 4.7.10 (2019-07-19)
+
+### Bug fixes
+
+* fix merging of specs
+* fix bugs in building of chains in prefix graph
+
+
+### Contributors:
+
+* @msarahan
+
+
+## 4.7.9 (2019-07-18)
+
+### Bug fixes
+
+* fix Non records in comprehension
+* fix potential keyerror in depth-first search
+* fix PackageNotFound attribute error
+
+### Contributors:
+
+* @jjhelmus
+* @msarahan
+
+
+## 4.7.8 (2019-07-17)
+
+### Improvements
+
+* improve unsatisfiable messages - try to group and explain output better.  Remove lots of extraneous stuff that was showing up in 4.7.7 (#8910)
+* preload openssl on windows to avoid library conflicts and missing library issues (#8949)
+
+### Bug fixes
+
+* fix handling of channels where more than one channel contains packages with similar name, subdir, version and build_number.  This was causing mysterious unsatisfiable errors for some users.  (#8938)
+* reverse logic check in checking channel equality, because == is not reciprocal to != with py27 (no `__ne__`) (#8938)
+* fix an infinite loop or otherwise large process with building the unsatisfiable info.  Improve the depth-first search implementation.  (#8941)
+* streamline fallback paths to unfrozen solve in case frozen fails. (#8942)
+* Environment activation output only shows `conda activate envname` now, instead of sometimes showing just `activate`.  (#8947)
+
+### Contributors:
+
+* @forrestwaters
+* @jjhelmus
+* @katietz
+* @msarahan
+* @rrigdon
+* @soapy1
+
+
+## 4.7.7 (2019-07-12)
+
+### Improvements
+
+* When an update command doesn't do anything because installed software conflicts with the update, information about the conflict is shown, rather than just saying "all requests are already satisfied"  (#8899)
+
+### Bug fixes
+
+* fix missing package_type attr in finding virtual packages  (#8917)
+* fix parallel operations of loading index to preserve channel ordering  (#8921, #8922)
+* filter PrefixRecords out from PackageRecords when making a graph to show unsatisfiable deps.  Fixes comparison error between mismatched types.  (#8924)
+* install entry points before running post-link scripts, because post link scripts may depend on entry points.  (#8925)
+
+### Contributors
+
+* @jjhelmus
+* @msarahan
+* @rrigdon
+* @soapy1
+
+
+## 4.7.6 (2019-07-11)
+
+### Improvements
+
+* Improve cuda virtual package conflict messages to show the `__cuda` virtual package as part of the conflict (#8834)
+* add additional debugging info to Resolve.solve (#8895)
+
+### Bug fixes
+
+* deduplicate error messages being shown for post-link scripts.  Show captured stdout/stderr on failure  (#8833)
+* fix the checkout step in the Windows dev env setup instructions (#8827)
+* bail out early when implicit python pinning renders an explicit spec unsatisfiable (#8834)
+* handle edge cases in pinned specs better (#8843)
+* extract package again if url is None (#8868)
+* update docs regarding indexing and subdirs (#8874)
+* remove warning about conda-build needing an update that was bothering people (#8884)
+* only add repodata fn into cache key when fn is not repodata.json (#8900)
+* allow conda to be downgraded with an explicit spec (#8892)
+* add target to specs from historic specs (#8901)
+* improve message when solving with a repodata file before repodata.json fails (#8907)
+* fix distutils usage for "which" functionality.  Fix inability to change python version in envs with noarch packages (#8909)
+* fix anaconda metapackage being removed because history matching was too restrictive (#8911)
+* make freezing less aggressive; add fallback to non-frozen solve (#8912)
+
+### Contributors
+
+* @forrestwaters
+* @jjhelmus
+* @mcopes73
+* @msarahan
+* @richardjgowers
+* @rrigdon
+* @soapy1
+* @twinssbc
+
+## 4.7.5 (2019-06-24)
+
+### Improvements
+
+* improve wording in informational message when a particular `*_repodata.json` can't be found.  No need for alarm.  (#8808)
+
+### Bug fixes
+
+* restore tests being run on win-32 appveyor  (#8801)
+* fix Dist class handling of .conda files  (#8816)
+* fix strict channel priority handling when a package is unsatisfiable and thus not present in the collection  (#8819)
+* handle JSONDecodeError better when package is corrupted at extract time  (#8820)
+
+### Contributors
+
+* @dhirschfeld
+* @msarahan
+* @rrigdon
+
+
+## 4.7.4 (2019-06-19)
+
+### Improvements
+
+* Revert to and improve the unsatisfiability determination from 4.7.2 that was reverted in 4.7.3.  It's faster.  (#8783)
+
+### Bug fixes
+
+* fix tcsh/csh init scripts  (#8792)
+
+### Docs improvements
+
+* clean up docs of run_command
+* fix broken links
+* update docs environment.yaml file to update conda-package-handling
+* conda logo favicon
+* update strict channel priority info
+* noarch package content ported from conda-forge
+* add info about conda-forge
+* remove references to things as they were before conda 4.1.  That was a long time ago.  This is not a history book.
+
+### Contributors
+
+* @jjhelmus
+* @msarahan
+* @rrigdon
+* @soapy1
+
+
+## 4.7.3 (2019-06-14)
+
+### Bug fixes
+
+* target prefix overrid applies to entry points in addition to replacements in standard files  (#8769)
+* Revert to solver-based unsatisfiability determination  (#8775)
+* fix renaming of existing prompt function in powershell  (#8774)
+
+### Contributors:
+
+* @jjhelmus
+* @msarahan
+* @rrigdon
+* @ScottEvtuch
+
+
+## 4.7.2 (2019-06-10)
+
+### Behavior changes
+
+* unsatisfiability is determined in a slightly different way now. It no longer
+  uses the SAT solver, but rather determines whether any specs have no
+  candidates at all after running through get_reduced_index. This has been
+  faster in benchmarks, but we welcome further data from your use cases about
+  whether this was a good change.  (#8741)
+* when using the --only-deps flag for the `install` command, conda now
+  explicitly records those specs in your history. This primarily serves to
+  reduce conda accidentally removing packages that you have actually requested.  (#8766)
+
+### Improvements
+
+* UnsatisfiableError messages are now grouped into categories and explained a bit better.  (#8741)
+* --repodata-fn argument can be passed multiple times to have more fallback
+  paths. `repodata_fns` conda config setting does the same thing, but saves you
+  from needing to do it for every command invocation.  (#8741)
+
+### Bug fixes
+
+* fix channel flip-flopping that was happening when adding a channel other than earlier ones  (#8741)
+* refactor flow control for multiple repodata files to not use exceptions  (#8741)
+* force conda to use only old .tar.bz2 files if conda-build <3.18.3 is
+  installed. Conda-build breaks when inspecting file contents, and this is fixed
+  in conda-build 3.18.3 (#8741)
+* use --force when using rsync to improve behavior with folders that may exist
+  in the destination somehow. (#8750)
+* handle EPERM errors when renaming, because MacOS lets you remove or create
+  files, but not rename them. Thanks Apple. (#8755)
+* fix conda removing packages installed via `install` with --only-deps flag when
+  either `update` or `remove` commands are run. See behavior changes above.
+  (#8766)
+
+### Contributors
+
+* @csosborn
+* @jjhelmus
+* @katietz
+* @msarahan
+* @rrigdon
+
+
+## 4.7.1 (2019-05-30)
+
+### Improvements
+
+* Base initial solver specs map on explicitly requested specs (new and historic)  (#8689)
+* Improve anonymization of automatic error reporting  (#8715)
+* Add option to keep using .tar.bz2 files, in case new .conda isn't working for whatever reason  (#8723)
+
+### Bug fixes
+
+* fix parsing hyphenated PyPI specs (change hyphens in versions to .)  (#8688)
+* fix PrefixRecord creation when file inputs are .conda files  (#8689)
+* fix PrefixRecord creation for pip-installed packages  (#8689)
+* fix progress bar stopping at 75% (no extract progress with new libarchive)  (#8689)
+* preserve pre-4.7 download() interface in conda.exports  (#8698)
+* virtual packages (such as cuda) are represented by leading double underscores
+  by convention, to avoid confusion with existing single underscore packages
+  that serve other purposes (#8738)
+
+### Deprecations/Breaking Changes
+
+* The `--prune` flag no longer does anything. Pruning is implicitly the
+  standard behavior now as a result of the initial solver specs coming from
+  explicitly requested specs. Conda will remove packages that are not explicitly
+  requested and are not required directly or indirectly by any explicitly
+  installed package.
+
+### Docs improvements
+
+* Document removal of the `free` channel from defaults (#8682)
+* Add reference to conda config --describe  (#8712)
+* Add a tutorial for .condarc modification  (#8737)
+
+### Contributors
+
+* @alexhall
+* @cjmartian
+* @kalefranz
+* @martinkou
+* @msarahan
+* @rrigdon
+* @soapy1
+
+## 4.7.0 (2019-05-17)
+
+### Improvements
+
+* Implement support for "virtual" CUDA packages, to make conda consider the system-installed CUDA driver and act accordingly  (#8267)
+* Support and prefer new .conda file format where available  (#8265, #8639)
+* Use comma-separated env names in prompt when stacking envs  (#8431)
+* show valid choices in error messages for enums  (#8602)
+* freeze already-installed packages when running `conda install` as a first attempt, to speed up the solve in existing envs.  Fall back to full solve as necessary  (#8260, #8626)
+* add optimization criterion to prefer arch over noarch packages when otherwise equivalent  (#8267)
+* Remove `free` channel from defaults collection.  Add `restore_free_channel` config parameter if you want to keep it.  (#8579)
+* Improve unsatisfiable hints  (#8638)
+* Add capability to use custom repodata filename, for smaller subsets of repodata  (#8670)
+* Parallelize SubdirData readup  (#8670)
+* Parallelize transacation verification and execution  (#8670)
+
+### Bug fixes
+
+* Fix PATH handling with deactivate.d scripts  (#8464)
+* Fix usage of deprecated collections ABCs (#)
+* fix tcsh/csh initialization block  (#8591)
+* fix missing CWD display in powershell prompt  (#8596)
+* `wrap_subprocess_call`: fallback to sh if no bash  (#8611)
+* move `TemporaryDirectory` to avoid importing from `conda.compat`  (#8671)
+* fix missing conda-package-handling dependency in dev/start  (#8624)
+* fix `path_to_url` string index out of range error  (#8265)
+* fix conda init for xonsh  (#8644)
+* fix fish activation (#8645)
+* improve error handling for read-only filesystems  (#8665, #8674)
+* break out of minimization when bisection has nowhere to go  (#8672)
+* Handle None values for link channel name gracefully  (#8680)
+
+### Contributors
+
+* @chrisburr
+* @EternalPhane
+* @jjhelmus
+* @kalefranz
+* @mbargull
+* @msarahan
+* @rrigdon
+* @scopatz
+* @seibert
+* @soapy1
+* @nehaljwani
+* @nh3
+* @teake
+* @yuvalreches
+
+## 4.6.14 (2019-04-17)
+
+### Bug fixes
+
+* export extra function in powershell Conda.psm1 script (fixes anaconda powershell prompt)  (#8570)
+
+### Contributors
+
+* @msarahan
+
+
+## 4.6.13 (2019-04-16)
+
+### Bug fixes
+
+* disable ``test_legacy_repodata`` on win-32 (missing dependencies)  (#8540)
+* Fix activation problems on windows with bash, powershell, and batch.  Improve tests. (#8550, #8564)
+* pass -U flag to for pip dependencies in conda env when running "conda env update"  (#8542)
+* rename ``conda.common.os`` to ``conda.common._os`` to avoid shadowing os built-in  (#8548)
+* raise exception when pip subprocess fails with conda env  (#8562)
+* fix installing recursive requirements.txt files in conda env specs with python 2.7  (#8562)
+* Don't modify powershell prompt when "changeps1" setting in condarc is False  (#8465)
+
+### Contributors
+
+* @dennispg
+* @jjhelmus
+* @jpgill86
+* @mingwandroid
+* @msarahan
+* @noahp
+
+
+## 4.6.12 (2019-04-10)
+
+### Bug fixes
+
+* Fix compat import warning (#8507)
+* Adjust collections import to avoid deprecation warning (#8499)
+* Fix bug in CLI tests (#8468)
+* Disallow the number sign in environment names (#8521)
+* Workaround issues with noarch on certain repositories (#8523)
+* Fix activation on Windows when spaces are in path (#8503)
+* Fix conda init profile modification for powershell (#8531)
+* Point conda.bat to condabin (#8517)
+* Fix various bugs in activation (#8520, #8528)
+
+### Docs improvements
+
+* Fix links in README (#8482)
+* Changelogs for 4.6.10 and 4.6.11 (#8502)
+
+### Contributors
+
+@Bezier89
+@duncanmmacleod
+@ivigamberdiev
+@javabrett
+@jjhelmus
+@katietz
+@mingwandroid
+@msarahan
+@nehaljwani
+@rrigdon
+
+
+## 4.6.11 (2019-04-04)
+
+### Bug fixes
+
+* Remove sys.prefix from front of PATH in basic_posix (#8491)
+* add import to fix conda.core.index.get_index (#8495)
+
+### Docs improvements
+
+* Changelogs for 4.6.10
+
+### Contributors
+
+* @jjhelmus
+* @mingwandroid
+* @msarahan
+
+
+## 4.6.10 (2019-04-01)
+
+### Bug fixes
+
+* Fix python-3 only FileNotFoundError usage in initialize.py  (#8470)
+* Fix more JSON encode errors for the _Null data type (#8471)
+* Fix non-posix-compliant == in conda.sh (#8475, #8476)
+* improve detection of pip dependency in environment.yml files to avoid warning message (#8478)
+* fix condabin\conda.bat use of dp0, making PATH additions incorrect (#8480)
+* init_fish_user: don't assume config file exists  (#8481)
+* Fix for chcp output ending with . (#8484)
+
+### Docs improvements
+
+* Changelogs for 4.6.8, 4.6.9
+
+### Contributors
+
+* @duncanmmacleod
+* @nehaljwani
+* @ilango100
+* @jjhelmus
+* @mingwandroid
+* @msarahan
+* @rrigdon
+
+
+## 4.6.9 (2019-03-29)
+
+### Improvements
+
+* Improve CI for docs commits (#8387, #8401, #8417)
+* Implement `conda init --reverse` to undo rc file and registry changes (#8400)
+* Improve handling of unicode systems  (#8342, #8435)
+* Force the "COMSPEC"  environment variable to always point to cmd.exe on windows.  This was an implicit assumption that was not always true.  (#8457, #8461)
+
+### Bug fixes
+
+* Add central C:/ProgramData/conda as a search path on Windows  (#8272)
+* remove direct use of ruamel_yaml (prefer internal abstraction, yaml_load)  (#8392)
+* Fix/improve `conda init` support for fish shell (#8437)
+* Improve solver behavior in the presence of inconsistent environments (such as pip as a conda dependency of python, but also installed via pip itself) (#8444)
+* Handle read-only filesystems for environments.txt (#8451, #8453)
+* Fix conda env commands involving pip-installed dependencies being installed into incorrect locations  (#8435)
+
+### Docs improvements
+
+* updated cheatsheet  (#8402)
+* updated color theme  (#8403)
+
+### Contributors
+
+* @blackgear
+* @dhirschfeld
+* @jakirkham
+* @jjhelmus
+* @katietz
+* @mingwandroid
+* @msarahan
+* @nehaljwani
+* @rrigdon
+* @soapy1
+* @spamlrot-tic
+
+## 4.6.8 (2019-03-06)
+
+### Bug fixes
+
+* detect when parser fails to parse arguments  (#8328)
+* separate post-link script running from package linking.  Do linking of all packages first, then run any post-link 
+  scripts after all packages are present.  Ideally, more forgiving in presence of cycles.  (#8350)
+* quote path to temporary requirements files generated by conda env.  Fixes issues with spaces.  (#8352)
+* improve some exception handling around checking for presence of folders in extraction of tarballs  (#8360)
+* fix reporting of packages when channel name is None  (#8379)
+* fix the post-creation helper message from "source activate" to "conda activate"  (#8370)
+* Add safety checks for directory traversal exploits in tarfiles.  These may be disabled using the ``safety_checks`` 
+  configuration parameter.  (#8374)
+
+### Docs improvements
+
+* document MKL DLL hell and new Python env vars to control DLL search behavior  (#8315)
+* add github template for reporting speed issues  (#8344)
+* add in better use of sphinx admonitions (notes, warnings) for better accentuation in docs  (#8348) 
+* improve skipping CI builds when only docs changes are involved  (#8336)
+
+### Contributors
+
+* @albertmichaelj
+* @jjhelmus
+* @matta9001
+* @msarahan
+* @rrigdon
+* @soapy1
+* @steffenvan
+
+
+## 4.6.7 (2019-02-21)
+
+### Bug fixes
+
+* skip scanning folders for contents during reversal of transactions.  Just ignore folders.  A bit messier, but a lot faster.  (#8266)
+* fix some logic in renaming trash files to fix permission errors  (#8300)
+* wrap pip subprocess calls in conda-env more cleanly and uniformly  (#8307)
+* revert conda prepending to PATH in cli main file on windows  (#8307)
+* simplify ``conda run`` code to use activation subprocess wrapper.  Fix a few conda tests to use ``conda run``.  (#8307)
+
+### Docs improvements
+
+* fixed duplicated "to" in managing envs section (#8298)
+* flesh out docs on activation  (#8314)
+* correct git syntax for adding a remote in dev docs  (#8316)
+* unpin sphinx version in docs requirements  (#8317)
+
+### Contributors
+
+* @jjhelmus
+* @MarckK
+* @msarahan
+* @rrigdon
+* @samgd
+
+
 ## 4.6.6 (2019-02-18)
 
 ### Bug fixes

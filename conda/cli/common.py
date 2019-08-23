@@ -200,11 +200,11 @@ def print_envs_list(known_conda_prefixes, output=True):
         disp_env(prefix)
 
     if output:
-        print()
+        print('')
 
 
 def check_non_admin():
-    from ..common.os import is_admin
+    from ..common._os import is_admin
     if not context.non_admin_enabled and not is_admin():
         from ..exceptions import OperationNotAllowed
         raise OperationNotAllowed(dals("""

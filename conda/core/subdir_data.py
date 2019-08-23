@@ -6,9 +6,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from collections import defaultdict
 from contextlib import closing
-from errno import EACCES, ENODEV, EPERM
+from errno import EACCES, ENODEV, EPERM, EROFS
+from functools import partial
 from genericpath import getmtime, isfile
 import hashlib
+from io import open as io_open
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
@@ -16,23 +18,22 @@ from os.path import dirname, isdir, join, splitext
 import re
 from time import time
 import warnings
-from io import open as io_open
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from .._vendor.toolz import concat, take
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
                              string_types, text_type, with_metaclass)
-from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
+from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
-                          NotWritableError, UnavailableInvalidChannel)
+                          NotWritableError, UnavailableInvalidChannel, ProxyError)
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
-                                   InvalidSchema, SSLError)
+                                   InvalidSchema, SSLError, RequestsProxyError)
 from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
@@ -56,15 +57,15 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]' 
 
 class SubdirDataType(type):
 
-    def __call__(cls, channel):
+    def __call__(cls, channel, repodata_fn=REPODATA_FN):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
-        cache_key = channel.url(with_credentials=True)
-        if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
+        cache_key = channel.url(with_credentials=True), repodata_fn
+        if not cache_key[0].startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
 
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
+        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, repodata_fn)
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
 
@@ -74,7 +75,8 @@ class SubdirData(object):
     _cache_ = {}
 
     @staticmethod
-    def query_all(package_ref_or_match_spec, channels=None, subdirs=None):
+    def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
+                  repodata_fn=REPODATA_FN):
         from .index import check_whitelist  # TODO: fix in-line import
         if channels is None:
             channels = context.channels
@@ -82,11 +84,16 @@ class SubdirData(object):
             subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
         check_whitelist(channel_urls)
-        with ThreadLimitedThreadPoolExecutor() as executor:
-            futures = tuple(executor.submit(
-                SubdirData(Channel(url)).query, package_ref_or_match_spec
-            ) for url in channel_urls)
-            return tuple(concat(future.result() for future in as_completed(futures)))
+        subdir_query = lambda url: tuple(SubdirData(Channel(url), repodata_fn=repodata_fn).query(
+            package_ref_or_match_spec))
+
+        # TODO test timing with ProcessPoolExecutor
+        Executor = (DummyExecutor if context.debug or context.repodata_threads == 1
+                    else partial(ThreadLimitedThreadPoolExecutor,
+                                 max_workers=context.repodata_threads))
+        with Executor() as executor:
+            result = tuple(concat(executor.map(subdir_query, channel_urls)))
+        return result
 
     def query(self, package_ref_or_match_spec):
         if not self._loaded:
@@ -117,7 +124,7 @@ class SubdirData(object):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel):
+    def __init__(self, channel, repodata_fn=REPODATA_FN):
         assert channel.subdir
         if channel.package_filename:
             parts = channel.dump()
@@ -126,14 +133,24 @@ class SubdirData(object):
         self.channel = channel
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)
-        self.cache_path_base = join(create_cache_dir(),
-                                    splitext(cache_fn_url(self.url_w_credentials))[0])
+        # whether or not to try using the new, trimmed-down repodata
+        self.repodata_fn = repodata_fn
         self._loaded = False
 
     def reload(self):
         self._loaded = False
         self.load()
         return self
+
+    @property
+    def cache_path_base(self):
+        return join(
+            create_cache_dir(),
+            splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0])
+
+    @property
+    def url_w_repodata_fn(self):
+        return self.url_w_subdir + '/' + self.repodata_fn
 
     @property
     def cache_path_json(self):
@@ -153,7 +170,7 @@ class SubdirData(object):
 
                 (This version only supports repodata_version 1.)
                 Please update conda to use this channel.
-                """) % self.url_w_subdir)
+                """) % self.url_w_repodata_fn)
 
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']
@@ -171,11 +188,12 @@ class SubdirData(object):
         try:
             mtime = getmtime(self.cache_path_json)
         except (IOError, OSError):
-            log.debug("No local cache found for %s at %s", self.url_w_subdir, self.cache_path_json)
+            log.debug("No local cache found for %s at %s", self.url_w_repodata_fn,
+                      self.cache_path_json)
             if context.use_index_cache or (context.offline
                                            and not self.url_w_subdir.startswith('file://')):
                 log.debug("Using cached data for %s at %s forced. Returning empty repodata.",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_repodata_fn, self.cache_path_json)
                 return {
                     '_package_records': (),
                     '_names_index': defaultdict(list),
@@ -188,7 +206,7 @@ class SubdirData(object):
 
             if context.use_index_cache:
                 log.debug("Using cached repodata for %s at %s because use_cache=True",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_repodata_fn, self.cache_path_json)
 
                 _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                            mod_etag_headers.get('_mod'))
@@ -204,21 +222,32 @@ class SubdirData(object):
             timeout = mtime + max_age - time()
             if (timeout > 0 or context.offline) and not self.url_w_subdir.startswith('file://'):
                 log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
-                          self.url_w_subdir, self.cache_path_json, timeout)
+                          self.url_w_repodata_fn, self.cache_path_json, timeout)
                 _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                            mod_etag_headers.get('_mod'))
                 return _internal_state
 
             log.debug("Local cache timed out for %s at %s",
-                      self.url_w_subdir, self.cache_path_json)
+                      self.url_w_repodata_fn, self.cache_path_json)
 
         try:
-            raw_repodata_str = fetch_repodata_remote_request(self.url_w_credentials,
-                                                             mod_etag_headers.get('_etag'),
-                                                             mod_etag_headers.get('_mod'))
+            raw_repodata_str = fetch_repodata_remote_request(
+                self.url_w_credentials,
+                mod_etag_headers.get('_etag'),
+                mod_etag_headers.get('_mod'),
+                repodata_fn=self.repodata_fn)
+            # empty file
+            if not raw_repodata_str and self.repodata_fn != REPODATA_FN:
+                raise UnavailableInvalidChannel(self.url_w_repodata_fn, 404)
+        except UnavailableInvalidChannel:
+            if self.repodata_fn != REPODATA_FN:
+                self.repodata_fn = REPODATA_FN
+                return self._load()
+            else:
+                raise
         except Response304ContentUnchanged:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
-                      self.url_w_subdir)
+                      self.url_w_repodata_fn)
             touch(self.cache_path_json)
             _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                        mod_etag_headers.get('_mod'))
@@ -230,7 +259,7 @@ class SubdirData(object):
                 with io_open(self.cache_path_json, 'w') as fh:
                     fh.write(raw_repodata_str or '{}')
             except (IOError, OSError) as e:
-                if e.errno in (EACCES, EPERM):
+                if e.errno in (EACCES, EPERM, EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
                     raise
@@ -241,7 +270,8 @@ class SubdirData(object):
 
     def _pickle_me(self):
         try:
-            log.debug("Saving pickled state for %s at %s", self.url_w_subdir, self.cache_path_json)
+            log.debug("Saving pickled state for %s at %s", self.url_w_repodata_fn,
+                      self.cache_path_json)
             with open(self.cache_path_pickle, 'wb') as fh:
                 pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
         except Exception:
@@ -254,7 +284,7 @@ class SubdirData(object):
             return _pickled_state
 
         # pickled data is bad or doesn't exist; load cached json
-        log.debug("Loading raw json for %s at %s", self.url_w_subdir, self.cache_path_json)
+        log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
         with open(self.cache_path_json) as fh:
             try:
                 raw_repodata_str = fh.read()
@@ -296,10 +326,11 @@ class SubdirData(object):
             yield _pickled_state.get('_mod') == mod_stamp
             yield _pickled_state.get('_etag') == etag
             yield _pickled_state.get('_pickle_version') == REPODATA_PICKLE_VERSION
+            yield _pickled_state.get('fn') == self.repodata_fn
 
         if not all(_check_pickled_valid()):
             log.debug("Pickle load validation failed for %s at %s.",
-                      self.url_w_subdir, self.cache_path_json)
+                      self.url_w_repodata_fn, self.cache_path_json)
             return None
 
         return _pickled_state
@@ -321,6 +352,7 @@ class SubdirData(object):
             'url_w_subdir': self.url_w_subdir,
             'url_w_credentials': self.url_w_credentials,
             'cache_path_base': self.cache_path_base,
+            'fn': self.repodata_fn,
 
             '_package_records': _package_records,
             '_names_index': _names_index,
@@ -354,22 +386,40 @@ class SubdirData(object):
         }
 
         channel_url = self.url_w_credentials
-        for fn, info in iteritems(json_obj.get('packages', {})):
-            info['fn'] = fn
-            info['url'] = join_url(channel_url, fn)
-            if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-                info['depends'].append('pip')
-            info.update(meta_in_common)
-            if info.get('record_version', 0) > 1:
-                log.debug("Ignoring record_version %d from %s",
-                          info["record_version"], info['url'])
-                continue
-            package_record = PackageRecord(**info)
+        legacy_packages = json_obj.get("packages", {})
+        conda_packages = {} if context.use_only_tar_bz2 else json_obj.get("packages.conda", {})
 
-            _package_records.append(package_record)
-            _names_index[package_record.name].append(package_record)
-            for ftr_name in package_record.track_features:
-                _track_features_index[ftr_name].append(package_record)
+        _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
+        use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
+            k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
+        )
+
+        for group, copy_legacy_md5 in (
+                (iteritems(conda_packages), True),
+                (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
+            for fn, info in group:
+                info['fn'] = fn
+                info['url'] = join_url(channel_url, fn)
+                if copy_legacy_md5:
+                    counterpart = fn.replace('.conda', '.tar.bz2')
+                    if counterpart in legacy_packages:
+                        info['legacy_bz2_md5'] = legacy_packages[counterpart].get('md5')
+                        info['legacy_bz2_size'] = legacy_packages[counterpart].get('size')
+                if (add_pip and info['name'] == 'python' and
+                        info['version'].startswith(('2.', '3.'))):
+                    info['depends'].append('pip')
+                info.update(meta_in_common)
+                if info.get('record_version', 0) > 1:
+                    log.debug("Ignoring record_version %d from %s",
+                              info["record_version"], info['url'])
+                    continue
+
+                package_record = PackageRecord(**info)
+
+                _package_records.append(package_record)
+                _names_index[package_record.name].append(package_record)
+                for ftr_name in package_record.track_features:
+                    _track_features_index[ftr_name].append(package_record)
 
         self._internal_state = _internal_state
         return _internal_state
@@ -403,7 +453,7 @@ class Response304ContentUnchanged(Exception):
     pass
 
 
-def fetch_repodata_remote_request(url, etag, mod_stamp):
+def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
@@ -415,13 +465,9 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
     if mod_stamp:
         headers["If-Modified-Since"] = mod_stamp
 
-    if 'repo.anaconda.com' in url:
-        filename = 'repodata.json.bz2'
-        headers['Accept-Encoding'] = 'identity'
-    else:
-        headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-        headers['Content-Type'] = 'application/json'
-        filename = 'repodata.json'
+    headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
+    headers['Content-Type'] = 'application/json'
+    filename = repodata_fn
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
@@ -430,6 +476,9 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
+
+    except RequestsProxyError:
+        raise ProxyError()   # see #3962
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):
@@ -448,12 +497,13 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
-                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
+                log.info("Unable to retrieve repodata (response: %d) for %s", status_code,
+                         url + '/' + repodata_fn)
                 return None
             else:
                 if context.allow_non_channel_urls:
-                    stderrlog.warning("Unable to retrieve repodata (%d error) for %s",
-                                      status_code, url)
+                    stderrlog.warning("Unable to retrieve repodata (response: %d) for %s",
+                                      status_code, url + '/' + repodata_fn)
                     return None
                 else:
                     raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)
@@ -576,10 +626,15 @@ def make_feature_record(feature_name):
     )
 
 
-def cache_fn_url(url):
+def cache_fn_url(url, repodata_fn=REPODATA_FN):
     # url must be right-padded with '/' to not invalidate any existing caches
     if not url.endswith('/'):
         url += '/'
+    # add the repodata_fn in for uniqueness, but keep it off for standard stuff.
+    #    It would be more sane to add it for everything, but old programs (Navigator)
+    #    are looking for the cache under keys without this.
+    if repodata_fn != REPODATA_FN:
+        url += repodata_fn
     md5 = hashlib.md5(ensure_binary(url)).hexdigest()
     return '%s.json' % (md5[:8],)
 

@@ -6,14 +6,23 @@ import unittest
 from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
-from conda.base.context import reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol
+from conda.models.match_spec import MatchSpec
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_load
 from conda.install import on_win
-import ruamel_yaml
 
 from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
+from tests.test_utils import is_prefix_activated_PATHwise
+
+from conda_env.env import from_environment
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 
@@ -22,6 +31,8 @@ try:
     from io import StringIO
 except ImportError:
     from StringIO import StringIO
+
+import pytest
 
 from conda_env import env
 from conda_env import exceptions
@@ -353,16 +364,18 @@ class EnvironmentSaveTestCase(unittest.TestCase):
 
 
 class SaveExistingEnvTestCase(unittest.TestCase):
+    @unittest.skipIf(not is_prefix_activated_PATHwise(),
+                      "You are running `pytest` outside of proper activation. "
+                      "The entries necessary for conda to operate correctly "
+                      "are not on PATH.  Please use `conda activate`")
+    @pytest.mark.integration
     def test_create_advanced_pip(self):
         with make_temp_envs_dir() as envs_dir:
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
-                'CONDA_PIP_INTEROP_ENABLED': 'true',
-            }, reset_context):
+                'CONDA_DLL_SEARCH_MODIFICATION_ENABLE': 'true',
+            }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 env_name = str(uuid4())[:8]
-                prefix = join(envs_dir, env_name)
-                python_path = join(prefix, PYTHON_BINARY)
-
                 run_command(Commands.CREATE, env_name,
                             support_file('pip_argh.yml'))
                 out_file = join(envs_dir, 'test_env.yaml')
@@ -372,9 +385,28 @@ class SaveExistingEnvTestCase(unittest.TestCase):
 
             with env_vars({
                 'CONDA_ENVS_DIRS': envs_dir,
-            }, reset_context):
+            }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
                 run_command(Commands.EXPORT, env_name, out_file)
                 with open(out_file) as f:
-                    d = ruamel_yaml.load(f)
+                    d = yaml_load(f)
                 assert {'pip': ['argh==0.26.2']} in d['dependencies']
+
+
+class TestFromEnvironment(unittest.TestCase):
+    def test_from_history(self):
+        # We're not testing that get_requested_specs_map() actually works
+        # assume it gives us back a dict of MatchSpecs
+        with patch('conda.history.History.get_requested_specs_map') as m:
+            m.return_value = {
+                'python': MatchSpec('python=3'),
+                'pytest': MatchSpec('pytest!=3.7.3'),
+                'mock': MatchSpec('mock'),
+                'yaml': MatchSpec('yaml>=0.1')
+            }
+            out = from_environment('mock_env', 'mock_prefix', from_history=True)
+            assert "yaml[version='>=0.1']" in out.to_dict()['dependencies']
+            assert "pytest!=3.7.3" in out.to_dict()['dependencies']
+            assert len(out.to_dict()['dependencies']) == 4
+
+            m.assert_called()

@@ -6,8 +6,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
-from .core.solve import (DepsModifier as _DepsModifier, Solver as _Solver,
-                         UpdateModifier as _UpdateModifier)
+from .core.solve import DepsModifier as _DepsModifier, Solver as _Solver
+from .core.solve import UpdateModifier as _UpdateModifier
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
 
@@ -64,11 +64,11 @@ class Solver(object):
                 default solver behavior is to be as conservative as possible with dependency
                 updates (in the case the dependency already exists in the environment), while
                 still ensuring all dependencies are satisfied.  Options include
-                    * NO_DEPS
-                    * ONLY_DEPS
-                    * UPDATE_DEPS
-                    * UPDATE_DEPS_ONLY_DEPS
-                    * FREEZE_INSTALLED
+                * NO_DEPS
+                * ONLY_DEPS
+                * UPDATE_DEPS
+                * UPDATE_DEPS_ONLY_DEPS
+                * FREEZE_INSTALLED
             prune (bool):
                 If ``True``, the solution will not contain packages that were
                 previously brought into the environment as dependencies but are no longer
