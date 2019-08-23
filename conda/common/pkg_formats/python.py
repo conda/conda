@@ -246,8 +246,8 @@ class PythonDistribution(object):
                                                                 cleaned_path, checksum)
                         checksum = checksum[7:]
                     else:
-                        checksum = ''
-                    size = int(size) if size else ''
+                        checksum = None
+                    size = int(size) if size else None
                 else:
                     checksum = size = None
                 return cleaned_path, checksum, size
@@ -260,13 +260,22 @@ class PythonDistribution(object):
                 # format of each record is (path, checksum, size)
                 records = tuple(process_csv_row(row) for row in record_reader if row[0])
             files_set = set(record[0] for record in records)
+            records = tuple(record for record in records if record[0] not in (r[0] for r in records))
 
             _pyc_path, _py_file_re = pyc_path, PY_FILE_RE
             py_ver_mm = get_major_minor_version(python_version, with_dot=False)
             missing_pyc_files = (ff for ff in (
                 _pyc_path(f, py_ver_mm) for f in files_set if _py_file_re.match(f)
             ) if ff not in files_set)
-            records = sorted(concatv(records, ((pf, '', '') for pf in missing_pyc_files)))
+            records = concatv(records, ((pf, None, None) for pf in missing_pyc_files))
+            seen = []
+            new = []
+            for i in records:
+                if i[0] in seen:
+                    continue
+            seen.append(i[0])
+            new.append(i)
+            records = sorted(set(new))
             return records
 
         return []
