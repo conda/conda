@@ -260,7 +260,6 @@ class PythonDistribution(object):
                 # format of each record is (path, checksum, size)
                 records = tuple(process_csv_row(row) for row in record_reader if row[0])
             files_set = set(record[0] for record in records)
-            records = tuple(record for record in records if record[0] not in (r[0] for r in records))
 
             _pyc_path, _py_file_re = pyc_path, PY_FILE_RE
             py_ver_mm = get_major_minor_version(python_version, with_dot=False)
