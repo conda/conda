@@ -272,8 +272,8 @@ class PythonDistribution(object):
             for i in records:
                 if i[0] in seen:
                     continue
-            seen.append(i[0])
-            new.append(i)
+                seen.append(i[0])
+                new.append(i)
             records = sorted(set(new))
             return records
 
