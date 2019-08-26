@@ -4,6 +4,7 @@
 # Bash command completion for conda
 #
 # This is based on completion for `fish`. Should be functionally equivalent.
+# Additionally completes options for subcommands.
 
 _CONDA_ROOT=$(dirname $(dirname $CONDA_EXE))
 
@@ -46,27 +47,32 @@ _comp_conda()
     local cur prev words cword
     _init_completion || return
 
-    # first command options
-    if [[ $cur == -* ]]; then
-        COMPREPLY=( $(compgen -W '$(_parse_help "$1")' -- "$cur") )
-        return
-    fi
-
     local word_list
-    case "$prev" in
-        conda)
-            word_list=$(__comp_conda_commands)
-            ;;
-        env)
-            word_list=$(__comp_conda_env_commands)
-            ;;
-        activate)
-            word_list=$(__comp_conda_envs)
-            ;;
-        remove|uninstall|upgrade|update)
-            word_list=$(__comp_conda_packages)
-            ;;
-    esac
+    if [[ $cur == -* ]]; then
+        case "$prev" in
+            conda)
+                word_list=$(_parse_help conda '-h')
+                ;;
+            *)
+                word_list=$(conda $prev -h 2>&1 | _parse_help -)
+                ;;
+        esac
+    else
+        case "$prev" in
+            conda)
+                word_list=$(__comp_conda_commands)
+                ;;
+            env)
+                word_list=$(__comp_conda_env_commands)
+                ;;
+            activate)
+                word_list=$(__comp_conda_envs)
+                ;;
+            remove|uninstall|upgrade|update)
+                word_list=$(__comp_conda_packages)
+                ;;
+        esac
+    fi
     COMPREPLY=( $(compgen -W '$word_list' -- "$cur" ) )
 } &&
 complete -F _comp_conda conda
