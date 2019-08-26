@@ -1575,7 +1575,7 @@ def test_pinned_1():
             with pytest.raises(SpecsConfigurationConflictError) as exc:
                 solver.solve_final_state(ignore_pinned=False)
             kwargs = exc.value._kwargs
-            assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
+            assert "scikit-learn==0.13" in kwargs["requested_specs"]
             assert kwargs["pinned_specs"] == ["python=2.6"]
 
         specs_to_add = MatchSpec("numba"),
