@@ -20,8 +20,9 @@ from conda.common.io import captured, env_var, env_vars
 from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
 from conda.core.initialize import Result, _get_python_info, init_sh_system, init_sh_user, \
     initialize_dev, install, install_conda_csh, install_conda_fish, \
-    install_conda_sh, install_conda_xsh, make_entry_point, make_entry_point_exe, \
-    make_initialize_plan, make_install_plan, install_condabin_conda_bat
+    install_conda_sh, install_conda_bash_sh, install_conda_xsh, make_entry_point, \
+    make_entry_point_exe,  make_initialize_plan, make_install_plan, \
+    install_condabin_conda_bat
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
@@ -185,6 +186,20 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
+                        "function": "install_conda_bash_sh",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin\\etc\\conda_bash.sh"
+                        }
+                    },
+                    {
+                        "function": "install_conda_bash_completion_d",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin\\etc\\bash_completion.d\\conda"
+                        }
+                    },
+                    {
                         "function": "install_conda_fish",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -271,6 +286,20 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
+                        "function": "install_conda_bash_sh",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin/etc/conda_bash.sh"
+                        }
+                    },
+                    {
+                        "function": "install_conda_bash_completion_d",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin/etc/bash_completion.d/conda"
+                        }
+                    },
+                    {
                         "function": "install_conda_fish",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -314,7 +343,7 @@ class InitializeTests(TestCase):
             steps = tuple(step for step in plan if step['function'] == 'init_sh_user')
             assert len(steps) == 2
             steps = tuple(step for step in plan if step['function'] == 'init_sh_system')
-            assert len(steps) == 1
+            assert len(steps) == 2
 
     def test_make_initialize_plan_cmd_exe(self):
         with tempdir() as conda_temp_prefix:
@@ -399,6 +428,32 @@ class InitializeTests(TestCase):
             assert remainder == original_contents
 
             result = install_conda_sh(target_path, conda_prefix)
+            assert result == Result.NO_CHANGE
+
+    def test_install_conda_bash_sh(self):
+        with tempdir() as conda_prefix:
+            target_path = join(conda_prefix, 'etc', 'conda_bash.sh')
+            context.dev = False
+            result = install_conda_bash_sh(target_path, conda_prefix)
+            assert result == Result.MODIFIED
+
+            with open(target_path) as fh:
+                created_file_contents = fh.read()
+
+            from conda.activate import BashActivator
+            activator = BashActivator()
+
+            line0, line1, line2, line3, _, remainder = created_file_contents.split('\n', 5)
+            assert line0 == "export CONDA_EXE='%s'" % activator.path_conversion(context.conda_exe)
+            assert line1 == "export _CE_M=''"
+            assert line2 == "export _CE_CONDA=''"
+            assert line3.startswith("export CONDA_PYTHON_EXE=")
+
+            with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'conda_bash.sh')) as fh:
+                original_contents = fh.read()
+            assert remainder == original_contents
+
+            result = install_conda_bash_sh(target_path, conda_prefix)
             assert result == Result.NO_CHANGE
 
     def test_install_conda_fish(self):
@@ -534,6 +589,8 @@ class InitializeTests(TestCase):
                 'activate',
                 'deactivate',
                 'conda.sh',
+                'conda_bash.sh',
+                'conda',  # etc/bash_completion.d/conda
                 'conda.fish',
                 'Conda.psm1',
                 'conda-hook.ps1',
@@ -547,6 +604,8 @@ class InitializeTests(TestCase):
                 'activate',
                 'deactivate',
                 'conda.sh',
+                'conda_bash.sh',
+                'conda',  # etc/bash_completion.d/conda
                 'conda.fish',
                 'Conda.psm1',
                 'conda-hook.ps1',
@@ -594,6 +653,8 @@ class InitializeTests(TestCase):
                 'activate',
                 'deactivate',
                 'conda.sh',
+                'conda_bash.sh',
+                'conda',  # etc/bash_completion.d/conda
                 'conda.fish',
                 'Conda.psm1',
                 'conda-hook.ps1',
@@ -612,6 +673,8 @@ class InitializeTests(TestCase):
                 'activate',
                 'deactivate',
                 'conda.sh',
+                'conda_bash.sh',
+                'conda',  # etc/bash_completion.d/conda
                 'conda.fish',
                 'Conda.psm1',
                 'conda-hook.ps1',
@@ -662,6 +725,8 @@ class InitializeTests(TestCase):
                 'activate',
                 'deactivate',
                 'conda.sh',
+                'conda_bash.sh',
+                'conda',  # etc/bash_completion.d/conda
                 'conda.fish',
                 'Conda.psm1',
                 'conda-hook.ps1',
@@ -680,6 +745,8 @@ class InitializeTests(TestCase):
                 'activate',
                 'deactivate',
                 'conda.sh',
+                'conda_bash.sh',
+                'conda',  # etc/bash_completion.d/conda
                 'conda.fish',
                 'Conda.psm1',
                 'conda-hook.ps1',
