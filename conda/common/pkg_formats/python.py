@@ -237,20 +237,28 @@ class PythonDistribution(object):
             else:
                 path_prepender = ""
 
-            def process_csv_row(row):
-                cleaned_path = posix_normpath("%s%s%s" % (sp_dir, path_prepender, row[0]))
-                if len(row) == 3:
-                    checksum, size = row[1:]
-                    if checksum:
-                        assert checksum.startswith('sha256='), (self._metadata_dir_full_path,
-                                                                cleaned_path, checksum)
-                        checksum = checksum[7:]
+            def process_csv_row(reader):
+                seen = []
+                records = []
+                for row in reader:
+                    cleaned_path = posix_normpath("%s%s%s" % (sp_dir, path_prepender, row[0]))
+                    if len(row) == 3:
+                        checksum, size = row[1:]
+                        if checksum:
+                            assert checksum.startswith('sha256='), (self._metadata_dir_full_path,
+                                                                    cleaned_path, checksum)
+                            checksum = checksum[7:]
+                        else:
+                            checksum = None
+                        size = int(size) if size else None
                     else:
-                        checksum = None
-                    size = int(size) if size else None
-                else:
-                    checksum = size = None
-                return cleaned_path, checksum, size
+                        checksum = size = None
+                    if cleaned_path not in seen and row[0]:
+                        seen.append(cleaned_path)
+                        records.append((cleaned_path, checksum, size))
+                    else:
+                        continue
+                return tuple(records)
 
             csv_delimiter = ','
             if PY2:
@@ -258,7 +266,7 @@ class PythonDistribution(object):
             with open(manifest_full_path) as csvfile:
                 record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                 # format of each record is (path, checksum, size)
-                records = tuple(process_csv_row(row) for row in record_reader if row[0])
+                records = process_csv_row(record_reader)
             files_set = set(record[0] for record in records)
 
             _pyc_path, _py_file_re = pyc_path, PY_FILE_RE
