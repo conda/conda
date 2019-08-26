@@ -5,13 +5,15 @@
 #
 # This is based on completion for `fish`. Should be functionally equivalent.
 
+_CONDA_ROOT=$(dirname $(dirname $CONDA_EXE))
+
 function __comp_conda_commands () {
-    for f in $CONDA_PREFIX/lib/python*/site-packages/conda/cli/main_*.py
+    for f in $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
     do
         expr match "$f" '.*_\([a-z]\+\)\.py$'
     done
 
-    for f in $CONDA_PREFIX/bin/conda-*
+    for f in $_CONDA_ROOT/bin/conda-*
     do
         if test -x "$f" -a ! -d "$f"
         then
@@ -23,7 +25,7 @@ function __comp_conda_commands () {
 }
 
 function __comp_conda_env_commands() {
-    for f in $CONDA_PREFIX/lib/python*/site-packages/conda_env/cli/main_*.py
+    for f in $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
     do
         expr match "$f" '.*_\([a-z]\+\)\.py$'
     done
