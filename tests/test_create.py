@@ -2009,9 +2009,7 @@ class IntegrationTests(TestCase):
                 assert not stderr
                 json_obj = json_loads(stdout)
                 unlink_dists = json_obj["actions"]["UNLINK"]
-                assert len(unlink_dists) == 1
-                assert unlink_dists[0]["name"] == "urllib3"
-                assert unlink_dists[0]["channel"] == "pypi"
+                assert any(ud["name"] == "urllib3" and ud["channel"] == "pypi" for ud in unlink_dists)
 
 
     def test_conda_pip_interop_compatible_release_operator(self):
