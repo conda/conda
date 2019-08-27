@@ -100,7 +100,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             precs_to_remove.append(prec)
 
     stp = PrefixSetup(prefix, precs_to_remove, tuple(sp[1] for sp in specs_pcrecs),
-                      (), tuple(sp[0] for sp in specs_pcrecs))
+                      (), tuple(sp[0] for sp in specs_pcrecs), ())
 
     txn = UnlinkLinkTransaction(stp)
     txn.execute()

@@ -71,6 +71,7 @@ class Solver(object):
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
+        self.neutered_specs = tuple()
         self._command = command
 
         assert all(s in context.known_subdirs for s in self.subdirs)
@@ -115,7 +116,7 @@ class Solver(object):
                                                            force_remove, force_reinstall,
                                                            should_retry_solve)
             stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
-                              self.specs_to_remove, self.specs_to_add)
+                              self.specs_to_remove, self.specs_to_add, self.neutered_specs)
             # TODO: Only explicitly requested remove and update specs are being included in
             #   History right now. Do we need to include other categories from the solve?
 
@@ -803,6 +804,10 @@ class Solver(object):
                                          history_specs=ssc.specs_from_history_map,
                                          should_retry_solve=ssc.should_retry_solve
                                          )
+
+        self.neutered_specs = tuple(v for k, v in ssc.specs_map.items() if
+                                    k in ssc.specs_from_history_map and
+                                    v != ssc.specs_from_history_map[k])
 
         # add back inconsistent packages to solution
         if ssc.add_back_map:

@@ -2517,5 +2517,3 @@ def test_indirect_dep_optimized_by_version_over_package_count():
                 assert prec.build_number == 1
             elif prec.name == '_dummy_anaconda_impl':
                 assert prec.version == "2.0"
-
-

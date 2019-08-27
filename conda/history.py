@@ -204,6 +204,8 @@ class History(object):
                 item['update_specs'] = item['specs'] = specs
             elif specs and action in ('remove', 'uninstall'):
                 item['remove_specs'] = item['specs'] = specs
+            elif specs and action in ('neutered', ):
+                item['neutered_specs'] = item['specs'] = specs
 
         return item
 
@@ -277,6 +279,9 @@ class History(object):
                 spec_map.pop(spec.name, None)
             update_specs = (MatchSpec(spec) for spec in request.get('update_specs', ()))
             spec_map.update(((s.name, s) for s in update_specs))
+            # here is where the neutering takes effect, overriding past values
+            neutered_specs = (MatchSpec(spec) for spec in request.get('neutered_specs', ()))
+            spec_map.update(((s.name, s) for s in neutered_specs))
 
         # Conda hasn't always been good about recording when specs have been removed from
         # environments.  If the package isn't installed in the current environment, then we
@@ -383,15 +388,18 @@ class History(object):
             for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
 
-    def write_specs(self, remove_specs=(), update_specs=()):
+    def write_specs(self, remove_specs=(), update_specs=(), neutered_specs=()):
         remove_specs = [text_type(MatchSpec(s)) for s in remove_specs]
         update_specs = [text_type(MatchSpec(s)) for s in update_specs]
-        if update_specs or remove_specs:
+        neutered_specs = [text_type(MatchSpec(s)) for s in neutered_specs]
+        if any((update_specs, remove_specs, neutered_specs)):
             with codecs.open(self.path, mode='ab', encoding='utf-8') as fh:
                 if remove_specs:
                     fh.write("# remove specs: %s\n" % remove_specs)
                 if update_specs:
                     fh.write("# update specs: %s\n" % update_specs)
+                if neutered_specs:
+                    fh.write("# neutered specs: %s\n" % neutered_specs)
 
 
 if __name__ == '__main__':

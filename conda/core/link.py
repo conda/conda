@@ -116,6 +116,7 @@ PrefixSetup = namedtuple('PrefixSetup', (
     'link_precs',
     'remove_specs',
     'update_specs',
+    'neutered_specs'
 ))
 
 PrefixActionGroup = namedtuple('PrefixActionGroup', (
@@ -208,7 +209,8 @@ class UnlinkLinkTransaction(object):
             for stp in itervalues(self.prefix_setups):
                 grps = self._prepare(self.transaction_context, stp.target_prefix,
                                      stp.unlink_precs, stp.link_precs,
-                                     stp.remove_specs, stp.update_specs)
+                                     stp.remove_specs, stp.update_specs,
+                                     stp.neutered_specs)
                 self.prefix_action_groups[stp.target_prefix] = PrefixActionGroup(*grps)
 
         self._prepared = True
@@ -261,7 +263,7 @@ class UnlinkLinkTransaction(object):
 
     @classmethod
     def _prepare(cls, transaction_context, target_prefix, unlink_precs, link_precs,
-                 remove_specs, update_specs):
+                 remove_specs, update_specs, neutered_specs):
 
         # make sure prefix directory exists
         if not isdir(target_prefix):
@@ -372,8 +374,10 @@ class UnlinkLinkTransaction(object):
 
         prefix_record_groups = [ActionGroup('record', None, record_axns, target_prefix)]
 
+        # We're post solve here.  The update_specs are explicit requests.  We need to neuter
+        #    any historic spec that was neutered prior to the solve.
         history_actions = UpdateHistoryAction.create_actions(
-            transaction_context, target_prefix, remove_specs, update_specs,
+            transaction_context, target_prefix, remove_specs, update_specs, neutered_specs
         )
         register_actions = RegisterEnvironmentLocationAction(transaction_context, target_prefix),
         register_action_groups = [ActionGroup('register', None,
