@@ -807,7 +807,7 @@ class Solver(object):
 
         self.neutered_specs = tuple(v for k, v in ssc.specs_map.items() if
                                     k in ssc.specs_from_history_map and
-                                    v != ssc.specs_from_history_map[k])
+                                    v.strictness < ssc.specs_from_history_map[k].strictness)
 
         # add back inconsistent packages to solution
         if ssc.add_back_map:
