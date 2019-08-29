@@ -224,14 +224,14 @@ Optional file. Contains the entries in the `about section <https://docs.conda.io
 of the ``meta.yaml`` file. The following keys are
 added to ``info/about.json`` if present in the build recipe:
 
-* home.
-* dev_url.
-* doc_url.
-* license_url.
-* license.
-* summary.
-* description.
-* license_family.
+* home
+* dev_url
+* doc_url
+* license_url
+* license
+* summary
+* description
+* license_family
 
 info/recipe
 -----------
