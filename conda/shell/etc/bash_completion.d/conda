@@ -4,11 +4,18 @@
 # Bash command completion for conda.
 #
 # This is based on completion for `fish`.
+#
 # Extended to complete options for subcommands.
+#
+# Extended to complete file/dirs/paths as appropriate
+#
+# Dynamic option lookup uses a cache that persists for the duration of the shell. If you
+# Updates to the conda command options are relatively rare, but there is a small chance
+# that this cache will hold incorrect/incomplete values. A restart of your shell will
+# fix this.
 
 # TODO
 # * integrate with `conda init`
-# * cache help lookups
 # * complete args to --channel-name
 # * complete `conda env` subcommands
 
@@ -48,6 +55,9 @@ function __comp_conda_packages() {
     conda list | awk 'NR > 3 {print $1}'
 }
 
+# cache conda subcommand help lookups for the duration of the shell
+declare -A __comp_conda_cache=()
+
 _comp_conda()
 {
     local cur prev words cword
@@ -60,7 +70,12 @@ _comp_conda()
                 word_list=$(_parse_help conda '-h')
                 ;;
             *)
-                word_list=$(conda $prev -h 2>&1 | _parse_help -)
+                if [[ -z ${__comp_conda_cache[$prev]} ]]; then
+                    word_list=$(conda $prev -h 2>&1 | _parse_help -)
+                    __comp_conda_cache[$prev]=$word_list
+                else
+                    word_list=${__comp_conda_cache[$prev]}
+                fi
                 ;;
         esac
     else
