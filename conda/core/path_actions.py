@@ -910,17 +910,19 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
 class UpdateHistoryAction(CreateInPrefixPathAction):
 
     @classmethod
-    def create_actions(cls, transaction_context, target_prefix, remove_specs, update_specs):
+    def create_actions(cls, transaction_context, target_prefix, remove_specs, update_specs,
+                       neutered_specs):
         target_short_path = join('conda-meta', 'history')
         return cls(transaction_context, target_prefix, target_short_path,
-                   remove_specs, update_specs),
+                   remove_specs, update_specs, neutered_specs),
 
     def __init__(self, transaction_context, target_prefix, target_short_path, remove_specs,
-                 update_specs):
+                 update_specs, neutered_specs):
         super(UpdateHistoryAction, self).__init__(transaction_context, None, None, None,
                                                   target_prefix, target_short_path)
         self.remove_specs = remove_specs
         self.update_specs = update_specs
+        self.neutered_specs = neutered_specs
 
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
@@ -932,7 +934,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
 
         h = History(self.target_prefix)
         h.update()
-        h.write_specs(self.remove_specs, self.update_specs)
+        h.write_specs(self.remove_specs, self.update_specs, self.neutered_specs)
 
     def reverse(self):
         if lexists(self.hold_path):

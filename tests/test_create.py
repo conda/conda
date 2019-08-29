@@ -2799,6 +2799,19 @@ class IntegrationTests(TestCase):
                                             '--dry-run', '-c', 'conda-forge', 'python',
                                             'boost==1.70.0', 'boost-cpp==1.70.0', no_capture=True)
 
+    # https://github.com/conda/conda/issues/9124
+    @pytest.mark.skipif(context.subdir != 'linux-64', reason="lazy; package constraint here only valid on linux-64")
+    def test_neutering_of_historic_specs(self):
+        with make_temp_env('psutil=5.6.3=py37h7b6447c_0') as prefix:
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
+            with open(os.path.join(prefix, 'conda-meta', 'history')) as f:
+                d = f.read()
+            assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
+            # this would be unsatisfiable if the neutered specs were not being factored in correctly.
+            #    If this command runs successfully (does not raise), then all is well.
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "imagesize")
+
+
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")
 @pytest.mark.integration
 class PrivateEnvIntegrationTests(TestCase):

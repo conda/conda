@@ -308,7 +308,7 @@ def revert_actions(prefix, revision=-1, index=None):
 
     final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
-    stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs)
+    stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
     txn = UnlinkLinkTransaction(stp)
     return txn
 
@@ -395,7 +395,7 @@ def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: n
         pfe = ProgressiveFetchExtract(link_precs)
         pfe.prepare()
 
-        stp = PrefixSetup(prefix, unlink_precs, link_precs, (), specs)
+        stp = PrefixSetup(prefix, unlink_precs, link_precs, (), specs, ())
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
     elif axn in ('INSTALL', 'CREATE'):
