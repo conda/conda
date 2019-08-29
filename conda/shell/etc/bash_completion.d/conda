@@ -18,19 +18,22 @@
 # * integrate with `conda init`
 # * complete `conda env` subcommands
 
-_CONDA_ROOT=$(dirname $(dirname $CONDA_EXE))
+# This file may be sourced before conda is defined
+if type -t conda >/dev/null; then
+    \export _CONDA_ROOT=$(conda config --show root_prefix | cut -d" " -f2)
+fi
 
 function __comp_conda_commands () {
     for f in $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
     do
-        expr match "$f" '.*_\([a-z]\+\)\.py$'
+        \expr match "$f" '.*_\([a-z]\+\)\.py$'
     done
 
     for f in $_CONDA_ROOT/bin/conda-*
     do
         if test -x "$f" -a ! -d "$f"
         then
-            expr match "$f" '^.*/conda-\(.*\)'
+            \expr match "$f" '^.*/conda-\(.*\)'
         fi
     done
     echo activate
@@ -40,7 +43,7 @@ function __comp_conda_commands () {
 function __comp_conda_env_commands() {
     for f in $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
     do
-        expr match "$f" '.*_\([a-z]\+\)\.py$'
+        \expr match "$f" '.*_\([a-z]\+\)\.py$'
     done
 }
 
@@ -59,10 +62,15 @@ declare -A __comp_conda_cache=()
 
 _comp_conda()
 {
-    local cur prev words cword
+    \local cur prev words cword
     _init_completion || return
 
-    local word_list
+    # late initialization if `conda` is setup after completions
+    if [[ -z ${_CONDA_ROOT} ]]; then
+        \export _CONDA_ROOT=$(conda config --show root_prefix | cut -d" " -f2)
+    fi
+
+    \local word_list
     if [[ $cur == -* ]]; then
         case "$prev" in
             conda)
