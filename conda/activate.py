@@ -786,6 +786,16 @@ class PosixActivator(_Activator):
                     result += join(self.export_var_tmpl % (key, value)) + '\n'
         return result
 
+class BashActivator(PosixActivator):
+
+    def __init__(self, arguments=None):
+        super(BashActivator, self).__init__(arguments)
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'conda_bash.sh')
+
+    def _hook_preamble(self):
+        result = super(BashActivator, self)._hook_preamble()
+        result += join(self.export_var_tmpl % ('_CONDA_ROOT', CONDA_PACKAGE_ROOT)) + '\n'
+        return result
 
 class CshActivator(_Activator):
 
@@ -964,7 +974,7 @@ class PowerShellActivator(_Activator):
 activator_map = {
     'posix': PosixActivator,
     'ash': PosixActivator,
-    'bash': PosixActivator,
+    'bash': BashActivator,
     'dash': PosixActivator,
     'zsh': PosixActivator,
     'csh': CshActivator,
