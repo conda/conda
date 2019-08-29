@@ -1,10 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-# Bash command completion for conda
+# Bash command completion for conda.
 #
-# This is based on completion for `fish`. Should be functionally equivalent.
-# Additionally completes options for subcommands.
+# This is based on completion for `fish`.
+# Extended to complete options for subcommands.
+
+# TODO
+# * integrate with `conda init`
+# * cache help lookups
+# * complete args to --channel-name
+# * complete `conda env` subcommands
 
 _CONDA_ROOT=$(dirname $(dirname $CONDA_EXE))
 
@@ -66,14 +72,36 @@ _comp_conda()
                 word_list=$(__comp_conda_env_commands)
                 ;;
             activate)
-                word_list=$(__comp_conda_envs)
+                if [[ $cur == ./* || $cur == /* ]]; then
+                    # complete for paths
+                    COMPREPLY=( $(compgen -d -- "$cur" ) )
+                else
+                    word_list=$(__comp_conda_envs)
+                fi
                 ;;
             remove|uninstall|upgrade|update)
                 word_list=$(__comp_conda_packages)
                 ;;
+            --name|--clone)
+                word_list=$(__comp_conda_envs)
+                ;;
+            --*-file|--file|--which|convert)
+                # complete for files
+                COMPREPLY=( $(compgen -f -- "$cur" ) )
+                ;;
+            --*-dir|--*-folder|--subdir|--prefix|--cwd|index)
+                # complete for directories
+                COMPREPLY=( $(compgen -d -- "$cur" ) )
+                ;;
+            verify)
+                # complete for paths
+                COMPREPLY=( $(compgen -fd -- "$cur" ) )
+                ;;
         esac
     fi
-    COMPREPLY=( $(compgen -W '$word_list' -- "$cur" ) )
+    if [[ -n $word_list ]]; then
+        COMPREPLY=( $(compgen -W '$word_list' -- "$cur" ) )
+    fi
 } &&
 complete -F _comp_conda conda
 
