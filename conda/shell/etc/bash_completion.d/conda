@@ -16,7 +16,6 @@
 
 # TODO
 # * integrate with `conda init`
-# * complete args to --channel-name
 # * complete `conda env` subcommands
 
 _CONDA_ROOT=$(dirname $(dirname $CONDA_EXE))
