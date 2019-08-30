@@ -717,6 +717,33 @@ class ActivatorUnitTests(TestCase):
                     assert builder['activate_scripts'] == ()
                     assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
+    def test_get_env_vars_big_whitespace(self):
+        with tempdir() as td:
+            env_var_parent_dir = join(td, 'etc', 'conda')
+            mkdir_p(env_var_parent_dir)
+            activate_env_vars = join(env_var_parent_dir, 'env_vars')
+            with open(activate_env_vars, 'w') as f:
+                f.write('''
+                ENV_ONE=one
+                ENV_TWO=you
+                ENV_THREE=me
+                ''')
+            activator = PosixActivator()
+            env_vars = activator._get_environment_env_vars(td)
+            assert env_vars == {'ENV_ONE':'one', 'ENV_TWO': 'you','ENV_THREE':'me'}
+
+    def test_get_env_vars_empty_file(self):
+        with tempdir() as td:
+            env_var_parent_dir = join(td, 'etc', 'conda')
+            mkdir_p(env_var_parent_dir)
+            activate_env_vars = join(env_var_parent_dir, 'env_vars')
+            with open(activate_env_vars, 'w') as f:
+                f.write('''
+                ''')
+            activator = PosixActivator()
+            env_vars = activator._get_environment_env_vars(td)
+            assert env_vars == {}
+
 
 class ShellWrapperUnitTests(TestCase):
 

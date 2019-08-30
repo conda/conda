@@ -10,7 +10,7 @@ from glob import glob
 from itertools import chain
 from logging import getLogger
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
+from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, exists
 import re
 import sys
 from textwrap import dedent
@@ -312,6 +312,7 @@ class _Activator(object):
         activate_scripts = self._get_activate_scripts(prefix)
         conda_default_env = self._default_env(prefix)
         conda_prompt_modifier = self._prompt_modifier(prefix, conda_default_env)
+        conda_environment_env_vars = self._get_environment_env_vars(prefix)
 
         unset_vars = []
         if old_conda_shlvl == 0:
@@ -650,6 +651,18 @@ class _Activator(object):
         return self.path_conversion(sorted(glob(join(
             prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
         )), reverse=True))
+
+    def _get_environment_env_vars(self, prefix):
+        env_vars = {}
+        env_vars_file = join(prefix, 'etc', 'conda', 'env_vars')
+        if exists(env_vars_file):
+            with open(env_vars_file, 'r') as f:
+                raw_env_vars = f.read()
+            for env_assignment in raw_env_vars.split("\n"):
+                if "=" in env_assignment:
+                    parts = env_assignment.split("=")
+                    env_vars[parts[0].strip()] = parts[1].strip()
+        return env_vars
 
 
 def expand(path):
