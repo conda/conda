@@ -21,11 +21,15 @@
 # be sourced before conda is setup.  To support this we allow for a potential
 # late initiallization of the _CONDA_ROOT environment variable
 
-## TODO
 
 function __comp_conda_ensure_root() {
-    if [[ -z ${_CONDA_ROOT} ]] && type -t conda >/dev/null; then
-        \export _CONDA_ROOT=$(conda config --show root_prefix | cut -d" " -f2)
+    if [[ -z "${_CONDA_ROOT-}" && -n "${CONDA_EXE-}" ]] ; then
+        if [[ -n "${_CE_CONDA-}" && -n "${WINDIR-}" ]]; then
+            _CONDA_ROOT=$(\dirname "${CONDA_EXE}")
+        else
+            _CONDA_ROOT=$(\dirname "${CONDA_EXE}")
+            _CONDA_ROOT=$(\dirname "${_CONDA_ROOT}")
+        fi
     fi
 }
 
@@ -64,7 +68,8 @@ function __comp_conda_packages() {
 }
 
 # cache conda subcommand help lookups for the duration of the shell
-declare -A __comp_conda_cache=()
+declare -A __comp_conda_cache
+
 __comp_conda_ensure_root
 
 _comp_conda()
@@ -76,19 +81,22 @@ _comp_conda()
 
     \local word_list
     if [[ $cur == -* ]]; then
-        case "$prev" in
-            conda)
-                word_list=$(_parse_help conda '-h')
-                ;;
-            *)
-                if [[ -z ${__comp_conda_cache[$prev]} ]]; then
-                    word_list=$(conda $prev -h 2>&1 | _parse_help -)
-                    __comp_conda_cache[$prev]=$word_list
-                else
-                    word_list=${__comp_conda_cache[$prev]}
-                fi
-                ;;
-        esac
+
+        # get a list of commands
+        \local cmd cmds
+        for cmd in ${words[*]}; do
+            case "$cmd" in
+                -*) continue ;;
+                *) cmds="$cmds $cmd" ;;
+            esac
+        done
+        if [[ -z ${__comp_conda_cache[$cmds]} ]]; then
+            # parse the output of `--help` to get completions
+            word_list=$($cmds --help 2>&1 | _parse_help -)
+            __comp_conda_cache[$cmds]=$word_list
+        else
+            word_list=${__comp_conda_cache[$cmds]}
+        fi
     else
         case "$prev" in
             conda)
