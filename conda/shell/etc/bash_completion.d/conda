@@ -1,27 +1,33 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-# Bash command completion for conda.
+# bash_completion for conda.
 #
-# This is based on completion for `fish`.
-#
-# Extended to complete options for subcommands.
-#
-# Extended to complete file/dirs/paths as appropriate
+# This was initially based on completion support for `fish`, but later extended
+# complete options for subcommands and files/dirs/paths as appropriate.
 #
 # Dynamic option lookup uses a cache that persists for the duration of the shell. If you
 # Updates to the conda command options are relatively rare, but there is a small chance
 # that this cache will hold incorrect/incomplete values. A restart of your shell will
 # fix this.
 
-# TODO
-# * integrate with `conda init`
-# * complete `conda env` subcommands
+# If this completion file is 'installed' under
+#
+#   /etc/bash_completion.d/,
+#   /usr/share/bash-completion/completions/, or
+#   ~/.local/share/bash-completion/completions/,
+#
+# rather than being managed via the `conda shell.bash hook`, then this file may
+# be sourced before conda is setup.  To support this we allow for a potential
+# late initiallization of the _CONDA_ROOT environment variable
 
-# This file may be sourced before conda is defined
-if type -t conda >/dev/null; then
-    \export _CONDA_ROOT=$(conda config --show root_prefix | cut -d" " -f2)
-fi
+## TODO
+
+function __comp_conda_ensure_root() {
+    if [[ -z ${_CONDA_ROOT} ]] && type -t conda >/dev/null; then
+        \export _CONDA_ROOT=$(conda config --show root_prefix | cut -d" " -f2)
+    fi
+}
 
 function __comp_conda_commands () {
     for f in $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
@@ -59,16 +65,14 @@ function __comp_conda_packages() {
 
 # cache conda subcommand help lookups for the duration of the shell
 declare -A __comp_conda_cache=()
+__comp_conda_ensure_root
 
 _comp_conda()
 {
     \local cur prev words cword
     _init_completion || return
 
-    # late initialization if `conda` is setup after completions
-    if [[ -z ${_CONDA_ROOT} ]]; then
-        \export _CONDA_ROOT=$(conda config --show root_prefix | cut -d" " -f2)
-    fi
+    __comp_conda_ensure_root
 
     \local word_list
     if [[ $cur == -* ]]; then
