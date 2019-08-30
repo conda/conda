@@ -67,6 +67,19 @@ function __comp_conda_packages() {
     conda list | awk 'NR > 3 {print $1}'
 }
 
+function __comp_conda_cmds_str() {
+    # get a list of commands
+    \local cmd cmds
+    for cmd in ${words[*]}; do
+        case "$cmd" in
+            -*) continue ;;
+            *) cmds="$cmds $cmd" ;;
+        esac
+        cmds=${cmd# }
+    done
+    echo $cmds
+}
+
 # cache conda subcommand help lookups for the duration of the shell
 declare -A __comp_conda_cache
 
@@ -79,23 +92,16 @@ _comp_conda()
 
     __comp_conda_ensure_root
 
-    \local word_list
+    \local word_list cmds_str
     if [[ $cur == -* ]]; then
-
-        # get a list of commands
-        \local cmd cmds
-        for cmd in ${words[*]}; do
-            case "$cmd" in
-                -*) continue ;;
-                *) cmds="$cmds $cmd" ;;
-            esac
-        done
-        if [[ -z ${__comp_conda_cache[$cmds]} ]]; then
-            # parse the output of `--help` to get completions
-            word_list=$($cmds --help 2>&1 | _parse_help -)
-            __comp_conda_cache[$cmds]=$word_list
+        # get the current list of commands as a string
+        cmds_str=$(__comp_conda_cmds_str)
+        if [[ -z ${__comp_conda_cache[$cmds_str]} ]]; then
+            # parse the output of command help to get completions
+            word_list=$($cmds_str --help 2>&1 | _parse_help -)
+            __comp_conda_cache[$cmds_str]=$word_list
         else
-            word_list=${__comp_conda_cache[$cmds]}
+            word_list=${__comp_conda_cache[$cmds_str]}
         fi
     else
         case "$prev" in
