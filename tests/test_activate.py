@@ -345,10 +345,7 @@ class ActivatorUnitTests(TestCase):
                 unset_vars = []
 
                 set_vars = {
-                    'PS1': ps1,
-                    'ENV_ONE': 'one',
-                    'ENV_TWO': 'you',
-                    'ENV_THREE': 'me'
+                    'PS1': ps1
                 }
                 export_vars = OrderedDict((
                     ('PATH', new_path),
@@ -356,10 +353,14 @@ class ActivatorUnitTests(TestCase):
                     ('CONDA_SHLVL', 2),
                     ('CONDA_DEFAULT_ENV', td),
                     ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                    ('ENV_ONE', 'one'),
+                    ('ENV_TWO', 'you'),
+                    ('ENV_THREE', 'me')
                 ))
                 export_vars, _ = activator.add_export_unset_vars(export_vars, None)
                 export_vars['CONDA_PREFIX_1'] = old_prefix
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
+
                 assert builder['unset_vars'] == unset_vars
                 assert builder['set_vars'] == set_vars
                 assert builder['export_vars'] == export_vars
@@ -373,6 +374,9 @@ class ActivatorUnitTests(TestCase):
                     'CONDA_SHLVL': 2,
                     'CONDA_DEFAULT_ENV': td,
                     'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                    'ENV_ONE': 'one',
+                    'ENV_TWO': 'you',
+                    'ENV_THREE': 'me'
                 }):
                     activator = PosixActivator()
                     builder = activator.build_deactivate()
@@ -435,9 +439,6 @@ class ActivatorUnitTests(TestCase):
 
                 set_vars = {
                     'PS1': ps1,
-                    'ENV_ONE': 'one',
-                    'ENV_TWO': 'you',
-                    'ENV_THREE': 'me'
                 }
                 export_vars = OrderedDict((
                     ('PATH', new_path),
@@ -445,6 +446,9 @@ class ActivatorUnitTests(TestCase):
                     ('CONDA_SHLVL', 2),
                     ('CONDA_DEFAULT_ENV', td),
                     ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                    ('ENV_ONE', 'one'),
+                    ('ENV_TWO', 'you'),
+                    ('ENV_THREE', 'me')
                 ))
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, [])
                 export_vars['CONDA_PREFIX_1'] = old_prefix
@@ -464,6 +468,9 @@ class ActivatorUnitTests(TestCase):
                     'CONDA_DEFAULT_ENV': td,
                     'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
                     'CONDA_STACKED_2': 'true',
+                    'ENV_ONE': 'one',
+                    'ENV_TWO': 'you',
+                    'ENV_THREE': 'me'
                 }):
                     activator = PosixActivator()
                     builder = activator.build_deactivate()
@@ -578,9 +585,6 @@ class ActivatorUnitTests(TestCase):
                     unset_vars = [
                         'CONDA_PREFIX_1',
                         'CONDA_STACKED_2',
-                        'ENV_ONE',
-                        'ENV_TWO',
-                        'ENV_THREE'
                     ]
 
                     conda_prompt_modifier = "(%s) " % old_prefix

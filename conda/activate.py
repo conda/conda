@@ -335,24 +335,30 @@ class _Activator(object):
             if stack:
                 new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
                 deactivate_scripts = ()
-                export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict((
+                env_vars_to_export = OrderedDict((
                     ('path', new_path),
                     ('conda_prefix', prefix),
                     ('conda_shlvl', new_conda_shlvl),
                     ('conda_default_env', conda_default_env),
-                    ('conda_prompt_modifier', conda_prompt_modifier))))
+                    ('conda_prompt_modifier', conda_prompt_modifier)))
+                for k, v in conda_environment_env_vars.items():
+                    env_vars_to_export[k] = v
+                export_vars, unset_vars = self.get_export_unset_vars(odargs=env_vars_to_export)
                 export_vars['CONDA_PREFIX_%d' % old_conda_shlvl] = old_conda_prefix
                 export_vars['CONDA_STACKED_%d' % new_conda_shlvl] = 'true'
             else:
                 new_path = self.pathsep_join(
                     self._replace_prefix_in_path(old_conda_prefix, prefix))
                 deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
-                export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict((
+                env_vars_to_export = OrderedDict((
                     ('path', new_path),
                     ('conda_prefix', prefix),
                     ('conda_shlvl', new_conda_shlvl),
                     ('conda_default_env', conda_default_env),
-                    ('conda_prompt_modifier', conda_prompt_modifier))))
+                    ('conda_prompt_modifier', conda_prompt_modifier)))
+                for k, v in conda_environment_env_vars.items():
+                    env_vars_to_export[k] = v
+                export_vars, unset_vars = self.get_export_unset_vars(odargs=env_vars_to_export)
                 export_vars['CONDA_PREFIX_%d' % old_conda_shlvl] = old_conda_prefix
 
         set_vars = {}
@@ -384,6 +390,7 @@ class _Activator(object):
                 'activate_scripts': (),
             }
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
+        old_conda_environment_env_vars = self._get_environment_env_vars(old_conda_prefix)
 
         new_conda_shlvl = old_conda_shlvl - 1
         set_vars = {}
@@ -433,6 +440,9 @@ class _Activator(object):
 
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
+
+        for env_var in old_conda_environment_env_vars.keys():
+            unset_vars.append(env_var)
 
         return {
             'unset_vars': unset_vars,
