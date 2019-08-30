@@ -317,13 +317,15 @@ class _Activator(object):
         unset_vars = []
         if old_conda_shlvl == 0:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
-            export_vars, unset_vars = self.get_export_unset_vars(
-                odargs=OrderedDict((
+            env_vars_to_export = OrderedDict((
                     ('path', new_path),
                     ('conda_prefix', prefix),
                     ('conda_shlvl', new_conda_shlvl),
                     ('conda_default_env', conda_default_env),
-                    ('conda_prompt_modifier', conda_prompt_modifier))))
+                    ('conda_prompt_modifier', conda_prompt_modifier)))
+            for k, v in conda_environment_env_vars.items():
+                env_vars_to_export[k] = v
+            export_vars, unset_vars = self.get_export_unset_vars(odargs=env_vars_to_export)
             deactivate_scripts = ()
         else:
             if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl - 1)) == prefix:

@@ -290,9 +290,6 @@ class ActivatorUnitTests(TestCase):
 
                     set_vars = {
                         'PS1': ps1,
-                        'ENV_ONE': 'one',
-                        'ENV_TWO': 'you',
-                        'ENV_THREE': 'me'
                     }
 
                     export_vars = OrderedDict((
@@ -301,6 +298,9 @@ class ActivatorUnitTests(TestCase):
                         ('CONDA_SHLVL', 1),
                         ('CONDA_DEFAULT_ENV', td),
                         ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                        ('ENV_ONE', 'one'),
+                        ('ENV_TWO', 'you'),
+                        ('ENV_THREE', 'me')
                     ))
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
