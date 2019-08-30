@@ -792,11 +792,6 @@ class BashActivator(PosixActivator):
         super(BashActivator, self).__init__(arguments)
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'conda_bash.sh')
 
-    def _hook_preamble(self):
-        result = super(BashActivator, self)._hook_preamble()
-        result += join(self.export_var_tmpl % ('_CONDA_ROOT', CONDA_PACKAGE_ROOT)) + '\n'
-        return result
-
 class CshActivator(_Activator):
 
     def __init__(self, arguments=None):
