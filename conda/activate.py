@@ -416,6 +416,7 @@ class _Activator(object):
             new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
+            new_conda_environment_env_vars = self._get_environment_env_vars(new_prefix)
 
             old_prefix_stacked = 'CONDA_STACKED_%d' % old_conda_shlvl in self.environ
             new_path = ''
@@ -429,11 +430,14 @@ class _Activator(object):
                     self._replace_prefix_in_path(old_conda_prefix, new_prefix)
                 )
 
-            export_vars, unset_vars2 = self.get_export_unset_vars(odargs=OrderedDict((
+            env_vars_to_export = OrderedDict((
                 ('conda_prefix', new_prefix),
                 ('conda_shlvl', new_conda_shlvl),
                 ('conda_default_env', conda_default_env),
-                ('conda_prompt_modifier', conda_prompt_modifier))))
+                ('conda_prompt_modifier', conda_prompt_modifier)))
+            for k, v in new_conda_environment_env_vars.items():
+                env_vars_to_export[k] = v
+            export_vars, unset_vars2 = self.get_export_unset_vars(odargs=env_vars_to_export)
             unset_vars += unset_vars2
             export_path = {'PATH': new_path, }
             activate_scripts = self._get_activate_scripts(new_prefix)

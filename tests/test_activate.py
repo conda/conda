@@ -578,6 +578,11 @@ class ActivatorUnitTests(TestCase):
                     'CONDA_PREFIX': td,
                     'CONDA_STACKED_2': 'true',
                     'PATH': starting_path,
+                    'ENV_ONE': 'one',
+                    'ENV_TWO': 'you',
+                    'ENV_THREE': 'me',
+                    'ENV_FOUR': 'roar',
+                    'ENV_FIVE': 'hive'
                 }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     activator = PosixActivator()
                     builder = activator.build_deactivate()
@@ -585,6 +590,9 @@ class ActivatorUnitTests(TestCase):
                     unset_vars = [
                         'CONDA_PREFIX_1',
                         'CONDA_STACKED_2',
+                        'ENV_ONE',
+                        'ENV_TWO',
+                        'ENV_THREE'
                     ]
 
                     conda_prompt_modifier = "(%s) " % old_prefix
@@ -598,6 +606,8 @@ class ActivatorUnitTests(TestCase):
                         ('CONDA_SHLVL', 1),
                         ('CONDA_DEFAULT_ENV', old_prefix),
                         ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                        ('ENV_FOUR', 'roar'),
+                        ('ENV_FIVE', 'hive')
                     ))
                     export_path = {'PATH': original_path,}
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
@@ -644,6 +654,9 @@ class ActivatorUnitTests(TestCase):
                 'CONDA_PREFIX_1': old_prefix,
                 'CONDA_PREFIX': td,
                 'PATH': new_path,
+                'ENV_ONE': 'one',
+                'ENV_TWO': 'you',
+                'ENV_THREE': 'me',
             }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_deactivate()
@@ -660,17 +673,18 @@ class ActivatorUnitTests(TestCase):
 
                 set_vars = {
                     'PS1': ps1,
-                    'ENV_FOUR': 'roar',
-                    'ENV_FIVE': 'hive',
                 }
                 export_vars = OrderedDict((
                     ('CONDA_PREFIX', old_prefix),
                     ('CONDA_SHLVL', 1),
                     ('CONDA_DEFAULT_ENV', old_prefix),
                     ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                    ('ENV_FOUR', 'roar'),
+                    ('ENV_FIVE', 'hive')
                 ))
                 export_path = {'PATH': original_path,}
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
+
                 assert builder['unset_vars'] == unset_vars
                 assert builder['set_vars'] == set_vars
                 assert builder['export_vars'] == export_vars
@@ -702,7 +716,8 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_DEFAULT_ENV',
                         'CONDA_PROMPT_MODIFIER',
                         'ENV_ONE',
-                        'ENV_TWO'
+                        'ENV_TWO',
+                        'ENV_THREE'
                     ]
 
                     new_path = activator.pathsep_join(activator.path_conversion(original_path))
