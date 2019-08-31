@@ -62,6 +62,7 @@ def execute(args, parser):
                 link_precs=(),
                 remove_specs=(),
                 update_specs=(),
+                neutered_specs={},
             )
             txn = UnlinkLinkTransaction(stp)
             handle_txn(txn, prefix, args, False, True)

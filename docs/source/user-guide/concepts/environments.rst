@@ -59,10 +59,10 @@ Virtual environments
 
 A virtual environment is a tool that helps to
 keep dependencies required by different projects
-separate by creating isolated spaces for them that contain per-project dependencies.
-for them.
+separate by creating isolated spaces for them that
+contain per-project dependencies for them.
 
-Users can create virtual environments 
+Users can create virtual environments
 using one of several tools such as
 Pipenv or Poetry, or a conda virtual
 environment. Pipenv and Poetry are based around Python's
@@ -100,13 +100,17 @@ Some other traits are:
 |
 
 Why use venv-based virtual environments
-=======================================
+---------------------------------------
+
 - You prefer their workflow or spec formats
 - You prefer to use the system Python and libraries
-- Your project maintainers only publish to PyPI, and you prefer packages that come more directly from the project maintainers,   rather than someone else providing builds based on the same code
+- Your project maintainers only publish to PyPI, and
+  you prefer packages that come more directly from the
+  project maintainers, rather than someone else providing
+  builds based on the same code
 
 Why use conda virtual environments?
-===================================
+-----------------------------------
 
 - You want control over binary compatibility choices
 - You want to utilize newer language standards, such as C++ 17

@@ -13,7 +13,9 @@ Read more about the :ref:`defaults channel <default-channels>`.
 
 Removing the ``free`` channel reduced conda's search space
 and hid old software. That old software could have incompatible
-constraint information.
+constraint information. Read more about `why we made this change
+<https://www.anaconda.com/why-we-removed-the-free-channel-in-conda-4-7/>`_.
+
 
 If you still need the content from the ``free`` channel to reproduce
 old environments, you can re-add the channel following the directions below.
