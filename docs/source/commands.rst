@@ -44,7 +44,7 @@ Update package manager                  ``conda update conda``                  
 Uninstall a package                     ``conda remove --name $ENVIRONMENT_NAME $PACKAGE_NAME``    ``pip uninstall $PACKAGE_NAME``                                              X
 Create an environment                   ``conda create --name $ENVIRONMENT_NAME python``           X                                                                            ``cd $ENV_BASE_DIR; virtualenv $ENVIRONMENT_NAME``
 Activate an environment                 ``conda activate $ENVIRONMENT_NAME``\*                      X                                                                            ``source $ENV_BASE_DIR/$ENVIRONMENT_NAME/bin/activate``
-Deactivate an environment               ``source deactivate``                                      X                                                                            ``deactivate``
+Deactivate an environment               ``conda deactivate``                                      X                                                                            ``deactivate``
 Search available packages               ``conda search $SEARCH_TERM``                              ``pip search $SEARCH_TERM``                                                  X
 Install package from specific source    ``conda install --channel $URL $PACKAGE_NAME``             ``pip install --index-url $URL $PACKAGE_NAME``                               X
 List installed packages                 ``conda list --name $ENVIRONMENT_NAME``                    ``pip list``                                                                 X
