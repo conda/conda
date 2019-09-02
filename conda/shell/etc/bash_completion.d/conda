@@ -70,17 +70,18 @@ function __comp_conda_packages() {
 function __comp_conda_cmds_str() {
     # get a list of commands
     \local cmd cmds
-    for cmd in ${words[*]}; do
+    for cmd in $*; do
         case "$cmd" in
             -*) continue ;;
             *) cmds="$cmds $cmd" ;;
         esac
-        cmds=${cmd# }
     done
+    cmds=${cmds# }
     echo $cmds
 }
 
 # cache conda subcommand help lookups for the duration of the shell
+unset __comp_conda_cache
 declare -A __comp_conda_cache
 
 __comp_conda_ensure_root
@@ -95,7 +96,7 @@ _comp_conda()
     \local word_list cmds_str
     if [[ $cur == -* ]]; then
         # get the current list of commands as a string
-        cmds_str=$(__comp_conda_cmds_str)
+        cmds_str="$(__comp_conda_cmds_str ${words[*]})"
         if [[ -z ${__comp_conda_cache[$cmds_str]} ]]; then
             # parse the output of command help to get completions
             word_list=$($cmds_str --help 2>&1 | _parse_help -)
