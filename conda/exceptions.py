@@ -88,8 +88,8 @@ class ActivateHelp(Help):
           --stack               Stack the environment being activated on top of the
                                 previous active environment, rather replacing the
                                 current active environment with a new one. Currently,
-                                only the PATH environment variable is stacked. This 
-                                may be enabled implicitly by the 'auto_stack' 
+                                only the PATH environment variable is stacked. This
+                                may be enabled implicitly by the 'auto_stack'
                                 configuration variable.
           --no-stack            Do not stack the environment. Overrides 'auto_stack'
                                 setting.

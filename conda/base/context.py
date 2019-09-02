@@ -944,7 +944,7 @@ class Context(Configuration):
             'auto_stack': dals("""
                 Implicitly use --stack when using activate if current level of nesting
                 (as indicated by CONDA_SHLVL environment variable) is less than or equal to
-                specified value. 0 or false disables automatic stacking, 1 or true enables 
+                specified value. 0 or false disables automatic stacking, 1 or true enables
                 it for one level.
                 """),
             'bld_path': dals("""
