@@ -1688,12 +1688,10 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH5 = shell.get_env_var('PATH')
-        assert 'charizard' not in PATH4
-        assert 'venusaur' not in PATH4
         assert PATH1 == PATH5
 
         # Test auto_stack
-        shell.sendline('conda config --system --set auto_stack true' )
+        shell.sendline('conda config --env --set auto_stack 1' )
 
         shell.sendline('conda' + activate + '"%s"' % self.prefix3)
         shell.assert_env_var('CONDA_SHLVL', '2')
