@@ -1685,7 +1685,29 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' in PATH4
         assert PATH4 == PATH2
 
-        # TODO - test --no-stack and auto_stack config setting
+        shell.sendline('conda' + deactivate)
+        shell.assert_env_var('CONDA_SHLVL', '1')
+        PATH5 = shell.get_env_var('PATH')
+        assert 'charizard' not in PATH4
+        assert 'venusaur' not in PATH4
+        assert PATH1 == PATH5
+
+        # Test auto_stack
+        shell.sendline('conda config --system --set auto_stack true' )
+
+        shell.sendline('conda' + activate + '"%s"' % self.prefix3)
+        shell.assert_env_var('CONDA_SHLVL', '2')
+        PATH2 = shell.get_env_var('PATH')
+        assert 'charizard' in PATH2
+        assert 'venusaur' in PATH2
+        assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH2.split(':'))
+
+        shell.sendline('conda' + activate + '"%s"' % prefix_p)
+        shell.assert_env_var('CONDA_SHLVL', '3')
+        PATH3 = shell.get_env_var('PATH')
+        assert 'charizard' in PATH3
+        assert 'venusaur' not in PATH3
+        assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
 
     @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_bash_basic_integration(self):
