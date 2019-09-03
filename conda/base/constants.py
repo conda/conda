@@ -228,6 +228,8 @@ class SatSolverChoice(Enum):
 PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
 PREFIX_MAGIC_FILE = join('conda-meta', 'history')
 
+PREFIX_SATE_FILE = join('conda-meta', 'state.json')
+
 
 # TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.
 NAMESPACES_MAP = {  # base package name, namespace

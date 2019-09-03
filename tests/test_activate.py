@@ -17,7 +17,7 @@ from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
     PowerShellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
-from conda.base.constants import ROOT_ENV_NAME
+from conda.base.constants import ROOT_ENV_NAME, PREFIX_SATE_FILE
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
     string_types
@@ -71,9 +71,15 @@ POP_THESE = (
     'prompt',
 )
 
-ENV_VARS_FILE = '''ENV_ONE=one
-ENV_TWO=you
-ENV_THREE=me'''
+ENV_VARS_FILE = '''
+{
+  "version": 1,
+  "env_vars": {
+    "ENV_ONE": "one",
+    "ENV_TWO": "you",
+    "ENV_THREE": "me"
+  }
+}'''
 
 @memoize
 def bash_unsupported_because():
@@ -275,7 +281,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, 'conda-meta', 'env_vars')
+            activate_env_vars = join(td, PREFIX_SATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -319,7 +325,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, 'conda-meta', 'env_vars')
+            activate_env_vars = join(td, PREFIX_SATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -414,7 +420,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, 'conda-meta', 'env_vars')
+            activate_env_vars = join(td, PREFIX_SATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -548,7 +554,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(deactivate_d_1))
             touch(join(deactivate_d_2))
 
-            activate_env_vars = join(td, 'conda-meta', 'env_vars')
+            activate_env_vars = join(td, PREFIX_SATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -560,11 +566,16 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars_old = join(old_prefix, 'conda-meta', 'env_vars')
+            activate_env_vars_old = join(old_prefix, PREFIX_SATE_FILE)
             with open(activate_env_vars_old, 'w') as f:
                 f.write('''
-                    ENV_FOUR=roar
-                    ENV_FIVE=hive
+                    {
+                      "version": 1,
+                      "env_vars": {
+                        "ENV_FOUR": "roar",
+                        "ENV_FIVE": "hive"
+                      }
+                    }
                 ''')
 
             activator = PosixActivator()
@@ -629,7 +640,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(deactivate_d_1))
             touch(join(deactivate_d_2))
 
-            activate_env_vars = join(td, 'conda-meta', 'env_vars')
+            activate_env_vars = join(td, PREFIX_SATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -641,12 +652,17 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars_old = join(old_prefix, 'conda-meta', 'env_vars')
+            activate_env_vars_old = join(old_prefix, PREFIX_SATE_FILE)
             with open(activate_env_vars_old, 'w') as f:
                 f.write('''
-                    ENV_FOUR=roar
-                    ENV_FIVE=hive
-                ''')
+                   {
+                     "version": 1,
+                     "env_vars": {
+                       "ENV_FOUR": "roar",
+                       "ENV_FIVE": "hive"
+                     }
+                   }
+               ''')
 
             activator = PosixActivator()
             original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
@@ -703,7 +719,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(deactivate_d_1))
             touch(join(deactivate_d_2))
 
-            activate_env_vars = join(td, 'conda-meta', 'env_vars')
+            activate_env_vars = join(td, PREFIX_SATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -740,15 +756,17 @@ class ActivatorUnitTests(TestCase):
 
     def test_get_env_vars_big_whitespace(self):
         with tempdir() as td:
-            env_var_parent_dir = join(td, 'conda-meta')
-            mkdir_p(env_var_parent_dir)
-            activate_env_vars = join(env_var_parent_dir, 'env_vars')
-            with open(activate_env_vars, 'w') as f:
+            prefix_state_file = join(td, PREFIX_SATE_FILE)
+            mkdir_p(dirname(prefix_state_file))
+            with open(prefix_state_file, 'w') as f:
                 f.write('''
-                ENV_ONE=one
-                ENV_TWO=you
-                ENV_THREE=me
-                ''')
+                    {
+                      "version": 1,
+                      "env_vars": {
+                        "ENV_ONE": "one",
+                        "ENV_TWO": "you",
+                        "ENV_THREE": "me"
+                      }}''')
             activator = PosixActivator()
             env_vars = activator._get_environment_env_vars(td)
             assert env_vars == {'ENV_ONE':'one', 'ENV_TWO': 'you','ENV_THREE':'me'}

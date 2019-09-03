@@ -14,6 +14,7 @@ from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, j
 import re
 import sys
 from textwrap import dedent
+import json
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -23,6 +24,7 @@ from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
+from .base.constants import PREFIX_SATE_FILE
 
 log = getLogger(__name__)
 
@@ -669,15 +671,13 @@ class _Activator(object):
         )), reverse=True))
 
     def _get_environment_env_vars(self, prefix):
-        env_vars = OrderedDict()
-        env_vars_file = join(prefix, 'conda-meta', 'env_vars')
+        env_vars_file = join(prefix, PREFIX_SATE_FILE)
         if exists(env_vars_file):
             with open(env_vars_file, 'r') as f:
-                raw_env_vars = f.read()
-            for env_assignment in raw_env_vars.split("\n"):
-                if "=" in env_assignment:
-                    parts = env_assignment.split("=")
-                    env_vars[parts[0].strip()] = parts[1].strip()
+                prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
+                env_vars = prefix_state.get('env_vars', {})
+        else:
+            env_vars = OrderedDict()
         return env_vars
 
 
