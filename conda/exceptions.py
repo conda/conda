@@ -652,13 +652,17 @@ class UnsatisfiableError(CondaError):
         messages = {'python': dals('''
 
 The following specifications were found
-to be incompatible with the existing python installation in your environment:\n{specs}
+to be incompatible with the existing python installation in your environment:
+
+Specifications:\n{specs}
+
+Your python: {ref}
 
 If python is on the left-most side of the chain, that's the version you've asked for.
 When python appears to the right, that indicates that the thing on the left is somehow
-not available for the python version you are constrained to.  Your current python version
-is ({ref}).  Note that conda will not change your python version to a different minor version
-unless you explicitly specify that.
+not available for the python version you are constrained to. Note that conda will not
+change your python version to a different minor version unless you explicitly specify
+that.
 
         '''),
                     'request_conflict_with_history': dals('''
