@@ -32,7 +32,6 @@ from the tar archive directly.
 .conda file format
 ==================
 
-
 The .conda file format was introduced in conda 4.7 as a more
 compact, and thus faster, alternative to a tarball.
 
@@ -107,6 +106,44 @@ Package structure
 * lib contains the relevant library files (eg. the .py files)
 
 * info contains package metadata
+
+
+.. _meta-package:
+
+Metapackages
+============
+
+When a conda package is used for metadata alone and does not contain
+any files, it is referred to as a metapackage.
+The metapackage may contain dependencies to several core, low-level libraries
+and can contain links to software files that are
+automatically downloaded when executed.
+
+An example of a metapackage is "anaconda," which
+collects together all the packages in the Anaconda installer.
+The command ``conda create -n envname anaconda`` creates an
+environment that exactly matches what would be created from the
+Anaconda installer. You can create metapackages with the
+``conda metapackage`` command. Include the name and version
+in the command.
+
+Anaconda metapackage
+--------------------
+
+The Anaconda metapackage is used in the creation of the
+`Anaconda Distribution <https://docs.anaconda.com/anaconda/>`_
+installers so that they have a set of packages associated with them.
+Each installer release has a version number, which corresponds
+to a particular collection of packages at specific versions.
+That collection of packages at specific versions is encapsulated
+in the Anaconda metapackage.
+
+The Anaconda metapackage contains several core, low-level
+libraries, including compression, encryption, linear algebra, and
+some GUI libraries.
+
+`Read more about the Anaconda metapackage and Anaconda Distribution
+<https://www.anaconda.com/whats-in-a-name-clarifying-the-anaconda-metapackage/>`_.
 
 .. _noarch:
 
