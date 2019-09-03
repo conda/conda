@@ -275,7 +275,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, 'etc', 'conda', 'env_vars')
+            activate_env_vars = join(td, 'conda-meta', 'env_vars')
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -319,7 +319,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, 'etc', 'conda', 'env_vars')
+            activate_env_vars = join(td, 'conda-meta', 'env_vars')
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -414,7 +414,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, 'etc', 'conda', 'env_vars')
+            activate_env_vars = join(td, 'conda-meta', 'env_vars')
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -548,18 +548,19 @@ class ActivatorUnitTests(TestCase):
             touch(join(deactivate_d_1))
             touch(join(deactivate_d_2))
 
-            activate_env_vars = join(td, 'etc', 'conda', 'env_vars')
+            activate_env_vars = join(td, 'conda-meta', 'env_vars')
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
             old_prefix = join(td, 'old')
+            mkdir_p(join(old_prefix, 'conda-meta'))
             activate_d_dir = mkdir_p(join(old_prefix, 'etc', 'conda', 'activate.d'))
             activate_d_1 = join(activate_d_dir, 'see-me-activate.sh')
             activate_d_2 = join(activate_d_dir, 'dont-see-me.bat')
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars_old = join(old_prefix, 'etc', 'conda', 'env_vars')
+            activate_env_vars_old = join(old_prefix, 'conda-meta', 'env_vars')
             with open(activate_env_vars_old, 'w') as f:
                 f.write('''
                     ENV_FOUR=roar
@@ -628,18 +629,19 @@ class ActivatorUnitTests(TestCase):
             touch(join(deactivate_d_1))
             touch(join(deactivate_d_2))
 
-            activate_env_vars = join(td, 'etc', 'conda', 'env_vars')
+            activate_env_vars = join(td, 'conda-meta', 'env_vars')
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
             old_prefix = join(td, 'old')
+            mkdir_p(join(old_prefix, 'conda-meta'))
             activate_d_dir = mkdir_p(join(old_prefix, 'etc', 'conda', 'activate.d'))
             activate_d_1 = join(activate_d_dir, 'see-me-activate.sh')
             activate_d_2 = join(activate_d_dir, 'dont-see-me.bat')
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars_old = join(old_prefix, 'etc', 'conda', 'env_vars')
+            activate_env_vars_old = join(old_prefix, 'conda-meta', 'env_vars')
             with open(activate_env_vars_old, 'w') as f:
                 f.write('''
                     ENV_FOUR=roar
@@ -701,7 +703,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(deactivate_d_1))
             touch(join(deactivate_d_2))
 
-            activate_env_vars = join(td, 'etc', 'conda', 'env_vars')
+            activate_env_vars = join(td, 'conda-meta', 'env_vars')
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -738,7 +740,7 @@ class ActivatorUnitTests(TestCase):
 
     def test_get_env_vars_big_whitespace(self):
         with tempdir() as td:
-            env_var_parent_dir = join(td, 'etc', 'conda')
+            env_var_parent_dir = join(td, 'conda-meta')
             mkdir_p(env_var_parent_dir)
             activate_env_vars = join(env_var_parent_dir, 'env_vars')
             with open(activate_env_vars, 'w') as f:
@@ -753,7 +755,7 @@ class ActivatorUnitTests(TestCase):
 
     def test_get_env_vars_empty_file(self):
         with tempdir() as td:
-            env_var_parent_dir = join(td, 'etc', 'conda')
+            env_var_parent_dir = join(td, 'conda-meta')
             mkdir_p(env_var_parent_dir)
             activate_env_vars = join(env_var_parent_dir, 'env_vars')
             with open(activate_env_vars, 'w') as f:

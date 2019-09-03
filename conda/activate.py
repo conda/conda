@@ -670,7 +670,7 @@ class _Activator(object):
 
     def _get_environment_env_vars(self, prefix):
         env_vars = {}
-        env_vars_file = join(prefix, 'etc', 'conda', 'env_vars')
+        env_vars_file = join(prefix, 'conda-meta', 'env_vars')
         if exists(env_vars_file):
             with open(env_vars_file, 'r') as f:
                 raw_env_vars = f.read()
