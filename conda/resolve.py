@@ -1047,7 +1047,7 @@ class Resolve(object):
         if not specs:
             return ()
         all_specs = set(specs) | set(explicit_specs)
-        reduced_index = self.get_reduced_index(all_specs)
+        reduced_index = self.get_reduced_index(explicit_specs)
 
         # Check if satisfiable
         def mysat(specs, add_if=False):
