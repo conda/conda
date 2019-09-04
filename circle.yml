@@ -144,6 +144,7 @@ conda_build_test: &conda_build_test
             conda config --add default_channels https://repo.anaconda.com/pkgs/free
             conda config --add default_channels https://repo.anaconda.com/pkgs/r
             conda config --add default_channels https://repo.anaconda.com/pkgs/main
+            conda config --set unsatisfiable_hints False
             conda info
             cd ~/conda-build
             py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
@@ -175,6 +176,7 @@ conda_build_test: &conda_build_test
             conda config --add default_channels https://repo.anaconda.com/pkgs/free
             conda config --add default_channels https://repo.anaconda.com/pkgs/r
             conda config --add default_channels https://repo.anaconda.com/pkgs/main
+            conda config --set unsatisfiable_hints False
             conda info
             cd ~/conda-build
             py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
