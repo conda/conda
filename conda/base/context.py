@@ -847,6 +847,7 @@ class Context(Configuration):
             'report_errors',
             'show_channel_urls',
             'verbosity',
+            'unsatisfiable_hints'
         )),
         ('CLI-only', (
             'deps_modifier',

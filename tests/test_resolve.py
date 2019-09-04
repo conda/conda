@@ -362,13 +362,12 @@ def test_unsat_simple_dont_find_conflicts():
         simple_rec(name='c', version='1.0'),
         simple_rec(name='c', version='2.0'),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
-    context.unsatisfiable_hints = False
-    with pytest.raises(UnsatisfiableError) as excinfo:
-        r.install(['a', 'b '])
-    assert "a -> c[version='>=1,<2']" not in str(excinfo.value)
-    assert "b -> c[version='>=2,<3']" not in str(excinfo.value)
-    context.unsatisfiable_hints = True
+    with env_var("CONDA_UNSATISFIABLE_HINTS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        r = Resolve(OrderedDict((prec, prec) for prec in index))
+        with pytest.raises(UnsatisfiableError) as excinfo:
+            r.install(['a', 'b '])
+        assert "a -> c[version='>=1,<2']" not in str(excinfo.value)
+        assert "b -> c[version='>=2,<3']" not in str(excinfo.value)
 
 
 def test_unsat_shortest_chain_1():
