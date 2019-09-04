@@ -7,6 +7,8 @@ import sys
 
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.context import context
+from conda.cli import install as cli_install
+from conda.cli import common as cli_common
 
 base_env_name = 'base'
 
@@ -32,3 +34,19 @@ def find_prefix_name(name):
         if isdir(prefix):
             return prefix
     return None
+
+
+def print_result(args, prefix, result):
+    if context.json:
+        if result["conda"] is None and result["pip"] is None:
+            cli_common.stdout_json_success(message='All requested packages already installed.')
+        else:
+            if result["conda"] is not None:
+                actions = result["conda"]
+            else:
+                actions = {}
+            if result["pip"] is not None:
+                actions["PIP"] = result["pip"]
+            cli_common.stdout_json_success(prefix=prefix, actions=actions)
+    else:
+        cli_install.print_activate(args.name if args.name else prefix)

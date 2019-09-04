@@ -13,7 +13,7 @@ from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
-from .common import get_prefix
+from .common import get_prefix, print_result
 from .. import exceptions, specs
 from ..installers.base import InvalidInstaller, get_installer
 
@@ -95,10 +95,11 @@ def execute(args, parser):
     # common.ensure_override_channels_requires_channel(args)
     # channel_urls = args.channel or ()
 
+    result = {"conda": None, "pip": None}
     for installer_type, pkg_specs in env.dependencies.items():
         try:
             installer = get_installer(installer_type)
-            installer.install(prefix, pkg_specs, args, env)
+            result[installer_type] = installer.install(prefix, pkg_specs, args, env)
         except InvalidInstaller:
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.
@@ -112,5 +113,4 @@ def execute(args, parser):
             return -1
 
     touch_nonadmin(prefix)
-    if not args.json:
-        cli_install.print_activate(args.name if args.name else prefix)
+    print_result(args, prefix, result)

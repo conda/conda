@@ -6,7 +6,7 @@ from __future__ import absolute_import
 import os
 import os.path as op
 from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
-from conda_env.pip_util import pip_subprocess
+from conda_env.pip_util import pip_subprocess, get_pip_installed_packages
 from logging import getLogger
 
 
@@ -43,7 +43,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         requirements.close()
         # pip command line...
         pip_cmd = ['install', '-U', '-r', requirements.name]
-        pip_subprocess(pip_cmd, prefix, cwd=pip_workdir)
+        stdout, stderr = pip_subprocess(pip_cmd, prefix, cwd=pip_workdir)
     finally:
         # Win/Appveyor does not like it if we use context manager + delete=True.
         # So we delete the temporary file in a finally block.
@@ -53,6 +53,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
             else:
                 log.warning('CONDA_TEST_SAVE_TEMPS :: retaining pip requirements.txt {}'
                             .format(requirements.name))
+    return get_pip_installed_packages(stdout)
 
 
 # Conform to Installers API
