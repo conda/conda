@@ -272,6 +272,8 @@ class Context(Configuration):
 
     target_prefix_override = PrimitiveParameter('')
 
+    unsatisfiable_hints = PrimitiveParameter(True)
+
     # conda_build
     bld_path = PrimitiveParameter('')
     anaconda_upload = PrimitiveParameter(None, aliases=('binstar_upload',),
@@ -1222,6 +1224,10 @@ class Context(Configuration):
                 allowed, along with the --use-local command line flag, be sure to include the
                 'local' channel in the list. If the list is empty or left undefined, no
                 channel exclusions will be enforced.
+                """),
+            'unsatisfiable_hints': dals("""
+                A boolean to determine if conda should find conflicting packages in the case
+                of a failed install.  
                 """),
 
         })
