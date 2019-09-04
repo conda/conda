@@ -1227,7 +1227,7 @@ class Context(Configuration):
                 """),
             'unsatisfiable_hints': dals("""
                 A boolean to determine if conda should find conflicting packages in the case
-                of a failed install.  
+                of a failed install.
                 """),
 
         })
