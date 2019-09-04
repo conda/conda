@@ -17,7 +17,7 @@ from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
     PowerShellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
-from conda.base.constants import ROOT_ENV_NAME, PREFIX_SATE_FILE
+from conda.base.constants import ROOT_ENV_NAME, PREFIX_SATE_FILE, PACKAGE_ENV_VARS_DIR
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
     string_types
@@ -81,6 +81,18 @@ ENV_VARS_FILE = '''
   }
 }'''
 
+PKG_A_ENV_VARS = '''
+{
+    "PKG_A_ENV": "yerp"
+}
+'''
+
+PKG_B_ENV_VARS = '''
+{
+    "PKG_B_ENV": "berp"
+}
+'''
+
 @memoize
 def bash_unsupported_because():
     bash = which('bash')
@@ -128,6 +140,14 @@ class ActivatorUnitTests(TestCase):
     def tearDown(self):
         os.environ.clear()
         os.environ.update(self.hold_environ)
+
+    def write_pkg_env_vars(self, prefix):
+        activate_pkg_env_vars = join(prefix, PACKAGE_ENV_VARS_DIR)
+        mkdir_p(activate_pkg_env_vars)
+        with open(join(activate_pkg_env_vars, "pkg_a.json"), "w") as f:
+            f.write(PKG_A_ENV_VARS)
+        with open(join(activate_pkg_env_vars, "pkg_b.json"), "w") as f:
+            f.write(PKG_B_ENV_VARS)
 
     def test_activate_environment_not_found(self):
         activator = PosixActivator()
@@ -285,6 +305,8 @@ class ActivatorUnitTests(TestCase):
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
+            self.write_pkg_env_vars(td)
+
             with env_var('CONDA_SHLVL', '0'):
                 with env_var('CONDA_PREFIX', ''):
                     activator = PosixActivator()
@@ -304,9 +326,11 @@ class ActivatorUnitTests(TestCase):
                         ('CONDA_SHLVL', 1),
                         ('CONDA_DEFAULT_ENV', td),
                         ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                        ('PKG_B_ENV', 'berp'),
+                        ('PKG_A_ENV', 'yerp'),
                         ('ENV_ONE', 'one'),
                         ('ENV_TWO', 'you'),
-                        ('ENV_THREE', 'me')
+                        ('ENV_THREE', 'me'),
                     ))
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
@@ -328,6 +352,8 @@ class ActivatorUnitTests(TestCase):
             activate_env_vars = join(td, PREFIX_SATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
+
+            self.write_pkg_env_vars(td)
 
             old_prefix = '/old/prefix'
             activator = PosixActivator()
@@ -359,6 +385,8 @@ class ActivatorUnitTests(TestCase):
                     ('CONDA_SHLVL', 2),
                     ('CONDA_DEFAULT_ENV', td),
                     ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                    ('PKG_B_ENV', 'berp'),
+                    ('PKG_A_ENV', 'yerp'),
                     ('ENV_ONE', 'one'),
                     ('ENV_TWO', 'you'),
                     ('ENV_THREE', 'me')
@@ -380,6 +408,8 @@ class ActivatorUnitTests(TestCase):
                     'CONDA_SHLVL': 2,
                     'CONDA_DEFAULT_ENV': td,
                     'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                    'PKG_B_ENV': 'berp',
+                    'PKG_A_ENV': 'yerp',
                     'ENV_ONE': 'one',
                     'ENV_TWO': 'you',
                     'ENV_THREE': 'me'
@@ -389,6 +419,8 @@ class ActivatorUnitTests(TestCase):
 
                     unset_vars = [
                         'CONDA_PREFIX_1',
+                        'PKG_B_ENV',
+                        'PKG_A_ENV',
                         'ENV_ONE',
                         'ENV_TWO',
                         'ENV_THREE'
@@ -424,6 +456,8 @@ class ActivatorUnitTests(TestCase):
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
+            self.write_pkg_env_vars(td)
+
             old_prefix = '/old/prefix'
             activator = PosixActivator()
             old_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
@@ -452,6 +486,8 @@ class ActivatorUnitTests(TestCase):
                     ('CONDA_SHLVL', 2),
                     ('CONDA_DEFAULT_ENV', td),
                     ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                    ('PKG_B_ENV', 'berp'),
+                    ('PKG_A_ENV', 'yerp'),
                     ('ENV_ONE', 'one'),
                     ('ENV_TWO', 'you'),
                     ('ENV_THREE', 'me')
@@ -474,6 +510,8 @@ class ActivatorUnitTests(TestCase):
                     'CONDA_DEFAULT_ENV': td,
                     'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
                     'CONDA_STACKED_2': 'true',
+                    'PKG_B_ENV': 'berp',
+                    'PKG_A_ENV': 'yerp',
                     'ENV_ONE': 'one',
                     'ENV_TWO': 'you',
                     'ENV_THREE': 'me'
@@ -484,6 +522,8 @@ class ActivatorUnitTests(TestCase):
                     unset_vars = [
                         'CONDA_PREFIX_1',
                         'CONDA_STACKED_2',
+                        'PKG_B_ENV',
+                        'PKG_A_ENV',
                         'ENV_ONE',
                         'ENV_TWO',
                         'ENV_THREE'
@@ -558,6 +598,11 @@ class ActivatorUnitTests(TestCase):
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
+            activate_pkg_env_vars_a = join(td, PACKAGE_ENV_VARS_DIR)
+            mkdir_p(activate_pkg_env_vars_a)
+            with open(join(activate_pkg_env_vars_a, "pkg_a.json"), "w") as f:
+                f.write(PKG_A_ENV_VARS)
+
             old_prefix = join(td, 'old')
             mkdir_p(join(old_prefix, 'conda-meta'))
             activate_d_dir = mkdir_p(join(old_prefix, 'etc', 'conda', 'activate.d'))
@@ -577,6 +622,10 @@ class ActivatorUnitTests(TestCase):
                       }
                     }
                 ''')
+            activate_pkg_env_vars_b = join(old_prefix, PACKAGE_ENV_VARS_DIR)
+            mkdir_p(activate_pkg_env_vars_b)
+            with open(join(activate_pkg_env_vars_b, "pkg_b.json"), "w") as f:
+                f.write(PKG_B_ENV_VARS)
 
             activator = PosixActivator()
             original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
@@ -594,7 +643,9 @@ class ActivatorUnitTests(TestCase):
                     'ENV_TWO': 'you',
                     'ENV_THREE': 'me',
                     'ENV_FOUR': 'roar',
-                    'ENV_FIVE': 'hive'
+                    'ENV_FIVE': 'hive',
+                    'PKG_B_ENV': 'berp',
+                    'PKG_A_ENV': 'yerp',
                 }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     activator = PosixActivator()
                     builder = activator.build_deactivate()
@@ -602,6 +653,7 @@ class ActivatorUnitTests(TestCase):
                     unset_vars = [
                         'CONDA_PREFIX_1',
                         'CONDA_STACKED_2',
+                        'PKG_A_ENV',
                         'ENV_ONE',
                         'ENV_TWO',
                         'ENV_THREE'
@@ -618,6 +670,7 @@ class ActivatorUnitTests(TestCase):
                         ('CONDA_SHLVL', 1),
                         ('CONDA_DEFAULT_ENV', old_prefix),
                         ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                        ('PKG_B_ENV', 'berp'),
                         ('ENV_FOUR', 'roar'),
                         ('ENV_FIVE', 'hive')
                     ))
@@ -644,6 +697,11 @@ class ActivatorUnitTests(TestCase):
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
+            activate_pkg_env_vars_a = join(td, PACKAGE_ENV_VARS_DIR)
+            mkdir_p(activate_pkg_env_vars_a)
+            with open(join(activate_pkg_env_vars_a, "pkg_a.json"), "w") as f:
+                f.write(PKG_A_ENV_VARS)
+
             old_prefix = join(td, 'old')
             mkdir_p(join(old_prefix, 'conda-meta'))
             activate_d_dir = mkdir_p(join(old_prefix, 'etc', 'conda', 'activate.d'))
@@ -663,6 +721,10 @@ class ActivatorUnitTests(TestCase):
                      }
                    }
                ''')
+            activate_pkg_env_vars_b = join(old_prefix, PACKAGE_ENV_VARS_DIR)
+            mkdir_p(activate_pkg_env_vars_b)
+            with open(join(activate_pkg_env_vars_b, "pkg_b.json"), "w") as f:
+                f.write(PKG_B_ENV_VARS)
 
             activator = PosixActivator()
             original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
@@ -675,12 +737,15 @@ class ActivatorUnitTests(TestCase):
                 'ENV_ONE': 'one',
                 'ENV_TWO': 'you',
                 'ENV_THREE': 'me',
+                'PKG_B_ENV': 'berp',
+                'PKG_A_ENV': 'yerp',
             }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_deactivate()
 
                 unset_vars = [
                     'CONDA_PREFIX_1',
+                    'PKG_A_ENV',
                     'ENV_ONE',
                     'ENV_TWO',
                     'ENV_THREE'
@@ -697,6 +762,7 @@ class ActivatorUnitTests(TestCase):
                     ('CONDA_SHLVL', 1),
                     ('CONDA_DEFAULT_ENV', old_prefix),
                     ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
+                    ('PKG_B_ENV', 'berp'),
                     ('ENV_FOUR', 'roar'),
                     ('ENV_FIVE', 'hive')
                 ))
@@ -723,6 +789,8 @@ class ActivatorUnitTests(TestCase):
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
+            self.write_pkg_env_vars(td)
+
             with env_var('CONDA_SHLVL', '1'):
                 with env_var('CONDA_PREFIX', td):
                     activator = PosixActivator()
@@ -733,6 +801,8 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PREFIX',
                         'CONDA_DEFAULT_ENV',
                         'CONDA_PROMPT_MODIFIER',
+                        'PKG_B_ENV',
+                        'PKG_A_ENV',
                         'ENV_ONE',
                         'ENV_TWO',
                         'ENV_THREE'
