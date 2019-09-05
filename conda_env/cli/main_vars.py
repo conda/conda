@@ -5,7 +5,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 from conda.cli.conda_argparse import add_parser_prefix, add_parser_json
-from conda.core.envs_manager import get_environment_env_vars
+from conda.core.envs_manager import get_environment_env_vars, set_environment_env_vars
 from conda.base.context import context
 from .common import get_prefix
 
@@ -68,3 +68,12 @@ def execute(args, parser):
         else:
             for k,v in env_vars.items():
                 print("%s = %s" % (k,v))
+
+    if args.set:
+        vars = args.set.split(',')
+        env_vars_to_add = {}
+        for v in vars:
+            var_def = v.split("=")
+            env_vars_to_add[var_def[0].strip()] = var_def[-1].strip()
+        set_environment_env_vars(prefix, env_vars_to_add)
+
