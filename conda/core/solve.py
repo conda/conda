@@ -773,7 +773,7 @@ class Solver(object):
                                                 - set(pinned_conflicts))
 
                 raise SpecsConfigurationConflictError(
-                    sorted(s.__str__() for s in in_specs_map_or_specs_to_add),
+                    sorted(s.__str__() for s in self.specs_to_add),
                     sorted(s.__str__() for s in {s for s in pinned_conflicts}),
                     self.prefix
                 )

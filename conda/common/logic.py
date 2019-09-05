@@ -920,9 +920,4 @@ def minimal_unsatisfiable_subset(clauses, sat, explicit_specs):
             # we succeeded, so we'll add the spec to our future constraints
             working_set.add(spec)
 
-    # refine explict specs - keep ones that maintain unsat.
-    for spec in explicit_specs:
-        if sat(found_conflicts | {spec, }) is None:
-            found_conflicts.add(spec)
-
     return found_conflicts

@@ -1046,7 +1046,9 @@ class Resolve(object):
     def get_conflicting_specs(self, specs, explicit_specs):
         if not specs:
             return ()
-        reduced_index = self.get_reduced_index(explicit_specs)
+
+        all_specs = set(specs) | set(explicit_specs)
+        reduced_index = self.get_reduced_index(all_specs)
 
         # Check if satisfiable
         def mysat(specs, add_if=False):
@@ -1055,8 +1057,9 @@ class Resolve(object):
 
         r2 = Resolve(reduced_index, True, channels=self.channels)
         C = r2.gen_clauses()
-        solution = mysat(set(specs) | set(explicit_specs), True)
+        solution = mysat(all_specs, True)
         final_unsat_specs = ()
+
         if not solution:
             # This first result is just a single unsatisfiable core. There may be several.
             final_unsat_specs = minimal_unsatisfiable_subset(specs, sat=mysat,
