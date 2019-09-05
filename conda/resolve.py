@@ -1052,18 +1052,18 @@ class Resolve(object):
 
         # Check if satisfiable
         def mysat(specs, add_if=False):
-            constraints = r2.generate_spec_constraints(C, specs)
+            constraints = r.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, channels=self.channels)
-        C = r2.gen_clauses()
+        r = Resolve(self.index, True, channels=self.channels)
+        C = r.gen_clauses()
         solution = mysat(all_specs, True)
         final_unsat_specs = ()
 
         if not solution:
             # This first result is just a single unsatisfiable core. There may be several.
             final_unsat_specs = minimal_unsatisfiable_subset(specs, sat=mysat,
-                                                             explicit_specs=[])
+                                                             explicit_specs=explicit_specs)
         return tuple(final_unsat_specs)
 
     def bad_installed(self, installed, new_specs):
