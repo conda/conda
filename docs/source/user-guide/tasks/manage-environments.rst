@@ -502,6 +502,36 @@ Anaconda Prompt, run:
    conda activate myenv
    pip <pip_subcommand>
 
+Issues may arise when using pip and conda together. When combining conda and pip,
+it is best to use an isolated conda environment. Only after conda has been used to
+install as many packages as possible should pip be used to install any remaining
+software. If modifications are needed to the environment, it is best to create a
+new environment rather than running conda after pip. When appropriate, conda and
+pip requirements should be stored in text files.
+
+We recommend that you:
+
+**Use pip only after conda**
+  - Install as many requirements as possible with conda then use pip
+  - Pip should be run with –upgrade-strategy only-if-needed (the default)
+  - Do use pip with the –user argument, avoid all “users” installs
+
+**Use conda environments for isolation**
+  - Create a conda environment to isolate any changes pip makes
+  - Environments take up little space thanks to hard links
+  - Care should be taken to avoid running pip in the “root” environment
+
+**Recreate the environment if changes are needed**
+  - Once pip has been used, conda will be unaware of the changes
+  - To install additional conda packages, it is best to recreate
+    the environment
+
+**Store conda and pip requirements in text files**
+  - Package requirements can be passed to conda via the –file argument
+  - Pip accepts a list of Python packages with -r or –requirements
+  - Conda env will export or create environments based on a file with
+    conda and pip requirements
+
 
 Saving environment variables
 ============================
