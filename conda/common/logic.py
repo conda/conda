@@ -29,6 +29,7 @@ through the Require and Prevent functions.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import lru_cache
 from array import array
 from itertools import chain, combinations
 from logging import DEBUG, getLogger
@@ -894,6 +895,7 @@ def evaluate_eq(eq, sol):
     return sum(eq.get(s, 0) for s in sol if type(s) is not bool)
 
 
+@lru_cache(maxsize=32)
 def minimal_unsatisfiable_subset(clauses, sat, explicit_specs):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an
