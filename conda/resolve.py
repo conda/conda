@@ -1055,7 +1055,7 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, channels=self.channels)
+        r2 = Resolve(self.index, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(all_specs, True)
         final_unsat_specs = ()
