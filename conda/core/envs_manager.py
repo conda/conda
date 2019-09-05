@@ -159,3 +159,13 @@ def set_environment_env_vars(prefix, env_vars):
     else:
         env_state_file['env_vars'] = env_vars
     write_environment_env_vars(prefix, env_state_file)
+    return env_state_file['env_vars']
+
+def unset_environment_env_vars(prefix, env_vars):
+    env_state_file = get_environment_state_file(prefix)
+    current_env_vars = env_state_file.get('env_vars')
+    if current_env_vars:
+        for env_var in env_vars:
+            current_env_vars.pop(env_var)
+        write_environment_env_vars(prefix, env_state_file)
+    return env_state_file['env_vars']
