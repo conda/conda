@@ -5,7 +5,10 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 from conda.cli.conda_argparse import add_parser_prefix, add_parser_json
-from conda.core.envs_manager import list_all_known_prefixes
+from conda.core.envs_manager import get_environment_env_vars
+from conda.base.context import context
+from .common import get_prefix
+
 
 description = """
 Interact with environment varaibles associated with Conda environments
@@ -30,9 +33,9 @@ def configure_parser(sub_parsers):
 
     p.add_argument(
         '-l', '--list',
-        action='store',
+        action="store_true",
+        default=None,
         help='list environment variables',
-        default=False,
     )
 
     p.add_argument(
@@ -56,7 +59,12 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    prefix = get_prefix(args, search=False) or context.active_prefix
 
-
-    if args.json:
-        common.stdout_json("")
+    if args.list:
+        env_vars = get_environment_env_vars(prefix)
+        if args.json:
+            common.stdout_json(env_vars)
+        else:
+            for k,v in env_vars.items():
+                print("%s = %s" % (k,v))

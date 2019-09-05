@@ -5,11 +5,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EACCES, EROFS, ENOENT
 from logging import getLogger
-from os import devnull, listdir, makedirs
-from os.path import dirname, isdir, isfile, join, normpath
+from os import devnull, listdir
+from os.path import dirname, isdir, isfile, join, normpath, exists
+from collections import OrderedDict
+import json
 
 from .prefix_data import PrefixData
 from ..base.context import context
+from ..base.constants import PREFIX_SATE_FILE
 from ..common.compat import ensure_text_type, on_win, open
 from ..common._os import is_admin
 from ..common.path import expand
@@ -127,3 +130,13 @@ def _rewrite_environments_txt(environments_txt_file, prefixes):
     except EnvironmentError as e:
         log.info("File not cleaned: %s", environments_txt_file)
         log.debug('%r', e, exc_info=True)
+
+def get_environment_env_vars(prefix):
+    env_vars_file = join(prefix, PREFIX_SATE_FILE)
+    if exists(env_vars_file):
+        with open(env_vars_file, 'r') as f:
+            prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
+            env_vars = prefix_state.get('env_vars', {})
+    else:
+        env_vars = OrderedDict()
+    return env_vars
