@@ -1055,12 +1055,14 @@ class Resolve(object):
             constraints = r.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r = Resolve(self.index, True, channels=self.channels)
+        r = Resolve(reduced_index, True, channels=self.channels)
         C = r.gen_clauses()
         solution = mysat(all_specs, True)
         final_unsat_specs = ()
 
         if not solution:
+            r = Resolve(self.index, True, channels=self.channels)
+            C = r.gen_clauses()
             # This first result is just a single unsatisfiable core. There may be several.
             final_unsat_specs = minimal_unsatisfiable_subset(specs, sat=mysat,
                                                              explicit_specs=explicit_specs)
