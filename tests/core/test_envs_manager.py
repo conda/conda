@@ -9,13 +9,14 @@ from unittest import TestCase
 from uuid import uuid4
 
 from conda._vendor.auxlib.collection import AttrDict
-from conda.base.constants import PREFIX_MAGIC_FILE
+from conda.base.constants import PREFIX_MAGIC_FILE, PREFIX_SATE_FILE
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes, register_env, \
     get_user_environments_txt_file, \
-    unregister_env, _clean_environments_txt
+    unregister_env, _clean_environments_txt, get_environment_env_vars, \
+    set_environment_env_vars, unset_environment_env_vars, _get_environment_state_file
 from conda.gateways.disk import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import yield_lines
@@ -31,6 +32,17 @@ except ImportError:
 log = getLogger(__name__)
 
 
+ENV_VARS_FILE = '''
+{
+  "version": 1,
+  "env_vars": {
+    "ENV_ONE": "one",
+    "ENV_TWO": "you",
+    "ENV_THREE": "me"
+  }
+}'''
+
+
 class EnvsManagerUnitTests(TestCase):
 
     def setUp(self):
@@ -39,6 +51,10 @@ class EnvsManagerUnitTests(TestCase):
         self.prefix = join(tempdirdir, dirname)
         mkdir_p(self.prefix)
         assert isdir(self.prefix)
+        mkdir_p(join(self.prefix, 'conda-meta'))
+        activate_env_vars = join(self.prefix, PREFIX_SATE_FILE)
+        with open(activate_env_vars, 'w') as f:
+            f.write(ENV_VARS_FILE)
 
     def tearDown(self):
         rm_rf(self.prefix)
@@ -96,3 +112,32 @@ class EnvsManagerUnitTests(TestCase):
             cleaned_2 = _clean_environments_txt(environments_txt_path)
             assert cleaned_2 == (self.prefix,)
             assert _rewrite_patch.call_count == 0
+
+    def test_get_environment_env_vars(self):
+        ex_env_vars = {
+            "ENV_ONE": "one",
+            "ENV_TWO": "you",
+            "ENV_THREE": "me"
+        }
+        env_vars = get_environment_env_vars(self.prefix)
+        assert ex_env_vars == env_vars
+
+    def test_set_unset_environment_env_vars(self):
+        env_vars_one = {
+            "ENV_ONE": "one",
+            "ENV_TWO": "you",
+            "ENV_THREE": "me",
+        }
+        env_vars_add = {
+            "ENV_ONE": "one",
+            "ENV_TWO": "you",
+            "ENV_THREE": "me",
+            "WOAH": "dude"
+        }
+        set_environment_env_vars(self.prefix, {"WOAH":"dude"})
+        env_vars = get_environment_env_vars(self.prefix)
+        assert env_vars_add == env_vars
+
+        unset_environment_env_vars(self.prefix, ['WOAH'])
+        env_vars = get_environment_env_vars(self.prefix)
+        assert env_vars_one == env_vars
