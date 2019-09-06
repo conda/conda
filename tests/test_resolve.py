@@ -354,6 +354,21 @@ def test_unsat_simple():
     assert "a -> c[version='>=1,<2']" in str(excinfo.value)
     assert "b -> c[version='>=2,<3']" in str(excinfo.value)
 
+def test_unsat_simple_dont_find_conflicts():
+    # a and b depend on conflicting versions of c
+    index = (
+        simple_rec(name='a', depends=['c >=1,<2']),
+        simple_rec(name='b', depends=['c >=2,<3']),
+        simple_rec(name='c', version='1.0'),
+        simple_rec(name='c', version='2.0'),
+    )
+    with env_var("CONDA_UNSATISFIABLE_HINTS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        r = Resolve(OrderedDict((prec, prec) for prec in index))
+        with pytest.raises(UnsatisfiableError) as excinfo:
+            r.install(['a', 'b '])
+        assert "a -> c[version='>=1,<2']" not in str(excinfo.value)
+        assert "b -> c[version='>=2,<3']" not in str(excinfo.value)
+
 
 def test_unsat_shortest_chain_1():
     index = (

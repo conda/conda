@@ -332,10 +332,13 @@ class Resolve(object):
         return tuple(f for f in matches if f.channel.name == sole_source_channel_name)
 
     def find_conflicts(self, specs, specs_to_add=None, history_specs=None):
-        if not context.json:
-            print("\nFound conflicts! Looking for incompatible packages.\n"
-                  "This can take several minutes.  Press CTRL-C to abort.")
-        bad_deps = self.build_conflict_map(specs, specs_to_add, history_specs)
+        if context.unsatisfiable_hints:
+            if not context.json:
+                print("\nFound conflicts! Looking for incompatible packages.\n"
+                      "This can take several minutes.  Press CTRL-C to abort.")
+            bad_deps = self.build_conflict_map(specs, specs_to_add, history_specs)
+        else:
+            bad_deps = {}
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
         raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
