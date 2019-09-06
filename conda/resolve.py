@@ -1048,7 +1048,6 @@ class Resolve(object):
             return ()
 
         all_specs = set(specs) | set(explicit_specs)
-        reduced_index = self.get_reduced_index(all_specs)
 
         # Check if satisfiable
         def mysat(specs, add_if=False):
@@ -1062,6 +1061,10 @@ class Resolve(object):
         final_unsat_specs = ()
 
         if not solution:
+            reduced_index = self.get_reduced_index(all_specs)
+            r = Resolve(reduced_index, True, channels=self.channels)
+            C = r.gen_clauses()
+
             # This first result is just a single unsatisfiable core. There may be several.
             final_unsat_specs = minimal_unsatisfiable_subset(specs, sat=mysat,
                                                              explicit_specs=explicit_specs)
