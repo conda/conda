@@ -491,11 +491,15 @@ packages to the latest version.
 
 In this case, if you would prefer that conda update all dependencies
 to the latest version that is compatible with the environment,
-set update_dependencies to ``True``:
+set update_dependencies to ``True``.
+
+The default is ``False``.
+
+EXAMPLE:
 
 .. code-block:: yaml
 
-   update_dependencies: False
+   update_dependencies: True
 
 .. note::
 
@@ -744,10 +748,10 @@ Disable per-build folder creation (conda-build 3.0+) (set_build_id)
 -------------------------------------------------------------------
 
 By default, conda-build creates a new folder for each build, named for the
-package name plus a timestamp. This allows you to do multiple builds at once. If
-you have issues with long paths, you may need to disable this behavior. You
-should first try to change the build output root directory with the ``root-dir``
-setting described above, but fall back to this as necessary:
+package name plus a timestamp. This allows you to do multiple builds at once.
+If you have issues with long paths, you may need to disable this behavior.
+You should first try to change the build output root directory with the
+``root-dir`` setting described above, but fall back to this as necessary:
 
 .. code-block:: yaml
 
