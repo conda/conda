@@ -5,7 +5,8 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 from conda.cli.conda_argparse import add_parser_prefix, add_parser_json
-from conda.core.envs_manager import get_environment_env_vars, set_environment_env_vars, unset_environment_env_vars
+from conda.core.envs_manager import get_environment_env_vars, set_environment_env_vars, \
+    unset_environment_env_vars
 from conda.base.context import context
 from .common import get_prefix
 
@@ -18,7 +19,7 @@ example = """
 examples:
     conda env vars --list -n my_env
     conda env vars --set MY_VAR=something
-    conda env vars --unset MY_VAR 
+    conda env vars --unset MY_VAR
 """
 
 
@@ -66,8 +67,8 @@ def execute(args, parser):
         if args.json:
             common.stdout_json(env_vars)
         else:
-            for k,v in env_vars.items():
-                print("%s = %s" % (k,v))
+            for k, v in env_vars.items():
+                print("%s = %s" % (k, v))
 
     if args.set:
         vars = args.set.split(',')
@@ -80,4 +81,3 @@ def execute(args, parser):
     if args.unset:
         vars_to_unset = [_.strip() for _ in args.unset.split(',')]
         unset_environment_env_vars(prefix, vars_to_unset)
-

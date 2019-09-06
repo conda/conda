@@ -132,7 +132,7 @@ def _rewrite_environments_txt(environments_txt_file, prefixes):
         log.debug('%r', e, exc_info=True)
 
 
-def get_environment_state_file(prefix):
+def _get_environment_state_file(prefix):
     env_vars_file = join(prefix, PREFIX_SATE_FILE)
     if exists(env_vars_file):
         with open(env_vars_file, 'r') as f:
@@ -141,31 +141,35 @@ def get_environment_state_file(prefix):
         prefix_state = {}
     return prefix_state
 
+
+def _write_environment_state_file(prefix, state):
+    env_vars_file = join(prefix, PREFIX_SATE_FILE)
+    with open(env_vars_file, 'w') as f:
+        f.write(json.dumps(state))
+
+
 def get_environment_env_vars(prefix):
-    prefix_state = get_environment_state_file(prefix)
+    prefix_state = _get_environment_state_file(prefix)
     env_vars = OrderedDict(prefix_state.get('env_vars', {}))
     return env_vars
 
-def write_environment_env_vars(prefix, env_vars):
-    env_vars_file = join(prefix, PREFIX_SATE_FILE)
-    with open(env_vars_file, 'w') as f:
-        f.write(json.dumps(env_vars))
 
 def set_environment_env_vars(prefix, env_vars):
-    env_state_file = get_environment_state_file(prefix)
+    env_state_file = _get_environment_state_file(prefix)
     current_env_vars = env_state_file.get('env_vars')
     if current_env_vars:
         current_env_vars.update(env_vars)
     else:
         env_state_file['env_vars'] = env_vars
-    write_environment_env_vars(prefix, env_state_file)
+    _write_environment_state_file(prefix, env_state_file)
     return env_state_file['env_vars']
 
+
 def unset_environment_env_vars(prefix, env_vars):
-    env_state_file = get_environment_state_file(prefix)
+    env_state_file = _get_environment_state_file(prefix)
     current_env_vars = env_state_file.get('env_vars')
     if current_env_vars:
         for env_var in env_vars:
             current_env_vars.pop(env_var)
-        write_environment_env_vars(prefix, env_state_file)
+        _write_environment_state_file(prefix, env_state_file)
     return env_state_file['env_vars']
