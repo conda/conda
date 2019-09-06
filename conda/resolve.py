@@ -26,6 +26,8 @@ from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import VersionOrder
 
+from functools import lru_cache
+
 log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
 

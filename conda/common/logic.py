@@ -35,6 +35,8 @@ from logging import DEBUG, getLogger
 
 from .compat import iteritems
 
+from functools import lru_cache
+
 log = getLogger(__name__)
 
 
@@ -894,6 +896,7 @@ def evaluate_eq(eq, sol):
     return sum(eq.get(s, 0) for s in sol if type(s) is not bool)
 
 
+@lru_cache(maxsize=32)
 def minimal_unsatisfiable_subset(clauses, sat, explicit_specs):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an
