@@ -134,15 +134,14 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
 #. Activate the new environment: ``conda activate myenv``
 
-   .. note::
-      Replace ``myenv`` with the environment name.
-
-
 #. Verify that the new environment was installed correctly:
 
    .. code::
 
-      conda list
+      conda env list
+
+  You can also use ``conda info --envs``.
+  
 
 .. _specifying-location:
 
