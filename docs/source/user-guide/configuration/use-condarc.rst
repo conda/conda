@@ -573,7 +573,7 @@ EXAMPLE:
     - ~/my-envs
     - /opt/anaconda/envs
 
-The CONDA_ENVS_PATH environment variable overwrites this setting:
+The CONDA_ENVS_PATH environment variable overwrites the ``env_dirs`` setting:
 
 * For macOS and Linux:
   ``CONDA_ENVS_PATH=~/my-envs:/opt/anaconda/envs``
@@ -590,6 +590,10 @@ Specify directories in which packages are located. If this
 key is set, the root prefix ``pkgs_dirs`` is not used unless
 explicitly included.
 
+If the ``pkgs_dirs`` key is not set, then ``envs/pkgs`` is used
+as the pkgs cache, except for the standard ``envs`` directory in the root
+directory, for which the normal ``root_dir/pkgs`` is used.
+
 EXAMPLE:
 
 .. code-block:: yaml
@@ -597,7 +601,8 @@ EXAMPLE:
   pkgs_dirs:
     - /opt/anaconda/pkgs
 
-The CONDA_PKGS_DIRS environment variable overwrites this setting:
+The CONDA_PKGS_DIRS environment variable overwrites the
+``pkgs_dirs`` setting:
 
 * For macOS and Linux:
   ``CONDA_PKGS_DIRS=/opt/anaconda/pkgs``
