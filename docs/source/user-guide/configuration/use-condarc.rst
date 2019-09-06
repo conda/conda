@@ -190,10 +190,13 @@ Normally the defaults channel points to several channels at the
 default_channels is defined, it sets the new list of default channels.
 This is especially useful for air gap and enterprise installations:
 
+To ensure that all users only pull packages from an on-premises
+repository, an administrator can set both :ref:`channel-alias` and
+default_channels.
+
 .. code-block:: yaml
 
   default_channels:
-    - <anaconda_dot_org_username>
     - http://some.custom/channel
     - file:///some/local/directory
 
@@ -407,11 +410,16 @@ Set a channel alias (channel_alias)
 -----------------------------------
 
 Whenever you use the ``-c`` or ``--channel`` flag to give conda a
-channel name that is not a URL, conda prepends the channel_alias
-to the name that it was given. The default channel_alias is
+channel name that is not a URL, conda prepends the ``channel_alias``
+to the name that it was given. The default ``channel_alias`` is
 https://conda.anaconda.org/.
 
-EXAMPLE: The command::
+If ``channel_alias`` is set
+to ``https://my.anaconda.repo:8080/conda/``, then a user who runs the
+command ``conda install -c conda-forge some-package`` will install the
+package ``some-package`` from ``https://my.anaconda.repo:8080/conda/conda-forge``.
+
+For example, the command::
 
   conda install --channel asmeurer <package>
 
@@ -422,7 +430,7 @@ is the same as::
 You can set channel_alias to your own repository.
 
 EXAMPLE: To set channel_alias to your repository at
-https://yourrepo.com:
+https://your.repo.com:
 
 .. code-block:: yaml
 
@@ -433,13 +441,13 @@ On Windows, you must include a slash ("/") at the end of the URL:
 EXAMPLE: https://your.repo/conda/
 
 When channel_alias set to your repository at
-https://yourrepo.com::
+https://your.repo.com::
 
   conda install --channel jsmith <package>
 
 is the same as::
 
-  conda install --channel https://yourrepo.com/jsmith <package>
+  conda install --channel https://your.repo.com/jsmith <package>
 
 
 .. _config-add-default-pkgs:
