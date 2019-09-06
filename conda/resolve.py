@@ -1048,63 +1048,24 @@ class Resolve(object):
             return ()
 
         all_specs = set(specs) | set(explicit_specs)
+        reduced_index = self.get_reduced_index(all_specs)
 
         # Check if satisfiable
         def mysat(specs, add_if=False):
             constraints = r.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r = Resolve(self.index, True, channels=self.channels)
+        # r = Resolve(self.index, True, channels=self.channels)
+        r = self
         C = r.gen_clauses()
         solution = mysat(all_specs, True)
         final_unsat_specs = ()
+
         if not solution:
-            conflict_map = r.build_conflict_map(all_specs)
-            conflicts = [conflict[0] for conflict in conflict_map.get("direct")]
-            unsat_specs_list = [minimal_unsatisfiable_subset(cons, mysat, []) for cons in conflicts]
-            for unsat_specs in unsat_specs_list:
-                final_unsat_specs = minimal_unsatisfiable_subset(unsat_specs, mysat, explicit_specs)
-                if final_unsat_specs:
-                    break
-
             # This first result is just a single unsatisfiable core. There may be several.
-            # final_unsat_specs = minimal_unsatisfiable_subset(specs, sat=mysat,
-            #                                                  explicit_specs=explicit_specs)
+            final_unsat_specs = minimal_unsatisfiable_subset(specs, sat=mysat,
+                                                             explicit_specs=explicit_specs)
         return tuple(final_unsat_specs)
-
-        # if not specs:
-        #     return ()
-        #
-        # all_specs = set(specs) | set(explicit_specs)
-        # reduced_index = self.get_reduced_index(all_specs)
-        #
-        # # Check if satisfiable
-        # def mysat(specs, add_if=False):
-        #     constraints = r.generate_spec_constraints(C, specs)
-        #     return C.sat(constraints, add_if)
-        #
-        # r = Resolve(self.index, True, channels=self.channels)
-        # C = r.gen_clauses()
-        # solution = mysat(all_specs, True)
-        # final_unsat_specs = ()
-        #
-        # if not solution:
-        #     # conflict_map = r.build_conflict_map(all_specs)
-        #     # conflicts = [conflict[0] for conflict in conflict_map.get("direct")]
-        #     # unsat_specs_list = [minimal_unsatisfiable_subset(cons, mysat, []) for cons in conflicts]
-        #     #
-        #
-        #     def red_sat(specs, add_if=False):
-        #         constraints = r_reduced.generate_spec_constraints(C_reduced, specs)
-        #         return C_reduced.sat(constraints, add_if)
-        #
-        #     r_reduced = Resolve(reduced_index, True, channels=self.channels)
-        #     C_reduced = r_reduced.gen_clauses()
-        #
-        #     # This first result is just a single unsatisfiable core. There may be several.
-        #     final_unsat_specs = minimal_unsatisfiable_subset(specs, sat=red_sat,
-        #                                                      explicit_specs=explicit_specs)
-        # return tuple(final_unsat_specs)
 
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
