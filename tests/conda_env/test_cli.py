@@ -89,6 +89,7 @@ class Commands:
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
+    VARS = "vars"
 
 
 def run_env_command(command, prefix, *arguments):
@@ -329,6 +330,19 @@ class IntegrationTests(unittest.TestCase):
         stdout, stderr = run_env_command(Commands.ENV_UPDATE, "envjson-5", "--quiet", "--json")
         output = json.loads(stdout)
         assert output["message"] == "All requested packages already installed."
+
+    def test_set_unset_env_vars(self):
+        create_env(environment_1)
+        env_name = 'env-1'
+        run_env_command(Commands.VARS, env_name, "--set", "DUDE=woah")
+        o, e = run_env_command(Commands.VARS, env_name, "--list", "--json")
+        output_env_vars = json.loads(o)
+        assert output_env_vars == {'DUDE': 'woah'}
+
+        run_env_command(Commands.VARS, env_name, "--unset", "DUDE")
+        o, e = run_env_command(Commands.VARS, env_name, "--list", "--json")
+        output_env_vars = json.loads(o)
+        assert output_env_vars == {}
 
 
 def env_is_created(env_name):
