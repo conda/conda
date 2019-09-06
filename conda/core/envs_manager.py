@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EACCES, EROFS, ENOENT
 from logging import getLogger
-from os import devnull, listdir
+from os import devnull, listdir, makedirs
 from os.path import dirname, isdir, isfile, join, normpath
 
 from .prefix_data import PrefixData
@@ -25,6 +25,11 @@ def get_user_environments_txt_file(userhome='~'):
 def register_env(location):
     user_environments_txt_file = get_user_environments_txt_file()
     location = normpath(location)
+    folder = dirname(location)
+    try:
+        makedirs(folder)
+    except:
+        pass
 
     if ("placehold_pl" in location or "skeleton_" in location
        or user_environments_txt_file == devnull):
