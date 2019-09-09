@@ -18,7 +18,7 @@ main_test: &main_test
           if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
             echo "Only docs changed detected, skipping tests"
           else
-            chown -R $USER:$USER /opt/conda/conda-meta
+            chown -R $USER:$USER /opt/conda
             echo "local_repodata_ttl: 1800" >> ~/.condarc
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
             conda info
@@ -32,7 +32,7 @@ main_test: &main_test
           if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
             echo "Only docs changed detected, skipping tests"
           else
-            chown -R $USER:$USER /opt/conda/conda-meta
+            chown -R $USER:$USER /opt/conda
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
             py.test $ADD_COV --cov-append -m "integration and not installed" -v
             python -m conda.common.io

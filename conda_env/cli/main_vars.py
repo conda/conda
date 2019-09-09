@@ -5,8 +5,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 from conda.cli.conda_argparse import add_parser_prefix, add_parser_json
-from conda.core.envs_manager import get_environment_env_vars, set_environment_env_vars, \
-    unset_environment_env_vars
+from conda.core.prefix_data import PrefixData
 from conda.base.context import context
 from .common import get_prefix
 
@@ -61,9 +60,10 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     prefix = get_prefix(args, search=False) or context.active_prefix
+    pd = PrefixData(prefix)
 
     if args.list:
-        env_vars = get_environment_env_vars(prefix)
+        env_vars = pd.get_environment_env_vars()
         if args.json:
             common.stdout_json(env_vars)
         else:
@@ -76,8 +76,8 @@ def execute(args, parser):
         for v in vars:
             var_def = v.split("=")
             env_vars_to_add[var_def[0].strip()] = var_def[-1].strip()
-        set_environment_env_vars(prefix, env_vars_to_add)
+        pd.set_environment_env_vars(env_vars_to_add)
 
     if args.unset:
         vars_to_unset = [_.strip() for _ in args.unset.split(',')]
-        unset_environment_env_vars(prefix, vars_to_unset)
+        pd.unset_environment_env_vars(vars_to_unset)

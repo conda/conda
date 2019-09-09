@@ -8,7 +8,10 @@ from logging import getLogger
 from os import listdir
 from os.path import basename, isdir, isfile, join, lexists
 import re
+from collections import OrderedDict
+import json
 
+from ..base.constants import PREFIX_SATE_FILE
 from .._vendor.auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE
 from ..base.context import context
@@ -294,6 +297,44 @@ class PrefixData(object):
             new_packages[python_record.name] = python_record
 
         return new_packages
+
+    def _get_environment_state_file(self):
+        env_vars_file = join(self.prefix_path, PREFIX_SATE_FILE)
+        if lexists(env_vars_file):
+            with open(env_vars_file, 'r') as f:
+                prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
+        else:
+            prefix_state = {}
+        return prefix_state
+
+    def _write_environment_state_file(self, state):
+        env_vars_file = join(self.prefix_path, PREFIX_SATE_FILE)
+        with open(env_vars_file, 'w') as f:
+            f.write(json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__))
+
+    def get_environment_env_vars(self):
+        prefix_state = self._get_environment_state_file()
+        env_vars = OrderedDict(prefix_state.get('env_vars', {}))
+        return env_vars
+
+    def set_environment_env_vars(self, env_vars):
+        env_state_file = self._get_environment_state_file()
+        current_env_vars = env_state_file.get('env_vars')
+        if current_env_vars:
+            current_env_vars.update(env_vars)
+        else:
+            env_state_file['env_vars'] = env_vars
+        self._write_environment_state_file(env_state_file)
+        return env_state_file['env_vars']
+
+    def unset_environment_env_vars(self, env_vars):
+        env_state_file = self._get_environment_state_file()
+        current_env_vars = env_state_file.get('env_vars')
+        if current_env_vars:
+            for env_var in env_vars:
+                current_env_vars.pop(env_var)
+            self._write_environment_state_file(env_state_file)
+        return env_state_file['env_vars']
 
 
 def get_conda_anchor_files_and_records(site_packages_short_path, python_records):
