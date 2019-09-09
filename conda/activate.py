@@ -677,7 +677,7 @@ class _Activator(object):
 
         # First get env vars from packages
         if exists(pkg_env_var_dir):
-            for pkg_env_var_file in os.listdir(pkg_env_var_dir):
+            for pkg_env_var_file in sorted(os.listdir(pkg_env_var_dir)):
                 with open(join(pkg_env_var_dir, pkg_env_var_file), 'r') as f:
                     env_vars.update(json.loads(f.read(), object_pairs_hook=OrderedDict))
 

@@ -326,8 +326,8 @@ class ActivatorUnitTests(TestCase):
                         ('CONDA_SHLVL', 1),
                         ('CONDA_DEFAULT_ENV', td),
                         ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
-                        ('PKG_B_ENV', 'berp'),
                         ('PKG_A_ENV', 'yerp'),
+                        ('PKG_B_ENV', 'berp'),
                         ('ENV_ONE', 'one'),
                         ('ENV_TWO', 'you'),
                         ('ENV_THREE', 'me'),
@@ -385,8 +385,8 @@ class ActivatorUnitTests(TestCase):
                     ('CONDA_SHLVL', 2),
                     ('CONDA_DEFAULT_ENV', td),
                     ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
-                    ('PKG_B_ENV', 'berp'),
                     ('PKG_A_ENV', 'yerp'),
+                    ('PKG_B_ENV', 'berp'),
                     ('ENV_ONE', 'one'),
                     ('ENV_TWO', 'you'),
                     ('ENV_THREE', 'me')
@@ -419,8 +419,8 @@ class ActivatorUnitTests(TestCase):
 
                     unset_vars = [
                         'CONDA_PREFIX_1',
-                        'PKG_B_ENV',
                         'PKG_A_ENV',
+                        'PKG_B_ENV',
                         'ENV_ONE',
                         'ENV_TWO',
                         'ENV_THREE'
@@ -486,8 +486,8 @@ class ActivatorUnitTests(TestCase):
                     ('CONDA_SHLVL', 2),
                     ('CONDA_DEFAULT_ENV', td),
                     ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
-                    ('PKG_B_ENV', 'berp'),
                     ('PKG_A_ENV', 'yerp'),
+                    ('PKG_B_ENV', 'berp'),
                     ('ENV_ONE', 'one'),
                     ('ENV_TWO', 'you'),
                     ('ENV_THREE', 'me')
@@ -510,8 +510,8 @@ class ActivatorUnitTests(TestCase):
                     'CONDA_DEFAULT_ENV': td,
                     'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
                     'CONDA_STACKED_2': 'true',
-                    'PKG_B_ENV': 'berp',
                     'PKG_A_ENV': 'yerp',
+                    'PKG_B_ENV': 'berp',
                     'ENV_ONE': 'one',
                     'ENV_TWO': 'you',
                     'ENV_THREE': 'me'
@@ -522,8 +522,8 @@ class ActivatorUnitTests(TestCase):
                     unset_vars = [
                         'CONDA_PREFIX_1',
                         'CONDA_STACKED_2',
-                        'PKG_B_ENV',
                         'PKG_A_ENV',
+                        'PKG_B_ENV',
                         'ENV_ONE',
                         'ENV_TWO',
                         'ENV_THREE'
@@ -644,8 +644,8 @@ class ActivatorUnitTests(TestCase):
                     'ENV_THREE': 'me',
                     'ENV_FOUR': 'roar',
                     'ENV_FIVE': 'hive',
-                    'PKG_B_ENV': 'berp',
                     'PKG_A_ENV': 'yerp',
+                    'PKG_B_ENV': 'berp',
                 }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     activator = PosixActivator()
                     builder = activator.build_deactivate()
@@ -737,8 +737,8 @@ class ActivatorUnitTests(TestCase):
                 'ENV_ONE': 'one',
                 'ENV_TWO': 'you',
                 'ENV_THREE': 'me',
-                'PKG_B_ENV': 'berp',
                 'PKG_A_ENV': 'yerp',
+                'PKG_B_ENV': 'berp',
             }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_deactivate()
@@ -801,8 +801,8 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PREFIX',
                         'CONDA_DEFAULT_ENV',
                         'CONDA_PROMPT_MODIFIER',
-                        'PKG_B_ENV',
                         'PKG_A_ENV',
+                        'PKG_B_ENV',
                         'ENV_ONE',
                         'ENV_TWO',
                         'ENV_THREE'

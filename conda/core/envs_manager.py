@@ -18,7 +18,6 @@ from ..common._os import is_admin
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import is_conda_environment
-from .._vendor.auxlib.entity import EntityEncoder
 
 log = getLogger(__name__)
 
@@ -146,7 +145,7 @@ def _get_environment_state_file(prefix):
 def _write_environment_state_file(prefix, state):
     env_vars_file = join(prefix, PREFIX_SATE_FILE)
     with open(env_vars_file, 'w') as f:
-        f.write(json.dumps(state, cls=EntityEncoder))
+        f.write(json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__))
 
 
 def get_environment_env_vars(prefix):
