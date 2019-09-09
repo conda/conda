@@ -910,8 +910,14 @@ def minimal_unsatisfiable_subset(clauses, sat, explicit_specs):
     <= sat(A)), where A <= B means A is a subset of B and False < True).
 
     """
-    working_set = set(explicit_specs)
+    working_set = set()
     found_conflicts = set()
+
+    if sat(explicit_specs, True) is None:
+        found_conflicts = set(explicit_specs)
+    else:
+        # we succeeded, so we'll add the spec to our future constraints
+        working_set = set(explicit_specs)
 
     for spec in (set(clauses) - working_set):
         if sat(working_set | {spec, }, True) is None:
@@ -919,10 +925,5 @@ def minimal_unsatisfiable_subset(clauses, sat, explicit_specs):
         else:
             # we succeeded, so we'll add the spec to our future constraints
             working_set.add(spec)
-
-    # refine explict specs - keep ones that maintain unsat.
-    for spec in explicit_specs:
-        if sat(found_conflicts | {spec, }) is None:
-            found_conflicts.add(spec)
 
     return found_conflicts
