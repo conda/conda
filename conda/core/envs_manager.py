@@ -11,6 +11,7 @@ from os.path import dirname, isdir, isfile, join, normpath
 from .prefix_data import PrefixData
 from ..base.context import context
 from ..common.compat import ensure_text_type, on_win, open
+from ..common._os import is_admin
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import is_conda_environment
@@ -68,23 +69,21 @@ def unregister_env(location):
 
 def list_all_known_prefixes():
     all_env_paths = set()
-    if on_win:
-        home_dir_dir = dirname(expand('~'))
-        for home_dir in listdir(home_dir_dir):
-            environments_txt_file = get_user_environments_txt_file(join(home_dir_dir, home_dir))
-            if isfile(environments_txt_file):
-                all_env_paths.update(_clean_environments_txt(environments_txt_file))
-    else:
-        from os import geteuid
-        from pwd import getpwall
-        if geteuid() == 0:
-            search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
+    # If the user is an admin, load environments from all user home directories
+    if is_admin():
+        if on_win:
+            home_dir_dir = dirname(expand('~'))
+            search_dirs = tuple(join(home_dir_dir, d) for d in listdir(home_dir_dir))
         else:
-            search_dirs = (expand('~'),)
-        for home_dir in search_dirs:
-            environments_txt_file = get_user_environments_txt_file(home_dir)
-            if isfile(environments_txt_file):
-                all_env_paths.update(_clean_environments_txt(environments_txt_file))
+            from pwd import getpwall
+            search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
+    else:
+        search_dirs = (expand('~'),)
+    for home_dir in search_dirs:
+        environments_txt_file = get_user_environments_txt_file(home_dir)
+        if isfile(environments_txt_file):
+            all_env_paths.update(_clean_environments_txt(environments_txt_file))
+
 
     # in case environments.txt files aren't complete, also add all known conda environments in
     # all envs_dirs

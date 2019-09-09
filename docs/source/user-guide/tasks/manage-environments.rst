@@ -459,6 +459,8 @@ A list similar to the following is displayed:
    snowflakes            /home/username/miniconda/envs/snowflakes
    bunnies               /home/username/miniconda/envs/bunnies
 
+If this command is run by an administrator, a list of all environments
+belonging to all users will be displayed.
 
 Viewing a list of the packages in an environment
 ================================================
