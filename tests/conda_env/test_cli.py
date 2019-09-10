@@ -13,6 +13,7 @@ from conda.common.io import captured
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.install import rm_rf
 from conda.utils import massage_arguments
+from conda.exceptions import EnvironmentLocationNotFound
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import EnvironmentFileExtensionNotValid, EnvironmentFileNotFound
 from conda_env.yaml import load as yaml_load
@@ -85,11 +86,12 @@ class Commands:
     ENV_REMOVE = "remove"
     ENV_EXPORT = "export"
     ENV_UPDATE = "update"
+    ENV_CONFIG = "config"
     LIST = "list"
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
-    CONFIG = "config"
+    ACTIVATE = "activate"
 
 
 def run_env_command(command, prefix, *arguments):
@@ -335,15 +337,24 @@ class IntegrationTests(unittest.TestCase):
         create_env(environment_1)
         run_env_command(Commands.ENV_CREATE, None)
         env_name = 'env-1'
-        run_env_command(Commands.CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa", "-n", env_name)
-        o, e = run_env_command(Commands.CONFIG, env_name, "vars", "list", "--json", '-n', env_name)
+        run_env_command(Commands.ENV_CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa", "-n", env_name)
+        o, e = run_env_command(Commands.ENV_CONFIG, env_name, "vars", "list", "--json", '-n', env_name)
         output_env_vars = json.loads(o)
         assert output_env_vars == {'DUDE': 'woah', "SWEET": "yaaa"}
 
-        run_env_command(Commands.CONFIG, env_name, "vars", "unset", "DUDE", "SWEET", '-n', env_name)
-        o, e = run_env_command(Commands.CONFIG, env_name, "vars", "list", "--json", '-n', env_name)
+        run_env_command(Commands.ENV_CONFIG, env_name, "vars", "unset", "DUDE", "SWEET", '-n', env_name)
+        o, e = run_env_command(Commands.ENV_CONFIG, env_name, "vars", "list", "--json", '-n', env_name)
         output_env_vars = json.loads(o)
         assert output_env_vars == {}
+
+    def test_set_unset_env_vars_env_no_exist(self):
+        create_env(environment_1)
+        run_env_command(Commands.ENV_CREATE, None)
+        env_name = 'env-11'
+        try:
+            run_env_command(Commands.ENV_CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa", "-n", env_name)
+        except Exception as e:
+            self.assertIsInstance(e, EnvironmentLocationNotFound)
 
 
 def env_is_created(env_name):

@@ -2,11 +2,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from argparse import RawDescriptionHelpFormatter
+from os.path import lexists
 
 from conda.cli import common
 from conda.cli.conda_argparse import add_parser_prefix, add_parser_json
 from conda.core.prefix_data import PrefixData
 from conda.base.context import context
+from conda.exceptions import EnvironmentLocationNotFound
 from .common import get_prefix
 
 var_description = '''
@@ -103,6 +105,9 @@ def configure_parser(sub_parsers):
 
 def execute_list(args, parser):
     prefix = get_prefix(args, search=False) or context.active_prefix
+    if not lexists(prefix):
+        raise EnvironmentLocationNotFound(prefix)
+
     pd = PrefixData(prefix)
 
     env_vars = pd.get_environment_env_vars()
@@ -115,6 +120,8 @@ def execute_list(args, parser):
 def execute_set(args, parser):
     prefix = get_prefix(args, search=False) or context.active_prefix
     pd = PrefixData(prefix)
+    if not lexists(prefix):
+        raise EnvironmentLocationNotFound(prefix)
 
     env_vars_to_add = {}
     for v in args.vars:
@@ -126,6 +133,8 @@ def execute_set(args, parser):
 def execute_unset(args, parser):
     prefix = get_prefix(args, search=False) or context.active_prefix
     pd = PrefixData(prefix)
+    if not lexists(prefix):
+        raise EnvironmentLocationNotFound(prefix)
 
     vars_to_unset = [_.strip() for _ in args.vars]
     pd.unset_environment_env_vars(vars_to_unset)
