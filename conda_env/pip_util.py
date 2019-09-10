@@ -12,10 +12,12 @@ import json
 from logging import getLogger
 import os
 import re
+import sys
 
 from .exceptions import CondaEnvException
 from conda.gateways.subprocess import any_subprocess
 from conda.exports import on_win
+from conda.base.context import context
 
 
 log = getLogger(__name__)
@@ -28,17 +30,28 @@ def pip_subprocess(args, prefix, cwd):
         python_path = os.path.join(prefix, 'bin', 'python')
     run_args = [python_path, '-m', 'pip'] + args
     stdout, stderr, rc = any_subprocess(run_args, prefix, cwd=cwd)
-    print("Ran pip subprocess with arguments:")
-    print(run_args)
-    print("Pip subprocess output:")
-    print(stdout)
+    if not context.quiet and not context.json:
+        print("Ran pip subprocess with arguments:")
+        print(run_args)
+        print("Pip subprocess output:")
+        print(stdout)
     if rc != 0:
-        print("Pip subprocess error:")
-        print(stderr)
+        print("Pip subprocess error:", file=sys.stderr)
+        print(stderr, file=sys.stderr)
         raise CondaEnvException("Pip failed")
 
     # This will modify (break) Context. We have a context stack but need to verify it works
     # stdout, stderr, rc = run_command(Commands.RUN, *run_args, stdout=None, stderr=None)
+    return stdout, stderr
+
+
+def get_pip_installed_packages(stdout):
+    """Return the list of pip packages installed based on the command output"""
+    m = re.search(r"Successfully installed\ (.*)", stdout)
+    if m:
+        return m.group(1).strip().split()
+    else:
+        return None
 
 
 def get_pip_version(prefix):
@@ -75,7 +88,7 @@ def installed(prefix, output=True):
     except Exception:
         # Any error should just be ignored
         if output:
-            print("# Warning: subprocess call to pip failed")
+            print("# Warning: subprocess call to pip failed", file=sys.stderr)
         return
 
     if pip_major_version >= 9:
@@ -111,7 +124,7 @@ def installed(prefix, output=True):
             m = pat.match(line)
             if m is None:
                 if output:
-                    print('Could not extract name and version from: %r' % line)
+                    print('Could not extract name and version from: %r' % line, file=sys.stderr)
                 continue
             name, version = m.groups()
             name = name.lower()

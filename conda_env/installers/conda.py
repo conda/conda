@@ -26,6 +26,8 @@ def install(prefix, specs, args, env, *_, **kwargs):
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
     unlink_link_transaction = solver.solve_for_transaction(prune=getattr(args, 'prune', False))
 
-    pfe = unlink_link_transaction._get_pfe()
-    pfe.execute()
+    if unlink_link_transaction.nothing_to_do:
+        return None
+    unlink_link_transaction.download_and_extract()
     unlink_link_transaction.execute()
+    return unlink_link_transaction._make_legacy_action_groups()[0]

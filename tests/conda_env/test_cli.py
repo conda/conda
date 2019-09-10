@@ -47,6 +47,29 @@ channels:
 foo: bar
 '''
 
+environment_python_pip_click = '''
+name: env-1
+dependencies:
+  - python=3
+  - pip
+  - pip:
+    - click
+channels:
+  - defaults
+'''
+
+environment_python_pip_click_attrs = '''
+name: env-1
+dependencies:
+  - python=3
+  - pip
+  - pip:
+    - click
+    - attrs
+channels:
+  - defaults
+'''
+
 test_env_name_1 = "env-1"
 test_env_name_2 = "snowflakes"
 test_env_name_42 = "env-42"
@@ -147,11 +170,15 @@ class IntegrationTests(unittest.TestCase):
         rm_rf("environment.yml")
         run_env_command(Commands.ENV_REMOVE, test_env_name_1)
         run_env_command(Commands.ENV_REMOVE, test_env_name_42)
+        for env_nb in range(1, 6):
+            run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
 
     def tearDown(self):
         rm_rf("environment.yml")
         run_env_command(Commands.ENV_REMOVE, test_env_name_1)
         run_env_command(Commands.ENV_REMOVE, test_env_name_42)
+        for env_nb in range(1, 6):
+             run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
 
     def test_conda_env_create_no_file(self):
         '''
@@ -237,6 +264,71 @@ class IntegrationTests(unittest.TestCase):
         self.assertNotEqual(
             len([env for env in parsed['envs'] if env.endswith(env_name)]), 0
         )
+
+    def test_create_valid_env_json_output(self):
+        """
+        Creates an environment from an environment.yml file with conda packages (no pip)
+        Check the json output
+        """
+        create_env(environment_1)
+        stdout, stderr = run_env_command(Commands.ENV_CREATE, "envjson-1", "--quiet", "--json")
+        output = json.loads(stdout)
+        assert output["success"] is True
+        assert len(output["actions"]["LINK"]) > 0
+        assert "PIP" not in output["actions"]
+
+    def test_create_valid_env_with_conda_and_pip_json_output(self):
+        """
+        Creates an environment from an environment.yml file with conda and pip dependencies
+        Check the json output
+        """
+        create_env(environment_python_pip_click)
+        stdout, stderr = run_env_command(Commands.ENV_CREATE, "envjson-2", "--quiet", "--json")
+        output = json.loads(stdout)
+        assert len(output["actions"]["LINK"]) > 0
+        assert output["actions"]["PIP"][0].startswith("click")
+
+    def test_update_env_json_output(self):
+        """
+        Update an environment by adding a conda package
+        Check the json output
+        """
+        create_env(environment_1)
+        run_env_command(Commands.ENV_CREATE, "envjson-3", "--json")
+        create_env(environment_2)
+        stdout, stderr = run_env_command(Commands.ENV_UPDATE, "envjson-3", "--quiet", "--json")
+        output = json.loads(stdout)
+        assert output["success"] is True
+        assert len(output["actions"]["LINK"]) > 0
+        assert "PIP" not in output["actions"]
+
+    def test_update_env_only_pip_json_output(self):
+        """
+        Update an environment by adding only a pip package
+        Check the json output
+        """
+        create_env(environment_python_pip_click)
+        run_env_command(Commands.ENV_CREATE, "envjson-4", "--json")
+        create_env(environment_python_pip_click_attrs)
+        stdout, stderr = run_env_command(Commands.ENV_UPDATE, "envjson-4", "--quiet", "--json")
+        output = json.loads(stdout)
+        assert output["success"] is True
+        # No conda actions (FETCH/LINK), only pip
+        assert list(output["actions"].keys()) == ["PIP"]
+        # Only attrs installed
+        assert len(output["actions"]["PIP"]) == 1
+        assert output["actions"]["PIP"][0].startswith("attrs")
+
+    def test_update_env_no_action_json_output(self):
+        """
+        Update an already up-to-date environment
+        Check the json output
+        """
+        create_env(environment_python_pip_click)
+        run_env_command(Commands.ENV_CREATE, "envjson-5", "--json")
+        stdout, stderr = run_env_command(Commands.ENV_UPDATE, "envjson-5", "--quiet", "--json")
+        output = json.loads(stdout)
+        assert output["message"] == "All requested packages already installed."
 
 
 def env_is_created(env_name):
