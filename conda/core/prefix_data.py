@@ -332,7 +332,7 @@ class PrefixData(object):
         current_env_vars = env_state_file.get('env_vars')
         if current_env_vars:
             for env_var in env_vars:
-                current_env_vars.pop(env_var)
+                current_env_vars.pop(env_var, None)
             self._write_environment_state_file(env_state_file)
         return env_state_file['env_vars']
 

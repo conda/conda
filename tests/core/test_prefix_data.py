@@ -227,3 +227,13 @@ class PrefixDatarUnitTests(TestCase):
         self.pd.unset_environment_env_vars(['WOAH'])
         env_vars = self.pd.get_environment_env_vars()
         assert env_vars_one == env_vars
+
+    def test_set_unset_environment_env_vars_no_exist(self):
+        env_vars_one = {
+            "ENV_ONE": "one",
+            "ENV_TWO": "you",
+            "ENV_THREE": "me",
+        }
+        self.pd.unset_environment_env_vars(['WOAH'])
+        env_vars = self.pd.get_environment_env_vars()
+        assert env_vars_one == env_vars
