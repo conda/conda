@@ -333,14 +333,15 @@ class IntegrationTests(unittest.TestCase):
 
     def test_set_unset_env_vars(self):
         create_env(environment_1)
+        run_env_command(Commands.ENV_CREATE, None)
         env_name = 'env-1'
-        run_env_command(Commands.CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa")
-        o, e = run_env_command(Commands.CONFIG, env_name, "vars", "list", "--json")
+        run_env_command(Commands.CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa", "-n", env_name)
+        o, e = run_env_command(Commands.CONFIG, env_name, "vars", "list", "--json", '-n', env_name)
         output_env_vars = json.loads(o)
         assert output_env_vars == {'DUDE': 'woah', "SWEET": "yaaa"}
 
-        run_env_command(Commands.CONFIG, env_name, "vars", "unset", "DUDE", "SWEET")
-        o, e = run_env_command(Commands.CONFIG, env_name, "vars", "list", "--json")
+        run_env_command(Commands.CONFIG, env_name, "vars", "unset", "DUDE", "SWEET", '-n', env_name)
+        o, e = run_env_command(Commands.CONFIG, env_name, "vars", "list", "--json", '-n', env_name)
         output_env_vars = json.loads(o)
         assert output_env_vars == {}
 

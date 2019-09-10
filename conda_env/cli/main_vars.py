@@ -64,6 +64,7 @@ def configure_parser(sub_parsers):
         help=list_description,
         epilog=list_example,
     )
+    add_parser_prefix(list_parser)
     add_parser_json(list_parser)
     list_parser.set_defaults(func='.main_vars.execute_list')
 
@@ -80,6 +81,7 @@ def configure_parser(sub_parsers):
         nargs='*',
         help='Environment variables to set in the form <KEY>=<VALUE> separated by spaces'
     )
+    add_parser_prefix(set_parser)
     set_parser.set_defaults(func='.main_vars.execute_set')
 
     unset_parser = var_subparser.add_parser(
@@ -95,9 +97,8 @@ def configure_parser(sub_parsers):
         nargs='*',
         help='Environment variables to unset in the form <KEY> separated by spaces'
     )
+    add_parser_prefix(unset_parser)
     unset_parser.set_defaults(func='.main_vars.execute_unset')
-
-    add_parser_prefix(var_parser)
 
 
 def execute_list(args, parser):
