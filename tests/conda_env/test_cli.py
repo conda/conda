@@ -89,7 +89,7 @@ class Commands:
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
-    VARS = "vars"
+    CONFIG = "config"
 
 
 def run_env_command(command, prefix, *arguments):
@@ -334,13 +334,13 @@ class IntegrationTests(unittest.TestCase):
     def test_set_unset_env_vars(self):
         create_env(environment_1)
         env_name = 'env-1'
-        run_env_command(Commands.VARS, env_name, "--set", "DUDE=woah")
-        o, e = run_env_command(Commands.VARS, env_name, "--list", "--json")
+        run_env_command(Commands.CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa")
+        o, e = run_env_command(Commands.CONFIG, env_name, "vars", "list", "--json")
         output_env_vars = json.loads(o)
-        assert output_env_vars == {'DUDE': 'woah'}
+        assert output_env_vars == {'DUDE': 'woah', "SWEET": "yaaa"}
 
-        run_env_command(Commands.VARS, env_name, "--unset", "DUDE")
-        o, e = run_env_command(Commands.VARS, env_name, "--list", "--json")
+        run_env_command(Commands.CONFIG, env_name, "vars", "unset", "DUDE", "SWEET")
+        o, e = run_env_command(Commands.CONFIG, env_name, "vars", "list", "--json")
         output_env_vars = json.loads(o)
         assert output_env_vars == {}
 

@@ -9,75 +9,123 @@ from conda.core.prefix_data import PrefixData
 from conda.base.context import context
 from .common import get_prefix
 
+var_description = '''
+Interact with environment variables associated with Conda environments
+'''
 
-description = """
-Interact with environment varaibles associated with Conda environments
-"""
-
-example = """
+var_example = '''
 examples:
-    conda env vars --list -n my_env
-    conda env vars --set MY_VAR=something
-    conda env vars --unset MY_VAR
-"""
+    conda env config vars list -n my_env
+    conda env config vars set MY_VAR=something OTHER_THING=ohhhhya
+    conda env config vars unset MY_VAR
+'''
 
+list_description = '''
+List environment variables for a conda environment
+'''
+
+list_example = '''
+examples:
+    conda env config vars list -n my_env
+'''
+
+set_description = '''
+Set environment variables for a conda environment
+'''
+
+set_example = '''
+example:
+    conda env config vars set MY_VAR=weee
+'''
+
+unset_description = '''
+Unset environment variables for a conda environment
+'''
+
+unset_example = '''
+example:
+    conda env config vars unset MY_VAR
+'''
 
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
+    var_parser = sub_parsers.add_parser(
         'vars',
         formatter_class=RawDescriptionHelpFormatter,
-        description=description,
-        help=description,
-        epilog=example,
+        description=var_description,
+        help=var_description,
+        epilog=var_example,
     )
+    var_subparser = var_parser.add_subparsers()
 
-    p.add_argument(
-        '-l', '--list',
-        action="store_true",
-        default=None,
-        help='list environment variables',
+    list_parser = var_subparser.add_parser(
+        'list',
+        formatter_class=RawDescriptionHelpFormatter,
+        description=list_description,
+        help=list_description,
+        epilog=list_example,
     )
+    add_parser_prefix(list_parser)
+    add_parser_json(list_parser)
+    list_parser.set_defaults(func='.main_vars.execute_list')
 
-    p.add_argument(
-        '-s', '--set',
+    set_parser = var_subparser.add_parser(
+        'set',
+        formatter_class=RawDescriptionHelpFormatter,
+        description=set_description,
+        help=set_description,
+        epilog=set_example,
+    )
+    set_parser.add_argument(
+        'vars',
         action='store',
-        help='set environment variables',
-        default=None,
+        nargs='*',
+        help='Environment variables to set in the form <KEY>=<VALUE> separated by spaces'
     )
+    add_parser_prefix(set_parser)
+    set_parser.set_defaults(func='.main_vars.execute_set')
 
-    p.add_argument(
-        '-u', '--unset',
+    unset_parser = var_subparser.add_parser(
+        'unset',
+        formatter_class=RawDescriptionHelpFormatter,
+        description=unset_description,
+        help=unset_description,
+        epilog=unset_example,
+    )
+    unset_parser.add_argument(
+        'vars',
         action='store',
-        help='unset environment variables',
-        default=None,
+        nargs='*',
+        help='Environment variables to unset in the form <KEY> separated by spaces'
     )
-
-    # Add name and prefix args
-    add_parser_prefix(p)
-    add_parser_json(p)
-    p.set_defaults(func='.main_vars.execute')
+    add_parser_prefix(unset_parser)
+    unset_parser.set_defaults(func='.main_vars.execute_unset')
 
 
-def execute(args, parser):
+def execute_list(args, parser):
     prefix = get_prefix(args, search=False) or context.active_prefix
     pd = PrefixData(prefix)
 
-    if args.list:
-        env_vars = pd.get_environment_env_vars()
-        if args.json:
-            common.stdout_json(env_vars)
-        else:
-            for k, v in env_vars.items():
-                print("%s = %s" % (k, v))
+    env_vars = pd.get_environment_env_vars()
+    if args.json:
+        common.stdout_json(env_vars)
+    else:
+        for k, v in env_vars.items():
+            print('%s = %s' % (k, v))
 
-    if args.set:
-        vars = args.set.split(',')
-        env_vars_to_add = {}
-        for v in vars:
-            var_def = v.split("=")
-            env_vars_to_add[var_def[0].strip()] = var_def[-1].strip()
-        pd.set_environment_env_vars(env_vars_to_add)
+def execute_set(args, parser):
+    prefix = get_prefix(args, search=False) or context.active_prefix
+    pd = PrefixData(prefix)
 
-    if args.unset:
-        vars_to_unset = [_.strip() for _ in args.unset.split(',')]
-        pd.unset_environment_env_vars(vars_to_unset)
+    env_vars_to_add = {}
+    for v in args.vars:
+        var_def = v.split('=')
+        env_vars_to_add[var_def[0].strip()] = var_def[-1].strip()
+    pd.set_environment_env_vars(env_vars_to_add)
+
+
+def execute_unset(args, parser):
+    prefix = get_prefix(args, search=False) or context.active_prefix
+    pd = PrefixData(prefix)
+
+    vars_to_unset = [_.strip() for _ in args.vars]
+    pd.unset_environment_env_vars(vars_to_unset)
