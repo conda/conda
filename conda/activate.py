@@ -319,6 +319,12 @@ class _Activator(object):
                           if v == CONDA_ENV_VARS_UNSET_VAR]
         [conda_environment_env_vars.pop(_) for _ in unset_env_vars]
 
+        clobbering_env_vars = [k for k in conda_environment_env_vars.keys()
+                               if k in os.environ.keys()]
+        if clobbering_env_vars:
+            print("WARNING: overwriting environment variables set in the machine", file=sys.stderr)
+            print("overwriting variable %s" % ' '.join(clobbering_env_vars), file=sys.stderr)
+
         unset_vars = []
         if old_conda_shlvl == 0:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
@@ -692,8 +698,8 @@ class _Activator(object):
                 dup_vars = [ev for ev in env_vars.keys() if ev in prefix_state_env_vars.keys()]
                 for dup in dup_vars:
                     print("WARNING: duplicate env vars detected. Vars from the environment "
-                          "will overwrite those from packages")
-                    print("variable %s duplicated" % (dup))
+                          "will overwrite those from packages", file=sys.stderr)
+                    print("variable %s duplicated" % dup, file=sys.stderr)
                 env_vars.update(prefix_state_env_vars)
 
         return env_vars
