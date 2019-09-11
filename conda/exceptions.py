@@ -527,6 +527,18 @@ class PackageNotInstalledError(CondaError):
                                                        package_name=package_name)
 
 
+class BuildToolPackageNotInstalledError(CondaError):
+    def __init__(self, prefix, build_tool_package_name):
+        message = dals("""
+        Could not find build tool package.
+           prefix: %(prefix)s
+           package name: %(package_name)s
+        Nor could a system-installed fallback be found.
+        """)
+        super(BuildToolPackageNotInstalledError, self).__init__(message, prefix=prefix,
+                                                                package_name=build_tool_package_name)
+
+
 class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):

@@ -89,7 +89,8 @@ GIT_DESCRIBE_REGEX = compile(r"(?:[_-a-zA-Z]*)"
 
 def call(command, path=None, raise_on_error=True):
     path = sys.prefix if path is None else abspath(path)
-    p = Popen(shlex_split_unicode(command), cwd=path, stdout=PIPE, stderr=PIPE)
+    p = Popen(command if hasattr(command, '__iter__') else
+              shlex_split_unicode(command), cwd=path, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
     log.debug("{0} $  {1}\n"
@@ -110,13 +111,27 @@ def _get_version_from_version_file(path):
 
 
 def _git_describe_tags(path):
+    for git in ('git',
+                'C:\\msys64\\usr\\bin\\git.exe',
+                'C:\\msys32\\usr\\bin\\git.exe',
+                'C:\\Program Files\\Git\\bin\\git.exe',
+                'C:\\Program Files (x86)\\Git\\bin\\git.exe'):
+        try:
+            call([git] + ['--version'])
+        except:
+            git = None
+        else:
+            break
+    if not git:
+        log.warning("Git not found, it will not be possible to figure out the version of this software.")
+    git = [git] + ['--no-pager']
     try:
-        call("git update-index --refresh", path, raise_on_error=False)
+        call(git + ['update-index', '--refresh'], path, raise_on_error=False)
     except CalledProcessError as e:
         # git is probably not installed
         log.warn(repr(e))
         return None
-    response = call("git describe --tags --long", path, raise_on_error=False)
+    response = call(git + ['describe', '--tags', '--long'], path, raise_on_error=False)
     if response.rc == 0:
         return response.stdout.strip()
     elif response.rc == 128 and "no names found" in response.stderr.lower():
