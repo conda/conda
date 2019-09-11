@@ -18,6 +18,7 @@ build:
     - Scripts/activate.bat         # [win]
     - Scripts/activate             # [win]
     - Scripts/deactivate           # [win]
+    - Scripts/deactivate.bat       # [win]
 
 requirements:
   build:

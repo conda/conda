@@ -353,6 +353,13 @@ def make_install_plan(conda_prefix):
             },
         })
         plan.append({
+            'function': install_Scripts_deactivate_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'Scripts', 'deactivate.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
             'function': install_activate_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'condabin', 'activate.bat'),
@@ -867,6 +874,14 @@ def install_conda_sh(target_path, conda_prefix):
 def install_Scripts_activate_bat(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'activate.bat')
     src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Scripts', 'activate.bat')
+    with open(src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_Scripts_deactivate_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'Scripts', 'deactivate.bat')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Scripts', 'deactivate.bat')
     with open(src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)

@@ -150,6 +150,13 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
+                        "function": "install_Scripts_deactivate_bat",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin\\Scripts\\deactivate.bat"
+                        }
+                    },
+                    {
                         "function": "install_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -531,6 +538,7 @@ class InitializeTests(TestCase):
                 'activate.bat',
                 'activate.bat',
                 'deactivate.bat',
+                'deactivate.bat',
                 'activate',
                 'deactivate',
                 'conda.sh',
@@ -590,6 +598,7 @@ class InitializeTests(TestCase):
                 'conda_hook.bat',
                 'activate.bat',
                 'activate.bat',
+                'deactivate.bat',
                 'deactivate.bat',
                 'activate',
                 'deactivate',
@@ -658,6 +667,7 @@ class InitializeTests(TestCase):
                 'conda_hook.bat',
                 'activate.bat',  # condabin/activate.bat
                 'activate.bat',  # Scripts/activate.bat
+                'deactivate.bat',
                 'deactivate.bat',
                 'activate',
                 'deactivate',
