@@ -24,7 +24,7 @@ from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
-from .base.constants import PREFIX_SATE_FILE, PACKAGE_ENV_VARS_DIR
+from .base.constants import PREFIX_SATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 
 log = getLogger(__name__)
 
@@ -314,7 +314,11 @@ class _Activator(object):
         activate_scripts = self._get_activate_scripts(prefix)
         conda_default_env = self._default_env(prefix)
         conda_prompt_modifier = self._prompt_modifier(prefix, conda_default_env)
-        conda_environment_env_vars = self._get_environment_env_vars(prefix)
+        conda_environment_env_vars_all = self._get_environment_env_vars(prefix)
+        conda_environment_env_vars = OrderedDict({
+            k: v for k, v in conda_environment_env_vars_all.items()
+            if v != CONDA_ENV_VARS_UNSET_VAR
+        })
 
         unset_vars = []
         if old_conda_shlvl == 0:

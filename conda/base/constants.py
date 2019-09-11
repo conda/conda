@@ -230,6 +230,7 @@ PREFIX_MAGIC_FILE = join('conda-meta', 'history')
 
 PREFIX_SATE_FILE = join('conda-meta', 'state')
 PACKAGE_ENV_VARS_DIR = join('etc', 'conda', 'env_vars.d')
+CONDA_ENV_VARS_UNSET_VAR = "***unset***"
 
 
 # TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.

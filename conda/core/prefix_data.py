@@ -13,7 +13,7 @@ import json
 
 from ..base.constants import PREFIX_SATE_FILE
 from .._vendor.auxlib.exceptions import ValidationError
-from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE
+from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
 from ..common.compat import JSONDecodeError, itervalues, odict, string_types, with_metaclass
 from ..common.constants import NULL
@@ -314,7 +314,11 @@ class PrefixData(object):
 
     def get_environment_env_vars(self):
         prefix_state = self._get_environment_state_file()
-        env_vars = OrderedDict(prefix_state.get('env_vars', {}))
+        env_vars_all = OrderedDict(prefix_state.get('env_vars', {}))
+        env_vars = {
+            k: v for k, v in env_vars_all.items()
+            if v != CONDA_ENV_VARS_UNSET_VAR
+        }
         return env_vars
 
     def set_environment_env_vars(self, env_vars):
@@ -332,7 +336,8 @@ class PrefixData(object):
         current_env_vars = env_state_file.get('env_vars')
         if current_env_vars:
             for env_var in env_vars:
-                current_env_vars.pop(env_var, None)
+                if env_var in current_env_vars.keys():
+                    current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
             self._write_environment_state_file(env_state_file)
         return env_state_file['env_vars']
 
