@@ -314,11 +314,10 @@ class _Activator(object):
         activate_scripts = self._get_activate_scripts(prefix)
         conda_default_env = self._default_env(prefix)
         conda_prompt_modifier = self._prompt_modifier(prefix, conda_default_env)
-        conda_environment_env_vars_all = self._get_environment_env_vars(prefix)
-        conda_environment_env_vars = OrderedDict({
-            k: v for k, v in conda_environment_env_vars_all.items()
-            if v != CONDA_ENV_VARS_UNSET_VAR
-        })
+        conda_environment_env_vars = self._get_environment_env_vars(prefix)
+        unset_env_vars = [k for k, v in conda_environment_env_vars.items()
+                          if v == CONDA_ENV_VARS_UNSET_VAR]
+        [conda_environment_env_vars.pop(_) for _ in unset_env_vars]
 
         unset_vars = []
         if old_conda_shlvl == 0:
