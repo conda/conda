@@ -168,10 +168,11 @@ packages that are easily installed locally with the
 Metapackage
 ===========
 
-A conda package that does not have files. :ref:`meta-package`
-may list dependencies to several core, low-level libraries and may
-contain links to software files that are automatically downloaded
-when executed.
+A metapackage is a very simple package that has at least a name
+and a version. It need not have any dependencies or build steps.
+:ref:`meta-package` may list dependencies to several core,
+low-level libraries and may contain links to software files
+that are automatically downloaded when executed.
 
 .. _miniconda-glossary:
 

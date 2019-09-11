@@ -94,11 +94,19 @@ If you want to use a specific Python version, it is best to use
 an environment with that version. For more information,
 see :doc:`../troubleshooting`.
 
+Installing similar packages
+===========================
+Installing packages that have similar filenames and serve similar
+purposes may return unexpected results. The package last installed
+will likely determine the outcome, which may be undesirable.
+If the two packages have different names, or if you're building
+variants of packages and need to line up other software in the stack,
+we recommend using :ref:`mutex-metapackages`.
 
 Installing packages from Anaconda.org
 =====================================
 
-Packages that are not available using conda install can be
+Packages that are not available using ``conda install`` can be
 obtained from Anaconda.org, a package management service for
 both public and private package repositories. Anaconda.org
 is an Anaconda product, just like Anaconda and Miniconda.
