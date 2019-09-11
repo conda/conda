@@ -689,7 +689,13 @@ class _Activator(object):
         if exists(env_vars_file):
             with open(env_vars_file, 'r') as f:
                 prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
-                env_vars.update(prefix_state.get('env_vars', {}))
+                prefix_state_env_vars = prefix_state.get('env_vars', {})
+                dup_vars = [ev for ev in env_vars.keys() if ev in prefix_state_env_vars.keys()]
+                for dup in dup_vars:
+                    print("WARNING: duplicate env vars detected. Vars from the environment "
+                          "will overwrite those from packages")
+                    print("variable %s duplicated" % (dup))
+                env_vars.update(prefix_state_env_vars)
 
         return env_vars
 
