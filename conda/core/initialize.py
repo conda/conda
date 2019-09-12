@@ -50,7 +50,7 @@ except NameError:
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .._vendor.auxlib.ish import dals
-from ..activate import (CshActivator, FishActivator,
+from ..activate import (CshActivator, FishActivator, BashActivator,
                         PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
 from ..common.compat import (PY2, ensure_binary, ensure_utf8_encoding,
@@ -390,6 +390,20 @@ def make_install_plan(conda_prefix):
         },
     })
     plan.append({
+        'function': install_conda_bash_sh.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'etc', 'conda_bash.sh'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
+        'function': install_conda_bash_completion_d.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'etc', 'bash_completion.d', 'conda'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
         'function': install_conda_fish.__name__,
         'kwargs': {
             'target_path': join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish'),
@@ -469,6 +483,15 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'reverse': reverse,
                 },
             })
+            if 'bash' in shells:
+                plan.append({
+                    'function': init_sh_system.__name__,
+                    'kwargs': {
+                        'target_path': '/etc/bash_completion.d/conda',
+                        'conda_prefix': conda_prefix,
+                        'reverse': reverse,
+                    },
+                })
 
     if 'fish' in shells:
         if for_user:
@@ -863,6 +886,17 @@ def install_conda_sh(target_path, conda_prefix):
     file_content = PosixActivator().hook(auto_activate_base=False)
     return _install_file(target_path, file_content)
 
+def install_conda_bash_sh(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'etc', 'conda_bash.sh')
+    file_content = BashActivator().hook(auto_activate_base=False)
+    return _install_file(target_path, file_content)
+
+def install_conda_bash_completion_d(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'etc', 'bash_completion.d', 'conda')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'bash_completion.d', 'conda')
+    with open(src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
 
 def install_Scripts_activate_bat(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'activate.bat')
