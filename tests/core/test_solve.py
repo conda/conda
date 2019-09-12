@@ -19,6 +19,7 @@ from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver, UpdateModifier, Resolve
 from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
+from conda.gateways.disk.create import TemporaryDirectory
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
@@ -34,112 +35,111 @@ try:
 except ImportError:
     from mock import Mock, patch
 
-TEST_PREFIX = '/a/test/c/prefix'
 CHANNEL_DIR = abspath(join(dirname(__file__), '..', 'data', 'conda_format_repo'))
 
 
 @contextmanager
-def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
     PrefixData._cache_.clear()
-    pd = PrefixData(TEST_PREFIX)
+    pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_1(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(TEST_PREFIX, (Channel('channel-1'),), (context.subdir,),
+        solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
 @contextmanager
-def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
     PrefixData._cache_.clear()
-    pd = PrefixData(TEST_PREFIX)
+    pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_2(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(TEST_PREFIX, (Channel('channel-2'),), (context.subdir,),
+        solver = Solver(tmpdir, (Channel('channel-2'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
 @contextmanager
-def get_solver_4(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
     PrefixData._cache_.clear()
-    pd = PrefixData(TEST_PREFIX)
+    pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(TEST_PREFIX, (Channel('channel-4'),), (context.subdir,),
+        solver = Solver(tmpdir, (Channel('channel-4'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
 @contextmanager
-def get_solver_5(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
     PrefixData._cache_.clear()
-    pd = PrefixData(TEST_PREFIX)
+    pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_5(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(TEST_PREFIX, (Channel('channel-5'),), (context.subdir,),
+        solver = Solver(tmpdir, (Channel('channel-5'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
 @contextmanager
-def get_solver_aggregate_1(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
     PrefixData._cache_.clear()
-    pd = PrefixData(TEST_PREFIX)
+    pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_2(context.subdir)
     get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(TEST_PREFIX, (Channel('channel-2'), Channel('channel-4'), ),
+        solver = Solver(tmpdir, (Channel('channel-2'), Channel('channel-4'), ),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
 @contextmanager
-def get_solver_aggregate_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
     PrefixData._cache_.clear()
-    pd = PrefixData(TEST_PREFIX)
+    pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_2(context.subdir)
     get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(TEST_PREFIX, (Channel('channel-4'), Channel('channel-2')),
+        solver = Solver(tmpdir, (Channel('channel-4'), Channel('channel-2')),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
 @contextmanager
-def get_solver_must_unfreeze(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
     PrefixData._cache_.clear()
-    pd = PrefixData(TEST_PREFIX)
+    pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_must_unfreeze(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(TEST_PREFIX, (Channel('channel-freeze'),), (context.subdir,),
+        solver = Solver(tmpdir, (Channel('channel-freeze'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
 @contextmanager
-def get_solver_cuda(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
     PrefixData._cache_.clear()
-    pd = PrefixData(TEST_PREFIX)
+    pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_cuda(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(TEST_PREFIX, (Channel('channel-1'),), (context.subdir,),
+        solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -148,10 +148,10 @@ def convert_to_dist_str(solution):
     return tuple(prec.dist_str() for prec in solution)
 
 
-def test_solve_1():
+def test_solve_1(tmpdir):
     specs = MatchSpec("numpy"),
 
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
         order = (
@@ -167,7 +167,7 @@ def test_solve_1():
         assert convert_to_dist_str(final_state) == order
 
     specs_to_add = MatchSpec("python=2"),
-    with get_solver(specs_to_add=specs_to_add,
+    with get_solver(tmpdir, specs_to_add=specs_to_add,
                     prefix_records=final_state, history_specs=specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
@@ -184,10 +184,10 @@ def test_solve_1():
         assert convert_to_dist_str(final_state) == order
 
 
-def test_solve_2():
+def test_solve_2(tmpdir):
     specs = MatchSpec("numpy"),
 
-    with get_solver_aggregate_1(specs) as solver:
+    with get_solver_aggregate_1(tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
         order = (
@@ -204,7 +204,7 @@ def test_solve_2():
         assert convert_to_dist_str(final_state) == order
 
     specs_to_add = MatchSpec("channel-4::numpy"),
-    with get_solver_aggregate_1(specs_to_add=specs_to_add,
+    with get_solver_aggregate_1(tmpdir, specs_to_add=specs_to_add,
                     prefix_records=final_state, history_specs=specs) as solver:
         solver.solve_final_state()
         extra_prec = PrefixRecord(_hash=5842798532132402024, name='mkl', version='2017.0.3',
@@ -235,11 +235,11 @@ def test_solve_2():
         assert len(prec_names) == len(set(prec_names))
 
 
-def test_cuda_1():
+def test_cuda_1(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '9.2'):
-        with get_solver_cuda(specs) as solver:
+        with get_solver_cuda(tmpdir, specs) as solver:
             final_state = solver.solve_final_state()
             # print(convert_to_dist_str(final_state))
             order = (
@@ -248,11 +248,11 @@ def test_cuda_1():
             assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_2():
+def test_cuda_2(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
-        with get_solver_cuda(specs) as solver:
+        with get_solver_cuda(tmpdir, specs) as solver:
             final_state = solver.solve_final_state()
             # print(convert_to_dist_str(final_state))
             order = (
@@ -261,12 +261,12 @@ def test_cuda_2():
             assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_fail_1():
+def test_cuda_fail_1(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
     # No cudatoolkit in index for CUDA 8.0
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
-        with get_solver_cuda(specs) as solver:
+        with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
@@ -278,12 +278,12 @@ Your installed CUDA driver is: 8.0""")
 
 
 
-def test_cuda_fail_2():
+def test_cuda_fail_2(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
     # No CUDA on system
     with env_var('CONDA_OVERRIDE_CUDA', ''):
-        with get_solver_cuda(specs) as solver:
+        with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
@@ -292,10 +292,10 @@ def test_cuda_fail_2():
 
 Your installed CUDA driver is: not available""")
 
-def test_prune_1():
+def test_prune_1(tmpdir):
     specs = MatchSpec("numpy=1.6"), MatchSpec("python=2.7.3"), MatchSpec("accelerate"),
 
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = (
@@ -325,7 +325,7 @@ def test_prune_1():
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_remove = MatchSpec("numbapro"),
-    with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
+    with get_solver(tmpdir, specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
@@ -354,9 +354,9 @@ def test_prune_1():
         assert convert_to_dist_str(link_precs) == link_order
 
 
-def test_force_remove_1():
+def test_force_remove_1(tmpdir):
     specs = MatchSpec("numpy[build=*py27*]"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -375,7 +375,7 @@ def test_force_remove_1():
     # without force_remove, taking out python takes out everything that depends on it, too,
     #    so numpy goes away.  All of pythons' deps are also pruned.
     specs_to_remove = MatchSpec("python"),
-    with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
+    with get_solver(tmpdir, specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -391,7 +391,7 @@ def test_force_remove_1():
     # with force remove, we remove only the explicit specs that we provide
     #    this leaves an inconsistent env
     specs_to_remove = MatchSpec("python"),
-    with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
+    with get_solver(tmpdir, specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(force_remove=True)
         # PrefixDag(final_state_2, specs).open_url()
@@ -408,7 +408,7 @@ def test_force_remove_1():
         assert convert_to_dist_str(final_state_2) == order
 
     # re-solving restores order
-    with get_solver(prefix_records=final_state_2) as solver:
+    with get_solver(tmpdir, prefix_records=final_state_2) as solver:
         final_state_3 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_3))
@@ -425,9 +425,9 @@ def test_force_remove_1():
         assert convert_to_dist_str(final_state_3) == order
 
 
-def test_no_deps_1():
+def test_no_deps_1(tmpdir):
     specs = MatchSpec("python=2"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -443,7 +443,7 @@ def test_no_deps_1():
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numba"),
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -464,7 +464,7 @@ def test_no_deps_1():
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("numba"),
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier='NO_DEPS')
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -481,9 +481,9 @@ def test_no_deps_1():
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_only_deps_1():
+def test_only_deps_1(tmpdir):
     specs = MatchSpec("numba[build=*py27*]"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -503,9 +503,9 @@ def test_only_deps_1():
         assert convert_to_dist_str(final_state_1) == order
 
 
-def test_only_deps_2():
+def test_only_deps_2(tmpdir):
     specs = MatchSpec("numpy=1.5"), MatchSpec("python=2.7.3"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -522,7 +522,7 @@ def test_only_deps_2():
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numba=0.5"),
-    with get_solver(specs_to_add) as solver:
+    with get_solver(tmpdir, specs_to_add) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -545,12 +545,12 @@ def test_only_deps_2():
 
     # fails because numpy=1.5 is in our history as an explicit spec
     specs_to_add = MatchSpec("numba=0.5"),
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         with pytest.raises(UnsatisfiableError):
             final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
 
     specs_to_add = MatchSpec("numba=0.5"), MatchSpec("numpy")
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -572,9 +572,9 @@ def test_only_deps_2():
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_update_all_1():
+def test_update_all_1(tmpdir):
     specs = MatchSpec("numpy=1.5"), MatchSpec("python=2.6"), MatchSpec("system[build_number=0]")
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -591,7 +591,7 @@ def test_update_all_1():
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numba=0.6"), MatchSpec("numpy")
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -612,7 +612,7 @@ def test_update_all_1():
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("numba=0.6"),
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -633,9 +633,9 @@ def test_update_all_1():
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_broken_install():
+def test_broken_install(tmpdir):
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -665,7 +665,7 @@ def test_broken_install():
     assert not solver._r.environment_is_consistent(final_state_1_modified)
 
     specs_to_add = MatchSpec("flask"),
-    with get_solver(specs_to_add, prefix_records=final_state_1_modified, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1_modified, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -692,7 +692,7 @@ def test_broken_install():
 
     # adding numpy spec again snaps the packages back to a consistent state
     specs_to_add = MatchSpec("flask"), MatchSpec("numpy 1.6.*"),
-    with get_solver(specs_to_add, prefix_records=final_state_1_modified, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1_modified, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -725,10 +725,10 @@ def test_broken_install():
     assert not solver._r.environment_is_consistent(final_state_2_mod)
 
 
-def test_conda_downgrade():
+def test_conda_downgrade(tmpdir):
     specs = MatchSpec("conda-build"),
     with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with get_solver_aggregate_1(specs) as solver:
+        with get_solver_aggregate_1(tmpdir, specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
             order = (
@@ -780,8 +780,8 @@ def test_conda_downgrade():
     specs_to_add = MatchSpec("itsdangerous"),  # MatchSpec("conda"),
     saved_sys_prefix = sys.prefix
     try:
-        sys.prefix = TEST_PREFIX
-        with get_solver_aggregate_1(specs_to_add=specs_to_add, prefix_records=final_state_1,
+        sys.prefix = tmpdir
+        with get_solver_aggregate_1(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                                     history_specs=specs) as solver:
             unlink_precs, link_precs = solver.solve_for_diff()
             pprint(convert_to_dist_str(unlink_precs))
@@ -796,7 +796,7 @@ def test_conda_downgrade():
             assert convert_to_dist_str(link_precs) == link_order
 
         specs_to_add = MatchSpec("itsdangerous"), MatchSpec("conda"),
-        with get_solver_aggregate_1(specs_to_add=specs_to_add, prefix_records=final_state_1,
+        with get_solver_aggregate_1(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                                     history_specs=specs) as solver:
             unlink_precs, link_precs = solver.solve_for_diff()
             pprint(convert_to_dist_str(unlink_precs))
@@ -805,7 +805,7 @@ def test_conda_downgrade():
             assert convert_to_dist_str(link_precs) == link_order
 
         specs_to_add = MatchSpec("itsdangerous"), MatchSpec("conda<4.4.10"), MatchSpec("python")
-        with get_solver_aggregate_1(specs_to_add=specs_to_add, prefix_records=final_state_1,
+        with get_solver_aggregate_1(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                                     history_specs=specs) as solver:
             unlink_precs, link_precs = solver.solve_for_diff()
             pprint(convert_to_dist_str(unlink_precs))
@@ -889,7 +889,7 @@ def test_conda_downgrade():
         sys.prefix = saved_sys_prefix
 
 
-def test_unfreeze_when_required():
+def test_unfreeze_when_required(tmpdir):
     # The available packages are:
     # libfoo 1.0, 2.0
     # libbar 1.0, 2.0
@@ -903,7 +903,7 @@ def test_unfreeze_when_required():
     # If foobar is frozen then no solution exists.
 
     specs = [MatchSpec("foobar"), MatchSpec('qux')]
-    with get_solver_must_unfreeze(specs) as solver:
+    with get_solver_must_unfreeze(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_1))
         order = (
@@ -915,7 +915,7 @@ def test_unfreeze_when_required():
         assert convert_to_dist_str(final_state_1) == order
 
     specs = MatchSpec("foobar"),
-    with get_solver_must_unfreeze(specs) as solver:
+    with get_solver_must_unfreeze(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_1))
         order = (
@@ -933,7 +933,7 @@ def test_unfreeze_when_required():
     #         solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
     specs_to_add = MatchSpec("qux"),
-    with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver_must_unfreeze(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_SPECS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -946,9 +946,9 @@ def test_unfreeze_when_required():
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_auto_update_conda():
+def test_auto_update_conda(tmpdir):
     specs = MatchSpec("conda=1.3"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -968,7 +968,7 @@ def test_auto_update_conda():
 
     with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         specs_to_add = MatchSpec("pytz"),
-        with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
             print(convert_to_dist_str(final_state_2))
@@ -989,10 +989,10 @@ def test_auto_update_conda():
 
     saved_sys_prefix = sys.prefix
     try:
-        sys.prefix = TEST_PREFIX
+        sys.prefix = tmpdir
         with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             specs_to_add = MatchSpec("pytz"),
-            with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
                 final_state_2 = solver.solve_final_state()
                 # PrefixDag(final_state_2, specs).open_url()
                 print(convert_to_dist_str(final_state_2))
@@ -1013,7 +1013,7 @@ def test_auto_update_conda():
 
         with env_vars({"CONDA_AUTO_UPDATE_CONDA": "no"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             specs_to_add = MatchSpec("pytz"),
-            with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
                 final_state_2 = solver.solve_final_state()
                 # PrefixDag(final_state_2, specs).open_url()
                 print(convert_to_dist_str(final_state_2))
@@ -1035,9 +1035,9 @@ def test_auto_update_conda():
         sys.prefix = saved_sys_prefix
 
 
-def test_explicit_conda_downgrade():
+def test_explicit_conda_downgrade(tmpdir):
     specs = MatchSpec("conda=1.5"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -1057,7 +1057,7 @@ def test_explicit_conda_downgrade():
 
     with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         specs_to_add = MatchSpec("conda=1.3"),
-        with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
             print(convert_to_dist_str(final_state_2))
@@ -1077,10 +1077,10 @@ def test_explicit_conda_downgrade():
 
     saved_sys_prefix = sys.prefix
     try:
-        sys.prefix = TEST_PREFIX
+        sys.prefix = tmpdir
         with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             specs_to_add = MatchSpec("conda=1.3"),
-            with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
                 final_state_2 = solver.solve_final_state()
                 # PrefixDag(final_state_2, specs).open_url()
                 print(convert_to_dist_str(final_state_2))
@@ -1100,7 +1100,7 @@ def test_explicit_conda_downgrade():
 
         with env_vars({"CONDA_AUTO_UPDATE_CONDA": "no"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             specs_to_add = MatchSpec("conda=1.3"),
-            with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
                 final_state_2 = solver.solve_final_state()
                 # PrefixDag(final_state_2, specs).open_url()
                 print(convert_to_dist_str(final_state_2))
@@ -1121,11 +1121,11 @@ def test_explicit_conda_downgrade():
         sys.prefix = saved_sys_prefix
 
 
-def test_aggressive_update_packages():
+def test_aggressive_update_packages(tmpdir):
     def solve(prev_state, specs_to_add, order):
         final_state_1, specs = prev_state
         specs_to_add = tuple(MatchSpec(spec_str) for spec_str in specs_to_add)
-        with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
             print(convert_to_dist_str(final_state_2))
             assert convert_to_dist_str(final_state_2) == order
@@ -1191,11 +1191,11 @@ def test_aggressive_update_packages():
             ))
 
 
-def test_python2_update():
+def test_python2_update(tmpdir):
     # Here we're actually testing that a user-request will uninstall incompatible packages
     # as necessary.
     specs = MatchSpec("conda"), MatchSpec("python=2")
-    with get_solver_4(specs) as solver:
+    with get_solver_4(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order1 = (
@@ -1236,7 +1236,7 @@ def test_python2_update():
         assert convert_to_dist_str(final_state_1) == order1
 
     specs_to_add = MatchSpec("python=3"),
-    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver_4(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_2))
         order = (
@@ -1275,9 +1275,9 @@ def test_python2_update():
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_update_deps_1():
+def test_update_deps_1(tmpdir):
     specs = MatchSpec("python=2"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         # print(convert_to_dist_str(final_state_1))
@@ -1293,7 +1293,7 @@ def test_update_deps_1():
         assert convert_to_dist_str(final_state_1) == order
 
     specs2 = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
-    with get_solver(specs2, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs2, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_2))
         order = (
@@ -1310,7 +1310,7 @@ def test_update_deps_1():
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("iopro"),
-    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
         final_state_3a = solver.solve_final_state()
         print(convert_to_dist_str(final_state_3a))
         order = (
@@ -1329,7 +1329,7 @@ def test_update_deps_1():
         assert convert_to_dist_str(final_state_3a) == order
 
     specs_to_add = MatchSpec("iopro"),
-    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
         final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
         pprint(convert_to_dist_str(final_state_3))
         order = (
@@ -1348,7 +1348,7 @@ def test_update_deps_1():
         assert convert_to_dist_str(final_state_3) == order
 
     specs_to_add = MatchSpec("iopro"),
-    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
         final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS,
                                                  deps_modifier=DepsModifier.ONLY_DEPS)
         pprint(convert_to_dist_str(final_state_3))
@@ -1368,9 +1368,9 @@ def test_update_deps_1():
         assert convert_to_dist_str(final_state_3) == order
 
 
-def test_update_deps_2():
+def test_update_deps_2(tmpdir):
     specs = MatchSpec("flask==0.12"), MatchSpec("jinja2==2.8")
-    with get_solver_aggregate_2(specs) as solver:
+    with get_solver_aggregate_2(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order1 = (
@@ -1400,7 +1400,7 @@ def test_update_deps_2():
 
     # The "conda update flask" case is held back by the jinja2==2.8 user-requested spec.
     specs_to_add = MatchSpec("flask"),
-    with get_solver_aggregate_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver_aggregate_2(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
@@ -1415,7 +1415,7 @@ def test_update_deps_2():
 
     # Now solve with UPDATE_DEPS
     specs_to_add = MatchSpec("flask"),
-    with get_solver_aggregate_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver_aggregate_2(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff(update_modifier=UpdateModifier.UPDATE_DEPS)
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
@@ -1431,9 +1431,9 @@ def test_update_deps_2():
         assert convert_to_dist_str(link_precs) == link_order
 
 
-def test_fast_update_with_update_modifier_not_set():
+def test_fast_update_with_update_modifier_not_set(tmpdir):
     specs = MatchSpec("python=2"), MatchSpec("openssl==1.0.2l"), MatchSpec("sqlite=3.21"),
-    with get_solver_4(specs) as solver:
+    with get_solver_4(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order1 = (
@@ -1453,7 +1453,7 @@ def test_fast_update_with_update_modifier_not_set():
         assert convert_to_dist_str(final_state_1) == order1
 
     specs_to_add = MatchSpec("python"),
-    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver_4(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
@@ -1474,7 +1474,7 @@ def test_fast_update_with_update_modifier_not_set():
         assert convert_to_dist_str(link_precs) == link_order
 
     specs_to_add = MatchSpec("sqlite"),
-    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver_4(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
@@ -1503,9 +1503,9 @@ def test_fast_update_with_update_modifier_not_set():
 
 
 @pytest.mark.integration
-def test_pinned_1():
+def test_pinned_1(tmpdir):
     specs = MatchSpec("numpy"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         pprint(convert_to_dist_str(final_state_1))
@@ -1523,7 +1523,7 @@ def test_pinned_1():
 
     with env_var("CONDA_PINNED_PACKAGES", "python=2.6&iopro<=1.4.2", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         specs = MatchSpec("system=5.8=0"),
-        with get_solver(specs) as solver:
+        with get_solver(tmpdir, specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
             pprint(convert_to_dist_str(final_state_1))
@@ -1534,7 +1534,7 @@ def test_pinned_1():
 
         # ignore_pinned=True
         specs_to_add = MatchSpec("python"),
-        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+        with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state(ignore_pinned=True)
             # PrefixDag(final_state_1, specs).open_url()
@@ -1552,7 +1552,7 @@ def test_pinned_1():
 
         # ignore_pinned=False
         specs_to_add = MatchSpec("python"),
-        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+        with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state(ignore_pinned=False)
             # PrefixDag(final_state_1, specs).open_url()
@@ -1570,7 +1570,7 @@ def test_pinned_1():
 
         # incompatible CLI and configured specs
         specs_to_add = MatchSpec("scikit-learn==0.13"),
-        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+        with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             with pytest.raises(SpecsConfigurationConflictError) as exc:
                 solver.solve_final_state(ignore_pinned=False)
@@ -1580,7 +1580,7 @@ def test_pinned_1():
 
         specs_to_add = MatchSpec("numba"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"),
-        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_2,
+        with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_2,
                         history_specs=history_specs) as solver:
             final_state_3 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
@@ -1603,7 +1603,7 @@ def test_pinned_1():
 
         specs_to_add = MatchSpec("python"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
-        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_3,
+        with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_3,
                         history_specs=history_specs) as solver:
             final_state_4 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
             # PrefixDag(final_state_1, specs).open_url()
@@ -1626,7 +1626,7 @@ def test_pinned_1():
 
         specs_to_add = MatchSpec("python"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
-        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
+        with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_4,
                         history_specs=history_specs) as solver:
             final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
             # PrefixDag(final_state_1, specs).open_url()
@@ -1650,7 +1650,7 @@ def test_pinned_1():
     # now update without pinning
     specs_to_add = MatchSpec("python"),
     history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
-    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
+    with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_4,
                     history_specs=history_specs) as solver:
         final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
         # PrefixDag(final_state_1, specs).open_url()
@@ -1671,12 +1671,12 @@ def test_pinned_1():
         assert convert_to_dist_str(final_state_5) == order
 
 
-def test_no_update_deps_1():  # i.e. FREEZE_DEPS
+def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
     # NOTE: So far, NOT actually testing the FREEZE_DEPS flag.  I'm unable to contrive a
     # situation where it's actually needed.
 
     specs = MatchSpec("python=2"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -1692,7 +1692,7 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("zope.interface"),
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -1710,13 +1710,13 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("zope.interface>4.1"),
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         with pytest.raises(UnsatisfiableError):
             final_state_2 = solver.solve_final_state()
 
     # allow python to float
     specs_to_add = MatchSpec("zope.interface>4.1"), MatchSpec("python")
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -1734,9 +1734,9 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_force_reinstall_1():
+def test_force_reinstall_1(tmpdir):
     specs = MatchSpec("python=2"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -1752,7 +1752,7 @@ def test_force_reinstall_1():
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = specs
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         unlink_dists, link_dists = solver.solve_for_diff()
         assert not unlink_dists
         assert not link_dists
@@ -1766,9 +1766,9 @@ def test_force_reinstall_1():
         assert not link_dists
 
 
-def test_force_reinstall_2():
+def test_force_reinstall_2(tmpdir):
     specs = MatchSpec("python=2"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
         assert not unlink_dists
         # PrefixDag(final_state_1, specs).open_url()
@@ -1785,9 +1785,9 @@ def test_force_reinstall_2():
         assert convert_to_dist_str(link_dists) == order
 
 
-def test_timestamps_1():
+def test_timestamps_1(tmpdir):
     specs = MatchSpec("python=3.6.2"),
-    with get_solver_4(specs) as solver:
+    with get_solver_4(tmpdir, specs) as solver:
         unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
         assert not unlink_dists
         pprint(convert_to_dist_str(link_dists))
@@ -1809,14 +1809,14 @@ def test_timestamps_1():
         )
         assert convert_to_dist_str(link_dists) == order
 
-def test_channel_priority_churn_minimized():
+def test_channel_priority_churn_minimized(tmpdir):
     specs = MatchSpec("conda-build"), MatchSpec("itsdangerous"),
-    with get_solver_aggregate_2(specs) as solver:
+    with get_solver_aggregate_2(tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
 
     pprint(convert_to_dist_str(final_state))
 
-    with get_solver_aggregate_2([MatchSpec('itsdangerous')],
+    with get_solver_aggregate_2(tmpdir, [MatchSpec('itsdangerous')],
                                 prefix_records=final_state, history_specs=specs) as solver:
         solver.channels.reverse()
         unlink_dists, link_dists = solver.solve_for_diff(
@@ -1827,11 +1827,11 @@ def test_channel_priority_churn_minimized():
         assert len(link_dists) == 1
 
 
-def test_remove_with_constrained_dependencies():
+def test_remove_with_constrained_dependencies(tmpdir):
     # This is a regression test for #6904. Up through conda 4.4.10, removal isn't working
     # correctly with constrained dependencies.
     specs = MatchSpec("conda"), MatchSpec("conda-build"),
-    with get_solver_4(specs) as solver:
+    with get_solver_4(tmpdir, specs) as solver:
         unlink_dists_1, link_dists_1 = solver.solve_for_diff()
         assert not unlink_dists_1
         pprint(convert_to_dist_str(link_dists_1))
@@ -1883,7 +1883,7 @@ def test_remove_with_constrained_dependencies():
         assert convert_to_dist_str(link_dists_1) == order
 
     specs_to_remove = MatchSpec("pycosat"),
-    with get_solver_4(specs_to_remove=specs_to_remove, prefix_records=link_dists_1, history_specs=specs) as solver:
+    with get_solver_4(tmpdir, specs_to_remove=specs_to_remove, prefix_records=link_dists_1, history_specs=specs) as solver:
         unlink_dists_2, link_dists_2 = solver.solve_for_diff()
         assert not link_dists_2
         pprint(convert_to_dist_str(unlink_dists_2))
@@ -1896,11 +1896,11 @@ def test_remove_with_constrained_dependencies():
             assert spec in convert_to_dist_str(unlink_dists_2)
 
 
-def test_priority_1():
+def test_priority_1(tmpdir):
     with env_var("CONDA_SUBDIR", "linux-64", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         specs = MatchSpec("pandas"), MatchSpec("python=2.7"),
         with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with get_solver_aggregate_1(specs) as solver:
+            with get_solver_aggregate_1(tmpdir, specs) as solver:
                 final_state_1 = solver.solve_final_state()
                 pprint(convert_to_dist_str(final_state_1))
                 order = (
@@ -1920,7 +1920,7 @@ def test_priority_1():
                 assert convert_to_dist_str(final_state_1) == order
 
         with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with get_solver_aggregate_1(specs, prefix_records=final_state_1,
+            with get_solver_aggregate_1(tmpdir, specs, prefix_records=final_state_1,
                                         history_specs=specs) as solver:
                 final_state_2 = solver.solve_final_state()
                 pprint(convert_to_dist_str(final_state_2))
@@ -1936,7 +1936,7 @@ def test_priority_1():
         # channel priority taking effect here.  channel-2 should be the channel to draw from.  Downgrades expected.
         # python and pandas will be updated as they are explicit specs.  Other stuff may or may not,
         #     as required to satisfy python and pandas
-        with get_solver_aggregate_1(specs, prefix_records=final_state_2,
+        with get_solver_aggregate_1(tmpdir, specs, prefix_records=final_state_2,
                                     history_specs=specs) as solver:
             final_state_3 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_3))
@@ -1949,7 +1949,7 @@ def test_priority_1():
 
         specs_to_add = MatchSpec("six<1.10"),
         specs_to_remove = MatchSpec("pytz"),
-        with get_solver_aggregate_1(specs_to_add=specs_to_add, specs_to_remove=specs_to_remove,
+        with get_solver_aggregate_1(tmpdir, specs_to_add=specs_to_add, specs_to_remove=specs_to_remove,
                                     prefix_records=final_state_3, history_specs=specs) as solver:
             final_state_4 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_4))
@@ -1962,13 +1962,13 @@ def test_priority_1():
             assert 'pandas' not in convert_to_dist_str(final_state_4)
 
 
-def test_features_solve_1():
+def test_features_solve_1(tmpdir):
     # in this test, channel-2 is a view of pkgs/free/linux-64
     #   and channel-4 is a view of the newer pkgs/main/linux-64
     # The channel list, equivalent to context.channels is ('channel-2', 'channel-4')
     specs = (MatchSpec("python=2.7"), MatchSpec("numpy"), MatchSpec("nomkl"))
     with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with get_solver_aggregate_1(specs) as solver:
+        with get_solver_aggregate_1(tmpdir, specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
             order = (
@@ -1986,7 +1986,7 @@ def test_features_solve_1():
             assert convert_to_dist_str(final_state_1) == order
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with get_solver_aggregate_1(specs) as solver:
+        with get_solver_aggregate_1(tmpdir, specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
             order = (
@@ -2013,9 +2013,9 @@ def test_features_solve_1():
 
 
 @pytest.mark.integration  # this test is slower, so we'll lump it into integration
-def test_freeze_deps_1():
+def test_freeze_deps_1(tmpdir):
     specs = MatchSpec("six=1.7"),
-    with get_solver_2(specs) as solver:
+    with get_solver_2(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = (
@@ -2031,7 +2031,7 @@ def test_freeze_deps_1():
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("bokeh"),
-    with get_solver_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
@@ -2055,7 +2055,7 @@ def test_freeze_deps_1():
 
     # now we can't install the latest bokeh 0.12.5, but instead we get bokeh 0.12.4
     specs_to_add = MatchSpec("bokeh"),
-    with get_solver_2(specs_to_add, prefix_records=final_state_1,
+    with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
@@ -2081,7 +2081,7 @@ def test_freeze_deps_1():
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
     with pytest.raises(UnsatisfiableError):
         specs_to_add = MatchSpec("bokeh=0.12.5"),
-        with get_solver_2(specs_to_add, prefix_records=final_state_1,
+        with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1,
                         history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
             unlink_precs, link_precs = solver.solve_for_diff()
 
@@ -2090,7 +2090,7 @@ def test_freeze_deps_1():
     #    explicit "six=1.7" request in the history.  It should only neuter that spec if there's no way
     #    to solve it with that spec.
     specs_to_add = MatchSpec("bokeh=0.12.5"), MatchSpec("python")
-    with get_solver_2(specs_to_add, prefix_records=final_state_1,
+    with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
@@ -2126,39 +2126,39 @@ def test_freeze_deps_1():
 
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
     specs_to_add = MatchSpec("bokeh=0.12.5"),
-    with get_solver_2(specs_to_add, prefix_records=final_state_1,
+    with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         with pytest.raises(UnsatisfiableError):
             solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
 
-class PrivateEnvTests(TestCase):
+# class PrivateEnvTests(TestCase):
 
-    def setUp(self):
-        self.prefix = '/a/test/c/prefix'
+#     def setUp(self):
+#         self.prefix = '/a/test/c/prefix'
 
-        self.preferred_env = "_spiffy-test-app_"
-        self.preferred_env_prefix = join(self.prefix, 'envs', self.preferred_env)
+#         self.preferred_env = "_spiffy-test-app_"
+#         self.preferred_env_prefix = join(self.prefix, 'envs', self.preferred_env)
 
-        # self.save_path_conflict = os.environ.get('CONDA_PATH_CONFLICT')
-        self.saved_values = {}
-        self.saved_values['CONDA_ROOT_PREFIX'] = os.environ.get('CONDA_ROOT_PREFIX')
-        self.saved_values['CONDA_ENABLE_PRIVATE_ENVS'] = os.environ.get('CONDA_ENABLE_PRIVATE_ENVS')
+#         # self.save_path_conflict = os.environ.get('CONDA_PATH_CONFLICT')
+#         self.saved_values = {}
+#         self.saved_values['CONDA_ROOT_PREFIX'] = os.environ.get('CONDA_ROOT_PREFIX')
+#         self.saved_values['CONDA_ENABLE_PRIVATE_ENVS'] = os.environ.get('CONDA_ENABLE_PRIVATE_ENVS')
 
-        # os.environ['CONDA_PATH_CONFLICT'] = 'prevent'
-        os.environ['CONDA_ROOT_PREFIX'] = self.prefix
-        os.environ['CONDA_ENABLE_PRIVATE_ENVS'] = 'true'
+#         # os.environ['CONDA_PATH_CONFLICT'] = 'prevent'
+#         os.environ['CONDA_ROOT_PREFIX'] = self.prefix
+#         os.environ['CONDA_ENABLE_PRIVATE_ENVS'] = 'true'
 
-        reset_context()
+#         reset_context()
 
-    def tearDown(self):
-        for key, value in iteritems(self.saved_values):
-            if value is not None:
-                os.environ[key] = value
-            else:
-                del os.environ[key]
+#     def tearDown(self):
+#         for key, value in iteritems(self.saved_values):
+#             if value is not None:
+#                 os.environ[key] = value
+#             else:
+#                 del os.environ[key]
 
-        reset_context()
+#         reset_context()
 
     # @patch.object(Context, 'prefix_specified')
     # def test_simple_install_uninstall(self, prefix_specified):
@@ -2203,10 +2203,10 @@ class PrivateEnvTests(TestCase):
     #         assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
 
 
-def test_current_repodata_usage():
+def test_current_repodata_usage(tmpdir):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('win-64',),
+        solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('win-64',),
                         specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
         final_state = solver.solve_final_state()
         # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
@@ -2221,8 +2221,8 @@ def test_current_repodata_usage():
             raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
-def test_current_repodata_fallback():
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('win-64',),
+def test_current_repodata_fallback(tmpdir):
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('win-64',),
                     specs_to_add=[MatchSpec('zlib=1.2.8')])
     final_state = solver.solve_final_state()
     # zlib 1.2.11, zlib 1.2.8, vc 14.1, vs2015_runtime, virtual package for vc track_feature
@@ -2237,9 +2237,9 @@ def test_current_repodata_fallback():
         raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
-def test_downgrade_python_prevented_with_sane_message():
+def test_downgrade_python_prevented_with_sane_message(tmpdir):
     specs = MatchSpec("python=2.6"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
     # PrefixDag(final_state_1, specs).open_url()
     pprint(convert_to_dist_str(final_state_1))
@@ -2256,7 +2256,7 @@ def test_downgrade_python_prevented_with_sane_message():
 
     # incompatible CLI and configured specs
     specs_to_add = MatchSpec("scikit-learn==0.13"),
-    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+    with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
@@ -2267,7 +2267,7 @@ def test_downgrade_python_prevented_with_sane_message():
         assert "Your python: python=2.6"
 
     specs_to_add = MatchSpec("unsatisfiable-with-py26"),
-    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+    with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
@@ -2292,37 +2292,37 @@ fake_index = [
 ]
 
 
-def test_packages_in_solution_change_already_newest():
+def test_packages_in_solution_change_already_newest(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
 
 
-def test_packages_in_solution_change_needs_update():
+def test_packages_in_solution_change_needs_update(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
 
 
-def test_packages_in_solution_change_constrained():
+def test_packages_in_solution_change_constrained(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 1
 
 
-def test_determine_constricting_specs_conflicts():
+def test_determine_constricting_specs_conflicts(tmpdir):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.0", channel="test", subdir="conda-test",
@@ -2336,13 +2336,13 @@ def test_determine_constricting_specs_conflicts():
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
 
 
-def test_determine_constricting_specs_conflicts_upperbound():
+def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2356,13 +2356,13 @@ def test_determine_constricting_specs_conflicts_upperbound():
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
 
 
-def test_determine_constricting_specs_multi_conflicts():
+def test_determine_constricting_specs_multi_conflicts(tmpdir):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2381,14 +2381,14 @@ def test_determine_constricting_specs_multi_conflicts():
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
     assert any(i for i in constricting if i[0] == "notmypkg")
 
 
-def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends():
+def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(tmpdir):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2402,13 +2402,13 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends()
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
 
-def test_determine_constricting_specs_no_conflicts_version_star():
+def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2422,13 +2422,13 @@ def test_determine_constricting_specs_no_conflicts_version_star():
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
 
-def test_determine_constricting_specs_no_conflicts_free():
+def test_determine_constricting_specs_no_conflicts_free(tmpdir):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2437,13 +2437,13 @@ def test_determine_constricting_specs_no_conflicts_free():
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
 
-def test_determine_constricting_specs_no_conflicts_no_upperbound():
+def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2457,14 +2457,14 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound():
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(TEST_PREFIX, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
 
 @pytest.mark.integration
-def test_indirect_dep_optimized_by_version_over_package_count():
+def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
     """We need to adjust the Anaconda metapackage - custom version - so that it keeps
     dependencies on all of its components.  That custom package is intended to free up constraints.  However,
     We learned the hard way that the changes in conda 4.7 can end up removing all components, because
@@ -2477,7 +2477,7 @@ def test_indirect_dep_optimized_by_version_over_package_count():
     version.
     """
     specs = MatchSpec("anaconda=1.4"),
-    with get_solver(specs) as solver:
+    with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
 
     # start out with the oldest anaconda.  Using that state, free up zeromq.  Doing this should result in
@@ -2489,7 +2489,7 @@ def test_indirect_dep_optimized_by_version_over_package_count():
     # This does NOT work if you omit the anaconda matchspec here.  It is part of the history,
     #     and it must be supplied as an explicit spec to override that history.
     specs_to_add = MatchSpec("zeromq"), MatchSpec("anaconda")
-    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+    with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state = solver.solve_final_state()
 

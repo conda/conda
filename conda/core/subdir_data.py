@@ -648,6 +648,6 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
 
 
 def create_cache_dir():
-    cache_dir = join(PackageCacheData.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
+    cache_dir = join(PackageCacheData.first_writable().pkgs_dir, 'cache')
     mkdir_p_sudo_safe(cache_dir)
     return cache_dir
