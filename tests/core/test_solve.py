@@ -780,7 +780,7 @@ def test_conda_downgrade(tmpdir):
     specs_to_add = MatchSpec("itsdangerous"),  # MatchSpec("conda"),
     saved_sys_prefix = sys.prefix
     try:
-        sys.prefix = tmpdir
+        sys.prefix = tmpdir.strpath
         with get_solver_aggregate_1(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                                     history_specs=specs) as solver:
             unlink_precs, link_precs = solver.solve_for_diff()
@@ -989,7 +989,7 @@ def test_auto_update_conda(tmpdir):
 
     saved_sys_prefix = sys.prefix
     try:
-        sys.prefix = tmpdir
+        sys.prefix = tmpdir.strpath
         with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             specs_to_add = MatchSpec("pytz"),
             with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -1077,7 +1077,7 @@ def test_explicit_conda_downgrade(tmpdir):
 
     saved_sys_prefix = sys.prefix
     try:
-        sys.prefix = tmpdir
+        sys.prefix = tmpdir.strpath
         with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             specs_to_add = MatchSpec("conda=1.3"),
             with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -2206,7 +2206,7 @@ def test_freeze_deps_1(tmpdir):
 def test_current_repodata_usage(tmpdir):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('win-64',),
+        solver = Solver(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
                         specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
         final_state = solver.solve_final_state()
         # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
@@ -2222,7 +2222,7 @@ def test_current_repodata_usage(tmpdir):
 
 
 def test_current_repodata_fallback(tmpdir):
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('win-64',),
+    solver = Solver(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
                     specs_to_add=[MatchSpec('zlib=1.2.8')])
     final_state = solver.solve_final_state()
     # zlib 1.2.11, zlib 1.2.8, vc 14.1, vs2015_runtime, virtual package for vc track_feature
