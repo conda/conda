@@ -40,7 +40,7 @@ CHANNEL_DIR = abspath(join(dirname(__file__), '..', 'data', 'conda_format_repo')
 
 @contextmanager
 def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_.clear()
+    tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -53,7 +53,7 @@ def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), h
 
 @contextmanager
 def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_.clear()
+    tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -66,7 +66,7 @@ def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
 
 @contextmanager
 def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_.clear()
+    tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -79,7 +79,7 @@ def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
 
 @contextmanager
 def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_.clear()
+    tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -92,7 +92,7 @@ def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
 
 @contextmanager
 def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_.clear()
+    tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -106,7 +106,7 @@ def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
 
 @contextmanager
 def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_.clear()
+    tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -120,7 +120,7 @@ def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
 
 @contextmanager
 def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_.clear()
+    tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -133,7 +133,7 @@ def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix
 
 @contextmanager
 def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_.clear()
+    tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -1496,7 +1496,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
         assert convert_to_dist_str(link_precs) == link_order
 
     specs_to_add = MatchSpec("sqlite"), MatchSpec("python"),
-    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    with get_solver_4(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE)
         pprint(convert_to_dist_str(final_state_2))
         assert convert_to_dist_str(final_state_2) == order1
