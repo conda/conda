@@ -84,7 +84,6 @@ def list_all_known_prefixes():
         if isfile(environments_txt_file):
             all_env_paths.update(_clean_environments_txt(environments_txt_file))
 
-
     # in case environments.txt files aren't complete, also add all known conda environments in
     # all envs_dirs
     envs_dirs = (envs_dir for envs_dir in context.envs_dirs if isdir(envs_dir))
