@@ -385,6 +385,29 @@ sometimes choose this setting to speed up the time their shell takes
 to start up or to keep conda-installed software from automatically
 hiding their other software.
 
+Nested activation
+-----------------
+
+By default, ``conda activate`` will deactivate the current environment
+before activating the new environment and reactivate it when
+deactivating the new environment. Sometimes you may want to leave
+the current environment PATH entries in place so that you can continue
+to easily access command line programs from the first environment. 
+This is most commonly encountered when common command-line utilities
+are installed in the base environment. To retain the current environment
+in the PATH, you can activate the new environment using:
+
+``conda activate --stack myenv``
+
+If you wish to always stack when going from the outermost environment, 
+which is typically the base environment, you can set the ``auto_stack`` 
+configuration option:
+
+``conda config --set auto_stack 1``
+
+You may specify a larger number for a deeper level of automatic stacking,
+but this is not recommended since deeper levels of stacking are more likely
+to lead to confusion.
 
 Deactivating an environment
 ===========================
@@ -399,7 +422,8 @@ your system command.
    activate`` with no environment specified, rather than to try to deactivate. If
    you run ``conda deactivate`` from your base environment, you may lose the
    ability to run conda at all. Don't worry, that's local to this shell - you can
-   start a new one.
+   start a new one. However, if the environment was activated using ``--stack``
+   (or was automatically stacked) then it is better to use ``conda deactivate``.
 
 
 .. _determine-current-env:
