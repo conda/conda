@@ -1,3 +1,38 @@
+## 4.7.12 (2019-09-12)
+
+### Enhancements:
+
+* add support for env file creation based on explicit specs in history (#9093)
+* detect prefix paths when -p nor -n not given  (#9135)
+* Add config parameter to disable conflict finding (for faster time to errors)  (#9190)
+
+### Bug fixes
+
+* fix race condition with creation of repodata cache dir  (#9073)
+* fix ProxyError expected arguments  (#9123)
+* makedirs to initialize .conda folder when registering env - fixes permission errors with .conda folders not existing when package cache gets created (#9215)
+* fix list duplicates errors in reading repodata/prefix data  (#9132)
+* fix neutered specs not being recorded in history, leading to unsatisfiable environments later  (#9147)
+* Standardize "conda env list" behavior between platforms  (#9166)
+* add JSON output to conda env create/update  (#9204)
+* speed up finding conflicting specs (speed regression in 4.7.11)  (#9218)
+
+### Contributors
+
+* @beenje
+* @Bezier89
+* @cjmartian
+* @forrestwaters
+* @jjhelmus
+* @martin-raden
+* @msarahan
+* @nganani
+* @rrigdon
+* @soapy1
+* @WesRoach
+* @zheaton
+
+
 ## 4.7.11 (2019-08-06)
 
 ### Enhancements
