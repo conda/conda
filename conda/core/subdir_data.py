@@ -78,6 +78,8 @@ class SubdirData(object):
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
                   repodata_fn=REPODATA_FN):
         from .index import check_whitelist  # TODO: fix in-line import
+        # ensure that this is not called by threaded code
+        create_cache_dir()
         if channels is None:
             channels = context.channels
         if subdirs is None:
@@ -646,6 +648,6 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
 
 
 def create_cache_dir():
-    cache_dir = join(PackageCacheData.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
+    cache_dir = join(PackageCacheData.first_writable().pkgs_dir, 'cache')
     mkdir_p_sudo_safe(cache_dir)
     return cache_dir
