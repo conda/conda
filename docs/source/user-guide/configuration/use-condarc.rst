@@ -377,6 +377,7 @@ Advanced configuration
 * :ref:`add-anaconda-token`
 * :ref:`specify-env-directories`
 * :ref:`specify-pkg-directories`
+* :ref:`use-only-tar-bz2`
 
 .. _disallow-soft-linking:
 
@@ -621,6 +622,31 @@ The CONDA_PKGS_DIRS environment variable overwrites the
 
 * For Windows:
   ``set CONDA_PKGS_DIRS=C:\Anaconda\pkgs``
+
+.. _use-only-tar-bz2:
+
+Force conda to download only .tar.bz2 packages (use_only_tar_bz2)
+-----------------------------------------------------------------
+
+conda 4.7 introduced a new ``.conda`` package file format.
+``.conda`` is a more compact and faster alternative to ``.tar.bz2`` packages.
+It's thus the preferred file format to use where available.
+
+Netherveless it's possible to force conda to only download ``.tar.bz2`` packages
+by setting the ``use_only_tar_bz2`` boolean to ``True``.
+
+The default is ``False``.
+
+EXAMPLE:
+
+.. code-block:: yaml
+
+  use_only_tar_bz2: True
+
+.. note::
+
+   This is forced to True if conda-build is installed and older than 3.18.3,
+   because older versions of conda break when conda feeds it the new file format.
 
 Conda build configuration
 =========================
