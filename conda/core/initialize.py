@@ -765,8 +765,8 @@ def make_entry_point(target_path, conda_prefix, module, func):
         original_ep_content = ""
 
     if on_win:
-        # no shebang needed on windows
-        new_ep_content = ""
+        # Ignore all PYTHON* environment variables
+        new_ep_content = "#!python -E"
     else:
         new_ep_content = "#!%s\n" % join(conda_prefix, get_python_short_path())
 
