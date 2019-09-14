@@ -85,16 +85,26 @@ function __comp_conda_packages() {
 }
 
 function __comp_conda_cmds_str() {
-    # get a list of commands
-    \local cmd cmds
+    # get a list of commands, skipping options
+    \local cmd
+    \local -a cmds
     for cmd in $*; do
         case "$cmd" in
             -*) continue ;;
-            *) cmds="$cmds $cmd" ;;
+            *) cmds+=($cmd) ;;
         esac
     done
-    cmds=${cmds# }
-    echo $cmds
+    echo "${cmds[*]}"
+}
+
+# helper for debugging issues with the cache
+function __comp_conda_cache_dump() {
+    for k in "${!__comp_conda_cache[@]}"; do
+        printf "%s:\n" "$k"
+        for w in ${__comp_conda_cache[$k]}; do
+            printf "\t%s\n" "$w"
+        done
+    done
 }
 
 # cache conda subcommand help lookups for the duration of the shell
@@ -113,11 +123,16 @@ _comp_conda()
     \local word_list cmds_str
     if [[ $cur == -* ]]; then
         # get the current list of commands as a string
-        cmds_str="$(__comp_conda_cmds_str ${words[*]})"
+        cmds_str="$(__comp_conda_cmds_str ${words[@]})"
         if [[ -z ${__comp_conda_cache[$cmds_str]} ]]; then
             # parse the output of command help to get completions
             word_list=$($cmds_str --help 2>&1 | _parse_help -)
-            __comp_conda_cache[$cmds_str]=$word_list
+            if [[ ${PIPESTATUS[0]} -eq 0 && -n $word_list ]]; then
+                __comp_conda_cache[$cmds_str]=$word_list
+            else
+                # something went wrong, so abort completion attempt
+                return
+            fi
         else
             word_list=${__comp_conda_cache[$cmds_str]}
         fi
