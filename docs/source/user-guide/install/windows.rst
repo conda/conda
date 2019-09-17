@@ -10,6 +10,8 @@ Installing on Windows
    * `Anaconda installer for
      Windows <https://www.anaconda.com/download/>`_.
 
+#. :ref:`Verify your installer hashes <hash-verification>`.
+ 
 #. Double-click the ``.exe`` file.
 
 #. Follow the instructions on the screen.
