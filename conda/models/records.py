@@ -261,7 +261,7 @@ class PackageRecord(DictSafeMixin, Entity):
             return self.__pkey
         except AttributeError:
             __pkey = self.__pkey = [
-                self.channel.canonical_name, self.subdir, self.name,
+                self.channel.canonical_name, self.name,
                 self.version, self.build_number, self.build
             ]
             # NOTE: fn is included to distinguish between .conda and .tar.bz2 packages

@@ -945,6 +945,50 @@ def test_circular_dependencies():
     ]
 
 
+def test_identical_dependencies():
+    index2 = index.copy()
+    package1_noarch = PackageRecord(**{
+        "channel": "defaults",
+        "subdir": "noarch",
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package1',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2[package1_noarch] = package1_noarch
+    package1_linux64 = PackageRecord(**{
+        "channel": "defaults",
+        "subdir": "linux-64",
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package1',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2[package1_linux64] = package1_linux64
+    index2 = {key: value for key, value in iteritems(index2)}
+    r = Resolve(index2)
+
+    matches = r.find_matches(MatchSpec('package1'))
+    assert len(matches) == 1
+    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
+        'defaults::package1-1.0-0',
+    }
+
+    result = r.install(['package1'])
+    result = [rec.dist_str() for rec in result]
+    assert result == [
+        'defaults::package1-1.0-0',
+    ]
+
+
 def test_optional_dependencies():
     index2 = index.copy()
     p1 = PackageRecord(**{
