@@ -321,6 +321,11 @@ class _Activator(object):
 
         clobbering_env_vars = [k for k in conda_environment_env_vars.keys()
                                if k in os.environ.keys()]
+
+        for cvar in clobbering_env_vars:
+            save_var = "__CONDA_SHLVL_%s_%s" % (old_conda_shlvl, cvar)
+            conda_environment_env_vars[save_var] = os.environ.get(cvar)
+
         if clobbering_env_vars:
             print("WARNING: overwriting environment variables set in the machine", file=sys.stderr)
             print("overwriting variable %s" % ' '.join(clobbering_env_vars), file=sys.stderr)
@@ -458,7 +463,9 @@ class _Activator(object):
 
         for env_var in old_conda_environment_env_vars.keys():
             unset_vars.append(env_var)
-
+            save_var = "__CONDA_SHLVL_%s_%s" % (new_conda_shlvl, env_var)
+            if save_var in os.environ.keys():
+                export_vars[env_var] = os.environ[save_var]
         return {
             'unset_vars': unset_vars,
             'set_vars': set_vars,
