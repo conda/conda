@@ -276,6 +276,34 @@ def test_tar_bz2_in_cache_not_extracted():
         assert len(pfe.extract_actions) == 0
 
 
+def test_conda_in_cache_is_used():
+    """
+    Test that if a .conda exists in the package cache (not extracted) the
+    package is reused, not recached from source.
+    """
+
+    # Identify a source package in the index
+    index = get_index([CONDA_PKG_REPO], prepend=False)
+    recs = [rec for rec in index if rec.name == "zlib" and rec.url.endswith(".conda")]
+    rec = recs[0]
+
+    # download the package into the pkgs dir
+    with make_temp_package_cache() as pkgs_dir:
+        url = rec.url
+        src_file= rec.url[len("file://"):]
+        copy(src_file, join(pkgs_dir, basename(src_file)))
+        with open(join(pkgs_dir, "urls.txt"), "w") as of:
+            print(url, file=of)
+
+        # make_actions_for_record with unpack .conda package to read info
+        # cache_action and extract_action will be None
+        cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(rec)
+
+        assert cache_action is None
+        assert extract_action is None
+
+
+
 def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist():
     """
     If both .tar.bz2 and .conda packages exist in a writable package cache, but neither is
