@@ -457,7 +457,7 @@ class UrlsData(object):
         #       That's probably a good assumption going forward, because we should now always
         #       be recording the extension in urls.txt.  The extensionless situation should be
         #       legacy behavior only.
-        if not package_path.endswith(CONDA_PACKAGE_EXTENSION_V1):
+        if not package_path.endswith(CONDA_PACKAGE_EXTENSIONS):
             package_path += CONDA_PACKAGE_EXTENSION_V1
         return first(self, lambda url: basename(url) == package_path)
 
