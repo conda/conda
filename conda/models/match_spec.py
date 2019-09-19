@@ -183,11 +183,12 @@ class MatchSpec(object):
         if '::' in dist_str:
             channel_str, dist_str = dist_str.split("::", 1)
             parts['channel'] = channel_str
-        name, version, build = dist_str.rsplit('-', 2)
+        name, version, build, subdir = dist_str.rsplit('-', 3)
         parts.update({
             'name': name,
             'version': version,
             'build': build,
+            'subdir': subdir.replace('_', '-')
         })
         return cls(**parts)
 

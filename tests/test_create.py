@@ -1028,7 +1028,7 @@ class IntegrationTests(TestCase):
             if not on_win:
                 # xz is only a python dependency on unix
                 xz_prec = next(PrefixData(prefix).query("xz"))
-                dist_name = xz_prec.dist_str().split('::')[-1]
+                dist_name = '-'.join(xz_prec.dist_str().split('::')[-1].split('-')[:3])
                 xz_prefix_data_json_path = join(prefix, 'conda-meta', dist_name + '.json')
                 copyfile(xz_prefix_data_json_path,
                          join(prefix, 'conda-meta', 'xz.json'))
@@ -1481,7 +1481,7 @@ class IntegrationTests(TestCase):
                 "build_number": 0,
                 "build_string": "pypi_0",
                 "channel": "pypi",
-                "dist_name": "itsdangerous-0.24-pypi_0",
+                "dist_name": "itsdangerous-0.24-pypi_0-pypi",
                 "name": "itsdangerous",
                 "platform": "pypi",
                 "version": "0.24",
@@ -1781,7 +1781,7 @@ class IntegrationTests(TestCase):
                 "build_number": 0,
                 "build_string": "pypi_0",
                 "channel": "pypi",
-                "dist_name": "six-1.10.0-pypi_0",
+                "dist_name": "six-1.10.0-pypi_0-pypi",
                 "name": "six",
                 "platform": "pypi",
                 "version": "1.10.0",
