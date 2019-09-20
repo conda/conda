@@ -152,6 +152,8 @@ ChangeReport = namedtuple("ChangeReport", (
     "fetch_precs",
 ))
 
+PROTECTED_PREFIX_PATHS = ["conda-meta", ".condarc", "condarc", "condarc.d"]
+
 
 class UnlinkLinkTransaction(object):
 
@@ -452,6 +454,16 @@ class UnlinkLinkTransaction(object):
         # Verification 1. each path either doesn't already exist in the prefix, or will be unlinked
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
+
+            all_short_paths = [_.target_short_path for _ in axn.all_link_path_actions]
+            mod_protected_paths = [(p in all_short_paths, p) for p in PROTECTED_PREFIX_PATHS]
+            if any(m[0] for m in mod_protected_paths):
+                error_results.append(
+                    NaughtyPackageError(
+                        axn.package_info.dist_str(),
+                        " ".join([m[1] for m in mod_protected_paths if m[0] == True])
+                    ))
+
             for link_path_action in axn.all_link_path_actions:
                 if isinstance(link_path_action, CompileMultiPycAction):
                     target_short_paths = link_path_action.target_short_paths
@@ -462,10 +474,6 @@ class UnlinkLinkTransaction(object):
                                           if not hasattr(link_path_action, 'link_type') or
                                           link_path_action.link_type != LinkType.directory
                                           else tuple())
-                    if  'conda-meta' in [ii.target_short_path for ii in axn.all_link_path_actions]:
-                        error_results.append(
-                            NaughtyPackageError(axn.package_info.dist_str(), "conda-meta")
-                        )
                 for path in target_short_paths:
                     path = lower_on_win(path)
                     link_paths_dict[path].append(axn)
