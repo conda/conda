@@ -504,7 +504,7 @@ class _Activator(object):
         conda_environment_env_vars = self._get_environment_env_vars(conda_prefix)
         for k, v in conda_environment_env_vars.items():
             if v == CONDA_ENV_VARS_UNSET_VAR:
-                env_vars_to_unset.append(k)
+                env_vars_to_unset = env_vars_to_unset + (k,)
             else:
                 env_vars_to_export[k] = v
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
