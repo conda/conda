@@ -495,11 +495,12 @@ class _Activator(object):
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
-        env_vars_to_unset = []
-        env_vars_to_export = OrderedDict([('PATH', new_path),
-                                        ('CONDA_SHLVL', conda_shlvl),
-                                        ('CONDA_PROMPT_MODIFIER', self._prompt_modifier(
-                                            conda_prefix, conda_default_env)),])
+        env_vars_to_unset = ()
+        env_vars_to_export = OrderedDict([
+            ('PATH', new_path),
+            ('CONDA_SHLVL', conda_shlvl),
+            ('CONDA_PROMPT_MODIFIER', self._prompt_modifier(conda_prefix, conda_default_env)),
+        ])
         conda_environment_env_vars = self._get_environment_env_vars(conda_prefix)
         for k, v in conda_environment_env_vars.items():
             if v == CONDA_ENV_VARS_UNSET_VAR:

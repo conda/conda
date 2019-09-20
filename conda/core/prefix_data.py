@@ -329,7 +329,7 @@ class PrefixData(object):
         else:
             env_state_file['env_vars'] = env_vars
         self._write_environment_state_file(env_state_file)
-        return env_state_file['env_vars']
+        return env_state_file.get('env_vars')
 
     def unset_environment_env_vars(self, env_vars):
         env_state_file = self._get_environment_state_file()
@@ -339,7 +339,7 @@ class PrefixData(object):
                 if env_var in current_env_vars.keys():
                     current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
             self._write_environment_state_file(env_state_file)
-        return env_state_file['env_vars']
+        return env_state_file.get('env_vars')
 
 
 def get_conda_anchor_files_and_records(site_packages_short_path, python_records):
