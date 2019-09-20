@@ -491,19 +491,26 @@ class _Activator(object):
         conda_default_env = self.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
         new_path = self.pathsep_join(self._replace_prefix_in_path(conda_prefix, conda_prefix))
         set_vars = {}
-
         conda_prompt_modifier = self._prompt_modifier(conda_prefix, conda_default_env)
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
-        # environment variables are set only to aid transition from conda 4.3 to conda 4.4
-        return {
-            'unset_vars': (),
-            'set_vars': set_vars,
-            'export_vars': OrderedDict([('PATH', new_path),
+        env_vars_to_unset = []
+        env_vars_to_export = OrderedDict([('PATH', new_path),
                                         ('CONDA_SHLVL', conda_shlvl),
                                         ('CONDA_PROMPT_MODIFIER', self._prompt_modifier(
-                                            conda_prefix, conda_default_env))]),
+                                            conda_prefix, conda_default_env)),])
+        conda_environment_env_vars = self._get_environment_env_vars(conda_prefix)
+        for k, v in conda_environment_env_vars.items():
+            if v == CONDA_ENV_VARS_UNSET_VAR:
+                env_vars_to_unset.append(k)
+            else:
+                env_vars_to_export[k] = v
+        # environment variables are set only to aid transition from conda 4.3 to conda 4.4
+        return {
+            'unset_vars': env_vars_to_unset,
+            'set_vars': set_vars,
+            'export_vars': env_vars_to_export,
             'deactivate_scripts': self._get_deactivate_scripts(conda_prefix),
             'activate_scripts': self._get_activate_scripts(conda_prefix),
         }
