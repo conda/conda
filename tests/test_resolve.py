@@ -2083,7 +2083,7 @@ def test_arch_preferred_when_otherwise_identical_dependencies():
     matches = r.find_matches(MatchSpec('package1'))
     assert len(matches) == 2
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
-        'defaults::package1-1.0-0-noarch',
+        'defaults/noarch::package1-1.0-0',
         add_subdir('defaults::package1-1.0-0')
     }
 

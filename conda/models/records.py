@@ -281,7 +281,7 @@ class PackageRecord(DictSafeMixin, Entity):
         return self._pkey == other._pkey
 
     def dist_str(self):
-        return "%s::%s-%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build, self.subdir.replace('-', '_'))
+        return "%s/%s::%s-%s-%s" % (self.channel.canonical_name, self.subdir, self.name, self.version, self.build)
 
     def dist_fields_dump(self):
         return {

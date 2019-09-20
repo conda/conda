@@ -112,7 +112,9 @@ def run_inprocess_conda_command(command, disallow_stderr=True):
 
 
 def add_subdir(dist_string):
-    return dist_string + '-' + context.subdir.replace('-', '_')
+    channel_str, package_str = dist_string.split('::')
+    channel_str = channel_str + '/' +  context.subdir
+    return '::'.join([channel_str, package_str])
 
 
 def add_subdir_to_iter(iterable):
