@@ -1028,7 +1028,7 @@ class IntegrationTests(TestCase):
             if not on_win:
                 # xz is only a python dependency on unix
                 xz_prec = next(PrefixData(prefix).query("xz"))
-                dist_name = '-'.join(xz_prec.dist_str().split('::')[-1].split('-')[:3])
+                dist_name = xz_prec.dist_str().split('::')[-1]
                 xz_prefix_data_json_path = join(prefix, 'conda-meta', dist_name + '.json')
                 copyfile(xz_prefix_data_json_path,
                          join(prefix, 'conda-meta', 'xz.json'))
