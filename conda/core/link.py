@@ -32,7 +32,8 @@ from ..common.path import (explode_directories, get_all_directories, get_major_m
 from ..common.signals import signal_handler
 from ..exceptions import (DisallowedPackageError, EnvironmentNotWritableError,
                           KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
+                          NaughtyPackageError)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -424,6 +425,7 @@ class UnlinkLinkTransaction(object):
         #   3. if the target is a private env, leased paths need to be verified
         #   4. make sure conda-meta/history file is writable
         #   5. make sure envs/catalog.json is writable; done with RegisterEnvironmentLocationAction
+        #   6. make sure not to write to conda-meta or prefix level condarc's
         # TODO: 3, 4
 
         # this strange unpacking is to help the parallel execution work.  Unpacking
@@ -460,6 +462,10 @@ class UnlinkLinkTransaction(object):
                                           if not hasattr(link_path_action, 'link_type') or
                                           link_path_action.link_type != LinkType.directory
                                           else tuple())
+                    if  'conda-meta' in [ii.target_short_path for ii in axn.all_link_path_actions]:
+                        error_results.append(
+                            NaughtyPackageError(axn.package_info.dist_str(), "conda-meta")
+                        )
                 for path in target_short_paths:
                     path = lower_on_win(path)
                     link_paths_dict[path].append(axn)

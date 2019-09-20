@@ -153,6 +153,14 @@ class TooFewArgumentsError(ArgumentError):
         super(TooFewArgumentsError, self).__init__(msg, *args)
 
 
+class NaughtyPackageError(CondaError):
+    def __init__(self, package, path):
+        message = dals("""
+        Naughty package %(pkg)s tyring to write to protected path %(path)s
+        """)
+        super(NaughtyPackageError, self).__init__(message, pkg=package, path=path)
+
+
 class ClobberError(CondaError):
     def __init__(self, message, path_conflict, **kwargs):
         self.path_conflict = path_conflict
