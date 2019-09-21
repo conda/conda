@@ -86,6 +86,12 @@ GIT_DESCRIBE_REGEX = compile(r"(?:[_-a-zA-Z]*)"
                              r"(?P<version>[a-zA-Z0-9.]+)"
                              r"(?:-(?P<post>\d+)-g(?P<hash>[0-9a-f]{7,}))$")
 
+# Regex matching version strings templated from conda, of the form:
+# {{ GIT_DESCRIBE_TAG }}.{{ GIT_BUILD_STR }}
+FILE_VERSION_REGEX = compile(r"(?:[_-a-zA-Z]*)"
+                             r"(?P<version>[a-zA-Z0-9.]+)"
+                             r"(?:.(?P<post>\d+)_g(?P<hash>[0-9a-f]{7,}))$")
+
 
 def call(command, path=None, raise_on_error=True):
     path = sys.prefix if path is None else abspath(path)
@@ -103,10 +109,28 @@ def call(command, path=None, raise_on_error=True):
 
 
 def _get_version_from_version_file(path):
+    """Return a PEP440-compliant version derived from .version file.
+
+    If the .version file format is not recognized, return the unnormalized file
+    contents.
+
+    """
     file_path = join(path, '.version')
-    if isfile(file_path):
-        with open(file_path, 'r') as fh:
-            return fh.read().strip()
+    if not isfile(file_path):
+        return None
+
+    with open(file_path, 'r') as fh:
+        file_version = fh.read().strip()
+
+    return _get_version_from_file_version(file_version)
+
+
+def _get_version_from_file_version(file_version):
+    m = FILE_VERSION_REGEX.match(file_version)
+    if m is None:
+        return file_version
+    version, post_commit, hash = m.groups()
+    return version if post_commit == '0' else "{0}.post{1}+{2}".format(version, post_commit, hash)
 
 
 def _git_describe_tags(path):
@@ -153,11 +177,10 @@ def get_version(dunder_file):
 
     This function is expected to run in two contexts. In a development
     context, where .git/ exists, the version is pulled from git tags.
-    Using the BuildPyCommand and SDistCommand classes for cmdclass in
-    setup.py will write a .version file into any dist.
 
-    In an installed context, the .version file written at dist build
-    time is the source of version information.
+    In an installed context, the .version file written at dist build time is
+    the source of version information. This is the conda build version,
+    specified in meta.yaml and written in build.sh.
 
     """
     path = abspath(expanduser(dirname(dunder_file)))
