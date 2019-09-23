@@ -16,7 +16,7 @@ from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
-from .helpers import TEST_DATA_DIR, get_index_r_1, get_index_r_4, raises
+from .helpers import TEST_DATA_DIR, add_subdir, add_subdir_to_iter, get_index_r_1, get_index_r_4, raises
 
 index, r, = get_index_r_1()
 f_mkl = set(['mkl'])
@@ -66,7 +66,7 @@ class TestSolve(unittest.TestCase):
     def test_iopro_nomkl(self):
         installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True)
         installed = [rec.dist_str() for rec in installed]
-        assert installed == [
+        assert installed == add_subdir_to_iter([
             'channel-1::iopro-1.4.3-np17py27_p0',
             'channel-1::numpy-1.7.1-py27_0',
             'channel-1::openssl-1.0.1c-0',
@@ -77,12 +77,12 @@ class TestSolve(unittest.TestCase):
             'channel-1::tk-8.5.13-0',
             'channel-1::unixodbc-2.3.1-0',
             'channel-1::zlib-1.2.7-0',
-        ]
+        ])
 
     def test_iopro_mkl(self):
         installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')], returnall=True)
         installed = [prec.dist_str() for prec in installed]
-        assert installed == [
+        assert installed == add_subdir_to_iter([
             'channel-1::iopro-1.4.3-np17py27_p0',
             'channel-1::mkl-rt-11.0-p0',
             'channel-1::numpy-1.7.1-py27_p0',
@@ -94,7 +94,7 @@ class TestSolve(unittest.TestCase):
             'channel-1::tk-8.5.13-0',
             'channel-1::unixodbc-2.3.1-0',
             'channel-1::zlib-1.2.7-0',
-        ]
+        ])
 
     def test_mkl(self):
         a = r.install(['mkl 11*', MatchSpec(track_features='mkl')])
@@ -110,13 +110,13 @@ class TestSolve(unittest.TestCase):
         precs = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')])
         self.assert_have_mkl(precs, ('numpy', 'scipy'))
         dist_strs = [prec.dist_str() for prec in precs]
-        assert 'channel-1::scipy-0.12.0-np17py27_p0' in dist_strs
+        assert add_subdir('channel-1::scipy-0.12.0-np17py27_p0') in dist_strs
 
     def test_anaconda_nomkl(self):
         precs = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         assert len(precs) == 107
         dist_strs = [prec.dist_str() for prec in precs]
-        assert 'channel-1::scipy-0.12.0-np17py27_0' in dist_strs
+        assert add_subdir('channel-1::scipy-0.12.0-np17py27_0') in dist_strs
 
 
 def test_generate_eq_1():
@@ -140,7 +140,7 @@ def test_generate_eq_1():
     eqb = {key: value for key, value in iteritems(eqb)}
     eqt = {key: value for key, value in iteritems(eqt)}
     assert eqc == {}
-    assert eqv == {
+    assert eqv == add_subdir_to_iter({
         'channel-1::anaconda-1.4.0-np15py27_0': 1,
         'channel-1::anaconda-1.4.0-np16py27_0': 1,
         'channel-1::anaconda-1.4.0-np17py27_0': 1,
@@ -215,8 +215,8 @@ def test_generate_eq_1():
         'channel-1::xlrd-0.9.0-py27_0': 1,
         'channel-1::xlrd-0.9.0-py33_0': 1,
         'channel-1::xlwt-0.7.4-py27_0': 1
-    }
-    assert eqb == {
+    })
+    assert eqb == add_subdir_to_iter({
         'channel-1::cubes-0.10.2-py27_0': 1,
         'channel-1::dateutil-2.1-py27_0': 1,
         'channel-1::dateutil-2.1-py33_0': 1,
@@ -244,7 +244,7 @@ def test_generate_eq_1():
         'channel-1::theano-0.5.0-np16py27_0': 1,
         'channel-1::theano-0.5.0-np17py27_0': 1,
         'channel-1::zeromq-2.2.0-0': 1
-    }
+    })
 
     # No timestamps in the current data set
     assert eqt == {}
@@ -254,7 +254,7 @@ def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
     installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True)
     installed = [rec.dist_str() for rec in installed]
-    assert installed == [
+    assert installed == add_subdir_to_iter([
         'channel-1::iopro-1.4.3-np15py27_p0',
         'channel-1::numpy-1.5.1-py27_4',
         'channel-1::openssl-1.0.1c-0',
@@ -265,11 +265,11 @@ def test_pseudo_boolean():
         'channel-1::tk-8.5.13-0',
         'channel-1::unixodbc-2.3.1-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], returnall=True)
     installed = [rec.dist_str() for rec in installed]
-    assert installed == [
+    assert installed == add_subdir_to_iter([
         'channel-1::iopro-1.4.3-np15py27_p0',
         'channel-1::mkl-rt-11.0-p0',
         'channel-1::numpy-1.5.1-py27_p4',
@@ -281,14 +281,14 @@ def test_pseudo_boolean():
         'channel-1::tk-8.5.13-0',
         'channel-1::unixodbc-2.3.1-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
 
 def test_get_dists():
     reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.4.0"), ))
     dist_strs = [prec.dist_str() for prec in reduced_index]
-    assert 'channel-1::anaconda-1.4.0-np17py27_0' in dist_strs
-    assert 'channel-1::freetype-2.4.10-0' in dist_strs
+    assert add_subdir('channel-1::anaconda-1.4.0-np17py27_0') in dist_strs
+    assert add_subdir('channel-1::freetype-2.4.10-0') in dist_strs
 
 
 def test_get_reduced_index_unmanageable():
@@ -643,11 +643,11 @@ def test_nonexistent_deps():
     index2 = {key: value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
-    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('mypackage'))) == {
+    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('mypackage'))) == add_subdir_to_iter({
         'defaults::mypackage-1.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
-    }
-    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), ))) == {
+    })
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), ))) == add_subdir_to_iter({
         'defaults::mypackage-1.1-py33_0',
         'channel-1::nose-1.1.2-py33_0',
         'channel-1::nose-1.2.1-py33_0',
@@ -666,12 +666,12 @@ def test_nonexistent_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    }
+    })
 
     target_result = r.install(['mypackage'])
     assert target_result == r.install(['mypackage 1.1'])
     target_result = [rec.dist_str() for rec in target_result]
-    assert target_result == [
+    assert target_result == add_subdir_to_iter([
         'defaults::mypackage-1.1-py33_0',
         'channel-1::nose-1.3.0-py33_0',
         'channel-1::openssl-1.0.1c-0',
@@ -681,13 +681,13 @@ def test_nonexistent_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
     assert raises(ResolvePackageNotFound, lambda: r.install(['mypackage 1.0']))
     assert raises(ResolvePackageNotFound, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
     target_result = r.install(['anotherpackage 1.0'])
     target_result = [rec.dist_str() for rec in target_result]
-    assert target_result == [
+    assert target_result == add_subdir_to_iter([
         'defaults::anotherpackage-1.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
         'channel-1::nose-1.3.0-py33_0',
@@ -698,11 +698,11 @@ def test_nonexistent_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     target_result = r.install(['anotherpackage'])
     target_result = [rec.dist_str() for rec in target_result]
-    assert target_result == [
+    assert target_result == add_subdir_to_iter([
         'defaults::anotherpackage-2.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
         'channel-1::nose-1.3.0-py33_0',
@@ -713,7 +713,7 @@ def test_nonexistent_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     # This time, the latest version is messed up
     index3 = index.copy()
@@ -769,11 +769,12 @@ def test_nonexistent_deps():
     index3 = {key: value for key, value in iteritems(index3)}
     r = Resolve(index3)
 
-    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('mypackage'))) == {
+    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('mypackage'))) == add_subdir_to_iter({
         'defaults::mypackage-1.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
-        }
-    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), )).keys()) == {
+        })
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), )).keys()) ==\
+           add_subdir_to_iter({
         'defaults::mypackage-1.0-py33_0',
         'channel-1::nose-1.1.2-py33_0',
         'channel-1::nose-1.2.1-py33_0',
@@ -792,11 +793,11 @@ def test_nonexistent_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    }
+    })
 
     target_result = r.install(['mypackage'])
     target_result = [rec.dist_str() for rec in target_result]
-    assert target_result == [
+    assert target_result == add_subdir_to_iter([
         'defaults::mypackage-1.0-py33_0',
         'channel-1::nose-1.3.0-py33_0',
         'channel-1::openssl-1.0.1c-0',
@@ -806,12 +807,12 @@ def test_nonexistent_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
     assert raises(ResolvePackageNotFound, lambda: r.install(['mypackage 1.1']))
 
     target_result = r.install(['anotherpackage 1.0'])
     target_result = [rec.dist_str() for rec in target_result]
-    assert target_result == [
+    assert target_result == add_subdir_to_iter([
         'defaults::anotherpackage-1.0-py33_0',
         'defaults::mypackage-1.0-py33_0',
         'channel-1::nose-1.3.0-py33_0',
@@ -822,13 +823,13 @@ def test_nonexistent_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     # If recursive checking is working correctly, this will give
     # anotherpackage 2.0, not anotherpackage 1.0
     target_result = r.install(['anotherpackage'])
     target_result = [rec.dist_str() for rec in target_result]
-    assert target_result == [
+    assert target_result == add_subdir_to_iter([
         'defaults::anotherpackage-2.0-py33_0',
         'defaults::mypackage-1.0-py33_0',
         'channel-1::nose-1.3.0-py33_0',
@@ -839,7 +840,7 @@ def test_nonexistent_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
 
 def test_install_package_with_feature():
@@ -929,20 +930,20 @@ def test_circular_dependencies():
     index2 = {key: value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
-    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
+    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == add_subdir_to_iter({
         'defaults::package1-1.0-0',
-    }
-    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == {
+    })
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == add_subdir_to_iter({
         'defaults::package1-1.0-0',
         'defaults::package2-1.0-0',
-    }
+    })
     result = r.install(['package1', 'package2'])
     assert r.install(['package1']) == r.install(['package2']) == result
     result = [r.dist_str() for r in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'defaults::package1-1.0-0',
         'defaults::package2-1.0-0',
-    ]
+    ])
 
 
 def test_optional_dependencies():
@@ -987,25 +988,25 @@ def test_optional_dependencies():
     index2 = {key: value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
-    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
+    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == add_subdir_to_iter({
         'defaults::package1-1.0-0',
-    }
-    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == {
+    })
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == add_subdir_to_iter({
         'defaults::package1-1.0-0',
         'defaults::package2-2.0-0',
-    }
+    })
     result = r.install(['package1'])
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'defaults::package1-1.0-0',
-    ]
+    ])
     result = r.install(['package1', 'package2'])
     assert result == r.install(['package1', 'package2 >1.0'])
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'defaults::package1-1.0-0',
         'defaults::package2-2.0-0',
-    ]
+    ])
     assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 <2.0']))
     assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 1.0']))
 
@@ -1013,7 +1014,7 @@ def test_optional_dependencies():
 def test_irrational_version():
     result = r.install(['pytz 2012d', 'python 3*'], returnall=True)
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::openssl-1.0.1c-0',
         'channel-1::python-3.3.2-0',
         'channel-1::pytz-2012d-py33_0',
@@ -1022,14 +1023,14 @@ def test_irrational_version():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
 
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
     result = r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'], returnall=True)
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::numpy-1.6.2-py26_4',
         'channel-1::openssl-1.0.1c-0',
         'channel-1::python-2.6.8-6',
@@ -1039,11 +1040,11 @@ def test_no_features():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     result = r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')], returnall=True)
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::mkl-rt-11.0-p0',           # This,
         'channel-1::numpy-1.6.2-py26_p4',      # this,
         'channel-1::openssl-1.0.1c-0',
@@ -1054,7 +1055,7 @@ def test_no_features():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     index2 = index.copy()
     pandas = PackageRecord(**{
@@ -1110,7 +1111,7 @@ def test_no_features():
     # of the specs directly have mkl versions)
     result = r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*'], returnall=True)
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::numpy-1.6.2-py27_4',
         'channel-1::openssl-1.0.1c-0',
@@ -1123,11 +1124,11 @@ def test_no_features():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     result = r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')], returnall=True)
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::mkl-rt-11.0-p0',           # This
         'channel-1::numpy-1.6.2-py27_p5',      # and this are different.
@@ -1141,13 +1142,13 @@ def test_no_features():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
 
 def test_broken_install():
     installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
     _installed = [rec.dist_str() for rec in installed]
-    assert _installed == [
+    assert _installed == add_subdir_to_iter([
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::numpy-1.6.2-py27_4',
         'channel-1::openssl-1.0.1c-0',
@@ -1161,7 +1162,7 @@ def test_broken_install():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     # Add an incompatible numpy; installation should be untouched
     installed1 = list(installed)
@@ -1210,7 +1211,7 @@ def test_pip_depends_removed_on_inconsistent_env():
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
     _installed = [rec.dist_str() for rec in installed]
-    assert _installed == [
+    assert _installed == add_subdir_to_iter([
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::numpy-1.7.1-py27_0',
         'channel-1::openssl-1.0.1c-0',
@@ -1224,11 +1225,11 @@ def test_remove():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     result = r.remove(['pandas'], installed=installed)
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::numpy-1.7.1-py27_0',
         'channel-1::openssl-1.0.1c-0',
@@ -1241,12 +1242,12 @@ def test_remove():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     # Pandas requires numpy
     result = r.remove(['numpy'], installed=installed)
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::openssl-1.0.1c-0',
         'channel-1::python-2.7.5-0',
@@ -1257,7 +1258,7 @@ def test_remove():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
 
 def test_channel_priority_1():
@@ -1327,7 +1328,7 @@ def test_channel_priority_2():
         eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
         pprint(eqc)
-        assert eqc == {
+        assert eqc == add_subdir_to_iter({
             'channel-4::mkl-2017.0.4-h4c4d0af_0': 1,
             'channel-4::mkl-2018.0.0-hb491cac_4': 1,
             'channel-4::mkl-2018.0.1-h19d6760_4': 1,
@@ -1451,10 +1452,10 @@ def test_channel_priority_2():
             'channel-4::tk-8.6.7-hc745277_3': 1,
             'channel-4::zlib-1.2.11-ha838bed_2': 1,
             'channel-4::zlib-1.2.11-hfbfcf68_1': 1,
-        }
+        })
         installed_w_priority = [prec.dist_str() for prec in this_r.install(spec)]
         pprint(installed_w_priority)
-        assert installed_w_priority == [
+        assert installed_w_priority == add_subdir_to_iter([
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::numpy-1.7.1-py27_0',
             'channel-1::openssl-1.0.1c-0',
@@ -1468,7 +1469,7 @@ def test_channel_priority_2():
             'channel-1::system-5.8-1',
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
-        ]
+        ])
 
     # setting strict actually doesn't do anything here; just ensures it's not 'disabled'
     with env_var("CONDA_CHANNEL_PRIORITY", "strict", stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -1480,7 +1481,7 @@ def test_channel_priority_2():
         eqc = {key: value for key, value in iteritems(eqc)}
         assert eqc == {}, eqc
         installed_w_strict = [prec.dist_str() for prec in this_r.install(spec)]
-        assert installed_w_strict == [
+        assert installed_w_strict == add_subdir_to_iter([
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::numpy-1.7.1-py27_0',
             'channel-1::openssl-1.0.1c-0',
@@ -1494,7 +1495,7 @@ def test_channel_priority_2():
             'channel-1::system-5.8-1',
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
-        ], installed_w_strict
+        ]), installed_w_strict
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         dists = this_r.get_reduced_index(spec)
@@ -1503,7 +1504,7 @@ def test_channel_priority_2():
         eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
         pprint(eqc)
-        assert eqc == {
+        assert eqc == add_subdir_to_iter({
             'channel-1::dateutil-1.5-py27_0': 1,
             'channel-1::mkl-10.3-0': 6,
             'channel-1::mkl-10.3-p1': 6,
@@ -1757,10 +1758,10 @@ def test_channel_priority_2():
             'channel-4::sqlite-3.21.0-h1bed415_2': 3,
             'channel-4::sqlite-3.22.0-h1bed415_0': 2,
             'channel-4::sqlite-3.23.1-he433501_0': 1,
-        }
+        })
         installed_wo_priority = set([prec.dist_str() for prec in this_r.install(spec)])
         pprint(installed_wo_priority)
-        assert installed_wo_priority == {
+        assert installed_wo_priority == add_subdir_to_iter({
             'channel-4::blas-1.0-mkl',
             'channel-4::ca-certificates-2018.03.07-0',
             'channel-4::intel-openmp-2018.0.3-0',
@@ -1785,7 +1786,7 @@ def test_channel_priority_2():
             'channel-4::sqlite-3.24.0-h84994c4_0',
             'channel-4::tk-8.6.7-hc745277_3',
             'channel-4::zlib-1.2.11-ha838bed_2',
-        }
+        })
 
 
 def test_dependency_sort():
@@ -1794,7 +1795,7 @@ def test_dependency_sort():
     must_have = {prec.name: prec for prec in installed}
     installed = r.dependency_sort(must_have)
 
-    results_should_be = [
+    results_should_be = add_subdir_to_iter([
         'channel-1::openssl-1.0.1c-0',
         'channel-1::readline-6.2-0',
         'channel-1::sqlite-3.7.13-0',
@@ -1808,7 +1809,7 @@ def test_dependency_sort():
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::scipy-0.12.0-np16py27_0',
         'channel-1::pandas-0.11.0-np16py27_1'
-    ]
+    ])
     assert len(installed) == len(results_should_be)
     assert [prec.dist_str() for prec in installed] == results_should_be
 
@@ -1816,7 +1817,7 @@ def test_dependency_sort():
 def test_update_deps():
     installed = r.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
     result = [rec.dist_str() for rec in installed]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::numpy-1.6.2-py27_4',
         'channel-1::openssl-1.0.1c-0',
@@ -1829,14 +1830,14 @@ def test_update_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     # scipy, and pandas should all be updated here. pytz is a new
     # dependency of pandas. But numpy does not _need_ to be updated
     # to get the latest version of pandas, so it stays put.
     result = r.install(['pandas', 'python 2.7*'], installed=installed, update_deps=True, returnall=True)
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::numpy-1.6.2-py27_4',
         'channel-1::openssl-1.0.1c-0',
@@ -1850,13 +1851,13 @@ def test_update_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
     # pandas should be updated here. However, it's going to try to not update
     # scipy, so it won't be updated to the latest version (0.11.0).
     result = r.install(['pandas', 'python 2.7*'], installed=installed, update_deps=False, returnall=True)
     result = [rec.dist_str() for rec in result]
-    assert result == [
+    assert result == add_subdir_to_iter([
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::numpy-1.6.2-py27_4',
         'channel-1::openssl-1.0.1c-0',
@@ -1869,7 +1870,7 @@ def test_update_deps():
         'channel-1::system-5.8-1',
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
-    ]
+    ])
 
 
 def test_surplus_features_1():
@@ -2046,6 +2047,51 @@ def test_get_reduced_index_broadening_preferred_solution():
             assert d.version == '2.0', "top version should be 2.0, but is {}".format(d.version)
         elif d.name == 'bottom':
             assert d.version == '2.5', "bottom version should be 2.5, but is {}".format(d.version)
+
+
+def test_arch_preferred_when_otherwise_identical_dependencies():
+    index2 = index.copy()
+    package1_noarch = PackageRecord(**{
+        "channel": "defaults",
+        "subdir": "noarch",
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package1',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2[package1_noarch] = package1_noarch
+    package1_linux64 = PackageRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package1',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2[package1_linux64] = package1_linux64
+    index2 = {key: value for key, value in iteritems(index2)}
+    r = Resolve(index2)
+
+    matches = r.find_matches(MatchSpec('package1'))
+    assert len(matches) == 2
+    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
+        'defaults/noarch::package1-1.0-0',
+        add_subdir('defaults::package1-1.0-0')
+    }
+
+    result = r.install(['package1'])
+    result = [rec.dist_str() for rec in result]
+    assert result == [
+        add_subdir('defaults::package1-1.0-0'),
+    ]
 
 
 def test_arch_preferred_over_noarch_when_otherwise_equal():
