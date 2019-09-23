@@ -40,6 +40,7 @@ class EnvsManagerUnitTests(TestCase):
         mkdir_p(self.prefix)
         assert isdir(self.prefix)
 
+
     def tearDown(self):
         rm_rf(self.prefix)
         assert not lexists(self.prefix)
@@ -80,18 +81,13 @@ class EnvsManagerUnitTests(TestCase):
     def test_rewrite_environments_txt_file(self):
         mkdir_p(join(self.prefix, 'conda-meta'))
         touch(join(self.prefix, 'conda-meta', 'history'))
-
         doesnt_exist = join(self.prefix, 'blarg')
-
         environments_txt_path = join(self.prefix, 'environments.txt')
-
         with open(environments_txt_path, 'w') as fh:
             fh.write(self.prefix + '\n')
             fh.write(doesnt_exist + '\n')
-
         cleaned_1 = _clean_environments_txt(environments_txt_path)
         assert cleaned_1 == (self.prefix,)
-
         with patch('conda.core.envs_manager._rewrite_environments_txt') as _rewrite_patch:
             cleaned_2 = _clean_environments_txt(environments_txt_path)
             assert cleaned_2 == (self.prefix,)
