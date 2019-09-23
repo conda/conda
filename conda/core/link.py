@@ -456,7 +456,9 @@ class UnlinkLinkTransaction(object):
         for axn in create_lpr_actions:
 
             # Verification 6. ensure package is not linking to protected paths
-            all_short_paths = [_.target_short_path for _ in axn.all_link_path_actions]
+            all_short_paths = [_.target_short_path for _ in axn.all_link_path_actions if
+                               hasattr(_, 'link_type')]
+
             mod_protected_paths = [(p in all_short_paths, p) for p in PROTECTED_PREFIX_PATHS]
             if any(m[0] for m in mod_protected_paths):
                 error_results.append(
