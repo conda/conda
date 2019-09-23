@@ -32,7 +32,8 @@ from ..common.path import (explode_directories, get_all_directories, get_major_m
 from ..common.signals import signal_handler
 from ..exceptions import (DisallowedPackageError, EnvironmentNotWritableError,
                           KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
+                          NaughtyPackageError)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -150,6 +151,8 @@ ChangeReport = namedtuple("ChangeReport", (
     "superseded_precs",
     "fetch_precs",
 ))
+
+PROTECTED_PREFIX_PATHS = ["conda-meta", ".condarc", "condarc", "condarc.d"]
 
 
 class UnlinkLinkTransaction(object):
@@ -424,6 +427,7 @@ class UnlinkLinkTransaction(object):
         #   3. if the target is a private env, leased paths need to be verified
         #   4. make sure conda-meta/history file is writable
         #   5. make sure envs/catalog.json is writable; done with RegisterEnvironmentLocationAction
+        #   6. make sure not to write to conda-meta or prefix level condarc's
         # TODO: 3, 4
 
         # this strange unpacking is to help the parallel execution work.  Unpacking
@@ -450,6 +454,19 @@ class UnlinkLinkTransaction(object):
         # Verification 1. each path either doesn't already exist in the prefix, or will be unlinked
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
+
+            # Verification 6. ensure package is not linking to protected paths
+            all_short_paths = [_.target_short_path for _ in axn.all_link_path_actions if
+                               hasattr(_, 'link_type')]
+
+            mod_protected_paths = [(p in all_short_paths, p) for p in PROTECTED_PREFIX_PATHS]
+            if any(m[0] for m in mod_protected_paths):
+                error_results.append(
+                    NaughtyPackageError(
+                        axn.package_info.dist_str(),
+                        " ".join([m[1] for m in mod_protected_paths if m[0]])
+                    ))
+
             for link_path_action in axn.all_link_path_actions:
                 if isinstance(link_path_action, CompileMultiPycAction):
                     target_short_paths = link_path_action.target_short_paths

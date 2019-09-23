@@ -13,7 +13,6 @@ Using the .condarc conda configuration file
 Overview
 ========
 
-
 The conda configuration file, ``.condarc``, is an optional
 runtime configuration file that allows advanced users to
 configure various aspects of conda, such as which channels it
@@ -87,7 +86,8 @@ EXAMPLE: To set the auto_update_conda option to ``False``, run::
 For a complete list of conda config commands, see the
 :doc:`command reference <../../commands/config>`. The same list
 is available at the terminal or Anaconda Prompt by running
-``conda config --help``.
+``conda config --help``. You can also see the `conda channel
+configuration <https://conda.io/projects/conda/en/latest/configuration.html>`_ for more information.
 
 .. tip::
 
@@ -628,11 +628,11 @@ The CONDA_PKGS_DIRS environment variable overwrites the
 Force conda to download only .tar.bz2 packages (use_only_tar_bz2)
 -----------------------------------------------------------------
 
-conda 4.7 introduced a new ``.conda`` package file format.
+Conda 4.7 introduced a new ``.conda`` package file format.
 ``.conda`` is a more compact and faster alternative to ``.tar.bz2`` packages.
 It's thus the preferred file format to use where available.
 
-Netherveless it's possible to force conda to only download ``.tar.bz2`` packages
+Nevertheless, it's possible to force conda to only download ``.tar.bz2`` packages
 by setting the ``use_only_tar_bz2`` boolean to ``True``.
 
 The default is ``False``.
@@ -648,23 +648,23 @@ EXAMPLE:
    This is forced to True if conda-build is installed and older than 3.18.3,
    because older versions of conda break when conda feeds it the new file format.
 
-Conda build configuration
+Conda-build configuration
 =========================
 
-:ref:`specify-root-dir`
-:ref:`specify-output-folder`
-:ref:`auto-upload`
-:ref:`anaconda-token`
-:ref:`quiet`
-:ref:`filename-hashing`
-:ref:`no-verify`
-:ref:`set-build-id`
-:ref:`skip-existing`
-:ref:`include-recipe`
-:ref:`disable-activation`
-:ref:`long-test-prefix`
-:ref:`pypi-upload-settings`
-:ref:`pypi-repository`
+* :ref:`specify-root-dir`
+* :ref:`specify-output-folder`
+* :ref:`auto-upload`
+* :ref:`anaconda-token`
+* :ref:`quiet`
+* :ref:`filename-hashing`
+* :ref:`no-verify`
+* :ref:`set-build-id`
+* :ref:`skip-existing`
+* :ref:`include-recipe`
+* :ref:`disable-activation`
+* :ref:`long-test-prefix`
+* :ref:`pypi-upload-settings`
+* :ref:`pypi-repository`
 
 
 .. _specify-root-dir:

@@ -244,13 +244,24 @@ class _Activator(object):
                 context.dev = True
 
         if command == 'activate':
+            self.stack = context.auto_stack and context.shlvl <= context.auto_stack
             try:
                 stack_idx = remainder_args.index('--stack')
             except ValueError:
-                self.stack = False
-            else:
-                del remainder_args[stack_idx]
+                stack_idx = -1
+            try:
+                no_stack_idx = remainder_args.index('--no-stack')
+            except ValueError:
+                no_stack_idx = -1
+            if stack_idx >= 0 and no_stack_idx >= 0:
+                from .exceptions import ArgumentError
+                raise ArgumentError('cannot specify both --stack and --no-stack to ' + command)
+            if stack_idx >= 0:
                 self.stack = True
+                del remainder_args[stack_idx]
+            if no_stack_idx >= 0:
+                self.stack = False
+                del remainder_args[no_stack_idx]
             if len(remainder_args) > 1:
                 from .exceptions import ArgumentError
                 raise ArgumentError(command + ' does not accept more than one argument:\n'
@@ -786,6 +797,11 @@ class PosixActivator(_Activator):
                     result += join(self.export_var_tmpl % (key, value)) + '\n'
         return result
 
+class BashActivator(PosixActivator):
+
+    def __init__(self, arguments=None):
+        super(BashActivator, self).__init__(arguments)
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'conda_bash.sh')
 
 class CshActivator(_Activator):
 
@@ -964,7 +980,7 @@ class PowerShellActivator(_Activator):
 activator_map = {
     'posix': PosixActivator,
     'ash': PosixActivator,
-    'bash': PosixActivator,
+    'bash': BashActivator,
     'dash': PosixActivator,
     'zsh': PosixActivator,
     'csh': CshActivator,

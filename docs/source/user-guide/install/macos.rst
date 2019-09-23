@@ -8,6 +8,8 @@ Installing on macOS
 
    * `Anaconda installer for macOS <https://www.anaconda.com/download/>`_.
 
+#. :ref:`Verify your installer hashes <hash-verification>`.
+
 #. Install:
 
    * Miniconda---In your terminal window, run:

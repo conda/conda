@@ -72,7 +72,7 @@ class ActivateHelp(Help):
 
     def __init__(self):
         message = dals("""
-        usage: conda activate [-h] [--stack] [env_name_or_prefix]
+        usage: conda activate [-h] [--[no-]stack] [env_name_or_prefix]
 
         Activate a conda environment.
 
@@ -88,7 +88,11 @@ class ActivateHelp(Help):
           --stack               Stack the environment being activated on top of the
                                 previous active environment, rather replacing the
                                 current active environment with a new one. Currently,
-                                only the PATH environment variable is stacked.
+                                only the PATH environment variable is stacked. This
+                                may be enabled implicitly by the 'auto_stack'
+                                configuration variable.
+          --no-stack            Do not stack the environment. Overrides 'auto_stack'
+                                setting.
         """)
         super(ActivateHelp, self).__init__(message)
 
@@ -147,6 +151,14 @@ class TooFewArgumentsError(ArgumentError):
         msg = ('%s Got %s arguments but expected %s.' %
                (optional_message, received, expected))
         super(TooFewArgumentsError, self).__init__(msg, *args)
+
+
+class NaughtyPackageError(CondaError):
+    def __init__(self, package, path):
+        message = dals("""
+        Naughty package %(pkg)s tyring to write to protected path %(path)s
+        """)
+        super(NaughtyPackageError, self).__init__(message, pkg=package, path=path)
 
 
 class ClobberError(CondaError):

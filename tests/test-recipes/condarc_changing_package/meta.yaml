@@ -1,0 +1,16 @@
+package:
+  name: condarc_changing_package
+  version: 1.0.0
+
+source:
+  path: ./src
+
+build:
+  number: 0
+  noarch: True
+  script:
+    - cp .condarc ${PREFIX}            #[not win]
+    - cp .condarc %LIBRARY_PREFIX%     #[win]
+
+about:
+  summary: Make conda-package with conda-meta in it

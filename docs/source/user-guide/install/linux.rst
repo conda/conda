@@ -8,6 +8,8 @@ Installing on Linux
 
    * `Anaconda installer for Linux <https://www.anaconda.com/download/>`_.
 
+#. :ref:`Verify your installer hashes <hash-verification>`.
+
 #. In your terminal window, run:
 
    * Miniconda:
