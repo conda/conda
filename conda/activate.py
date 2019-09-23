@@ -24,7 +24,7 @@ from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
-from .base.constants import PREFIX_SATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
+from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 
 log = getLogger(__name__)
 
@@ -695,7 +695,7 @@ class _Activator(object):
         )), reverse=True))
 
     def _get_environment_env_vars(self, prefix):
-        env_vars_file = join(prefix, PREFIX_SATE_FILE)
+        env_vars_file = join(prefix, PREFIX_STATE_FILE)
         pkg_env_var_dir = join(prefix, PACKAGE_ENV_VARS_DIR)
         env_vars = OrderedDict()
 

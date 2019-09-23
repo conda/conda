@@ -11,7 +11,7 @@ import re
 from collections import OrderedDict
 import json
 
-from ..base.constants import PREFIX_SATE_FILE
+from ..base.constants import PREFIX_STATE_FILE
 from .._vendor.auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
@@ -299,7 +299,7 @@ class PrefixData(object):
         return new_packages
 
     def _get_environment_state_file(self):
-        env_vars_file = join(self.prefix_path, PREFIX_SATE_FILE)
+        env_vars_file = join(self.prefix_path, PREFIX_STATE_FILE)
         if lexists(env_vars_file):
             with open(env_vars_file, 'r') as f:
                 prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
@@ -308,7 +308,7 @@ class PrefixData(object):
         return prefix_state
 
     def _write_environment_state_file(self, state):
-        env_vars_file = join(self.prefix_path, PREFIX_SATE_FILE)
+        env_vars_file = join(self.prefix_path, PREFIX_STATE_FILE)
         with open(env_vars_file, 'w') as f:
             f.write(json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__))
 

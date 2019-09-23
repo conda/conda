@@ -17,7 +17,7 @@ from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
     PowerShellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
-from conda.base.constants import ROOT_ENV_NAME, PREFIX_SATE_FILE, PACKAGE_ENV_VARS_DIR, \
+from conda.base.constants import ROOT_ENV_NAME, PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, \
     CONDA_ENV_VARS_UNSET_VAR
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
@@ -312,7 +312,7 @@ class ActivatorUnitTests(TestCase):
               }
             }''' % CONDA_ENV_VARS_UNSET_VAR
 
-            activate_env_vars = join(td, PREFIX_SATE_FILE)
+            activate_env_vars = join(td, PREFIX_STATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(env_vars_file)
 
@@ -369,7 +369,7 @@ class ActivatorUnitTests(TestCase):
               }
             }'''
 
-            activate_env_vars = join(td, PREFIX_SATE_FILE)
+            activate_env_vars = join(td, PREFIX_STATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(env_vars_file)
 
@@ -416,7 +416,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, PREFIX_SATE_FILE)
+            activate_env_vars = join(td, PREFIX_STATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -464,7 +464,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, PREFIX_SATE_FILE)
+            activate_env_vars = join(td, PREFIX_STATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -567,7 +567,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, PREFIX_SATE_FILE)
+            activate_env_vars = join(td, PREFIX_STATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -709,7 +709,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(deactivate_d_1))
             touch(join(deactivate_d_2))
 
-            activate_env_vars = join(td, PREFIX_SATE_FILE)
+            activate_env_vars = join(td, PREFIX_STATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -726,7 +726,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars_old = join(old_prefix, PREFIX_SATE_FILE)
+            activate_env_vars_old = join(old_prefix, PREFIX_STATE_FILE)
             with open(activate_env_vars_old, 'w') as f:
                 f.write('''
                     {
@@ -808,7 +808,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(deactivate_d_1))
             touch(join(deactivate_d_2))
 
-            activate_env_vars = join(td, PREFIX_SATE_FILE)
+            activate_env_vars = join(td, PREFIX_STATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -825,7 +825,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars_old = join(old_prefix, PREFIX_SATE_FILE)
+            activate_env_vars_old = join(old_prefix, PREFIX_STATE_FILE)
             with open(activate_env_vars_old, 'w') as f:
                 f.write('''
                    {
@@ -900,7 +900,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(deactivate_d_1))
             touch(join(deactivate_d_2))
 
-            activate_env_vars = join(td, PREFIX_SATE_FILE)
+            activate_env_vars = join(td, PREFIX_STATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 
@@ -941,9 +941,9 @@ class ActivatorUnitTests(TestCase):
 
     def test_get_env_vars_big_whitespace(self):
         with tempdir() as td:
-            prefix_state_file = join(td, PREFIX_SATE_FILE)
-            mkdir_p(dirname(prefix_state_file))
-            with open(prefix_state_file, 'w') as f:
+            STATE_FILE = join(td, PREFIX_STATE_FILE)
+            mkdir_p(dirname(STATE_FILE))
+            with open(STATE_FILE, 'w') as f:
                 f.write('''
                     {
                       "version": 1,
@@ -978,7 +978,7 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            activate_env_vars = join(td, PREFIX_SATE_FILE)
+            activate_env_vars = join(td, PREFIX_STATE_FILE)
             with open(activate_env_vars, 'w') as f:
                 f.write(ENV_VARS_FILE)
 

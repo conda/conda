@@ -14,7 +14,7 @@ from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_record
 from test_data.env_metadata import (
     PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
 )
-from conda.base.constants import PREFIX_SATE_FILE
+from conda.base.constants import PREFIX_STATE_FILE
 from conda.gateways.disk import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 
@@ -190,7 +190,7 @@ class PrefixDatarUnitTests(TestCase):
         mkdir_p(self.prefix)
         assert isdir(self.prefix)
         mkdir_p(join(self.prefix, 'conda-meta'))
-        activate_env_vars = join(self.prefix, PREFIX_SATE_FILE)
+        activate_env_vars = join(self.prefix, PREFIX_STATE_FILE)
         with open(activate_env_vars, 'w') as f:
             f.write(ENV_VARS_FILE)
         self.pd = PrefixData(self.prefix)
