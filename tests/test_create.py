@@ -53,7 +53,8 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError, CondaFileIOError
+    DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError, CondaFileIOError, \
+    CondaMultiError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p, extract_tarball
 from conda.gateways.disk.delete import rm_rf, path_is_clean
@@ -2810,6 +2811,15 @@ class IntegrationTests(TestCase):
             # this would be unsatisfiable if the neutered specs were not being factored in correctly.
             #    If this command runs successfully (does not raise), then all is well.
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "imagesize")
+
+
+    def test_preserve_protected_prefix_files(self):
+        with make_temp_env("python=3.7", no_capture=True) as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert package_is_installed(prefix, 'python=3')
+            with pytest.raises(CondaMultiError):
+                stdout, stderr= run_command(Commands.INSTALL, prefix, '-c', 'conda-test', 'condarc_changing_package')
+            assert not package_is_installed(prefix, 'condarc_changing_package')
 
 
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")
