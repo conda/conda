@@ -45,8 +45,7 @@ __conda_activate() {
     \local cmd="$1"
     shift
     \local ask_conda
-    CONDA_INTERNAL_OLDPATH="${PATH}"
-    __add_sys_prefix_to_path
+    OLDPATH="${PATH}"
     ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix "$cmd" "$@")" || \return $?
     PATH="${CONDA_INTERNAL_OLDPATH}"
     \eval "$ask_conda"
