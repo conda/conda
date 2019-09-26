@@ -1233,7 +1233,7 @@ def _bashrc_content(conda_prefix, shell):
             if ( -f "%(conda_prefix)s/etc/profile.d/conda.csh" ) then
                 source "%(conda_prefix)s/etc/profile.d/conda.csh"
             else
-                setenv PATH="%(conda_bin)s:$PATH"
+                setenv PATH "%(conda_bin)s:$PATH"
             endif
             # <<< conda initialize <<<
             """) % {
