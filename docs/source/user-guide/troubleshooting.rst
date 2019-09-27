@@ -32,7 +32,7 @@ Neither the activation, nor the echo will happen.  You must write this in your b
 This is known behavior with cmd.exe, and we have not found any way to change it.  https://stackoverflow.com/questions/4798879/how-do-i-run-a-batch-script-from-within-a-batch-script/4798965
 
 
-Numpy MKL library load failed
+NumPy MKL library load failed
 =============================
 
 Error messages like
@@ -46,10 +46,10 @@ or
 Cause
 -----
 
-Numpy is unable to load the correct MKL or Intel OpenMP runtime libraries. This
+NumPy is unable to load the correct MKL or Intel OpenMP runtime libraries. This
 is almost always caused by one of two things:
 
-  1. The environment with numpy has not been activated.
+  1. The environment with NumPy has not been activated.
   2. Another software vendor has installed MKL or Intel OpenMP (libiomp5md.dll)
      files into the C:\\Windows\\System32 folder. These files are being loaded
      before Anaconda's and they're not compatible.
@@ -92,20 +92,22 @@ more drastic measures.
 
      Control environment variables:
 
-       * `CONDA_DLL_SEARCH_MODIFICATION_ENABLE`
-       * `CONDA_DLL_SEARCH_MODIFICATION_DEBUG`
-       * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_WINDOWS_DIRECTORY`
-       * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_CWD`
+       * ``CONDA_DLL_SEARCH_MODIFICATION_ENABLE``
+       * ``CONDA_DLL_SEARCH_MODIFICATION_DEBUG``
+       * ``CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_WINDOWS_DIRECTORY``
+       * ``CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_CWD``
 
-     To set variables on Windows, you may use either the CLI (Anaconda prompt, for example) or a Windows GUI.
+     To set variables on Windows, you may use either the CLI (Anaconda Prompt, for example) or a Windows GUI.
 
        * CLI: https://superuser.com/questions/79612/setting-and-getting-windows-environment-variables-from-the-command-prompt/79614
        * GUI: http://www.dowdandassociates.com/blog/content/howto-set-an-environment-variable-in-windows-gui/
 
-     These should be set to a value of `1` to enable them.  For example, in an anaconda prompt terminal::
+     These should be set to a value of ``1`` to enable them.  For example, in an anaconda prompt terminal::
 
        set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
-
+    
+    .. note::
+       Only ``CONDA_DLL_SEARCH_MODIFICATION_ENABLE`` should be set finally.
 
 List of known bad software that installs Intel libraries to C:\\Windows\\System32:
 
@@ -904,7 +906,7 @@ later version, such as ``2.7.10``.
 Cause
 ------
 
-If you make a conda package for the app using conda build, you
+If you make a conda package for the app using conda-build, you
 can set dependencies with specific version numbers. The
 requirements lines that say ``- python`` could be
 ``- python ==2.7.9`` instead. It is important to have 1 space
