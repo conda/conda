@@ -1428,7 +1428,7 @@ class ShellWrapperUnitTests(TestCase):
             'sys_executable': activator.path_conversion(sys.executable),
             'conda_exe_export': conda_exe_export,
         }
-        if on_win
+        if on_win:
             e_activate_info['sourcer'] = 'source-cmd'
             e_activate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat'))
         else:
