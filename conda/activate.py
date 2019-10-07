@@ -931,7 +931,7 @@ class XonshActivator(_Activator):
         # 'scripts' really refer to de/activation scripts, not scripts in the language per se
         # xonsh can piggy-back activation scripts from other languages depending on the platform
         import platform
-        if  platform.system() == 'Windows':
+        if platform.system() == 'Windows':
             self.script_extension = '.bat'
             self.run_script_tmpl = 'source-cmd "%s"'
         else:
