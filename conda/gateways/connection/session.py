@@ -75,7 +75,7 @@ class CondaSession(Session):
         else:
             # Configure retries
             retry = Retry(total=context.remote_max_retries,
-                backoff_factor=context.remote_backoff_factor)
+                          backoff_factor=context.remote_backoff_factor)
             http_adapter = HTTPAdapter(max_retries=retry)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
