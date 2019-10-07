@@ -7,7 +7,7 @@ from logging import getLogger
 from threading import local
 
 from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
-               extract_cookies_to_jar, get_auth_from_url, get_netrc_auth)
+               extract_cookies_to_jar, get_auth_from_url, get_netrc_auth, Retry)
 from .adapters.ftp import FTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
@@ -74,7 +74,9 @@ class CondaSession(Session):
 
         else:
             # Configure retries
-            http_adapter = HTTPAdapter(max_retries=context.remote_max_retries)
+            retry = Retry(total=context.remote_max_retries,
+                backoff_factor=context.remote_backoff_factor)
+            http_adapter = HTTPAdapter(max_retries=retry)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
             self.mount("ftp://", FTPAdapter())
