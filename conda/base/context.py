@@ -201,6 +201,7 @@ class Context(Configuration):
     remote_connect_timeout_secs = PrimitiveParameter(9.15)
     remote_read_timeout_secs = PrimitiveParameter(60.)
     remote_max_retries = PrimitiveParameter(3)
+    remote_backoff_factor = PrimitiveParameter(0)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
 
@@ -803,6 +804,7 @@ class Context(Configuration):
             'proxy_servers',
             'remote_connect_timeout_secs',
             'remote_max_retries',
+            'remote_backoff_factor',
             'remote_read_timeout_secs',
             'ssl_verify',
         )),
@@ -1147,6 +1149,9 @@ class Context(Configuration):
                 """),
             'remote_max_retries': dals("""
                 The maximum number of retries each HTTP connection should attempt.
+                """),
+            'remote_backoff_factor': dals("""
+                The factor determines the time HTTP connection should wait for attempt.
                 """),
             'remote_read_timeout_secs': dals("""
                 Once conda has connected to a remote resource and sent an HTTP request, the
