@@ -22,12 +22,13 @@ import warnings
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from .._vendor.toolz import concat, take
+from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
                              string_types, text_type, with_metaclass)
-from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor
+from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
@@ -85,6 +86,13 @@ class SubdirData(object):
         if subdirs is None:
             subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
+        if context.offline:
+            grouped_urls = groupby(lambda url: url.startswith('file://'), channel_urls)
+            ignored_urls = grouped_urls.get(False, ())
+            if ignored_urls:
+                log.info("Ignoring the following channel urls because mode is offline.%s",
+                         dashlist(ignored_urls))
+            channel_urls = IndexedSet(grouped_urls.get(True, ()))
         check_whitelist(channel_urls)
         subdir_query = lambda url: tuple(SubdirData(Channel(url), repodata_fn=repodata_fn).query(
             package_ref_or_match_spec))
