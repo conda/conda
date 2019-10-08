@@ -921,14 +921,22 @@ class XonshActivator(_Activator):
         self.pathsep_join = ':'.join
         self.sep = '/'
         self.path_conversion = native_path_to_unix
-        self.script_extension = '.xsh'
         self.tempfile_extension = None
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'del $%s'
         self.export_var_tmpl = "$%s = '%s'"
         self.set_var_tmpl = "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
-        self.run_script_tmpl = 'source "%s"'
+
+        # 'scripts' really refer to de/activation scripts, not scripts in the language per se
+        # xonsh can piggy-back activation scripts from other languages depending on the platform
+        import platform
+        if platform.system() == 'Windows':
+            self.script_extension = '.bat'
+            self.run_script_tmpl = 'source-cmd "%s"'
+        else:
+            self.script_extension = '.sh'
+            self.run_script_tmpl = 'source-bash "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
 

@@ -1412,22 +1412,29 @@ class ShellWrapperUnitTests(TestCase):
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
-        e_activate_data = dals("""
+        e_activate_template = dals("""
         $PATH = '%(new_path)s'
         $CONDA_PREFIX = '%(native_prefix)s'
         $CONDA_SHLVL = '1'
         $CONDA_DEFAULT_ENV = '%(native_prefix)s'
         $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
         %(conda_exe_export)s
-        source "%(activate1)s"
-        """) % {
+        %(sourcer)s "%(activate1)s"
+        """)
+        e_activate_info = {
             'converted_prefix': activator.path_conversion(self.prefix),
             'native_prefix': self.prefix,
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
-            'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.xsh')),
             'conda_exe_export': conda_exe_export,
         }
+        if on_win:
+            e_activate_info['sourcer'] = 'source-cmd'
+            e_activate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat'))
+        else:
+            e_activate_info['sourcer'] = 'source-bash'
+            e_activate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh'))
+        e_activate_data = e_activate_template % e_activate_info
         assert activate_data == e_activate_data
 
         with env_vars({
@@ -1443,18 +1450,26 @@ class ShellWrapperUnitTests(TestCase):
             reactivate_data = c.stdout
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
-            e_reactivate_data = dals("""
-            source "%(deactivate1)s"
+            e_reactivate_template = dals("""
+            %(sourcer)s "%(deactivate1)s"
             $PATH = '%(new_path)s'
             $CONDA_SHLVL = '1'
             $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
-            source "%(activate1)s"
-            """) % {
+            %(sourcer)s "%(activate1)s"
+            """)
+            e_reactivate_info = {
                 'new_path': activator.pathsep_join(new_path_parts),
-                'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.xsh')),
-                'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh')),
                 'native_prefix': self.prefix,
             }
+            if on_win:
+                e_reactivate_info['sourcer'] = 'source-cmd'
+                e_reactivate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat'))
+                e_reactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat'))
+            else:
+                e_reactivate_info['sourcer'] = 'source-bash'
+                e_reactivate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh'))
+                e_reactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh'))
+            e_reactivate_data = e_reactivate_template % e_reactivate_info
             assert reactivate_data == e_reactivate_data
 
             with captured() as c:
@@ -1465,19 +1480,26 @@ class ShellWrapperUnitTests(TestCase):
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
-            e_deactivate_data = dals("""
+            e_deactivate_template = dals("""
             $PATH = '%(new_path)s'
-            source "%(deactivate1)s"
+            %(sourcer)s "%(deactivate1)s"
             del $CONDA_PREFIX
             del $CONDA_DEFAULT_ENV
             del $CONDA_PROMPT_MODIFIER
             $CONDA_SHLVL = '0'
             %(conda_exe_export)s
-            """) % {
+            """)
+            e_deactivate_info = {
                 'new_path': new_path,
-                'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh')),
                 'conda_exe_export': conda_exe_export,
             }
+            if on_win:
+                e_deactivate_info['sourcer'] = 'source-cmd'
+                e_deactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat'))
+            else:
+                e_deactivate_info['sourcer'] = 'source-bash'
+                e_deactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh'))
+            e_deactivate_data = e_deactivate_template % e_deactivate_info
             assert deactivate_data == e_deactivate_data
 
     def test_fish_basic(self):
