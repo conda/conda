@@ -201,7 +201,7 @@ class Context(Configuration):
     remote_connect_timeout_secs = PrimitiveParameter(9.15)
     remote_read_timeout_secs = PrimitiveParameter(60.)
     remote_max_retries = PrimitiveParameter(3)
-    remote_backoff_factor = PrimitiveParameter(0)
+    remote_backoff_factor = PrimitiveParameter(1)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
 
