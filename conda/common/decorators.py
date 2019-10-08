@@ -1,0 +1,23 @@
+import os
+
+
+def env_override(envvar_name, convert_empty_to_none=False):
+    '''Override the return value of the decorated function with an environment variable.
+
+    If convert_empty_to_none is true, if the value of the environment variable
+    is the empty string, a None value will be returned.
+    '''
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            value = os.environ.get(envvar_name, None)
+
+            if value is not None:
+                if value == '' and convert_empty_to_none:
+                    return None
+                else:
+                    return value
+            else:
+                return func(*args, **kwargs)
+        wrapper.__name__ = func.__name__
+        return wrapper
+    return decorator

@@ -13,6 +13,7 @@ from os.path import join
 import sys
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
+import getpass
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
@@ -71,7 +72,7 @@ class ActivateHelp(Help):
 
     def __init__(self):
         message = dals("""
-        usage: conda activate [-h] [--stack] [env_name_or_prefix]
+        usage: conda activate [-h] [--[no-]stack] [env_name_or_prefix]
 
         Activate a conda environment.
 
@@ -87,7 +88,11 @@ class ActivateHelp(Help):
           --stack               Stack the environment being activated on top of the
                                 previous active environment, rather replacing the
                                 current active environment with a new one. Currently,
-                                only the PATH environment variable is stacked.
+                                only the PATH environment variable is stacked. This
+                                may be enabled implicitly by the 'auto_stack'
+                                configuration variable.
+          --no-stack            Do not stack the environment. Overrides 'auto_stack'
+                                setting.
         """)
         super(ActivateHelp, self).__init__(message)
 
@@ -155,7 +160,7 @@ class ClobberError(CondaError):
 
     def __repr__(self):
         clz_name = "ClobberWarning" if self.path_conflict == PathConflict.warn else "ClobberError"
-        return '%s: %s\n' % (clz_name, text_type(self))
+        return '%s: %s\n' % (clz_name, self)
 
 
 class BasicClobberError(ClobberError):
@@ -386,9 +391,14 @@ class CondaOSError(CondaError, OSError):
 
 
 class ProxyError(CondaError):
-    def __init__(self, message):
-        msg = '%s' % message
-        super(ProxyError, self).__init__(msg)
+    def __init__(self):
+        message = dals("""
+        Conda cannot proceed due to an error in your proxy configuration.
+        Check for typos and other configuration errors in any '.netrc' file in your home directory,
+        any environment variables ending in '_PROXY', and any other system-wide proxy
+        configuration settings.
+        """)
+        super(ProxyError, self).__init__(message)
 
 
 class CondaIOError(CondaError, IOError):
@@ -488,20 +498,21 @@ class CouldntParseError(ParseError):
         super(CouldntParseError, self).__init__(self.args[0])
 
 
-class MD5MismatchError(CondaError):
-    def __init__(self, url, target_full_path, expected_md5sum, actual_md5sum):
+class ChecksumMismatchError(CondaError):
+    def __init__(self, url, target_full_path, checksum_type, expected_checksum, actual_checksum):
         message = dals("""
         Conda detected a mismatch between the expected content and downloaded content
         for url '%(url)s'.
           download saved to: %(target_full_path)s
-          expected md5 sum: %(expected_md5sum)s
-          actual md5 sum: %(actual_md5sum)s
+          expected %(checksum_type)s: %(expected_checksum)s
+          actual %(checksum_type)s: %(actual_checksum)s
         """)
         from .common.url import maybe_unquote
         url = maybe_unquote(url)
-        super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
-                                               expected_md5sum=expected_md5sum,
-                                               actual_md5sum=actual_md5sum)
+        super(ChecksumMismatchError, self).__init__(
+            message, url=url, target_full_path=target_full_path, checksum_type=checksum_type,
+            expected_checksum=expected_checksum, actual_checksum=actual_checksum,
+        )
 
 
 class PackageNotInstalledError(CondaError):
@@ -608,50 +619,114 @@ class UnsatisfiableError(CondaError):
         Raises an exception with a formatted message detailing the
         unsatisfiable specifications.
     """
+    def _format_chain_str(self, bad_deps):
+        chains = {}
+        for dep in sorted(bad_deps, key=len, reverse=True):
+            dep1 = [s.partition(' ') for s in dep[1:]]
+            key = (dep[0],) + tuple(v[0] for v in dep1)
+            vals = ('',) + tuple(v[2] for v in dep1)
+            found = False
+            for key2, csets in iteritems(chains):
+                if key2[:len(key)] == key:
+                    for cset, val in zip(csets, vals):
+                        cset.add(val)
+                    found = True
+            if not found:
+                chains[key] = [{val} for val in vals]
+        for key, csets in iteritems(chains):
+            deps = []
+            for name, cset in zip(key, csets):
+                if '' not in cset:
+                    pass
+                elif len(cset) == 1:
+                    cset.clear()
+                else:
+                    cset.remove('')
+                    cset.add('*')
+                if name[0] == '@':
+                    name = 'feature:' + name[1:]
+                deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
+            chains[key] = ' -> '.join(deps)
+        bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
+        return bad_deps
 
-    def __init__(self, bad_deps, chains=True):
+    def __init__(self, bad_deps, chains=True, strict=False):
         from .models.match_spec import MatchSpec
 
-        # Remove any target values from the MatchSpecs, convert to strings
-        bad_deps = [list(map(lambda x: str(MatchSpec(x, target=None)), dep)) for dep in bad_deps]
-        if chains:
-            chains = {}
-            for dep in sorted(bad_deps, key=len, reverse=True):
-                dep1 = [s.partition(' ') for s in dep[1:]]
-                key = (dep[0],) + tuple(v[0] for v in dep1)
-                vals = ('',) + tuple(v[2] for v in dep1)
-                found = False
-                for key2, csets in iteritems(chains):
-                    if key2[:len(key)] == key:
-                        for cset, val in zip(csets, vals):
-                            cset.add(val)
-                        found = True
-                if not found:
-                    chains[key] = [{val} for val in vals]
-            for key, csets in iteritems(chains):
-                deps = []
-                for name, cset in zip(key, csets):
-                    if '' not in cset:
-                        pass
-                    elif len(cset) == 1:
-                        cset.clear()
-                    else:
-                        cset.remove('')
-                        cset.add('*')
-                    if name[0] == '@':
-                        name = 'feature:' + name[1:]
-                    deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
-                chains[key] = ' -> '.join(deps)
-            bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
-            msg = '''The following specifications were found to be in conflict:%s
-Use "conda search <package> --info" to see the dependencies for each package.'''
+        messages = {'python': dals('''
+
+The following specifications were found
+to be incompatible with the existing python installation in your environment:
+
+Specifications:\n{specs}
+
+Your python: {ref}
+
+If python is on the left-most side of the chain, that's the version you've asked for.
+When python appears to the right, that indicates that the thing on the left is somehow
+not available for the python version you are constrained to. Note that conda will not
+change your python version to a different minor version unless you explicitly specify
+that.
+
+        '''),
+                    'request_conflict_with_history': dals('''
+
+The following specifications were found to be incompatible with a past
+explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
+
+                    '''),
+                    'direct': dals('''
+
+The following specifications were found to be incompatible with each other:\n
+
+                    '''),
+                    'cuda': dals('''
+
+The following specifications were found to be incompatible with your CUDA driver:\n{specs}
+
+Your installed CUDA driver is: {ref}
+''')}
+
+        msg = ""
+        if len(bad_deps) == 0:
+            msg += '''
+Did not find conflicting dependencies. If you would like to know which
+packages conflict ensure that you have enabled unsatisfiable hints.
+
+conda config --set unsatisfiable_hints True
+            '''
         else:
-            bad_deps = [sorted(dep) for dep in bad_deps]
-            bad_deps = [', '.join(dep) for dep in sorted(bad_deps)]
-            msg = '''The following specifications were found to be incompatible with the
-others, or with the existing package set:%s
-Use "conda search <package> --info" to see the dependencies for each package.'''
-        msg = msg % dashlist(bad_deps)
+            for class_name, dep_class in bad_deps.items():
+                if dep_class:
+                    _chains = []
+                    if class_name == "direct":
+                        msg += messages["direct"]
+                        last_dep_entry = set(d[0][-1].name for d in dep_class)
+                        dep_constraint_map = {}
+                        for dep in dep_class:
+                            if dep[0][-1].name in last_dep_entry:
+                                if not dep_constraint_map.get(dep[0][-1].name):
+                                    dep_constraint_map[dep[0][-1].name] = []
+                                dep_constraint_map[dep[0][-1].name].append(dep[0])
+                        for dep, chain in dep_constraint_map.items():
+                            msg += "\nPackage %s conflicts for:\n" % dep
+                            msg += "\n".join([" -> ".join([str(i) for i in c]) for c in chain])
+                    else:
+                        for dep_chain, installed_blocker in dep_class:
+                            # Remove any target values from the MatchSpecs, convert to strings
+                            dep_chain = [str(MatchSpec(dep, target=None)) for dep in dep_chain]
+                            _chains.append(dep_chain)
+
+                        if _chains:
+                            _chains = self._format_chain_str(_chains)
+                        else:
+                            _chains = [', '.join(c) for c in _chains]
+                        msg += messages[class_name].format(specs=dashlist(_chains),
+                                                           ref=installed_blocker)
+        if strict:
+            msg += ('\nNote that strict channel priority may have removed '
+                    'packages required for satisfiability.')
+
         super(UnsatisfiableError, self).__init__(msg)
 
 
@@ -689,7 +764,7 @@ class SpecsConfigurationConflictError(CondaError):
         """).format(
             requested_specs_formatted=dashlist(requested_specs, 4),
             pinned_specs_formatted=dashlist(pinned_specs, 4),
-            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+            pinned_specs_path=join(prefix, 'conda-meta', 'pinned'),
         )
         super(SpecsConfigurationConflictError, self).__init__(
             message, requested_specs=requested_specs, pinned_specs=pinned_specs, prefix=prefix,
@@ -972,15 +1047,16 @@ def print_conda_exception(exc_val, exc_tb=None):
     elif context.json:
         if isinstance(exc_val, DryRunExit):
             return
-        logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
+        logger = getLogger('conda.stdout' if rc else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
         logger.info("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
-        if rc == 0:
-            stderrlog.error("\n%s\n", exc_val)
-        else:
-            stderrlog.error("\n%r\n", exc_val)
+        stderrlog.error("\n%r\n", exc_val)
+        # An alternative which would allow us not to reload sys with newly setdefaultencoding()
+        # is to not use `%r`, e.g.:
+        # Still, not being able to use `%r` seems too great a price to pay.
+        # stderrlog.error("\n" + exc_val.__repr__() + \n")
 
 
 def _format_exc(exc_val=None, exc_tb=None):
@@ -1226,7 +1302,11 @@ class ExceptionHandler(object):
             'User-Agent': self.user_agent,
         }
         _timeout = self.http_timeout
+        username = getpass.getuser()
+        error_report['is_ascii'] = True if all(ord(c) < 128 for c in username) else False
+        error_report['has_spaces'] = True if " " in str(username) else False
         data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
+        data = data.replace(str(username), "USERNAME_REMOVED")
         response = None
         try:
             # requests does not follow HTTP standards for redirects of non-GET methods

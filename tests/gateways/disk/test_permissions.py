@@ -6,7 +6,7 @@ import uuid
 
 import errno
 import pytest
-from errno import ENOENT, EACCES
+from errno import ENOENT, EACCES, EROFS, EPERM
 from shutil import rmtree
 from contextlib import contextmanager
 from tempfile import gettempdir
@@ -107,7 +107,25 @@ def test_make_writable_dir_EPERM():
     import conda.gateways.disk.permissions
     from conda.gateways.disk.permissions import make_writable
     with patch.object(conda.gateways.disk.permissions, 'chmod') as chmod_mock:
+        chmod_mock.side_effect = IOError(EPERM, 'some message', 'foo')
+        with tempdir() as td:
+            assert not make_writable(td)
+
+
+def test_make_writable_dir_EACCES():
+    import conda.gateways.disk.permissions
+    from conda.gateways.disk.permissions import make_writable
+    with patch.object(conda.gateways.disk.permissions, 'chmod') as chmod_mock:
         chmod_mock.side_effect = IOError(EACCES, 'some message', 'foo')
+        with tempdir() as td:
+            assert not make_writable(td)
+
+
+def test_make_writable_dir_EROFS():
+    import conda.gateways.disk.permissions
+    from conda.gateways.disk.permissions import make_writable
+    with patch.object(conda.gateways.disk.permissions, 'chmod') as chmod_mock:
+        chmod_mock.side_effect = IOError(EROFS, 'some message', 'foo')
         with tempdir() as td:
             assert not make_writable(td)
 

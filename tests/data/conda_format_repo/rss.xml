@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rss PUBLIC "-//Netscape Communications//DTD RSS 0.91//EN" "http://www.rssboard.org/rss-0.91.dtd">
+<rss version="0.91">
+  <channel>
+    <title>conda_format_repo updates</title>
+    <link>https://anaconda.org</link>
+    <description>Updates in the last two weeks</description>
+    <language>en</language>
+    <copyright>Copyright 2019, Anaconda, Inc.</copyright>
+    <pubDate>Tue, 14 May 2019 16:51:24 +0000</pubDate>
+  </channel>
+</rss>

@@ -10,7 +10,7 @@ import textwrap
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 
 # conda env import
-from .common import get_prefix
+from .common import get_prefix, stdout_json
 from ..env import from_environment
 from ..exceptions import CondaEnvException
 
@@ -68,6 +68,14 @@ def configure_parser(sub_parsers):
         required=False,
         help='Do not include channel names with package names.')
     add_parser_json(p)
+
+    p.add_argument(
+        '--from-history',
+        default=False,
+        action='store_true',
+        required=False,
+        help='Build environment spec from explicit specs in history'
+    )
     p.set_defaults(func='.main_export.execute')
 
 
@@ -86,12 +94,16 @@ def execute(args, parser):
                 * Re-run this command inside an activated conda environment.""").lstrip()
             # TODO Add json support
             raise CondaEnvException(msg)
-        args.name = name
+        if os.sep in name:
+            # assume "names" with a path seperator are actually paths
+            args.prefix = name
+        else:
+            args.name = name
     else:
         name = args.name
     prefix = get_prefix(args)
     env = from_environment(name, prefix, no_builds=args.no_builds,
-                           ignore_channels=args.ignore_channels)
+                           ignore_channels=args.ignore_channels, from_history=args.from_history)
 
     if args.override_channels:
         env.remove_channels()
@@ -100,7 +112,7 @@ def execute(args, parser):
         env.add_channels(args.channel)
 
     if args.file is None:
-        print(env.to_yaml())
+        stdout_json(env.to_dict()) if args.json else print(env.to_yaml())
     else:
         fp = open(args.file, 'wb')
-        env.to_yaml(stream=fp)
+        env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)

@@ -8,12 +8,16 @@ from logging import getLogger
 from os import listdir
 from os.path import basename, isdir, isfile, join, lexists
 import re
+from collections import OrderedDict
+import json
 
+from ..base.constants import PREFIX_STATE_FILE
 from .._vendor.auxlib.exceptions import ValidationError
-from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
+from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
 from ..common.compat import JSONDecodeError, itervalues, odict, string_types, with_metaclass
 from ..common.constants import NULL
+from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
@@ -56,10 +60,11 @@ class PrefixData(object):
         self.prefix_path = prefix_path
         self.__prefix_records = None
         self.__is_writable = NULL
-        self._pip_interop_enabled = (context.pip_interop_enabled
-                                     if pip_interop_enabled is None
-                                     else pip_interop_enabled)
+        self._pip_interop_enabled = (pip_interop_enabled
+                                     if pip_interop_enabled is not None
+                                     else context.pip_interop_enabled)
 
+    @time_recorder(module_name=__name__)
     def load(self):
         self.__prefix_records = {}
         _conda_meta_dir = join(self.prefix_path, 'conda-meta')
@@ -73,13 +78,26 @@ class PrefixData(object):
         self.load()
         return self
 
+    def _get_json_fn(self, prefix_record):
+        fn = prefix_record.fn
+        known_ext = False
+        # .dist-info is for things installed by pip
+        for ext in CONDA_PACKAGE_EXTENSIONS + ('.dist-info',):
+            if fn.endswith(ext):
+                fn = fn.replace(ext, '')
+                known_ext = True
+        if not known_ext:
+            raise ValueError("Attempted to make prefix record for unknown package type: %s" % fn)
+        return fn + '.json'
+
     def insert(self, prefix_record):
-        assert prefix_record.name not in self._prefix_records
+        assert prefix_record.name not in self._prefix_records, \
+            "Prefix record insertion error: a record with name %s already exists " \
+            "in the prefix. This is a bug in conda. Please report it at " \
+            "https://github.com/conda/conda/issues" % prefix_record.name
 
-        assert prefix_record.fn.endswith(CONDA_TARBALL_EXTENSION)
-        filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSION)] + '.json'
-
-        prefix_record_json_path = join(self.prefix_path, 'conda-meta', filename)
+        prefix_record_json_path = join(self.prefix_path, 'conda-meta',
+                                       self._get_json_fn(prefix_record))
         if lexists(prefix_record_json_path):
             maybe_raise(BasicClobberError(
                 source_path=None,
@@ -97,8 +115,9 @@ class PrefixData(object):
 
         prefix_record = self._prefix_records[package_name]
 
-        filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSION)] + '.json'
-        conda_meta_full_path = join(self.prefix_path, 'conda-meta', filename)
+        prefix_record_json_path = join(self.prefix_path, 'conda-meta',
+                                       self._get_json_fn(prefix_record))
+        conda_meta_full_path = join(self.prefix_path, 'conda-meta', prefix_record_json_path)
         if self.is_writable:
             rm_rf(conda_meta_full_path)
 
@@ -278,6 +297,49 @@ class PrefixData(object):
             new_packages[python_record.name] = python_record
 
         return new_packages
+
+    def _get_environment_state_file(self):
+        env_vars_file = join(self.prefix_path, PREFIX_STATE_FILE)
+        if lexists(env_vars_file):
+            with open(env_vars_file, 'r') as f:
+                prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
+        else:
+            prefix_state = {}
+        return prefix_state
+
+    def _write_environment_state_file(self, state):
+        env_vars_file = join(self.prefix_path, PREFIX_STATE_FILE)
+        with open(env_vars_file, 'w') as f:
+            f.write(json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__))
+
+    def get_environment_env_vars(self):
+        prefix_state = self._get_environment_state_file()
+        env_vars_all = OrderedDict(prefix_state.get('env_vars', {}))
+        env_vars = {
+            k: v for k, v in env_vars_all.items()
+            if v != CONDA_ENV_VARS_UNSET_VAR
+        }
+        return env_vars
+
+    def set_environment_env_vars(self, env_vars):
+        env_state_file = self._get_environment_state_file()
+        current_env_vars = env_state_file.get('env_vars')
+        if current_env_vars:
+            current_env_vars.update(env_vars)
+        else:
+            env_state_file['env_vars'] = env_vars
+        self._write_environment_state_file(env_state_file)
+        return env_state_file.get('env_vars')
+
+    def unset_environment_env_vars(self, env_vars):
+        env_state_file = self._get_environment_state_file()
+        current_env_vars = env_state_file.get('env_vars')
+        if current_env_vars:
+            for env_var in env_vars:
+                if env_var in current_env_vars.keys():
+                    current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
+            self._write_environment_state_file(env_state_file)
+        return env_state_file.get('env_vars')
 
 
 def get_conda_anchor_files_and_records(site_packages_short_path, python_records):

@@ -20,6 +20,7 @@
     @GOTO :End
 )
 
+@REM This may work if there are spaces in anything in %*
 @CALL "%~dp0..\condabin\conda.bat" activate %*
 
 :End

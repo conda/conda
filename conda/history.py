@@ -4,7 +4,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from ast import literal_eval
-from errno import EACCES, EPERM
+import codecs
+from errno import EACCES, EPERM, EROFS
 import logging
 from operator import itemgetter
 import os
@@ -113,7 +114,7 @@ class History(object):
             curr = set(prefix_rec.dist_str() for prefix_rec in pd.iter_records())
             self.write_changes(last, curr)
         except EnvironmentError as e:
-            if e.errno in (EACCES, EPERM):
+            if e.errno in (EACCES, EPERM, EROFS):
                 raise NotWritableError(self.path, e.errno)
             else:
                 raise
@@ -203,6 +204,8 @@ class History(object):
                 item['update_specs'] = item['specs'] = specs
             elif specs and action in ('remove', 'uninstall'):
                 item['remove_specs'] = item['specs'] = specs
+            elif specs and action in ('neutered', ):
+                item['neutered_specs'] = item['specs'] = specs
 
         return item
 
@@ -276,13 +279,15 @@ class History(object):
                 spec_map.pop(spec.name, None)
             update_specs = (MatchSpec(spec) for spec in request.get('update_specs', ()))
             spec_map.update(((s.name, s) for s in update_specs))
+            # here is where the neutering takes effect, overriding past values
+            neutered_specs = (MatchSpec(spec) for spec in request.get('neutered_specs', ()))
+            spec_map.update(((s.name, s) for s in neutered_specs))
 
         # Conda hasn't always been good about recording when specs have been removed from
         # environments.  If the package isn't installed in the current environment, then we
         # shouldn't try to force it here.
-        prefix_recs = tuple(PrefixData(self.prefix).iter_records())
-        return dict((name, spec) for name, spec in iteritems(spec_map)
-                    if any(spec.match(dist) for dist in prefix_recs))
+        prefix_recs = set(_.name for _ in PrefixData(self.prefix).iter_records())
+        return dict((name, spec) for name, spec in iteritems(spec_map) if name in prefix_recs)
 
     def construct_states(self):
         """
@@ -323,7 +328,7 @@ class History(object):
             print('%s  (rev %d)' % (date, i))
             for line in pretty_content(content):
                 print('    %s' % line)
-            print()
+            print('')
 
     def object_log(self):
         result = []
@@ -376,22 +381,25 @@ class History(object):
     def write_changes(self, last_state, current_state):
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
-        with open(self.path, 'a') as fo:
+        with codecs.open(self.path, mode='ab', encoding='utf-8') as fo:
             write_head(fo)
             for fn in sorted(last_state - current_state):
                 fo.write('-%s\n' % fn)
             for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
 
-    def write_specs(self, remove_specs=(), update_specs=()):
+    def write_specs(self, remove_specs=(), update_specs=(), neutered_specs=()):
         remove_specs = [text_type(MatchSpec(s)) for s in remove_specs]
         update_specs = [text_type(MatchSpec(s)) for s in update_specs]
-        if update_specs or remove_specs:
-            with open(self.path, 'a') as fh:
+        neutered_specs = [text_type(MatchSpec(s)) for s in neutered_specs]
+        if any((update_specs, remove_specs, neutered_specs)):
+            with codecs.open(self.path, mode='ab', encoding='utf-8') as fh:
                 if remove_specs:
                     fh.write("# remove specs: %s\n" % remove_specs)
                 if update_specs:
                     fh.write("# update specs: %s\n" % update_specs)
+                if neutered_specs:
+                    fh.write("# neutered specs: %s\n" % neutered_specs)
 
 
 if __name__ == '__main__':

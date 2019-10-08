@@ -6,23 +6,24 @@ Managing packages
    :local:
    :depth: 1
 
-NOTE: There are many options available for the commands described
-on this page. For details, see :doc:`../../commands`.
+.. note::
+   There are many options available for the commands described
+   on this page. For details, see :doc:`../../commands`.
 
 
 Searching for packages
-=======================
+======================
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
-To see if a specific package such as SciPy is available for
+To see if a specific package, such as SciPy, is available for
 installation:
 
 .. code-block:: bash
 
    conda search scipy
 
-To see if a specific package such as SciPy is available for
+To see if a specific package, such as SciPy, is available for
 installation from Anaconda.org:
 
 .. code-block:: bash
@@ -41,7 +42,7 @@ and is available for installation:
 Installing packages
 ===================
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 To install a specific package such as SciPy into an existing
 environment "myenv":
@@ -72,8 +73,9 @@ To install multiple packages at once, such as SciPy and cURL:
 
    conda install scipy curl
 
-NOTE: It is best to install all packages at once, so that all of
-the dependencies are installed at the same time.
+.. note::
+   It is best to install all packages at once, so that all of
+   the dependencies are installed at the same time.
 
 To install multiple packages at once and specify the version of
 the package:
@@ -92,15 +94,22 @@ If you want to use a specific Python version, it is best to use
 an environment with that version. For more information,
 see :doc:`../troubleshooting`.
 
+Installing similar packages
+===========================
+Installing packages that have similar filenames and serve similar
+purposes may return unexpected results. The package last installed
+will likely determine the outcome, which may be undesirable.
+If the two packages have different names, or if you're building
+variants of packages and need to line up other software in the stack,
+we recommend using :ref:`mutex-metapackages`.
 
 Installing packages from Anaconda.org
-=======================================
+=====================================
 
-Packages that are not available using conda install can be
-obtained from Anaconda.org. Formerly Binstar.org, Anaconda.org,
-is a package management service for both public and private
-package repositories. Anaconda.org is an Anaconda
-product, just like Anaconda and Miniconda.
+Packages that are not available using ``conda install`` can be
+obtained from Anaconda.org, a package management service for
+both public and private package repositories. Anaconda.org
+is an Anaconda product, just like Anaconda and Miniconda.
 
 To install a package from Anaconda.org:
 
@@ -116,8 +125,8 @@ To install a package from Anaconda.org:
    example it is the "pandas" channel.
 
 #. Now that you know the channel name, use the ``conda install``
-   command to install the package. In your Terminal window or an Anaconda Prompt,
-   run:
+   command to install the package. In your terminal window or
+   an Anaconda Prompt, run:
 
    .. code::
 
@@ -126,8 +135,8 @@ To install a package from Anaconda.org:
    This command tells conda to install the bottleneck package
    from the pandas channel on Anaconda.org.
 
-#. To check that the package is installed, in your Terminal window or an Anaconda Prompt,
-   run:
+#. To check that the package is installed, in your terminal window
+   or an Anaconda Prompt, run:
 
    .. code::
 
@@ -135,33 +144,41 @@ To install a package from Anaconda.org:
 
    A list of packages appears, including bottleneck.
 
-NOTE: For information on installing packages from multiple
-channels, see :doc:`manage-channels`.
+.. note::
+   For information on installing packages from multiple
+   channels, see :doc:`manage-channels`.
 
 
 Installing non-conda packages
 =============================
 
 If a package is not available from conda or Anaconda.org, you may be able to
-find and install the package with another package manager like pip.
+find and install the package via conda-forge or with another package manager
+like pip.
 
-Pip packages do not have all the features of conda packages, and we recommend
+Pip packages do not have all the features of conda packages and we recommend
 first trying to install any package with conda. If the package is unavailable
-through conda, try installing it with pip. The differences between pip and
-conda packages cause certain unavoidable limits in compatibility, but conda
+through conda, try finding and installing it with
+`conda-forge <https://conda-forge.org/search.html>`_.
+
+If you still cannot install the package, you can try
+installing it with pip. The differences between pip and
+conda packages cause certain unavoidable limits in compatibility but conda
 works hard to be as compatible with pip as possible.
 
-NOTE: Both pip and conda are included in Anaconda and Miniconda, so you do not
-need to install them separately.
+.. note::
+   Both pip and conda are included in Anaconda and Miniconda, so you do not
+   need to install them separately.
 
-NOTE: Conda environments replace virtualenv, so there is no need to activate a
-virtualenv before using pip.
+.. note::
+   Conda environments replace virtualenv, so there is no need to activate a
+   virtualenv before using pip.
 
 It is possible to have pip installed outside a conda environment or inside a
 conda environment.
 
 To gain the benefits of conda integration, be sure to install pip inside the
-currently active conda environment, and then install packages with that
+currently active conda environment and then install packages with that
 instance of pip. The command ``conda list`` shows packages installed this way,
 with a label showing that they were installed with pip.
 
@@ -177,14 +194,14 @@ To install a non-conda package:
 #. Activate the environment where you want to put the program:
 
    * On Windows, in your Anaconda Prompt, run ``activate myenv``.
-   * On macOS and Linux,in your Terminal window, run ``source activate myenv``.
+   * On macOS and Linux,in your terminal window, run ``source activate myenv``.
 
-#. To use pip to install a program such as See, in your Terminal window or an Anaconda Prompt,
+#. To use pip to install a program such as See, in your terminal window or an Anaconda Prompt,
    run::
 
      pip install see
 
-#. To verify the package was installed, in your Terminal window or an Anaconda Prompt,
+#. To verify the package was installed, in your terminal window or an Anaconda Prompt,
    run:
 
    .. code::
@@ -199,7 +216,7 @@ Installing commercial packages
 ==============================
 
 Installing a commercial package such as IOPro is the same as
-installing any other package. In your Terminal window or an Anaconda Prompt,
+installing any other package. In your terminal window or an Anaconda Prompt,
 run:
 
 .. code-block:: bash
@@ -216,7 +233,7 @@ expires after 30 days.
 Viewing a list of installed packages
 ====================================
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 To list all of the packages in the active environment:
 
@@ -238,7 +255,7 @@ Use ``conda update`` command to check to see if a new update is
 available. If conda tells you an update is available, you can
 then choose whether or not to install it.
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 To update a specific package:
 
@@ -258,9 +275,10 @@ To update conda itself:
 
    conda update conda
 
-NOTE: Conda updates to the highest version in its series, so
-Python 2.7 updates to the highest available in the 2.x series and
-3.6 updates to the highest available in the 3.x series.
+.. note::
+   Conda updates to the highest version in its series, so
+   Python 2.7 updates to the highest available in the 2.x series and
+   3.6 updates to the highest available in the 3.x series.
 
 To update the Anaconda metapackage:
 
@@ -305,7 +323,7 @@ With this ``pinned`` file, ``conda update numpy`` keeps NumPy at
 1.7.1, and ``conda install scipy=0.15.0`` causes an error.
 
 Use the ``--no-pin`` flag to override the update restriction on
-a package. In the Terminal or an Anaconda Prompt, run:
+a package. In the terminal or an Anaconda Prompt, run:
 
 .. code-block:: bash
 
@@ -319,7 +337,7 @@ install, subsequent ``conda update`` commands without
 Removing packages
 =================
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 To remove a package such as SciPy in an environment such as
 myenv:

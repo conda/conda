@@ -15,7 +15,7 @@ from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
-                              UpdateModifier)
+                              UpdateModifier, SatSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalues, string_types,
                              text_type)
@@ -252,7 +252,7 @@ def execute_config(args, parser):
                 json_get[key] = rc_config[key]
                 continue
 
-            if isinstance(rc_config[key], (bool, string_types)):
+            if isinstance(rc_config[key], (bool, int, string_types)):
                 stdout_write(" ".join(("--set", key, text_type(rc_config[key]))))
             else:  # assume the key is a list-type
                 # Note, since conda config --add prepends, these are printed in
@@ -310,7 +310,7 @@ def execute_config(args, parser):
     for key, item in args.set:
         key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key in primitive_parameters:
-            value = context.typify_parameter(key, item)
+            value = context.typify_parameter(key, item, "--set parameter")
             rc_config[key] = value
         elif key in map_parameters:
             argmap = rc_config.setdefault(key, {})
@@ -357,6 +357,7 @@ def execute_config(args, parser):
         yaml.representer.RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
 
         try:
             with open(rc_path, 'w') as rc:

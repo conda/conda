@@ -6,6 +6,8 @@ from __future__ import absolute_import, print_function
 from collections import OrderedDict
 from itertools import chain
 import os
+import re
+import json
 
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
@@ -16,6 +18,7 @@ from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda_env.yaml import dump
 from . import compat, exceptions, yaml
+from conda.history import History
 
 try:
     from cytoolz.itertoolz import concatv, groupby
@@ -29,7 +32,7 @@ VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels')
 def validate_keys(data, kwargs):
     """Check for unknown keys, remove them and print a warning."""
     invalid_keys = []
-    new_data = data.copy()
+    new_data = data.copy() if data else {}
     for key in data.keys():
         if key not in VALID_KEYS:
             invalid_keys.append(key)
@@ -46,6 +49,17 @@ def validate_keys(data, kwargs):
             print(' - {}'.format(key))
         print('')
 
+    deps = data.get('dependencies', [])
+    depsplit = re.compile(r"[<>~\s=]")
+    for dep in deps:
+        if (isinstance(dep, dict) and 'pip' in dep and not
+                any(depsplit.split(_)[0] == 'pip' for _ in deps if not hasattr(_, 'keys'))):
+            print("Warning: you have pip-installed dependencies in your environment file, "
+                  "but you do not list pip itself as one of your conda dependencies.  Conda "
+                  "may not use the correct pip to install your packages, and they may end up "
+                  "in the wrong place.  Please add an explicit pip dependency.  I'm adding one"
+                  " for you, but still nagging you.")
+            new_data['dependencies'].insert(0, 'pip')
     return new_data
 
 
@@ -66,7 +80,7 @@ def load_from_directory(directory):
 
 
 # TODO tests!!!
-def from_environment(name, prefix, no_builds=False, ignore_channels=False):
+def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_history=False):
     """
         Get environment object from prefix
     Args:
@@ -74,10 +88,16 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
         prefix: The path of prefix
         no_builds: Whether has build requirement
         ignore_channels: whether ignore_channels
+        from_history: Whether environment file should be based on explicit specs in history
 
     Returns:     Environment object
     """
     # requested_specs_map = History(prefix).get_requested_specs_map()
+    if from_history:
+        history = History(prefix).get_requested_specs_map()
+        deps = [str(package) for package in history.values()]
+        return Environment(name=name, dependencies=deps, channels=list(context.channels),
+                           prefix=prefix)
     pd = PrefixData(prefix, pip_interop_enabled=True)
 
     precs = tuple(PrefixGraph(pd.iter_records()).graph)
@@ -205,7 +225,7 @@ class Environment(object):
     def remove_channels(self):
         self.channels = []
 
-    def to_dict(self):
+    def to_dict(self, stream=None):
         d = yaml.dict([('name', self.name)])
         if self.channels:
             d['channels'] = self.channels
@@ -213,7 +233,9 @@ class Environment(object):
             d['dependencies'] = self.dependencies.raw
         if self.prefix:
             d['prefix'] = self.prefix
-        return d
+        if stream is None:
+            return d
+        stream.write(json.dumps(d))
 
     def to_yaml(self, stream=None):
         d = self.to_dict()

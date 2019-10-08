@@ -7,6 +7,18 @@ import json
 from logging import LoggerAdapter, getLogger
 from tempfile import SpooledTemporaryFile
 
+have_boto3 = have_boto = False
+try:
+    import boto3
+    have_boto3 = True
+    boto3.client('s3')  # https://github.com/conda/conda/issues/8993
+except ImportError:
+    try:
+        import boto
+        have_boto = True
+    except ImportError:
+        pass
+
 from .. import BaseAdapter, CaseInsensitiveDict, Response
 from ....common.compat import ensure_binary
 from ....common.url import url_to_s3_info
@@ -24,21 +36,17 @@ class S3Adapter(BaseAdapter):
         resp = Response()
         resp.status_code = 200
         resp.url = request.url
-
-        try:
-            import boto3
+        if have_boto3:
             return self._send_boto3(boto3, resp, request)
-        except ImportError:
-            try:
-                import boto
-                return self._send_boto(boto, resp, request)
-            except ImportError:
-                stderrlog.info('\nError: boto3 is required for S3 channels. '
-                               'Please install with `conda install boto3`\n'
-                               'Make sure to run `source deactivate` if you '
-                               'are in a conda environment.\n')
-                resp.status_code = 404
-                return resp
+        elif have_boto:
+            return self._send_boto(boto, resp, request)
+        else:
+            stderrlog.info('\nError: boto3 is required for S3 channels. '
+                           'Please install with `conda install boto3`\n'
+                           'Make sure to run `source deactivate` if you '
+                           'are in a conda environment.\n')
+            resp.status_code = 404
+            return resp
 
     def close(self):
         pass

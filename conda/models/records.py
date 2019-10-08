@@ -21,6 +21,7 @@ from .match_spec import MatchSpec
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
@@ -244,7 +245,11 @@ class PackageRecord(DictSafeMixin, Entity):
     fn = FilenameField(aliases=('filename',))
 
     md5 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+    legacy_bz2_md5 = StringField(default=None, required=False, nullable=True,
+                                 default_in_dump=False)
+    legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+    sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
 
     @property
     def schannel(self):
@@ -255,9 +260,15 @@ class PackageRecord(DictSafeMixin, Entity):
         try:
             return self.__pkey
         except AttributeError:
-            __pkey = self.__pkey = (self.channel.canonical_name, self.subdir, self.name,
-                                    self.version, self.build_number, self.build)
-            return __pkey
+            __pkey = self.__pkey = [
+                self.channel.canonical_name, self.subdir, self.name,
+                self.version, self.build_number, self.build
+            ]
+            # NOTE: fn is included to distinguish between .conda and .tar.bz2 packages
+            if context.separate_format_cache:
+                __pkey.append(self.fn)
+            self.__pkey = tuple(__pkey)
+            return self.__pkey
 
     def __hash__(self):
         try:
@@ -308,13 +319,13 @@ class PackageRecord(DictSafeMixin, Entity):
 
     timestamp = TimestampField()
 
-    @property
+    @memoizedproperty
     def combined_depends(self):
         from .match_spec import MatchSpec
         result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
-        result.update({ms.name: ms for ms in MatchSpec.merge(
-            MatchSpec(spec, optional=True) for spec in self.constrains or ()
-        )})
+        for spec in (self.constrains or ()):
+            ms = MatchSpec(spec)
+            result[ms.name] = MatchSpec(ms, optional=(ms.name not in result))
         return tuple(itervalues(result))
 
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
@@ -340,6 +351,12 @@ class PackageRecord(DictSafeMixin, Entity):
             name=self.name,
             version=self.version,
             build=self.build,
+        )
+
+    def to_simple_match_spec(self):
+        return MatchSpec(
+            name=self.name,
+            version=self.version,
         )
 
     @property

@@ -21,10 +21,11 @@ traffic to continue.
 ``conda skeleton pypi`` can disable SSL verification when pulling packages
 from a PyPI server over HTTPS.
 
-WARNING: This option causes your computer to download and execute arbitrary
-code over a connection that it cannot verify as secure. This option is not
-recommended. Use this option only if necessary. Use this option at your own
-risk.
+.. warning::
+   This option causes your computer to download and execute arbitrary
+   code over a connection that it cannot verify as secure. This option is not
+   recommended and should only be used if necessary. Use this option at your own
+   risk.
 
 To disable SSL verification when using ``conda skeleton pypi``, set the
 ``SSL_NO_VERIFY`` environment variable to either ``1`` or ``True`` (case

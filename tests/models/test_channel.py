@@ -3,19 +3,21 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 from logging import getLogger
+from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
 
 from conda._vendor.auxlib.ish import dals
-from conda.base.constants import APP_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS
-from conda.base.context import Context, context, reset_context
+from conda.base.constants import DEFAULT_CHANNELS
+from conda.base.context import Context, conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import odict, text_type
 from conda.common.configuration import YamlRawParameter
-from conda.common.io import env_var
+from conda.common.io import env_unmodified, env_var, env_vars
 from conda.common.serialize import yaml_load
 from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
 
@@ -24,6 +26,7 @@ try:
 except ImportError:
     from mock import patch
 
+initialize_logging()
 log = getLogger(__name__)
 
 
@@ -31,12 +34,10 @@ class DefaultConfigChannelTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        reset_context()
+        reset_context(())
         cls.platform = context.subdir
         cls.DEFAULT_URLS = ['https://repo.anaconda.com/pkgs/main/%s' % cls.platform,
                             'https://repo.anaconda.com/pkgs/main/noarch',
-                            'https://repo.anaconda.com/pkgs/free/%s' % cls.platform,
-                            'https://repo.anaconda.com/pkgs/free/noarch',
                             'https://repo.anaconda.com/pkgs/r/%s' % cls.platform,
                             'https://repo.anaconda.com/pkgs/r/noarch',
                             ]
@@ -93,34 +94,36 @@ class DefaultConfigChannelTests(TestCase):
         assert ccc1 is ccc
 
     def test_default_channel(self):
-        dc = Channel('defaults')
-        assert dc.canonical_name == 'defaults'
-        assert dc.urls() == self.DEFAULT_URLS
-        assert dc.subdir is None
-        assert text_type(dc) == 'defaults'
+        with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+            dc = Channel('defaults')
+            assert dc.canonical_name == 'defaults'
+            assert dc.urls() == self.DEFAULT_URLS
+            assert dc.subdir is None
+            assert text_type(dc) == 'defaults'
 
-        dc = Channel('defaults/win-32')
-        assert dc.canonical_name == 'defaults'
-        assert dc.subdir == 'win-32'
-        assert dc.urls()[0] == 'https://repo.anaconda.com/pkgs/main/win-32'
-        assert dc.urls()[1] == 'https://repo.anaconda.com/pkgs/main/noarch'
-        assert dc.urls()[2].endswith('/win-32')
+            dc = Channel('defaults/win-32')
+            assert dc.canonical_name == 'defaults'
+            assert dc.subdir == 'win-32'
+            assert dc.urls()[0] == 'https://repo.anaconda.com/pkgs/main/win-32'
+            assert dc.urls()[1] == 'https://repo.anaconda.com/pkgs/main/noarch'
+            assert dc.urls()[2].endswith('/win-32')
 
     def test_url_channel_w_platform(self):
-        channel = Channel('https://repo.anaconda.com/pkgs/free/osx-64')
+        with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+            channel = Channel('https://repo.anaconda.com/pkgs/main/osx-64')
 
-        assert channel.scheme == "https"
-        assert channel.location == "repo.anaconda.com"
-        assert channel.platform == 'osx-64' == channel.subdir
-        assert channel.name == 'pkgs/free'
+            assert channel.scheme == "https"
+            assert channel.location == "repo.anaconda.com"
+            assert channel.platform == 'osx-64' == channel.subdir
+            assert channel.name == 'pkgs/main'
 
-        assert channel.base_url == 'https://repo.anaconda.com/pkgs/free'
-        assert channel.canonical_name == 'defaults'
-        assert channel.url() == 'https://repo.anaconda.com/pkgs/free/osx-64'
-        assert channel.urls() == [
-            'https://repo.anaconda.com/pkgs/free/osx-64',
-            'https://repo.anaconda.com/pkgs/free/noarch',
-        ]
+            assert channel.base_url == 'https://repo.anaconda.com/pkgs/main'
+            assert channel.canonical_name == 'defaults'
+            assert channel.url() == 'https://repo.anaconda.com/pkgs/main/osx-64'
+            assert channel.urls() == [
+                'https://repo.anaconda.com/pkgs/main/osx-64',
+                'https://repo.anaconda.com/pkgs/main/noarch',
+            ]
 
     def test_bare_channel_http(self):
         url = "http://conda-01"
@@ -155,19 +158,20 @@ class DefaultConfigChannelTests(TestCase):
         ]
 
     def test_channel_name_subdir_only(self):
-        channel = Channel('pkgs/free/win-64')
-        assert channel.scheme == "https"
-        assert channel.location == "repo.anaconda.com"
-        assert channel.platform == 'win-64' == channel.subdir
-        assert channel.name == 'pkgs/free'
+        with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+            channel = Channel('pkgs/main/win-64')
+            assert channel.scheme == "https"
+            assert channel.location == "repo.anaconda.com"
+            assert channel.platform == 'win-64' == channel.subdir
+            assert channel.name == 'pkgs/main'
 
-        assert channel.base_url == 'https://repo.anaconda.com/pkgs/free'
-        assert channel.canonical_name == 'defaults'
-        assert channel.url() == 'https://repo.anaconda.com/pkgs/free/win-64'
-        assert channel.urls() == [
-            'https://repo.anaconda.com/pkgs/free/win-64',
-            'https://repo.anaconda.com/pkgs/free/noarch',
-        ]
+            assert channel.base_url == 'https://repo.anaconda.com/pkgs/main'
+            assert channel.canonical_name == 'defaults'
+            assert channel.url() == 'https://repo.anaconda.com/pkgs/main/win-64'
+            assert channel.urls() == [
+                'https://repo.anaconda.com/pkgs/main/win-64',
+                'https://repo.anaconda.com/pkgs/main/noarch',
+            ]
 
 
 class AnacondaServerChannelTests(TestCase):
@@ -180,7 +184,7 @@ class AnacondaServerChannelTests(TestCase):
           - https://conda.anaconda.org
           - http://10.2.3.4:7070/conda
         """)
-        reset_context()
+        reset_context(())
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
@@ -332,7 +336,7 @@ class CustomConfigChannelTests(TestCase):
           - http://192.168.0.15:8080/pkgs/pro
           - http://192.168.0.15:8080/pkgs/msys2
         """)
-        reset_context()
+        reset_context(())
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
@@ -351,7 +355,7 @@ class CustomConfigChannelTests(TestCase):
     def tearDown(cls):
         reset_context()
 
-    def test_pkgs_free(self):
+    def test_pkgs_main(self):
         channel = Channel('pkgs/anaconda')
         assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
@@ -392,6 +396,15 @@ class CustomConfigChannelTests(TestCase):
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.platform == "noarch"
         assert channel.package_filename == "flask-1.0.tar.bz2"
+        assert channel.canonical_name == "defaults"
+        assert channel.urls() == [
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
+        ]
+        channel = Channel('https://repo.anaconda.com/pkgs/anaconda/noarch/flask-1.0.conda')
+        assert channel.channel_name == "pkgs/anaconda"
+        assert channel.channel_location == "192.168.0.15:8080"
+        assert channel.platform == "noarch"
+        assert channel.package_filename == "flask-1.0.conda"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
             'http://192.168.0.15:8080/pkgs/anaconda/noarch',
@@ -540,7 +553,8 @@ class CustomConfigChannelTests(TestCase):
         conda_bld_path = join(gettempdir(), 'conda-bld')
         mkdir_p(conda_bld_path)
         try:
-            with env_var('CONDA_CROOT', conda_bld_path, reset_context):
+            from functools import partial
+            with env_var('CONDA_CROOT', conda_bld_path, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 Channel._reset_state()
                 channel = Channel('local')
                 assert channel._channels[0].name.rsplit('/', 1)[-1] == 'conda-bld'
@@ -669,7 +683,7 @@ class ChannelAuthTokenPriorityTests(TestCase):
           - donald/label/main
           - http://us:pw@192.168.0.15:8080/t/tkn-123/pkgs/r
         """)
-        reset_context()
+        reset_context(())
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
@@ -917,7 +931,7 @@ class UrlChannelTests(TestCase):
                 for subdir in subdirs:
                     yield join_url(channel.base_url, subdir)
 
-        with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
+        with env_vars(dict({'CONDA_SUBDIRS': ','.join(subdirs)}), stack_callback=conda_tests_ctxt_mgmt_def_pol):
             c = Channel('defaults')
             assert c.urls() == list(_channel_urls())
 
@@ -944,7 +958,7 @@ class UrlChannelTests(TestCase):
             ))
 
     def test_subdir_env_var(self):
-        with env_var('CONDA_SUBDIR', 'osx-1012-x84_64', reset_context):
+        with env_var('CONDA_SUBDIR', 'osx-1012-x84_64', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             channel = Channel('https://conda.anaconda.org/msarahan/osx-1012-x84_64/clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2')
             assert channel.base_url == 'https://conda.anaconda.org/msarahan'
             assert channel.package_filename == 'clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2'
@@ -1032,45 +1046,40 @@ class OtherChannelParsingTests(TestCase):
 
 
 def test_multichannel_priority():
-    channels = ['conda-test', 'defaults', 'conda-forge']
-    subdirs = ['new-optimized-subdir', 'linux-32', 'noarch']
-    channel_priority_map = prioritize_channels(channels, with_credentials=True, subdirs=subdirs)
-    if on_win:
-        assert channel_priority_map == OrderedDict([
-            ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
-            ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
-            ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
-            ('https://repo.anaconda.com/pkgs/main/new-optimized-subdir', ('defaults', 1)),
-            ('https://repo.anaconda.com/pkgs/main/linux-32', ('defaults', 1)),
-            ('https://repo.anaconda.com/pkgs/main/noarch', ('defaults', 1)),
-            ('https://repo.anaconda.com/pkgs/free/new-optimized-subdir', ('defaults', 2)),
-            ('https://repo.anaconda.com/pkgs/free/linux-32', ('defaults', 2)),
-            ('https://repo.anaconda.com/pkgs/free/noarch', ('defaults', 2)),
-            ('https://repo.anaconda.com/pkgs/r/new-optimized-subdir', ('defaults', 3)),
-            ('https://repo.anaconda.com/pkgs/r/linux-32', ('defaults', 3)),
-            ('https://repo.anaconda.com/pkgs/r/noarch', ('defaults', 3)),
-            ('https://repo.anaconda.com/pkgs/msys2/new-optimized-subdir', ('defaults', 4)),
-            ('https://repo.anaconda.com/pkgs/msys2/linux-32', ('defaults', 4)),
-            ('https://repo.anaconda.com/pkgs/msys2/noarch', ('defaults', 4)),
-            ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 5)),
-            ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 5)),
-            ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 5)),
-        ])
-    else:
-        assert channel_priority_map == OrderedDict([
-            ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
-            ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
-            ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
-            ('https://repo.anaconda.com/pkgs/main/new-optimized-subdir', ('defaults', 1)),
-            ('https://repo.anaconda.com/pkgs/main/linux-32', ('defaults', 1)),
-            ('https://repo.anaconda.com/pkgs/main/noarch', ('defaults', 1)),
-            ('https://repo.anaconda.com/pkgs/free/new-optimized-subdir', ('defaults', 2)),
-            ('https://repo.anaconda.com/pkgs/free/linux-32', ('defaults', 2)),
-            ('https://repo.anaconda.com/pkgs/free/noarch', ('defaults', 2)),
-            ('https://repo.anaconda.com/pkgs/r/new-optimized-subdir', ('defaults', 3)),
-            ('https://repo.anaconda.com/pkgs/r/linux-32', ('defaults', 3)),
-            ('https://repo.anaconda.com/pkgs/r/noarch', ('defaults', 3)),
-            ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 4)),
-            ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 4)),
-            ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 4)),
-        ])
+    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+        channels = ['conda-test', 'defaults', 'conda-forge']
+        subdirs = ['new-optimized-subdir', 'linux-32', 'noarch']
+        channel_priority_map = prioritize_channels(channels, with_credentials=True, subdirs=subdirs)
+        if on_win:
+            assert channel_priority_map == OrderedDict([
+                ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
+                ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
+                ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
+                ('https://repo.anaconda.com/pkgs/main/new-optimized-subdir', ('defaults', 1)),
+                ('https://repo.anaconda.com/pkgs/main/linux-32', ('defaults', 1)),
+                ('https://repo.anaconda.com/pkgs/main/noarch', ('defaults', 1)),
+                ('https://repo.anaconda.com/pkgs/r/new-optimized-subdir', ('defaults', 2)),
+                ('https://repo.anaconda.com/pkgs/r/linux-32', ('defaults', 2)),
+                ('https://repo.anaconda.com/pkgs/r/noarch', ('defaults', 2)),
+                ('https://repo.anaconda.com/pkgs/msys2/new-optimized-subdir', ('defaults', 3)),
+                ('https://repo.anaconda.com/pkgs/msys2/linux-32', ('defaults', 3)),
+                ('https://repo.anaconda.com/pkgs/msys2/noarch', ('defaults', 3)),
+                ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 4)),
+                ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 4)),
+                ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 4)),
+            ])
+        else:
+            assert channel_priority_map == OrderedDict([
+                ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
+                ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
+                ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
+                ('https://repo.anaconda.com/pkgs/main/new-optimized-subdir', ('defaults', 1)),
+                ('https://repo.anaconda.com/pkgs/main/linux-32', ('defaults', 1)),
+                ('https://repo.anaconda.com/pkgs/main/noarch', ('defaults', 1)),
+                ('https://repo.anaconda.com/pkgs/r/new-optimized-subdir', ('defaults', 2)),
+                ('https://repo.anaconda.com/pkgs/r/linux-32', ('defaults', 2)),
+                ('https://repo.anaconda.com/pkgs/r/noarch', ('defaults', 2)),
+                ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 3)),
+                ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 3)),
+                ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 3)),
+            ])

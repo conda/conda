@@ -38,8 +38,9 @@ as in ``~/anaconda/envs/envname/bin/program_name``. When an
 environment is activated, you can execute the program in that
 environment with just ``program_name``.
 
-NOTE: Replace ``envname`` with the name of the environment and
-replace ``program_name`` with the name of the program.
+.. note::
+   Replace ``envname`` with the name of the environment and
+   replace ``program_name`` with the name of the program.
 
 
 .. _anaconda-glossary:
@@ -49,7 +50,7 @@ Anaconda
 
 A downloadable, free, open source, high-performance and optimized
 Python and R distribution. Anaconda includes
-:ref:`conda <conda-glossary>`, conda build, Python, and 100+
+:ref:`conda <conda-glossary>`, conda-build, Python, and 100+
 automatically installed, open source scientific packages and
 their dependencies that have been tested to work well together,
 including SciPy, NumPy and many others. Use the ``conda install`` command
@@ -128,13 +129,10 @@ Python 2 packages, maintain another conda environment with only
 Python 3 and Python 3 packages, and maintain another for R
 language packages. Environments can be created from:
 
-* The Navigator GUI.
-* The command line.
+* The Navigator GUI
+* The command line
 * An environment specification file with the name
-  ``your-environment-name.yml``.
-
-  NOTE: Replace ``your-environment-name`` with the name of your
-  environment.
+  ``your-environment-name.yml``
 
 
 .. _conda-package-glossary:
@@ -158,11 +156,11 @@ A cloud-based repository that contains 720+ open source certified
 packages that are easily installed locally with the
 ``conda install`` command. Anyone can access the repository from:
 
-* The Navigator GUI.
+* The Navigator GUI
 
-* A Terminal or Anaconda Prompt using conda commands.
+* A terminal or Anaconda Prompt using conda commands
 
-*  https://repo.continuum.io/pkgs/.
+*  https://repo.continuum.io/pkgs/
 
 
 .. _metapackage-glossary:
@@ -170,16 +168,11 @@ packages that are easily installed locally with the
 Metapackage
 ===========
 
-A conda package that only lists dependencies and does not include
-any functional programs or libraries. The metapackage may contain
-links to software files that are automatically downloaded when
-executed. An example of a metapackage is "anaconda," which
-collects together all the packages in the Anaconda installer.
-The command ``conda create -n envname anaconda`` creates an
-environment that exactly matches what would be created from the
-Anaconda installer. You can create metapackages with the
-``conda metapackage`` command.
-
+A metapackage is a very simple package that has at least a name
+and a version. It need not have any dependencies or build steps.
+:ref:`meta-package` may list dependencies to several core,
+low-level libraries and may contain links to software files
+that are automatically downloaded when executed.
 
 .. _miniconda-glossary:
 

@@ -44,6 +44,7 @@ class PackageInfo(ImmutableEntity):
 
     # attributes external to the package tarball
     extracted_package_dir = StringField()
+    package_tarball_full_path = StringField()
     channel = ComposableField(Channel)
     repodata_record = ComposableField(PackageRecord)
     url = StringField()

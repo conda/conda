@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EINVAL, EXDEV
+from errno import EINVAL, EXDEV, EPERM
 from logging import getLogger
 import os
 from os.path import dirname, isdir, split, basename, join, exists
@@ -56,7 +56,8 @@ def rename(source_path, destination_path, force=False):
         try:
             os.rename(source_path, destination_path)
         except EnvironmentError as e:
-            if on_win and dirname(source_path) == dirname(destination_path):
+            if (on_win and dirname(source_path) == dirname(destination_path)
+                    and os.path.isfile(source_path)):
                 condabin_dir = join(context.conda_prefix, "condabin")
                 rename_script = join(condabin_dir, 'rename_tmp.bat')
                 if exists(rename_script):
@@ -69,7 +70,7 @@ def rename(source_path, destination_path, force=False):
                     log.debug("{} is missing.  Conda was not installed correctly or has been "
                               "corrupted.  Please file an issue on the conda github repo."
                               .format(rename_script))
-            elif e.errno in (EINVAL, EXDEV):
+            elif e.errno in (EINVAL, EXDEV, EPERM):
                 # https://github.com/conda/conda/issues/6811
                 # https://github.com/conda/conda/issues/6711
                 log.trace("Could not rename %s => %s due to errno [%s]. Falling back"

@@ -6,6 +6,11 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 
+# pip_util.py import on_win from conda.exports
+# conda.exports resets the context
+# we need to import conda.exports here so that the context is not lost
+# when importing pip (and pip_util)
+import conda.exports  # noqa
 from conda.base.context import context
 from conda.cli.conda_argparse import ArgumentParser
 from conda.cli.main import init_loggers
@@ -41,6 +46,7 @@ from . import main_export
 from . import main_list
 from . import main_remove
 from . import main_update
+from . import main_config
 
 
 # TODO: This belongs in a helper library somewhere
@@ -60,6 +66,7 @@ def create_parser():
     main_list.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
+    main_config.configure_parser(sub_parsers)
 
     show_help_on_empty_command()
     return p

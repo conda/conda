@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import defaultdict, OrderedDict
 from logging import getLogger
 
 from .enums import NoarchType
@@ -32,18 +33,19 @@ class PrefixGraph(object):
     def __init__(self, records, specs=()):
         records = tuple(records)
         specs = set(specs)
-        graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]
+        self.graph = graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]
         self.spec_matches = spec_matches = {}  # Dict[PrefixRecord, Set[MatchSpec]]
         for node in records:
             parent_match_specs = tuple(MatchSpec(d) for d in node.depends)
             parent_nodes = set(
-                rec for rec in records if any(m.match(rec) for m in parent_match_specs)
+                rec for rec in records
+                if any(m.match(rec) for m in parent_match_specs)
             )
             graph[node] = parent_nodes
             matching_specs = IndexedSet(s for s in specs if s.match(node))
             if matching_specs:
                 spec_matches[node] = matching_specs
-        self.graph = graph
+
         self._toposort()
 
     def remove_spec(self, spec):
@@ -271,7 +273,7 @@ class PrefixGraph(object):
         In the case of a tie, use the node with the alphabetically-first package name.
         """
         node_with_fewest_parents = sorted(
-            (len(parents), node.name, node) for node, parents in iteritems(graph)
+            (len(parents), node.dist_str(), node) for node, parents in iteritems(graph)
         )[0][2]
         graph.pop(node_with_fewest_parents)
 
@@ -321,7 +323,6 @@ class PrefixGraph(object):
                     if (hasattr(node, 'noarch') and node.noarch == NoarchType.python
                             and node not in conda_parents):
                         parents.add(conda_node)
-
 
 #     def dot_repr(self, title=None):  # pragma: no cover
 #         # graphviz DOT graph description language
@@ -379,6 +380,61 @@ class PrefixGraph(object):
 #         except webbrowser.Error:
 #             browser = webbrowser.get()
 #         browser.open_new_tab(path_to_url(location))
+
+class GeneralGraph(PrefixGraph):
+    """
+    Compared with PrefixGraph, this class takes in more than one record of a given name,
+    and operates on that graph from the higher view across any matching dependencies.  It is
+    not a Prefix thing, but more like a "graph of all possible candidates" thing, and is used
+    for unsatisfiability analysis
+    """
+
+    def __init__(self, records, specs=()):
+        records = tuple(records)
+        super(GeneralGraph, self).__init__(records, specs)
+        self.specs_by_name = defaultdict(dict)
+        for node in records:
+            parent_dict = self.specs_by_name.get(node.name, OrderedDict())
+            for dep in tuple(MatchSpec(d) for d in node.depends):
+                deps = parent_dict.get(dep.name, set())
+                deps.add(dep)
+                parent_dict[dep.name] = deps
+            self.specs_by_name[node.name] = parent_dict
+
+        consolidated_graph = OrderedDict()
+        # graph is toposorted, so looping over it is in dependency order
+        for node, parent_nodes in reversed(self.graph.items()):
+            cg = consolidated_graph.get(node.name, set())
+            cg.update(_.name for _ in parent_nodes)
+            consolidated_graph[node.name] = cg
+        self.graph_by_name = consolidated_graph
+
+    def breadth_first_search_by_name(self, root_spec, target_spec):
+        """Return shorted path from root_spec to spec_name"""
+        queue = []
+        queue.append([root_spec])
+        visited = []
+        while queue:
+            path = queue.pop(0)
+            node = path[-1]
+            if node in visited:
+                continue
+            visited.append(node)
+            if node == target_spec:
+                return path
+            children = []
+            specs = self.specs_by_name.get(node.name)
+            if specs is None:
+                continue
+            for _, deps in specs.items():
+                children.extend(list(deps))
+            for adj in children:
+                if adj.name == target_spec.name and adj.version != target_spec.version:
+                    pass
+                else:
+                    new_path = list(path)
+                    new_path.append(adj)
+                    queue.append(new_path)
 
 
 # if __name__ == "__main__":

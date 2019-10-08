@@ -10,10 +10,11 @@ from os.path import abspath, basename, expanduser, expandvars, join, normcase, s
 import re
 import subprocess
 
-from .compat import PY2, ensure_fs_path_encoding, on_win, string_types
+from .compat import on_win, string_types
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.toolz import accumulate, concat, take
+from distutils.spawn import find_executable
 
 try:
     # Python 3
@@ -43,8 +44,8 @@ def is_path(value):
 
 
 def expand(path):
-    if on_win and PY2:
-        path = ensure_fs_path_encoding(path)
+    # if on_win and PY2:
+    #     path = ensure_fs_path_encoding(path)
     return abspath(expanduser(expandvars(path)))
 
 
@@ -60,7 +61,6 @@ def paths_equal(path1, path2):
     else:
         return abspath(path1) == abspath(path2)
 
-
 @memoize
 def url_to_path(url):
     """Convert a file:// URL to a path.
@@ -72,7 +72,8 @@ def url_to_path(url):
     if not url.startswith("file://"):  # pragma: no cover
         raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
     _, netloc, path, _, _ = urlsplit(url)
-    path = unquote(path)
+    from .url import percent_decode
+    path = percent_decode(path)
     if netloc not in ('', 'localhost', '127.0.0.1', '::1'):
         if not netloc.startswith('\\\\'):
             # The only net location potentially accessible is a Windows UNC path
@@ -126,14 +127,21 @@ def explode_directories(child_directories, already_split=False):
 
 
 def pyc_path(py_path, python_major_minor_version):
+    '''
+    This must not return backslashes on Windows as that will break
+    tests and leads to an eventual need to make url_to_path return
+    backslashes too and that may end up changing files on disc or
+    to the result of comparisons with the contents of them.
+    '''
     pyver_string = python_major_minor_version.replace('.', '')
     if pyver_string.startswith('2'):
         return py_path + 'c'
     else:
         directory, py_file = split(py_path)
         basename_root, extension = splitext(py_file)
-        pyc_file = "__pycache__/%s.cpython-%s%sc" % (basename_root, pyver_string, extension)
-        return "%s/%s" % (directory, pyc_file) if directory else pyc_file
+        pyc_file = "__pycache__" + '/' + "%s.cpython-%s%sc" % (
+            basename_root, pyver_string, extension)
+        return "%s%s%s" % (directory, '/', pyc_file) if directory else pyc_file
 
 
 def missing_pyc_files(python_major_minor_version, files):
@@ -281,7 +289,11 @@ def win_path_to_unix(path, root_prefix=""):
     # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
     if not path:
         return ''
-    cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
+    bash = which('bash')
+    if bash:
+        cygpath = os.environ.get('CYGPATH', os.path.join(os.path.dirname(bash), 'cygpath.exe'))
+    else:
+        cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
     try:
         path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
     except Exception as e:
@@ -297,5 +309,41 @@ def win_path_to_unix(path, root_prefix=""):
 
 
 def which(executable):
-    from distutils.spawn import find_executable
     return find_executable(executable)
+
+
+def strip_pkg_extension(path):
+    """
+    Examples:
+        >>> strip_pkg_extension("/path/_license-1.1-py27_1.tar.bz2")
+        ('/path/_license-1.1-py27_1', '.tar.bz2')
+        >>> strip_pkg_extension("/path/_license-1.1-py27_1.conda")
+        ('/path/_license-1.1-py27_1', '.conda')
+        >>> strip_pkg_extension("/path/_license-1.1-py27_1")
+        ('/path/_license-1.1-py27_1', None)
+    """
+    # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
+    #       import rules and to avoid a global lookup.
+    if path[-6:] == ".conda":
+        return path[:-6], ".conda"
+    elif path[-8:] == ".tar.bz2":
+        return path[:-8], ".tar.bz2"
+    elif path[-5:] == ".json":
+        return path[:-5], ".json"
+    else:
+        return path, None
+
+
+def is_package_file(path):
+    """
+    Examples:
+        >>> is_package_file("/path/_license-1.1-py27_1.tar.bz2")
+        True
+        >>> is_package_file("/path/_license-1.1-py27_1.conda")
+        True
+        >>> is_package_file("/path/_license-1.1-py27_1")
+        False
+    """
+    # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
+    #       import rules and to avoid a global lookup.
+    return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"

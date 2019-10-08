@@ -8,11 +8,11 @@ from logging import getLogger
 import re
 
 from .channel import Channel
-from .records import PackageRecord
 from .package_info import PackageInfo
+from .records import PackageRecord
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
-from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
+from ..base.constants import CONDA_PACKAGE_EXTENSIONS, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
 from ..common.constants import NULL
@@ -20,7 +20,7 @@ from ..common.url import has_platform, is_url, join_url
 
 log = getLogger(__name__)
 DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',
-                                         'dist_name'))
+                                         'dist_name', 'fmt'))
 
 
 IndexRecord = PackageRecord  # for conda-build backward compat
@@ -52,6 +52,18 @@ class DistType(EntityType):
             return super(DistType, cls).__call__(*args, **kwargs)
 
 
+def strip_extension(original_dist):
+    for ext in CONDA_PACKAGE_EXTENSIONS:
+        if original_dist.endswith(ext):
+            original_dist = original_dist[:-len(ext)]
+    return original_dist
+
+
+def split_extension(original_dist):
+    stripped = strip_extension(original_dist)
+    return stripped, original_dist[len(stripped):]
+
+
 @with_metaclass(DistType)
 class Dist(Entity):
     _cache_ = {}
@@ -61,6 +73,7 @@ class Dist(Entity):
 
     dist_name = StringField(immutable=True)
     name = StringField(immutable=True)
+    fmt = StringField(immutable=True)
     version = StringField(immutable=True)
     build_string = StringField(immutable=True)
     build_number = IntegerField(immutable=True)
@@ -69,7 +82,7 @@ class Dist(Entity):
     platform = StringField(required=False, nullable=True, immutable=True)
 
     def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
-                 build_number=None, base_url=None, platform=None):
+                 build_number=None, base_url=None, platform=None, fmt='.tar.bz2'):
         super(Dist, self).__init__(channel=channel,
                                    dist_name=dist_name,
                                    name=name,
@@ -77,7 +90,8 @@ class Dist(Entity):
                                    build_string=build_string,
                                    build_number=build_number,
                                    base_url=base_url,
-                                   platform=platform)
+                                   platform=platform,
+                                   fmt=fmt)
 
     def to_package_ref(self):
         return PackageRecord(
@@ -122,11 +136,11 @@ class Dist(Entity):
     def is_channel(self):
         return bool(self.base_url and self.platform)
 
-    def to_filename(self, extension='.tar.bz2'):
+    def to_filename(self, extension=None):
         if self.is_feature_package:
             return self.dist_name
         else:
-            return self.dist_name + extension
+            return self.dist_name + self.fmt
 
     def to_matchspec(self):
         return ' '.join(self.quad[:3])
@@ -157,8 +171,7 @@ class Dist(Entity):
                      )
         channel, original_dist, w_f_d = re.search(REGEX_STR, string).groups()
 
-        if original_dist.endswith(CONDA_TARBALL_EXTENSION):
-            original_dist = original_dist[:-len(CONDA_TARBALL_EXTENSION)]
+        original_dist, fmt = split_extension(original_dist)
 
         if channel_override != NULL:
             channel = channel_override
@@ -172,23 +185,21 @@ class Dist(Entity):
                    version=dist_details.version,
                    build_string=dist_details.build_string,
                    build_number=dist_details.build_number,
-                   dist_name=original_dist)
+                   dist_name=original_dist,
+                   fmt=fmt)
 
     @staticmethod
     def parse_dist_name(string):
         original_string = string
         try:
             string = ensure_text_type(string)
-
-            no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSION)]
-                                 if string.endswith(CONDA_TARBALL_EXTENSION)
-                                 else string)
+            no_fmt_string, fmt = split_extension(string)
 
             # remove any directory or channel information
-            if '::' in no_tar_bz2_string:
-                dist_name = no_tar_bz2_string.rsplit('::', 1)[-1]
+            if '::' in no_fmt_string:
+                dist_name = no_fmt_string.rsplit('::', 1)[-1]
             else:
-                dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
+                dist_name = no_fmt_string.rsplit('/', 1)[-1]
 
             parts = dist_name.rsplit('-', 2)
 
@@ -200,7 +211,7 @@ class Dist(Entity):
                                                      if build_string else '0')))
             build_number = int(build_number_as_string) if build_number_as_string else 0
 
-            return DistDetails(name, version, build_string, build_number, dist_name)
+            return DistDetails(name, version, build_string, build_number, dist_name, fmt)
 
         except:
             raise CondaError("dist_name is not a valid conda package: %s" % original_string)
@@ -208,7 +219,7 @@ class Dist(Entity):
     @classmethod
     def from_url(cls, url):
         assert is_url(url), url
-        if not url.endswith(CONDA_TARBALL_EXTENSION) and '::' not in url:
+        if not any(url.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS) and '::' not in url:
             raise CondaError("url '%s' is not a conda package" % url)
 
         dist_details = cls.parse_dist_name(url)
@@ -230,12 +241,13 @@ class Dist(Entity):
                    build_number=dist_details.build_number,
                    dist_name=dist_details.dist_name,
                    base_url=base_url,
-                   platform=platform)
+                   platform=platform,
+                   fmt=dist_details.fmt)
 
     def to_url(self):
         if not self.base_url:
             return None
-        filename = self.dist_name + CONDA_TARBALL_EXTENSION
+        filename = self.dist_name + self.fmt
         return (join_url(self.base_url, self.platform, filename)
                 if self.platform
                 else join_url(self.base_url, filename))
@@ -260,7 +272,9 @@ class Dist(Entity):
         return self.__key__() >= other.__key__()
 
     def __hash__(self):
-        return hash(self.__key__())
+        # dists compare equal regardless of fmt, but fmt is taken into account for
+        #    object identity
+        return hash((self.__key__(), self.fmt))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__key__() == other.__key__()
@@ -284,9 +298,7 @@ class Dist(Entity):
         return self.dist_name.startswith(match)
 
     def __contains__(self, item):
-        item = ensure_text_type(item)
-        if item.endswith(CONDA_TARBALL_EXTENSION):
-            item = item[:-len(CONDA_TARBALL_EXTENSION)]
+        item = strip_extension(ensure_text_type(item))
         return item in self.__str__()
 
     @property
@@ -295,8 +307,7 @@ class Dist(Entity):
 
 
 def dist_str_to_quad(dist_str):
-    if dist_str.endswith(CONDA_TARBALL_EXTENSION):
-        dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+    dist_str = strip_extension(dist_str)
     if '::' in dist_str:
         channel_str, dist_str = dist_str.split("::", 1)
     else:

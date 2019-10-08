@@ -33,7 +33,7 @@ from array import array
 from itertools import chain, combinations
 from logging import DEBUG, getLogger
 
-from .compat import iteritems, odict
+from .compat import iteritems
 
 log = getLogger(__name__)
 
@@ -264,35 +264,6 @@ class PySatSolver(SatSolver):
         return solution
 
 
-def get_sat_solver_cls(name=None):
-    solvers = odict([
-        ('pycosat', PycoSatSolver),
-        ('pycryptosat', CryptoMiniSatSolver),
-        ('pysat', PySatSolver),
-    ])
-    if name is not None:
-        try:
-            cls = solvers[name]
-        except KeyError:
-            raise ValueError('Unknown SAT solver interface: "{}".'.format(name))
-        try:
-            cls().run(0)
-        except Exception:
-            raise RuntimeError('Could not run SAT solver through interface "{}".'.format(name))
-        else:
-            log.debug('Using SAT solver interface "{}".'.format(name))
-            return cls
-    for name, cls in solvers.items():
-        try:
-            cls().run(0)
-        except Exception:
-            log.warn('Could not run SAT solver through interface "{}".'.format(name))
-        else:
-            log.debug('Using SAT solver interface "{}".'.format(name))
-            return cls
-    raise RuntimeError('Could not run any SAT solver.')
-
-
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
@@ -359,9 +330,21 @@ class Clauses(object):
 
     def Convert_(self, x):
         tx = type(x)
+        name = x
         if tx in (tuple, list):
             return tx(map(self.Convert_, x))
-        return self.names.get(x, x)
+        elif tx not in (bool, int) and name not in self.names:
+            # This is equivalent to running self._assign_no_name(pval, nval) on
+            # the (pval, nval) tuple we return below. Duplicating the code here
+            # is an important performance tweak to avoid the costly generator
+            # expressions and tuple additions in self._assign_no_name.
+            x = self.new_var(name)
+            # copied from And_() below.  Not sure what the right answer is.
+            # if polarity in (True, None):
+            #     self.add_clauses([(-x, f,), (-x, g,)])
+            # if polarity in (False, None):
+            #     self.add_clauses([(x, -f, -g)])
+        return self.names.get(name, x)
 
     def Eval_(self, func, args, polarity, name, conv=True):
         if conv:
@@ -867,6 +850,8 @@ class Clauses(object):
                 if newsol is None:
                     lo = mid + 1
                     log.trace("Bisection failure, new range=(%d,%d)" % (lo, hi))
+                    if lo > hi:
+                        break
                     # If this was a failure of the first test after peak minimization,
                     # then it means that the peak minimizer is "tight" and we don't need
                     # any further constraints.
@@ -909,7 +894,7 @@ def evaluate_eq(eq, sol):
     return sum(eq.get(s, 0) for s in sol if type(s) is not bool)
 
 
-def minimal_unsatisfiable_subset(clauses, sat):
+def minimal_unsatisfiable_subset(clauses, sat, explicit_specs):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an
     unsatisfiable core)
@@ -924,66 +909,21 @@ def minimal_unsatisfiable_subset(clauses, sat):
     the order False < True), that is, any function where (A <= B) iff (sat(B)
     <= sat(A)), where A <= B means A is a subset of B and False < True).
 
-    Algorithm
-    =========
-
-    Algorithm suggested from
-    http://www.slideshare.net/pvcpvc9/lecture17-31382688. We do a binary
-    search on the clauses by splitting them in halves A and B. If A or B is
-    UNSAT, we use that and repeat. Otherwise, we recursively check A, but each
-    time we do a sat query, we include B, until we have a minimal subset A* of
-    A such that A* U B is UNSAT. Then we find a minimal subset B* of B such
-    that A* U B* is UNSAT. Then A* U B* will be a minimal unsatisfiable subset
-    of the original set of clauses.
-
-    Proof: If some proper subset C of A* U B* is UNSAT, then there is some
-    clause c in A* U B* not in C. If c is in A*, then that means (A* - {c}) U
-    B* is UNSAT, and hence (A* - {c}) U B is UNSAT, since it is a superset,
-    which contradicts A* being the minimal subset of A with such
-    property. Similarly, if c is in B, then A* U (B* - {c}) is UNSAT, but B* -
-    {c} is a strict subset of B*, contradicting B* being the minimal subset of
-    B with this property.
-
     """
-    clauses = tuple(clauses)
-    if sat(clauses):
-        raise ValueError("Clauses are not unsatisfiable")
+    working_set = set()
+    found_conflicts = set()
 
-    def split(S):
-        """
-        Split S into two equal parts
-        """
-        S = tuple(S)
-        L = len(S)//2
-        return S[:L], S[L:]
+    if sat(explicit_specs, True) is None:
+        found_conflicts = set(explicit_specs)
+    else:
+        # we succeeded, so we'll add the spec to our future constraints
+        working_set = set(explicit_specs)
 
-    def minimal_unsat(clauses, include=()):
-        """
-        Return a minimal subset A of clauses such that A + include is
-        unsatisfiable.
+    for spec in (set(clauses) - working_set):
+        if sat(working_set | {spec, }, True) is None:
+            found_conflicts.add(spec)
+        else:
+            # we succeeded, so we'll add the spec to our future constraints
+            working_set.add(spec)
 
-        Implicitly assumes that clauses + include is unsatisfiable.
-        """
-        # assert not sat(clauses + include), (len(clauses), len(include))
-
-        # Base case: Since clauses + include is implicitly assumed to be
-        # unsatisfiable, if clauses has only one element, it must be its own
-        # minimal subset
-        if len(clauses) == 1:
-            return clauses
-
-        A, B = split(clauses)
-
-        # If one half is unsatisfiable (with include), we can discard the
-        # other half.
-        if not sat(A + include):
-            return minimal_unsat(A, include)
-        if not sat(B + include):
-            return minimal_unsat(B, include)
-
-        Astar = minimal_unsat(A, B + include)
-        Bstar = minimal_unsat(B, Astar + include)
-        return Astar + Bstar
-
-    ret = minimal_unsat(clauses)
-    return ret
+    return found_conflicts

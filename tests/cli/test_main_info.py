@@ -18,7 +18,7 @@ def test_info_root():
     assert not stderr
     assert isdir(stdout.strip())
 
-    stdout, stderr, rc = run_command(Commands.INFO, "--root --json")
+    stdout, stderr, rc = run_command(Commands.INFO, "--root", "--json")
     assert rc == 0
     assert not stderr
     json_obj = json.loads(stdout.strip())
@@ -33,7 +33,7 @@ def test_info_unsafe_channels():
         assert not stderr
         assert "tk-123" in stdout
 
-        stdout, stderr, rc = run_command(Commands.INFO, "--unsafe-channels --json")
+        stdout, stderr, rc = run_command(Commands.INFO, "--unsafe-channels", "--json")
         assert rc == 0
         assert not stderr
         json_obj = json.loads(stdout.strip())

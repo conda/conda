@@ -5,12 +5,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # Do not use python stdlib imports from this module in other projects. You may be broken
 # without warning.
-import collections as _collections
+try:
+    from collections.abc import Hashable as _Hashable
+except ImportError:
+    from collections import Hashable as _Hashable
 import errno
 import functools
 import os
 import sys
-import tempfile
 import threading
 import warnings as _warnings
 
@@ -37,10 +39,12 @@ ArgumentParser = ArgumentParser
 
 from .common import compat as _compat  # NOQA
 compat = _compat
-from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, itervalues  # NOQA
-PY3, StringIO,  input, iteritems, string_types, text_type = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
+from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, itervalues # NOQA
+PY3, StringIO,  input, iteritems, string_types, text_type, = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
 CondaSession = CondaSession
+from .gateways.disk.create import TemporaryDirectory  # NOQA
+TemporaryDirectory = TemporaryDirectory
 
 from .common.toposort import _toposort  # NOQA
 _toposort = _toposort
@@ -48,13 +52,13 @@ _toposort = _toposort
 from .gateways.disk.link import lchmod  # NOQA
 lchmod = lchmod
 
-from .gateways.connection.download import TmpDownload  # NOQA
+from .gateways.connection.download import TmpDownload, download as _download  # NOQA
 
 TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: _warnings.warn("handle_proxy_407 is deprecated. "
                                                "Now handled by CondaSession.")
-from .core.package_cache_data import download, rm_fetched  # NOQA
-download, rm_fetched = download, rm_fetched
+from .core.package_cache_data import rm_fetched  # NOQA
+rm_fetched = rm_fetched
 
 from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
 delete_trash, move_to_trash = delete_trash, move_to_trash
@@ -78,6 +82,9 @@ md5_file = compute_md5sum
 
 from .models.version import VersionOrder, normalized_version  # NOQA
 VersionOrder, normalized_version = VersionOrder, normalized_version  # NOQA
+
+from .models.channel import Channel  # NOQA
+Channel = Channel  # NOQA
 
 import conda.base.context  # NOQA
 from .base.context import get_prefix, non_x86_linux_machines, reset_context, sys_rc_path  # NOQA
@@ -176,7 +183,7 @@ class memoized(object):  # pragma: no cover
         for arg in args:
             if isinstance(arg, list):
                 newargs.append(tuple(arg))
-            elif not isinstance(arg, _collections.Hashable):
+            elif not isinstance(arg, _Hashable):
                 # uncacheable. a list, for instance.
                 # better to not cache than blow up.
                 return self.func(*args, **kw)
@@ -249,53 +256,6 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     return {Dist(prec): prec for prec in itervalues(index)}
 
 
-class TemporaryDirectory(object):
-    """Create and return a temporary directory.  This has the same
-    behavior as mkdtemp but can be used as a context manager.  For
-    example:
-
-        with TemporaryDirectory() as tmpdir:
-            ...
-
-    Upon exiting the context, the directory and everything contained
-    in it are removed.
-    """
-
-    # Handle mkdtemp raising an exception
-    name = None
-    _closed = False
-
-    def __init__(self, suffix="", prefix='tmp', dir=None):
-        self.name = tempfile.mkdtemp(suffix, prefix, dir)
-
-    def __repr__(self):
-        return "<{} {!r}>".format(self.__class__.__name__, self.name)
-
-    def __enter__(self):
-        return self.name
-
-    def cleanup(self, _warn=False, _warnings=_warnings):
-        from .gateways.disk.delete import rm_rf as _rm_rf
-        if self.name and not self._closed:
-            try:
-                _rm_rf(self.name)
-            except (TypeError, AttributeError) as ex:
-                if "None" not in '%s' % (ex,):
-                    raise
-                _rm_rf(self.name)
-            self._closed = True
-            if _warn and _warnings.warn:
-                _warnings.warn("Implicitly cleaning up {!r}".format(self),
-                               _warnings.ResourceWarning)
-
-    def __exit__(self, exc, value, tb):
-        self.cleanup()
-
-    def __del__(self):
-        # Issue a ResourceWarning if implicit cleanup needed
-        self.cleanup(_warn=True)
-
-
 def package_cache():
     from .core.package_cache_data import PackageCacheData
 
@@ -320,7 +280,7 @@ def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     if os.path.normcase(os.path.normpath(prefix)) in os.path.normcase(os.path.normpath(root_dir)):
         return
     if on_win:
-        where = 'Scripts'
+        where = 'condabin'
         symlink_fn = functools.partial(win_conda_bat_redirect, shell=shell)
     else:
         where = 'bin'
@@ -437,3 +397,8 @@ def is_linked(prefix, dist):
         return prefix_record
     else:
         return None
+
+
+def download(url, dst_path, session=None, md5sum=None, urlstxt=False, retries=3,
+             sha256=None, size=None):
+    return _download(url, dst_path, md5=md5sum, sha256=sha256, size=size)

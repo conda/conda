@@ -1,0 +1,102 @@
+{
+  "channeldata_version": 1,
+  "packages": {
+    "libgcc-ng": {
+      "activate.d": false,
+      "binary_prefix": false,
+      "deactivate.d": false,
+      "home": "https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html",
+      "license": "GPL",
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "reference_package": "linux-64/libgcc-ng-8.2.0-hdf63c60_1.tar.bz2",
+      "run_exports": {},
+      "subdirs": [
+        "linux-64"
+      ],
+      "summary": "The GCC low-level runtime library",
+      "text_prefix": false,
+      "version": "8.2.0"
+    },
+    "vc": {
+      "activate.d": false,
+      "binary_prefix": false,
+      "deactivate.d": false,
+      "description": "This metapackage is used to enforce consistency of runtime dependencies within an environment",
+      "dev_url": "https://github.com/conda/conda/wiki/VC-features",
+      "doc_url": "https://github.com/conda/conda/wiki/VC-features",
+      "home": "https://github.com/conda/conda/wiki/VC-features",
+      "license": "Modified BSD License (3-clause)",
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "reference_package": "win-64/vc-14.1-h0510ff6_4.tar.bz2",
+      "run_exports": {},
+      "subdirs": [
+        "win-64"
+      ],
+      "summary": "A meta-package to impose mutual exclusivity among software built with different VS versions",
+      "text_prefix": false,
+      "version": "14.1"
+    },
+    "vs2015_runtime": {
+      "activate.d": false,
+      "binary_prefix": false,
+      "deactivate.d": false,
+      "identifiers": [],
+      "keywords": [],
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "reference_package": "win-64/vs2015_runtime-14.15.26706-h3a45250_4.tar.bz2",
+      "run_exports": {},
+      "subdirs": [
+        "win-64"
+      ],
+      "summary": "MSVC runtimes associated with cl.exe version 19.15.26726 (VS 2017 update 8)",
+      "tags": [],
+      "text_prefix": false,
+      "version": "14.15.26706"
+    },
+    "zlib": {
+      "activate.d": false,
+      "binary_prefix": false,
+      "deactivate.d": false,
+      "description": "zlib is designed to be a free, general-purpose, lossless data-compression library for use on virtually any computer hardware and operating system.",
+      "dev_url": "https://github.com/madler/zlib",
+      "doc_url": "http://zlib.net/manual.html",
+      "home": "http://zlib.net/",
+      "identifiers": [],
+      "keywords": [],
+      "license": "zlib",
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "reference_package": "win-64/zlib-1.2.11-h62dcd97_3.tar.bz2",
+      "run_exports": {
+        "weak": [
+          "zlib >=1.2.11,<1.3.0a0"
+        ]
+      },
+      "source_url": "http://zlib.net/zlib-1.2.11.tar.gz",
+      "subdirs": [
+        "linux-64",
+        "osx-64",
+        "win-32",
+        "win-64"
+      ],
+      "summary": "Massively spiffy yet delicately unobtrusive compression library",
+      "tags": [],
+      "text_prefix": true,
+      "version": "1.2.11"
+    }
+  },
+  "subdirs": [
+    "linux-64",
+    "noarch",
+    "osx-64",
+    "win-32",
+    "win-64"
+  ]
+}

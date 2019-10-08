@@ -46,7 +46,7 @@ project that supports Python 2.7, 3.5 and 3.6:
          wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
        fi
      - bash miniconda.sh -b -p $HOME/miniconda
-     - export PATH="$HOME/miniconda/bin:$PATH"
+     - source "$HOME/miniconda/etc/profile.d/conda.sh"
      - hash -r
      - conda config --set always_yes yes --set changeps1 no
      - conda update -q conda
@@ -55,15 +55,16 @@ project that supports Python 2.7, 3.5 and 3.6:
 
      # Replace dep1 dep2 ... with your dependencies
      - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION dep1 dep2 ...
-     - source activate test-environment
+     - conda activate test-environment
      - python setup.py install
 
    script:
      # Your test script goes here
 
-NOTE: For information about the basic configuration for Travis CI,
-see `Building a Python Project
-<http://docs.travis-ci.com/user/languages/python/#Examples>`_.
+.. note::
+   For information about the basic configuration for Travis CI,
+   see `Building a Python Project
+   <http://docs.travis-ci.com/user/languages/python/#Examples>`_.
 
 
 Supporting packages that do not have official builds
@@ -83,8 +84,9 @@ To support a package that does not have official Anaconda builds:
       - conda config --add channels your_Anaconda_dot_org_username
 
 
-   NOTE: Replace ``your_Anaconda_dot_org_username`` with your
-   user name.
+   .. note::
+      Replace ``your_Anaconda_dot_org_username`` with your
+      user name.
 
 
 Building a conda recipe

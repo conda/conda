@@ -6,18 +6,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 import fnmatch
 from logging import getLogger
-from os import rename, unlink, walk, makedirs, getcwd, rmdir, listdir
-from os.path import abspath, dirname, isdir, join, split, exists
+from os import environ, getcwd, listdir, makedirs, rename, rmdir, unlink, walk
+from os.path import abspath, basename, dirname, exists, isdir, isfile, join, normpath, split
 import shutil
-from subprocess import Popen, PIPE, check_call, CalledProcessError
+from subprocess import CalledProcessError, STDOUT, check_output
 import sys
 
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
+from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
-from ...common.constants import CONDA_TEMP_EXTENSION
+
 if not on_win:
     from ...common.path import which
 
@@ -27,16 +28,55 @@ log = getLogger(__name__)
 
 def rmtree(path, *args, **kwargs):
     # subprocessing to delete large folders can be quite a bit faster
+    path = normpath(path)
     if on_win:
         try:
-            check_call('rd /s /q "{}"'.format(path), shell=True)
-        except CalledProcessError as e:
-            if e.returncode == 5:
-                # skip permission errors
-                log.warn("")
-                pass
-            else:
-                raise
+            # the fastest way seems to be using DEL to recursively delete files
+            # https://www.ghacks.net/2017/07/18/how-to-delete-large-folders-in-windows-super-fast/
+            # However, this is not entirely safe, as it can end up following symlinks to folders
+            # https://superuser.com/a/306618/184799
+            # so, we stick with the slower, but hopefully safer way.  Maybe if we figured out how
+            #    to scan for any possible symlinks, we could do the faster way.
+            # out = check_output('DEL /F/Q/S *.* > NUL 2> NUL'.format(path), shell=True,
+            #                    stderr=STDOUT, cwd=path)
+
+            out = check_output('RD /S /Q "{}" > NUL 2> NUL'.format(path), shell=True,
+                               stderr=STDOUT)
+        except:
+            try:
+                # Try to delete in Unicode
+                name = None
+                from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+                from conda.utils import quote_for_shell
+
+                with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as batch_file:
+                    batch_file.write('RD /S {}\n'.format(quote_for_shell([path])))
+                    batch_file.write('chcp 65001\n')
+                    batch_file.write('RD /S {}\n'.format(quote_for_shell([path])))
+                    batch_file.write('EXIT 0\n')
+                    name = batch_file.name
+                # If the above is bugged we can end up deleting hard-drives, so we check
+                # that 'path' appears in it. This is not bulletproof but it could save you (me).
+                with open(name, 'r') as contents:
+                    content = contents.read()
+                    assert path in content
+                comspec = environ['COMSPEC']
+                CREATE_NO_WINDOW = 0x08000000
+                # It is essential that we `pass stdout=None, stderr=None, stdin=None` here because
+                # if we do not, then the standard console handles get attached and chcp affects the
+                # parent process (and any which share those console handles!)
+                out = check_output([comspec, '/d', '/c', name], shell=False,
+                                   stdout=None, stderr=None, stdin=None,
+                                   creationflags=CREATE_NO_WINDOW)
+
+            except CalledProcessError as e:
+                if e.returncode != 5:
+                    log.error("Removing folder {} the fast way failed.  Output was: {}"
+                              .format(out))
+                    raise
+                else:
+                    log.debug("removing dir contents the fast way failed.  Output was: {}"
+                              .format(out))
     else:
         try:
             makedirs('.empty')
@@ -44,18 +84,18 @@ def rmtree(path, *args, **kwargs):
             pass
         # yes, this looks strange.  See
         #    https://unix.stackexchange.com/a/79656/34459
-        #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html
+        #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html  # NOQA
         rsync = which('rsync')
-        if rsync:
+        if rsync and isdir('.empty'):
             try:
-                check_call([rsync, '-a', '--delete', join(getcwd(), '.empty') + "/", path + "/"])
+                out = check_output(
+                    [rsync, '-a', '--force', '--delete', join(getcwd(), '.empty') + "/",
+                     path + "/"],
+                    stderr=STDOUT)
             except CalledProcessError:
-                log.warn("Removing folder {} the fast way (with rsync) failed.  "
-                         "Do you have rsync available?".format(path))
-                shutil.rmtree(path)
-        else:
-            shutil.rmtree(path)
-        shutil.rmtree('.empty')
+                log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
+            shutil.rmtree('.empty')
+    shutil.rmtree(path)
 
 
 def unlink_or_rename_to_trash(path):
@@ -69,7 +109,7 @@ def unlink_or_rename_to_trash(path):
         unlink(path)
     except EnvironmentError:
         try:
-            rename(path, path + ".trash")
+            rename(path, path + ".conda_trash")
         except EnvironmentError:
             if on_win:
                 # on windows, it is important to use the rename program, as just using python's
@@ -78,15 +118,26 @@ def unlink_or_rename_to_trash(path):
                 trash_script = join(condabin_dir, 'rename_tmp.bat')
                 if exists(trash_script):
                     _dirname, _fn = split(path)
-                    p = Popen(['cmd.exe', '/C', trash_script, _dirname, _fn, _fn + ".trash"],
-                              stdout=PIPE, stderr=PIPE)
-                    stdout, stderr = p.communicate()
+                    dest_fn = path + ".conda_trash"
+                    counter = 1
+                    while isfile(dest_fn):
+                        dest_fn = dest_fn.splitext[0] + '.conda_trash_{}'.format(counter)
+                        counter += 1
+                    out = "< empty >"
+                    try:
+                        out = check_output(['cmd.exe', '/C', trash_script, _dirname, _fn,
+                                            basename(dest_fn)],
+                                           stderr=STDOUT)
+                    except CalledProcessError:
+                        log.debug("renaming file path {} to trash failed.  Output was: {}"
+                                  .format(path, out))
+
                 else:
                     log.debug("{} is missing.  Conda was not installed correctly or has been "
                               "corrupted.  Please file an issue on the conda github repo."
                               .format(trash_script))
-            log.warn("Could not remove or rename {}.  Please remove this file manually (you may "
-                     "need to reboot to free file handles)".format(path))
+            log.warn("Could not remove or rename {}.  Please remove this file manually (you "
+                     "may need to reboot to free file handles)".format(path))
 
 
 def remove_empty_parent_paths(path):
@@ -117,6 +168,8 @@ def rm_rf(path, max_retries=5, trash=True, clean_empty_parents=False, *args, **k
         if lexists(path):
             log.info("rm_rf failed for %s", path)
             return False
+    if isdir(path):
+        delete_trash(path)
     if clean_empty_parents:
         remove_empty_parent_paths(path)
     return True
@@ -132,10 +185,10 @@ def delete_trash(prefix):
     exclude = set(['envs'])
     for root, dirs, files in walk(prefix, topdown=True):
         dirs[:] = [d for d in dirs if d not in exclude]
-        for basename in files:
-            if (fnmatch.fnmatch(basename, "*.trash") or
-                    fnmatch.fnmatch(basename, "*" + CONDA_TEMP_EXTENSION)):
-                filename = join(root, basename)
+        for fn in files:
+            if (fnmatch.fnmatch(fn, "*.conda_trash*") or
+                    fnmatch.fnmatch(fn, "*" + CONDA_TEMP_EXTENSION)):
+                filename = join(root, fn)
                 try:
                     unlink(filename)
                     remove_empty_parent_paths(filename)
@@ -172,12 +225,6 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
     for root, dirs, files in walk(dirpath, topdown=False):
         for file in files:
             unlink_or_rename_to_trash(join(root, file))
-        for dir in dirs:
-            _rmdir(join(root, dir))
-
-    _rmdir(dirpath)
-    if isdir(dirpath):
-        rmdir(dirpath)
 
 
 def path_is_clean(path):
@@ -188,7 +235,7 @@ def path_is_clean(path):
     if not clean:
         for root, dirs, fns in walk(path):
             for fn in fns:
-                if not (fnmatch.fnmatch(fn, "*.trash") or
+                if not (fnmatch.fnmatch(fn, "*.conda_trash*") or
                         fnmatch.fnmatch(fn, "*" + CONDA_TEMP_EXTENSION)):
                     return False
     return True

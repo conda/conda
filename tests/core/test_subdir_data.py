@@ -2,11 +2,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
+from os.path import dirname, join
 from unittest import TestCase
 
 import pytest
 
-from conda.base.context import context, reset_context
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
@@ -32,11 +33,11 @@ class GetRepodataIntegrationTests(TestCase):
 
     def test_get_index_no_platform_with_offline_cache(self):
         import conda.core.subdir_data
-        with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
+        with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with patch.object(conda.core.subdir_data, 'read_mod_and_etag') as read_mod_and_etag:
                 read_mod_and_etag.return_value = {}
                 channel_urls = ('https://repo.anaconda.com/pkgs/pro',)
-                with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
+                with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     this_platform = context.subdir
                     index = get_index(channel_urls=channel_urls, prepend=False)
                     for dist, record in iteritems(index):
@@ -50,7 +51,7 @@ class GetRepodataIntegrationTests(TestCase):
         # supplement_index_from_cache on CI?
 
         for unknown in (None, False, True):
-            with env_var('CONDA_OFFLINE', 'yes', reset_context):
+            with env_var('CONDA_OFFLINE', 'yes', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     index2 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
                     assert all(index2.get(k) == rec for k, rec in iteritems(index))
@@ -58,7 +59,7 @@ class GetRepodataIntegrationTests(TestCase):
                     assert remote_request.call_count == 0
 
         for unknown in (False, True):
-            with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
+            with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     remote_request.side_effect = Response304ContentUnchanged()
                     index3 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
@@ -179,6 +180,27 @@ class FetchLocalRepodataTests(TestCase):
         mod_stamp = 'Mon, 28 Jan 2019 01:01:01 GMT'
         with pytest.raises(UnavailableInvalidChannel):
             result = fetch_repodata_remote_request(url, etag, mod_stamp)
+
+
+def test_subdir_data_prefers_conda_to_tar_bz2():
+    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    # force this to False, because otherwise tests fail when run with old conda-build
+    with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        sd = SubdirData(channel)
+        precs = tuple(sd.query("zlib"))
+        assert precs[0].fn.endswith(".conda")
+
+
+def test_use_only_tar_bz2():
+    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    with env_var('CONDA_USE_ONLY_TAR_BZ2', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        sd = SubdirData(channel)
+        precs = tuple(sd.query("zlib"))
+        assert precs[0].fn.endswith(".tar.bz2")
+    with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        sd = SubdirData(channel)
+        precs = tuple(sd.query("zlib"))
+        assert precs[0].fn.endswith(".conda")
 
 
 # @pytest.mark.integration

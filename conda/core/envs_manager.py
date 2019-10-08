@@ -3,44 +3,53 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES
+from errno import EACCES, EROFS, ENOENT
 from logging import getLogger
-from os import listdir
+from os import devnull, listdir
 from os.path import dirname, isdir, isfile, join, normpath
 
 from .prefix_data import PrefixData
 from ..base.context import context
 from ..common.compat import ensure_text_type, on_win, open
+from ..common._os import is_admin
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import is_conda_environment
 
 log = getLogger(__name__)
 
-
-USER_ENVIRONMENTS_TXT_FILE = expand(join('~', '.conda', 'environments.txt'))
+# The idea is to mock this to return '/dev/null' (or some temp file) instead.
+def get_user_environments_txt_file(userhome='~'):
+    return expand(join(userhome, '.conda', 'environments.txt'))
 
 
 def register_env(location):
+    user_environments_txt_file = get_user_environments_txt_file()
     location = normpath(location)
+    folder = dirname(location)
+    try:
+        makedirs(folder)
+    except:
+        pass
 
-    if "placehold_pl" in location or "skeleton_" in location:
+    if ("placehold_pl" in location or "skeleton_" in location
+       or user_environments_txt_file == devnull):
         # Don't record envs created by conda-build.
         return
 
-    if location in yield_lines(USER_ENVIRONMENTS_TXT_FILE):
+    if location in yield_lines(user_environments_txt_file):
         # Nothing to do. Location is already recorded in a known environments.txt file.
         return
 
     try:
-        with open(USER_ENVIRONMENTS_TXT_FILE, 'a') as fh:
+        with open(user_environments_txt_file, 'a') as fh:
             fh.write(ensure_text_type(location))
             fh.write('\n')
     except EnvironmentError as e:
-        if e.errno == EACCES:
-            log.warn("Unable to register environment. Path not writable.\n"
+        if e.errno in (EACCES, EROFS, ENOENT):
+            log.warn("Unable to register environment. Path not writable or missing.\n"
                      "  environment location: %s\n"
-                     "  registry file: %s", location, USER_ENVIRONMENTS_TXT_FILE)
+                     "  registry file: %s", location, user_environments_txt_file)
         else:
             raise
 
@@ -55,28 +64,25 @@ def unregister_env(location):
                 #   then don't unregister
                 return
 
-    _clean_environments_txt(USER_ENVIRONMENTS_TXT_FILE, location)
+    _clean_environments_txt(get_user_environments_txt_file(), location)
 
 
 def list_all_known_prefixes():
     all_env_paths = set()
-    if on_win:
-        home_dir_dir = dirname(expand('~'))
-        for home_dir in listdir(home_dir_dir):
-            environments_txt_file = join(home_dir_dir, home_dir, '.conda', 'environments.txt')
-            if isfile(environments_txt_file):
-                all_env_paths.update(_clean_environments_txt(environments_txt_file))
-    else:
-        from os import geteuid
-        from pwd import getpwall
-        if geteuid() == 0:
-            search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
+    # If the user is an admin, load environments from all user home directories
+    if is_admin():
+        if on_win:
+            home_dir_dir = dirname(expand('~'))
+            search_dirs = tuple(join(home_dir_dir, d) for d in listdir(home_dir_dir))
         else:
-            search_dirs = (expand('~'),)
-        for home_dir in search_dirs:
-            environments_txt_file = join(home_dir, '.conda', 'environments.txt')
-            if isfile(environments_txt_file):
-                all_env_paths.update(_clean_environments_txt(environments_txt_file))
+            from pwd import getpwall
+            search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
+    else:
+        search_dirs = (expand('~'),)
+    for home_dir in search_dirs:
+        environments_txt_file = get_user_environments_txt_file(home_dir)
+        if isfile(environments_txt_file):
+            all_env_paths.update(_clean_environments_txt(environments_txt_file))
 
     # in case environments.txt files aren't complete, also add all known conda environments in
     # all envs_dirs

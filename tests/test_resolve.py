@@ -7,7 +7,7 @@ import unittest
 
 import pytest
 
-from conda.base.context import context, reset_context
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
@@ -119,6 +119,137 @@ class TestSolve(unittest.TestCase):
         assert 'channel-1::scipy-0.12.0-np17py27_0' in dist_strs
 
 
+def test_generate_eq_1():
+    # avoid cache from other tests which may have different result
+    r._reduced_index_cache = {}
+
+    reduced_index = r.get_reduced_index((MatchSpec('anaconda'), ))
+    r2 = Resolve(reduced_index, True)
+    C = r2.gen_clauses()
+    eqc, eqv, eqb,  eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
+    # Should satisfy the following criteria:
+    # - lower versions of the same package should should have higher
+    #   coefficients.
+    # - the same versions of the same package (e.g., different build strings)
+    #   should have the same coefficients.
+    # - a package that only has one version should not appear, unless
+    #   include=True as it will have a 0 coefficient. The same is true of the
+    #   latest version of a package.
+    eqc = {key: value for key, value in iteritems(eqc)}
+    eqv = {key: value for key, value in iteritems(eqv)}
+    eqb = {key: value for key, value in iteritems(eqb)}
+    eqt = {key: value for key, value in iteritems(eqt)}
+    assert eqc == {}
+    assert eqv == {
+        'channel-1::anaconda-1.4.0-np15py27_0': 1,
+        'channel-1::anaconda-1.4.0-np16py27_0': 1,
+        'channel-1::anaconda-1.4.0-np17py27_0': 1,
+        'channel-1::anaconda-1.4.0-np17py33_0': 1,
+        'channel-1::astropy-0.2-np15py27_0': 1,
+        'channel-1::astropy-0.2-np16py27_0': 1,
+        'channel-1::astropy-0.2-np17py27_0': 1,
+        'channel-1::astropy-0.2-np17py33_0': 1,
+        'channel-1::biopython-1.60-np15py27_0': 1,
+        'channel-1::biopython-1.60-np16py27_0': 1,
+        'channel-1::biopython-1.60-np17py27_0': 1,
+        'channel-1::bitarray-0.8.0-py27_0': 1,
+        'channel-1::bitarray-0.8.0-py33_0': 1,
+        'channel-1::boto-2.8.0-py27_0': 1,
+        'channel-1::conda-1.4.4-py27_0': 1,
+        'channel-1::cython-0.18-py27_0': 1,
+        'channel-1::cython-0.18-py33_0': 1,
+        'channel-1::distribute-0.6.34-py27_1': 1,
+        'channel-1::distribute-0.6.34-py33_1': 1,
+        'channel-1::ipython-0.13.1-py27_1': 1,
+        'channel-1::ipython-0.13.1-py33_1': 1,
+        'channel-1::llvmpy-0.11.1-py27_0': 1,
+        'channel-1::llvmpy-0.11.1-py33_0': 1,
+        'channel-1::lxml-3.0.2-py27_0': 1,
+        'channel-1::lxml-3.0.2-py33_0': 1,
+        'channel-1::matplotlib-1.2.0-np15py27_1': 1,
+        'channel-1::matplotlib-1.2.0-np16py27_1': 1,
+        'channel-1::matplotlib-1.2.0-np17py27_1': 1,
+        'channel-1::matplotlib-1.2.0-np17py33_1': 1,
+        'channel-1::nose-1.2.1-py27_0': 1,
+        'channel-1::nose-1.2.1-py33_0': 1,
+        'channel-1::numba-0.7.0-np16py27_1': 1,
+        'channel-1::numba-0.7.0-np17py27_1': 1,
+        'channel-1::numpy-1.5.1-py27_3': 3,
+        'channel-1::numpy-1.6.2-py26_4': 2,
+        'channel-1::numpy-1.6.2-py27_3': 2,
+        'channel-1::numpy-1.6.2-py27_4': 2,
+        'channel-1::numpy-1.7.0-py27_0': 1,
+        'channel-1::numpy-1.7.0-py33_0': 1,
+        'channel-1::pandas-0.10.1-np16py27_0': 1,
+        'channel-1::pandas-0.10.1-np17py27_0': 1,
+        'channel-1::pandas-0.10.1-np17py33_0': 1,
+        'channel-1::pip-1.2.1-py27_1': 1,
+        'channel-1::pip-1.2.1-py33_1': 1,
+        'channel-1::psutil-0.6.1-py27_0': 1,
+        'channel-1::psutil-0.6.1-py33_0': 1,
+        'channel-1::pyflakes-0.6.1-py27_0': 1,
+        'channel-1::pyflakes-0.6.1-py33_0': 1,
+        'channel-1::python-2.6.8-6': 4,
+        'channel-1::python-2.7.3-7': 3,
+        'channel-1::python-2.7.4-0': 2,
+        'channel-1::python-3.3.0-4': 1,
+        'channel-1::pytz-2012j-py27_0': 1,
+        'channel-1::pytz-2012j-py33_0': 1,
+        'channel-1::requests-0.13.9-py27_0': 1,
+        'channel-1::requests-0.13.9-py33_0': 1,
+        'channel-1::scikit-learn-0.13-np15py27_1': 1,
+        'channel-1::scikit-learn-0.13-np16py27_1': 1,
+        'channel-1::scikit-learn-0.13-np17py27_1': 1,
+        'channel-1::scipy-0.11.0-np15py27_3': 1,
+        'channel-1::scipy-0.11.0-np16py27_3': 1,
+        'channel-1::scipy-0.11.0-np17py27_3': 1,
+        'channel-1::scipy-0.11.0-np17py33_3': 1,
+        'channel-1::six-1.2.0-py27_0': 1,
+        'channel-1::six-1.2.0-py33_0': 1,
+        'channel-1::spyder-2.1.13-py27_0': 1,
+        'channel-1::sqlalchemy-0.7.8-py27_0': 1,
+        'channel-1::sqlalchemy-0.7.8-py33_0': 1,
+        'channel-1::sympy-0.7.1-py27_0': 1,
+        'channel-1::tornado-2.4.1-py27_0': 1,
+        'channel-1::tornado-2.4.1-py33_0': 1,
+        'channel-1::xlrd-0.9.0-py27_0': 1,
+        'channel-1::xlrd-0.9.0-py33_0': 1,
+        'channel-1::xlwt-0.7.4-py27_0': 1
+    }
+    assert eqb == {
+        'channel-1::cubes-0.10.2-py27_0': 1,
+        'channel-1::dateutil-2.1-py27_0': 1,
+        'channel-1::dateutil-2.1-py33_0': 1,
+        'channel-1::gevent-websocket-0.3.6-py27_1': 1,
+        'channel-1::gevent_zeromq-0.2.5-py27_1': 1,
+        'channel-1::numexpr-2.0.1-np16py27_2': 1,
+        'channel-1::numexpr-2.0.1-np17py27_2': 1,
+        'channel-1::numpy-1.6.2-py27_3': 1,
+        'channel-1::pycurl-7.19.0-py27_0': 1,
+        'channel-1::pysal-1.5.0-np15py27_0': 1,
+        'channel-1::pysal-1.5.0-np16py27_0': 1,
+        'channel-1::pysal-1.5.0-np17py27_0': 1,
+        'channel-1::pytest-2.3.4-py27_0': 1,
+        'channel-1::pyzmq-2.2.0.1-py27_0': 1,
+        'channel-1::pyzmq-2.2.0.1-py33_0': 1,
+        'channel-1::scikit-image-0.8.2-np16py27_0': 1,
+        'channel-1::scikit-image-0.8.2-np17py27_0': 1,
+        'channel-1::scikit-image-0.8.2-np17py33_0': 1,
+        'channel-1::sphinx-1.1.3-py27_2': 1,
+        'channel-1::sphinx-1.1.3-py33_2': 1,
+        'channel-1::statsmodels-0.4.3-np16py27_0': 1,
+        'channel-1::statsmodels-0.4.3-np17py27_0': 1,
+        'channel-1::system-5.8-0': 1,
+        'channel-1::theano-0.5.0-np15py27_0': 1,
+        'channel-1::theano-0.5.0-np16py27_0': 1,
+        'channel-1::theano-0.5.0-np17py27_0': 1,
+        'channel-1::zeromq-2.2.0-0': 1
+    }
+
+    # No timestamps in the current data set
+    assert eqt == {}
+
+
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
     installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True)
@@ -154,10 +285,10 @@ def test_pseudo_boolean():
 
 
 def test_get_dists():
-    reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.5.0"), ))
+    reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.4.0"), ))
     dist_strs = [prec.dist_str() for prec in reduced_index]
-    assert 'channel-1::anaconda-1.5.0-np17py27_0' in dist_strs
-    assert 'channel-1::dynd-python-0.3.0-np17py33_0' in dist_strs
+    assert 'channel-1::anaconda-1.4.0-np17py27_0' in dist_strs
+    assert 'channel-1::freetype-2.4.10-0' in dist_strs
 
 
 def test_get_reduced_index_unmanageable():
@@ -178,201 +309,233 @@ def test_get_reduced_index_unmanageable():
     assert len(new_r2.groups["requests"]) == 1, new_r2.groups["requests"]
 
 
-def test_generate_eq_1():
-    reduced_index = r.get_reduced_index((MatchSpec('anaconda'), ))
-    r2 = Resolve(reduced_index, True)
-    C = r2.gen_clauses()
-    eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
-    # Should satisfy the following criteria:
-    # - lower versions of the same package should should have higher
-    #   coefficients.
-    # - the same versions of the same package (e.g., different build strings)
-    #   should have the same coefficients.
-    # - a package that only has one version should not appear, unless
-    #   include=True as it will have a 0 coefficient. The same is true of the
-    #   latest version of a package.
-    eqc = {key: value for key, value in iteritems(eqc)}
-    eqv = {key: value for key, value in iteritems(eqv)}
-    eqb = {key: value for key, value in iteritems(eqb)}
-    eqt = {key: value for key, value in iteritems(eqt)}
-    assert eqc == {}
-    assert eqv == {
-        'channel-1::anaconda-1.4.0-np15py26_0': 1,
-        'channel-1::anaconda-1.4.0-np15py27_0': 1,
-        'channel-1::anaconda-1.4.0-np16py26_0': 1,
-        'channel-1::anaconda-1.4.0-np16py27_0': 1,
-        'channel-1::anaconda-1.4.0-np17py26_0': 1,
-        'channel-1::anaconda-1.4.0-np17py27_0': 1,
-        'channel-1::anaconda-1.4.0-np17py33_0': 1,
-        'channel-1::astropy-0.2-np15py26_0': 1,
-        'channel-1::astropy-0.2-np15py27_0': 1,
-        'channel-1::astropy-0.2-np16py26_0': 1,
-        'channel-1::astropy-0.2-np16py27_0': 1,
-        'channel-1::astropy-0.2-np17py26_0': 1,
-        'channel-1::astropy-0.2-np17py27_0': 1,
-        'channel-1::astropy-0.2-np17py33_0': 1,
-        'channel-1::biopython-1.60-np15py26_0': 1,
-        'channel-1::biopython-1.60-np15py27_0': 1,
-        'channel-1::biopython-1.60-np16py26_0': 1,
-        'channel-1::biopython-1.60-np16py27_0': 1,
-        'channel-1::biopython-1.60-np17py26_0': 1,
-        'channel-1::biopython-1.60-np17py27_0': 1,
-        'channel-1::bitarray-0.8.0-py26_0': 1,
-        'channel-1::bitarray-0.8.0-py27_0': 1,
-        'channel-1::bitarray-0.8.0-py33_0': 1,
-        'channel-1::boto-2.8.0-py26_0': 1,
-        'channel-1::boto-2.8.0-py27_0': 1,
-        'channel-1::conda-1.4.4-py27_0': 1,
-        'channel-1::cython-0.18-py26_0': 1,
-        'channel-1::cython-0.18-py27_0': 1,
-        'channel-1::cython-0.18-py33_0': 1,
-        'channel-1::distribute-0.6.34-py26_1': 1,
-        'channel-1::distribute-0.6.34-py27_1': 1,
-        'channel-1::distribute-0.6.34-py33_1': 1,
-        'channel-1::ipython-0.13.1-py26_1': 1,
-        'channel-1::ipython-0.13.1-py27_1': 1,
-        'channel-1::ipython-0.13.1-py33_1': 1,
-        'channel-1::llvmpy-0.11.1-py26_0': 1,
-        'channel-1::llvmpy-0.11.1-py27_0': 1,
-        'channel-1::llvmpy-0.11.1-py33_0': 1,
-        'channel-1::lxml-3.0.2-py26_0': 1,
-        'channel-1::lxml-3.0.2-py27_0': 1,
-        'channel-1::lxml-3.0.2-py33_0': 1,
-        'channel-1::matplotlib-1.2.0-np15py26_1': 1,
-        'channel-1::matplotlib-1.2.0-np15py27_1': 1,
-        'channel-1::matplotlib-1.2.0-np16py26_1': 1,
-        'channel-1::matplotlib-1.2.0-np16py27_1': 1,
-        'channel-1::matplotlib-1.2.0-np17py26_1': 1,
-        'channel-1::matplotlib-1.2.0-np17py27_1': 1,
-        'channel-1::matplotlib-1.2.0-np17py33_1': 1,
-        'channel-1::nose-1.2.1-py26_0': 1,
-        'channel-1::nose-1.2.1-py27_0': 1,
-        'channel-1::nose-1.2.1-py33_0': 1,
-        'channel-1::numba-0.7.0-np16py26_1': 1,
-        'channel-1::numba-0.7.0-np16py27_1': 1,
-        'channel-1::numba-0.7.0-np17py26_1': 1,
-        'channel-1::numba-0.7.0-np17py27_1': 1,
-        'channel-1::numpy-1.5.1-py26_3': 3,
-        'channel-1::numpy-1.5.1-py27_3': 3,
-        'channel-1::numpy-1.6.2-py26_3': 2,
-        'channel-1::numpy-1.6.2-py26_4': 2,
-        'channel-1::numpy-1.6.2-py27_3': 2,
-        'channel-1::numpy-1.6.2-py27_4': 2,
-        'channel-1::numpy-1.7.0-py26_0': 1,
-        'channel-1::numpy-1.7.0-py27_0': 1,
-        'channel-1::numpy-1.7.0-py33_0': 1,
-        'channel-1::pandas-0.10.1-np16py26_0': 1,
-        'channel-1::pandas-0.10.1-np16py27_0': 1,
-        'channel-1::pandas-0.10.1-np17py26_0': 1,
-        'channel-1::pandas-0.10.1-np17py27_0': 1,
-        'channel-1::pandas-0.10.1-np17py33_0': 1,
-        'channel-1::pip-1.2.1-py26_1': 1,
-        'channel-1::pip-1.2.1-py27_1': 1,
-        'channel-1::pip-1.2.1-py33_1': 1,
-        'channel-1::psutil-0.6.1-py26_0': 1,
-        'channel-1::psutil-0.6.1-py27_0': 1,
-        'channel-1::psutil-0.6.1-py33_0': 1,
-        'channel-1::pyflakes-0.6.1-py26_0': 1,
-        'channel-1::pyflakes-0.6.1-py27_0': 1,
-        'channel-1::pyflakes-0.6.1-py33_0': 1,
-        'channel-1::python-2.6.8-6': 4,
-        'channel-1::python-2.7.3-7': 3,
-        'channel-1::python-2.7.4-0': 2,
-        'channel-1::python-3.3.0-4': 1,
-        'channel-1::pytz-2012j-py26_0': 1,
-        'channel-1::pytz-2012j-py27_0': 1,
-        'channel-1::pytz-2012j-py33_0': 1,
-        'channel-1::requests-0.13.9-py26_0': 1,
-        'channel-1::requests-0.13.9-py27_0': 1,
-        'channel-1::requests-0.13.9-py33_0': 1,
-        'channel-1::scikit-learn-0.13-np15py26_1': 1,
-        'channel-1::scikit-learn-0.13-np15py27_1': 1,
-        'channel-1::scikit-learn-0.13-np16py26_1': 1,
-        'channel-1::scikit-learn-0.13-np16py27_1': 1,
-        'channel-1::scikit-learn-0.13-np17py26_1': 1,
-        'channel-1::scikit-learn-0.13-np17py27_1': 1,
-        'channel-1::scipy-0.11.0-np15py26_3': 1,
-        'channel-1::scipy-0.11.0-np15py27_3': 1,
-        'channel-1::scipy-0.11.0-np16py26_3': 1,
-        'channel-1::scipy-0.11.0-np16py27_3': 1,
-        'channel-1::scipy-0.11.0-np17py26_3': 1,
-        'channel-1::scipy-0.11.0-np17py27_3': 1,
-        'channel-1::scipy-0.11.0-np17py33_3': 1,
-        'channel-1::six-1.2.0-py26_0': 1,
-        'channel-1::six-1.2.0-py27_0': 1,
-        'channel-1::six-1.2.0-py33_0': 1,
-        'channel-1::spyder-2.1.13-py27_0': 1,
-        'channel-1::sqlalchemy-0.7.8-py26_0': 1,
-        'channel-1::sqlalchemy-0.7.8-py27_0': 1,
-        'channel-1::sqlalchemy-0.7.8-py33_0': 1,
-        'channel-1::sympy-0.7.1-py26_0': 1,
-        'channel-1::sympy-0.7.1-py27_0': 1,
-        'channel-1::tornado-2.4.1-py26_0': 1,
-        'channel-1::tornado-2.4.1-py27_0': 1,
-        'channel-1::tornado-2.4.1-py33_0': 1,
-        'channel-1::xlrd-0.9.0-py26_0': 1,
-        'channel-1::xlrd-0.9.0-py27_0': 1,
-        'channel-1::xlrd-0.9.0-py33_0': 1,
-        'channel-1::xlwt-0.7.4-py26_0': 1,
-        'channel-1::xlwt-0.7.4-py27_0': 1,
-    }
-    assert eqb == {
-        'channel-1::cubes-0.10.2-py27_0': 1,
-        'channel-1::dateutil-2.1-py26_0': 1,
-        'channel-1::dateutil-2.1-py27_0': 1,
-        'channel-1::dateutil-2.1-py33_0': 1,
-        'channel-1::gevent-websocket-0.3.6-py26_1': 1,
-        'channel-1::gevent-websocket-0.3.6-py27_1': 1,
-        'channel-1::gevent_zeromq-0.2.5-py26_1': 1,
-        'channel-1::gevent_zeromq-0.2.5-py27_1': 1,
-        'channel-1::numexpr-2.0.1-np16py26_2': 1,
-        'channel-1::numexpr-2.0.1-np16py27_2': 1,
-        'channel-1::numexpr-2.0.1-np17py26_2': 1,
-        'channel-1::numexpr-2.0.1-np17py27_2': 1,
-        'channel-1::numpy-1.6.2-py26_3': 1,
-        'channel-1::numpy-1.6.2-py27_3': 1,
-        'channel-1::pycurl-7.19.0-py26_0': 1,
-        'channel-1::pycurl-7.19.0-py27_0': 1,
-        'channel-1::pysal-1.5.0-np15py27_0': 1,
-        'channel-1::pysal-1.5.0-np16py27_0': 1,
-        'channel-1::pysal-1.5.0-np17py27_0': 1,
-        'channel-1::pytest-2.3.4-py26_0': 1,
-        'channel-1::pytest-2.3.4-py27_0': 1,
-        'channel-1::pyzmq-2.2.0.1-py26_0': 1,
-        'channel-1::pyzmq-2.2.0.1-py27_0': 1,
-        'channel-1::pyzmq-2.2.0.1-py33_0': 1,
-        'channel-1::scikit-image-0.8.2-np16py26_0': 1,
-        'channel-1::scikit-image-0.8.2-np16py27_0': 1,
-        'channel-1::scikit-image-0.8.2-np17py26_0': 1,
-        'channel-1::scikit-image-0.8.2-np17py27_0': 1,
-        'channel-1::scikit-image-0.8.2-np17py33_0': 1,
-        'channel-1::sphinx-1.1.3-py26_2': 1,
-        'channel-1::sphinx-1.1.3-py27_2': 1,
-        'channel-1::sphinx-1.1.3-py33_2': 1,
-        'channel-1::statsmodels-0.4.3-np16py26_0': 1,
-        'channel-1::statsmodels-0.4.3-np16py27_0': 1,
-        'channel-1::statsmodels-0.4.3-np17py26_0': 1,
-        'channel-1::statsmodels-0.4.3-np17py27_0': 1,
-        'channel-1::system-5.8-0': 1,
-        'channel-1::theano-0.5.0-np15py26_0': 1,
-        'channel-1::theano-0.5.0-np15py27_0': 1,
-        'channel-1::theano-0.5.0-np16py26_0': 1,
-        'channel-1::theano-0.5.0-np16py27_0': 1,
-        'channel-1::theano-0.5.0-np17py26_0': 1,
-        'channel-1::theano-0.5.0-np17py27_0': 1,
-        'channel-1::zeromq-2.2.0-0': 1,
-    }
-
-    # No timestamps in the current data set
-    assert eqt == {}
-
-
-def test_unsat():
+def test_unsat_from_r1():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['numpy 1.5*', 'scipy 0.12.0b1'])
+    assert "numpy=1.5" in str(excinfo.value)
+    assert "scipy==0.12.0b1 -> numpy[version='1.6.*|1.7.*']" in str(excinfo.value)
     # numpy 1.5 does not have a python 3 package
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'python 3*']))
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['numpy 1.5*', 'python 3*'])
+    assert "numpy=1.5 -> python[version='2.6.*|2.7.*']" in str(excinfo.value)
+    assert "python=3" in str(excinfo.value)
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['numpy 1.5*', 'numpy 1.6*'])
+    assert "numpy=1.5" in str(excinfo.value)
+    assert "numpy=1.6" in str(excinfo.value)
+
+
+def simple_rec(name='a', version='1.0', depends=None, build='0',
+               build_number=0, channel='channel-1'):
+    if depends is None:
+        depends = []
+    return PackageRecord(**{
+        'name': name,
+        'version': version,
+        'depends': depends,
+        'build': build,
+        'build_number': build_number,
+        'channel': channel,
+    })
+
+
+def test_unsat_simple():
+    # a and b depend on conflicting versions of c
+    index = (
+        simple_rec(name='a', depends=['c >=1,<2']),
+        simple_rec(name='b', depends=['c >=2,<3']),
+        simple_rec(name='c', version='1.0'),
+        simple_rec(name='c', version='2.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['a', 'b'])
+    assert "a -> c[version='>=1,<2']" in str(excinfo.value)
+    assert "b -> c[version='>=2,<3']" in str(excinfo.value)
+
+def test_unsat_simple_dont_find_conflicts():
+    # a and b depend on conflicting versions of c
+    index = (
+        simple_rec(name='a', depends=['c >=1,<2']),
+        simple_rec(name='b', depends=['c >=2,<3']),
+        simple_rec(name='c', version='1.0'),
+        simple_rec(name='c', version='2.0'),
+    )
+    with env_var("CONDA_UNSATISFIABLE_HINTS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        r = Resolve(OrderedDict((prec, prec) for prec in index))
+        with pytest.raises(UnsatisfiableError) as excinfo:
+            r.install(['a', 'b '])
+        assert "a -> c[version='>=1,<2']" not in str(excinfo.value)
+        assert "b -> c[version='>=2,<3']" not in str(excinfo.value)
+
+
+def test_unsat_shortest_chain_1():
+    index = (
+        simple_rec(name='a', depends=['d', 'c <1.3.0']),
+        simple_rec(name='b', depends=['c']),
+        simple_rec(name='c', version='1.3.6',),
+        simple_rec(name='c', version='1.2.8',),
+        simple_rec(name='d', depends=['c >=0.8.0']),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['c=1.3.6', 'a', 'b'])
+    assert "a -> c[version='<1.3.0']" in str(excinfo.value)
+    assert "b -> c" in str(excinfo.value)
+    assert "c=1.3.6" in str(excinfo.value)
+
+
+def test_unsat_shortest_chain_2():
+    index = (
+        simple_rec(name='a', depends=['d', 'c >=0.8.0']),
+        simple_rec(name='b', depends=['c']),
+        simple_rec(name='c', version='1.3.6',),
+        simple_rec(name='c', version='1.2.8',),
+        simple_rec(name='d', depends=['c <1.3.0']),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['c=1.3.6', 'a', 'b'])
+    assert "a -> d -> c[version='<1.3.0']" in str(excinfo.value)
+    assert "b -> c" in str(excinfo.value)
+    assert "c=1.3.6" in str(excinfo.value)
+
+
+def test_unsat_shortest_chain_3():
+    index = (
+        simple_rec(name='a', depends=['f', 'e']),
+        simple_rec(name='b', depends=['c']),
+        simple_rec(name='c', version='1.3.6',),
+        simple_rec(name='c', version='1.2.8',),
+        simple_rec(name='d', depends=['c >=0.8.0']),
+        simple_rec(name='e', depends=['c <1.3.0']),
+        simple_rec(name='f', depends=['d']),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['c=1.3.6', 'a', 'b'])
+    assert "a -> e -> c[version='<1.3.0']" in str(excinfo.value)
+    assert "b -> c" in str(excinfo.value)
+    assert "c=1.3.6" in str(excinfo.value)
+
+
+def test_unsat_chain():
+    # a -> b -> c=1.x -> d=1.x
+    # e      -> c=2.x -> d=2.x
+    index = (
+        simple_rec(name='a', depends=['b']),
+        simple_rec(name='b', depends=['c >=1,<2']),
+        simple_rec(name='c', version='1.0', depends=['d >=1,<2']),
+        simple_rec(name='d', version='1.0'),
+
+        simple_rec(name='e', depends=['c >=2,<3']),
+        simple_rec(name='c', version='2.0', depends=['d >=2,<3']),
+        simple_rec(name='d', version='2.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['a', 'e'])
+    assert "a -> b -> c[version='>=1,<2'] -> d[version='>=1,<2']" in str(excinfo.value)
+    assert "e -> c[version='>=2,<3'] -> d[version='>=2,<3']" in str(excinfo.value)
+
+
+def test_unsat_any_two_not_three():
+    # can install any two of a, b and c but not all three
+    index = (
+        simple_rec(name='a', version='1.0', depends=['d >=1,<2']),
+        simple_rec(name='a', version='2.0', depends=['d >=2,<3']),
+
+        simple_rec(name='b', version='1.0', depends=['d >=1,<2']),
+        simple_rec(name='b', version='2.0', depends=['d >=3,<4']),
+
+        simple_rec(name='c', version='1.0', depends=['d >=2,<3']),
+        simple_rec(name='c', version='2.0', depends=['d >=3,<4']),
+
+        simple_rec(name='d', version='1.0'),
+        simple_rec(name='d', version='2.0'),
+        simple_rec(name='d', version='3.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    # a and b can be installed
+    installed1 = r.install(['a', 'b'])
+    assert any(k.name == 'a' and k.version == '1.0' for k in installed1)
+    assert any(k.name == 'b' and k.version == '1.0' for k in installed1)
+    # a and c can be installed
+    installed1 = r.install(['a', 'c'])
+    assert any(k.name == 'a' and k.version == '2.0' for k in installed1)
+    assert any(k.name == 'c' and k.version == '1.0' for k in installed1)
+    # b and c can be installed
+    installed1 = r.install(['b', 'c'])
+    assert any(k.name == 'b' and k.version == '2.0' for k in installed1)
+    assert any(k.name == 'c' and k.version == '2.0' for k in installed1)
+    # a, b and c cannot be installed
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['a', 'b', 'c'])
+    assert "a -> d[version='>=1,<2|>=2,<3']" in str(excinfo.value)
+    assert "b -> d[version='>=1,<2|>=3,<4']" in str(excinfo.value)
+    assert "c -> d[version='>=2,<3|>=3,<4']" in str(excinfo.value)
+
+
+def test_unsat_expand_single():
+    # if install maps to a single package, examine its dependencies
+    index = (
+        simple_rec(name='a', depends=['b', 'c']),
+        simple_rec(name='b', depends=['d >=1,<2']),
+        simple_rec(name='c', depends=['d >=2,<3']),
+        simple_rec(name='d', version='1.0'),
+        simple_rec(name='d', version='2.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['a'])
+    assert "b -> d[version='>=1,<2']" in str(excinfo.value)
+    assert "c -> d[version='>=2,<3']" in str(excinfo.value)
+
+
+def test_unsat_missing_dep():
+    # an install target has a missing dependency
+    index = (
+        simple_rec(name='a', depends=['b', 'c']),
+        simple_rec(name='b', depends=['c >=2,<3']),
+        simple_rec(name='c', version='1.0'),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    # this raises ResolvePackageNotFound not UnsatisfiableError
+    assert raises(UnsatisfiableError, lambda: r.install(['a', 'b']))
+
+
+def test_unsat_channel_priority():
+    # b depends on c 2.x which is only available in channel-2
+    index = (
+        simple_rec(name='a', version='1.0', depends=['c'], channel='channel-1'),
+        simple_rec(name='b', version='1.0', depends=['c >=2,<3'], channel='channel-1'),
+        simple_rec(name='c', version='1.0', channel='channel-1'),
+
+        simple_rec(name='a', version='2.0', depends=['c'], channel='channel-2'),
+        simple_rec(name='b', version='2.0', depends=['c >=2,<3'], channel='channel-2'),
+        simple_rec(name='c', version='1.0', channel='channel-2'),
+        simple_rec(name='c', version='2.0', channel='channel-2'),
+    )
+    channels = (
+        Channel('channel-1'),  # higher priority
+        Channel('channel-2'),  # lower priority, missing c 2.0
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index), channels=channels)
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        # channel-1 a and b packages (1.0) installed
+        installed1 = r.install(['a', 'b'])
+        assert any(k.name == 'a' and k.version == '1.0' for k in installed1)
+        assert any(k.name == 'b' and k.version == '1.0' for k in installed1)
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        # no channel priority, largest version of a and b (2.0) installed
+        installed1 = r.install(['a', 'b'])
+        assert any(k.name == 'a' and k.version == '2.0' for k in installed1)
+        assert any(k.name == 'b' and k.version == '2.0' for k in installed1)
+    with env_var("CONDA_CHANNEL_PRIORITY", "STRICT", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with pytest.raises(UnsatisfiableError) as excinfo:
+            r.install(['a', 'b'])
+        assert "b -> c[version='>=2,<3']" in str(excinfo.value)
 
 
 def test_nonexistent():
@@ -1030,6 +1193,20 @@ def test_broken_install():
     # always insure installed packages _are_ in the index
 
 
+def test_pip_depends_removed_on_inconsistent_env():
+    installed = r.install(['python 2.7*'])
+    pkg_names = [p.name for p in installed]
+    assert 'python' in pkg_names
+    assert 'pip' not in pkg_names
+    # add pip as python dependency
+    for pkg in installed:
+        if pkg.name == 'python':
+            pkg.depends += ('pip', )
+        assert pkg.name != 'pip'
+    bad_pkgs = r.bad_installed(installed, [])[0]
+    assert bad_pkgs is None
+
+
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
     _installed = [rec.dist_str() for rec in installed]
@@ -1106,7 +1283,7 @@ def test_channel_priority_1():
 
     r2 = Resolve(index2, channels=channels)
 
-    with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         # Should select the "record_2" because it has highest channel priority, even though
         # 'channel-1::pandas-0.11.1-np17py27_0.tar.bz2' would otherwise be preferred
         installed1 = r2.install(spec)
@@ -1121,7 +1298,7 @@ def test_channel_priority_1():
         assert record_1 not in installed2
 
 
-    with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         # Should also select the newer package because we have
         # turned off channel priority altogether
         r2._reduced_index_cache.clear()
@@ -1135,6 +1312,7 @@ def test_channel_priority_1():
     assert installed2 == installed3
 
 
+@pytest.mark.integration
 def test_channel_priority_2():
     this_index = index.copy()
     index4, r4 = get_index_r_4()
@@ -1142,11 +1320,11 @@ def test_channel_priority_2():
     spec = (MatchSpec('pandas'), MatchSpec('python 2.7*'))
     channels = (Channel('channel-1'), Channel('channel-3'))
     this_r = Resolve(this_index, channels=channels)
-    with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
-        eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
         pprint(eqc)
         assert eqc == {
@@ -1293,12 +1471,12 @@ def test_channel_priority_2():
         ]
 
     # setting strict actually doesn't do anything here; just ensures it's not 'disabled'
-    with env_var("CONDA_CHANNEL_PRIORITY", "strict", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "strict", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
 
-        eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
         assert eqc == {}, eqc
         installed_w_strict = [prec.dist_str() for prec in this_r.install(spec)]
@@ -1318,11 +1496,11 @@ def test_channel_priority_2():
             'channel-1::zlib-1.2.7-0',
         ], installed_w_strict
 
-    with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
-        eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
         pprint(eqc)
         assert eqc == {
@@ -1868,3 +2046,210 @@ def test_get_reduced_index_broadening_preferred_solution():
             assert d.version == '2.0', "top version should be 2.0, but is {}".format(d.version)
         elif d.name == 'bottom':
             assert d.version == '2.5', "bottom version should be 2.5, but is {}".format(d.version)
+
+
+def test_arch_preferred_over_noarch_when_otherwise_equal():
+    index = (
+        PackageRecord(**{
+            "build": "py36_0",
+            "build_number": 0,
+            "date": "2016-12-17",
+            "license": "BSD",
+            "md5": "9b4568068e3a7ac81be87902827d949e",
+            "name": "itsdangerous",
+            "size": 19688,
+            "version": "0.24"
+        }),
+        PackageRecord(**{
+            "arch": None,
+            "binstar": {
+            "channel": "main",
+            "owner_id": "58596cc93d1b550ffad38672",
+            "package_id": "5898cb9d9aba4511169c383a"
+            },
+            "build": "py_0",
+            "build_number": 0,
+            "has_prefix": False,
+            "license": "BSD",
+            "machine": None,
+            "md5": "917e90ca4e80324b77e8df449d07eefc",
+            "name": "itsdangerous",
+            "noarch": "python",
+            "operatingsystem": None,
+            "platform": None,
+            "requires": [],
+            "size": 14098,
+            "subdir": "noarch",
+            "target-triplet": "None-any-None",
+            "version": "0.24"
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['itsdangerous'])
+    for d in install:
+        assert d.subdir == context.subdir
+
+
+def test_noarch_preferred_over_arch_when_version_greater():
+    index = (
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '2.0',
+            'build': '0',
+            "subdir": "noarch",
+            'build_number': 0,
+        }),
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['abc'])
+    for d in install:
+        assert d.subdir == 'noarch'
+        assert d.version == '2.0'
+
+
+def test_noarch_preferred_over_arch_when_build_greater():
+    index = (
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '1',
+            "subdir": "noarch",
+            'build_number': 1,
+        }),
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['abc'])
+    for d in install:
+        assert d.subdir == 'noarch'
+        assert d.build_number == 1
+
+
+def test_arch_preferred_over_noarch_when_otherwise_equal_dep():
+    index = (
+        PackageRecord(**{
+            "build": "py36_0",
+            "build_number": 0,
+            "date": "2016-12-17",
+            "license": "BSD",
+            "md5": "9b4568068e3a7ac81be87902827d949e",
+            "name": "itsdangerous",
+            "size": 19688,
+            "version": "0.24"
+        }),
+        PackageRecord(**{
+            "arch": None,
+            "binstar": {
+            "channel": "main",
+            "owner_id": "58596cc93d1b550ffad38672",
+            "package_id": "5898cb9d9aba4511169c383a"
+            },
+            "build": "py_0",
+            "build_number": 0,
+            "has_prefix": False,
+            "license": "BSD",
+            "machine": None,
+            "md5": "917e90ca4e80324b77e8df449d07eefc",
+            "name": "itsdangerous",
+            "noarch": "python",
+            "operatingsystem": None,
+            "platform": None,
+            "requires": [],
+            "size": 14098,
+            "subdir": "noarch",
+            "target-triplet": "None-any-None",
+            "version": "0.24"
+        }),
+        PackageRecord(**{
+            'name': 'foo',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+            'depends': ['itsdangerous'],
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['foo'])
+    for d in install:
+        if d.name == 'itsdangerous':
+            assert d.subdir == context.subdir
+
+
+def test_noarch_preferred_over_arch_when_version_greater_dep():
+    index = (
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '2.0',
+            'build': '0',
+            "subdir": "noarch",
+            'build_number': 0,
+        }),
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+        }),
+        PackageRecord(**{
+            'name': 'foo',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+            'depends': ['abc'],
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['foo'])
+    for d in install:
+        if d.name == 'abc':
+            assert d.subdir == 'noarch'
+            assert d.version == '2.0'
+
+
+def test_noarch_preferred_over_arch_when_build_greater_dep():
+    index = (
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '1',
+            "subdir": "noarch",
+            'build_number': 1,
+        }),
+        PackageRecord(**{
+            'name': 'abc',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+        }),
+        PackageRecord(**{
+            'name': 'foo',
+            'version': '1.0',
+            'build': '0',
+            "subdir": context.subdir,
+            'build_number': 0,
+            'depends': ['abc'],
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    install = r.install(['abc'])
+    for d in install:
+        if d.name == 'abc':
+            assert d.subdir == 'noarch'
+            assert d.build_number == 1

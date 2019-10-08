@@ -75,7 +75,7 @@ from logging import getLogger
 from os import getenv, listdir, remove
 from os.path import abspath, dirname, expanduser, isdir, isfile, join
 from re import compile
-from shlex import split
+from conda._vendor.auxlib.compat import shlex_split_unicode
 from subprocess import CalledProcessError, PIPE, Popen
 import sys
 
@@ -89,7 +89,7 @@ GIT_DESCRIBE_REGEX = compile(r"(?:[_-a-zA-Z]*)"
 
 def call(command, path=None, raise_on_error=True):
     path = sys.prefix if path is None else abspath(path)
-    p = Popen(split(command), cwd=path, stdout=PIPE, stderr=PIPE)
+    p = Popen(shlex_split_unicode(command), cwd=path, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
     log.debug("{0} $  {1}\n"
@@ -131,15 +131,20 @@ def _git_describe_tags(path):
         raise CalledProcessError(response.rc, response.stderr)
 
 
-def _get_version_from_git_tag(path):
+def _get_version_from_git_tag(tag):
     """Return a PEP440-compliant version derived from the git status.
     If that fails for any reason, return the changeset hash.
     """
-    m = GIT_DESCRIBE_REGEX.match(_git_describe_tags(path) or '')
+    m = GIT_DESCRIBE_REGEX.match(tag)
     if m is None:
         return None
     version, post_commit, hash = m.groups()
     return version if post_commit == '0' else "{0}.post{1}+{2}".format(version, post_commit, hash)
+
+
+def _get_version_from_git_clone(path):
+    tag = _git_describe_tags(path) or ''
+    return _get_version_from_git_tag(tag)
 
 
 def get_version(dunder_file):
@@ -157,7 +162,7 @@ def get_version(dunder_file):
     """
     path = abspath(expanduser(dirname(dunder_file)))
     try:
-        return _get_version_from_version_file(path) or _get_version_from_git_tag(path)
+        return _get_version_from_version_file(path) or _get_version_from_git_clone(path)
     except CalledProcessError as e:
         log.warn(repr(e))
         return None

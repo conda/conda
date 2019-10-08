@@ -280,8 +280,8 @@ class VersionOrder(object):
                             # str < int
                             return True
                     elif isinstance(c2, string_types):
-                            # not (int < str)
-                            return False
+                        # not (int < str)
+                        return False
                     # c1 and c2 have the same type
                     return c1 < c2
         # self == other
@@ -367,7 +367,7 @@ def treeify(spec_str):
     return output[0]
 
 
-def untreeify(spec, _inand=False):
+def untreeify(spec, _inand=False, depth=0):
     """
     Examples:
         >>> untreeify('1.2.3')
@@ -375,19 +375,21 @@ def untreeify(spec, _inand=False):
         >>> untreeify((',', '1.2.3', '>4.5.6'))
         '1.2.3,>4.5.6'
         >>> untreeify(('|', (',', '1.2.3', '4.5.6'), '<=7.8.9'))
-        '1.2.3,4.5.6|<=7.8.9'
+        '(1.2.3,4.5.6)|<=7.8.9'
         >>> untreeify((',', ('|', '1.2.3', '4.5.6'), '<=7.8.9'))
         '(1.2.3|4.5.6),<=7.8.9'
         >>> untreeify(('|', '1.5', (',', ('|', '1.6', '1.7'), '1.8', '1.9'), '2.0', '2.1'))
-        '1.5|(1.6|1.7),1.8,1.9|2.0|2.1'
+        '1.5|((1.6|1.7),1.8,1.9)|2.0|2.1'
     """
     if isinstance(spec, tuple):
         if spec[0] == '|':
-            res = '|'.join(map(untreeify, spec[1:]))
-            if _inand:
+            res = '|'.join(map(lambda x: untreeify(x, depth=depth + 1), spec[1:]))
+            if _inand or depth > 0:
                 res = '(%s)' % res
         else:
-            res = ','.join(map(lambda x: untreeify(x, _inand=True), spec[1:]))
+            res = ','.join(map(lambda x: untreeify(x, _inand=True, depth=depth + 1), spec[1:]))
+            if depth > 0:
+                res = '(%s)' % res
         return res
     return spec
 
@@ -487,6 +489,7 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
         super(VersionSpec, self).__init__(vspec_str, matcher, is_exact)
 
     def get_matcher(self, vspec):
+
         if isinstance(vspec, string_types) and regex_split_re.match(vspec):
             vspec = treeify(vspec)
 
@@ -574,7 +577,14 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
 
     def merge(self, other):
         assert isinstance(other, self.__class__)
-        return self.__class__('%s,%s' % (self.raw_value, other.raw_value))
+        return self.__class__(','.join(sorted((self.raw_value, other.raw_value))))
+
+    def union(self, other):
+        assert isinstance(other, self.__class__)
+        options = set((self.raw_value, other.raw_value))
+        # important: we only return a string here because the parens get gobbled otherwise
+        #    this info is for visual display only, not for feeding into actual matches
+        return '|'.join(sorted(options))
 
 
 # TODO: someday switch out these class names for consistency
@@ -636,6 +646,10 @@ class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
             raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
                              % (self.raw_value, other.raw_value))
         return self.raw_value
+
+    def union(self, other):
+        options = set((self.raw_value, other.raw_value))
+        return '|'.join(options)
 
     @property
     def exact_value(self):

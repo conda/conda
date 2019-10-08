@@ -9,59 +9,74 @@ NOTE: This modules used to in conda, as conda/pip.py
 from __future__ import absolute_import, print_function
 
 import json
+from logging import getLogger
 import os
-from os.path import isfile, join
 import re
-import subprocess
 import sys
 
+from .exceptions import CondaEnvException
+from conda.gateways.subprocess import any_subprocess
+from conda.exports import on_win
+from conda.base.context import context
 
-def pip_args(prefix):
-    """
-    return the arguments required to invoke pip (in prefix), or None if pip
-    is not installed
-    """
-    if sys.platform == 'win32':
-        pip_path = join(prefix, 'Scripts', 'pip-script.py')
-        py_path = join(prefix, 'python.exe')
-    else:
-        pip_path = join(prefix, 'bin', 'pip')
-        py_path = join(prefix, 'bin', 'python')
-    if isfile(pip_path) and isfile(py_path):
-        ret = [py_path, pip_path]
 
-        # Check the version of pip
-        # --disable-pip-version-check was introduced in pip 6.0
-        # If older than that, they should probably get the warning anyway.
-        pip_version = subprocess.check_output(ret + ['-V']).decode('utf-8').split()[1]
-        major_ver = pip_version.split('.')[0]
-        if int(major_ver) >= 6:
-            ret.append('--disable-pip-version-check')
-        return ret, pip_version
+log = getLogger(__name__)
+
+
+def pip_subprocess(args, prefix, cwd):
+    if on_win:
+        python_path = os.path.join(prefix, 'python.exe')
     else:
-        return None, None
+        python_path = os.path.join(prefix, 'bin', 'python')
+    run_args = [python_path, '-m', 'pip'] + args
+    stdout, stderr, rc = any_subprocess(run_args, prefix, cwd=cwd)
+    if not context.quiet and not context.json:
+        print("Ran pip subprocess with arguments:")
+        print(run_args)
+        print("Pip subprocess output:")
+        print(stdout)
+    if rc != 0:
+        print("Pip subprocess error:", file=sys.stderr)
+        print(stderr, file=sys.stderr)
+        raise CondaEnvException("Pip failed")
+
+    # This will modify (break) Context. We have a context stack but need to verify it works
+    # stdout, stderr, rc = run_command(Commands.RUN, *run_args, stdout=None, stderr=None)
+    return stdout, stderr
+
+
+def get_pip_installed_packages(stdout):
+    """Return the list of pip packages installed based on the command output"""
+    m = re.search(r"Successfully installed\ (.*)", stdout)
+    if m:
+        return m.group(1).strip().split()
+    else:
+        return None
+
+
+def get_pip_version(prefix):
+    stdout, stderr = pip_subprocess(['-V'], prefix)
+    pip_version = re.search(r"pip\ (\d+\.\d+\.\d+)", stdout)
+    if not pip_version:
+        raise CondaEnvException("Failed to find pip version string in output")
+    else:
+        pip_version = pip_version.group(1)
+    return pip_version
 
 
 class PipPackage(dict):
     def __str__(self):
         if 'path' in self:
-            return '%s (%s)-%s-<pip>' % (
-                self['name'],
-                self['path'],
-                self['version']
-            )
+            return '%s (%s)-%s-<pip>' % (self['name'], self['path'], self['version'])
         return '%s-%s-<pip>' % (self['name'], self['version'])
 
 
 def installed(prefix, output=True):
-    args, pip_version = pip_args(prefix)
-    if args is None:
-        return
-
+    pip_version = get_pip_version(prefix)
     pip_major_version = int(pip_version.split('.', 1)[0])
 
     env = os.environ.copy()
-    args.append('list')
+    args = ['list']
 
     if pip_major_version >= 9:
         args += ['--format', 'json']
@@ -69,11 +84,11 @@ def installed(prefix, output=True):
         env[str('PIP_FORMAT')] = str('legacy')
 
     try:
-        pip_stdout = subprocess.check_output(args, universal_newlines=True, env=env)
+        pip_stdout, stderr = pip_subprocess(args, prefix=prefix, env=env)
     except Exception:
         # Any error should just be ignored
         if output:
-            print("# Warning: subprocess call to pip failed")
+            print("# Warning: subprocess call to pip failed", file=sys.stderr)
         return
 
     if pip_major_version >= 9:
@@ -101,7 +116,7 @@ def installed(prefix, output=True):
         # For every package in pipinst that is not already represented
         # in installed append a fake name to installed with 'pip'
         # as the build string
-        pat = re.compile('([\w.-]+)\s+\((.+)\)')
+        pat = re.compile(r'([\w.-]+)\s+\((.+)\)')
         for line in pip_stdout.splitlines():
             line = line.strip()
             if not line:
@@ -109,7 +124,7 @@ def installed(prefix, output=True):
             m = pat.match(line)
             if m is None:
                 if output:
-                    print('Could not extract name and version from: %r' % line)
+                    print('Could not extract name and version from: %r' % line, file=sys.stderr)
                 continue
             name, version = m.groups()
             name = name.lower()

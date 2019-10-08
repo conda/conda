@@ -5,16 +5,18 @@ import json
 from unittest import TestCase
 
 import sys
+import os
+import getpass
 
 from conda import text_type
 from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import context, reset_context
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_win
 from conda.common.io import captured, env_var
 from conda.exceptions import BasicClobberError, BinaryPrefixReplacementError, CommandNotFoundError, \
     CondaHTTPError, CondaKeyError, CondaRevisionError, DirectoryNotFoundError, \
-    KnownPackageClobberError, MD5MismatchError, PackagesNotFoundError, PathNotFoundError, \
+    KnownPackageClobberError, ChecksumMismatchError, PackagesNotFoundError, PathNotFoundError, \
     SharedLinkPathClobberError, TooFewArgumentsError, TooManyArgumentsError, \
     UnknownPackageClobberError, conda_exception_handler, ExceptionHandler
 
@@ -28,6 +30,14 @@ def _raise_helper(exception):
     raise exception
 
 
+def username_not_in_post_mock(post_mock, username):
+    for cal in post_mock.call_args_list:
+        for call_part in cal:
+            if username in str(call_part):
+                return False
+    return True
+
+
 class ExceptionTests(TestCase):
 
     def test_TooManyArgumentsError(self):
@@ -35,7 +45,7 @@ class ExceptionTests(TestCase):
         received = 5
         offending_arguments = "groot"
         exc = TooManyArgumentsError(expected, received, offending_arguments)
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -49,7 +59,7 @@ class ExceptionTests(TestCase):
         assert json_obj['received'] == 5
         assert json_obj['offending_arguments'] == "groot"
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -60,7 +70,7 @@ class ExceptionTests(TestCase):
         expected = 5
         received = 2
         exc = TooFewArgumentsError(expected, received)
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -73,7 +83,7 @@ class ExceptionTests(TestCase):
         assert json_obj['expected'] == 5
         assert json_obj['received'] == 2
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -84,7 +94,8 @@ class ExceptionTests(TestCase):
         source_path = "some/path/on/goodwin.ave"
         target_path = "some/path/to/wright.st"
         exc = BasicClobberError(source_path, target_path, context)
-        with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
+        t = repr(exc)
+        with env_var("CONDA_PATH_CONFLICT", "prevent", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -100,7 +111,7 @@ class ExceptionTests(TestCase):
         colliding_dist_being_linked = "Groot"
         colliding_linked_dist = "Liquid"
         exc = KnownPackageClobberError(target_path, colliding_dist_being_linked, colliding_linked_dist, context)
-        with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
+        with env_var("CONDA_PATH_CONFLICT", "prevent", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -117,7 +128,7 @@ class ExceptionTests(TestCase):
         target_path = "siebel/center/for/c.s"
         colliding_dist_being_linked = "Groot"
         exc = UnknownPackageClobberError(target_path, colliding_dist_being_linked, context)
-        with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
+        with env_var("CONDA_PATH_CONFLICT", "prevent", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -134,7 +145,7 @@ class ExceptionTests(TestCase):
         target_path = "some/where/in/shampoo/banana"
         incompatible_package_dists = "Groot"
         exc = SharedLinkPathClobberError(target_path, incompatible_package_dists, context)
-        with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
+        with env_var("CONDA_PATH_CONFLICT", "prevent", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -148,7 +159,7 @@ class ExceptionTests(TestCase):
     def test_CondaFileNotFoundError(self):
         filename = "Groot"
         exc = PathNotFoundError(filename)
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -159,7 +170,7 @@ class ExceptionTests(TestCase):
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -169,7 +180,7 @@ class ExceptionTests(TestCase):
     def test_DirectoryNotFoundError(self):
         directory = "Groot"
         exc = DirectoryNotFoundError(directory)
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -181,7 +192,7 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
         assert json_obj['path'] == "Groot"
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -193,38 +204,38 @@ class ExceptionTests(TestCase):
         target_full_path = "/some/path/on/disk/another-name.tar.bz2"
         expected_md5sum = "abc123"
         actual_md5sum = "deadbeef"
-        exc = MD5MismatchError(url, target_full_path, expected_md5sum, actual_md5sum)
-        with env_var("CONDA_JSON", "yes", reset_context):
+        exc = ChecksumMismatchError(url, target_full_path, "md5", expected_md5sum, actual_md5sum)
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
         assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.MD5MismatchError'>"
-        assert json_obj['exception_name'] == 'MD5MismatchError'
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.ChecksumMismatchError'>"
+        assert json_obj['exception_name'] == 'ChecksumMismatchError'
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
         assert json_obj['url'] == url
         assert json_obj['target_full_path'] == target_full_path
-        assert json_obj['expected_md5sum'] == expected_md5sum
-        assert json_obj['actual_md5sum'] == actual_md5sum
+        assert json_obj['expected_checksum'] == expected_md5sum
+        assert json_obj['actual_checksum'] == actual_md5sum
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-        MD5MismatchError: Conda detected a mismatch between the expected content and downloaded content
+        ChecksumMismatchError: Conda detected a mismatch between the expected content and downloaded content
         for url 'https://download.url/path/to/file.tar.bz2'.
           download saved to: /some/path/on/disk/another-name.tar.bz2
-          expected md5 sum: abc123
-          actual md5 sum: deadbeef
+          expected md5: abc123
+          actual md5: deadbeef
         """).strip()
 
     def test_PackageNotFoundError(self):
         package = "Potato"
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 exc = PackagesNotFoundError((package,))
                 conda_exception_handler(_raise_helper, exc)
@@ -235,7 +246,7 @@ class ExceptionTests(TestCase):
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -248,7 +259,7 @@ class ExceptionTests(TestCase):
     def test_CondaRevisionError(self):
         message = "Potato"
         exc = CondaRevisionError(message)
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -259,7 +270,7 @@ class ExceptionTests(TestCase):
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -270,7 +281,7 @@ class ExceptionTests(TestCase):
         key = "Potato"
         message = "Potato is not a key."
         exc = CondaKeyError(key, message)
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -282,7 +293,7 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
         assert json_obj['key'] == "Potato"
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -297,7 +308,7 @@ class ExceptionTests(TestCase):
         elapsed_time = 1.24
         exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time)
 
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -312,7 +323,7 @@ class ExceptionTests(TestCase):
             assert json_obj['reason'] == reason
             assert json_obj['elapsed_time'] == elapsed_time
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -328,7 +339,7 @@ class ExceptionTests(TestCase):
         cmd = "instate"
         exc = CommandNotFoundError(cmd)
 
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -338,7 +349,7 @@ class ExceptionTests(TestCase):
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -350,7 +361,7 @@ class ExceptionTests(TestCase):
         cmd = "build"
         exc = CommandNotFoundError(cmd)
 
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -360,7 +371,7 @@ class ExceptionTests(TestCase):
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -373,10 +384,12 @@ class ExceptionTests(TestCase):
             AttrDict(raise_for_status=lambda: None),
     ))
     def test_print_unexpected_error_message_upload_1(self, post_mock):
-        with env_var('CONDA_REPORT_ERRORS', 'true', reset_context):
+        with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 ExceptionHandler()(_raise_helper, AssertionError())
 
+            username = getpass.getuser()
+            assert username_not_in_post_mock(post_mock, username)
             assert post_mock.call_count == 2
             assert c.stdout == ''
             assert "conda version" in c.stderr
@@ -389,11 +402,13 @@ class ExceptionTests(TestCase):
             AttrDict(raise_for_status=lambda: None),
     ))
     def test_print_unexpected_error_message_upload_2(self, post_mock):
-        with env_var('CONDA_JSON', 'true', reset_context):
-            with env_var('CONDA_YES', 'yes', reset_context):
+        with env_var('CONDA_JSON', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with env_var('CONDA_YES', 'yes', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 with captured() as c:
                     ExceptionHandler()(_raise_helper, AssertionError())
 
+                username = getpass.getuser()
+                assert username_not_in_post_mock(post_mock, username)
                 assert post_mock.call_count == 3
                 assert len(json.loads(c.stdout)['conda_info']['channels']) >= 2
                 assert not c.stderr
@@ -409,15 +424,53 @@ class ExceptionTests(TestCase):
         with captured() as c:
             ExceptionHandler()(_raise_helper, AssertionError())
 
+        username = getpass.getuser()
+        assert username_not_in_post_mock(post_mock, username)
         assert input_mock.call_count == 1
         assert post_mock.call_count == 2
         assert c.stdout == ''
         assert "conda version" in c.stderr
 
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    @patch('getpass.getuser', return_value='some name')
+    def test_print_unexpected_error_message_upload_username_with_spaces(self, pwuid, post_mock):
+        with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with captured() as c:
+                ExceptionHandler()(_raise_helper, AssertionError())
+
+            error_data = json.loads(post_mock.call_args[1].get("data"))
+            assert error_data.get("has_spaces") == True
+            assert error_data.get("is_ascii") == True
+            assert post_mock.call_count == 2
+            assert c.stdout == ''
+            assert "conda version" in c.stderr
+
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    @patch('getpass.getuser', return_value='my√nameΩ')
+    def test_print_unexpected_error_message_upload_username_with_unicode(self, pwuid, post_mock):
+        with env_var('CONDA_REPORT_ERRORS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with captured() as c:
+                ExceptionHandler()(_raise_helper, AssertionError())
+
+            error_data = json.loads(post_mock.call_args[1].get("data"))
+            assert error_data.get("has_spaces") == False
+            assert error_data.get("is_ascii") == False
+            assert post_mock.call_count == 2
+            assert c.stdout == ''
+            assert "conda version" in c.stderr
+
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
     def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock):
-        with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
+        with env_var('CONDA_REPORT_ERRORS', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             e = AssertionError()
             with captured() as c:
                 ExceptionHandler()(_raise_helper, AssertionError())
@@ -448,7 +501,7 @@ class ExceptionTests(TestCase):
         placeholder = "save/my/spot/in/374"
         exc = BinaryPrefixReplacementError(path, placeholder, new_prefix,
                                            original_data_length, new_data_length)
-        with env_var("CONDA_JSON", "yes", reset_context):
+        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
@@ -464,7 +517,7 @@ class ExceptionTests(TestCase):
         assert json_obj['path'] == path
         assert json_obj['placeholder'] == placeholder
 
-        with env_var("CONDA_JSON", "no", reset_context):
+        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 

@@ -24,13 +24,23 @@ machine_bits = 8 * tuple.__itemsize__
 
 APP_NAME = 'conda'
 
-SEARCH_PATH = (
-    '/etc/conda/.condarc',
-    '/etc/conda/condarc',
-    '/etc/conda/condarc.d/',
-    '/var/lib/conda/.condarc',
-    '/var/lib/conda/condarc',
-    '/var/lib/conda/condarc.d/',
+if on_win:
+    SEARCH_PATH = (
+        'C:/ProgramData/conda/.condarc',
+        'C:/ProgramData/conda/condarc',
+        'C:/ProgramData/conda/condarc.d',
+    )
+else:
+    SEARCH_PATH = (
+        '/etc/conda/.condarc',
+        '/etc/conda/condarc',
+        '/etc/conda/condarc.d/',
+        '/var/lib/conda/.condarc',
+        '/var/lib/conda/condarc',
+        '/var/lib/conda/condarc.d/',
+    )
+
+SEARCH_PATH += (
     '$CONDA_ROOT/.condarc',
     '$CONDA_ROOT/condarc',
     '$CONDA_ROOT/condarc.d/',
@@ -68,13 +78,11 @@ RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
 DEFAULT_CHANNELS_UNIX = (
     'https://repo.anaconda.com/pkgs/main',
-    'https://repo.anaconda.com/pkgs/free',
     'https://repo.anaconda.com/pkgs/r',
 )
 
 DEFAULT_CHANNELS_WIN = (
     'https://repo.anaconda.com/pkgs/main',
-    'https://repo.anaconda.com/pkgs/free',
     'https://repo.anaconda.com/pkgs/r',
     'https://repo.anaconda.com/pkgs/msys2',
 )
@@ -126,9 +134,17 @@ else:
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000
 
-CONDA_TARBALL_EXTENSION = '.tar.bz2'
+CONDA_PACKAGE_EXTENSION_V1 = ".tar.bz2"
+CONDA_PACKAGE_EXTENSION_V2 = ".conda"
+CONDA_PACKAGE_EXTENSIONS = (
+    CONDA_PACKAGE_EXTENSION_V2,
+    CONDA_PACKAGE_EXTENSION_V1,
+)
+CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build; remove this line  # NOQA
+CONDA_TEMP_EXTENSION = '.c~'
 
 UNKNOWN_CHANNEL = "<unknown>"
+REPODATA_FN = 'repodata.json'
 
 
 class SafetyChecks(Enum):
@@ -199,9 +215,22 @@ class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, Enum)):
         return self.value
 
 
+class SatSolverChoice(Enum):
+    PYCOSAT = 'pycosat'
+    PYCRYPTOSAT = 'pycryptosat'
+    PYSAT = 'pysat'
+
+    def __str__(self):
+        return self.value
+
+
 # Magic files for permissions determination
 PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
 PREFIX_MAGIC_FILE = join('conda-meta', 'history')
+
+PREFIX_STATE_FILE = join('conda-meta', 'state')
+PACKAGE_ENV_VARS_DIR = join('etc', 'conda', 'env_vars.d')
+CONDA_ENV_VARS_UNSET_VAR = "***unset***"
 
 
 # TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.

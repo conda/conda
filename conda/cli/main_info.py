@@ -16,6 +16,7 @@ from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
 from ..base.context import conda_in_private_env, context, env_name, sys_rc_path, user_rc_path
 from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.url import mask_anaconda_token
+from ..core.index import _supplement_index_with_system
 from ..models.channel import all_channel_urls, offline_keep
 from ..models.match_spec import MatchSpec
 from ..utils import human_bytes
@@ -69,7 +70,7 @@ def pretty_package(prec):
     for key in sorted(set(pkg.keys()) - SKIP_FIELDS):
         d[key] = pkg[key]
 
-    print()
+    print('')
     header = "%s %s %s" % (d['name'], d['version'], d['build string'])
     print(header)
     print('-'*len(header))
@@ -129,6 +130,10 @@ def get_info_dict(system=False):
     else:  # pragma: no cover
         conda_build_version = conda_build.__version__
 
+    virtual_pkg_index = {}
+    _supplement_index_with_system(virtual_pkg_index)
+    virtual_pkgs = [[p.name, p.version] for p in virtual_pkg_index.values()]
+
     channels = list(all_channel_urls(context.channels))
     if not context.json:
         channels = [c + ('' if offline_keep(c) else '  (offline)')
@@ -174,9 +179,10 @@ def get_info_dict(system=False):
         conda_location=CONDA_PACKAGE_ROOT,
         config_files=config_files,
         netrc_file=netrc_file,
+        virtual_pkgs=virtual_pkgs,
     )
     if on_win:
-        from ..common.os.windows import is_admin_on_windows
+        from ..common._os.windows import is_admin_on_windows
         info_dict['is_windows_admin'] = is_admin_on_windows()
     else:
         info_dict['UID'] = os.geteuid()
@@ -228,6 +234,9 @@ def get_env_vars_str(info_dict):
 def get_main_info_str(info_dict):
     for key in 'pkgs_dirs', 'envs_dirs', 'channels', 'config_files':
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
+
+    info_dict['_virtual_pkgs'] = ('\n' + 26 * ' ').join([
+        '%s=%s' % tuple(x) for x in info_dict['virtual_pkgs']])
     info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else 'read only')
 
     format_param = lambda nm, val: "%23s : %s" % (nm, val)
@@ -249,6 +258,7 @@ def get_main_info_str(info_dict):
         format_param('conda version', info_dict['conda_version']),
         format_param('conda-build version', info_dict['conda_build_version']),
         format_param('python version', info_dict['python_version']),
+        format_param('virtual packages', info_dict['_virtual_pkgs']),
         format_param('base environment', '%s  (%s)' % (info_dict['root_prefix'],
                                                        info_dict['_rtwro'])),
         format_param('channel URLs', info_dict['_channels']),
@@ -277,7 +287,7 @@ def execute(args, parser):
         if context.json:
             stdout_json({'root_prefix': context.root_prefix})
         else:
-            print(context.root_prefix)
+            print('{}'.format(context.root_prefix))
         return
 
     if args.packages:
@@ -327,14 +337,14 @@ def execute(args, parser):
             if site_dirs:
                 print(site_dirs[0])
             else:
-                print()
+                print('')
             for site_dir in site_dirs[1:]:
                 print('                %s' % site_dir)
-            print()
+            print('')
 
             for name, value in sorted(iteritems(info_dict['env_vars'])):
                 print("%s: %s" % (name, value))
-            print()
+            print('')
 
     if context.json:
         stdout_json(info_dict)

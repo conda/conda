@@ -7,10 +7,9 @@ import sys
 import textwrap
 
 from conda._vendor.auxlib.path import expand
-from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.misc import touch_nonadmin
-from .common import get_prefix
+from .common import get_prefix, print_result
 from .. import exceptions, specs as install_specs
 from ..exceptions import CondaEnvException
 from ..installers.base import InvalidInstaller, get_installer
@@ -73,7 +72,7 @@ def execute(args, parser):
 
     if not (args.name or args.prefix):
         if not env.name:
-                    # Note, this is a hack fofr get_prefix that assumes argparse results
+            # Note, this is a hack fofr get_prefix that assumes argparse results
             # TODO Refactor common.get_prefix
             name = os.environ.get('CONDA_DEFAULT_ENV', False)
             if not name:
@@ -119,9 +118,10 @@ def execute(args, parser):
             )
             return -1
 
+    result = {"conda": None, "pip": None}
     for installer_type, specs in env.dependencies.items():
         installer = installers[installer_type]
-        installer.install(prefix, specs, args, env)
+        result[installer_type] = installer.install(prefix, specs, args, env)
 
     touch_nonadmin(prefix)
-    cli_install.print_activate(args.name if args.name else prefix)
+    print_result(args, prefix, result)
