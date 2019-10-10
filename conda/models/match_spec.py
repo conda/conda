@@ -434,6 +434,10 @@ class MatchSpec(object):
         return self.conda_build_form()
 
     @property
+    def to_query_param(self):
+        return self.get_exact_value('name')
+
+    @property
     def version(self):
         # in the old MatchSpec object, version was a VersionSpec, not a str
         # so we'll keep that API here

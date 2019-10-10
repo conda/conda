@@ -57,15 +57,17 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]' 
 
 class SubdirDataType(type):
 
-    def __call__(cls, channel, repodata_fn=REPODATA_FN):
+    def __call__(cls, channel, package_ref_or_match_specs=None, repodata_fn=REPODATA_FN):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
         cache_key = channel.url(with_credentials=True), repodata_fn
+        if package_ref_or_match_specs:
+            cache_key = channel.url(with_credentials=True), frozenset(package_ref_or_match_specs), repodata_fn
         if not cache_key[0].startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
 
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, repodata_fn)
+        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, package_ref_or_match_specs, repodata_fn)
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
 
@@ -76,7 +78,7 @@ class SubdirData(object):
 
     @staticmethod
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
-                  repodata_fn=REPODATA_FN):
+                  package_ref_or_match_specs=None, repodata_fn=REPODATA_FN):
         from .index import check_whitelist  # TODO: fix in-line import
         # ensure that this is not called by threaded code
         create_cache_dir()
@@ -86,8 +88,12 @@ class SubdirData(object):
             subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
         check_whitelist(channel_urls)
-        subdir_query = lambda url: tuple(SubdirData(Channel(url), repodata_fn=repodata_fn).query(
-            package_ref_or_match_spec))
+
+        subdir_query = lambda url: tuple(SubdirData(
+            Channel(url),
+            package_ref_or_match_specs=package_ref_or_match_specs,
+            repodata_fn=repodata_fn)
+            .query(package_ref_or_match_spec))
 
         # TODO test timing with ProcessPoolExecutor
         Executor = (DummyExecutor if context.debug or context.repodata_threads == 1
@@ -126,7 +132,7 @@ class SubdirData(object):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel, repodata_fn=REPODATA_FN):
+    def __init__(self, channel, package_ref_or_match_specs=None, repodata_fn=REPODATA_FN):
         assert channel.subdir
         if channel.package_filename:
             parts = channel.dump()
@@ -137,6 +143,7 @@ class SubdirData(object):
         self.url_w_credentials = self.channel.url(with_credentials=True)
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
+        self.package_ref_or_match_specs = package_ref_or_match_specs
         self._loaded = False
 
     def reload(self):
@@ -237,6 +244,7 @@ class SubdirData(object):
                 self.url_w_credentials,
                 mod_etag_headers.get('_etag'),
                 mod_etag_headers.get('_mod'),
+                package_ref_or_match_specs=self.package_ref_or_match_specs,
                 repodata_fn=self.repodata_fn)
             # empty file
             if not raw_repodata_str and self.repodata_fn != REPODATA_FN:
@@ -455,7 +463,7 @@ class Response304ContentUnchanged(Exception):
     pass
 
 
-def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
+def fetch_repodata_remote_request(url, etag, mod_stamp, package_ref_or_match_specs=None, repodata_fn=REPODATA_FN):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
@@ -470,10 +478,13 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
     headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
     headers['Content-Type'] = 'application/json'
     filename = repodata_fn
+    params = {}
+    if package_ref_or_match_specs:
+        params['spec'] = [ref_or_spec.to_query_param for ref_or_spec in package_ref_or_match_specs]
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
+        resp = session.get(join_url(url, filename), params=params, headers=headers, proxies=session.proxies,
                            timeout=timeout)
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))

@@ -44,7 +44,8 @@ def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), h
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_1(context.subdir)
+    query_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_1(context.subdir, query_specs=query_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -57,7 +58,8 @@ def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
+    query_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_2(context.subdir, query_specs=query_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-2'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -70,7 +72,8 @@ def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_4(context.subdir)
+    query_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_4(context.subdir, query_specs=query_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-4'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -83,7 +86,8 @@ def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_5(context.subdir)
+    query_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_5(context.subdir, query_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-5'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -96,8 +100,9 @@ def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    get_index_r_4(context.subdir)
+    query_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_2(context.subdir, query_specs=query_specs)
+    get_index_r_4(context.subdir, query_specs=query_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-2'), Channel('channel-4'), ),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -110,8 +115,9 @@ def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    get_index_r_4(context.subdir)
+    query_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_2(context.subdir, query_specs=query_specs)
+    get_index_r_4(context.subdir, query_specs=query_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-4'), Channel('channel-2')),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -124,7 +130,8 @@ def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_must_unfreeze(context.subdir)
+    query_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_must_unfreeze(context.subdir, query_specs=query_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-freeze'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -137,7 +144,8 @@ def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_cuda(context.subdir)
+    query_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_cuda(context.subdir, query_specs=query_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -902,7 +910,7 @@ def test_unfreeze_when_required(tmpdir):
     # if foobar is installed first it must be downgraded from 2.0.
     # If foobar is frozen then no solution exists.
 
-    specs = [MatchSpec("foobar"), MatchSpec('qux')]
+    specs = MatchSpec("foobar"), MatchSpec('qux'),
     with get_solver_must_unfreeze(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_1))
@@ -1258,7 +1266,6 @@ def test_python2_update(tmpdir):
             'channel-4::asn1crypto-0.24.0-py37_0',
             'channel-4::certifi-2018.8.13-py37_0',
             'channel-4::chardet-3.0.4-py37_1',
-            'channel-4::cryptography-vectors-2.3-py37_0',
             'channel-4::idna-2.7-py37_0',
             'channel-4::pycosat-0.6.3-py37h14c3975_0',
             'channel-4::pycparser-2.18-py37_1',
@@ -1266,7 +1273,7 @@ def test_python2_update(tmpdir):
             'channel-4::ruamel_yaml-0.15.46-py37h14c3975_0',
             'channel-4::six-1.11.0-py37_1',
             'channel-4::cffi-1.11.5-py37h9745a5d_0',
-            'channel-4::cryptography-2.3-py37hb7f436b_0',
+            'channel-4::cryptography-2.2.2-py37h14c3975_0',
             'channel-4::pyopenssl-18.0.0-py37_0',
             'channel-4::urllib3-1.23-py37_0',
             'channel-4::requests-2.19.1-py37_0',
@@ -1816,7 +1823,7 @@ def test_channel_priority_churn_minimized(tmpdir):
 
     pprint(convert_to_dist_str(final_state))
 
-    with get_solver_aggregate_2(tmpdir, [MatchSpec('itsdangerous')],
+    with get_solver_aggregate_2(tmpdir, (MatchSpec('itsdangerous'),),
                                 prefix_records=final_state, history_specs=specs) as solver:
         solver.channels.reverse()
         unlink_dists, link_dists = solver.solve_for_diff(

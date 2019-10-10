@@ -156,8 +156,12 @@ def add_feature_records_legacy(index):
         rec = make_feature_record(feature_name)
         index[rec] = rec
 
+def specs_to_query_parameters(specs=[]):
+    return "?" + "&".join(specs) or ""
+
+
 @memoize
-def get_index_r_1(subdir=context.subdir):
+def get_index_r_1(subdir=context.subdir, query_specs=[]):
     with open(join(dirname(__file__), 'data', 'index.json')) as fi:
         packages = json.load(fi)
         repodata = {
@@ -169,8 +173,9 @@ def get_index_r_1(subdir=context.subdir):
             "packages": packages,
         }
 
+
     channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
-    sd = SubdirData(channel)
+    sd = SubdirData(channel, package_ref_or_match_specs=query_specs)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
@@ -183,7 +188,7 @@ def get_index_r_1(subdir=context.subdir):
 
 
 @memoize
-def get_index_r_2(subdir=context.subdir):
+def get_index_r_2(subdir=context.subdir, query_specs=[]):
     with open(join(dirname(__file__), 'data', 'index2.json')) as fi:
         packages = json.load(fi)
         repodata = {
@@ -196,7 +201,7 @@ def get_index_r_2(subdir=context.subdir):
         }
 
     channel = Channel('https://conda.anaconda.org/channel-2/%s' % subdir)
-    sd = SubdirData(channel)
+    sd = SubdirData(channel, package_ref_or_match_specs=query_specs)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
@@ -208,7 +213,7 @@ def get_index_r_2(subdir=context.subdir):
 
 
 @memoize
-def get_index_r_4(subdir=context.subdir):
+def get_index_r_4(subdir=context.subdir, query_specs=[]):
     with open(join(dirname(__file__), 'data', 'index4.json')) as fi:
         packages = json.load(fi)
         repodata = {
@@ -221,7 +226,7 @@ def get_index_r_4(subdir=context.subdir):
         }
 
     channel = Channel('https://conda.anaconda.org/channel-4/%s' % subdir)
-    sd = SubdirData(channel)
+    sd = SubdirData(channel, package_ref_or_match_specs=query_specs)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
@@ -234,7 +239,7 @@ def get_index_r_4(subdir=context.subdir):
 
 
 @memoize
-def get_index_r_5(subdir=context.subdir):
+def get_index_r_5(subdir=context.subdir, query_specs=[]):
     with open(join(dirname(__file__), 'data', 'index5.json')) as fi:
         packages = json.load(fi)
         repodata = {
@@ -247,7 +252,7 @@ def get_index_r_5(subdir=context.subdir):
         }
 
     channel = Channel('https://conda.anaconda.org/channel-5/%s' % subdir)
-    sd = SubdirData(channel)
+    sd = SubdirData(channel, package_ref_or_match_specs=query_specs)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
@@ -260,7 +265,7 @@ def get_index_r_5(subdir=context.subdir):
 
 
 @memoize
-def get_index_must_unfreeze(subdir=context.subdir):
+def get_index_must_unfreeze(subdir=context.subdir, query_specs=[]):
     repodata = {
         "info": {
             "subdir": subdir,
@@ -357,7 +362,7 @@ def get_index_must_unfreeze(subdir=context.subdir):
         }
     }
     channel = Channel('https://conda.anaconda.org/channel-freeze/%s' % subdir)
-    sd = SubdirData(channel)
+    sd = SubdirData(channel, package_ref_or_match_specs=query_specs)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
@@ -370,7 +375,7 @@ def get_index_must_unfreeze(subdir=context.subdir):
 
 
 # Do not memoize this get_index to allow different CUDA versions to be detected
-def get_index_cuda(subdir=context.subdir):
+def get_index_cuda(subdir=context.subdir, query_specs=[]):
     with open(join(dirname(__file__), 'data', 'index.json')) as fi:
         packages = json.load(fi)
         repodata = {
@@ -383,7 +388,7 @@ def get_index_cuda(subdir=context.subdir):
         }
 
     channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
-    sd = SubdirData(channel)
+    sd = SubdirData(channel, package_ref_or_match_specs=query_specs)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True

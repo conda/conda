@@ -84,9 +84,10 @@ def pretty_package(prec):
 def print_package_info(packages):
     from ..core.subdir_data import SubdirData
     results = {}
+    specs = [MatchSpec(package) for package in packages]
     for package in packages:
         spec = MatchSpec(package)
-        results[package] = tuple(SubdirData.query_all(spec))
+        results[package] = tuple(SubdirData.query_all(spec, package_ref_or_match_specs=specs))
 
     if context.json:
         stdout_json({package: results[package] for package in packages})

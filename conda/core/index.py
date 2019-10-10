@@ -211,7 +211,7 @@ def get_reduced_index(prefix, channels, subdirs, specs, repodata_fn):
             collected_names.add(name)
             spec = MatchSpec(name)
             new_records = SubdirData.query_all(spec, channels=channels, subdirs=subdirs,
-                                               repodata_fn=repodata_fn)
+                                               package_ref_or_match_specs=specs, repodata_fn=repodata_fn)
             for record in new_records:
                 push_record(record)
             records.update(new_records)
@@ -221,7 +221,7 @@ def get_reduced_index(prefix, channels, subdirs, specs, repodata_fn):
             collected_track_features.add(feature_name)
             spec = MatchSpec(track_features=feature_name)
             new_records = SubdirData.query_all(spec, channels=channels, subdirs=subdirs,
-                                               repodata_fn=repodata_fn)
+                                               package_ref_or_match_specs=specs, repodata_fn=repodata_fn)
             for record in new_records:
                 push_record(record)
             records.update(new_records)
