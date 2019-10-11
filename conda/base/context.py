@@ -8,15 +8,17 @@ from collections import OrderedDict
 from errno import ENOENT
 from logging import getLogger
 import os
-from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
+from os.path import abspath, basename, expanduser, isdir, isfile, join, lexists, split as path_split
 import platform
 import sys
+from json import loads
 
 from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
                         ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, UpdateModifier)
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, UpdateModifier,
+                        CONDA_ENV_SEARCH_PATH, PREFIX_STATE_FILE)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
@@ -342,6 +344,13 @@ class Context(Configuration):
                     if target_prefix != context.root_prefix:
                         os.environ['CONDA_PREFIX'] = determine_target_prefix(context,
                                                                              argparse_args)
+            prefix = os.environ['CONDA_PREFIX']
+            state_file = join(prefix, PREFIX_STATE_FILE)
+            if lexists(state_file):
+                with open(state_file, 'r') as f:
+                    prefix_state = loads(f.read(), object_pairs_hook=OrderedDict)
+                if prefix_state.get('isolate_env', False):
+                    search_path = CONDA_ENV_SEARCH_PATH
 
         super(Context, self).__init__(search_path=search_path, app_name=APP_NAME,
                                       argparse_args=argparse_args)

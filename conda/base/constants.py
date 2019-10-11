@@ -54,6 +54,13 @@ SEARCH_PATH += (
     '$CONDARC',
 )
 
+CONDA_ENV_SEARCH_PATH = (
+    '$CONDA_PREFIX/.condarc',
+    '$CONDA_PREFIX/condarc',
+    '$CONDA_PREFIX/condarc.d/',
+    '$CONDARC',
+)
+
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
 CONDA_HOMEPAGE_URL = 'https://conda.io'
 ERROR_UPLOAD_URL = 'https://conda.io/conda-post/unexpected-error'
