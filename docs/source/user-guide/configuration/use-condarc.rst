@@ -17,7 +17,9 @@ The conda configuration file, ``.condarc``, is an optional
 runtime configuration file that allows advanced users to
 configure various aspects of conda, such as which channels it
 searches for packages, proxy settings, and environment
-directories.
+directories. For all of the conda configuration options,
+see the :doc:`configuration page <../../configuration>`.
+
 
 .. note::
 
@@ -665,11 +667,12 @@ Conda-build configuration
 * :ref:`long-test-prefix`
 * :ref:`pypi-upload-settings`
 * :ref:`pypi-repository`
+* :ref:`threads`
 
 
 .. _specify-root-dir:
 
-Specify conda build output root directory (root-dir)
+Specify conda-build output root directory (root-dir)
 ----------------------------------------------------
 
 Build output root directory. You can also set this with the
@@ -688,7 +691,7 @@ EXAMPLE:
 
 .. _specify-output-folder:
 
-Specify conda build build folder (conda-build 3.16.3+) (output_folder)
+Specify conda-build build folder (conda-build 3.16.3+) (output_folder)
 ----------------------------------------------------------------------
 
 Folder to dump output package to. Packages are moved here if build or test
@@ -702,10 +705,10 @@ the root build directory (``root-dir``).
 
 .. _auto-upload:
 
-Automatically upload conda build packages to Anaconda.org (anaconda_upload)
+Automatically upload conda-build packages to Anaconda.org (anaconda_upload)
 ---------------------------------------------------------------------------
 
-Automatically upload packages built with conda build to
+Automatically upload packages built with conda-build to
 `Anaconda.org <http://anaconda.org>`_. The default is ``False``.
 
 EXAMPLE:
@@ -962,3 +965,56 @@ To remove a key, such as channels, and all of its values:
 To configure channels and their priority for a single
 environment, make a ``.condarc`` file in the :ref:`root directory
 of that environment <config-channels>`.
+
+.. _threads:
+
+Configuring number of threads
+=============================
+
+You can use your ``.condarc`` file or environment variables to
+add configuration to control the number of threads. You may
+want to do this to tweak conda to better utilize your system.
+If you have a very fast SSD, you might be able to shorten the
+time it takes for conda to create environments and
+install/remove packages.
+
+**repodata_threads**
+
+* Default: None
+* Threads used when downloading, parsing, and creating repodata
+  structures from repodata.json files. Multiple downloads from
+  different channels may occur simultaneously. This speeds up the
+  time it takes to start solving.
+
+**verify_threads**
+
+* Default: 1
+* Threads used when verifying the integrity of packages and files
+  to be installed in your environment. Defaults to 1, as using
+  multiple threads here can run into problems with slower hard
+  drives.
+
+**execute_threads**
+
+* Default: 1
+* Threads used to unlink, remove, link, or copy files into your
+  environment. Defaults to 1, as using multiple threads here can
+  run into problems with slower hard drives.
+
+**default_threads**
+
+* Default value: None
+* When set, this value is used for all of the above thread
+  settings. With its default setting (None), it does not affect
+  the other settings.
+
+Setting any of the above can be done in ``.condarc`` or with
+conda config:
+
+At your terminal::
+  
+  conda config --set repodata_threads 2
+
+In ``.condarc``::
+
+  verify_threads: 4
