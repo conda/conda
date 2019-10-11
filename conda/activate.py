@@ -931,7 +931,6 @@ class XonshActivator(_Activator):
     def __init__(self, arguments=None):
         self.pathsep_join = ';'.join if on_win else ':'.join
         self.sep = '/'
-        self.path_conversion = native_path_to_unix
         self.tempfile_extension = None
         self.command_join = '\n'
 
