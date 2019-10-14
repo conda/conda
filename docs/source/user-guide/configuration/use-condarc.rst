@@ -980,7 +980,7 @@ environments and install/remove packages.
 
 **repodata_threads**
 
-* Default number of threads: None
+* Default number of threads: 1
 * Threads used when downloading, parsing, and creating repodata
   structures from repodata.json files. Multiple downloads from
   different channels may occur simultaneously. This speeds up the
