@@ -14,6 +14,7 @@ from conda.cli.common import check_non_admin
 from conda.common.compat import on_win, StringIO
 from conda.common.io import captured, env_var
 from conda.exceptions import CondaSystemExit, DryRunExit, OperationNotAllowed
+from conda.cli.python_api import run_command, Commands
 
 log = getLogger(__name__)
 
@@ -45,6 +46,18 @@ def test_check_non_admin_enabled_true():
     with env_var('CONDA_NON_ADMIN_ENABLED', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
         check_non_admin()
         assert True
+
+
+def test_cli_args_as_list():
+    with env_var('CONDA_ADD_ANACONDA_TOKEN', 'false'):
+        out, err, rc = run_command(Commands.CONFIG, ["--show", "add_anaconda_token"])
+    assert out == 'add_anaconda_token: False\n'
+
+
+def test_cli_args_as_strings():
+    with env_var('CONDA_ADD_ANACONDA_TOKEN', 'false'):
+        out, err, rc = run_command(Commands.CONFIG, "--show", "add_anaconda_token")
+    assert out == 'add_anaconda_token: False\n'
 
 
 class ConfirmTests(TestCase):
