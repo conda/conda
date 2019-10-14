@@ -974,13 +974,13 @@ Configuring number of threads
 You can use your ``.condarc`` file or environment variables to
 add configuration to control the number of threads. You may
 want to do this to tweak conda to better utilize your system.
-If you have a very fast SSD, you might be able to shorten the
-time it takes for conda to create environments and
-install/remove packages.
+If you have a very fast SSD, you might increase the number
+of threads to shorten the time it takes for conda to create
+environments and install/remove packages. 
 
 **repodata_threads**
 
-* Default: None
+* Default number of threads: None
 * Threads used when downloading, parsing, and creating repodata
   structures from repodata.json files. Multiple downloads from
   different channels may occur simultaneously. This speeds up the
@@ -988,7 +988,7 @@ install/remove packages.
 
 **verify_threads**
 
-* Default: 1
+* Default number of threads: 1
 * Threads used when verifying the integrity of packages and files
   to be installed in your environment. Defaults to 1, as using
   multiple threads here can run into problems with slower hard
@@ -996,14 +996,14 @@ install/remove packages.
 
 **execute_threads**
 
-* Default: 1
+* Default number of threads: 1
 * Threads used to unlink, remove, link, or copy files into your
   environment. Defaults to 1, as using multiple threads here can
   run into problems with slower hard drives.
 
 **default_threads**
 
-* Default value: None
+* Default number of threads: None
 * When set, this value is used for all of the above thread
   settings. With its default setting (None), it does not affect
   the other settings.
