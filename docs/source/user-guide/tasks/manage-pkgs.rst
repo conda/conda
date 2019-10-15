@@ -194,7 +194,7 @@ To install a non-conda package:
 #. Activate the environment where you want to put the program:
 
    * On Windows, in your Anaconda Prompt, run ``activate myenv``.
-   * On macOS and Linux,in your terminal window, run ``source activate myenv``.
+   * On macOS and Linux,in your terminal window, run ``conda activate myenv``.
 
 #. To use pip to install a program such as See, in your terminal window or an Anaconda Prompt,
    run::
