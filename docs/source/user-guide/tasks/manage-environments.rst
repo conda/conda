@@ -680,6 +680,41 @@ Exporting the environment.yml file
 #. Email or copy the exported ``environment.yml`` file to the
    other person.
 
+.. _export-platform:
+
+Exporting an environment file across platforms
+----------------------------------------------
+
+If you want to make your environment file work across platforms,
+you can use the ``conda env export --from history`` flag. This
+will only include packages that you’ve explicitly asked for,
+as opposed to including every package in your environment.
+
+For example, if you create an environment and install Python and a package::
+
+  conda install python=3.7 codecov
+
+This will download and install numerous additional packages to solve
+for dependencies. This will introduce packages that may not be compatible
+across platforms.
+
+If you use ``conda env export``, it will export all of those packages.
+However, if you use ``conda env export --from-history``, it will 
+only export those you specifically chose:
+
+.. code-block::
+
+   (env-name) ➜  ~ conda env export --from-history
+   name: env-name
+   channels:
+     - conda-forge
+     - defaults
+   dependencies:
+     - python=3.7
+     - codecov
+   prefix: /Users/username/anaconda3/envs/env-name
+
+
 .. _create-env-file-manually:
 
 Creating an environment file manually
