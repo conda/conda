@@ -31,14 +31,13 @@ function __comp_conda_ensure_root() {
             CONDA_ROOT=$(\dirname "${CONDA_EXE}")
             CONDA_ROOT=$(\dirname "${CONDA_ROOT}")
         fi
-        CONDA_SOURCE=$(
-            cat - <<'            EOF' | sed 's/^ *: //g' | python -
-            : from __future__ import print_function
-            : import os
-            : import conda
-            : print(os.path.dirname(conda.__file__))
-            EOF
-        )
+        \local script="
+        :    from __future__ import print_function
+        :    import os
+        :    import conda
+        :    print(os.path.dirname(conda.__file__))
+        "
+        CONDA_SOURCE=$( python -c "${script//        :    /}" )
     fi
 }
 
@@ -67,17 +66,15 @@ function __comp_conda_env_commands() {
 }
 
 function __comp_conda_envs() {
-    script=$(
-        cat - <<'        EOF' | sed 's/^ *: //g'
-        : from __future__ import print_function;
-        : import json, os, sys;
-        : from os.path import isdir, join;
-        : print('\n'.join(
-        :    d for ed in json.load(sys.stdin)['envs_dirs'] if isdir(ed)
-        :    for d in os.listdir(ed) if isdir(join(ed, d))));
-        EOF
-    )
-    conda config --json --show envs_dirs | python -c "$script"
+    \local script="
+    :    from __future__ import print_function;
+    :    import json, os, sys;
+    :    from os.path import isdir, join;
+    :    print('\n'.join(
+    :       d for ed in json.load(sys.stdin)['envs_dirs'] if isdir(ed)
+    :       for d in os.listdir(ed) if isdir(join(ed, d))));
+    "
+    conda config --json --show envs_dirs | python -c "${script//    :    /}"
 }
 
 function __comp_conda_packages() {
