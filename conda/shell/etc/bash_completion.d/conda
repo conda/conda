@@ -111,14 +111,17 @@ function __comp_conda_cache_dump() {
 unset __comp_conda_cache
 declare -A __comp_conda_cache
 
-__comp_conda_ensure_root
+# If conda has not been fully setup/activated yet, some of the above functions may fail
+# and print error messages. This is not helpful during normal usage, so we discard all
+# error output by default.
+__comp_conda_ensure_root 2>/dev/null
 
 _comp_conda()
 {
     \local cur prev words cword
     _init_completion || return
 
-    __comp_conda_ensure_root
+    __comp_conda_ensure_root 2>/dev/null
 
     \local word_list cmds_str
     if [[ $cur == -* ]]; then
@@ -139,24 +142,24 @@ _comp_conda()
     else
         case "$prev" in
             conda)
-                word_list=$(__comp_conda_commands)
+                word_list=$(__comp_conda_commands 2>/dev/null)
                 ;;
             env)
-                word_list=$(__comp_conda_env_commands)
+                word_list=$(__comp_conda_env_commands 2>/dev/null)
                 ;;
             activate)
                 if [[ $cur == ./* || $cur == /* ]]; then
                     # complete for paths
                     COMPREPLY=( $(compgen -d -- "$cur" ) )
                 else
-                    word_list=$(__comp_conda_envs)
+                    word_list=$(__comp_conda_envs 2>/dev/null)
                 fi
                 ;;
             remove|uninstall|upgrade|update)
-                word_list=$(__comp_conda_packages)
+                word_list=$(__comp_conda_packages 2>/dev/null)
                 ;;
             --name|--clone)
-                word_list=$(__comp_conda_envs)
+                word_list=$(__comp_conda_envs 2>/dev/null)
                 ;;
             --*-file|--file|--which|convert)
                 # complete for files
