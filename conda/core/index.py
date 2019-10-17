@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
 from itertools import chain
 from logging import getLogger
 
@@ -159,6 +160,7 @@ def _supplement_index_with_system(index):
 
     dist_name, dist_version = context.os_distribution_name_version
     if dist_name == 'OSX':
+        dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
         rec = _make_virtual_package('__osx', dist_version)
         index[rec] = rec
 
