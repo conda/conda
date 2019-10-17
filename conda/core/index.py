@@ -157,6 +157,11 @@ def _supplement_index_with_system(index):
         rec = _make_virtual_package('__cuda', cuda_version)
         index[rec] = rec
 
+    dist_name, dist_version = context.os_distribution_name_version
+    if dist_name == 'OSX':
+        rec = _make_virtual_package('__osx', dist_version)
+        index[rec] = rec
+
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
     if use_local:
