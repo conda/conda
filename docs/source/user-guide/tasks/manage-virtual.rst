@@ -14,6 +14,7 @@ small bit of code to detect the presence or absence of the system feature that
 corresponds to the package.  The currently supported list of virtual packages includes:
 
   * ``__cuda``: Maximum version of CUDA supported by the display driver
+  * ``__osx``: OSX version if applicable
 
 Other virtual packages will be added in future conda releases.  These are denoted
 by a leading double-underscore in the package name.
@@ -67,4 +68,6 @@ For troubleshooting, it is possible to override virtual package detection
 using an environment variable.  Supported variables include:
 
 * ``CONDA_OVERRIDE_CUDA`` - CUDA version number or set to ``""`` for no CUDA
+  detected.
+* ``CONDA_OVERRIDE_OSX`` - OSX version number or set to ``""`` for no OSX
   detected.
