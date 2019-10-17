@@ -54,12 +54,9 @@ def test_supplement_index_with_system_cuda():
     assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
-@patch('conda.base.context.Context.os_distribution_name_version')
-def test_supplement_index_with_system_osx(mock_os_dist_name_ver):
-    mock_os_dist_name_ver.return_value = ('OSX', '10.99')
-    index = {}
+def test_supplement_index_with_system_osx():
     with env_vars({'CONDA_OVERRIDE_OSX': '0.15'}):
-        _supplement_index_with_system(index)
+        index = get_index(platform='osx-64)
 
     osx_pkg = next(iter(_ for _ in index if _.name == '__osx'))
     assert osx_pkg.version == '0.15'
