@@ -120,21 +120,25 @@ _comp_conda()
 
     __comp_conda_ensure_root 2>/dev/null
 
-    \local word_list cmds_str
+    \local word_list cmd_str cmd_key
     if [[ $cur == -* ]]; then
         # get the current list of commands as a string
-        cmds_str="$(__comp_conda_cmds_str ${words[@]})"
-        if [[ -z ${__comp_conda_cache[$cmds_str]} ]]; then
+        cmd_str="$(__comp_conda_cmds_str ${words[@]})"
+        # make a key to look up the cached result of the command help
+        # (We should be able to just use $cmd_str, since spaces in an array key are
+        # fine, but this produces an error with an empty cache. I'm not sure why though)
+        cmd_key=${cmd_str// /_}
+        if [[ -z "${__comp_conda_cache[$cmd_key]}" ]]; then
             # parse the output of command help to get completions
-            word_list=$($cmds_str --help 2>&1 | _parse_help -)
+            word_list=$($cmd_str --help 2>&1 | _parse_help -)
             if [[ ${PIPESTATUS[0]} -eq 0 && -n $word_list ]]; then
-                __comp_conda_cache[$cmds_str]=$word_list
+                __comp_conda_cache[$cmd_key]=$word_list
             else
                 # something went wrong, so abort completion attempt
                 return
             fi
         else
-            word_list=${__comp_conda_cache[$cmds_str]}
+            word_list=${__comp_conda_cache[$cmd_key]}
         fi
     else
         case "$prev" in
