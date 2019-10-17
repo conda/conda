@@ -54,16 +54,6 @@ def test_supplement_index_with_system_cuda():
     assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
-def test_supplement_index_with_system_osx():
-    with env_vars({'CONDA_OVERRIDE_OSX': '0.15'}):
-        index = get_index(platform='osx-64')
-        _supplement_index_with_system(index)
-
-    osx_pkg = next(iter(_ for _ in index if _.name == '__osx'))
-    assert osx_pkg.version == '0.15'
-    assert osx_pkg.package_type == PackageType.VIRTUAL_SYSTEM
-
-
 @pytest.mark.integration
 class GetIndexIntegrationTests(TestCase):
 
