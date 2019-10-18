@@ -7,7 +7,7 @@ from unittest import TestCase
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems
 from conda.common.io import env_vars
 from conda.core.index import check_whitelist, get_index, get_reduced_index, _supplement_index_with_system
@@ -54,16 +54,31 @@ def test_supplement_index_with_system_cuda():
     assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
-@patch('conda.base.context.Context.os_distribution_name_version')
-def test_supplement_index_with_system_osx(mock_os_dist_name_ver):
-    mock_os_dist_name_ver.return_value = ('OSX', '10.99')
-    index = {}
-    with env_vars({'CONDA_OVERRIDE_OSX': '0.15'}):
-        _supplement_index_with_system(index)
+def test_supplement_index_with_system_osx():
+    # I cannot get mock.patch to work with the meomized properties
+    # thus I am patching this by hand
+    # this patch relies on the implementation of the meomizedproperty
+    # decorator which is very dirty
+    # call once to cache
+    _ = context.os_distribution_name_version
 
-    osx_pkg = next(iter(_ for _ in index if _.name == '__osx'))
-    assert osx_pkg.version == '0.15'
-    assert osx_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+    # cache the value
+    name = '__os_distribution_name_version'
+    oldval = context._cache_[name]
+    try:
+        # change it
+        context._cache_[name] = ('OSX', '10.99')
+
+        index = {}
+        with env_vars({'CONDA_OVERRIDE_OSX': '0.15'}):
+            _supplement_index_with_system(index)
+
+        osx_pkg = next(iter(_ for _ in index if _.name == '__osx'))
+        assert osx_pkg.version == '0.15'
+        assert osx_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+    finally:
+        # restore the value
+        context._cache_[name] = oldval
 
 
 @pytest.mark.integration
