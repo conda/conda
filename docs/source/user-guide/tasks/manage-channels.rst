@@ -7,8 +7,20 @@ They serve as the base for hosting and managing packages.
 Conda packages are downloaded from remote channels, which are URLs to
 directories containing conda packages. The conda command searches a default
 set of channels and packages are automatically downloaded and updated
-from https://repo.anaconda.com/pkgs/. Read more about
-:doc:`conda channels <../concepts/channels>`.
+from https://repo.anaconda.com/pkgs/. The default channels are::
+
+  https://conda.anaconda.org/conda-forge/osx-64
+  https://conda.anaconda.org/conda-forge/noarch
+  https://repo.anaconda.com/pkgs/main/osx-64
+  https://repo.anaconda.com/pkgs/main/noarch
+  https://repo.anaconda.com/pkgs/r/osx-64
+  https://repo.anaconda.com/pkgs/r/noarch
+
+You can see a list of available channel URLs by typing ``conda info``.
+Read more about :doc:`conda channels <../concepts/channels>`.
+
+Channel collisions
+==================
 
 Different channels can have the same package, so conda must handle these
 channel collisions.
@@ -18,6 +30,9 @@ There will also be no channel collisions if all of the channels you use only
 contain packages that do not exist in any of the other channels in your list.
 The way conda resolves these collisions matters only when you have multiple
 channels in your channel list that host the same package.
+
+Channel priority
+================
 
 By default, conda prefers packages from a higher priority
 channel over any version from a lower priority channel.
@@ -79,7 +94,7 @@ bottom of the channel list, making it the lowest priority::
 .. _strict:
 
 Strict channel priority
-=======================
+-----------------------
 
 As of version 4.6.0, Conda has a strict channel priority feature.
 Strict channel priority can dramatically speed up conda operations and
