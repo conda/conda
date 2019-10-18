@@ -104,6 +104,30 @@ function __comp_conda_cache_dump() {
     done
 }
 
+function __comp_conda_option_lookup() {
+    \local word_list cmd_str cmd_key
+    cmd_str=$1
+
+    # make a key to look up the cached result of the command help
+    # (We should be able to just use $cmd_str, since spaces in an array key are fine,
+    # but this produces an error with an empty cache. I'm not sure why though)
+    cmd_key=${cmd_str// /_}
+
+    if [[ -z "${__comp_conda_cache[$cmd_key]}" ]]; then
+        # parse the output of command help to get completions
+        word_list=$($cmd_str --help 2>&1 | _parse_help -)
+        if [[ ${PIPESTATUS[0]} -eq 0 && -n $word_list ]]; then
+            __comp_conda_cache[$cmd_key]=$word_list
+        else
+            # something went wrong, so abort completion attempt
+            return 1
+        fi
+    else
+        word_list=${__comp_conda_cache[$cmd_key]}
+    fi
+    echo $word_list
+}
+
 # cache conda subcommand help lookups for the duration of the shell
 unset __comp_conda_cache
 declare -A __comp_conda_cache
@@ -120,26 +144,11 @@ _comp_conda()
 
     __comp_conda_ensure_root 2>/dev/null
 
-    \local word_list cmd_str cmd_key
+    \local word_list cmd_str
     if [[ $cur == -* ]]; then
-        # get the current list of commands as a string
+        # get the current list of commands as a string sans options
         cmd_str="$(__comp_conda_cmds_str ${words[@]})"
-        # make a key to look up the cached result of the command help
-        # (We should be able to just use $cmd_str, since spaces in an array key are
-        # fine, but this produces an error with an empty cache. I'm not sure why though)
-        cmd_key=${cmd_str// /_}
-        if [[ -z "${__comp_conda_cache[$cmd_key]}" ]]; then
-            # parse the output of command help to get completions
-            word_list=$($cmd_str --help 2>&1 | _parse_help -)
-            if [[ ${PIPESTATUS[0]} -eq 0 && -n $word_list ]]; then
-                __comp_conda_cache[$cmd_key]=$word_list
-            else
-                # something went wrong, so abort completion attempt
-                return
-            fi
-        else
-            word_list=${__comp_conda_cache[$cmd_key]}
-        fi
+        word_list=$(__comp_conda_option_lookup "$cmd_str")
     else
         case "$prev" in
             conda)
