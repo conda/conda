@@ -21,7 +21,7 @@ script that calls conda will exit immediately after the conda usage.  In other w
       conda activate myenv
       echo test
 
-Neither the activation, nor the echo will happen.  You must write this in your batch script:
+Neither the activation, nor the echo will happen. You must write this in your batch script:
 
    .. code-block:: bash
 
@@ -74,7 +74,7 @@ more drastic measures.
      This changes the DLL search path from system32 first to system32 as another
      entry on PATH, allowing libraries in your conda environment to be found
      before the libraries in system32. Control of this feature is done with
-     environment variables. Only python builds beyond these builds will react to
+     environment variables. Only Python builds beyond these builds will react to
      these environment variables:
 
        * Python 2.7.15 build 14
@@ -897,7 +897,7 @@ Now you have a software environment sandbox created with Python
 Conda automatically upgrades to unwanted version
 ===================================================
 
-When making a python package for an app, you create an
+When making a Python package for an app, you create an
 environment for the app from a file ``req.txt`` that sets a
 certain version, such as ``python=2.7.9``. However, when you
 ``conda install`` your package, it automatically upgrades to a
