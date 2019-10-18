@@ -42,11 +42,17 @@ function __comp_conda_ensure_root() {
 }
 
 function __comp_conda_commands () {
+    # default core commands
+    echo clean config create help info init install list package
+    echo remove uninstall run search update upgrade
+
+    # check commands from full anaconda install
     for f in $CONDA_SOURCE/cli/main_*.py
     do
         \expr match "$f" '.*_\([a-z]\+\)\.py$'
     done
 
+    # check extra pluggins
     for f in $CONDA_ROOT/bin/conda-*
     do
         if test -x "$f" -a ! -d "$f"
@@ -54,8 +60,9 @@ function __comp_conda_commands () {
             \expr match "$f" '^.*/conda-\(.*\)'
         fi
     done
-    echo activate
-    echo deactivate
+
+    # implied by conda shell function
+    echo activate deactivate
 }
 
 function __comp_conda_env_commands() {
