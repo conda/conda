@@ -1,0 +1,13 @@
+# Readline init file for conda bash-completion test suite
+# See: info readline
+
+	# Press TAB once (instead of twice) to auto-complete
+set show-all-if-ambiguous on
+	# No bell.  No ^G in output
+set bell-style none
+	# Don't query user about viewing the number of possible completions
+set completion-query-items -1
+	# Display completions sorted horizontally, not vertically
+set print-completions-horizontally on
+	# Don't use pager when showing completions
+set page-completions off

@@ -1,0 +1,53 @@
+# bashrc file for bash-completion test suite
+
+# Note that we do some initialization that would be too late to do here in
+# conftest.py.
+
+# Use emacs key bindings
+set -o emacs
+
+# Use bash strict mode
+set -o posix
+
+# Unset `command_not_found_handle' as defined on Debian/Ubuntu, because this
+# troubles and slows down testing
+unset -f command_not_found_handle
+
+export PS2='> '
+
+# For clean test state, avoid sourcing user's ~/.bash_completion
+export BASH_COMPLETION_USER_FILE=/dev/null
+
+# ...and avoid stuff in BASH_COMPLETION_USER_DIR and system install locations
+# overriding in-tree completions. Setting the user dir would otherwise suffice,
+# but simple xspec completions are only installed if a separate one is not
+# found in any completion dirs. Therefore we also point the "system" dirs to
+# locations that should not yield valid completions and helpers paths either.
+export BASH_COMPLETION_USER_DIR=$TESTDIR
+# /var/empty isn't necessarily actually always empty :P
+export BASH_COMPLETION_COMPAT_DIR=/var/empty/bash_completion.d
+export XDG_DATA_DIRS=/var/empty
+
+## Ensure bash completion is available
+# try Linux location
+if [[ -f /usr/share/bash-completion/bash_completion ]]; then
+    . /usr/share/bash-completion/bash_completion
+# try MacOS location
+elif [[ -f /sw/etc/bash_completion ]]; then
+   . /sw/etc/bash_completion
+fi
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$("$TESTENVDIR/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "$TESTENVDIR/etc/profile.d/conda.sh" ]; then
+        . "$TESTENVDIR/etc/profile.d/conda.sh"
+    else
+        export PATH="$TESTENVDIR/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
