@@ -161,8 +161,9 @@ def _supplement_index_with_system(index):
     dist_name, dist_version = context.os_distribution_name_version
     if dist_name == 'OSX':
         dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
-        rec = _make_virtual_package('__osx', dist_version)
-        index[rec] = rec
+        if len(dist_version) > 0:
+            rec = _make_virtual_package('__osx', dist_version)
+            index[rec] = rec
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
