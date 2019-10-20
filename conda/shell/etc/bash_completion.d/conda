@@ -6,7 +6,7 @@
 # This was initially based on completion support for `fish`, but later extended
 # complete options for subcommands and files/dirs/paths as appropriate.
 #
-# Dynamic option lookup uses a cache that persists for the duration of the shell. If you
+# Dynamic option lookup uses a cache that persists for the duration of the shell.
 # Updates to the conda command options are relatively rare, but there is a small chance
 # that this cache will hold incorrect/incomplete values. A restart of your shell will
 # fix this.
