@@ -19,7 +19,7 @@
 #
 # rather than being managed via the `conda shell.bash hook`, then this file may
 # be sourced before conda is setup.  To support this we allow for a potential
-# late initiallization of the CONDA_ROOT and CONDA_SOURCE environment
+# late initialization of the CONDA_ROOT and CONDA_SOURCE environment
 # variables.
 
 
