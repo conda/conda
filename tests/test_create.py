@@ -287,6 +287,8 @@ def run_command(command, prefix, *arguments, **kwargs):
 
 @contextmanager
 def make_temp_env(*packages, **kwargs):
+    from conda.core.subdir_data import SubdirData
+    SubdirData._cache_.clear()
     name = kwargs.pop('name', None)
     use_restricted_unicode = kwargs.pop('use_restricted_unicode', False)
 
