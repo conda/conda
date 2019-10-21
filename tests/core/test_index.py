@@ -7,7 +7,7 @@ from unittest import TestCase
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems
 from conda.common.io import env_vars
 from conda.core.index import check_whitelist, get_index, get_reduced_index, _supplement_index_with_system
@@ -44,13 +44,23 @@ def test_check_whitelist():
     check_whitelist(("conda-canary",))
 
 
-def test_supplement_index_with_system():
+def test_supplement_index_with_system_cuda():
     index = {}
     with env_vars({'CONDA_OVERRIDE_CUDA': '3.2'}):
         _supplement_index_with_system(index)
 
     cuda_pkg = next(iter(_ for _ in index if _.name == '__cuda'))
     assert cuda_pkg.version == '3.2'
+    assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+
+
+def test_supplement_index_with_system_glibc():
+    index = {}
+    with env_vars({'CONDA_OVERRIDE_CUDA': '2.10'}):
+        _supplement_index_with_system(index)
+
+    glib_pkg = next(iter(_ for _ in index if _.name == '__glibc'))
+    assert cuda_pkg.version == '2.10'
     assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
