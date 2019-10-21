@@ -158,7 +158,7 @@ def _supplement_index_with_system(index):
         rec = _make_virtual_package('__cuda', cuda_version)
         index[rec] = rec
 
-    libc_family, libc_version = linux_get_libc_version()
+    libc_family, libc_version = context.libc_family_version
     if libc_family:
         rec = _make_virtual_package('__' + libc_family, libc_version)
         index[rec] = rec
