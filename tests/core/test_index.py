@@ -56,7 +56,7 @@ def test_supplement_index_with_system_cuda():
 
 def test_supplement_index_with_system_glibc():
     index = {}
-    with env_vars({'CONDA_OVERRIDE_CUDA': '2.10'}):
+    with env_vars({'CONDA_OVERRIDE_GLIBC': '2.10'}):
         _supplement_index_with_system(index)
 
     glib_pkg = next(iter(_ for _ in index if _.name == '__glibc'))
