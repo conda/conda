@@ -11,6 +11,8 @@ Conda channels
 What is a "conda channel"?
 ==========================
 
+Conda channels are the locations where packages are stored.
+They serve as the base for hosting and managing packages.
 Conda :doc:`packages <../concepts/packages>` are downloaded
 from remote channels, which are URLs to directories
 containing conda packages.

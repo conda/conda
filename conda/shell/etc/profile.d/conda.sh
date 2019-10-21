@@ -47,9 +47,13 @@ __conda_activate() {
     \local ask_conda
     CONDA_INTERNAL_OLDPATH="${PATH}"
     __add_sys_prefix_to_path
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix "$cmd" "$@")" || \return $?
+    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix "$cmd" "$@")" || $?
+    rc=$?
     PATH="${CONDA_INTERNAL_OLDPATH}"
     \eval "$ask_conda"
+    if [[ $rc != 0 ]]; then
+        \export PATH
+    fi
     __conda_hashr
 }
 
@@ -115,4 +119,3 @@ if [ -z "${CONDA_SHLVL+x}" ]; then
         PS1=
     fi
 fi
-
