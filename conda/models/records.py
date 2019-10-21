@@ -370,6 +370,7 @@ class PackageRecord(DictSafeMixin, Entity):
         #              channel_name/subdir:namespace:name-version-build_number-build_string
         return "%s/%s::%s-%s-%s" % (self.channel.name, self.subdir,
                                     self.name, self.version, self.build)
+
     def to_query_param(self):
         return self.name
 

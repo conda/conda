@@ -70,8 +70,9 @@ def execute(args, parser):
         spec_channel = spec.get_exact_value('channel')
         channel_urls = (spec_channel,) if spec_channel else context.channels
 
-        matches = sorted(SubdirData.query_all(spec, channel_urls, subdirs, package_ref_or_match_specs=[spec]),
-                         key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
+        matches = sorted(
+            SubdirData.query_all(spec, channel_urls, subdirs, package_ref_or_match_specs=[spec]),
+            key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
     if not matches and spec.get_exact_value("name"):
         flex_spec = MatchSpec(spec, name="*%s*" % spec.name)
         if not context.json:

@@ -63,11 +63,14 @@ class SubdirDataType(type):
         assert type(channel) is Channel
         cache_key = channel.url(with_credentials=True), repodata_fn
         if package_ref_or_match_specs:
-            cache_key = channel.url(with_credentials=True), frozenset(package_ref_or_match_specs), repodata_fn
+            cache_key = (channel.url(with_credentials=True),
+                         frozenset(package_ref_or_match_specs),
+                         repodata_fn)
         if not cache_key[0].startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
 
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, package_ref_or_match_specs, repodata_fn)
+        subdir_data_instance = super(SubdirDataType, cls).__call__(
+            channel, package_ref_or_match_specs, repodata_fn)
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
 
@@ -463,7 +466,12 @@ class Response304ContentUnchanged(Exception):
     pass
 
 
-def fetch_repodata_remote_request(url, etag, mod_stamp, package_ref_or_match_specs=None, repodata_fn=REPODATA_FN):
+def fetch_repodata_remote_request(
+        url,
+        etag,
+        mod_stamp,
+        package_ref_or_match_specs=None,
+        repodata_fn=REPODATA_FN):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
@@ -484,7 +492,10 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, package_ref_or_match_spe
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        resp = session.get(join_url(url, filename), params=params, headers=headers, proxies=session.proxies,
+        resp = session.get(join_url(url, filename),
+                           params=params,
+                           headers=headers,
+                           proxies=session.proxies,
                            timeout=timeout)
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))
