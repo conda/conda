@@ -14,7 +14,7 @@ small bit of code to detect the presence or absence of the system feature that
 corresponds to the package.  The currently supported list of virtual packages includes:
 
   * ``__cuda``: Maximum version of CUDA supported by the display driver
-  * ``__glibc``: Version of globc supported by the OS
+  * ``__glibc``: Version of glibc supported by the OS
 
 Other virtual packages will be added in future conda releases.  These are denoted
 by a leading double-underscore in the package name.
