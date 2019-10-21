@@ -159,8 +159,8 @@ def _supplement_index_with_system(index):
         index[rec] = rec
 
     libc_family, libc_version = linux_get_libc_version()
-    if libc_family == "glibc":
-        rec = _make_virtual_package('__glibc', libc_version)
+    if libc_family:
+        rec = _make_virtual_package('__' + libc_family, libc_version)
         index[rec] = rec
 
 
