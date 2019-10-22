@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
 from itertools import chain
 from logging import getLogger
 
@@ -159,7 +160,6 @@ def _supplement_index_with_system(index):
         index[rec] = rec
 
     libc_family, libc_version = context.libc_family_version
-    import os
     libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
     if libc_family and libc_version:
         rec = _make_virtual_package('__' + libc_family, libc_version)
