@@ -45,20 +45,24 @@ __conda_activate() {
     \local cmd="$1"
     shift
     \local ask_conda
-    OLDPATH="${PATH}"
+    CONDA_INTERNAL_OLDPATH="${PATH}"
     __add_sys_prefix_to_path
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix "$cmd" "$@")" || \return $?
-    PATH="${OLDPATH}"
+    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix "$cmd" "$@")" || $?
+    rc=$?
+    PATH="${CONDA_INTERNAL_OLDPATH}"
     \eval "$ask_conda"
+    if [[ $rc != 0 ]]; then
+        \export PATH
+    fi
     __conda_hashr
 }
 
 __conda_reactivate() {
     \local ask_conda
-    OLDPATH="${PATH}"
+    CONDA_INTERNAL_OLDPATH="${PATH}"
     __add_sys_prefix_to_path
     ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix reactivate)" || \return $?
-    PATH="${OLDPATH}"
+    PATH="${CONDA_INTERNAL_OLDPATH}"
     \eval "$ask_conda"
     __conda_hashr
 }
@@ -74,11 +78,11 @@ conda() {
                 __conda_activate "$cmd" "$@"
                 ;;
             install|update|upgrade|remove|uninstall)
-                OLDPATH="${PATH}"
+                CONDA_INTERNAL_OLDPATH="${PATH}"
                 __add_sys_prefix_to_path
                 "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@"
                 \local t1=$?
-                PATH="${OLDPATH}"
+                PATH="${CONDA_INTERNAL_OLDPATH}"
                 if [ $t1 = 0 ]; then
                     __conda_reactivate
                 else
@@ -86,11 +90,11 @@ conda() {
                 fi
                 ;;
             *)
-                OLDPATH="${PATH}"
+                CONDA_INTERNAL_OLDPATH="${PATH}"
                 __add_sys_prefix_to_path
                 "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@"
                 \local t1=$?
-                PATH="${OLDPATH}"
+                PATH="${CONDA_INTERNAL_OLDPATH}"
                 return $t1
                 ;;
         esac
@@ -115,4 +119,3 @@ if [ -z "${CONDA_SHLVL+x}" ]; then
         PS1=
     fi
 fi
-

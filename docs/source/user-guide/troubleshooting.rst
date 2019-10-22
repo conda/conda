@@ -643,7 +643,7 @@ Solution
 Reactivate the environment or run ``hash -r`` (in bash) or
 ``rehash`` (in zsh).
 
-When you run ``source activate``, conda automatically runs
+When you run ``conda activate``, conda automatically runs
 ``hash -r`` in bash and ``rehash`` in zsh to clear the hashed
 commands, so conda finds things in the new path on the PATH. But
 there is no way to do this when ``conda install`` is run because
@@ -664,7 +664,7 @@ following circumstances:
 The command ``type command_name`` always tells you exactly what
 is being run. This is better than ``which command_name``, which
 ignores hashed commands and searches the PATH directly.
-The hash is reset by ``source activate``, or by ``hash -r`` in bash or
+The hash is reset by ``conda activate``, or by ``hash -r`` in bash or
 ``rehash`` in zsh.
 
 
@@ -698,12 +698,12 @@ You may also create a folder with symbolic links to ``conda``,
 ``activate`` and ``deactivate``, and then edit your
 ``.bash_profile`` or ``.bashrc`` file to add this folder to your
 PATH. If you do this, running ``python`` will invoke the system
-Python, but running ``conda`` commands, ``source activate MyEnv``,
-``source activate root``, or ``source deactivate`` will work
+Python, but running ``conda`` commands, ``conda activate MyEnv``,
+``conda activate root``, or ``conda deactivate`` will work
 normally.
 
-After running ``source activate`` to activate any environment,
-including after running ``source activate root``, running
+After running ``conda activate`` to activate any environment,
+including after running ``conda activate root``, running
 ``python`` will invoke the Python in the active conda environment.
 
 
