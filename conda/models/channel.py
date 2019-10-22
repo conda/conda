@@ -265,7 +265,7 @@ class Channel(object):
                 return False
 
     def __hash__(self):
-        return hash((self.location, self.name))
+        return hash(self.url(with_credentials=True))
 
     def __nonzero__(self):
         return any((self.location, self.name))

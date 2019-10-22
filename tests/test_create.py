@@ -287,8 +287,6 @@ def run_command(command, prefix, *arguments, **kwargs):
 
 @contextmanager
 def make_temp_env(*packages, **kwargs):
-    from conda.core.subdir_data import SubdirData
-    SubdirData._cache_.clear()
     name = kwargs.pop('name', None)
     use_restricted_unicode = kwargs.pop('use_restricted_unicode', False)
 
@@ -2235,8 +2233,8 @@ class IntegrationTests(TestCase):
 
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
-        from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+        from conda.core.subdir_data import SubdirDataType
+        SubdirDataType.get_or_create_subdir_data.cache_clear()
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix, no_capture=True):
@@ -2258,7 +2256,7 @@ class IntegrationTests(TestCase):
                             del result.headers[header]
                     return result
 
-                SubdirData._cache_.clear()
+                SubdirDataType.get_or_create_subdir_data.cache_clear()
                 mock_method.side_effect = side_effect
                 stdout, stderr, _ = run_command(Commands.INFO, prefix, "flask", "--json")
                 assert mock_method.called
@@ -2276,8 +2274,8 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
     def test_offline_with_empty_index_cache(self):
-        from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+        from conda.core.subdir_data import SubdirDataType
+        SubdirDataType.get_or_create_subdir_data.cache_clear()
 
         try:
             with make_temp_env() as prefix:
@@ -2309,7 +2307,7 @@ class IntegrationTests(TestCase):
                         with patch.object(CondaSession, 'get', autospec=True) as mock_method:
                             mock_method.side_effect = side_effect
 
-                            SubdirData._cache_.clear()
+                            SubdirDataType.get_or_create_subdir_data.cache_clear()
 
                             # This first install passes because flask and its dependencies are in the
                             # package cache.
@@ -2325,7 +2323,7 @@ class IntegrationTests(TestCase):
                                 run_command(Commands.INSTALL, prefix, "-c", channel, "pytz", "--offline")
                             assert not package_is_installed(prefix, "pytz")
         finally:
-            SubdirData._cache_.clear()
+            SubdirDataType.get_or_create_subdir_data.cache_clear()
 
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:

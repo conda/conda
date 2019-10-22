@@ -19,6 +19,11 @@ import re
 from time import time
 import warnings
 
+try:
+    from functools import lru_cache
+except ImportError:
+    from backports.functools_lru_cache import lru_cache
+
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
@@ -57,31 +62,28 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]' 
 
 class SubdirDataType(type):
 
-    def __call__(cls, channel, package_ref_or_match_specs=None, repodata_fn=REPODATA_FN):
+    def __call__(cls, channel, package_ref_or_match_specs=frozenset(), repodata_fn=REPODATA_FN):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
-        cache_key = channel.url(with_credentials=True), repodata_fn
-        if package_ref_or_match_specs:
-            cache_key = (channel.url(with_credentials=True),
-                         frozenset(package_ref_or_match_specs),
-                         repodata_fn)
-        if not cache_key[0].startswith('file://') and cache_key in SubdirData._cache_:
-            return SubdirData._cache_[cache_key]
+        if channel.url(with_credentials=True).startswith('file://'):
+            return super(SubdirDataType, cls).__call__(
+                channel, frozenset(package_ref_or_match_specs), repodata_fn)
+        return SubdirDataType.get_or_create_subdir_data(
+            cls, channel, frozenset(package_ref_or_match_specs), repodata_fn)
 
-        subdir_data_instance = super(SubdirDataType, cls).__call__(
+    @lru_cache(maxsize=50)
+    def get_or_create_subdir_data(cls, channel, package_ref_or_match_specs, repodata_fn):
+        return super(SubdirDataType, cls).__call__(
             channel, package_ref_or_match_specs, repodata_fn)
-        SubdirData._cache_[cache_key] = subdir_data_instance
-        return subdir_data_instance
 
 
 @with_metaclass(SubdirDataType)
 class SubdirData(object):
-    _cache_ = {}
 
     @staticmethod
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
-                  package_ref_or_match_specs=None, repodata_fn=REPODATA_FN):
+                  package_ref_or_match_specs=frozenset(), repodata_fn=REPODATA_FN):
         from .index import check_whitelist  # TODO: fix in-line import
         # ensure that this is not called by threaded code
         create_cache_dir()
@@ -135,7 +137,7 @@ class SubdirData(object):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel, package_ref_or_match_specs=None, repodata_fn=REPODATA_FN):
+    def __init__(self, channel, package_ref_or_match_specs=frozenset(), repodata_fn=REPODATA_FN):
         assert channel.subdir
         if channel.package_filename:
             parts = channel.dump()
@@ -470,7 +472,7 @@ def fetch_repodata_remote_request(
         url,
         etag,
         mod_stamp,
-        package_ref_or_match_specs=None,
+        package_ref_or_match_specs=frozenset(),
         repodata_fn=REPODATA_FN):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)

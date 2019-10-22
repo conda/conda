@@ -44,8 +44,8 @@ def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), h
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    query_specs = specs_to_add + specs_to_remove + history_specs
-    get_index_r_1(context.subdir, query_specs=query_specs)
+    package_ref_or_match_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_1(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -58,8 +58,8 @@ def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    query_specs = specs_to_add + specs_to_remove + history_specs
-    get_index_r_2(context.subdir, query_specs=query_specs)
+    package_ref_or_match_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_2(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-2'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -72,8 +72,8 @@ def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    query_specs = specs_to_add + specs_to_remove + history_specs
-    get_index_r_4(context.subdir, query_specs=query_specs)
+    package_ref_or_match_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_4(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-4'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -86,8 +86,8 @@ def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    query_specs = specs_to_add + specs_to_remove + history_specs
-    get_index_r_5(context.subdir, query_specs)
+    package_ref_or_match_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_5(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-5'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -100,9 +100,9 @@ def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    query_specs = specs_to_add + specs_to_remove + history_specs
-    get_index_r_2(context.subdir, query_specs=query_specs)
-    get_index_r_4(context.subdir, query_specs=query_specs)
+    package_ref_or_match_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_2(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
+    get_index_r_4(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-2'), Channel('channel-4'), ),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -115,9 +115,9 @@ def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    query_specs = specs_to_add + specs_to_remove + history_specs
-    get_index_r_2(context.subdir, query_specs=query_specs)
-    get_index_r_4(context.subdir, query_specs=query_specs)
+    package_ref_or_match_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_r_2(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
+    get_index_r_4(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-4'), Channel('channel-2')),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -130,8 +130,8 @@ def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    query_specs = specs_to_add + specs_to_remove + history_specs
-    get_index_must_unfreeze(context.subdir, query_specs=query_specs)
+    package_ref_or_match_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_must_unfreeze(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-freeze'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -144,8 +144,8 @@ def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    query_specs = specs_to_add + specs_to_remove + history_specs
-    get_index_cuda(context.subdir, query_specs=query_specs)
+    package_ref_or_match_specs = specs_to_add + specs_to_remove + history_specs
+    get_index_cuda(context.subdir, package_ref_or_match_specs=package_ref_or_match_specs)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
