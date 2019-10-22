@@ -160,8 +160,8 @@ def _supplement_index_with_system(index):
         index[rec] = rec
 
     libc_family, libc_version = context.libc_family_version
-    libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
     if libc_family and libc_version:
+        libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
         rec = _make_virtual_package('__' + libc_family, libc_version)
         index[rec] = rec
 
