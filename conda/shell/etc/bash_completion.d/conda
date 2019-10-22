@@ -37,7 +37,8 @@ function __comp_conda_ensure_root() {
         :    import conda
         :    print(os.path.dirname(conda.__file__))
         "
-        CONDA_SOURCE=$( python -c "${script//        :    /}" )
+        # don't assume an active base environment
+        CONDA_SOURCE=$(conda activate base; python -c "${script//        :    /}")
     fi
 }
 
