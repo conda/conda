@@ -22,7 +22,6 @@
 # late initialization of the CONDA_ROOT and CONDA_SOURCE environment
 # variables.
 
-
 function __comp_conda_ensure_root() {
     if [[ -z "${CONDA_SOURCE-}" && -n "${CONDA_EXE-}" ]] ; then
         if [[ -n "${_CE_CONDA-}" && -n "${WINDIR-}" ]]; then
@@ -47,9 +46,14 @@ function __comp_conda_commands () {
     echo clean config create help info init install list package
     echo remove uninstall run search update upgrade
 
+    # implied by conda shell function
+    echo activate deactivate
+
     # check commands from full anaconda install
     for f in $CONDA_SOURCE/cli/main_*.py
     do
+        # skip pip -- not a sub-command
+        [[ $f == */main_pip.py ]] && continue
         \expr match "$f" '.*_\([a-z]\+\)\.py$'
     done
 
@@ -61,9 +65,6 @@ function __comp_conda_commands () {
             \expr match "$f" '^.*/conda-\(.*\)'
         fi
     done
-
-    # implied by conda shell function
-    echo activate deactivate
 }
 
 function __comp_conda_env_commands() {
