@@ -8,7 +8,7 @@ import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems
+from conda.common.compat import iteritems, on_win, on_mac
 from conda.common.io import env_vars
 from conda.core.index import check_whitelist, get_index, get_reduced_index, _supplement_index_with_system
 from conda.exceptions import ChannelNotAllowed
@@ -54,6 +54,7 @@ def test_supplement_index_with_system_cuda():
     assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
+@pytest.mark.skipif(on_win or on_mac, reason="linux-only test")
 def test_supplement_index_with_system_glibc():
     index = {}
     with env_vars({'CONDA_OVERRIDE_GLIBC': '2.10'}):
