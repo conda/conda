@@ -54,7 +54,7 @@ def test_supplement_index_with_system_cuda():
     assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
-@pytest.mark.skipif(on_win or on_linux, reason="osx-only test")
+@pytest.mark.skipif(not on_mac, reason="osx-only test")
 def test_supplement_index_with_system_osx():
       index = {}
       with env_vars({'CONDA_OVERRIDE_OSX': '0.15'}):
