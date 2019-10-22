@@ -69,5 +69,5 @@ using an environment variable.  Supported variables include:
 
 * ``CONDA_OVERRIDE_CUDA`` - CUDA version number or set to ``""`` for no CUDA
   detected.
-* ``CONDA_OVERRIDE_GLIBC`` - CUDA version number or set to ``""`` for no GLIBC.
+* ``CONDA_OVERRIDE_GLIBC`` - GLIBC version number or set to ``""`` for no GLIBC.
   This only applies on Linux.
