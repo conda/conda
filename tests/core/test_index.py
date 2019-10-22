@@ -59,9 +59,9 @@ def test_supplement_index_with_system_glibc():
     with env_vars({'CONDA_OVERRIDE_GLIBC': '2.10'}):
         _supplement_index_with_system(index)
 
-    glib_pkg = next(iter(_ for _ in index if _.name == '__glibc'))
-    assert cuda_pkg.version == '2.10'
-    assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+    glibc_pkg = next(iter(_ for _ in index if _.name == '__glibc'))
+    assert glibc_pkg.version == '2.10'
+    assert glibc_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
 @pytest.mark.integration

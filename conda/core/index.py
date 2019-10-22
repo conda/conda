@@ -159,7 +159,7 @@ def _supplement_index_with_system(index):
         index[rec] = rec
 
     libc_family, libc_version = context.libc_family_version
-    if libc_family:
+    if libc_family and libc_version:
         rec = _make_virtual_package('__' + libc_family, libc_version)
         index[rec] = rec
 
