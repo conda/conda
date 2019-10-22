@@ -15,6 +15,7 @@ corresponds to the package.  The currently supported list of virtual packages in
 
   * ``__cuda``: Maximum version of CUDA supported by the display driver
   * ``__osx``: OSX version if applicable
+  * ``__glibc``: Version of glibc supported by the OS
 
 Other virtual packages will be added in future conda releases.  These are denoted
 by a leading double-underscore in the package name.
@@ -71,3 +72,5 @@ using an environment variable.  Supported variables include:
   detected.
 * ``CONDA_OVERRIDE_OSX`` - OSX version number or set to ``""`` for no OSX
   detected.
+* ``CONDA_OVERRIDE_GLIBC`` - GLIBC version number or set to ``""`` for no GLIBC.
+  This only applies on Linux.
