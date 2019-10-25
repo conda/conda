@@ -159,6 +159,13 @@ def _supplement_index_with_system(index):
         rec = _make_virtual_package('__cuda', cuda_version)
         index[rec] = rec
 
+    dist_name, dist_version = context.os_distribution_name_version
+    if dist_name == 'OSX':
+        dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
+        if len(dist_version) > 0:
+            rec = _make_virtual_package('__osx', dist_version)
+            index[rec] = rec
+
     libc_family, libc_version = context.libc_family_version
     if libc_family and libc_version:
         libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
