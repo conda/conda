@@ -8,7 +8,7 @@ import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems, on_win, on_mac
+from conda.common.compat import iteritems, on_win, on_mac, on_linux
 from conda.common.io import env_vars
 from conda.core.index import check_whitelist, get_index, get_reduced_index, _supplement_index_with_system
 from conda.exceptions import ChannelNotAllowed
@@ -52,6 +52,17 @@ def test_supplement_index_with_system_cuda():
     cuda_pkg = next(iter(_ for _ in index if _.name == '__cuda'))
     assert cuda_pkg.version == '3.2'
     assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+
+
+@pytest.mark.skipif(not on_mac, reason="osx-only test")
+def test_supplement_index_with_system_osx():
+      index = {}
+      with env_vars({'CONDA_OVERRIDE_OSX': '0.15'}):
+          _supplement_index_with_system(index)
+
+      osx_pkg = next(iter(_ for _ in index if _.name == '__osx'))
+      assert osx_pkg.version == '0.15'
+      assert osx_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
 @pytest.mark.skipif(on_win or on_mac, reason="linux-only test")

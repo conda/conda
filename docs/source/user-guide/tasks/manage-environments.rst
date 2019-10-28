@@ -686,7 +686,7 @@ Exporting an environment file across platforms
 ----------------------------------------------
 
 If you want to make your environment file work across platforms,
-you can use the ``conda env export --from history`` flag. This
+you can use the ``conda env export --from-history`` flag. This
 will only include packages that you’ve explicitly asked for,
 as opposed to including every package in your environment.
 
