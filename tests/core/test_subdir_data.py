@@ -66,6 +66,13 @@ class GetRepodataIntegrationTests(TestCase):
                     assert all(index3.get(k) == rec for k, rec in iteritems(index))
                     assert unknown or len(index) == len(index3)
 
+    def test_subdir_data_context_offline(self):
+        context.offline = True
+        local_channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+        sd = SubdirData(channel=local_channel)
+        assert len(sd.query_all('zlib', channels=[local_channel])) > 0
+        assert len(sd.query_all('zlib')) == 0
+
 
 class StaticFunctionTests(TestCase):
 
