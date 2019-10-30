@@ -89,7 +89,7 @@ def rmtree(path, *args, **kwargs):
         if rsync and isdir('.empty'):
             try:
                 out = check_output(
-                    [rsync, '-a', '--force', '--delete', join(getcwd(), '.empty') + "/",
+                    [rsync, '--recursive', '--force', '--delete', join(getcwd(), '.empty') + "/",
                      path + "/"],
                     stderr=STDOUT)
             except CalledProcessError:
