@@ -538,8 +538,8 @@ We recommend that you:
 
 **Use pip only after conda**
   - Install as many requirements as possible with conda then use pip
-  - Pip should be run with –upgrade-strategy only-if-needed (the default)
-  - Do use pip with the –user argument, avoid all “users” installs
+  - Pip should be run with ``--upgrade-strategy only-if-needed`` (the default)
+  - Do not use pip with the ``--user`` argument, avoid all “users” installs
 
 **Use conda environments for isolation**
   - Create a conda environment to isolate any changes pip makes
@@ -552,8 +552,8 @@ We recommend that you:
     the environment
 
 **Store conda and pip requirements in text files**
-  - Package requirements can be passed to conda via the –file argument
-  - Pip accepts a list of Python packages with -r or –requirements
+  - Package requirements can be passed to conda via the ``--file`` argument
+  - Pip accepts a list of Python packages with ``-r`` or ``--requirements``
   - Conda env will export or create environments based on a file with
     conda and pip requirements
 
