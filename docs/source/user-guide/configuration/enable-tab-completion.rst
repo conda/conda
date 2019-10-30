@@ -2,10 +2,10 @@
 Enabling tab completion
 =======================
 
-Conda versions up to 4.3 supports tab completion in bash shells via the argcomplete
-package. Tab completion is deprecated starting with version 4.4. 
+Conda versions up to 4.3 supports tab completion in Bash shells via the argcomplete
+package. Bash tab completion is deprecated starting with version 4.4. 
 
-To enable tab completion:
+To enable tab completion in your Bash shell:
 
 #. Make sure that argcomplete is installed:
 
@@ -31,5 +31,5 @@ To enable tab completion:
 
          conda install
 
-To get tab completion in zsh, see `conda-zsh-completion
+To get tab completion in Zsh, see `conda-zsh-completion
 <https://github.com/esc/conda-zsh-completion>`_.
