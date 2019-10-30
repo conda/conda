@@ -168,7 +168,7 @@ package scripts which are often used to set additional environment variables
 that are necessary for software to run (e.g. JAVA_HOME). Because activation runs
 only in a local terminal session (as opposed to the permanent PATH entry), it is
 safe to put Anaconda's PATH entries first. That means that Anaconda's libraries
-get higher priority when you're running Anaconda, but Anaconda doesn't interfere
+get higher priority when you're running Anaconda but Anaconda doesn't interfere
 with other software when you're not running Anaconda.
 
 Anaconda's Python interpreter included a patch for a long time that added the
@@ -343,7 +343,7 @@ or Anaconda is already installed and you cannot continue.
 Solution
 ----------
 
-Install using the --force option.
+Install using the ``--force`` option.
 
 
 Download and install the appropriate Miniconda
@@ -360,7 +360,7 @@ for your operating system from the `Miniconda download page
    operating system.
 
 .. note::
-   Be sure that you install to the same install location as
+   Be sure that you install to the same location as
    your existing install so it overwrites the core conda files and
    does not install a duplicate in a new folder.
 
@@ -387,7 +387,7 @@ Solution
 
 #. Make sure that you are in the same conda environment as your
    package. The ``conda info`` command tells you what environment
-   is currently active---under ``default environment``.
+   is currently active under ``default environment``.
 
 #. Verify that you are using the Python from the correct
    environment by running:
@@ -400,20 +400,20 @@ Solution
 
 Cause
 ------
-For Python packages, you have set the PYTHONPATH or PYTHONHOME
+For Python packages, you have set the ``PYTHONPATH`` or ``PYTHONHOME``
 variable. These environment variables cause Python to load files
 from locations other than the standard ones. Conda works best
 when these environment variables are not set, as their typical
 use cases are obviated by conda environments and a common issue
-is that they cause Python to pick up the wrong versions or broken
+is that they cause Python to pick up the wrong or broken
 versions of a library.
 
 
 Solution
---------------
+--------
 
-For Python packages, make sure you have not set the PYTHONPATH
-or PYTHONHOME variables. The command ``conda info -a`` displays
+For Python packages, make sure you have not set the ``PYTHONPATH``
+or ``PYTHONHOME`` variables. The command ``conda info -a`` displays
 the values of these environment variables.
 
 * To unset these environment variables temporarily for the
@@ -424,31 +424,31 @@ the values of these environment variables.
   * If you use bash---``~/.bashrc``, ``~/.bash_profile``,
     ``~/.profile``.
 
-  * If you use zsh---`~/.zshrc``.
+  * If you use zsh---``~/.zshrc``.
 
   * If you use PowerShell on Windows, the file output by
-    ``$PROFILE`` .
+    ``$PROFILE``.
 
 
 Cause
-------
+-----
 
 You have site-specific directories or, for Python, you have
 so-called site-specific files. These are typically located in
 ``~/.local`` on Linux and macOS. For a full description of the locations of
 site-specific packages, see `PEP 370
 <http://legacy.python.org/dev/peps/pep-0370/>`_.  As with
-PYTHONPATH, Python may try importing packages from this
+``PYTHONPATH``, Python may try importing packages from this
 directory, which can cause issues.
 
 Solution
---------------
+--------
 
 For Python packages, remove site-specific directories and
 site-specific files.
 
 Cause
-------
+-----
 
 For C libraries, the following environment variables have been
 set:
@@ -463,7 +463,7 @@ cases for these variables. The command ``conda info -a`` shows
 what these are set to.
 
 Solution
------------
+--------
 
 Unset DYLD_LIBRARY_PATH or LD_LIBRARY_PATH.
 
@@ -474,17 +474,17 @@ Cause
 Occasionally, an installed package becomes corrupted. Conda works
 by unpacking the packages in the ``pkgs`` directory and then
 hard-linking them to the environment. Sometimes these get
-corrupted, breaking all environments that use them, and also any
-additional environments, since the same files are hard-linked
+corrupted, breaking all environments that use them. They
+also break any additional environments since the same files are hard-linked
 each time.
 
 
 Solution
-----------
+--------
 
 Run the command ``conda install -f`` to unarchive the package
-again and relink it. It also does an md5 verification on the
-package. Usually if this is different, it is because your
+again and relink it. It also does an MD5 verification on the
+package. Usually if this is different it is because your
 channels have changed and there is a different package with the
 same name, version, and build number.
 
@@ -492,7 +492,7 @@ same name, version, and build number.
    This breaks the links to any other environments that
    already had this package installed, so you have to reinstall it
    there, too. It also means that running ``conda install -f`` a lot
-   can use up a lot of disk space if you have a lot of environments.
+   can use up significant disk space if you have many environments.
 
 .. note::
    The ``-f`` flag to ``conda install`` (``--force``) implies
@@ -506,12 +506,12 @@ pkg_resources.DistributionNotFound: conda==3.6.1-6-gb31b0d4-dirty
 =================================================================
 
 Cause
-------
+-----
 
 The local version of conda needs updating.
 
 Solution
-----------
+--------
 
 Force reinstall conda. A useful way to work off the development
 version of conda is to run ``python setup.py develop`` on a
@@ -527,10 +527,10 @@ just reinstall them with ``conda``, but conda cannot be used if
 conda is installed.
 
 The fix is to use the ``./bin/conda`` executable in the conda
-git repository to force reinstall conda, that is, run
+git repository to force reinstall conda. That is, run
 ``./bin/conda install -f conda``.  You can then verify with
 ``conda info`` that you have the latest version of conda, and not
-a git checkout---the version should not include any hashes.
+a git checkout. The version should not include any hashes.
 
 
 .. _unknown-locale:
@@ -559,7 +559,7 @@ Solution
    |
 
 This sets your LANG environment variable to be empty. This may
-cause Terminal use to incorrect settings for your locale. The
+cause Terminal to use incorrect settings for your locale. The
 ``locale`` command in Terminal tells you what settings are used.
 
 To use the correct language, add a line to your bash profile,
@@ -648,7 +648,7 @@ When you run ``conda activate``, conda automatically runs
 commands, so conda finds things in the new path on the PATH. But
 there is no way to do this when ``conda install`` is run because
 the command must be run inside the shell itself, meaning either
-you have to run the command yourself or use source a file that
+you have to run the command yourself or used a source file that
 contains the command.
 
 This is a relatively rare problem, since this happens only in the
@@ -657,14 +657,14 @@ following circumstances:
 #. You activate an environment or use the root environment, and
    then run a command from somewhere else.
 
-#. Then you conda install a program, and then try to run the
+#. Then you ``conda install`` a program, and then try to run the
    program again without running ``activate`` or
    ``deactivate``.
 
 The command ``type command_name`` always tells you exactly what
 is being run. This is better than ``which command_name``, which
 ignores hashed commands and searches the PATH directly.
-The hash is reset by ``conda activate``, or by ``hash -r`` in bash or
+The hash is reset by ``conda activate`` or by ``hash -r`` in bash or
 ``rehash`` in zsh.
 
 
@@ -691,11 +691,11 @@ Solution
 Edit your ``.bash_profile`` and ``.bashrc`` files so that the
 conda binary directory, such as ``~/miniconda3/bin``, is no
 longer added to the PATH environment variable. You can still run
-``conda`` ``activate`` and ``deactivate`` by using their full
+``conda activate`` and ``conda deactivate`` by using their full
 path names, such as ``~/miniconda3/bin/conda``.
 
-You may also create a folder with symbolic links to ``conda``,
-``activate`` and ``deactivate``, and then edit your
+You may also create a folder with symbolic links to ``conda activate``
+and ``conda deactivate`` and then edit your
 ``.bash_profile`` or ``.bashrc`` file to add this folder to your
 PATH. If you do this, running ``python`` will invoke the system
 Python, but running ``conda`` commands, ``conda activate MyEnv``,
