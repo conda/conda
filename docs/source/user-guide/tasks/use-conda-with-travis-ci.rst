@@ -143,21 +143,13 @@ environment, use the standalone conda approach in your .travis.yml:
      - wget https://repo.anaconda.com/pkgs/misc/conda-execs/conda-latest-linux-64.exe -O conda.exe
      - chmod +x conda.exe
      - export CONDA_ALWAYS_YES=1
+     # This is where you put any extra dependencies you may have.
      - ./conda.exe create -p $HOME/miniconda python=$TRAVIS_PYTHON_VERSION conda conda-build pytest six pytest-cov pytest-mock
      - export PATH="$HOME/miniconda/bin:$PATH"
      - hash -r
-     - conda build conda.recipe --no-test
-     - conda install --use-local conda-prefix-replacement
+     # Install your code here.
    script:
      - pytest -v --color=yes --cov=cpr tests
    after_success:
      - conda install codecov
      - codecov
-
-.. note::
-   Add your dependencies in the install section where it says
-   ``- ./conda.exe create -p $HOME/miniconda python=$TRAVIS_PYTHON_VERSION conda conda-build pytest six pytest-cov pytest-mock``
-
-.. note::
-   Replace ``hash -r`` and ``conda build conda.recipe --no-test`` in the install
-   section with your code to build the package.
