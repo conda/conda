@@ -113,7 +113,6 @@ recipe is tested as well.
       - conda install your-package --use-local
 
 
-
 AppVeyor
 ========
 
@@ -123,3 +122,35 @@ Travis CI with conda.
 
 For an example project building conda packages on AppVeyor, see
 https://github.com/rmcgibbo/python-appveyor-conda-example.
+
+Bootstrap your environment
+==========================
+
+If you encounter the "RemoveError" error where ``conda update conda`` tries to
+uninstall setup tools, this is likely a metadata issue. To bootstrap your
+environment, use the standalone conda approach in your .travis.yml:
+
+.. code-block:: yaml
+   
+   # Config file for automatic testing at travis-ci.org
+
+   language: python
+   python:
+     - "2.7"
+     - "3.7"
+
+   install:
+     - wget https://repo.anaconda.com/pkgs/misc/conda-execs/conda-latest-linux-64.exe -O conda.exe
+     - chmod +x conda.exe
+     - export CONDA_ALWAYS_YES=1
+     - ./conda.exe create -p $HOME/miniconda python=$TRAVIS_PYTHON_VERSION conda conda-build pytest six pytest-cov pytest-mock
+     - export PATH="$HOME/miniconda/bin:$PATH"
+     - hash -r
+     - conda build conda.recipe --no-test
+     - conda install --use-local conda-prefix-replacement
+   script:
+     - pytest -v --color=yes --cov=cpr tests
+   after_success:
+     - conda install codecov
+     - codecov
+
