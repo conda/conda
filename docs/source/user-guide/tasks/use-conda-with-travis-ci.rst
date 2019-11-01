@@ -154,3 +154,10 @@ environment, use the standalone conda approach in your .travis.yml:
      - conda install codecov
      - codecov
 
+.. note::
+   Add your dependencies in the install section where it says
+   ``- ./conda.exe create -p $HOME/miniconda python=$TRAVIS_PYTHON_VERSION conda conda-build pytest six pytest-cov pytest-mock``
+
+.. note::
+   Replace ``hash -r`` and ``conda build conda.recipe --no-test`` in the install
+   section with your code to build the package.
