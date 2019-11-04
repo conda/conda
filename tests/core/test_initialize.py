@@ -488,6 +488,8 @@ class InitializeTests(TestCase):
             assert result == Result.NO_CHANGE
 
     def test_install_conda_xsh(self):
+        from conda.activate import XonshActivator
+
         with tempdir() as conda_temp_prefix:
             conda_prefix = abspath(sys.prefix)
             target_path = join(conda_temp_prefix, 'Lib', 'site-packages', 'conda.xsh')
@@ -499,7 +501,7 @@ class InitializeTests(TestCase):
 
             first_line, remainder = created_file_contents.split('\n', 1)
             if on_win:
-                assert first_line == '$CONDA_EXE = "%s"' % join(conda_prefix, 'Scripts', 'conda.exe')
+                assert first_line == '$CONDA_EXE = "%s"' % XonshActivator.path_conversion(join(conda_prefix, 'Scripts', 'conda.exe'))
             else:
                 assert first_line == '$CONDA_EXE = "%s"' % join(conda_prefix, 'bin', 'conda')
 

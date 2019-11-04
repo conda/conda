@@ -917,10 +917,20 @@ class CshActivator(_Activator):
 
 class XonshActivator(_Activator):
 
+    @staticmethod
+    def path_conversion(paths):
+        if not on_win:
+            return path_identity(paths)
+        elif isinstance(paths, string_types):
+            return paths.replace('\\', '/')
+        elif paths is None:
+            return None
+        else:
+            return tuple([path.replace('\\', '/') for path in paths])
+
     def __init__(self, arguments=None):
-        self.pathsep_join = ':'.join
+        self.pathsep_join = ';'.join if on_win else ':'.join
         self.sep = '/'
-        self.path_conversion = native_path_to_unix
         self.tempfile_extension = None
         self.command_join = '\n'
 
@@ -943,7 +953,7 @@ class XonshActivator(_Activator):
         super(XonshActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        return '$CONDA_EXE = "%s"' % context.conda_exe
+        return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
 
 
 class CmdExeActivator(_Activator):
