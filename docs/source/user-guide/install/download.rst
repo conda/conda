@@ -23,9 +23,9 @@ installer.
 
 .. tip::
    If you are unsure which option to download, choose the
-   most recent version of Anaconda3, which includes Python 3.6, the
-   most recent version of Python. If you are on Windows or macOS,
-   choose the version with the GUI installer.
+   most recent version of Anaconda3, which includes Python 3.7.
+   If you are on Windows or macOS, choose the version with the
+   GUI installer.
 
 
 Anaconda or Miniconda?

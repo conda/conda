@@ -8,23 +8,23 @@ Managing virtual packages
 
 "Virtual" packages are injected into the conda solver to allow real packages
 to depend on features present on the system that cannot be managed directly by
-conda, like system driver versions or CPU features.  Virtual packages are not
-real packages and not displayed by ``conda list``.  Instead ``conda`` runs a
+conda, like system driver versions or CPU features. Virtual packages are not
+real packages and not displayed by ``conda list``. Instead ``conda`` runs a
 small bit of code to detect the presence or absence of the system feature that
-corresponds to the package.  The currently supported list of virtual packages includes:
+corresponds to the package. The currently supported list of virtual packages includes:
 
   * ``__cuda``: Maximum version of CUDA supported by the display driver
   * ``__osx``: OSX version if applicable
   * ``__glibc``: Version of glibc supported by the OS
 
-Other virtual packages will be added in future conda releases.  These are denoted
+Other virtual packages will be added in future conda releases. These are denoted
 by a leading double-underscore in the package name.
 
 
 Listing detected virtual packages
 =================================
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 To see the list of detected virtual packages, run:
 
@@ -44,7 +44,7 @@ section, as shown in this example::
         conda-build version : 3.17.8
              python version : 3.7.2.final.0
            virtual packages : __cuda=10.0
-           base environment : /Users/demo/dev/conda/devenv  (writable)
+           base environment : /Users/demo/dev/conda/devenv (writable)
                channel URLs : https://repo.anaconda.com/pkgs/main/osx-64
                               https://repo.anaconda.com/pkgs/main/noarch
                               https://repo.anaconda.com/pkgs/free/osx-64
@@ -66,7 +66,7 @@ Overriding detected packages
 ============================
 
 For troubleshooting, it is possible to override virtual package detection
-using an environment variable.  Supported variables include:
+using an environment variable. Supported variables include:
 
 * ``CONDA_OVERRIDE_CUDA`` - CUDA version number or set to ``""`` for no CUDA
   detected.

@@ -57,7 +57,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
    .. code-block:: bash
 
-      conda create -n myenv python=3.4
+      conda create -n myenv python=3.6
 
 4. To create an environment with a specific package:
 
@@ -90,7 +90,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
   .. code-block:: bash
 
-     conda create -n myenv python=3.4 scipy=0.15.0 astroid babel
+     conda create -n myenv python=3.6 scipy=0.15.0 astroid babel
 
   .. tip::
      Install all the programs that you want in this environment
@@ -228,9 +228,10 @@ your environment.yml file accordingly and then run the following
 command::
 
 $ conda env update --prefix ./env --file environment.yml  --prune
- 
-Note that the --prune option causes conda to remove any dependencies
-that are no longer required from the environment.
+
+.. note::
+   The --prune option causes conda to remove any dependencies
+   that are no longer required from the environment.
 
 
 Cloning an environment
@@ -346,10 +347,9 @@ Conda prepends the path name ``myenv`` onto your system command.
 Windows is extremely sensitive to proper activation. This is because
 the Windows library loader does not support the concept of libraries
 and executables that know where to search for their dependencies
-(RPATH). Instead, Windows relies on a standard library search order, defined at
-https://docs.microsoft.com/en-us/previous-versions/7d83bc18(v=vs.140). If
-environments are not active, libraries won't get found and there will be lots
-of errors. HTTP or SSL errors are common errors when the
+(RPATH). Instead, Windows relies on a `dynamic-link library search order <https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order>`_.
+If environments are not active, libraries won't get found and there
+will be lots of errors. HTTP or SSL errors are common errors when the
 Python in a child environment can't find the necessary OpenSSL library.
 
 Conda itself includes some special workarounds to add its necessary PATH
@@ -538,8 +538,8 @@ We recommend that you:
 
 **Use pip only after conda**
   - Install as many requirements as possible with conda then use pip
-  - Pip should be run with –upgrade-strategy only-if-needed (the default)
-  - Do use pip with the –user argument, avoid all “users” installs
+  - Pip should be run with ``--upgrade-strategy only-if-needed`` (the default)
+  - Do not use pip with the ``--user`` argument, avoid all “users” installs
 
 **Use conda environments for isolation**
   - Create a conda environment to isolate any changes pip makes
@@ -552,8 +552,8 @@ We recommend that you:
     the environment
 
 **Store conda and pip requirements in text files**
-  - Package requirements can be passed to conda via the –file argument
-  - Pip accepts a list of Python packages with -r or –requirements
+  - Package requirements can be passed to conda via the ``--file`` argument
+  - Pip accepts a list of Python packages with ``-r`` or ``--requirements``
   - Conda env will export or create environments based on a file with
     conda and pip requirements
 
@@ -714,6 +714,9 @@ only export those you specifically chose:
      - codecov
    prefix: /Users/username/anaconda3/envs/env-name
 
+.. note::
+   If you installed Anaconda 2019.10 on macOS, your prefix may be 
+   ``/Users/username/opt/envs/env-name``.
 
 .. _create-env-file-manually:
 
@@ -740,7 +743,7 @@ EXAMPLE: A more complex environment file:
    channels:
      - javascript
    dependencies:
-     - python=3.4   # or 2.7
+     - python=3.6   # or 2.7
      - bokeh=0.9.2
      - numpy=1.9.*
      - nodejs=0.10.*
