@@ -28,7 +28,7 @@ from conda.resolve import MatchSpec
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, \
     get_index_r_5, get_index_cuda, get_index_must_unfreeze
 
-from conda.common.compat import iteritems
+from conda.common.compat import iteritems, on_win
 
 try:
     from unittest.mock import Mock, patch
@@ -1190,7 +1190,6 @@ def test_aggressive_update_packages(tmpdir):
                 'channel-1::libpng-1.5.13-1',
             ))
 
-
 def test_python2_update(tmpdir):
     # Here we're actually testing that a user-request will uninstall incompatible packages
     # as necessary.
@@ -1258,7 +1257,6 @@ def test_python2_update(tmpdir):
             'channel-4::asn1crypto-0.24.0-py37_0',
             'channel-4::certifi-2018.8.13-py37_0',
             'channel-4::chardet-3.0.4-py37_1',
-            'channel-4::cryptography-vectors-2.3-py37_0',
             'channel-4::idna-2.7-py37_0',
             'channel-4::pycosat-0.6.3-py37h14c3975_0',
             'channel-4::pycparser-2.18-py37_1',
@@ -1266,7 +1264,7 @@ def test_python2_update(tmpdir):
             'channel-4::ruamel_yaml-0.15.46-py37h14c3975_0',
             'channel-4::six-1.11.0-py37_1',
             'channel-4::cffi-1.11.5-py37h9745a5d_0',
-            'channel-4::cryptography-2.3-py37hb7f436b_0',
+            'channel-4::cryptography-2.2.2-py37h14c3975_0',
             'channel-4::pyopenssl-18.0.0-py37_0',
             'channel-4::urllib3-1.23-py37_0',
             'channel-4::requests-2.19.1-py37_0',
