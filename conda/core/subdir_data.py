@@ -578,13 +578,13 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
                 a support request with your network engineering team.
 
                 %s
-                """) % maybe_unquote(repr(e))
+                """) % maybe_unquote(repr(url))
             else:
                 help_message = dals("""
                 An HTTP error occurred when trying to retrieve this URL.
                 HTTP errors are often intermittent, and a simple retry will get you on your way.
                 %s
-                """) % maybe_unquote(repr(e))
+                """) % maybe_unquote(repr(url))
 
         raise CondaHTTPError(help_message,
                              join_url(url, filename),
