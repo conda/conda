@@ -549,7 +549,7 @@ def configure_parser_create(sub_parsers):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
              "This is mainly for use during tests where we test new conda source "
              "against old Python versions.",
         dest="dev",
@@ -770,7 +770,7 @@ def configure_parser_install(sub_parsers):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
              "This is mainly for use during tests where we test new conda source "
              "against old Python versions.",
         dest="dev",
@@ -991,7 +991,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
              "This is mainly for use during tests where we test new conda source "
              "against old Python versions.",
         dest="dev",
@@ -1036,9 +1036,9 @@ def configure_parser_run(sub_parsers):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains"
-             "the root of conda development sources.  This is mainly for use"
-             "during tests where we test new conda source against old Python"
+        help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains "
+             "the root of conda development sources.  This is mainly for use "
+             "during tests where we test new conda source against old Python "
              "versions.",
         dest="dev",
         default=NULL,
