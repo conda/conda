@@ -57,3 +57,19 @@ def signal_handler(handler):
             if callable(previous_handler) or previous_handler in standard_handlers:
                 log.debug("de-registering handler for %s", sig)
                 signal.signal(sig, previous_handler)
+
+
+def raise_timeout(signum, frame):
+    raise TimeoutError
+
+
+@contextmanager
+def timeout(time):
+    signal.signal(signal.SIGALRM, raise_timeout)
+    signal.alarm(time)
+    try:
+        yield
+    except TimeoutError:
+        pass
+    finally:
+        signal.signal(signal.SIGALRM, signal.SIG_IGN)
