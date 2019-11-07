@@ -15,7 +15,6 @@ from .._vendor.toolz import concat, concatv
 from ..base.context import context
 from ..common.compat import itervalues
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
-from ..common._os.linux import linux_get_libc_version
 from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
