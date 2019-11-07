@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
 from itertools import chain
 from logging import getLogger
 
@@ -14,6 +15,7 @@ from .._vendor.toolz import concat, concatv
 from ..base.context import context
 from ..common.compat import itervalues
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
+from ..common._os.linux import linux_get_libc_version
 from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
@@ -155,6 +157,19 @@ def _supplement_index_with_system(index):
     cuda_version = context.cuda_version
     if cuda_version is not None:
         rec = _make_virtual_package('__cuda', cuda_version)
+        index[rec] = rec
+
+    dist_name, dist_version = context.os_distribution_name_version
+    if dist_name == 'OSX':
+        dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
+        if len(dist_version) > 0:
+            rec = _make_virtual_package('__osx', dist_version)
+            index[rec] = rec
+
+    libc_family, libc_version = context.libc_family_version
+    if libc_family and libc_version:
+        libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
+        rec = _make_virtual_package('__' + libc_family, libc_version)
         index[rec] = rec
 
 

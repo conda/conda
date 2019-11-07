@@ -229,11 +229,6 @@ def configure_parser_clean(sub_parsers):
         help="Remove index cache.",
     )
     removal_target_options.add_argument(
-        "-l", "--lock",
-        action="store_true",
-        help="Remove all conda lock files.",
-    )
-    removal_target_options.add_argument(
         '-p', '--packages',
         action='store_true',
         help="Remove unused packages from writable package caches. "
@@ -518,7 +513,7 @@ def configure_parser_config(sub_parsers):
 
 def configure_parser_create(sub_parsers):
     help = "Create a new conda environment from a list of specified packages. "
-    descr = (help + "To use the created environment, use 'source activate "
+    descr = (help + "To use the created environment, use 'conda activate "
              "envname' look in that directory first.  This command requires either "
              "the -n NAME or -p PREFIX option.")
 
@@ -554,7 +549,7 @@ def configure_parser_create(sub_parsers):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
              "This is mainly for use during tests where we test new conda source "
              "against old Python versions.",
         dest="dev",
@@ -775,7 +770,7 @@ def configure_parser_install(sub_parsers):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
              "This is mainly for use during tests where we test new conda source "
              "against old Python versions.",
         dest="dev",
@@ -996,7 +991,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE "
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
              "This is mainly for use during tests where we test new conda source "
              "against old Python versions.",
         dest="dev",
@@ -1041,9 +1036,9 @@ def configure_parser_run(sub_parsers):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains"
-             "the root of conda development sources.  This is mainly for use"
-             "during tests where we test new conda source against old Python"
+        help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains "
+             "the root of conda development sources.  This is mainly for use "
+             "during tests where we test new conda source against old Python "
              "versions.",
         dest="dev",
         default=NULL,

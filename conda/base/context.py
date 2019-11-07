@@ -128,6 +128,7 @@ class Context(Configuration):
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     auto_activate_base = PrimitiveParameter(True)
+    auto_stack = PrimitiveParameter(0)
     notify_outdated_conda = PrimitiveParameter(True)
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
@@ -200,6 +201,7 @@ class Context(Configuration):
     remote_connect_timeout_secs = PrimitiveParameter(9.15)
     remote_read_timeout_secs = PrimitiveParameter(60.)
     remote_max_retries = PrimitiveParameter(3)
+    remote_backoff_factor = PrimitiveParameter(1)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
 
@@ -802,6 +804,7 @@ class Context(Configuration):
             'proxy_servers',
             'remote_connect_timeout_secs',
             'remote_max_retries',
+            'remote_backoff_factor',
             'remote_read_timeout_secs',
             'ssl_verify',
         )),
@@ -839,6 +842,7 @@ class Context(Configuration):
         ('Output, Prompt, and Flow Control Configuration', (
             'always_yes',
             'auto_activate_base',
+            'auto_stack',
             'changeps1',
             'env_prompt',
             'json',
@@ -941,6 +945,12 @@ class Context(Configuration):
                 """),
             'auto_update_conda': dals("""
                 Automatically update conda when a newer or higher priority version is detected.
+                """),
+            'auto_stack': dals("""
+                Implicitly use --stack when using activate if current level of nesting
+                (as indicated by CONDA_SHLVL environment variable) is less than or equal to
+                specified value. 0 or false disables automatic stacking, 1 or true enables
+                it for one level.
                 """),
             'bld_path': dals("""
                 The location where conda-build will put built packages. Same as 'croot', but
@@ -1139,6 +1149,9 @@ class Context(Configuration):
                 """),
             'remote_max_retries': dals("""
                 The maximum number of retries each HTTP connection should attempt.
+                """),
+            'remote_backoff_factor': dals("""
+                The factor determines the time HTTP connection should wait for attempt.
                 """),
             'remote_read_timeout_secs': dals("""
                 Once conda has connected to a remote resource and sent an HTTP request, the

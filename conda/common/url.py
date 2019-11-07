@@ -365,7 +365,14 @@ def maybe_add_auth(url, auth, force=False):
 
 
 def maybe_unquote(url):
-    return unquote_plus(url) if url else url
+    return unquote_plus(remove_auth(url)) if url else url
+
+
+def remove_auth(url):
+    url_parts = parse_url(url)._asdict()
+    if url_parts['auth']:
+        del url_parts['auth']
+    return Url(**url_parts).url
 
 
 if __name__ == "__main__":

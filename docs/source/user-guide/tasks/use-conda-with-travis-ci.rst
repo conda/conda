@@ -26,7 +26,7 @@ The .travis.yml file
 
 The following code sample shows how to modify the ``.travis.yml``
 file to use `Miniconda <https://conda.io/miniconda.html>`_ for a
-project that supports Python 2.7, 3.5 and 3.6:
+project that supports Python 2.7, 3.5, and 3.6:
 
 .. code-block:: yaml
 
@@ -93,7 +93,7 @@ Building a conda recipe
 =======================
 
 If you support official conda packages for your project, you may
-want to use conda build in Travis, so the building of your
+want to use conda-build in Travis, so the building of your
 recipe is tested as well.
 
 #. Include the conda recipe in the same directory as your source

@@ -28,6 +28,7 @@ try:
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
     from requests.structures import CaseInsensitiveDict
     from requests.utils import get_auth_from_url, get_netrc_auth
+    from requests.packages.urllib3.util.retry import Retry
 
     # monkeypatch requests
     from requests.utils import should_bypass_proxies
@@ -46,6 +47,7 @@ except ImportError:  # pragma: no cover
     from pip._vendor.requests.packages.urllib3.exceptions import InsecureRequestWarning
     from pip._vendor.requests.structures import CaseInsensitiveDict
     from pip._vendor.requests.utils import get_auth_from_url, get_netrc_auth
+    from pip._vendor.requests.packages.urllib3.util.retry import Retry
 
     # monkeypatch requests
     from pip._vendor.requests.utils import should_bypass_proxies
@@ -71,3 +73,4 @@ InvalidSchema = InvalidSchema
 SSLError = SSLError
 InsecureRequestWarning = InsecureRequestWarning
 RequestsProxyError = RequestsProxyError
+Retry = Retry

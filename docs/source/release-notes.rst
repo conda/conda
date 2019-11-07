@@ -5,6 +5,106 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.8.0 (2019-11-04)
+==================
+
+Enhancements
+^^^^^^^^^^^^
+
+* Retry downloads if they fail, controlled by ``remote_max_retries`` and ``remote_backoff_factor`` configuration values (#9318)
+* Redact authentication information in some URLs (#9341)
+* Add osx version virtual package , ``__osx`` (#9349)
+* Add glibc virtual package, ``__glibc`` (#9358)
+
+Bug fixes
+^^^^^^^^^
+
+* Fix issues with xonsh activation on Windows (#8246)
+* Remove unsupported --lock argument from conda clean (#8310)
+* Do not add ``sys_prefix_path`` to failed activation or deactivation (#9282)
+* Fix csh setenv command (#9284)
+* Do not memorize ``PackageRecord.combined_depends`` (#9289)
+* Use ``CONDA_INTERNAL_OLDPATH`` rather than ``OLDPATH`` in activation script (#9303)
+* Fix xonsh activation and tab completion (#9305)
+* Fix what channels are queried when context.offline is True (#9385)
+
+Docs
+^^^^
+
+* Removed references to MD5s from docs (#9247)
+* Add docs on ``CONDA_DLL_SEARCH_MODIFICATION_ENABLED`` (#9286)
+* Document threads, spec history, and configuration (#9327)
+* More documentation on channels (#9335)
+* Document the .condarc search order (#9369)
+* Various minor documentation fixes (#9238, #9248, #9267, #9334, #9351, #9372, #9378, #9388, #9391, #9393)
+
+Contributors
+^^^^^^^^^^^^
+
+* @analog-cbarber
+* @andreasg123
+* @beckermr
+* @bryant1410
+* @colinbrislawn
+* @felker
+* @forrestwaters
+* @gabrielcnr
+* @isuruf
+* @jakirkham
+* @jeremyjliu
+* @jjhelmus
+* @jooh
+* @jpigla
+* @marcelotrevisani
+* @melund
+* @mfansler
+* @mingwandroid
+* @msarahan
+* @rrigdon
+* @scopatz
+* @soapy1
+* @WillyChen123
+* @xhochy
+
+4.7.12 (2019-09-12)
+===================
+
+Enhancements
+^^^^^^^^^^^^
+
+* Add support for env file creation based on explicit specs in history (#9093)
+* Detect prefix paths when -p nor -n not given  (#9135)
+* Add config parameter to disable conflict finding (for faster time to errors)  (#9190)
+
+Bug fixes
+^^^^^^^^^
+
+* Fix race condition with creation of repodata cache dir  (#9073)
+* Fix ProxyError expected arguments  (#9123)
+* Makedirs to initialize .conda folder when registering env - fixes permission errors with .conda folders not existing when package cache gets created (#9215)
+* Fix list duplicates errors in reading repodata/prefix data  (#9132)
+* Fix neutered specs not being recorded in history, leading to unsatisfiable environments later  (#9147)
+* Standardize "conda env list" behavior between platforms  (#9166)
+* Add JSON output to conda env create/update  (#9204)
+* Speed up finding conflicting specs (speed regression in 4.7.11)  (#9218)
+
+Contributors
+^^^^^^^^^^^^
+
+* @beenje
+* @Bezier89
+* @cjmartian
+* @forrestwaters
+* @jjhelmus
+* @martin-raden
+* @msarahan
+* @nganani
+* @rrigdon
+* @soapy1
+* @WesRoach
+* @zheaton
+
+
 4.7.11 (2019-08-06)
 ===================
 

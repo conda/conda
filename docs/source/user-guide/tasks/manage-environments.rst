@@ -57,7 +57,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
    .. code-block:: bash
 
-      conda create -n myenv python=3.4
+      conda create -n myenv python=3.6
 
 4. To create an environment with a specific package:
 
@@ -90,7 +90,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
   .. code-block:: bash
 
-     conda create -n myenv python=3.4 scipy=0.15.0 astroid babel
+     conda create -n myenv python=3.6 scipy=0.15.0 astroid babel
 
   .. tip::
      Install all the programs that you want in this environment
@@ -228,9 +228,10 @@ your environment.yml file accordingly and then run the following
 command::
 
 $ conda env update --prefix ./env --file environment.yml  --prune
- 
-Note that the --prune option causes conda to remove any dependencies
-that are no longer required from the environment.
+
+.. note::
+   The --prune option causes conda to remove any dependencies
+   that are no longer required from the environment.
 
 
 Cloning an environment
@@ -346,10 +347,9 @@ Conda prepends the path name ``myenv`` onto your system command.
 Windows is extremely sensitive to proper activation. This is because
 the Windows library loader does not support the concept of libraries
 and executables that know where to search for their dependencies
-(RPATH). Instead, Windows relies on a standard library search order, defined at
-https://docs.microsoft.com/en-us/previous-versions/7d83bc18(v=vs.140). If
-environments are not active, libraries won't get found and there will be lots
-of errors. HTTP or SSL errors are common errors when the
+(RPATH). Instead, Windows relies on a `dynamic-link library search order <https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order>`_.
+If environments are not active, libraries won't get found and there
+will be lots of errors. HTTP or SSL errors are common errors when the
 Python in a child environment can't find the necessary OpenSSL library.
 
 Conda itself includes some special workarounds to add its necessary PATH
@@ -385,6 +385,29 @@ sometimes choose this setting to speed up the time their shell takes
 to start up or to keep conda-installed software from automatically
 hiding their other software.
 
+Nested activation
+-----------------
+
+By default, ``conda activate`` will deactivate the current environment
+before activating the new environment and reactivate it when
+deactivating the new environment. Sometimes you may want to leave
+the current environment PATH entries in place so that you can continue
+to easily access command line programs from the first environment. 
+This is most commonly encountered when common command-line utilities
+are installed in the base environment. To retain the current environment
+in the PATH, you can activate the new environment using:
+
+``conda activate --stack myenv``
+
+If you wish to always stack when going from the outermost environment, 
+which is typically the base environment, you can set the ``auto_stack`` 
+configuration option:
+
+``conda config --set auto_stack 1``
+
+You may specify a larger number for a deeper level of automatic stacking,
+but this is not recommended since deeper levels of stacking are more likely
+to lead to confusion.
 
 Deactivating an environment
 ===========================
@@ -399,7 +422,8 @@ your system command.
    activate`` with no environment specified, rather than to try to deactivate. If
    you run ``conda deactivate`` from your base environment, you may lose the
    ability to run conda at all. Don't worry, that's local to this shell - you can
-   start a new one.
+   start a new one. However, if the environment was activated using ``--stack``
+   (or was automatically stacked) then it is better to use ``conda deactivate``.
 
 
 .. _determine-current-env:
@@ -514,8 +538,8 @@ We recommend that you:
 
 **Use pip only after conda**
   - Install as many requirements as possible with conda then use pip
-  - Pip should be run with –upgrade-strategy only-if-needed (the default)
-  - Do use pip with the –user argument, avoid all “users” installs
+  - Pip should be run with ``--upgrade-strategy only-if-needed`` (the default)
+  - Do not use pip with the ``--user`` argument, avoid all “users” installs
 
 **Use conda environments for isolation**
   - Create a conda environment to isolate any changes pip makes
@@ -528,8 +552,8 @@ We recommend that you:
     the environment
 
 **Store conda and pip requirements in text files**
-  - Package requirements can be passed to conda via the –file argument
-  - Pip accepts a list of Python packages with -r or –requirements
+  - Package requirements can be passed to conda via the ``--file`` argument
+  - Pip accepts a list of Python packages with ``-r`` or ``--requirements``
   - Conda env will export or create environments based on a file with
     conda and pip requirements
 
@@ -656,6 +680,44 @@ Exporting the environment.yml file
 #. Email or copy the exported ``environment.yml`` file to the
    other person.
 
+.. _export-platform:
+
+Exporting an environment file across platforms
+----------------------------------------------
+
+If you want to make your environment file work across platforms,
+you can use the ``conda env export --from-history`` flag. This
+will only include packages that you’ve explicitly asked for,
+as opposed to including every package in your environment.
+
+For example, if you create an environment and install Python and a package::
+
+  conda install python=3.7 codecov
+
+This will download and install numerous additional packages to solve
+for dependencies. This will introduce packages that may not be compatible
+across platforms.
+
+If you use ``conda env export``, it will export all of those packages.
+However, if you use ``conda env export --from-history``, it will 
+only export those you specifically chose:
+
+.. code-block::
+
+   (env-name) ➜  ~ conda env export --from-history
+   name: env-name
+   channels:
+     - conda-forge
+     - defaults
+   dependencies:
+     - python=3.7
+     - codecov
+   prefix: /Users/username/anaconda3/envs/env-name
+
+.. note::
+   If you installed Anaconda 2019.10 on macOS, your prefix may be 
+   ``/Users/username/opt/envs/env-name``.
+
 .. _create-env-file-manually:
 
 Creating an environment file manually
@@ -681,7 +743,7 @@ EXAMPLE: A more complex environment file:
    channels:
      - javascript
    dependencies:
-     - python=3.4   # or 2.7
+     - python=3.6   # or 2.7
      - bokeh=0.9.2
      - numpy=1.9.*
      - nodejs=0.10.*

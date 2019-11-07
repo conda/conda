@@ -22,10 +22,10 @@ You can also choose a version with a GUI or a command line
 installer.
 
 .. tip::
-   If you are unsure of which option to download, choose the
-   most recent version of Anaconda3, which includes Python 3.6, the
-   most recent version of Python. If you are on Windows or macOS,
-   choose the version with the GUI installer.
+   If you are unsure which option to download, choose the
+   most recent version of Anaconda3, which includes Python 3.7.
+   If you are on Windows or macOS, choose the version with the
+   GUI installer.
 
 
 Anaconda or Miniconda?
@@ -73,9 +73,9 @@ GUI versus command line installer
 =================================
 
 Both GUI and command line installers are available for Windows,
-macOS and Linux:
+macOS, and Linux:
 
-* If you do not wish to enter commands in a Terminal window,
+* If you do not wish to enter commands in a terminal window,
   choose the GUI installer.
 
 * If GUIs slow you down, choose the command line version.
@@ -86,34 +86,23 @@ Choosing a version of Python
 
 * The last version of Python 2 is 2.7, which is included with
   Anaconda and Miniconda.
-* The newest stable version of Python is 3.6, which is included
+* The newest stable version of Python is 3.7, which is included
   with Anaconda3 and Miniconda3.
 * You can easily set up additional versions of Python such as 3.5
   by downloading any version and creating a new environment with
   just a few clicks. See :doc:`../getting-started`.
 
+.. _hash-verification:
 
 Cryptographic hash verification
 ===============================
 
-MD5 checksums are available for
-`Miniconda <http://repo.continuum.io/miniconda/>`_ and both MD5 and SHA-256
-checksums are available for
-`Anaconda <https://docs.continuum.io/anaconda/install/hashes/>`_.
+SHA-256 checksums are available for
+`Miniconda <https://conda.io/en/latest/miniconda_hashes.html>`_ and
+`Anaconda <https://docs.continuum.io/anaconda/install/hashes/all>`_.
+We do not recommend using MD5 verification as SHA-256 is more secure.
 
 Download the installer file and before installing verify it as follows:
-
-* macOS: In iTerm or a terminal window enter ``md5 filename`` or ``shasum -a 256 filename``.
-
-  .. note::
-     Replace ``filename`` with the actual path and name of the
-     downloaded installer file.
-
-* Linux: In a terminal window enter ``md5sum filename`` or ``sha256sum filename``.
-
-  .. note::
-     Replace ``filename`` with the actual path and name of the
-     downloaded installer file.
 
 * Windows:
 
@@ -121,15 +110,7 @@ Download the installer file and before installing verify it as follows:
 
     Open a PowerShell console and verify the file as follows::
 
-      Get-FileHash filename -Algorithm MD5
-
-    or::
-
       Get-FileHash filename -Algorithm SHA256
-
-    .. note::
-       Replace "filename" with the actual path and name of the downloaded
-       file.
 
   * If you don't have PowerShell V4 or later:
 
@@ -143,16 +124,10 @@ Download the installer file and before installing verify it as follows:
 
     #. Navigate to the file.
 
-    #. Run one of the following commands:
+    #. Run the following command:
+       
+       Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
 
-       * For MD5::
+* macOS: In iTerm or a terminal window enter ``shasum -a 256 filename``.
 
-           Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm MD5 -Online
-
-       * For SHA256::
-
-           Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
-
-        .. note::
-           In both commands, replace ``C:\path\to\file.ext`` with
-           the actual path, filename and extension.
+* Linux: In a terminal window enter ``sha256sum filename``.

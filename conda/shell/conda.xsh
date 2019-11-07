@@ -103,22 +103,20 @@ def _list_dirs(path):
             yield entry.name
 
 
-def _get_envs():
+def _get_envs_unfiltered():
     """
-    Grab a list of all conda env dirs from conda.
+    Grab a list of all conda env dirs from conda, allowing all warnings.
     """
     import os
-    import warnings
     import importlib
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        try:
-            # breaking changes introduced in Anaconda 4.4.7
-            # try to import newer library structure first
-            context = importlib.import_module('conda.base.context')
-            config = context.context
-        except ModuleNotFoundError:
-            config = importlib.import_module('conda.config')
+
+    try:
+        # breaking changes introduced in Anaconda 4.4.7
+        # try to import newer library structure first
+        context = importlib.import_module('conda.base.context')
+        config = context.context
+    except ModuleNotFoundError:
+        config = importlib.import_module('conda.config')
 
     # create the list of envrionments
     env_list = []
@@ -141,6 +139,16 @@ def _get_envs():
     return env_list
 
 
+def _get_envs():
+    """
+    Grab a list of all conda env dirs from conda, ignoring all warnings
+    """
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return _get_envs_unfiltered()
+
+
 def _conda_completer(prefix, line, start, end, ctx):
     """
     Completion for conda
@@ -154,7 +162,7 @@ def _conda_completer(prefix, line, start, end, ctx):
         possible = {'activate', 'deactivate', 'install', 'remove', 'info',
                     'help', 'list', 'search', 'update', 'upgrade', 'uninstall',
                     'config', 'init', 'clean', 'package', 'bundle', 'env',
-                    'select', 'create'}
+                    'select', 'create', '-h', '--help', '-V', '--version'}
 
     elif curix == 2:
         if args[1] in ['activate', 'select']:

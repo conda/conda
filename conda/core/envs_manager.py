@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EACCES, EROFS, ENOENT
 from logging import getLogger
-from os import devnull, listdir, makedirs
+from os import devnull, listdir
 from os.path import dirname, isdir, isfile, join, normpath
 
 from .prefix_data import PrefixData
@@ -83,7 +83,6 @@ def list_all_known_prefixes():
         environments_txt_file = get_user_environments_txt_file(home_dir)
         if isfile(environments_txt_file):
             all_env_paths.update(_clean_environments_txt(environments_txt_file))
-
 
     # in case environments.txt files aren't complete, also add all known conda environments in
     # all envs_dirs

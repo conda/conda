@@ -13,12 +13,13 @@ Using the .condarc conda configuration file
 Overview
 ========
 
-
 The conda configuration file, ``.condarc``, is an optional
 runtime configuration file that allows advanced users to
 configure various aspects of conda, such as which channels it
 searches for packages, proxy settings, and environment
-directories.
+directories. For all of the conda configuration options,
+see the :doc:`configuration page <../../configuration>`.
+
 
 .. note::
 
@@ -87,7 +88,8 @@ EXAMPLE: To set the auto_update_conda option to ``False``, run::
 For a complete list of conda config commands, see the
 :doc:`command reference <../../commands/config>`. The same list
 is available at the terminal or Anaconda Prompt by running
-``conda config --help``.
+``conda config --help``. You can also see the `conda channel
+configuration <https://conda.io/projects/conda/en/latest/configuration.html>`_ for more information.
 
 .. tip::
 
@@ -98,6 +100,46 @@ Conda supports a wide range of configuration options. This page
 gives a non-exhaustive list of the most frequently used options and
 their usage. For a complete list of all available options for your
 version of conda, use the ``conda config --describe`` command.
+
+Searching for .condarc
+======================
+
+Conda looks in the following locations for a ``.condarc`` file:
+
+.. code-block:: python
+
+    if on_win:
+     SEARCH_PATH = (
+         'C:/ProgramData/conda/.condarc',
+         'C:/ProgramData/conda/condarc',
+         'C:/ProgramData/conda/condarc.d',
+     )
+     else:
+     SEARCH_PATH = (
+         '/etc/conda/.condarc',
+         '/etc/conda/condarc',
+         '/etc/conda/condarc.d/',
+         '/var/lib/conda/.condarc',
+         '/var/lib/conda/condarc',
+         '/var/lib/conda/condarc.d/',
+      )
+
+     SEARCH_PATH += (
+         '$CONDA_ROOT/.condarc',
+         '$CONDA_ROOT/condarc',
+         '$CONDA_ROOT/condarc.d/',
+         '~/.conda/.condarc',
+         '~/.conda/condarc',
+         '~/.conda/condarc.d/',
+         '~/.condarc',
+         '$CONDA_PREFIX/.condarc',
+         '$CONDA_PREFIX/condarc',
+         '$CONDA_PREFIX/condarc.d/',
+         '$CONDARC',
+     )
+
+``CONDA_ROOT`` is the path for your base conda install.
+``CONDA_PREFIX`` is the path to the current active environment.
 
 
 General configuration
@@ -377,6 +419,7 @@ Advanced configuration
 * :ref:`add-anaconda-token`
 * :ref:`specify-env-directories`
 * :ref:`specify-pkg-directories`
+* :ref:`use-only-tar-bz2`
 
 .. _disallow-soft-linking:
 
@@ -622,28 +665,54 @@ The CONDA_PKGS_DIRS environment variable overwrites the
 * For Windows:
   ``set CONDA_PKGS_DIRS=C:\Anaconda\pkgs``
 
-Conda build configuration
+.. _use-only-tar-bz2:
+
+Force conda to download only .tar.bz2 packages (use_only_tar_bz2)
+-----------------------------------------------------------------
+
+Conda 4.7 introduced a new ``.conda`` package file format.
+``.conda`` is a more compact and faster alternative to ``.tar.bz2`` packages.
+It's thus the preferred file format to use where available.
+
+Nevertheless, it's possible to force conda to only download ``.tar.bz2`` packages
+by setting the ``use_only_tar_bz2`` boolean to ``True``.
+
+The default is ``False``.
+
+EXAMPLE:
+
+.. code-block:: yaml
+
+  use_only_tar_bz2: True
+
+.. note::
+
+   This is forced to True if conda-build is installed and older than 3.18.3,
+   because older versions of conda break when conda feeds it the new file format.
+
+Conda-build configuration
 =========================
 
-:ref:`specify-root-dir`
-:ref:`specify-output-folder`
-:ref:`auto-upload`
-:ref:`anaconda-token`
-:ref:`quiet`
-:ref:`filename-hashing`
-:ref:`no-verify`
-:ref:`set-build-id`
-:ref:`skip-existing`
-:ref:`include-recipe`
-:ref:`disable-activation`
-:ref:`long-test-prefix`
-:ref:`pypi-upload-settings`
-:ref:`pypi-repository`
+* :ref:`specify-root-dir`
+* :ref:`specify-output-folder`
+* :ref:`auto-upload`
+* :ref:`anaconda-token`
+* :ref:`quiet`
+* :ref:`filename-hashing`
+* :ref:`no-verify`
+* :ref:`set-build-id`
+* :ref:`skip-existing`
+* :ref:`include-recipe`
+* :ref:`disable-activation`
+* :ref:`long-test-prefix`
+* :ref:`pypi-upload-settings`
+* :ref:`pypi-repository`
+* :ref:`threads`
 
 
 .. _specify-root-dir:
 
-Specify conda build output root directory (root-dir)
+Specify conda-build output root directory (root-dir)
 ----------------------------------------------------
 
 Build output root directory. You can also set this with the
@@ -662,7 +731,7 @@ EXAMPLE:
 
 .. _specify-output-folder:
 
-Specify conda build build folder (conda-build 3.16.3+) (output_folder)
+Specify conda-build build folder (conda-build 3.16.3+) (output_folder)
 ----------------------------------------------------------------------
 
 Folder to dump output package to. Packages are moved here if build or test
@@ -676,10 +745,10 @@ the root build directory (``root-dir``).
 
 .. _auto-upload:
 
-Automatically upload conda build packages to Anaconda.org (anaconda_upload)
+Automatically upload conda-build packages to Anaconda.org (anaconda_upload)
 ---------------------------------------------------------------------------
 
-Automatically upload packages built with conda build to
+Automatically upload packages built with conda-build to
 `Anaconda.org <http://anaconda.org>`_. The default is ``False``.
 
 EXAMPLE:
@@ -936,3 +1005,56 @@ To remove a key, such as channels, and all of its values:
 To configure channels and their priority for a single
 environment, make a ``.condarc`` file in the :ref:`root directory
 of that environment <config-channels>`.
+
+.. _threads:
+
+Configuring number of threads
+=============================
+
+You can use your ``.condarc`` file or environment variables to
+add configuration to control the number of threads. You may
+want to do this to tweak conda to better utilize your system.
+If you have a very fast SSD, you might increase the number
+of threads to shorten the time it takes for conda to create
+environments and install/remove packages. 
+
+**repodata_threads**
+
+* Default number of threads: None
+* Threads used when downloading, parsing, and creating repodata
+  structures from repodata.json files. Multiple downloads from
+  different channels may occur simultaneously. This speeds up the
+  time it takes to start solving.
+
+**verify_threads**
+
+* Default number of threads: 1
+* Threads used when verifying the integrity of packages and files
+  to be installed in your environment. Defaults to 1, as using
+  multiple threads here can run into problems with slower hard
+  drives.
+
+**execute_threads**
+
+* Default number of threads: 1
+* Threads used to unlink, remove, link, or copy files into your
+  environment. Defaults to 1, as using multiple threads here can
+  run into problems with slower hard drives.
+
+**default_threads**
+
+* Default number of threads: None
+* When set, this value is used for all of the above thread
+  settings. With its default setting (None), it does not affect
+  the other settings.
+
+Setting any of the above can be done in ``.condarc`` or with
+conda config:
+
+At your terminal::
+  
+  conda config --set repodata_threads 2
+
+In ``.condarc``::
+
+  verify_threads: 4
