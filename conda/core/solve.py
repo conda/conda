@@ -33,6 +33,8 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..resolve import Resolve
+from ..common.signals import timeout
+
 
 log = getLogger(__name__)
 
@@ -80,6 +82,7 @@ class Solver(object):
         self._r = None
         self._prepared = False
         self._pool_cache = {}
+
 
     def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
                               ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
@@ -269,36 +272,37 @@ class Solver(object):
         else:
             fail_message = "failed\n"
 
-        with Spinner("Solving environment", not context.verbosity and not context.quiet,
+        with timeout(context.solver_timeout):
+            with Spinner("Solving environment", not context.verbosity and not context.quiet,
                      context.json, fail_message=fail_message):
-            ssc = self._remove_specs(ssc)
-            ssc = self._add_specs(ssc)
-            solution_precs = copy.copy(ssc.solution_precs)
+                ssc = self._remove_specs(ssc)
+                ssc = self._add_specs(ssc)
+                solution_precs = copy.copy(ssc.solution_precs)
 
-            pre_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
-            ssc = self._find_inconsistent_packages(ssc)
-            # this will prune precs that are deps of precs that get removed due to conflicts
-            ssc = self._run_sat(ssc)
-            post_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
+                pre_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
+                ssc = self._find_inconsistent_packages(ssc)
+                # this will prune precs that are deps of precs that get removed due to conflicts
+                ssc = self._run_sat(ssc)
+                post_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
 
-            if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
-                constrained = self.get_constrained_packages(
-                    pre_packages, post_packages, ssc.index.keys())
-                if len(constrained) > 0:
-                    for spec in constrained:
-                        self.determine_constricting_specs(spec, ssc.solution_precs)
+                if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
+                    constrained = self.get_constrained_packages(
+                        pre_packages, post_packages, ssc.index.keys())
+                    if len(constrained) > 0:
+                        for spec in constrained:
+                            self.determine_constricting_specs(spec, ssc.solution_precs)
 
-            # if there were any conflicts, we need to add their orphaned deps back in
-            if ssc.add_back_map:
-                orphan_precs = (set(solution_precs)
-                                - set(ssc.solution_precs)
-                                - set(ssc.add_back_map))
-                solution_prec_names = [_.name for _ in ssc.solution_precs]
-                ssc.solution_precs.extend(
-                    [_ for _ in orphan_precs
-                     if _.name not in ssc.specs_map and _.name not in solution_prec_names])
+                # if there were any conflicts, we need to add their orphaned deps back in
+                if ssc.add_back_map:
+                    orphan_precs = (set(solution_precs)
+                                    - set(ssc.solution_precs)
+                                    - set(ssc.add_back_map))
+                    solution_prec_names = [_.name for _ in ssc.solution_precs]
+                    ssc.solution_precs.extend(
+                        [_ for _ in orphan_precs
+                         if _.name not in ssc.specs_map and _.name not in solution_prec_names])
 
-            ssc = self._post_sat_handling(ssc)
+                ssc = self._post_sat_handling(ssc)
 
         time_recorder.log_totals()
 

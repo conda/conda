@@ -315,6 +315,8 @@ class Context(Configuration):
 
     unsatisfiable_hints = ParameterLoader(PrimitiveParameter(True))
     unsatisfiable_hints_check_depth = ParameterLoader(PrimitiveParameter(2))
+    # Time in seconds to wait for the solver
+    solver_timeout = PrimitiveParameter(300)
 
     # conda_build
     bld_path = ParameterLoader(PrimitiveParameter(''))
@@ -860,6 +862,7 @@ class Context(Configuration):
             'pinned_packages',
             'pip_interop_enabled',
             'track_features',
+            'solver_timeout',
         )),
         ('Package Linking and Install-time Configuration', (
             'allow_softlinks',
@@ -1229,6 +1232,11 @@ class Context(Configuration):
                 package format. If you'd rather not assume that a .tar.bz2 and
                 .conda from the same place represent the same content, set this
                 to True.
+            """),
+            'solver_timeout': dals("""
+                Timeout in seconds for solves. Once a solve has timed out, if 
+                applicable the remaining solves will be attempted respecting
+                the same timeout.
             """),
             'extra_safety_checks': dals("""
                 Spend extra time validating package contents.  Currently, runs sha256 verification
