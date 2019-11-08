@@ -64,12 +64,13 @@ def raise_timeout(signum, frame):
 
 
 @contextmanager
-def timeout(time):
+def solver_timeout(time):
     signal.signal(signal.SIGALRM, raise_timeout)
     signal.alarm(time)
     try:
         yield
     except TimeoutError:
-        pass
+        print("Solver timeout error occured, proceeding with next solve configuration if applicable")
+        raise TimeoutError
     finally:
         signal.signal(signal.SIGALRM, signal.SIG_IGN)

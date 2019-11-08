@@ -285,7 +285,7 @@ def install(args, parser, command='install'):
                     # convert the ResolvePackageNotFound into PackagesNotFoundError
                     raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
-        except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+        except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError, TimeoutError) as e:
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
             if not hasattr(args, 'update_modifier'):
                 if repodata_fn == repodata_fns[-1]:

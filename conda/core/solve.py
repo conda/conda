@@ -33,7 +33,7 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..resolve import Resolve
-from ..common.signals import timeout
+from ..common.signals import solver_timeout
 
 
 log = getLogger(__name__)
@@ -272,7 +272,7 @@ class Solver(object):
         else:
             fail_message = "failed\n"
 
-        with timeout(context.solver_timeout):
+        with solver_timeout(context.solver_timeout):
             with Spinner("Solving environment", not context.verbosity and not context.quiet,
                      context.json, fail_message=fail_message):
                 ssc = self._remove_specs(ssc)
