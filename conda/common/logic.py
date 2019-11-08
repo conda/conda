@@ -781,6 +781,18 @@ class Clauses(object):
 
         return self._minimize(objective_list, bestsol=bestsol, trymax=trymax)
 
+    # TODO: test code, remove this!
+    _problem_write_out_condition = None
+    # 1. obtain problematic instance via:
+    #   CONDA_RESTORE_FREE_CHANNEL=1 \
+    #   CONDA_SAT_SOLVER=pycryptosat \
+    #   CONDA_SUBDIR=linux-64 \
+    #   conda create -dnx \
+    #   -c conda-forge \
+    #   anaconda rstudio
+    # 2. write out problem when it get really big:
+    # _problem_write_out_condition = lambda self: self.get_clause_count() > 10*1000*1000
+
     def _minimize(self, objective, bestsol=None, trymax=False):
         """
         Minimize the objective function given either by (coeff, integer)
@@ -788,6 +800,20 @@ class Clauses(object):
         minimization is multiobjective: first, we minimize the largest
         active coefficient value, then we minimize the sum.
         """
+
+        # TODO: test code, remove this!
+        if self._problem_write_out_condition:
+            from json import dumps
+            log.debug('serializing minimization problem')
+            problem_json = dumps(
+                {
+                    'objective': objective,
+                    'bestsol': bestsol,
+                    'clauses': list(self.as_list()),
+                },
+                indent=2,
+            )
+
         if bestsol is None or len(bestsol) < self.m:
             log.debug('Clauses added, recomputing solution')
             bestsol = self.sat()
@@ -844,6 +870,15 @@ class Clauses(object):
                         self.Require(self.Any, temp)
                 else:
                     self.Require(self.LinearBound, objective, lo, mid, False)
+
+                # TODO: test code, remove this!
+                if self._problem_write_out_condition and self._problem_write_out_condition():
+                    log.debug('writing out minimization problem')
+                    with open('problem.json', 'w') as f:
+                        f.write(problem_json)
+                    from ..exceptions import DryRunExit
+                    raise DryRunExit()
+
                 if log.isEnabledFor(DEBUG):
                     log.trace('Bisection attempt: (%d,%d), (%d+%d) clauses' %
                               (lo, mid, nz, self.get_clause_count() - nz))
