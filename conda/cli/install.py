@@ -24,7 +24,7 @@ from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSy
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
                           NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
                           TooManyArgumentsError, UnsatisfiableError,
-                          SpecsConfigurationConflictError)
+                          SpecsConfigurationConflictError, CondaSolverTimeoutError)
 from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..misc import clone_env, explicit, touch_nonadmin
@@ -285,7 +285,7 @@ def install(args, parser, command='install'):
                     # convert the ResolvePackageNotFound into PackagesNotFoundError
                     raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
-        except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError, TimeoutError) as e:
+        except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError, CondaSolverTimeoutError) as e:
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
             if not hasattr(args, 'update_modifier'):
                 if repodata_fn == repodata_fns[-1]:
@@ -298,7 +298,7 @@ def install(args, parser, command='install'):
                         force_reinstall=context.force_reinstall or context.force,
                         should_retry_solve=(repodata_fn != repodata_fns[-1]),
                     )
-                except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+                except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError, CondaSolverTimeoutError) as e:
                     # Unsatisfiable package specifications/no such revision/import error
                     if e.args and 'could not import' in e.args[0]:
                         raise CondaImportError(text_type(e))
@@ -314,6 +314,7 @@ def install(args, parser, command='install'):
                 if e.args and 'could not import' in e.args[0]:
                     raise CondaImportError(text_type(e))
                 raise e
+
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 

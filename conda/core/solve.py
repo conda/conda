@@ -9,6 +9,8 @@ from logging import DEBUG, getLogger
 from os.path import join
 import sys
 from textwrap import dedent
+from contextlib import contextmanager
+import signal
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -25,7 +27,7 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError
+from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError, CondaSolverTimeoutError
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -33,10 +35,23 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..resolve import Resolve
-from ..common.signals import solver_timeout
+from ..common.signals import raise_timeout
 
 
 log = getLogger(__name__)
+
+
+@contextmanager
+def solver_timeout(time):
+    signal.signal(signal.SIGALRM, raise_timeout)
+    signal.alarm(time)
+    try:
+        yield
+    except TimeoutError:
+        print("Solver timeout error occured, proceeding with next solve configuration if applicable \n")
+        raise CondaSolverTimeoutError
+    finally:
+        signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
 
 class Solver(object):

@@ -1366,6 +1366,14 @@ class ExceptionHandler(object):
             )
 
 
+class CondaSolverTimeoutError(CondaError):
+
+    def __init__(self, **kwargs):
+        message = "Solver timeout occured!"
+        message += "\nTo change solver timeout configuration set solver_timeout in your condarc"
+        super(CondaSolverTimeoutError, self).__init__(message, **kwargs)
+
+
 def conda_exception_handler(func, *args, **kwargs):
     exception_handler = ExceptionHandler()
     return_value = exception_handler(func, *args, **kwargs)
