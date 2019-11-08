@@ -33,8 +33,6 @@ from array import array
 from itertools import chain, combinations
 from logging import DEBUG, getLogger
 
-from .compat import iteritems
-
 log = getLogger(__name__)
 
 
@@ -621,8 +619,6 @@ class Clauses(object):
         return self.Eval_(what, (vals,), polarity, name)
 
     def LB_Preprocess_(self, equation):
-        if type(equation) is dict:
-            equation = [(c, self.names.get(a, a)) for a, c in iteritems(equation)]
         if any(c <= 0 or type(a) is bool for c, a in equation):
             offset = sum(c for c, a in equation if a is True or a is not False and c <= 0)
             equation = [(c, a) if c > 0 else (-c, -a) for c, a in equation
@@ -778,6 +774,14 @@ class Clauses(object):
             exclude.append([-k for k in sol if -m <= k <= m])
 
     def minimize(self, objective, bestsol=None, trymax=False):
+        if isinstance(objective, dict):
+            objective_list = [(v, self.names.get(k, k)) for k, v in objective.items()]
+        else:
+            objective_list = objective
+
+        return self._minimize(objective_list, bestsol=bestsol, trymax=trymax)
+
+    def _minimize(self, objective, bestsol=None, trymax=False):
         """
         Minimize the objective function given either by (coeff, integer)
         tuple pairs, or a dictionary of varname: coeff values. The actual
@@ -793,9 +797,6 @@ class Clauses(object):
         if not objective:
             log.debug('Empty objective, trivial solution')
             return bestsol, 0
-
-        if type(objective) is dict:
-            objective = [(v, self.names.get(k, k)) for k, v in iteritems(objective)]
 
         objective, offset = self.LB_Preprocess_(objective)
         maxval = max(c for c, a in objective)
