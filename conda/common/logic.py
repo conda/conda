@@ -888,12 +888,6 @@ class Clauses(object):
         return bestsol, bestval
 
 
-def evaluate_eq(eq, sol):
-    if type(eq) is not dict:
-        eq = {c: v for v, c in eq if type(c) is not bool}
-    return sum(eq.get(s, 0) for s in sol if type(s) is not bool)
-
-
 def minimal_unsatisfiable_subset(clauses, sat, explicit_specs):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an

@@ -3,7 +3,7 @@ from itertools import chain, combinations, permutations, product
 import pytest
 
 from conda.common.compat import iteritems, string_types
-from conda.common.logic import (Clauses, evaluate_eq, minimal_unsatisfiable_subset)
+from conda.common.logic import Clauses, minimal_unsatisfiable_subset
 from tests.helpers import raises
 
 
@@ -89,9 +89,15 @@ def my_SOL(ij, sol):
     return (v if type(v) is bool else (True if v in sol else False) for v in ij)
 
 
+def _evaluate_eq(eq, sol):
+    if type(eq) is not dict:
+        eq = {c: v for v, c in eq if type(c) is not bool}
+    return sum(eq.get(s, 0) for s in sol if type(s) is not bool)
+
+
 def my_EVAL(eq, sol):
-    # evaluate_eq doesn't handle True/False entries
-    return evaluate_eq(eq, sol) + sum(c for c, a in eq if a is True)
+    # _evaluate_eq doesn't handle True/False entries
+    return _evaluate_eq(eq, sol) + sum(c for c, a in eq if a is True)
 
 # Testing strategy: mechanically construct a all possible permutations of
 # True, False, variables from 1 to m, and their negations, in order to exercise
