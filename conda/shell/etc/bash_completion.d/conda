@@ -19,36 +19,27 @@
 #
 # rather than being managed via the `conda shell.bash hook`, then this file may
 # be sourced before conda is setup.  To support this we allow for a potential
-# late initiallization of the CONDA_ROOT and CONDA_SOURCE environment
-# variables.
+# late initiallization of the _CONDA_ROOT environment variable
 
 
 function __comp_conda_ensure_root() {
-    if [[ -z "${CONDA_SOURCE-}" && -n "${CONDA_EXE-}" ]] ; then
+    if [[ -z "${_CONDA_ROOT-}" && -n "${CONDA_EXE-}" ]] ; then
         if [[ -n "${_CE_CONDA-}" && -n "${WINDIR-}" ]]; then
-            CONDA_ROOT=$(\dirname "${CONDA_EXE}")
+            _CONDA_ROOT=$(\dirname "${CONDA_EXE}")
         else
-            CONDA_ROOT=$(\dirname "${CONDA_EXE}")
-            CONDA_ROOT=$(\dirname "${CONDA_ROOT}")
+            _CONDA_ROOT=$(\dirname "${CONDA_EXE}")
+            _CONDA_ROOT=$(\dirname "${_CONDA_ROOT}")
         fi
-        CONDA_SOURCE=$(
-            cat - <<'            EOF' | sed 's/^ *: //g' | python -
-            : from __future__ import print_function
-            : import os
-            : import conda
-            : print(os.path.dirname(conda.__file__))
-            EOF
-        )
     fi
 }
 
 function __comp_conda_commands () {
-    for f in $CONDA_SOURCE/cli/main_*.py
+    for f in $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
     do
         \expr match "$f" '.*_\([a-z]\+\)\.py$'
     done
 
-    for f in $CONDA_ROOT/bin/conda-*
+    for f in $_CONDA_ROOT/bin/conda-*
     do
         if test -x "$f" -a ! -d "$f"
         then
@@ -60,24 +51,16 @@ function __comp_conda_commands () {
 }
 
 function __comp_conda_env_commands() {
-    for f in $CONDA_SOURCE/../conda_env/cli/main_*.py
+    for f in $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
     do
         \expr match "$f" '.*_\([a-z]\+\)\.py$'
     done
 }
 
 function __comp_conda_envs() {
-    script=$(
-        cat - <<'        EOF' | sed 's/^ *: //g'
-        : from __future__ import print_function;
-        : import json, os, sys;
-        : from os.path import isdir, join;
-        : print('\n'.join(
-        :    d for ed in json.load(sys.stdin)['envs_dirs'] if isdir(ed)
-        :    for d in os.listdir(ed) if isdir(join(ed, d))));
-        EOF
-    )
-    conda config --json --show envs_dirs | python -c "$script"
+    echo base
+    conda config --json --show envs_dirs | \
+        python -c "import json, os, sys; from os.path import isdir, join; print('\n'.join(d for ed in json.load(sys.stdin)['envs_dirs'] if isdir(ed) for d in os.listdir(ed) if isdir(join(ed, d))))"
 }
 
 function __comp_conda_packages() {
