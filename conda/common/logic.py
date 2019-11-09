@@ -32,6 +32,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from array import array
 from itertools import chain, combinations
 from logging import DEBUG, getLogger
+from sys import maxsize
 
 log = getLogger(__name__)
 
@@ -262,6 +263,10 @@ class PySatSolver(SatSolver):
         return solution
 
 
+_BIG_NUMBER = maxsize
+TRUE = _BIG_NUMBER
+FALSE = -TRUE
+
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
@@ -287,7 +292,7 @@ class Clauses(object):
         nname = '!' + name
         self.names[name] = m
         self.names[nname] = -m
-        if type(m) is not bool and m not in self.indices:
+        if m not in {TRUE, FALSE} and m not in self.indices:
             self.indices[m] = name
             self.indices[-m] = nname
         return m
@@ -313,7 +318,7 @@ class Clauses(object):
         x = self._assign_no_name(vals)
         if not name:
             return x
-        if isinstance(x, bool):
+        if vals in {TRUE, FALSE}:
             x = self._new_var()
             self.add_clause((x,) if vals else (-x,))
         return self.name_var(x, name)
@@ -327,11 +332,10 @@ class Clauses(object):
         return vals
 
     def Convert_(self, x):
-        tx = type(x)
         name = x
-        if tx in (tuple, list):
-            return tx(map(self.Convert_, x))
-        elif tx not in (bool, int) and name not in self.names:
+        if isinstance(x, (tuple, list)):
+            return type(x)(map(self.Convert_, x))
+        elif not isinstance(x, int) and name not in self.names:
             # This is equivalent to running self._assign_no_name(pval, nval) on
             # the (pval, nval) tuple we return below. Duplicating the code here
             # is an important performance tweak to avoid the costly generator
@@ -354,27 +358,26 @@ class Clauses(object):
         if name is not False:
             return self.Assign_(vals, name)
         # eval without assignment:
-        tvals = type(vals)
-        if tvals is tuple:
+        if isinstance(vals, tuple):
             self.add_clauses(vals[0])
             self.add_clauses(vals[1])
-        elif tvals is not bool:
+        elif vals not in {TRUE, FALSE}:
             self.add_clause((vals if polarity else -vals,))
         else:
             self._sat_solver.restore_state(saved_state)
-            self.unsat = self.unsat or polarity != vals
+            self.unsat = self.unsat or (vals == TRUE) != polarity
         return None
 
     def Combine_(self, args, polarity):
-        if any(v is False for v in args):
-            return False
-        args = [v for v in args if v is not True]
+        if any(v == FALSE for v in args):
+            return FALSE
+        args = [v for v in args if v != TRUE]
         nv = len(args)
         if nv == 0:
-            return True
+            return TRUE
         if nv == 1:
             return args[0]
-        if all(type(v) is tuple for v in args):
+        if all(isinstance(v, tuple) for v in args):
             return (sum((v[0] for v in args), []), sum((v[1] for v in args), []))
         else:
             return self.All_(map(self.Assign_, args), polarity)
@@ -386,22 +389,22 @@ class Clauses(object):
         return what.__get__(self, Clauses)(*args, polarity=True, name=False)
 
     def Not_(self, x, polarity=None, add_new_clauses=False):
-        return (not x) if type(x) is bool else -x
+        return -x
 
     def Not(self, x, polarity=None, name=None):
         return self.Eval_(self.Not_, (x,), polarity, name)
 
     def And_(self, f, g, polarity, add_new_clauses=False):
-        if f is False or g is False:
-            return False
-        if f is True:
+        if f == FALSE or g == FALSE:
+            return FALSE
+        if f == TRUE:
             return g
-        if g is True:
+        if g == TRUE:
             return f
         if f == g:
             return f
         if f == -g:
-            return False
+            return FALSE
         if g < f:
             f, g = g, f
         if add_new_clauses:
@@ -423,16 +426,16 @@ class Clauses(object):
         return self.Eval_(self.And_, (f, g), polarity, name)
 
     def Or_(self, f, g, polarity, add_new_clauses=False):
-        if f is True or g is True:
-            return True
-        if f is False:
+        if f == TRUE or g == TRUE:
+            return TRUE
+        if f == FALSE:
             return g
-        if g is False:
+        if g == FALSE:
             return f
         if f == g:
             return f
         if f == -g:
-            return True
+            return TRUE
         if g < f:
             f, g = g, f
         if add_new_clauses:
@@ -450,18 +453,18 @@ class Clauses(object):
         return self.Eval_(self.Or_, (f, g), polarity, name)
 
     def Xor_(self, f, g, polarity, add_new_clauses=False):
-        if f is False:
+        if f == FALSE:
             return g
-        if f is True:
+        if f == TRUE:
             return self.Not_(g, polarity, add_new_clauses=add_new_clauses)
-        if g is False:
+        if g == FALSE:
             return f
-        if g is True:
+        if g == TRUE:
             return -f
         if f == g:
-            return False
+            return FALSE
         if f == -g:
-            return True
+            return TRUE
         if g < f:
             f, g = g, f
         if add_new_clauses:
@@ -479,17 +482,17 @@ class Clauses(object):
         return self.Eval_(self.Xor_, (f, g), polarity, name)
 
     def ITE_(self, c, t, f, polarity, add_new_clauses=False):
-        if c is True:
+        if c == TRUE:
             return t
-        if c is False:
+        if c == FALSE:
             return f
-        if t is True:
+        if t == TRUE:
             return self.Or_(c, f, polarity, add_new_clauses=add_new_clauses)
-        if t is False:
+        if t == FALSE:
             return self.And_(-c, f, polarity, add_new_clauses=add_new_clauses)
-        if f is False:
+        if f == FALSE:
             return self.And_(c, t, polarity, add_new_clauses=add_new_clauses)
-        if f is True:
+        if f == TRUE:
             return self.Or_(t, -c, polarity, add_new_clauses=add_new_clauses)
         if t == c:
             return self.Or_(c, f, polarity, add_new_clauses=add_new_clauses)
@@ -531,14 +534,14 @@ class Clauses(object):
     def All_(self, iter, polarity=None):
         vals = set()
         for v in iter:
-            if v is True:
+            if v == TRUE:
                 continue
-            if v is False or -v in vals:
-                return False
+            if v == FALSE or -v in vals:
+                return FALSE
             vals.add(v)
         nv = len(vals)
         if nv == 0:
-            return True
+            return TRUE
         elif nv == 1:
             return next(v for v in vals)
         pval = [(v,) for v in vals] if polarity in (True, None) else []
@@ -551,14 +554,14 @@ class Clauses(object):
     def Any_(self, iter, polarity):
         vals = set()
         for v in iter:
-            if v is False:
+            if v == FALSE:
                 continue
-            elif v is True or -v in vals:
-                return True
+            elif v == TRUE or -v in vals:
+                return TRUE
             vals.add(v)
         nv = len(vals)
         if nv == 0:
-            return False
+            return FALSE
         elif nv == 1:
             return next(v for v in vals)
         pval = [tuple(vals)] if polarity in (True, None) else []
@@ -619,10 +622,10 @@ class Clauses(object):
         return self.Eval_(what, (vals,), polarity, name)
 
     def LB_Preprocess_(self, equation):
-        if any(c <= 0 or type(a) is bool for c, a in equation):
-            offset = sum(c for c, a in equation if a is True or a is not False and c <= 0)
+        if any(c <= 0 or a in {TRUE, FALSE} for c, a in equation):
+            offset = sum(c for c, a in equation if a == TRUE or a != FALSE and c <= 0)
             equation = [(c, a) if c > 0 else (-c, -a) for c, a in equation
-                        if type(a) is not bool and c]
+                        if a not in {TRUE, FALSE} and c]
         else:
             offset = 0
         equation = sorted(equation)
@@ -650,10 +653,10 @@ class Clauses(object):
             lower_limit = lo - csum
             upper_limit = hi - csum
             if lower_limit <= 0 and upper_limit >= total:
-                ret[call_stack_pop()] = True
+                ret[call_stack_pop()] = TRUE
                 continue
             if lower_limit > total or upper_limit < 0:
-                ret[call_stack_pop()] = False
+                ret[call_stack_pop()] = FALSE
                 continue
             LC, LA = equation[ndx]
             ndx -= 1
@@ -694,9 +697,9 @@ class Clauses(object):
             lo = max([lo, 0])
             hi = min([hi, total])
         if lo > hi:
-            return False
+            return FALSE
         if nterms == 0:
-            res = lo == 0
+            res = TRUE if lo == 0 else FALSE
         else:
             res = self.BDD_(equation, nterms, lo, hi, polarity)
         if nprune:
@@ -732,17 +735,17 @@ class Clauses(object):
                 def preproc_(cc):
                     for c in cc:
                         c = self.names.get(c, c)
-                        if c is False:
+                        if c == FALSE:
                             continue
                         yield c
-                        if c is True:
+                        if c == TRUE:
                             break
                 for cc in eqs:
                     cc = tuple(preproc_(cc))
                     if not cc:
                         yield cc
                         break
-                    if cc[-1] is not True:
+                    if cc[-1] != TRUE:
                         yield cc
             additional = list(preproc(additional))
             if additional:

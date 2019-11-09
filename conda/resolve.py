@@ -15,7 +15,7 @@ from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoi
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
-from .common.logic import (Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver,
+from .common.logic import (Clauses, CryptoMiniSatSolver, PycoSatSolver, PySatSolver, TRUE,
                            minimal_unsatisfiable_subset)
 from .common.toposort import toposort
 from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFound,
@@ -843,7 +843,7 @@ class Resolve(object):
             libs = [fkey for fkey in tgroup if spec.match(fkey)]
         if len(libs) == len(tgroup):
             if spec.optional:
-                m = True
+                m = TRUE
             elif not simple:
                 ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
                 m = C.from_name(self.push_MatchSpec(C, ms2))
