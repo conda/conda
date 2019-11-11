@@ -128,7 +128,7 @@ Bootstrap your environment
 
 If you encounter the "RemoveError" error where ``conda update conda`` tries to
 uninstall setup tools, this is likely a metadata issue. To bootstrap your
-environment, use the standalone conda approach in your .travis.yml:
+environment, use the standalone conda approach in your appveyor.yml:
 
 .. code-block:: yaml
    
