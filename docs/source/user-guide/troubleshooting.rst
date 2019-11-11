@@ -1,13 +1,13 @@
-=================
+===============
 Troubleshooting
-=================
+===============
 
 .. contents::
    :local:
    :depth: 1
 
 
-Using Conda in Windows Batch script exits early
+Using conda in Windows Batch script exits early
 ===============================================
 
 In conda 4.6+, the way that you interact with conda goes through a batch script (``%PREFIX%\condabin\conda.bat``).
@@ -226,7 +226,7 @@ Conda has three similar options.
 
        # # ssl_verify (bool, str)
        # #   aliases: verify_ssl
-       # #   Conda verifies SSL certificates for HTTPS requests, just like a web
+       # #   conda verifies SSL certificates for HTTPS requests, just like a web
        # #   browser. By default, SSL verification is enabled and conda operations
        # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
@@ -253,7 +253,7 @@ Conda has three similar options.
 
        # # ssl_verify (bool, str)
        # #   aliases: verify_ssl
-       # #   Conda verifies SSL certificates for HTTPS requests, just like a web
+       # #   conda verifies SSL certificates for HTTPS requests, just like a web
        # #   browser. By default, SSL verification is enabled, and conda operations
        # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
@@ -895,7 +895,7 @@ Now you have a software environment sandbox created with Python
 .. _auto-upgrade:
 
 Conda automatically upgrades to unwanted version
-===================================================
+================================================
 
 When making a Python package for an app, you create an
 environment for the app from a file ``req.txt`` that sets a
@@ -945,7 +945,7 @@ EXAMPLE: If my conda info says package cache : /opt/conda/pkgs and my Python ver
 
 
 ValidationError: Invalid value for timestamp
-=============================================
+============================================
 
 Cause
 ------
@@ -974,3 +974,77 @@ Solution
 --------
 
 Remove all non-ASCII from PATH or switch to Python 3.
+
+
+Windows environment has not been activated
+==========================================
+
+Cause
+-----
+You may receive a warning message if you have not activated your environment:
+
+.. code-block:: Python
+
+   Warning:
+   This Python interpreter is in a conda environment, but the environment has
+   not been activated. Libraries may fail to load. To activate this environment
+   please see https://conda.io/activation
+
+Solution
+--------
+
+If you receive this warning, you need to activate your environment.
+Run ``c:\Anaconda3\scripts\activate base`` in Anaconda Prompt.
+
+.. _path-error:
+
+The system cannot find the path specified on Windows
+====================================================
+
+Cause
+-----
+PATH does not contain entries for all of the necessary conda directories.
+PATH may have too many entries from 3rd party software adding itself to
+PATH at install time, despite the user not needing to run the software via PATH lookup.
+
+Solution
+--------
+
+Strip PATH to have fewer entries and activate your environment.
+
+If there's some software that does need to be found on PATH, create its own
+batch files to set PATH dynamically in that session.
+
+Users who face this limitation are also free to implement some workarounds.
+One would be to create a new conda prompt batch file that first strips
+PATH, then calls the correct activation procedure:
+
+.. code-block:: Python
+
+   set “PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\”
+   call “<miniconda/anaconda root>\Scripts\activate”
+
+.. note::
+   Only the quotes wrapping the entire
+   expression should be there. No additional quotes should be within the
+   value assigned to PATH.
+
+If you need to run 3rd party software from this custom conda prompt,
+then you should add those entries (and only those strictly necessary)
+to the set PATH entry above.
+ 
+To make 3rd party software take precedence over the same-named programs
+as supplied by conda:
+
+.. code-block:: Python
+   
+   set “PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\”
+   call “<miniconda/anaconda root>\Scripts\activate”
+   set “PATH=<3rd-party-entries>;%PATH%”
+
+To make conda software take precedence:
+
+.. code-block:: Python
+
+   set PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”
+   call “<miniconda/anaconda root>\Scripts\activate”

@@ -337,12 +337,34 @@ the environment, and running any activation scripts that the environment may
 contain. These activation scripts are how packages can set arbitrary
 environment variables that may be necessary for their operation.
 
+When `installing Anaconda <http://docs.continuum.io/anaconda/install.html>`_,
+you have the option to “Add Anaconda
+to my PATH environment variable.” This is not recommended because the
+add to PATH option appends Anaconda to path. This means Anaconda’s features
+are found last and the installer appending to PATH does not call the
+activation scripts. Activation prepends to PATH. This only takes effect
+when you have the environment active so it is local to a terminal session,
+not global.
+
 To activate an environment: ``conda activate myenv``
 
 .. note::
    Replace ``myenv`` with the environment name or directory path.
 
 Conda prepends the path name ``myenv`` onto your system command.
+
+You may receive a warning message if you have not activated your environment:
+
+.. code-block:: Python
+
+   Warning:
+   This Python interpreter is in a conda environment, but the environment has
+   not been activated. Libraries may fail to load. To activate this environment
+   please see https://conda.io/activation
+
+If you receive this warning, you need to activate your environment. To do
+so on Windows, run: ``c:\Anaconda3\scripts\activate base`` in
+Anaconda Prompt.
 
 Windows is extremely sensitive to proper activation. This is because
 the Windows library loader does not support the concept of libraries
@@ -358,6 +380,8 @@ with any child environment active. In general, calling any executable in
 an environment without first activating that environment will likely not work.
 For the ability to run executables in activated environments, you may be
 interested in the ``conda run`` command.
+
+If you experience errors with PATH, review our :ref:`troubleshooting <path-error>`.
 
 Conda init
 ----------
