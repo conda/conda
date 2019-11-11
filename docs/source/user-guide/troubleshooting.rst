@@ -994,7 +994,11 @@ Solution
 --------
 
 If you receive this warning, you need to activate your environment.
-Run ``c:\Anaconda3\scripts\activate base`` in Anaconda Prompt.
+To do so on Windows, use the Anaconda Prompt shortcut in your Windows
+start menu. If you have an existing cmd.exe session that you’d like to
+activate conda in, run:
+``call <your anaconda/miniconda install location>\scripts\activate base``.
+
 
 .. _path-error:
 
@@ -1012,39 +1016,46 @@ Solution
 
 Strip PATH to have fewer entries and activate your environment.
 
-If there's some software that does need to be found on PATH, create its own
-batch files to set PATH dynamically in that session.
+If there's some software that needs to be found on PATH (you run it via
+the CLI), we recommend that you create its own batch files to set PATH
+dynamically within a console session, rather than permanently modifying
+PATH in the system settings.
 
-Users who face this limitation are also free to implement some workarounds.
-One would be to create a new conda prompt batch file that first strips
-PATH, then calls the correct activation procedure:
+For example, a new conda prompt batch file that first strips PATH, then
+calls the correct activation procedure could look like:
 
 .. code-block:: Python
 
-   set “PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\”
+   set
+   PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”
    call “<miniconda/anaconda root>\Scripts\activate”
 
-.. note::
-   Only the quotes wrapping the entire
-   expression should be there. No additional quotes should be within the
-   value assigned to PATH.
-
-If you need to run 3rd party software from this custom conda prompt,
-then you should add those entries (and only those strictly necessary)
-to the set PATH entry above.
+If you need to run 3rd party software (software other than Windows
+built-ins and Anaconda) from this custom conda prompt, then you should add
+those entries (and only those strictly necessary) to the set PATH entry
+above. Note that only the quotes wrapping the entire expression should be
+there. That is how variables are properly set in batch scripts, and these
+account for any spaces in any entries in PATH. No additional quotes should
+be within the value assigned to PATH.
  
 To make 3rd party software take precedence over the same-named programs
-as supplied by conda:
+as supplied by conda, add it to PATH after activating conda:
 
 .. code-block:: Python
    
-   set “PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\”
+   set
+   “PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\”
    call “<miniconda/anaconda root>\Scripts\activate”
    set “PATH=<3rd-party-entries>;%PATH%”
 
-To make conda software take precedence:
+
+To make conda software take precedence, call the activation script last.
+Because activation prepends the conda environment PATH entries,
+they have priority.
 
 .. code-block:: Python
 
-   set PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”
+   set
+   PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”
    call “<miniconda/anaconda root>\Scripts\activate”
+
