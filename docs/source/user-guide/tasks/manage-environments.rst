@@ -340,9 +340,18 @@ environment variables that may be necessary for their operation.
 When `installing Anaconda <http://docs.continuum.io/anaconda/install.html>`_,
 you have the option to “Add Anaconda
 to my PATH environment variable.” This is not recommended because the
-add to PATH option appends Anaconda to path. This means Anaconda’s features
-are found last and the installer appending to PATH does not call the
-activation scripts. Activation prepends to PATH. This only takes effect
+add to PATH option appends Anaconda to PATH. When the installer appends
+to PATH, it does not call the activation scripts.
+
+On Windows, PATH is composed of two parts, the system PATH and the
+user PATH. The system PATH always comes first. When you install
+Anaconda for Just Me, we add it to the user PATH. When you install
+for All Users, we add it to the system PATH. In the former case,
+you can end up with system PATH values taking precedence over
+our entries. In the latter case, you do not. We do not recommend
+All Users installs.
+
+Activation prepends to PATH. This only takes effect
 when you have the environment active so it is local to a terminal session,
 not global.
 
@@ -360,7 +369,7 @@ You may receive a warning message if you have not activated your environment:
    Warning:
    This Python interpreter is in a conda environment, but the environment has
    not been activated. Libraries may fail to load. To activate this environment
-   please see https://conda.io/activation
+   please see https://conda.io/activation.
 
 If you receive this warning, you need to activate your environment. To do
 so on Windows, run: ``c:\Anaconda3\scripts\activate base`` in
@@ -370,7 +379,8 @@ Windows is extremely sensitive to proper activation. This is because
 the Windows library loader does not support the concept of libraries
 and executables that know where to search for their dependencies
 (RPATH). Instead, Windows relies on a `dynamic-link library search order <https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order>`_.
-If environments are not active, libraries won't get found and there
+
+If environments are not active, libraries won't be found and there
 will be lots of errors. HTTP or SSL errors are common errors when the
 Python in a child environment can't find the necessary OpenSSL library.
 
