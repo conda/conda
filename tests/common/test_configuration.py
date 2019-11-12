@@ -5,8 +5,8 @@ from conda.common.io import env_var, env_vars
 
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
-from conda.common.configuration import (Configuration, MapParameter, ParameterFlag,
-                                        PrimitiveParameter, SequenceParameter, YamlRawParameter,
+from conda.common.configuration import (Configuration, MapLoadedParameter, ParameterFlag, ParameterLoader,
+                                        PrimitiveParameter, MapParameter, PrimitiveLoadedParameter, SequenceParameter, SequenceLoadedParameter, YamlRawParameter,
                                         load_file_configs, MultiValidationError, InvalidTypeError,
                                         CustomValidationError)
 from conda.common.serialize import yaml_load
@@ -148,26 +148,113 @@ test_yaml_raw = {
           - $UNEXPANDED_VAR
           - regular_var
     """),
-
+    'fileX': dals("""
+        primitive_string: actual_value #!comment1
+        primitive_int: 10
+        simple_map: #!comment2
+            key1: 1 #!comment3
+            key2: 2
+            key3: 3
+            key5: 0
+        complex_map:
+            key1:
+                - a1
+                - b1
+                - c1
+            key2:
+                - d1
+                - e1
+                - f1
+        simple_seq: #!comment4
+            - 1 #!comment5
+            - 2
+            - 3
+        complex_seq:
+            -
+                key1: a1
+                key2: b1
+            - 
+                key3: c1
+                key4: d1
+    """),
+    'fileY': dals("""
+        primitive_string: second_value
+        primitive_int: 10
+        simple_map:
+            key1: 4
+            key2: 3
+            key3: 1
+            key4: 100
+        complex_map:
+            key1:
+                - a2
+                - b2
+                - c2
+                - d2
+            key2:
+                - d2
+                - e2
+                - f2
+        simple_seq:
+            - 1
+            - 2
+            - 3
+        complex_seq: #!top
+            -
+                key1: a2  #!final
+                key2: b2
+            - 
+                key3: c2
+                key4: d2
+            
+    """),
 }
 
 
 class SampleConfiguration(Configuration):
-    always_yes = PrimitiveParameter(False, aliases=('always_yes_altname1', 'yes',
-                                                    'always_yes_altname2'))
-    changeps1 = PrimitiveParameter(True)
-    proxy_servers = MapParameter(string_types)
-    channels = SequenceParameter(string_types, aliases=('channels_altname', ))
+    always_yes = ParameterLoader(PrimitiveParameter(False),
+                                 aliases=('always_yes_altname1', 'yes', 'always_yes_altname2'))
+    changeps1 = ParameterLoader(PrimitiveParameter(True))
+    proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=string_types)))
+    channels = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=string_types)),
+                               aliases=('channels_altname',))
+    #
+    # always_an_int = PrimitiveLoadedParameter(0)
+    # boolean_map = MapLoadedParameter(bool)
+    # commented_map = MapLoadedParameter(string_types)
+    #
+    # env_var_map = MapLoadedParameter(string_types, expandvars=True)
+    # env_var_str = PrimitiveLoadedParameter('', expandvars=True)
+    # env_var_bool = PrimitiveLoadedParameter(False, element_type=bool, expandvars=True)
+    # normal_str = PrimitiveLoadedParameter('', expandvars=False)
+    # env_var_list = SequenceLoadedParameter(string_types, expandvars=True)
 
-    always_an_int = PrimitiveParameter(0)
-    boolean_map = MapParameter(bool)
-    commented_map = MapParameter(string_types)
 
-    env_var_map = MapParameter(string_types, expandvars=True)
-    env_var_str = PrimitiveParameter('', expandvars=True)
-    env_var_bool = PrimitiveParameter(False, element_type=bool, expandvars=True)
-    normal_str = PrimitiveParameter('', expandvars=False)
-    env_var_list = SequenceParameter(string_types, expandvars=True)
+class TestObject(object):
+    def __init__(self, test=1):
+        self.test = test
+
+
+class RandomConfiguration(Configuration):
+    simple_primitive = ParameterLoader(
+        PrimitiveParameter("default_value"),
+        ("primitive_string",))
+    simple_int = ParameterLoader(
+        PrimitiveParameter(0),
+        ("primitive_int",))
+    simple_map = ParameterLoader(
+        MapParameter(PrimitiveParameter("ig_default", element_type=int), {}),
+        ("simple_map",))
+    complex_map = ParameterLoader(
+        MapParameter(SequenceParameter(PrimitiveParameter("ig_default", element_type=str)),
+                     {}))
+    simple_seq = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("ig_default", element_type=int)))
+    complex_seq = ParameterLoader(
+        SequenceParameter(
+                          MapParameter(
+                                       PrimitiveParameter("ig_default", element_type=str),
+                                       {})))
 
 
 def load_from_string_data(*seq):
@@ -176,6 +263,15 @@ def load_from_string_data(*seq):
 
 
 class ConfigurationTests(TestCase):
+
+    def test_new_channel(self):
+        config = RandomConfiguration()._set_raw_data(load_from_string_data('fileX', 'fileY'))
+        print(config.complex_seq)
+        print(config.complex_map)
+        print(config.simple_seq)
+        print(config.simple_map)
+        print(config.simple_primitive)
+        print(config.simple_int)
 
     def test_simple_merges_and_caching(self):
         config = SampleConfiguration()._set_raw_data(load_from_string_data('file1', 'file2'))
