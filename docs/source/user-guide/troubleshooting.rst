@@ -275,6 +275,39 @@ Conda has three similar options.
    ``<PATH_TO_ACTIVE_CONDA_ENV>/.condarc``. If ``--env`` is used and no
    environment is active, the user configuration file is used.
 
+SSL verification errors
+-----------------------
+
+Cause
+~~~~~
+
+This error may be caused by lack of activation on Windows or expired
+certifications:
+``SSL verification error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)``
+
+Solution
+~~~~~~~~
+Make sure your conda is up-to-date: ``conda --version``
+ 
+If not, run: ``conda update conda``
+
+Temporarily set your ``ssl_verify`` variable to false, upgrade the requests package, and then
+set ``ssl_verify`` back to true using the following commands::
+
+    conda config --set ssl_verify false
+    conda update requests
+    conda config --set ssl_verify true
+ 
+You can also set ``ssl_verify`` to a string path to a certificate, which can be used to verify
+SSL connections. Modify your .condarc and include the following:
+ 
+``ssl_verify: path-to-cert/chain/filename.ext``
+
+If the repository uses a self-signed certificate, use the actual path to the certificate.
+If the repository is signed by a private certificate authority (CA), the file needs to include
+the root certificate and any intermediate certificates.
+
+
 .. _permission-denied:
 
 Permission denied errors during installation
