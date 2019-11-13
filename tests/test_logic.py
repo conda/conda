@@ -3,7 +3,7 @@ from itertools import chain, combinations, permutations, product
 import pytest
 
 from conda.common.compat import iteritems, string_types
-from conda.common.logic import Clauses, minimal_unsatisfiable_subset
+from conda.common.logic import Clauses, FALSE, TRUE, minimal_unsatisfiable_subset
 from tests.helpers import raises
 
 
@@ -22,8 +22,6 @@ from tests.helpers import raises
 
 
 def my_NOT(x):
-    if isinstance(x, bool):
-        return not x
     if isinstance(x, int):
         return -x
     if isinstance(x, string_types):
@@ -32,8 +30,6 @@ def my_NOT(x):
 
 
 def my_ABS(x):
-    if isinstance(x, bool):
-        return True
     if isinstance(x, int):
         return abs(x)
     if isinstance(x, string_types):
@@ -45,21 +41,21 @@ def my_OR(*args):
     '''Implements a logical OR according to the logic:
             - positive integers are variables
             - negative integers are negations of positive variables
-            - lowercase True and False are fixed values
+            - TRUE and FALSE are fixed values
             - None is an unknown value
-       True  OR x -> True
-       False OR x -> False
+       TRUE  OR x -> TRUE
+       FALSE OR x -> FALSE
        None  OR x -> None
        x     OR y -> None'''
-    if any(v is True for v in args):
-        return True
-    args = set([v for v in args if v is not False])
+    if any(v == TRUE for v in args):
+        return TRUE
+    args = set([v for v in args if v != FALSE])
     if len(args) == 0:
-        return False
+        return FALSE
     if len(args) == 1:
         return next(v for v in args)
     if len(set([v if v is None else my_ABS(v) for v in args])) < len(args):
-        return True
+        return TRUE
     return None
 
 
@@ -86,18 +82,18 @@ def my_XONE(*args):
 
 
 def my_SOL(ij, sol):
-    return (v if type(v) is bool else (True if v in sol else False) for v in ij)
+    return (TRUE if v in sol or v == TRUE else FALSE for v in ij)
 
 
 def _evaluate_eq(eq, sol):
-    if type(eq) is not dict:
-        eq = {c: v for v, c in eq if type(c) is not bool}
-    return sum(eq.get(s, 0) for s in sol if type(s) is not bool)
+    if not isinstance(eq, dict):
+        eq = {c: v for v, c in eq if c not in {TRUE, FALSE}}
+    return sum(eq.get(s, 0) for s in sol if s not in {TRUE, FALSE})
 
 
 def my_EVAL(eq, sol):
-    # _evaluate_eq doesn't handle True/False entries
-    return _evaluate_eq(eq, sol) + sum(c for c, a in eq if a is True)
+    # _evaluate_eq doesn't handle TRUE/FALSE entries
+    return _evaluate_eq(eq, sol) + sum(c for c, a in eq if a == TRUE)
 
 # Testing strategy: mechanically construct a all possible permutations of
 # True, False, variables from 1 to m, and their negations, in order to exercise
@@ -110,7 +106,7 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
         if m == 0:
             ijprod = [()]
         else:
-            ijprod = (True, False) + sum(((k, my_NOT(k)) for k in range(1, m+1)), ())
+            ijprod = (TRUE, FALSE) + sum(((k, my_NOT(k)) for k in range(1, m+1)), ())
             ijprod = product(ijprod, repeat=m)
         for ij in ijprod:
             C = Clauses()
@@ -121,7 +117,12 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                 C.new_var(nm)
                 Cpos.new_var(nm)
                 Cneg.new_var(nm)
-            ij2 = tuple(C.from_index(k) if type(k) is int else k for k in ij)
+            ij2 = tuple(
+                C.from_index(k)
+                if isinstance(k, int) and k not in {TRUE, FALSE}
+                else k
+                for k in ij
+            )
             if is_iter:
                 x = Cfunc.__get__(C, Clauses)(ij2)
                 Cpos.Require(Cfunc.__get__(Cpos, Clauses), ij)
@@ -131,23 +132,23 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                 Cpos.Require(Cfunc.__get__(Cpos, Clauses), *ij)
                 Cneg.Prevent(Cfunc.__get__(Cneg, Clauses), *ij)
             tsol = Mfunc(*ij)
-            if type(tsol) is bool:
-                assert x is tsol, (ij2, Cfunc.__name__, C.as_list())
-                assert Cpos.unsat == (not tsol) and not Cpos.as_list(), (ij, 'Require(%s)')
-                assert Cneg.unsat == tsol and not Cneg.as_list(), (ij, 'Prevent(%s)')
+            if tsol in {TRUE, FALSE}:
+                assert x == tsol, (ij2, Cfunc.__name__, C.as_list())
+                assert Cpos.unsat == (tsol != TRUE) and not Cpos.as_list(), (ij, 'Require(%s)')
+                assert Cneg.unsat == (tsol == TRUE) and not Cneg.as_list(), (ij, 'Prevent(%s)')
                 continue
             for sol in C.itersolve([(x,)]):
                 qsol = Mfunc(*my_SOL(ij, sol))
-                assert qsol is True, (ij2, sol, Cfunc.__name__, C.as_list())
+                assert qsol == TRUE, (ij2, sol, Cfunc.__name__, C.as_list())
             for sol in Cpos.itersolve([]):
                 qsol = Mfunc(*my_SOL(ij, sol))
-                assert qsol is True, (ij, sol, 'Require(%s)' % Cfunc.__name__, Cpos.as_list())
+                assert qsol == TRUE, (ij, sol, 'Require(%s)' % Cfunc.__name__, Cpos.as_list())
             for sol in C.itersolve([(C.Not(x),)]):
                 qsol = Mfunc(*my_SOL(ij, sol))
-                assert qsol is False, (ij2, sol, Cfunc.__name__, C.as_list())
+                assert qsol == FALSE, (ij2, sol, Cfunc.__name__, C.as_list())
             for sol in Cneg.itersolve([]):
                 qsol = Mfunc(*my_SOL(ij, sol))
-                assert qsol is False, (ij, sol, 'Prevent(%s)' % Cfunc.__name__, Cneg.as_list())
+                assert qsol == FALSE, (ij, sol, 'Prevent(%s)' % Cfunc.__name__, Cneg.as_list())
 
 
 def test_NOT():
@@ -210,7 +211,7 @@ def test_LinearBound():
         ([(1, 1), (2, 2), (3, 3)], [3, 3], 1000),
         ([(0, 1), (1, 2), (2, 3), (0, 4), (1, 5), (0, 6), (1, 7)], [0, 2], 1000),
         ([(0, 1), (1, 2), (2, 3), (0, 4), (1, 5), (0, 6), (1, 7),
-          (3, False), (2, True)], [2, 4], 1000),
+          (3, FALSE), (2, TRUE)], [2, 4], 1000),
         ([(1, 15), (2, 16), (3, 17), (4, 18), (5, 6), (5, 19), (6, 7),
           (6, 20), (7, 8), (7, 21), (7, 28), (8, 9), (8, 22), (8, 29), (8, 41), (9, 10),
           (9, 23), (9, 30), (9, 42), (10, 1), (10, 11), (10, 24), (10, 31),
@@ -224,13 +225,13 @@ def test_LinearBound():
         if isinstance(eq, dict):
             N = len(eq)
         else:
-            N = max([0] + [a for c, a in eq if a is not True and a is not False])
+            N = max([0] + [a for c, a in eq if a != TRUE and a != FALSE])
         C = Clauses(N)
         Cpos = Clauses(N)
         Cneg = Clauses(N)
         if isinstance(eq, dict):
             for k in range(1, N+1):
-                nm = 'x%d'%k
+                nm = 'x%d' % k
                 C.name_var(k, nm)
                 Cpos.name_var(k, nm)
                 Cneg.name_var(k, nm)
@@ -240,11 +241,11 @@ def test_LinearBound():
         x = C.LinearBound(eq, rhs[0], rhs[1])
         Cpos.Require(Cpos.LinearBound, eq, rhs[0], rhs[1])
         Cneg.Prevent(Cneg.LinearBound, eq, rhs[0], rhs[1])
-        if x is not False:
-            for _, sol in zip(range(max_iter), C.itersolve([] if x is True else [(x,)], N)):
+        if x != FALSE:
+            for _, sol in zip(range(max_iter), C.itersolve([] if x == TRUE else [(x,)], N)):
                 assert rhs[0] <= my_EVAL(eq2, sol) <= rhs[1], C.as_list()
-        if x is not True:
-            for _, sol in zip(range(max_iter), C.itersolve([] if x is True else [(C.Not(x),)], N)):
+        if x != TRUE:
+            for _, sol in zip(range(max_iter), C.itersolve([] if x == TRUE else [(C.Not(x),)], N)):
                 assert not(rhs[0] <= my_EVAL(eq2, sol) <= rhs[1]), C.as_list()
         for _, sol in zip(range(max_iter), Cpos.itersolve([], N)):
             assert rhs[0] <= my_EVAL(eq2, sol) <= rhs[1], ('Cpos', Cpos.as_list())
@@ -259,17 +260,17 @@ def test_sat():
     assert C.sat() is not None
     assert C.sat([]) is not None
     assert C.sat([()]) is None
-    assert C.sat([(False,)]) is None
-    assert C.sat([(True,), ()]) is None
-    assert C.sat([(True, False, -1)]) is not None
-    assert C.sat([(+1, False), (+2,), (True,)], names=True) == {'x1', 'x2'}
-    assert C.sat([(-1, False), (True,), (+2,)], names=True) == {'x2'}
-    assert C.sat([(True,), (-1,), (-2, False)], names=True) == set()
-    assert C.sat([(+1,), (-1, False)], names=True) is None
-    C.unsat = True
+    assert C.sat([(FALSE,)]) is None
+    assert C.sat([(TRUE,), ()]) is None
+    assert C.sat([(TRUE, FALSE, -1)]) is not None
+    assert C.sat([(+1, FALSE), (+2,), (TRUE,)], names=True) == {'x1', 'x2'}
+    assert C.sat([(-1, FALSE), (TRUE,), (+2,)], names=True) == {'x2'}
+    assert C.sat([(TRUE,), (-1,), (-2, FALSE)], names=True) == set()
+    assert C.sat([(+1,), (-1, FALSE)], names=True) is None
+    C._clauses.unsat = True
     assert C.sat() is None
     assert C.sat([]) is None
-    assert C.sat([(True,)]) is None
+    assert C.sat([(TRUE,)]) is None
     assert len(Clauses(10).sat([[1]])) == 10
 
 
@@ -279,10 +280,10 @@ def test_minimize():
     C = Clauses(15)
     C.Require(C.ExactlyOne, range(1, 6))
     sol = C.sat()
-    C.unsat = True
+    C._clauses.unsat = True
     # Unsatisfiable constraints
     assert C.minimize([(k, k) for k in range(1, 6)], sol)[1] == 16
-    C.unsat = False
+    C._clauses.unsat = False
     sol, sval = C.minimize([(k, k) for k in range(1, 6)], sol)
     assert sval == 1
     C.Require(C.ExactlyOne, range(6, 11))
