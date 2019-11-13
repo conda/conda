@@ -641,18 +641,6 @@ class Clauses(object):
             self._sat_solver.restore_state(saved_state)
         return solution
 
-    # TODO: test code, remove this!
-    _problem_write_out_condition = None
-    # 1. obtain problematic instance via:
-    #   CONDA_RESTORE_FREE_CHANNEL=1 \
-    #   CONDA_SAT_SOLVER=pycryptosat \
-    #   CONDA_SUBDIR=linux-64 \
-    #   conda create -dnx \
-    #   -c conda-forge \
-    #   anaconda rstudio
-    # 2. write out problem when it get really big:
-    # _problem_write_out_condition = lambda self: self.get_clause_count() > 10*1000*1000
-
     def minimize(self, lits, coeffs, bestsol=None, trymax=False):
         """
         Minimize the objective function given by (coeff, integer) pairs in
@@ -660,21 +648,6 @@ class Clauses(object):
         The actual minimization is multiobjective: first, we minimize the
         largest active coefficient value, then we minimize the sum.
         """
-
-        # TODO: test code, remove this!
-        if self._problem_write_out_condition:
-            from json import dumps
-            log.debug('serializing minimization problem')
-            problem_json = dumps(
-                {
-                    'lits': lits,
-                    'coeffs': coeffs,
-                    'bestsol': bestsol,
-                    'clauses': list(self.as_list()),
-                },
-                indent=2,
-            )
-
         if bestsol is None or len(bestsol) < self.m:
             log.debug('Clauses added, recomputing solution')
             bestsol = self.sat()
@@ -733,14 +706,6 @@ class Clauses(object):
                 else:
                     self.Require(self.LinearBound, lits, coeffs, lo, mid, False)
 
-                # TODO: test code, remove this!
-                if self._problem_write_out_condition and self._problem_write_out_condition():
-                    log.debug('writing out minimization problem')
-                    with open('problem.json', 'w') as f:
-                        f.write(problem_json)
-                    from ..exceptions import DryRunExit
-                    raise DryRunExit()
-
                 if log.isEnabledFor(DEBUG):
                     log.trace('Bisection attempt: (%d,%d), (%d+%d) clauses' %
                               (lo, mid, nz, self.get_clause_count() - nz))
@@ -749,6 +714,8 @@ class Clauses(object):
                     lo = mid + 1
                     log.trace("Bisection failure, new range=(%d,%d)" % (lo, hi))
                     if lo > hi:
+                        # FIXME: This is not supposed to happen!
+                        # TODO: Investigate and fix the cause.
                         break
                     # If this was a failure of the first test after peak minimization,
                     # then it means that the peak minimizer is "tight" and we don't need
@@ -777,7 +744,8 @@ class Clauses(object):
                 # with coefficients larger than this. Furthermore, since we know
                 # at least one peak will be active, our lower bound for the sum
                 # equals the peak.
-                coeffs, lits = tuple(zip(*[(c, a) for c, a in zip(coeffs, lits) if c <= bestval])) or ((), ())
+                lits = [a for c, a in zip(coeffs, lits) if c <= bestval]
+                coeffs = [c for c in coeffs if c <= bestval]
                 try0 = sum_val(bestsol, objective_dict)
                 lo = bestval
             else:
