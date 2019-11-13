@@ -997,7 +997,7 @@ If you receive this warning, you need to activate your environment.
 To do so on Windows, use the Anaconda Prompt shortcut in your Windows
 start menu. If you have an existing cmd.exe session that you’d like to
 activate conda in, run:
-``call <your anaconda/miniconda install location>\scripts\activate base``.
+``call <your anaconda/miniconda install location>\Scripts\activate base``.
 
 
 .. _path-error:
@@ -1017,7 +1017,7 @@ Solution
 Strip PATH to have fewer entries and activate your environment.
 
 If there's some software that needs to be found on PATH (you run it via
-the CLI), we recommend that you create its own batch files to set PATH
+the CLI), we recommend that you create your own batch files to set PATH
 dynamically within a console session, rather than permanently modifying
 PATH in the system settings.
 
