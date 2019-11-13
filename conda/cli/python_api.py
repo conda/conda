@@ -81,6 +81,9 @@ def run_command(command, *arguments, **kwargs):
     stderr = kwargs.pop('stderr', STRING)
     p = generate_parser()
 
+    if len(arguments) > 0 and isinstance(arguments[0], list):
+        arguments = arguments[0]
+
     arguments = list(arguments)
     arguments.insert(0, command)
 

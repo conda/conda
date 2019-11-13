@@ -35,3 +35,13 @@ def test_parser_basics():
 
     args = p.parse_args(["install", "-vv"])
     assert args.verbosity == 2
+
+
+def test_cli_args_as_list():
+    out, err, rc = run_command(Commands.CONFIG, ["--show", "add_anaconda_token"])
+    assert rc == 0
+
+
+def test_cli_args_as_strings():
+    out, err, rc = run_command(Commands.CONFIG, "--show", "add_anaconda_token")
+    assert rc == 0
