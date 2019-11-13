@@ -17,6 +17,8 @@ from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
 from conda.models.records import PackageRecord
 from tests.test_create import make_temp_package_cache
+from conda.common.compat import on_win
+import datetime
 
 CHANNEL_DIR = abspath(join(dirname(__file__), '..', 'data', 'conda_format_repo'))
 CONDA_PKG_REPO = url_path(CHANNEL_DIR)
@@ -80,6 +82,7 @@ def test_ProgressiveFetchExtract_prefers_conda_v2_format():
     assert extract_action.source_full_path.endswith('.conda')
 
 
+@pytest.mark.skipif(on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb")
 def test_tar_bz2_in_pkg_cache_used_instead_of_conda_pkg():
     """
     Test that if a .tar.bz2 package is downloaded and extracted in a package cache, the
@@ -249,7 +252,7 @@ def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2():
 #         assert isinstance(exc.value.errors[0], ChecksumMismatchError)
 #         assert "expected sha256: 0000000000" in repr(exc.value.errors[0])
 
-
+@pytest.mark.skipif(on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb")
 def test_tar_bz2_in_cache_not_extracted():
     """
     Test that if a .tar.bz2 exists in the package cache (not extracted), and the complementary
@@ -275,7 +278,7 @@ def test_tar_bz2_in_cache_not_extracted():
         assert len(pfe.cache_actions) == 0
         assert len(pfe.extract_actions) == 0
 
-
+@pytest.mark.skipif(on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb")
 def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist():
     """
     If both .tar.bz2 and .conda packages exist in a writable package cache, but neither is

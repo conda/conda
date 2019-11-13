@@ -120,8 +120,6 @@ remove_conda() {
        $prefix/$BIN_DIR/conda* \
        $prefix/$BIN_DIR/deactivate* \
        $prefix/etc/profile.d/conda.sh \
-       $prefix/etc/conda_bash.sh \
-       $prefix/etc/bash_completion.d/conda \
        $prefix/conda-meta/conda-*.json \
        $prefix/conda-meta/requests-*.json \
        $prefix/conda-meta/pyopenssl-*.json \
@@ -205,14 +203,6 @@ install_conda_shell_scripts() {
         echo "_CONDA_EXE=\"\$(cygpath '$conda_exe')\"" > "$prefix/etc/profile.d/conda.sh"
         cat "$src_dir/conda/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
 
-        rm -f "$prefix/etc/conda_bash.sh"
-        echo "_CONDA_EXE=\"\$(cygpath '$conda_exe')\"" > "$prefix/etc/conda_bash.sh"
-        echo "_CONDA_ROOT=\"\$(cygpath '$WIN_PREFIX')\"" >> "$prefix/conda_bash.sh"
-        cat "$src_dir/conda/shell/etc/conda_bash.sh" >> "$prefix/etc/conda_bash.sh"
-
-        mkdir -p "$prefix/etc/bash_completion.d/"
-        rm -f "$prefix/etc/bash_completion.d/conda"
-        cat "$src_dir/conda/shell/etc/bash_completion.d/conda" > "$prefix/etc/bash_completion.d/conda"
 
     else
         local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
@@ -222,14 +212,6 @@ install_conda_shell_scripts() {
         echo "_CONDA_EXE=\"$conda_exe\"" > "$prefix/etc/profile.d/conda.sh"
         echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/etc/profile.d/conda.sh"
         cat "$src_dir/conda/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
-
-        rm -f "$prefix/etc/conda_bash.sh"
-        echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/etc/conda_bash.sh"
-        cat "$src_dir/conda/shell/etc/conda_bash.sh" >> "$prefix/etc/conda_bash.sh"
-
-        mkdir -p "$prefix/etc/bash_completion.d/"
-        rm -f "$prefix/etc/bash_completion.d/conda"
-        cat "$src_dir/conda/shell/etc/bash_completion.d/conda" > "$prefix/etc/bash_completion.d/conda"
 
         mkdir -p "$prefix/$BIN_DIR"
 
@@ -266,6 +248,7 @@ install_conda_shell_scripts() {
     echo "setenv _CONDA_EXE \"$conda_exe\"" > "$prefix/etc/profile.d/conda.csh"
     echo "setenv _CONDA_ROOT \"$prefix\"" >> "$prefix/etc/profile.d/conda.csh"
     cat "$src_dir/conda/shell/etc/profile.d/conda.csh" >> "$prefix/etc/profile.d/conda.csh"
+
 }
 
 
