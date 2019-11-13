@@ -192,7 +192,7 @@ class SatSolver(object):
         raise NotImplementedError()
 
 
-class PycoSatSolver(SatSolver):
+class _PycoSatSolver(SatSolver):
     def setup(self, m, limit=0, **kwargs):
         from pycosat import itersolve
 
@@ -217,7 +217,7 @@ class PycoSatSolver(SatSolver):
         return sat_solution
 
 
-class CryptoMiniSatSolver(SatSolver):
+class _PyCryptoSatSolver(SatSolver):
     def setup(self, m, threads=1, **kwargs):
         from pycryptosat import Solver
 
@@ -239,7 +239,7 @@ class CryptoMiniSatSolver(SatSolver):
         return solution
 
 
-class PySatSolver(SatSolver):
+class _PySatSolver(SatSolver):
     def setup(self, m, **kwargs):
         from pysat.solvers import Glucose4
 
@@ -263,6 +263,20 @@ class PySatSolver(SatSolver):
         return solution
 
 
+_sat_solver_str_to_cls = {
+    "pycosat": _PycoSatSolver,
+    "pycryptosat": _PyCryptoSatSolver,
+    "pysat": _PySatSolver,
+}
+
+_sat_solver_cls_to_str = {cls: string for string, cls in _sat_solver_str_to_cls.items()}
+
+
+PycoSatSolver = "pycosat"
+PyCryptoSatSolver = "pycryptosat"
+PySatSolver = "pysat"
+
+
 _BIG_NUMBER = maxsize
 TRUE = _BIG_NUMBER
 FALSE = -TRUE
@@ -272,10 +286,10 @@ FALSE = -TRUE
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
 # SAT," Eén and Sörensson).
 class Clauses(object):
-    def __init__(self, m=0, sat_solver_cls=PycoSatSolver):
+    def __init__(self, m=0, sat_solver=PycoSatSolver):
         self.names = {}
         self.indices = {}
-        self._clauses = _Clauses(m=m, sat_solver_cls=sat_solver_cls)
+        self._clauses = _Clauses(m=m, sat_solver_str=sat_solver)
 
     @property
     def m(self):
@@ -471,10 +485,16 @@ class Clauses(object):
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
 # SAT," Eén and Sörensson).
 class _Clauses(object):
-    def __init__(self, m=0, sat_solver_cls=PycoSatSolver):
+    def __init__(self, m=0, sat_solver_str=_sat_solver_cls_to_str[_PycoSatSolver]):
         self.unsat = False
         self.m = m
+
+        try:
+            sat_solver_cls = _sat_solver_str_to_cls[sat_solver_str]
+        except KeyError:
+            raise NotImplementedError("Unknown SAT solver: {}".format(sat_solver_str))
         self._sat_solver = sat_solver_cls()
+
         # Bind some methods of _sat_solver to reduce lookups and call overhead.
         self.add_clause = self._sat_solver.add_clause
         self.add_clauses = self._sat_solver.add_clauses
