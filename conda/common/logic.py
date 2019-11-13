@@ -364,12 +364,12 @@ class Clauses(object):
         except KeyError:
             raise ValueError("Unregistered SAT variable name: {}".format(name))
 
-    def _eval(self, func, args, polarity, name):
+    def _eval(self, func, args, no_literal_args, polarity, name):
         args = self._convert(args)
         if name is False:
-            self._clauses.Eval(func, args, polarity)
+            self._clauses.Eval(func, args + no_literal_args, polarity)
             return None
-        vals = func(*args, polarity=polarity)
+        vals = func(*(args + no_literal_args), polarity=polarity)
         return self._assign(vals, name)
 
     def Prevent(self, what, *args):
@@ -379,16 +379,16 @@ class Clauses(object):
         return what.__get__(self, Clauses)(*args, polarity=True, name=False)
 
     def Not(self, x, polarity=None, name=None):
-        return self._eval(self._clauses.Not, (x,), polarity, name)
+        return self._eval(self._clauses.Not, (x,), (), polarity, name)
 
     def And(self, f, g, polarity=None, name=None):
-        return self._eval(self._clauses.And, (f, g), polarity, name)
+        return self._eval(self._clauses.And, (f, g), (), polarity, name)
 
     def Or(self, f, g, polarity=None, name=None):
-        return self._eval(self._clauses.Or, (f, g), polarity, name)
+        return self._eval(self._clauses.Or, (f, g), (), polarity, name)
 
     def Xor(self, f, g, polarity=None, name=None):
-        return self._eval(self._clauses.Xor, (f, g), polarity, name)
+        return self._eval(self._clauses.Xor, (f, g), (), polarity, name)
 
     def ITE(self, c, t, f, polarity=None, name=None):
         """
@@ -397,19 +397,19 @@ class Clauses(object):
         In this function, if any of c, t, or f are True and False the resulting
         expression is resolved.
         """
-        return self._eval(self._clauses.ITE, (c, t, f), polarity, name)
+        return self._eval(self._clauses.ITE, (c, t, f), (), polarity, name)
 
     def All(self, iter, polarity=None, name=None):
-        return self._eval(self._clauses.All, (iter,), polarity, name)
+        return self._eval(self._clauses.All, (iter,), (), polarity, name)
 
     def Any(self, vals, polarity=None, name=None):
-        return self._eval(self._clauses.Any, (list(vals),), polarity, name)
+        return self._eval(self._clauses.Any, (list(vals),), (), polarity, name)
 
     def AtMostOne_NSQ(self, vals, polarity=None, name=None):
-        return self._eval(self._clauses.AtMostOne_NSQ, (list(vals),), polarity, name)
+        return self._eval(self._clauses.AtMostOne_NSQ, (list(vals),), (), polarity, name)
 
     def AtMostOne_BDD(self, vals, polarity=None, name=None):
-        return self._eval(self._clauses.AtMostOne_BDD, (list(vals),), polarity, name)
+        return self._eval(self._clauses.AtMostOne_BDD, (list(vals),), (), polarity, name)
 
     def AtMostOne(self, vals, polarity=None, name=None):
         vals = list(vals)
@@ -418,13 +418,13 @@ class Clauses(object):
             what = self.AtMostOne_NSQ
         else:
             what = self.AtMostOne_BDD
-        return self._eval(what, (vals,), polarity, name)
+        return self._eval(what, (vals,), (), polarity, name)
 
     def ExactlyOne_NSQ(self, vals, polarity=None, name=None):
-        return self._eval(self._clauses.ExactlyOne_NSQ, (list(vals),), polarity, name)
+        return self._eval(self._clauses.ExactlyOne_NSQ, (list(vals),), (), polarity, name)
 
     def ExactlyOne_BDD(self, vals, polarity=None, name=None):
-        return self._eval(self._clauses.ExactlyOne_BDD, (list(vals),), polarity, name)
+        return self._eval(self._clauses.ExactlyOne_BDD, (list(vals),), (), polarity, name)
 
     def ExactlyOne(self, vals, polarity=None, name=None):
         vals = list(vals)
@@ -433,7 +433,18 @@ class Clauses(object):
             what = self.ExactlyOne_NSQ
         else:
             what = self.ExactlyOne_BDD
-        return self._eval(what, (vals,), polarity, name)
+        return self._eval(what, (vals,), (), polarity, name)
+
+    def LinearBound(self, equation, lo, hi, preprocess=True, polarity=None, name=None):
+        if not isinstance(equation, dict):
+            # in case of duplicate literal -> coefficient mappings, always take the last one
+            equation = {named_lit: coeff for coeff, named_lit in equation}
+        named_literals = list(equation.keys())
+        coefficients = list(equation.values())
+        return self._eval(
+            self._clauses.LinearBound,
+            (named_literals,), (coefficients, lo, hi, preprocess), polarity, name,
+        )
 
     def sat(self, additional=None, includeIf=False, names=False, limit=0):
         """
@@ -472,12 +483,13 @@ class Clauses(object):
             exclude.append([-k for k in sol if -m <= k <= m])
 
     def minimize(self, objective, bestsol=None, trymax=False):
-        if isinstance(objective, dict):
-            objective_list = [(v, self.names.get(k, k)) for k, v in objective.items()]
-        else:
-            objective_list = objective
+        if not isinstance(objective, dict):
+            # in case of duplicate literal -> coefficient mappings, always take the last one
+            objective = {named_lit: coeff for coeff, named_lit in objective}
+        literals = self._convert(list(objective.keys()))
+        coeffs = list(objective.values())
 
-        return self._clauses.minimize(objective_list, bestsol=bestsol, trymax=trymax)
+        return self._clauses.minimize(literals, coeffs, bestsol=bestsol, trymax=trymax)
 
 
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
@@ -714,8 +726,9 @@ class _Clauses(object):
         return self.Combine(combos, polarity)
 
     def AtMostOne_BDD(self, vals, polarity=None):
-        vals = [(1, v) for v in vals]
-        return self.LinearBound(vals, 0, 1, True, polarity)
+        lits = list(vals)
+        coeffs = [1] * len(lits)
+        return self.LinearBound(lits, coeffs, 0, 1, True, polarity)
 
     def ExactlyOne_NSQ(self, vals, polarity):
         vals = list(vals)
@@ -724,27 +737,35 @@ class _Clauses(object):
         return self.Combine((v1, v2), polarity)
 
     def ExactlyOne_BDD(self, vals, polarity):
-        vals = [(1, v) for v in vals]
-        return self.LinearBound(vals, 1, 1, True, polarity)
+        lits = list(vals)
+        coeffs = [1] * len(lits)
+        return self.LinearBound(lits, coeffs, 1, 1, True, polarity)
 
-    def LB_Preprocess(self, equation):
-        if any(c <= 0 or a in {TRUE, FALSE} for c, a in equation):
-            offset = sum(c for c, a in equation if a == TRUE or a != FALSE and c <= 0)
-            equation = [(c, a) if c > 0 else (-c, -a) for c, a in equation
-                        if a not in {TRUE, FALSE} and c]
-        else:
-            offset = 0
-        equation = sorted(equation)
-        return equation, offset
+    def LB_Preprocess(self, lits, coeffs):
+        equation = []
+        offset = 0
+        for coeff, lit in zip(coeffs, lits):
+            if lit == TRUE:
+                offset += coeff
+                continue
+            if lit == FALSE or coeff == 0:
+                continue
+            if coeff < 0:
+                offset += coeff
+                coeff, lit = -coeff, -lit
+            equation.append((coeff, lit))
+        coeffs, lits = tuple(zip(*sorted(equation))) or ((), ())
+        return lits, coeffs, offset
 
-    def BDD(self, equation, nterms, lo, hi, polarity):
-        # The equation is sorted in order of increasing coefficients.
+    def BDD(self, lits, coeffs, nterms, lo, hi, polarity):
+        # The equation (coeffs x lits) is sorted in
+        # order of increasing coefficients.
         # Then we take advantage of the following recurrence:
         #                l      <= S + cN xN <= u
         #  => IF xN THEN l - cN <= S         <= u - cN
         #           ELSE l      <= S         <= u
         # we use memoization to prune common subexpressions
-        total = sum(c for c, _ in equation[:nterms])
+        total = sum(c for c in coeffs[:nterms])
         target = (nterms-1, 0, total)
         call_stack = [target]
         ret = {}
@@ -764,7 +785,8 @@ class _Clauses(object):
             if lower_limit > total or upper_limit < 0:
                 ret[call_stack_pop()] = FALSE
                 continue
-            LC, LA = equation[ndx]
+            LA = lits[ndx]
+            LC = coeffs[ndx]
             ndx -= 1
             total -= LC
             hi_key = (ndx, csum if LA < 0 else csum + LC, total)
@@ -785,20 +807,20 @@ class _Clauses(object):
             ret[call_stack_pop()] = ITE(abs(LA), thi, tlo, polarity, add_new_clauses=True)
         return ret[target]
 
-    def LinearBound(self, equation, lo, hi, preprocess, polarity):
+    def LinearBound(self, lits, coeffs, lo, hi, preprocess, polarity):
         if preprocess:
-            equation, offset = self.LB_Preprocess(equation)
+            lits, coeffs, offset = self.LB_Preprocess(lits, coeffs)
             lo -= offset
             hi -= offset
-        nterms = len(equation)
-        if nterms and equation[-1][0] > hi:
-            nprune = sum(c > hi for c, a in equation)
+        nterms = len(coeffs)
+        if nterms and coeffs[-1] > hi:
+            nprune = sum(c > hi for c in coeffs)
             log.trace('Eliminating %d/%d terms for bound violation' % (nprune, nterms))
             nterms -= nprune
         else:
             nprune = 0
         # Tighten bounds
-        total = sum(c for c, _ in equation[:nterms])
+        total = sum(c for c in coeffs[:nterms])
         if preprocess:
             lo = max([lo, 0])
             hi = min([hi, total])
@@ -807,9 +829,9 @@ class _Clauses(object):
         if nterms == 0:
             res = TRUE if lo == 0 else FALSE
         else:
-            res = self.BDD(equation, nterms, lo, hi, polarity)
+            res = self.BDD(lits, coeffs, nterms, lo, hi, polarity)
         if nprune:
-            prune = self.All([-a for c, a in equation[nterms:]], polarity)
+            prune = self.All([-a for a in lits[nterms:]], polarity)
             res = self.Combine((res, prune), polarity)
         return res
 
@@ -870,12 +892,12 @@ class _Clauses(object):
     # 2. write out problem when it get really big:
     # _problem_write_out_condition = lambda self: self.get_clause_count() > 10*1000*1000
 
-    def minimize(self, objective, bestsol=None, trymax=False):
+    def minimize(self, lits, coeffs, bestsol=None, trymax=False):
         """
-        Minimize the objective function given either by (coeff, integer)
-        tuple pairs, or a dictionary of varname: coeff values. The actual
-        minimization is multiobjective: first, we minimize the largest
-        active coefficient value, then we minimize the sum.
+        Minimize the objective function given by (coeff, integer) pairs in
+        zip(coeffs, lits).
+        The actual minimization is multiobjective: first, we minimize the
+        largest active coefficient value, then we minimize the sum.
         """
 
         # TODO: test code, remove this!
@@ -884,7 +906,8 @@ class _Clauses(object):
             log.debug('serializing minimization problem')
             problem_json = dumps(
                 {
-                    'objective': objective,
+                    'lits': lits,
+                    'coeffs': coeffs,
                     'bestsol': bestsol,
                     'clauses': list(self.as_list()),
                 },
@@ -896,19 +919,19 @@ class _Clauses(object):
             bestsol = self.sat()
         if bestsol is None or self.unsat:
             log.debug('Constraints are unsatisfiable')
-            return bestsol, sum(abs(c) for c, a in objective) + 1 if objective else 1
-        if not objective:
+            return bestsol, sum(abs(c) for c in coeffs) + 1 if coeffs else 1
+        if not coeffs:
             log.debug('Empty objective, trivial solution')
             return bestsol, 0
 
-        objective, offset = self.LB_Preprocess(objective)
-        maxval = max(c for c, a in objective)
+        lits, coeffs, offset = self.LB_Preprocess(lits, coeffs)
+        maxval = max(coeffs)
 
-        def peak_val(sol, odict):
-            return max(odict.get(s, 0) for s in sol)
+        def peak_val(sol, objective_dict):
+            return max(objective_dict.get(s, 0) for s in sol)
 
-        def sum_val(sol, odict):
-            return sum(odict.get(s, 0) for s in sol)
+        def sum_val(sol, objective_dict):
+            return sum(objective_dict.get(s, 0) for s in sol)
 
         lo = 0
         try0 = 0
@@ -920,8 +943,8 @@ class _Clauses(object):
                 log.trace('Beginning sum minimization')
                 objval = sum_val
 
-            odict = {a: c for c, a in objective}
-            bestval = objval(bestsol, odict)
+            objective_dict = {a: c for c, a in zip(coeffs, lits)}
+            bestval = objval(bestsol, objective_dict)
 
             # If we got lucky and the initial solution is optimal, we still
             # need to generate the constraints at least once
@@ -941,12 +964,13 @@ class _Clauses(object):
                 else:
                     mid = try0
                 if peak:
-                    self.Prevent(self.Any, tuple(a for c, a in objective if c > mid))
-                    temp = tuple(a for c, a in objective if lo <= c <= mid)
-                    if temp:
-                        self.Require(self.Any, temp)
+                    prevent = tuple(a for c, a in zip(coeffs, lits) if c > mid)
+                    require = tuple(a for c, a in zip(coeffs, lits) if lo <= c <= mid)
+                    self.Prevent(self.Any, prevent)
+                    if require:
+                        self.Require(self.Any, require)
                 else:
-                    self.Require(self.LinearBound, objective, lo, mid, False)
+                    self.Require(self.LinearBound, lits, coeffs, lo, mid, False)
 
                 # TODO: test code, remove this!
                 if self._problem_write_out_condition and self._problem_write_out_condition():
@@ -971,7 +995,7 @@ class _Clauses(object):
                 else:
                     done = lo == mid
                     bestsol = newsol
-                    bestval = objval(newsol, odict)
+                    bestval = objval(newsol, objective_dict)
                     hi = bestval
                     log.trace("Bisection success, new range=(%d,%d)" % (lo, hi))
                     if done:
@@ -992,11 +1016,11 @@ class _Clauses(object):
                 # with coefficients larger than this. Furthermore, since we know
                 # at least one peak will be active, our lower bound for the sum
                 # equals the peak.
-                objective = [(c, a) for c, a in objective if c <= bestval]
-                try0 = sum_val(bestsol, odict)
+                coeffs, lits = tuple(zip(*[(c, a) for c, a in zip(coeffs, lits) if c <= bestval])) or ((), ())
+                try0 = sum_val(bestsol, objective_dict)
                 lo = bestval
             else:
-                log.debug('New peak objective: %d' % peak_val(bestsol, odict))
+                log.debug('New peak objective: %d' % peak_val(bestsol, objective_dict))
 
         return bestsol, bestval
 
