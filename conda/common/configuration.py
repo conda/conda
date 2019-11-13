@@ -272,46 +272,40 @@ class ArgParseRawParameter(RawParameter):
 class YamlRawParameter(RawParameter):
     # this class should encapsulate all direct use of ruamel.yaml in this module
 
-    def __init__(self, source, key, raw_value, keycomment):
-        self._keycomment = keycomment
+    def __init__(self, source, key, raw_value, key_comment):
+        self._key_comment = key_comment
         super(YamlRawParameter, self).__init__(source, key, raw_value)
 
-    def value(self, parameter_obj):
-        self.__process(parameter_obj)
-        return self._value
-
-    def keyflag(self):
-        return ParameterFlag.from_string(self._keycomment)
-
-    def valueflags(self, parameter_obj):
-        self.__process(parameter_obj)
-        return self._valueflags
-
-    def __process(self, parameter_obj):
-        # TODO: before: primitive types read key comment from keyflag()
-        # TODO: before: complex types combine key comments from ca
-        # TODO: question: what happens to complex types key comment / keyflag(). read and utilized for seq priority sorting.
-        # TODO: after: store key comment for all types onto LoadedParameter classes
-        # TODO: after: store ca items for complex types onto LoadedParameter classes
-        # TODO: question: make YamlRawParameter recursive?
-        # yes bc better abstraction + need to pick up keycomment.
-        # no bc raw_value passed to LoadedParameter
-        if hasattr(self, '_value'):
-            return
-        elif isinstance(self._raw_value, CommentedSeq):
-            valuecomments = self._get_yaml_list_comments(self._raw_value)
-            self._valueflags = tuple(ParameterFlag.from_string(s) for s in valuecomments)
-            self._value = tuple(self._raw_value)
+        if isinstance(self._raw_value, CommentedSeq):
+            value_comments = self._get_yaml_list_comments(self._raw_value)
+            self._value_flags = tuple(ParameterFlag.from_string(s) for s in value_comments)
+            children_values = []
+            for i in range(len(self._raw_value)):
+                children_values.append(YamlRawParameter(
+                    self.source, self.key, self._raw_value[i], value_comments[i]))
+            self._value = tuple(children_values)
         elif isinstance(self._raw_value, CommentedMap):
-            valuecomments = self._get_yaml_map_comments(self._raw_value)
-            self._valueflags = dict((k, ParameterFlag.from_string(v))
-                                    for k, v in iteritems(valuecomments) if v is not None)
-            self._value = frozendict(self._raw_value)
+            value_comments = self._get_yaml_map_comments(self._raw_value)
+            self._value_flags = dict((k, ParameterFlag.from_string(v))
+                                     for k, v in iteritems(value_comments) if v is not None)
+            children_values = {}
+            for k, v in self._raw_value.items():
+                children_values[k] = YamlRawParameter(self.source, self.key, v, value_comments[k])
+            self._value = frozendict(children_values)
         elif isinstance(self._raw_value, primitive_types):
-            self._valueflags = None
+            self._value_flags = None
             self._value = self._raw_value
         else:
             raise ThisShouldNeverHappenError()  # pragma: no cover
+
+    def value(self, parameter_obj):
+        return self._value
+
+    def keyflag(self):
+        return ParameterFlag.from_string(self._key_comment)
+
+    def valueflags(self, parameter_obj):
+        return self._value_flags
 
     @staticmethod
     def _get_yaml_key_comment(commented_dict, key):
@@ -331,12 +325,12 @@ class YamlRawParameter(RawParameter):
         return raw_comment_lines
 
     @staticmethod
-    def _get_yaml_map_comments(rawvalue):
+    def _get_yaml_map_comments(value):
         return dict((key, excepts((AttributeError, KeyError),
-                                  lambda k: rawvalue.ca.items[k][2].value.strip() or None,
+                                  lambda k: value.ca.items[k][2].value.strip() or None,
                                   lambda _: None  # default value on exception
                                   )(key))
-                    for key in rawvalue)
+                    for key in value)
 
     @classmethod
     def make_raw_parameters(cls, source, from_map):
@@ -364,6 +358,45 @@ class YamlRawParameter(RawParameter):
                                              "  reason: invalid yaml at position %(position)s",
                                              position=err.position)
             return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
+
+
+class DefaultValueRawParameter(RawParameter):
+    # this class is for wrapping a default value as a RawParameter
+
+    def __init__(self, source, key, raw_value):
+        super(DefaultValueRawParameter, self).__init__(source, key, raw_value)
+
+        if isinstance(self._raw_value, Mapping):
+            children_values = {}
+            for k, v in self._raw_value.items():
+                children_values[k] = DefaultValueRawParameter(self.source, self.key, v)
+            self._value = frozendict(children_values)
+        elif isiterable(self._raw_value):
+            children_values = []
+            for i in range(len(self._raw_value)):
+                children_values.append(DefaultValueRawParameter(
+                    self.source, self.key, self._raw_value[i]))
+            self._value = tuple(children_values)
+        elif isinstance(self._raw_value, primitive_types):
+            self._value = self._raw_value
+        else:
+            raise ThisShouldNeverHappenError()  # pragma: no cover
+
+    def value(self, parameter_obj):
+        return self._value
+
+    def keyflag(self):
+        return None
+
+    def valueflags(self, parameter_obj):
+        if isinstance(self._raw_value, Mapping):
+            return frozendict()
+        elif isiterable(self._raw_value):
+            return tuple()
+        elif isinstance(self._raw_value, primitive_types):
+            return None
+        else:
+            raise ThisShouldNeverHappenError()  # pragma: no cover
 
 
 def load_file_configs(search_path):
@@ -406,33 +439,39 @@ class LoadedParameter(object):
     _type = None
     _element_type = None
 
-    # TODO type descriptions
-    _key_flag = None
-    _value_flags = None
-
-    def __init__(self, name, default, value, validation=None, expandvars=False):
+    def __init__(self, name, value, key_flag, value_flags, validation=None, expandvars=False):
         """
 
         Args:
             name (str):
-            default (Any):
             value (Any): Depending on the subclass this can be a primitive value, a collection of
                     LoadedParameters, etc.
         """
         self._name = name
-        self.default = default
         self.value = value
-        # self._validation = validation
-        # self._expandvars = expandvars
+        self.key_flag = key_flag
+        self.value_flags = value_flags
+        self._validation = validation
+        self._expandvars = expandvars
 
-    # def __eq__(self, other):
-    #     if type(other) is type(self):
-    #         own_dict = self.__dict__
-    #         other_dict = other.__dict__
-    #         del own_dict["source"]
-    #         del other_dict["source"]
-    #         return own_dict == other_dict
-    #     return NotImplemented
+    def collect_errors(self, instance, typed_value, source="<<merged>>"):
+        """Validate a Parameter value.
+
+        Args:
+            instance (Configuration): The instance object to which the Parameter descriptor is
+                attached.
+        """
+        errors = []
+        if not isinstance(typed_value, self._type):
+            errors.append(InvalidTypeError(self._name, typed_value, source, type(self.value),
+                                           self._type))
+        elif self._validation is not None:
+            result = self._validation(typed_value)
+            if result is False:
+                errors.append(ValidationError(self._name, typed_value, source))
+            elif isinstance(result, string_types):
+                errors.append(CustomValidationError(self._name, typed_value, source, result))
+        return errors
 
     @abstractmethod
     def merge(self, matches):
@@ -448,8 +487,8 @@ class LoadedParameter(object):
             msg = text_type(e)
             if issubclass(element_type, Enum):
                 choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
-                msg += "\nValid choices for {}: {}".format(self.name, choices)
-            raise CustomValidationError(self.name, e.value, source, msg)
+                msg += "\nValid choices for {}: {}".format(self._name, choices)
+            raise CustomValidationError(self._name, e.value, source, msg)
 
     @staticmethod
     def typify_data_structure(value, source, type_hint=None):
@@ -466,6 +505,17 @@ class LoadedParameter(object):
         else:
             return typify(value, type_hint)
 
+    @staticmethod
+    def _match_key_is_important(loaded_parameter):
+        return loaded_parameter.key_flag is ParameterFlag.final
+
+    @staticmethod
+    def _first_important_matches(matches):
+        idx = first(enumerate(matches),
+                    lambda x: LoadedParameter._match_key_is_important(x[1]),
+                    apply=lambda x: x[0])
+        return matches if idx is None else matches[:idx+1]
+
     @classmethod
     def repr_raw(cls, raw_parameter):
         raise NotImplementedError()
@@ -479,10 +529,9 @@ class PrimitiveLoadedParameter(LoadedParameter):
     python 2 has long and unicode types.
     """
 
-    def __init__(self, name, default, value, element_type=None, validation=None, expandvars=False):
+    def __init__(self, name, element_type, value, key_flag, value_flags, validation=None, expandvars=False):
         """
         Args:
-            default (Any):  The parameter's default value.
             validation (callable): Given a parameter value as input, return a boolean indicating
                 validity, or alternately return a string describing an invalid value. Returning
                 `None` also indicates a valid value.
@@ -490,9 +539,9 @@ class PrimitiveLoadedParameter(LoadedParameter):
                 type(default) is used.
 
         """
-        self._type = type(default) if element_type is None else element_type
-        self._element_type = self._type
-        super(PrimitiveLoadedParameter, self).__init__(name, default, value, validation, expandvars)
+        self._type = element_type
+        self._element_type = element_type
+        super(PrimitiveLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation, expandvars)
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -505,14 +554,13 @@ class PrimitiveLoadedParameter(LoadedParameter):
     def merge(self, matches):
         # TODO(jeremyliu): make sure matches are all PrimitiveParameter
 
-        # important_match = first(matches, self._match_key_is_important, default=None)
-        # if important_match is not None:
-        #     return important_match.value(self)
-        #
+        important_match = first(matches, LoadedParameter._match_key_is_important, default=None)
+        if important_match is not None:
+            return important_match
+
         last_match = last(matches, lambda x: x is not None, default=None)
         if last_match is not None:
             return last_match
-            # return last_match.value(self)
         raise ThisShouldNeverHappenError()  # pragma: no cover
 
     # def repr_raw(self, raw_parameter):
@@ -528,79 +576,68 @@ class MapLoadedParameter(LoadedParameter):
     """
     _type = frozendict
 
-    def __init__(self, name, value, element_type, default={}, validation=None, expandvars=False):
+    def __init__(self, name, value, element_type, key_flag, value_flags, validation=None, expandvars=False):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element.
-            default (Mapping):  The parameter's default value. If None, will be an empty dict.
             source (Iterable[str]): Alternate names for the parameter.
             value (callable): Given a parameter value as input, return a boolean indicating
                 validity, or alternately return a string describing an invalid value.
 
         """
         self._element_type = element_type
-        default = default and frozendict(default) or frozendict()
-        super(MapLoadedParameter, self).__init__(name, default, value, validation, expandvars)
+        super(MapLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation, expandvars)
+
+    def collect_errors(self, instance, typed_value, source="<<merged>>"):
+        errors = super(MapLoadedParameter, self).collect_errors(instance, typed_value, self.value)
+
+        # recursively validate the values in the map
+        if isinstance(self.value, Mapping):
+            for key, value in iteritems(self.value):
+                errors.extend(value.collect_errors(instance, typed_value[key], source))
+        return errors
 
     def merge(self, matches):
 
-        # map each value by recursively calling merge on any entries with the same key
-        # TODO handle the 0 element case
-        merged_values = frozendict(merge_with(
-            lambda value_matches: value_matches[0].merge(value_matches),
-            (x.value for x in matches)))
-        return MapLoadedParameter(
-            self._name,
-            merged_values,
-            self._element_type,
-            default=self.default
-        )
+        # TODO check for all the same
 
-        # TODO handle important keyflags
-        # TODO handle important valueflags, probably want to pass down the valueflags?
         # get matches up to and including first important_match
-        #   but if no important_match, then all matches are important_matches
-        relevant_matches_and_values = tuple((match, match.value(self)) for match in
-                                            self._first_important_matches(matches))
+        # but if no important_match, then all matches are important_matches
+        relevant_matches_and_values = tuple((match, match.value) for match in
+                                            LoadedParameter._first_important_matches(matches))
+
         for match, value in relevant_matches_and_values:
             if not isinstance(value, Mapping):
                 raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
                                        self._type.__name__)
 
-        # mapkeys with important matches
+        # map keys with important values
         def key_is_important(match, key):
-            return match.valueflags(self).get(key) == ParameterFlag.final
+            return match.value_flags.get(key) == ParameterFlag.final
         important_maps = tuple(dict((k, v)
                                     for k, v in iteritems(match_value)
                                     if key_is_important(match, k))
                                for match, match_value in relevant_matches_and_values)
+
+        # map each value by recursively calling merge on any entries with the same key
+        # TODO handle the 0 element case
+        merged_values = frozendict(merge_with(
+            lambda value_matches: value_matches[0].merge(value_matches),
+            (match_value for _, match_value in relevant_matches_and_values)))
+
         # dump all matches in a dict
         # then overwrite with important matches
-        return frozendict(merge(concatv((v for _, v in relevant_matches_and_values),
-                                        reversed(important_maps))))
+        merged_values_important_overwritten = frozendict(merge(
+            concatv([merged_values], reversed(important_maps))))
 
-    # def typify(self):
-    #     element_type = self._element_type
-    #     try:
-    #         return typify_data_structure(self.value, element_type)
-    #     except TypeCoercionError as e:
-    #         # if name is None:
-    #         #     name = self.name
-    #         msg = text_type(e)
-    #         if issubclass(element_type, Enum):
-    #             choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
-    #             msg += "\nValid choices for {}: {}".format(self.name, choices)
-    #         raise CustomValidationError(self.name, e.value, self.source, msg)
-
-    def collect_errors(self, instance, value, source="<<merged>>"):
-        errors = super(MapLoadedParameter, self).collect_errors(instance, value)
-        if isinstance(value, Mapping):
-            element_type = self._element_type
-            errors.extend(InvalidElementTypeError(self.name, val, source, type(val),
-                                                  element_type, key)
-                          for key, val in iteritems(value) if not isinstance(val, element_type))
-
-        return errors
+        # create new parameter for the merged values
+        return MapLoadedParameter(
+            self._name,
+            merged_values_important_overwritten,
+            self._element_type,
+            self.key_flag,
+            self.value_flags
+        )
 
     # def repr_raw(self, raw_parameter):
     #     lines = list()
@@ -626,13 +663,12 @@ class SequenceLoadedParameter(LoadedParameter):
     """
     _type = tuple
 
-    def __init__(self, name, value, element_type, default=(),
+    def __init__(self, name, value, element_type, key_flag, value_flags,
                  validation=None, string_delimiter=',', expandvars=False):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element in
                 the sequence.
-            default (Iterable[str]):  The parameter's default value.
             aliases (Iterable[str]): Alternate names for the parameter.
             validation (callable): Given a parameter value as input, return a boolean indicating
                 validity, or alternately return a string describing an invalid value.
@@ -640,32 +676,22 @@ class SequenceLoadedParameter(LoadedParameter):
         """
         self._element_type = element_type
         self.string_delimiter = string_delimiter
-        super(SequenceLoadedParameter, self).__init__(name, default, value, validation, expandvars)
+        super(SequenceLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation, expandvars)
 
-    def collect_errors(self, instance, value, source="<<merged>>"):
-        errors = super(SequenceLoadedParameter, self).collect_errors(instance, value)
-        element_type = self._element_type
-        for idx, element in enumerate(value):
-            if not isinstance(element, element_type):
-                errors.append(InvalidElementTypeError(self.name, element, source,
-                                                      type(element), element_type, idx))
+    def collect_errors(self, instance, typed_value, source="<<merged>>"):
+        errors = super(SequenceLoadedParameter, self).collect_errors(instance, typed_value, self.value)
+        # recursively collect errors on the elements in the sequence
+        for idx, element in enumerate(self.value):
+            errors.extend(element.collect_errors(instance, typed_value[idx], source))
         return errors
 
     def merge(self, matches):
+        # TODO check for all the same
 
-        all_values = [item for sublist in reversed(matches) for item in sublist.value]
-        merged_values = tuple(unique(all_values))
-        return SequenceLoadedParameter(
-            self._name,
-            merged_values,
-            self._element_type,
-            default=self.default)
-
-        # TODO all this insane priority stuff
         # get matches up to and including first important_match
-        #   but if no important_match, then all matches are important_matches
-        relevant_matches_and_values = tuple((match, match.value(self)) for match in
-                                            self._first_important_matches(matches))
+        # but if no important_match, then all matches are important_matches
+        relevant_matches_and_values = tuple((match, match.value) for match in
+                                            LoadedParameter._first_important_matches(matches))
         for match, value in relevant_matches_and_values:
             if not isinstance(value, tuple):
                 raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
@@ -673,18 +699,20 @@ class SequenceLoadedParameter(LoadedParameter):
 
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
-        def get_marked_lines(match, marker, parameter_obj):
+        def get_marked_lines(match, marker):
+            print(match)
             return tuple(line
-                         for line, flag in zip(match.value(parameter_obj),
-                                               match.valueflags(parameter_obj))
+                         for line, flag in zip(match.value,
+                                               match.value_flags)
                          if flag is marker) if match else ()
-        top_lines = concat(get_marked_lines(m, ParameterFlag.top, self) for m, _ in
+        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m, _ in
                            relevant_matches_and_values)
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
-        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom, self) for m, _ in
+        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom) for m, _ in
                               reversed(relevant_matches_and_values))
+
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
@@ -699,7 +727,14 @@ class SequenceLoadedParameter(LoadedParameter):
         #       for the top marker to win out, we'd need one additional de-dupe step
         bottom_deduped = unique(concatv(reversed(tuple(bottom_lines)), reversed(top_deduped)))
         # just reverse, and we're good to go
-        return tuple(reversed(tuple(bottom_deduped)))
+        merged_values = tuple(reversed(tuple(bottom_deduped)))
+
+        return SequenceLoadedParameter(
+            self._name,
+            merged_values,
+            self._element_type,
+            self.key_flag,
+            self.value_flags)
 
     def repr_raw(self, raw_parameter):
         lines = list()
@@ -726,12 +761,19 @@ class Parameter(object):
     _element_type = None
 
     def __init__(self, default, validation=None, expandvars=False):
-        self.default = default
+        self._default = default
         self._validation = validation
         self._expandvars = expandvars
 
+    @property
+    def default(self):
+        wrapped_default = DefaultValueRawParameter("default", "default", self._default)
+        return self.load("default", wrapped_default)
+
     @abstractmethod
-    def load(self, name, source, raw_value):
+    # match is a RawParameter
+    # returns a LoadedParameter
+    def load(self, name, match):
         raise NotImplementedError()
 
 
@@ -746,9 +788,13 @@ class PrimitiveParameter(Parameter):
         self._element_type = self._type
         super(PrimitiveParameter, self).__init__(default, validation, expandvars)
 
-    def load(self, name, source, raw_value):
-        # TODO check
-        return PrimitiveLoadedParameter(name, self.default, raw_value)
+    def load(self, name, match):
+        return PrimitiveLoadedParameter(
+            name,
+            self._type,
+            match.value(self._element_type),
+            match.keyflag(),
+            match.valueflags(self._element_type))
 
 
 class MapParameter(Parameter):
@@ -757,7 +803,7 @@ class MapParameter(Parameter):
 
     _type = frozendict
 
-    def __init__(self, element_type, default={}, validation=None, expandvars=False):
+    def __init__(self, element_type, default=frozendict(), validation=None, expandvars=False):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element.
@@ -768,21 +814,36 @@ class MapParameter(Parameter):
         """
         self._element_type = element_type
         default = default and frozendict(default) or frozendict()
-        super(MapParameter, self).__init__(default, validation, expandvars)
+        super(MapParameter, self).__init__(default, validation=validation, expandvars=expandvars)
 
-    def load(self, name, source, raw_value):
-        # TODO check
+    def load(self, name, match):
+
+        value = match.value(self._element_type)
+        if value is None:
+            return MapLoadedParameter(
+                name,
+                frozendict(),
+                self._element_type,
+                match.keyflag(),
+                frozendict(),
+                validation=self._validation,
+                expandvars=self._expandvars)
+
+        if not isinstance(value, Mapping):
+            raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
+                                   self._type.__name__)
 
         loaded_map = {}
-        for key, value in raw_value.items():
-            loaded_value = self._element_type.load(name, source, value)
-            loaded_map[key] = loaded_value
+        for key, child_value in match.value(self._element_type).items():
+            loaded_child_value = self._element_type.load(name, child_value)
+            loaded_map[key] = loaded_child_value
 
         return MapLoadedParameter(
             name,
-            loaded_map,
+            frozendict(loaded_map),
             self._element_type,
-            default=self.default,
+            match.keyflag(),
+            match.valueflags(self._element_type),
             validation=self._validation,
             expandvars=self._expandvars)
 
@@ -800,19 +861,34 @@ class SequenceParameter(Parameter):
         # self.string_delimiter = string_delimiter
         super(SequenceParameter, self).__init__(default, validation, expandvars)
 
-    def load(self, name, source, raw_value):
-        # TODO check
+    def load(self, name, match):
+
+        value = match.value(self._element_type)
+        if value is None:
+            return SequenceLoadedParameter(
+                name,
+                tuple(),
+                self._element_type,
+                match.keyflag(),
+                tuple(),
+                validation=self._validation,
+                expandvars=self._expandvars)
+
+        if not isiterable(value):
+            raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
+                                   self._type.__name__)
 
         loaded_sequence = []
-        for value in raw_value:
-            loaded_value = self._element_type.load(name, source, value)
-            loaded_sequence.append(loaded_value)
+        for child_value in match.value(self._element_type):
+            loaded_child_value = self._element_type.load(name, child_value)
+            loaded_sequence.append(loaded_child_value)
 
         return SequenceLoadedParameter(
             name,
-            loaded_sequence,
+            tuple(loaded_sequence),
             self._element_type,
-            default=self.default,
+            match.keyflag(),
+            match.valueflags(self._element_type),
             validation=self._validation,
             expandvars=self._expandvars)
 
@@ -858,7 +934,7 @@ class ParameterLoader(object):
         raw_matches, errors = self._get_all_matches(instance)
 
         # step 3: parse RawParameters into LoadedParameters
-        matches = [self.type.load(self.name, match.source, match._raw_value) for match in raw_matches]
+        matches = [self.type.load(self.name, match) for match in raw_matches]
 
         # step 4: merge matches
         # TODO this is pretty weird to get the class
@@ -871,11 +947,10 @@ class ParameterLoader(object):
         expanded = merged
         try:
             result = expanded.typify("<<merged>>")
-            # result = self.typify(expanded, "<<merged>>")
         except CustomValidationError as e:
             errors.append(e)
-        # else:
-        #     errors.extend(self.collect_errors(instance, result))
+        else:
+            errors.extend(expanded.collect_errors(instance, result, "<<merged>>"))
         raise_errors(errors)
         instance._cache_[self.name] = result  # lgtm [py/uninitialized-local-variable]
         return result  # lgtm [py/uninitialized-local-variable]
@@ -922,35 +997,6 @@ class ParameterLoader(object):
                 return expand_environment_variables(data)
         else:
             return data
-
-    def collect_errors(self, instance, value, source="<<merged>>"):
-        """Validate a Parameter value.
-
-        Args:
-            instance (Configuration): The instance object to which the Parameter descriptor is
-                attached.
-            value: The value to be validated.
-
-        """
-        errors = []
-        if not isinstance(value, self._type):
-            errors.append(InvalidTypeError(self.name, value, source, type(value),
-                                           self._type))
-        elif self._validation is not None:
-            result = self._validation(value)
-            if result is False:
-                errors.append(ValidationError(self.name, value, source))
-            elif isinstance(result, string_types):
-                errors.append(CustomValidationError(self.name, value, source, result))
-        return errors
-
-    def _match_key_is_important(self, raw_parameter):
-        return raw_parameter.keyflag() is ParameterFlag.final
-
-    def _first_important_matches(self, matches):
-        idx = first(enumerate(matches), lambda x: self._match_key_is_important(x[1]),
-                    apply=lambda x: x[0])
-        return matches if idx is None else matches[:idx+1]
 
     @staticmethod
     def _str_format_flag(flag):
@@ -1052,18 +1098,19 @@ class Configuration(object):
                 validation_errors.append(multikey_error)
 
             if match is not None:
-                untyped_value = match.value(parameter)
-                if untyped_value is None:
-                    if isinstance(parameter, SequenceLoadedParameter):
-                        untyped_value = ()
-                    elif isinstance(parameter, MapLoadedParameter):
-                        untyped_value = {}
+                loaded_parameter = parameter.type.load(key, match)
+                # untyped_value = loaded_parameter.value
+                # if untyped_value is None:
+                #     if isinstance(parameter, SequenceLoadedParameter):
+                #         untyped_value = ()
+                #     elif isinstance(parameter, MapLoadedParameter):
+                #         untyped_value = {}
                 try:
-                    typed_value = parameter.typify(untyped_value, match.source, name=match.key)
+                    typed_value = loaded_parameter.typify(match.source)
                 except CustomValidationError as e:
                     validation_errors.append(e)
                 else:
-                    collected_errors = parameter.collect_errors(self, typed_value, match.source)
+                    collected_errors = loaded_parameter.collect_errors(self, typed_value, match.source)
                     if collected_errors:
                         validation_errors.extend(collected_errors)
                     else:

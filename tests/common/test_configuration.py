@@ -156,23 +156,23 @@ test_yaml_raw = {
             key2: 2
             key3: 3
             key5: 0
-        complex_map:
-            key1:
-                - a1
-                - b1
+        simple_seq: #!comment4
+            - 1 #!comment5
+            - 2
+            - 3
+        complex_map: #!comment6
+            key1: #!comment7
+                - a1 #!comment8
+                - b1 #!comment9
                 - c1
             key2:
                 - d1
                 - e1
                 - f1
-        simple_seq: #!comment4
-            - 1 #!comment5
-            - 2
-            - 3
-        complex_seq:
-            -
-                key1: a1
-                key2: b1
+        complex_seq: #!comment10
+            - #!comment11
+                key1: a1 #!comment12
+                key2: b1 #!comment13
             - 
                 key3: c1
                 key4: d1
@@ -218,16 +218,20 @@ class SampleConfiguration(Configuration):
     proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=string_types)))
     channels = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=string_types)),
                                aliases=('channels_altname',))
-    #
-    # always_an_int = PrimitiveLoadedParameter(0)
-    # boolean_map = MapLoadedParameter(bool)
-    # commented_map = MapLoadedParameter(string_types)
-    #
-    # env_var_map = MapLoadedParameter(string_types, expandvars=True)
-    # env_var_str = PrimitiveLoadedParameter('', expandvars=True)
-    # env_var_bool = PrimitiveLoadedParameter(False, element_type=bool, expandvars=True)
-    # normal_str = PrimitiveLoadedParameter('', expandvars=False)
-    # env_var_list = SequenceLoadedParameter(string_types, expandvars=True)
+
+    always_an_int = ParameterLoader(PrimitiveParameter(0))
+    boolean_map = ParameterLoader(MapParameter(PrimitiveParameter(False, element_type=bool)))
+    commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", string_types)))
+
+    env_var_map = ParameterLoader(MapParameter(
+        PrimitiveParameter("", string_types),
+        expandvars=True))
+    env_var_str = ParameterLoader(PrimitiveParameter('', expandvars=True))
+    env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool, expandvars=True))
+    normal_str = ParameterLoader(PrimitiveParameter('', expandvars=False))
+    env_var_list = ParameterLoader(SequenceParameter(
+        PrimitiveParameter('', string_types),
+        expandvars=True))
 
 
 class TestObject(object):
@@ -259,13 +263,13 @@ class RandomConfiguration(Configuration):
 
 def load_from_string_data(*seq):
     return odict((f, YamlRawParameter.make_raw_parameters(f, yaml_load(test_yaml_raw[f])))
-                 for f in seq)
+                  for f in seq)
 
 
 class ConfigurationTests(TestCase):
 
     def test_new_channel(self):
-        config = RandomConfiguration()._set_raw_data(load_from_string_data('fileX', 'fileY'))
+        config = RandomConfiguration()._set_raw_data(load_from_string_data('fileX'))
         print(config.complex_seq)
         print(config.complex_map)
         print(config.simple_seq)
