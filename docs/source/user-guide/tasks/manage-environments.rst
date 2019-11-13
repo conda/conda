@@ -372,7 +372,7 @@ You may receive a warning message if you have not activated your environment:
    please see https://conda.io/activation.
 
 If you receive this warning, you need to activate your environment. To do
-so on Windows, run: ``c:\Anaconda3\scripts\activate base`` in
+so on Windows, run: ``c:\Anaconda3\Scripts\activate base`` in
 Anaconda Prompt.
 
 Windows is extremely sensitive to proper activation. This is because
