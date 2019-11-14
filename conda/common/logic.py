@@ -74,7 +74,7 @@ class Clauses(object):
         return self._check_variable(literal)
 
     def add_clause(self, clause):
-        self._clauses.add_clause(map(self._check_variable, clause))
+        self._clauses.add_clause(map(self._check_variable, self._convert(clause)))
 
     def add_clauses(self, clauses):
         for clause in clauses:
