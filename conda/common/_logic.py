@@ -18,7 +18,7 @@ TRUE = _BIG_NUMBER
 FALSE = -TRUE
 
 
-class ClauseList(object):
+class _ClauseList(object):
     """Storage for the CNF clauses, represented as a list of tuples of ints."""
     def __init__(self):
         self._clause_list = []
@@ -36,7 +36,7 @@ class ClauseList(object):
     def save_state(self):
         """
         Get state information to be able to revert temporary additions of
-        supplementary clauses.  ClauseList: state is simply the number of clauses.
+        supplementary clauses.  _ClauseList: state is simply the number of clauses.
         """
         return len(self._clause_list)
 
@@ -63,7 +63,7 @@ class ClauseList(object):
         return clause_array
 
 
-class ClauseArray(object):
+class _ClauseArray(object):
     """
     Storage for the CNF clauses, represented as a flat int array.
     Each clause is terminated by int(0).
@@ -95,7 +95,7 @@ class ClauseArray(object):
     def save_state(self):
         """
         Get state information to be able to revert temporary additions of
-        supplementary clauses. ClauseArray: state is the length of the int
+        supplementary clauses. _ClauseArray: state is the length of the int
         array, NOT number of clauses.
         """
         return len(self._clause_array)
@@ -125,14 +125,14 @@ class ClauseArray(object):
         return self._clause_array
 
 
-class SatSolver(object):
+class _SatSolver(object):
     """
-    Simple wrapper to call a SAT solver given a ClauseList/ClauseArray instance.
+    Simple wrapper to call a SAT solver given a _ClauseList/_ClauseArray instance.
     """
 
     def __init__(self, **run_kwargs):
         self._run_kwargs = run_kwargs or {}
-        self._clauses = ClauseList()
+        self._clauses = _ClauseList()
         # Bind some methods of _clauses to reduce lookups and call overhead.
         self.add_clause = self._clauses.append
         self.add_clauses = self._clauses.extend
@@ -173,7 +173,7 @@ class SatSolver(object):
         raise NotImplementedError()
 
 
-class PycoSatSolver(SatSolver):
+class _PycoSatSolver(_SatSolver):
     def setup(self, m, limit=0, **kwargs):
         from pycosat import itersolve
 
@@ -198,7 +198,7 @@ class PycoSatSolver(SatSolver):
         return sat_solution
 
 
-class PyCryptoSatSolver(SatSolver):
+class _PyCryptoSatSolver(_SatSolver):
     def setup(self, m, threads=1, **kwargs):
         from pycryptosat import Solver
 
@@ -220,7 +220,7 @@ class PyCryptoSatSolver(SatSolver):
         return solution
 
 
-class PySatSolver(SatSolver):
+class _PySatSolver(_SatSolver):
     def setup(self, m, **kwargs):
         from pysat.solvers import Glucose4
 
@@ -245,9 +245,9 @@ class PySatSolver(SatSolver):
 
 
 _sat_solver_str_to_cls = {
-    "pycosat": PycoSatSolver,
-    "pycryptosat": PyCryptoSatSolver,
-    "pysat": PySatSolver,
+    "pycosat": _PycoSatSolver,
+    "pycryptosat": _PyCryptoSatSolver,
+    "pysat": _PySatSolver,
 }
 
 _sat_solver_cls_to_str = {cls: string for string, cls in _sat_solver_str_to_cls.items()}
@@ -258,7 +258,7 @@ _sat_solver_cls_to_str = {cls: string for string, cls in _sat_solver_str_to_cls.
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
 # SAT," Eén and Sörensson).
 class Clauses(object):
-    def __init__(self, m=0, sat_solver_str=_sat_solver_cls_to_str[PycoSatSolver]):
+    def __init__(self, m=0, sat_solver_str=_sat_solver_cls_to_str[_PycoSatSolver]):
         self.unsat = False
         self.m = m
 
