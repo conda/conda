@@ -122,167 +122,167 @@ def ssl_verify_validation(value):
 
 class Context(Configuration):
 
-    # add_pip_as_python_dependency = PrimitiveLoadedParameter(True)
-    # allow_conda_downgrades = PrimitiveLoadedParameter(False)
-    # allow_cycles = PrimitiveLoadedParameter(True)  # allow cyclical dependencies, or raise
-    # allow_softlinks = PrimitiveLoadedParameter(False)
-    # auto_update_conda = PrimitiveLoadedParameter(True, aliases=('self_update',))
-    # auto_activate_base = PrimitiveLoadedParameter(True)
-    # auto_stack = PrimitiveLoadedParameter(0)
-    # notify_outdated_conda = PrimitiveLoadedParameter(True)
-    # clobber = PrimitiveLoadedParameter(False)
-    # changeps1 = PrimitiveLoadedParameter(True)
-    # env_prompt = PrimitiveLoadedParameter("({default_env}) ")
-    # create_default_packages = SequenceLoadedParameter(string_types)
-    # default_python = PrimitiveLoadedParameter(default_python_default(),
-    #                                           element_type=string_types + (NoneType,),
-    #                                           validation=default_python_validation)
-    # download_only = PrimitiveLoadedParameter(False)
-    # enable_private_envs = PrimitiveLoadedParameter(False)
-    # force_32bit = PrimitiveLoadedParameter(False)
-    # non_admin_enabled = PrimitiveLoadedParameter(True)
+    add_pip_as_python_dependency = PrimitiveLoadedParameter(True)
+    allow_conda_downgrades = PrimitiveLoadedParameter(False)
+    allow_cycles = PrimitiveLoadedParameter(True)  # allow cyclical dependencies, or raise
+    allow_softlinks = PrimitiveLoadedParameter(False)
+    auto_update_conda = PrimitiveLoadedParameter(True, aliases=('self_update',))
+    auto_activate_base = PrimitiveLoadedParameter(True)
+    auto_stack = PrimitiveLoadedParameter(0)
+    notify_outdated_conda = PrimitiveLoadedParameter(True)
+    clobber = PrimitiveLoadedParameter(False)
+    changeps1 = PrimitiveLoadedParameter(True)
+    env_prompt = PrimitiveLoadedParameter("({default_env}) ")
+    create_default_packages = SequenceLoadedParameter(string_types)
+    default_python = PrimitiveLoadedParameter(default_python_default(),
+                                              element_type=string_types + (NoneType,),
+                                              validation=default_python_validation)
+    download_only = PrimitiveLoadedParameter(False)
+    enable_private_envs = PrimitiveLoadedParameter(False)
+    force_32bit = PrimitiveLoadedParameter(False)
+    non_admin_enabled = PrimitiveLoadedParameter(True)
+
+    pip_interop_enabled = PrimitiveLoadedParameter(False)
+
+    # multithreading in various places
+    _default_threads = PrimitiveLoadedParameter(0, element_type=int,
+                                                aliases=('default_threads',))
+    _repodata_threads = PrimitiveLoadedParameter(0, element_type=int,
+                                                 aliases=('repodata_threads',))
+    _verify_threads = PrimitiveLoadedParameter(0, element_type=int,
+                                               aliases=('verify_threads',))
+    # this one actually defaults to 1 - that is handled in the property below
+    _execute_threads = PrimitiveLoadedParameter(0, element_type=int,
+                                                aliases=('execute_threads',))
+
+    # Safety & Security
+    _aggressive_update_packages = SequenceLoadedParameter(string_types,
+                                                          DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
+                                                          aliases=('aggressive_update_packages',))
+    safety_checks = PrimitiveLoadedParameter(SafetyChecks.warn)
+    extra_safety_checks = PrimitiveLoadedParameter(False)
+    path_conflict = PrimitiveLoadedParameter(PathConflict.clobber)
+
+    pinned_packages = SequenceLoadedParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
+    disallowed_packages = SequenceLoadedParameter(string_types, aliases=('disallow',),
+                                                  string_delimiter='&')
+    rollback_enabled = PrimitiveLoadedParameter(True)
+    track_features = SequenceLoadedParameter(string_types)
+    use_index_cache = PrimitiveLoadedParameter(False)
+
+    separate_format_cache = PrimitiveLoadedParameter(False)
+
+    _root_prefix = PrimitiveLoadedParameter("", aliases=('root_dir', 'root_prefix'))
+    _envs_dirs = SequenceLoadedParameter(string_types, aliases=('envs_dirs', 'envs_path'),
+                                         string_delimiter=os.pathsep,
+                                         expandvars=True)
+    _pkgs_dirs = SequenceLoadedParameter(string_types, aliases=('pkgs_dirs',),
+                                         expandvars=True)
+    _subdir = PrimitiveLoadedParameter('', aliases=('subdir',))
+    _subdirs = SequenceLoadedParameter(string_types, aliases=('subdirs',))
+
+    local_repodata_ttl = PrimitiveLoadedParameter(1, element_type=(bool, int))
+    # number of seconds to cache repodata locally
+    #   True/1: respect Cache-Control max-age header
+    #   False/0: always fetch remote repodata (HTTP 304 responses respected)
+
+    # remote connection details
+    ssl_verify = PrimitiveLoadedParameter(True, element_type=string_types + (bool,),
+                                          aliases=('verify_ssl',),
+                                          validation=ssl_verify_validation,
+                                          expandvars=True)
+    client_ssl_cert = PrimitiveLoadedParameter(None, aliases=('client_cert',),
+                                               element_type=string_types + (NoneType,),
+                                               expandvars=True)
+    client_ssl_cert_key = PrimitiveLoadedParameter(None, aliases=('client_cert_key',),
+                                                   element_type=string_types + (NoneType,),
+                                                   expandvars=True)
+    proxy_servers = MapLoadedParameter(string_types + (NoneType,), expandvars=True)
+    remote_connect_timeout_secs = PrimitiveLoadedParameter(9.15)
+    remote_read_timeout_secs = PrimitiveLoadedParameter(60.)
+    remote_max_retries = PrimitiveLoadedParameter(3)
+    remote_backoff_factor = PrimitiveLoadedParameter(1)
+
+    add_anaconda_token = PrimitiveLoadedParameter(True, aliases=('add_binstar_token',))
+
+    # #############################
+    # channels
+    # #############################
+    allow_non_channel_urls = PrimitiveLoadedParameter(False)
+    _channel_alias = PrimitiveLoadedParameter(DEFAULT_CHANNEL_ALIAS,
+                                              aliases=('channel_alias',),
+                                              validation=channel_alias_validation)
+    channel_priority = PrimitiveLoadedParameter(ChannelPriority.FLEXIBLE)
+    _channels = SequenceLoadedParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
+                                        aliases=('channels', 'channel',),
+                                        expandvars=True)  # channel for args.channel
+    _new_channels = SequenceLoadedParameter(map, aliases=('new_channels',), expandvars=True),
+    _custom_channels = MapLoadedParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
+                                          aliases=('custom_channels',),
+                                          expandvars=True)
+    _custom_multichannels = MapLoadedParameter(list, aliases=('custom_multichannels',),
+                                               expandvars=True)
+    _default_channels = SequenceLoadedParameter(string_types, DEFAULT_CHANNELS,
+                                                aliases=('default_channels',),
+                                                expandvars=True)
+    _migrated_channel_aliases = SequenceLoadedParameter(string_types,
+                                                        aliases=('migrated_channel_aliases',))
+    migrated_custom_channels = MapLoadedParameter(string_types,
+                                                  expandvars=True)  # TODO: also take a list of strings
+    override_channels_enabled = PrimitiveLoadedParameter(True)
+    show_channel_urls = PrimitiveLoadedParameter(None, element_type=(bool, NoneType))
+    use_local = PrimitiveLoadedParameter(False)
+    whitelist_channels = SequenceLoadedParameter(string_types, expandvars=True)
+    restore_free_channel = PrimitiveLoadedParameter(False)
+    repodata_fns = SequenceLoadedParameter(string_types, ("current_repodata.json", REPODATA_FN))
+    _use_only_tar_bz2 = PrimitiveLoadedParameter(None, element_type=(bool, NoneType),
+                                                 aliases=('use_only_tar_bz2',))
+
+    always_softlink = PrimitiveLoadedParameter(False, aliases=('softlink',))
+    always_copy = PrimitiveLoadedParameter(False, aliases=('copy',))
+    always_yes = PrimitiveLoadedParameter(None, aliases=('yes',), element_type=(bool, NoneType))
+    debug = PrimitiveLoadedParameter(False)
+    dev = PrimitiveLoadedParameter(False)
+    dry_run = PrimitiveLoadedParameter(False)
+    error_upload_url = PrimitiveLoadedParameter(ERROR_UPLOAD_URL)
+    force = PrimitiveLoadedParameter(False)
+    json = PrimitiveLoadedParameter(False)
+    offline = PrimitiveLoadedParameter(False)
+    quiet = PrimitiveLoadedParameter(False)
+    ignore_pinned = PrimitiveLoadedParameter(False)
+    report_errors = PrimitiveLoadedParameter(None, element_type=(bool, NoneType))
+    shortcuts = PrimitiveLoadedParameter(True)
+    _verbosity = PrimitiveLoadedParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
+
+    # ######################################################
+    # ##               Solver Configuration               ##
+    # ######################################################
+    deps_modifier = PrimitiveLoadedParameter(DepsModifier.NOT_SET)
+    update_modifier = PrimitiveLoadedParameter(UpdateModifier.UPDATE_SPECS)
+    sat_solver = PrimitiveLoadedParameter(SatSolverChoice.PYCOSAT)
+    solver_ignore_timestamps = PrimitiveLoadedParameter(False)
+
+    # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
+    # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
     #
-    # pip_interop_enabled = PrimitiveLoadedParameter(False)
-    #
-    # # multithreading in various places
-    # _default_threads = PrimitiveLoadedParameter(0, element_type=int,
-    #                                             aliases=('default_threads',))
-    # _repodata_threads = PrimitiveLoadedParameter(0, element_type=int,
-    #                                              aliases=('repodata_threads',))
-    # _verify_threads = PrimitiveLoadedParameter(0, element_type=int,
-    #                                            aliases=('verify_threads',))
-    # # this one actually defaults to 1 - that is handled in the property below
-    # _execute_threads = PrimitiveLoadedParameter(0, element_type=int,
-    #                                             aliases=('execute_threads',))
-    #
-    # # Safety & Security
-    # _aggressive_update_packages = SequenceLoadedParameter(string_types,
-    #                                                       DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
-    #                                                       aliases=('aggressive_update_packages',))
-    # safety_checks = PrimitiveLoadedParameter(SafetyChecks.warn)
-    # extra_safety_checks = PrimitiveLoadedParameter(False)
-    # path_conflict = PrimitiveLoadedParameter(PathConflict.clobber)
-    #
-    # pinned_packages = SequenceLoadedParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
-    # disallowed_packages = SequenceLoadedParameter(string_types, aliases=('disallow',),
-    #                                               string_delimiter='&')
-    # rollback_enabled = PrimitiveLoadedParameter(True)
-    # track_features = SequenceLoadedParameter(string_types)
-    # use_index_cache = PrimitiveLoadedParameter(False)
-    #
-    # separate_format_cache = PrimitiveLoadedParameter(False)
-    #
-    # _root_prefix = PrimitiveLoadedParameter("", aliases=('root_dir', 'root_prefix'))
-    # _envs_dirs = SequenceLoadedParameter(string_types, aliases=('envs_dirs', 'envs_path'),
-    #                                      string_delimiter=os.pathsep,
-    #                                      expandvars=True)
-    # _pkgs_dirs = SequenceLoadedParameter(string_types, aliases=('pkgs_dirs',),
-    #                                      expandvars=True)
-    # _subdir = PrimitiveLoadedParameter('', aliases=('subdir',))
-    # _subdirs = SequenceLoadedParameter(string_types, aliases=('subdirs',))
-    #
-    # local_repodata_ttl = PrimitiveLoadedParameter(1, element_type=(bool, int))
-    # # number of seconds to cache repodata locally
-    # #   True/1: respect Cache-Control max-age header
-    # #   False/0: always fetch remote repodata (HTTP 304 responses respected)
-    #
-    # # remote connection details
-    # ssl_verify = PrimitiveLoadedParameter(True, element_type=string_types + (bool,),
-    #                                       aliases=('verify_ssl',),
-    #                                       validation=ssl_verify_validation,
-    #                                       expandvars=True)
-    # client_ssl_cert = PrimitiveLoadedParameter(None, aliases=('client_cert',),
-    #                                            element_type=string_types + (NoneType,),
-    #                                            expandvars=True)
-    # client_ssl_cert_key = PrimitiveLoadedParameter(None, aliases=('client_cert_key',),
-    #                                                element_type=string_types + (NoneType,),
-    #                                                expandvars=True)
-    # proxy_servers = MapLoadedParameter(string_types + (NoneType,), expandvars=True)
-    # remote_connect_timeout_secs = PrimitiveLoadedParameter(9.15)
-    # remote_read_timeout_secs = PrimitiveLoadedParameter(60.)
-    # remote_max_retries = PrimitiveLoadedParameter(3)
-    # remote_backoff_factor = PrimitiveLoadedParameter(1)
-    #
-    # add_anaconda_token = PrimitiveLoadedParameter(True, aliases=('add_binstar_token',))
-    #
-    # # #############################
-    # # channels
-    # # #############################
-    # allow_non_channel_urls = PrimitiveLoadedParameter(False)
-    # _channel_alias = PrimitiveLoadedParameter(DEFAULT_CHANNEL_ALIAS,
-    #                                           aliases=('channel_alias',),
-    #                                           validation=channel_alias_validation)
-    # channel_priority = PrimitiveLoadedParameter(ChannelPriority.FLEXIBLE)
-    # _channels = SequenceLoadedParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
-    #                                     aliases=('channels', 'channel',),
-    #                                     expandvars=True)  # channel for args.channel
-    # _new_channels = SequenceLoadedParameter(map, aliases=('new_channels',), expandvars=True),
-    # _custom_channels = MapLoadedParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
-    #                                       aliases=('custom_channels',),
-    #                                       expandvars=True)
-    # _custom_multichannels = MapLoadedParameter(list, aliases=('custom_multichannels',),
-    #                                            expandvars=True)
-    # _default_channels = SequenceLoadedParameter(string_types, DEFAULT_CHANNELS,
-    #                                             aliases=('default_channels',),
-    #                                             expandvars=True)
-    # _migrated_channel_aliases = SequenceLoadedParameter(string_types,
-    #                                                     aliases=('migrated_channel_aliases',))
-    # migrated_custom_channels = MapLoadedParameter(string_types,
-    #                                               expandvars=True)  # TODO: also take a list of strings
-    # override_channels_enabled = PrimitiveLoadedParameter(True)
-    # show_channel_urls = PrimitiveLoadedParameter(None, element_type=(bool, NoneType))
-    # use_local = PrimitiveLoadedParameter(False)
-    # whitelist_channels = SequenceLoadedParameter(string_types, expandvars=True)
-    # restore_free_channel = PrimitiveLoadedParameter(False)
-    # repodata_fns = SequenceLoadedParameter(string_types, ("current_repodata.json", REPODATA_FN))
-    # _use_only_tar_bz2 = PrimitiveLoadedParameter(None, element_type=(bool, NoneType),
-    #                                              aliases=('use_only_tar_bz2',))
-    #
-    # always_softlink = PrimitiveLoadedParameter(False, aliases=('softlink',))
-    # always_copy = PrimitiveLoadedParameter(False, aliases=('copy',))
-    # always_yes = PrimitiveLoadedParameter(None, aliases=('yes',), element_type=(bool, NoneType))
-    # debug = PrimitiveLoadedParameter(False)
-    # dev = PrimitiveLoadedParameter(False)
-    # dry_run = PrimitiveLoadedParameter(False)
-    # error_upload_url = PrimitiveLoadedParameter(ERROR_UPLOAD_URL)
-    # force = PrimitiveLoadedParameter(False)
-    # json = PrimitiveLoadedParameter(False)
-    # offline = PrimitiveLoadedParameter(False)
-    # quiet = PrimitiveLoadedParameter(False)
-    # ignore_pinned = PrimitiveLoadedParameter(False)
-    # report_errors = PrimitiveLoadedParameter(None, element_type=(bool, NoneType))
-    # shortcuts = PrimitiveLoadedParameter(True)
-    # _verbosity = PrimitiveLoadedParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
-    #
-    # # ######################################################
-    # # ##               Solver Configuration               ##
-    # # ######################################################
-    # deps_modifier = PrimitiveLoadedParameter(DepsModifier.NOT_SET)
-    # update_modifier = PrimitiveLoadedParameter(UpdateModifier.UPDATE_SPECS)
-    # sat_solver = PrimitiveLoadedParameter(SatSolverChoice.PYCOSAT)
-    # solver_ignore_timestamps = PrimitiveLoadedParameter(False)
-    #
-    # # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
-    # # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
-    # #
-    # # freeze_installed = PrimitiveParameter(False)
-    # # update_deps = PrimitiveParameter(False, aliases=('update_dependencies',))
-    # # update_specs = PrimitiveParameter(False)
-    # # update_all = PrimitiveParameter(False)
-    #
-    # force_remove = PrimitiveLoadedParameter(False)
-    # force_reinstall = PrimitiveLoadedParameter(False)
-    #
-    # target_prefix_override = PrimitiveLoadedParameter('')
-    #
-    # unsatisfiable_hints = PrimitiveLoadedParameter(True)
-    #
-    # # conda_build
-    # bld_path = PrimitiveLoadedParameter('')
-    # anaconda_upload = PrimitiveLoadedParameter(None, aliases=('binstar_upload',),
-    #                                            element_type=(bool, NoneType))
-    # _croot = PrimitiveLoadedParameter('', aliases=('croot',))
-    # _conda_build = MapLoadedParameter(string_types, aliases=('conda-build', 'conda_build'))
+    # freeze_installed = PrimitiveParameter(False)
+    # update_deps = PrimitiveParameter(False, aliases=('update_dependencies',))
+    # update_specs = PrimitiveParameter(False)
+    # update_all = PrimitiveParameter(False)
+
+    force_remove = PrimitiveLoadedParameter(False)
+    force_reinstall = PrimitiveLoadedParameter(False)
+
+    target_prefix_override = PrimitiveLoadedParameter('')
+
+    unsatisfiable_hints = PrimitiveLoadedParameter(True)
+
+    # conda_build
+    bld_path = PrimitiveLoadedParameter('')
+    anaconda_upload = PrimitiveLoadedParameter(None, aliases=('binstar_upload',),
+                                               element_type=(bool, NoneType))
+    _croot = PrimitiveLoadedParameter('', aliases=('croot',))
+    _conda_build = MapLoadedParameter(string_types, aliases=('conda-build', 'conda_build'))
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:

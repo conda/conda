@@ -222,9 +222,9 @@ class EnvRawParameter(RawParameter):
             assert isinstance(self._raw_value, string_types)
             string_delimiter = getattr(parameter_obj, 'string_delimiter')
             # TODO: add stripping of !important, !top, and !bottom
-            return tuple(v for v in (
-                vv.strip() for vv in self._raw_value.split(string_delimiter)
-            ) if v)
+            return tuple(EnvRawParameter(EnvRawParameter.source, self.key, v)
+                         for v in (vv.strip() for vv in self._raw_value.split(string_delimiter))
+                         if v)
         else:
             return self.__important_split_value[0].strip()
 
@@ -473,6 +473,19 @@ class LoadedParameter(object):
                 errors.append(CustomValidationError(self._name, typed_value, source, result))
         return errors
 
+    def expand(self):
+        if self._expandvars:
+            # This is similar to conda._vendor.auxlib.type_coercion.typify_data_structure
+            # It could be DRY-er but that would break SRP.
+            if isinstance(self.value, Mapping):
+                new_value = type(self.value)((k, v.expand()) for k, v in iteritems(self.value))
+            elif isiterable(self.value):
+                new_value = type(self.value)(v.expand() for v in self.value)
+            else:
+                new_value = expand_environment_variables(self.value)
+            self.value = new_value
+        return self
+
     @abstractmethod
     def merge(self, matches):
         raise NotImplementedError()
@@ -636,8 +649,9 @@ class MapLoadedParameter(LoadedParameter):
             merged_values_important_overwritten,
             self._element_type,
             self.key_flag,
-            self.value_flags
-        )
+            self.value_flags,
+            validation=self._validation,
+            expandvars=self._expandvars)
 
     # def repr_raw(self, raw_parameter):
     #     lines = list()
@@ -664,7 +678,7 @@ class SequenceLoadedParameter(LoadedParameter):
     _type = tuple
 
     def __init__(self, name, value, element_type, key_flag, value_flags,
-                 validation=None, string_delimiter=',', expandvars=False):
+                 validation=None, expandvars=False):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element in
@@ -675,7 +689,6 @@ class SequenceLoadedParameter(LoadedParameter):
 
         """
         self._element_type = element_type
-        self.string_delimiter = string_delimiter
         super(SequenceLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation, expandvars)
 
     def collect_errors(self, instance, typed_value, source="<<merged>>"):
@@ -700,7 +713,6 @@ class SequenceLoadedParameter(LoadedParameter):
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
         def get_marked_lines(match, marker):
-            print(match)
             return tuple(line
                          for line, flag in zip(match.value,
                                                match.value_flags)
@@ -734,7 +746,9 @@ class SequenceLoadedParameter(LoadedParameter):
             merged_values,
             self._element_type,
             self.key_flag,
-            self.value_flags)
+            self.value_flags,
+            validation=self._validation,
+            expandvars=self._expandvars)
 
     def repr_raw(self, raw_parameter):
         lines = list()
@@ -794,7 +808,9 @@ class PrimitiveParameter(Parameter):
             self._type,
             match.value(self._element_type),
             match.keyflag(),
-            match.valueflags(self._element_type))
+            match.valueflags(self._element_type),
+            validation=self._validation,
+            expandvars=self._expandvars)
 
 
 class MapParameter(Parameter):
@@ -858,12 +874,12 @@ class SequenceParameter(Parameter):
         """
         """
         self._element_type = element_type
-        # self.string_delimiter = string_delimiter
+        self.string_delimiter = string_delimiter
         super(SequenceParameter, self).__init__(default, validation, expandvars)
 
     def load(self, name, match):
 
-        value = match.value(self._element_type)
+        value = match.value(self)
         if value is None:
             return SequenceLoadedParameter(
                 name,
@@ -879,7 +895,7 @@ class SequenceParameter(Parameter):
                                    self._type.__name__)
 
         loaded_sequence = []
-        for child_value in match.value(self._element_type):
+        for child_value in value:
             loaded_child_value = self._element_type.load(name, child_value)
             loaded_sequence.append(loaded_child_value)
 
@@ -943,8 +959,7 @@ class ParameterLoader(object):
         # step 5: typify
         # We need to expand any environment variables before type casting.
         # Otherwise e.g. `my_bool_var: $BOOL` with BOOL=True would raise a TypeCoercionError.
-        # expanded = self._expand(merged)
-        expanded = merged
+        expanded = merged.expand()
         try:
             result = expanded.typify("<<merged>>")
         except CustomValidationError as e:
@@ -983,20 +998,6 @@ class ParameterLoader(object):
             if error:
                 multikey_exceptions.append(error)
         return matches, multikey_exceptions
-
-    # TODO(jeremyliu): how to handle expansion?
-    def _expand(self, data):
-        if self._expandvars:
-            # This is similar to conda._vendor.auxlib.type_coercion.typify_data_structure
-            # It could be DRY-er but that would break SRP.
-            if isinstance(data, Mapping):
-                return type(data)((k, expand_environment_variables(v)) for k, v in iteritems(data))
-            elif isiterable(data):
-                return type(data)(expand_environment_variables(v) for v in data)
-            else:
-                return expand_environment_variables(data)
-        else:
-            return data
 
     @staticmethod
     def _str_format_flag(flag):

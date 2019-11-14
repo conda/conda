@@ -148,6 +148,7 @@ test_yaml_raw = {
           - $UNEXPANDED_VAR
           - regular_var
     """),
+    # TODO maybe remove these
     'fileX': dals("""
         primitive_string: actual_value #!comment1
         primitive_int: 10
@@ -224,13 +225,13 @@ class SampleConfiguration(Configuration):
     commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", string_types)))
 
     env_var_map = ParameterLoader(MapParameter(
-        PrimitiveParameter("", string_types),
+        PrimitiveParameter("", string_types, expandvars=True),
         expandvars=True))
     env_var_str = ParameterLoader(PrimitiveParameter('', expandvars=True))
     env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool, expandvars=True))
     normal_str = ParameterLoader(PrimitiveParameter('', expandvars=False))
     env_var_list = ParameterLoader(SequenceParameter(
-        PrimitiveParameter('', string_types),
+        PrimitiveParameter('', string_types, expandvars=True),
         expandvars=True))
 
 
@@ -239,43 +240,12 @@ class TestObject(object):
         self.test = test
 
 
-class RandomConfiguration(Configuration):
-    simple_primitive = ParameterLoader(
-        PrimitiveParameter("default_value"),
-        ("primitive_string",))
-    simple_int = ParameterLoader(
-        PrimitiveParameter(0),
-        ("primitive_int",))
-    simple_map = ParameterLoader(
-        MapParameter(PrimitiveParameter("ig_default", element_type=int), {}),
-        ("simple_map",))
-    complex_map = ParameterLoader(
-        MapParameter(SequenceParameter(PrimitiveParameter("ig_default", element_type=str)),
-                     {}))
-    simple_seq = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("ig_default", element_type=int)))
-    complex_seq = ParameterLoader(
-        SequenceParameter(
-                          MapParameter(
-                                       PrimitiveParameter("ig_default", element_type=str),
-                                       {})))
-
-
 def load_from_string_data(*seq):
     return odict((f, YamlRawParameter.make_raw_parameters(f, yaml_load(test_yaml_raw[f])))
                   for f in seq)
 
 
 class ConfigurationTests(TestCase):
-
-    def test_new_channel(self):
-        config = RandomConfiguration()._set_raw_data(load_from_string_data('fileX'))
-        print(config.complex_seq)
-        print(config.complex_map)
-        print(config.simple_seq)
-        print(config.simple_map)
-        print(config.simple_primitive)
-        print(config.simple_int)
 
     def test_simple_merges_and_caching(self):
         config = SampleConfiguration()._set_raw_data(load_from_string_data('file1', 'file2'))
@@ -401,9 +371,9 @@ class ConfigurationTests(TestCase):
             search_path = [condarc, not_a_file, condarcd]
             raw_data = load_file_configs(search_path)
             assert not_a_file not in raw_data
-            assert raw_data[condarc]['channels'].value(None)[0] == "wile"
+            assert raw_data[condarc]['channels'].value(None)[0].value(None) == "wile"
             assert raw_data[f1]['always_yes'].value(None) == "no"
-            assert raw_data[f2]['proxy_servers'].value(None)['http'] == "marv"
+            assert raw_data[f2]['proxy_servers'].value(None)['http'].value(None) == "marv"
 
             config = SampleConfiguration(search_path)
 
