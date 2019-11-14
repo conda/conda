@@ -35,6 +35,11 @@ from ._logic import Clauses as _Clauses, FALSE, TRUE
 from .compat import iterkeys, itervalues
 
 
+# TODO: We may want to turn the user-facing {TRUE,FALSE} values into an Enum and
+#       hide the _logic.{TRUE,FALSE} values as an implementation detail.
+#       We then have to handle the {TRUE,FALSE} -> _logic.{TRUE,FALSE} conversion
+#       in Clauses._convert and the inverse _logic.{TRUE,FALSE} -> {TRUE,FALSE}
+#       conversion in Clauses._eval.
 TRUE = TRUE
 FALSE = FALSE
 
