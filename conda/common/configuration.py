@@ -218,6 +218,8 @@ class EnvRawParameter(RawParameter):
     source = 'envvars'
 
     def value(self, parameter_obj):
+        # note: this assumes that EnvRawParameters will only have flat configuration of either
+        # primitive or sequential type
         if hasattr(parameter_obj, 'string_delimiter'):
             assert isinstance(self._raw_value, string_types)
             string_delimiter = getattr(parameter_obj, 'string_delimiter')
@@ -255,7 +257,16 @@ class ArgParseRawParameter(RawParameter):
     source = 'cmd_line'
 
     def value(self, parameter_obj):
-        return make_immutable(self._raw_value)
+        # note: this assumes ArgParseRawParameter will only have flat configuration of either
+        # primitive or sequential type
+        if isiterable(self._raw_value):
+            children_values = []
+            for i in range(len(self._raw_value)):
+                children_values.append(ArgParseRawParameter(
+                    self.source, self.key, self._raw_value[i]))
+            return tuple(children_values)
+        else:
+            return make_immutable(self._raw_value)
 
     def keyflag(self):
         return None
@@ -1195,7 +1206,7 @@ class Configuration(object):
             'name': name,
             'aliases': aliases,
             'element_types': element_types,
-            'default_value': parameter.default,
+            'default_value': parameter.default.typify("<<describe>>"),
             'description': description.replace('\n', ' ').strip(),
         }
         if isinstance(parameter, SequenceParameter):
