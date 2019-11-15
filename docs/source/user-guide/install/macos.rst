@@ -62,6 +62,9 @@ The installer prompts “Do you wish the installer to initialize Miniconda3 by r
 
 .. note::
    If you enter “no”, then conda will not modify your shell scripts at all. In order to initialize after the installation process is done, first run source <path to conda>/bin/activate and then run conda init.
+..
+**MacOS Catalina**
+If you are on MacOS Catalina, the new default shell is zsh. You will instead need to run ``source <path to conda>/bin/activate`` followed by ``conda init zsh``
 
 Updating Anaconda or Miniconda
 ==============================
