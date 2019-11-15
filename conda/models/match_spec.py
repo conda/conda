@@ -464,7 +464,7 @@ class MatchSpec(object):
             if len(target_groups) > 1:
                 raise ValueError("Incompatible MatchSpec merge:%s" % dashlist(group))
             merged_specs.append(
-                reduce(lambda x, y: x.merge(y, union), group) if len(group) > 1 else group[0]
+                reduce(lambda x, y: x._merge(y, union), group) if len(group) > 1 else group[0]
             )
         return tuple(concatv(merged_specs, unmergeable))
 

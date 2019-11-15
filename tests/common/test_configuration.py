@@ -224,15 +224,15 @@ class SampleConfiguration(Configuration):
     boolean_map = ParameterLoader(MapParameter(PrimitiveParameter(False, element_type=bool)))
     commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", string_types)))
 
-    env_var_map = ParameterLoader(MapParameter(
-        PrimitiveParameter("", string_types, expandvars=True),
-        expandvars=True))
-    env_var_str = ParameterLoader(PrimitiveParameter('', expandvars=True))
-    env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool, expandvars=True))
-    normal_str = ParameterLoader(PrimitiveParameter('', expandvars=False))
-    env_var_list = ParameterLoader(SequenceParameter(
-        PrimitiveParameter('', string_types, expandvars=True),
-        expandvars=True))
+    env_var_map = ParameterLoader(
+        MapParameter(PrimitiveParameter("", string_types)),
+        expandvars=True)
+    env_var_str = ParameterLoader(PrimitiveParameter(''), expandvars=True)
+    env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool), expandvars=True)
+    normal_str = ParameterLoader(PrimitiveParameter(''), expandvars=False)
+    env_var_list = ParameterLoader(
+        SequenceParameter(PrimitiveParameter('', string_types)),
+        expandvars=True)
 
 
 class TestObject(object):

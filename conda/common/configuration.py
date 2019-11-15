@@ -41,7 +41,7 @@ from .serialize import yaml_load
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import AttrDict, first, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
-from .._vendor.auxlib.type_coercion import TypeCoercionError, typify
+from .._vendor.auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, excepts, merge, merge_with, unique
@@ -377,6 +377,8 @@ class DefaultValueRawParameter(RawParameter):
                 children_values.append(DefaultValueRawParameter(
                     self.source, self.key, self._raw_value[i]))
             self._value = tuple(children_values)
+        elif isinstance(self._raw_value, Enum):
+            self._value = self._raw_value
         elif isinstance(self._raw_value, primitive_types):
             self._value = self._raw_value
         else:
@@ -393,6 +395,8 @@ class DefaultValueRawParameter(RawParameter):
             return frozendict()
         elif isiterable(self._raw_value):
             return tuple()
+        elif isinstance(self._raw_value, Enum):
+            return None
         elif isinstance(self._raw_value, primitive_types):
             return None
         else:
@@ -439,7 +443,7 @@ class LoadedParameter(object):
     _type = None
     _element_type = None
 
-    def __init__(self, name, value, key_flag, value_flags, validation=None, expandvars=False):
+    def __init__(self, name, value, key_flag, value_flags, validation=None):
         """
 
         Args:
@@ -452,7 +456,6 @@ class LoadedParameter(object):
         self.key_flag = key_flag
         self.value_flags = value_flags
         self._validation = validation
-        self._expandvars = expandvars
 
     def collect_errors(self, instance, typed_value, source="<<merged>>"):
         """Validate a Parameter value.
@@ -474,16 +477,15 @@ class LoadedParameter(object):
         return errors
 
     def expand(self):
-        if self._expandvars:
-            # This is similar to conda._vendor.auxlib.type_coercion.typify_data_structure
-            # It could be DRY-er but that would break SRP.
-            if isinstance(self.value, Mapping):
-                new_value = type(self.value)((k, v.expand()) for k, v in iteritems(self.value))
-            elif isiterable(self.value):
-                new_value = type(self.value)(v.expand() for v in self.value)
-            else:
-                new_value = expand_environment_variables(self.value)
-            self.value = new_value
+        # This is similar to conda._vendor.auxlib.type_coercion.typify_data_structure
+        # It could be DRY-er but that would break SRP.
+        if isinstance(self.value, Mapping):
+            new_value = type(self.value)((k, v.expand()) for k, v in iteritems(self.value))
+        elif isiterable(self.value):
+            new_value = type(self.value)(v.expand() for v in self.value)
+        else:
+            new_value = expand_environment_variables(self.value)
+        self.value = new_value
         return self
 
     @abstractmethod
@@ -542,7 +544,7 @@ class PrimitiveLoadedParameter(LoadedParameter):
     python 2 has long and unicode types.
     """
 
-    def __init__(self, name, element_type, value, key_flag, value_flags, validation=None, expandvars=False):
+    def __init__(self, name, element_type, value, key_flag, value_flags, validation=None):
         """
         Args:
             validation (callable): Given a parameter value as input, return a boolean indicating
@@ -554,7 +556,7 @@ class PrimitiveLoadedParameter(LoadedParameter):
         """
         self._type = element_type
         self._element_type = element_type
-        super(PrimitiveLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation, expandvars)
+        super(PrimitiveLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation)
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -589,7 +591,7 @@ class MapLoadedParameter(LoadedParameter):
     """
     _type = frozendict
 
-    def __init__(self, name, value, element_type, key_flag, value_flags, validation=None, expandvars=False):
+    def __init__(self, name, value, element_type, key_flag, value_flags, validation=None):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element.
@@ -599,7 +601,7 @@ class MapLoadedParameter(LoadedParameter):
 
         """
         self._element_type = element_type
-        super(MapLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation, expandvars)
+        super(MapLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation)
 
     def collect_errors(self, instance, typed_value, source="<<merged>>"):
         errors = super(MapLoadedParameter, self).collect_errors(instance, typed_value, self.value)
@@ -650,8 +652,7 @@ class MapLoadedParameter(LoadedParameter):
             self._element_type,
             self.key_flag,
             self.value_flags,
-            validation=self._validation,
-            expandvars=self._expandvars)
+            validation=self._validation)
 
     # def repr_raw(self, raw_parameter):
     #     lines = list()
@@ -677,8 +678,7 @@ class SequenceLoadedParameter(LoadedParameter):
     """
     _type = tuple
 
-    def __init__(self, name, value, element_type, key_flag, value_flags,
-                 validation=None, expandvars=False):
+    def __init__(self, name, value, element_type, key_flag, value_flags, validation=None):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element in
@@ -689,7 +689,7 @@ class SequenceLoadedParameter(LoadedParameter):
 
         """
         self._element_type = element_type
-        super(SequenceLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation, expandvars)
+        super(SequenceLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation)
 
     def collect_errors(self, instance, typed_value, source="<<merged>>"):
         errors = super(SequenceLoadedParameter, self).collect_errors(instance, typed_value, self.value)
@@ -747,8 +747,7 @@ class SequenceLoadedParameter(LoadedParameter):
             self._element_type,
             self.key_flag,
             self.value_flags,
-            validation=self._validation,
-            expandvars=self._expandvars)
+            validation=self._validation)
 
     def repr_raw(self, raw_parameter):
         lines = list()
@@ -774,10 +773,9 @@ class Parameter(object):
     _type = None
     _element_type = None
 
-    def __init__(self, default, validation=None, expandvars=False):
+    def __init__(self, default, validation=None):
         self._default = default
         self._validation = validation
-        self._expandvars = expandvars
 
     @property
     def default(self):
@@ -790,17 +788,30 @@ class Parameter(object):
     def load(self, name, match):
         raise NotImplementedError()
 
+    def typify(self, name, source, value):
+        element_type = self._element_type
+        try:
+            return typify_data_structure(value, element_type)
+        except TypeCoercionError as e:
+            # if name is None:
+            #     name = self.name
+            msg = text_type(e)
+            if issubclass(element_type, Enum):
+                choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
+                msg += "\nValid choices for {}: {}".format(name, choices)
+            raise CustomValidationError(name, e.value, source, msg)
+
 
 class PrimitiveParameter(Parameter):
     """
     """
 
-    def __init__(self, default, element_type=None, validation=None, expandvars=False):
+    def __init__(self, default, element_type=None, validation=None):
         """
         """
         self._type = type(default) if element_type is None else element_type
         self._element_type = self._type
-        super(PrimitiveParameter, self).__init__(default, validation, expandvars)
+        super(PrimitiveParameter, self).__init__(default, validation)
 
     def load(self, name, match):
         return PrimitiveLoadedParameter(
@@ -809,8 +820,7 @@ class PrimitiveParameter(Parameter):
             match.value(self._element_type),
             match.keyflag(),
             match.valueflags(self._element_type),
-            validation=self._validation,
-            expandvars=self._expandvars)
+            validation=self._validation)
 
 
 class MapParameter(Parameter):
@@ -819,7 +829,7 @@ class MapParameter(Parameter):
 
     _type = frozendict
 
-    def __init__(self, element_type, default=frozendict(), validation=None, expandvars=False):
+    def __init__(self, element_type, default=frozendict(), validation=None):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element.
@@ -830,7 +840,7 @@ class MapParameter(Parameter):
         """
         self._element_type = element_type
         default = default and frozendict(default) or frozendict()
-        super(MapParameter, self).__init__(default, validation=validation, expandvars=expandvars)
+        super(MapParameter, self).__init__(default, validation=validation)
 
     def load(self, name, match):
 
@@ -842,8 +852,7 @@ class MapParameter(Parameter):
                 self._element_type,
                 match.keyflag(),
                 frozendict(),
-                validation=self._validation,
-                expandvars=self._expandvars)
+                validation=self._validation)
 
         if not isinstance(value, Mapping):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
@@ -860,8 +869,7 @@ class MapParameter(Parameter):
             self._element_type,
             match.keyflag(),
             match.valueflags(self._element_type),
-            validation=self._validation,
-            expandvars=self._expandvars)
+            validation=self._validation)
 
 
 class SequenceParameter(Parameter):
@@ -870,12 +878,12 @@ class SequenceParameter(Parameter):
     _type = tuple
 
     def __init__(self, element_type, default=(), validation=None,
-                 string_delimiter=',', expandvars=False):
+                 string_delimiter=','):
         """
         """
         self._element_type = element_type
         self.string_delimiter = string_delimiter
-        super(SequenceParameter, self).__init__(default, validation, expandvars)
+        super(SequenceParameter, self).__init__(default, validation)
 
     def load(self, name, match):
 
@@ -887,8 +895,7 @@ class SequenceParameter(Parameter):
                 self._element_type,
                 match.keyflag(),
                 tuple(),
-                validation=self._validation,
-                expandvars=self._expandvars)
+                validation=self._validation)
 
         if not isiterable(value):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
@@ -905,17 +912,17 @@ class SequenceParameter(Parameter):
             self._element_type,
             match.keyflag(),
             match.valueflags(self._element_type),
-            validation=self._validation,
-            expandvars=self._expandvars)
+            validation=self._validation)
 
 
 class ParameterLoader(object):
 
-    def __init__(self, parameter_type, aliases=()):
+    def __init__(self, parameter_type, aliases=(), expandvars=False):
         self._name = None
         self._names = None
-        self.aliases = aliases
         self.type = parameter_type
+        self.aliases = aliases
+        self._expandvars = expandvars
 
     def _set_name(self, name):
         # this is an explicit method, and not a descriptor/setter
@@ -959,7 +966,7 @@ class ParameterLoader(object):
         # step 5: typify
         # We need to expand any environment variables before type casting.
         # Otherwise e.g. `my_bool_var: $BOOL` with BOOL=True would raise a TypeCoercionError.
-        expanded = merged.expand()
+        expanded = merged.expand() if self._expandvars else merged
         try:
             result = expanded.typify("<<merged>>")
         except CustomValidationError as e:
@@ -1157,12 +1164,13 @@ class Configuration(object):
         # TODO, in Parameter base class, rename element_type to value_type
         if parameter_name not in self.parameter_names:
             parameter_name = '_' + parameter_name
-        parameter = self.__class__.__dict__[parameter_name]
-        assert isinstance(parameter, LoadedParameter)
+        parameter_loader = self.__class__.__dict__[parameter_name]
+        parameter = parameter_loader.type
+        assert isinstance(parameter, Parameter)
 
         # dedupe leading underscore from name
-        name = parameter.name.lstrip('_')
-        aliases = tuple(alias for alias in parameter.aliases if alias != name)
+        name = parameter_loader.name.lstrip('_')
+        aliases = tuple(alias for alias in parameter_loader.aliases if alias != name)
 
         description = self.get_descriptions().get(name, '')
         et = parameter._element_type
@@ -1170,7 +1178,11 @@ class Configuration(object):
             et = [et]
         if not isiterable(et):
             et = [et]
-        element_types = tuple(_et.__name__ for _et in et)
+
+        if isinstance(parameter._element_type, Parameter):
+            element_types = tuple(_et.__class__.__name__.lower().replace("parameter", "") for _et in et)
+        else:
+            element_types = tuple(_et.__name__ for _et in et)
 
         details = {
             'parameter_type': parameter.__class__.__name__.lower().replace("parameter", ""),
@@ -1180,7 +1192,7 @@ class Configuration(object):
             'default_value': parameter.default,
             'description': description.replace('\n', ' ').strip(),
         }
-        if isinstance(parameter, SequenceLoadedParameter):
+        if isinstance(parameter, SequenceParameter):
             details['string_delimiter'] = parameter.string_delimiter
         return details
 
@@ -1191,10 +1203,11 @@ class Configuration(object):
         # return a tuple with correct parameter name and typed-value
         if parameter_name not in self.parameter_names:
             parameter_name = '_' + parameter_name
-        parameter = self.__class__.__dict__[parameter_name]
-        assert isinstance(parameter, LoadedParameter)
+        parameter_loader = self.__class__.__dict__[parameter_name]
+        parameter = parameter_loader.type
+        assert isinstance(parameter, Parameter)
 
-        return parameter.typify(value, source)
+        return parameter.typify(parameter_name, source, value)
 
     def get_descriptions(self):
         raise NotImplementedError()

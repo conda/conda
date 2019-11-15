@@ -314,5 +314,5 @@ class EnvironmentMappedSource(Source):
     def load(self):
         mapped_source = self._sourcemap[self.parent_config[self._envvar]]
         mapped_source.parent_config = self.parent_config
-        params = mapped_source.load(,
+        params = mapped_source.load()
         return params
