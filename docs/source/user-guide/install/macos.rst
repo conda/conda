@@ -56,31 +56,12 @@ EXAMPLE:
 
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O ~/miniconda.sh
     bash ~/miniconda.sh -b -p $HOME/miniconda
-    export PATH="$HOME/miniconda/bin:$PATH"
+..
+
+The installer prompts “Do you wish the installer to initialize Miniconda3 by running conda init?” We recommend “yes”.
 
 .. note::
-   This sets the PATH only for the current session, not
-   permanently. Trying to use conda when conda is not in your
-   PATH causes errors such as "command not found."
-
-In each new bash session, before using conda, set the PATH and
-run the activation scripts of your conda packages by running::
-
-  source $HOME/miniconda/bin/activate
-
-.. note::
-   Replace ``$HOME/miniconda/bin/activate``
-   with the path to the activate script in your conda installation.
-
-To set the PATH permanently, you can add a line to your
-``.bashrc`` file. However, this makes it possible to use conda
-without running the activation scripts of your conda packages,
-which may produce errors.
-
-EXAMPLE::
-
-  export PATH="$HOME/miniconda/bin:$PATH"
-
+   If you enter “no”, then conda will not modify your shell scripts at all. In order to initialize after the installation process is done, first run source <path to conda>/bin/activate and then run conda init.
 
 Updating Anaconda or Miniconda
 ==============================
