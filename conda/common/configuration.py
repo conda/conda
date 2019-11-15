@@ -663,12 +663,6 @@ class MapLoadedParameter(LoadedParameter):
     #         lines.append("  %s: %s%s" % (valuekey, self._str_format_value(value),
     #                                      self._str_format_flag(valueflag)))
     #     return '\n'.join(lines)
-    #
-    # def _get_all_matches(self, instance):
-    #     # it also config settings like `proxy_servers: ~`
-    #     matches, exceptions = super(MapParameter, self)._get_all_matches(instance)
-    #     matches = tuple(m for m in matches if m._raw_value is not None)
-    #     return matches, exceptions
 
 
 class SequenceLoadedParameter(LoadedParameter):
@@ -759,14 +753,6 @@ class SequenceLoadedParameter(LoadedParameter):
                                        self._str_format_flag(valueflag)))
         return '\n'.join(lines)
 
-    def _get_all_matches(self, instance):
-        # this is necessary to handle argparse `action="append"`, which can't be set to a
-        #   default value of NULL
-        # it also config settings like `channels: ~`
-        matches, exceptions = super(SequenceLoadedParameter, self)._get_all_matches(instance)
-        matches = tuple(m for m in matches if m._raw_value is not None)
-        return matches, exceptions
-
 
 @with_metaclass(ABCMeta)
 class Parameter(object):
@@ -781,6 +767,19 @@ class Parameter(object):
     def default(self):
         wrapped_default = DefaultValueRawParameter("default", "default", self._default)
         return self.load("default", wrapped_default)
+
+    def get_all_matches(self, name, names, instance):
+        # a match is a raw parameter instance
+        matches = []
+        multikey_exceptions = []
+        for filepath, raw_parameters in iteritems(instance.raw_data):
+            match, error = ParameterLoader.raw_parameters_from_single_source(
+                name, names, raw_parameters)
+            if match is not None:
+                matches.append(match)
+            if error:
+                multikey_exceptions.append(error)
+        return matches, multikey_exceptions
 
     @abstractmethod
     # match is a RawParameter
@@ -842,6 +841,12 @@ class MapParameter(Parameter):
         default = default and frozendict(default) or frozendict()
         super(MapParameter, self).__init__(default, validation=validation)
 
+    def get_all_matches(self, name, names, instance):
+        # it also config settings like `proxy_servers: ~`
+        matches, exceptions = super(MapParameter, self).get_all_matches(name, names, instance)
+        matches = tuple(m for m in matches if m._raw_value is not None)
+        return matches, exceptions
+
     def load(self, name, match):
 
         value = match.value(self._element_type)
@@ -884,6 +889,14 @@ class SequenceParameter(Parameter):
         self._element_type = element_type
         self.string_delimiter = string_delimiter
         super(SequenceParameter, self).__init__(default, validation)
+
+    def get_all_matches(self, name, names, instance):
+        # this is necessary to handle argparse `action="append"`, which can't be set to a
+        #   default value of NULL
+        # it also config settings like `channels: ~`
+        matches, exceptions = super(SequenceParameter, self).get_all_matches(name, names, instance)
+        matches = tuple(m for m in matches if m._raw_value is not None)
+        return matches, exceptions
 
     def load(self, name, match):
 
@@ -954,7 +967,7 @@ class ParameterLoader(object):
             return instance._cache_[self.name]
 
         # step 1/2: load config and find top level matches
-        raw_matches, errors = self._get_all_matches(instance)
+        raw_matches, errors = self.type.get_all_matches(self.name, self.names, instance)
 
         # step 3: parse RawParameters into LoadedParameters
         matches = [self.type.load(self.name, match) for match in raw_matches]
@@ -978,33 +991,26 @@ class ParameterLoader(object):
         return result  # lgtm [py/uninitialized-local-variable]
 
     def _raw_parameters_from_single_source(self, raw_parameters):
+        return ParameterLoader.raw_parameters_from_single_source(
+            self.name, self.names, raw_parameters)
+
+    @staticmethod
+    def raw_parameters_from_single_source(name, names, raw_parameters):
         # while supporting parameter name aliases, we enforce that only one definition is given
         # per data source
-        keys = self.names & frozenset(raw_parameters.keys())
+        keys = names & frozenset(raw_parameters.keys())
         matches = {key: raw_parameters[key] for key in keys}
         numkeys = len(keys)
         if numkeys == 0:
             return None, None
         elif numkeys == 1:
             return next(itervalues(matches)), None
-        elif self.name in keys:
-            return matches[self.name], MultipleKeysError(raw_parameters[next(iter(keys))].source,
-                                                         keys, self.name)
+        elif name in keys:
+            return matches[name], MultipleKeysError(raw_parameters[next(iter(keys))].source,
+                                                         keys, name)
         else:
             return None, MultipleKeysError(raw_parameters[next(iter(keys))].source,
-                                           keys, self.name)
-
-    def _get_all_matches(self, instance):
-        # a match is a raw parameter instance
-        matches = []
-        multikey_exceptions = []
-        for filepath, raw_parameters in iteritems(instance.raw_data):
-            match, error = self._raw_parameters_from_single_source(raw_parameters)
-            if match is not None:
-                matches.append(match)
-            if error:
-                multikey_exceptions.append(error)
-        return matches, multikey_exceptions
+                                           keys, name)
 
     @staticmethod
     def _str_format_flag(flag):
