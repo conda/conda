@@ -5,9 +5,9 @@ from conda.common.io import env_var, env_vars
 
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
-from conda.common.configuration import (Configuration, MapLoadedParameter, ParameterFlag, ParameterLoader,
-                                        PrimitiveParameter, MapParameter, PrimitiveLoadedParameter, SequenceParameter, SequenceLoadedParameter, YamlRawParameter,
-                                        load_file_configs, MultiValidationError, InvalidTypeError,
+from conda.common.configuration import (Configuration, ParameterFlag, ParameterLoader,
+                                        PrimitiveParameter, MapParameter, SequenceParameter,
+                                        YamlRawParameter, load_file_configs, InvalidTypeError,
                                         CustomValidationError)
 from conda.common.serialize import yaml_load
 from conda.common.configuration import ValidationError
@@ -217,14 +217,9 @@ class SampleConfiguration(Configuration):
         SequenceParameter(MapParameter(PrimitiveParameter("", element_type=string_types))))
 
 
-class TestObject(object):
-    def __init__(self, test=1):
-        self.test = test
-
-
 def load_from_string_data(*seq):
     return odict((f, YamlRawParameter.make_raw_parameters(f, yaml_load(test_yaml_raw[f])))
-                  for f in seq)
+                 for f in seq)
 
 
 class ConfigurationTests(TestCase):

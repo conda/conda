@@ -236,7 +236,7 @@ class EnvRawParameter(RawParameter):
             # TODO: add stripping of !important, !top, and !bottom
             return tuple('' for _ in self._raw_value.split(string_delimiter))
         else:
-             return self.__important_split_value[0].strip()
+            return self.__important_split_value[0].strip()
 
     @property
     def __important_split_value(self):
@@ -326,7 +326,8 @@ class YamlRawParameter(RawParameter):
     def _get_yaml_list_comments(value):
         items = value.ca.items
         raw_comment_lines = tuple(excepts((AttributeError, IndexError, KeyError, TypeError),
-                                          lambda q: YamlRawParameter._get_yaml_list_comment_item(items[q]),
+                                          lambda q: YamlRawParameter._get_yaml_list_comment_item(
+                                              items[q]),
                                           lambda _: None  # default value on exception
                                           )(q)
                                   for q in range(len(value)))
@@ -534,7 +535,7 @@ class LoadedParameter(object):
         Recursively merges matches into one LoadedParameter.
 
         Args:
-            matches (List<LoadedParameter>): list of matches of this parameter from a Configuration.
+            matches (List<LoadedParameter>): list of matches of this parameter.
 
         Returns: LoadedParameter
         """
@@ -604,7 +605,8 @@ class PrimitiveLoadedParameter(LoadedParameter):
         """
         self._type = element_type
         self._element_type = element_type
-        super(PrimitiveLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation)
+        super(PrimitiveLoadedParameter, self).__init__(
+            name, value, key_flag, value_flags, validation)
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -700,11 +702,12 @@ class SequenceLoadedParameter(LoadedParameter):
         """
         Args:
             value (Sequence): Sequence of LoadedParameter values.
-            element_type (Parameter): The Parameter type that is held in the elements of this class.
+            element_type (Parameter): The Parameter type that is held in the sequence.
             value_flags (Sequence): Sequence of priority value_flags.
         """
         self._element_type = element_type
-        super(SequenceLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation)
+        super(SequenceLoadedParameter, self).__init__(
+            name, value, key_flag, value_flags, validation)
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -715,7 +718,8 @@ class SequenceLoadedParameter(LoadedParameter):
         return hash(self.value)
 
     def collect_errors(self, instance, typed_value, source="<<merged>>"):
-        errors = super(SequenceLoadedParameter, self).collect_errors(instance, typed_value, self.value)
+        errors = super(SequenceLoadedParameter, self).collect_errors(
+            instance, typed_value, self.value)
         # recursively collect errors on the elements in the sequence
         for idx, element in enumerate(self.value):
             errors.extend(element.collect_errors(instance, typed_value[idx], source))
@@ -746,7 +750,6 @@ class SequenceLoadedParameter(LoadedParameter):
         # coming earlier will ultimately be last
         bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom) for m, _ in
                               reversed(relevant_matches_and_values))
-
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
@@ -938,13 +941,12 @@ class SequenceParameter(Parameter):
     """
     _type = tuple
 
-    def __init__(self, element_type, default=(), validation=None,
-                 string_delimiter=','):
+    def __init__(self, element_type, default=(), validation=None, string_delimiter=','):
         """
         Args:
-            element_type (Parameter): The Parameter type that is held in the elements of this class.
-            default (Sequence): default value, empty tuple if not given
-            string_delimiter (str): separation string used to parse string into sequence
+            element_type (Parameter): The Parameter type that is held in the sequence.
+            default (Sequence): default value, empty tuple if not given.
+            string_delimiter (str): separation string used to parse string into sequence.
         """
         self._element_type = element_type
         self.string_delimiter = string_delimiter
@@ -1075,8 +1077,8 @@ class ParameterLoader(object):
         elif numkeys == 1:
             return next(itervalues(matches)), None
         elif name in keys:
-            return matches[name], MultipleKeysError(raw_parameters[next(iter(keys))].source,
-                                                         keys, name)
+            return matches[name], MultipleKeysError(
+                raw_parameters[next(iter(keys))].source, keys, name)
         else:
             return None, MultipleKeysError(raw_parameters[next(iter(keys))].source,
                                            keys, name)
@@ -1183,7 +1185,8 @@ class Configuration(object):
                 except CustomValidationError as e:
                     validation_errors.append(e)
                 else:
-                    collected_errors = loaded_parameter.collect_errors(self, typed_value, match.source)
+                    collected_errors = loaded_parameter.collect_errors(
+                        self, typed_value, match.source)
                     if collected_errors:
                         validation_errors.extend(collected_errors)
                     else:
@@ -1245,7 +1248,8 @@ class Configuration(object):
             et = [et]
 
         if isinstance(parameter._element_type, Parameter):
-            element_types = tuple(_et.__class__.__name__.lower().replace("parameter", "") for _et in et)
+            element_types = tuple(
+                _et.__class__.__name__.lower().replace("parameter", "") for _et in et)
         else:
             element_types = tuple(_et.__name__ for _et in et)
 

@@ -125,7 +125,8 @@ class Context(Configuration):
 
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
     allow_conda_downgrades = ParameterLoader(PrimitiveParameter(False))
-    allow_cycles = ParameterLoader(PrimitiveParameter(True))  # allow cyclical dependencies, or raise
+    # allow cyclical dependencies, or raise
+    allow_cycles = ParameterLoader(PrimitiveParameter(True))
     allow_softlinks = ParameterLoader(PrimitiveParameter(False))
     auto_update_conda = ParameterLoader(PrimitiveParameter(True), aliases=('self_update',))
     auto_activate_base = ParameterLoader(PrimitiveParameter(True))
@@ -134,10 +135,12 @@ class Context(Configuration):
     clobber = ParameterLoader(PrimitiveParameter(False))
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
-    create_default_packages = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=string_types)))
-    default_python = ParameterLoader(PrimitiveParameter(default_python_default(),
-                                              element_type=string_types + (NoneType,),
-                                              validation=default_python_validation))
+    create_default_packages = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=string_types)))
+    default_python = ParameterLoader(
+        PrimitiveParameter(default_python_default(),
+                           element_type=string_types + (NoneType,),
+                           validation=default_python_validation))
     download_only = ParameterLoader(PrimitiveParameter(False))
     enable_private_envs = ParameterLoader(PrimitiveParameter(False))
     force_32bit = ParameterLoader(PrimitiveParameter(False))
@@ -147,14 +150,14 @@ class Context(Configuration):
 
     # multithreading in various places
     _default_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
-                                                aliases=('default_threads',))
+                                       aliases=('default_threads',))
     _repodata_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
-                                                 aliases=('repodata_threads',))
+                                        aliases=('repodata_threads',))
     _verify_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
-                                               aliases=('verify_threads',))
+                                      aliases=('verify_threads',))
     # this one actually defaults to 1 - that is handled in the property below
     _execute_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
-                                                aliases=('execute_threads',))
+                                       aliases=('execute_threads',))
 
     # Safety & Security
     _aggressive_update_packages = ParameterLoader(
@@ -170,10 +173,12 @@ class Context(Configuration):
         PrimitiveParameter("", element_type=string_types),
         string_delimiter='&'))  # TODO: consider a different string delimiter  # NOQA
     disallowed_packages = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types), string_delimiter='&'),
+        SequenceParameter(
+            PrimitiveParameter("", element_type=string_types), string_delimiter='&'),
         aliases=('disallow',))
     rollback_enabled = ParameterLoader(PrimitiveParameter(True))
-    track_features = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=string_types)))
+    track_features = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=string_types)))
     use_index_cache = ParameterLoader(PrimitiveParameter(False))
 
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
