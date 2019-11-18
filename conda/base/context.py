@@ -184,15 +184,17 @@ class Context(Configuration):
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
 
     _root_prefix = ParameterLoader(PrimitiveParameter(""), aliases=('root_dir', 'root_prefix'))
-    _envs_dirs = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=string_types),
-                                                   string_delimiter=os.pathsep),
-                                 aliases=('envs_dirs', 'envs_path'),
-                                 expandvars=True)
+    _envs_dirs = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=string_types),
+                          string_delimiter=os.pathsep),
+        aliases=('envs_dirs', 'envs_path'),
+        expandvars=True)
     _pkgs_dirs = ParameterLoader(SequenceParameter(PrimitiveParameter("", string_types)),
                                  aliases=('pkgs_dirs',),
                                  expandvars=True)
     _subdir = ParameterLoader(PrimitiveParameter(''), aliases=('subdir',))
-    _subdirs = ParameterLoader(SequenceParameter(PrimitiveParameter("", string_types)), aliases=('subdirs',))
+    _subdirs = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", string_types)), aliases=('subdirs',))
 
     local_repodata_ttl = ParameterLoader(PrimitiveParameter(1, element_type=(bool, int)))
     # number of seconds to cache repodata locally
@@ -201,17 +203,19 @@ class Context(Configuration):
 
     # remote connection details
     ssl_verify = ParameterLoader(
-        PrimitiveParameter(True, element_type=string_types + (bool,), validation=ssl_verify_validation),
+        PrimitiveParameter(True,
+                           element_type=string_types + (bool,),
+                           validation=ssl_verify_validation),
         aliases=('verify_ssl',),
         expandvars=True)
     client_ssl_cert = ParameterLoader(
         PrimitiveParameter(None, element_type=string_types + (NoneType,)),
         aliases=('client_cert',),
         expandvars=True)
-    client_ssl_cert_key = ParameterLoader(PrimitiveParameter(None,
-                                                   element_type=string_types + (NoneType,)),
-                                          aliases=('client_cert_key',),
-                                          expandvars=True)
+    client_ssl_cert_key = ParameterLoader(
+        PrimitiveParameter(None, element_type=string_types + (NoneType,)),
+        aliases=('client_cert_key',),
+        expandvars=True)
     proxy_servers = ParameterLoader(
         MapParameter(PrimitiveParameter(None, string_types + (NoneType,))),
         expandvars=True)
@@ -226,9 +230,10 @@ class Context(Configuration):
     # channels
     # #############################
     allow_non_channel_urls = ParameterLoader(PrimitiveParameter(False))
-    _channel_alias = ParameterLoader(PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
-                                              validation=channel_alias_validation),
-                                     aliases=('channel_alias',))
+    _channel_alias = ParameterLoader(
+        PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
+                           validation=channel_alias_validation),
+        aliases=('channel_alias',))
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter(
@@ -265,7 +270,7 @@ class Context(Configuration):
             PrimitiveParameter("", element_type=string_types),
             ("current_repodata.json", REPODATA_FN)))
     _use_only_tar_bz2 = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)),
-                                                 aliases=('use_only_tar_bz2',))
+                                        aliases=('use_only_tar_bz2',))
 
     always_softlink = ParameterLoader(PrimitiveParameter(False), aliases=('softlink',))
     always_copy = ParameterLoader(PrimitiveParameter(False), aliases=('copy',))
@@ -293,8 +298,10 @@ class Context(Configuration):
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
     solver_ignore_timestamps = ParameterLoader(PrimitiveParameter(False))
 
-    # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))  # CLI-only
-    # only_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))   # CLI-only
+    # # CLI-only
+    # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
+    # # CLI-only
+    # only_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
     #
     # freeze_installed = ParameterLoader(PrimitiveParameter(False))
     # update_deps = ParameterLoader(PrimitiveParameter(False), aliases=('update_dependencies',))
