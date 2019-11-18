@@ -148,61 +148,38 @@ test_yaml_raw = {
           - $UNEXPANDED_VAR
           - regular_var
     """),
-    # TODO maybe remove these
-    'fileX': dals("""
-        primitive_string: actual_value #!comment1
-        primitive_int: 10
-        simple_map: #!comment2
-            key1: 1 #!comment3
-            key2: 2
-            key3: 3
-            key5: 0
-        simple_seq: #!comment4
-            - 1 #!comment5
-            - 2
-            - 3
-        complex_map: #!comment6
-            key1: #!comment7
-                - a1 #!comment8
-                - b1 #!comment9
+    'nestedFile1': dals("""
+        nested_map:
+            key1:
+                - a1
+                - b1 #!bottom
                 - c1
             key2:
                 - d1
                 - e1
                 - f1
-        complex_seq: #!comment10
-            - #!comment11
-                key1: a1 #!comment12
-                key2: b1 #!comment13
-            - 
+        nested_seq:
+            - #!bottom
+                key1: a1
+                key2: b1
+            - #!top 
                 key3: c1
                 key4: d1
     """),
-    'fileY': dals("""
-        primitive_string: second_value
-        primitive_int: 10
-        simple_map:
-            key1: 4
-            key2: 3
-            key3: 1
-            key4: 100
-        complex_map:
+    'nestedFile2': dals("""
+        nested_map:
             key1:
                 - a2
                 - b2
                 - c2
-                - d2
-            key2:
+                - d2 #!top
+            key2: #!final
                 - d2
                 - e2
                 - f2
-        simple_seq:
-            - 1
-            - 2
-            - 3
-        complex_seq: #!top
+        nested_seq:
             -
-                key1: a2  #!final
+                key1: a2
                 key2: b2
             - 
                 key3: c2
@@ -233,6 +210,11 @@ class SampleConfiguration(Configuration):
     env_var_list = ParameterLoader(
         SequenceParameter(PrimitiveParameter('', string_types)),
         expandvars=True)
+
+    nested_map = ParameterLoader(
+        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=string_types))))
+    nested_seq = ParameterLoader(
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=string_types))))
 
 
 class TestObject(object):
@@ -562,3 +544,16 @@ class ConfigurationTests(TestCase):
             assert config.env_var_bool is True
             assert config.normal_str == '$EXPANDED_VAR'
             assert config.env_var_list == ('itsexpanded', '$UNEXPANDED_VAR', 'regular_var')
+
+    def test_nested(self):
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data('nestedFile1', 'nestedFile2'))
+        assert config.nested_seq == (
+            {'key3': 'c1', 'key4': 'd1'}, # top item from nestedFile1
+            {'key1': 'a2', 'key2': 'b2'},
+            {'key3': 'c2', 'key4': 'd2'},
+            {'key1': 'a1', 'key2': 'b1'}) # bottom item from nestedFile2
+        assert config.nested_map == {
+            'key1': ('d2', 'a2', 'b2', 'c2', 'a1', 'c1', 'b1'),
+            'key2': ('d2', 'e2', 'f2')
+        }
