@@ -65,3 +65,25 @@ version is available, type ``y`` to update:
 .. code::
 
    Proceed ([y]/n)? y
+
+
+Suppressing warning message about updating conda
+================================================
+
+To suppress the following warning message when you do not want
+to update conda to the latest version:
+
+.. code-block::
+
+    ==> WARNING: A newer version of conda exists. <==
+    current version: 4.6.13
+    latest version: 4.8.0
+ 
+Update conda by running: ``conda update -n base conda``
+ 
+Run the following command from your terminal or Anaconda Prompt:
+``conda config --set notify_outdated_conda false``
+ 
+Or add the following line in your .condarc file:
+``notify_outdated_conda: false``
+

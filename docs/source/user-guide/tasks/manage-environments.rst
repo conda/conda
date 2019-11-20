@@ -814,6 +814,22 @@ environments while changing ``.condarc`` affects them all.
 For details on creating an environment from this
 ``environment.yml`` file, see :ref:`create-env-from-file`.
 
+Restoring an environment
+========================
+
+Conda keeps a history of all the changes made to your environment,
+so you can easily "roll back" to a previous version. To list the history of each change to the current environment:
+``conda list --revisions``
+ 
+To restore environment to a previous revision: ``conda install --revision=REVNUM``
+or ``conda install --rev REVNUM``.
+ 
+.. note::
+   Replace REVNUM with the revision number.
+ 
+Example:
+If you want to restore your environment to revision 8, run ``conda install --rev 8``.
+
 Removing an environment
 =======================
 
