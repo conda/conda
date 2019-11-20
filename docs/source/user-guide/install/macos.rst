@@ -56,15 +56,15 @@ EXAMPLE:
 
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O ~/miniconda.sh
     bash ~/miniconda.sh -b -p $HOME/miniconda
-..
 
-The installer prompts “Do you wish the installer to initialize Miniconda3 by running conda init?” We recommend “yes”.
+The installer prompts “Do you wish the installer to initialize Miniconda3 by running ``conda init``?” We recommend “yes”.
 
 .. note::
-   If you enter “no”, then conda will not modify your shell scripts at all. In order to initialize after the installation process is done, first run source <path to conda>/bin/activate and then run conda init.
-..
+   If you enter “no”, then conda will not modify your shell scripts at all. In order to initialize after the installation process is done, first run ``source <path to conda>/bin/activate`` and then run ``conda init``.
+
 **MacOS Catalina**
-If you are on MacOS Catalina, the new default shell is zsh. You will instead need to run ``source <path to conda>/bin/activate`` followed by ``conda init zsh``
+
+If you are on MacOS Catalina, the new default shell is zsh. You will instead need to run ``source <path to conda>/bin/activate`` followed by ``conda init zsh``.
 
 Updating Anaconda or Miniconda
 ==============================
