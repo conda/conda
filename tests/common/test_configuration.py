@@ -5,9 +5,9 @@ from conda.common.io import env_var, env_vars
 
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
-from conda.common.configuration import (Configuration, MapParameter, ParameterFlag,
-                                        PrimitiveParameter, SequenceParameter, YamlRawParameter,
-                                        load_file_configs, MultiValidationError, InvalidTypeError,
+from conda.common.configuration import (Configuration, ParameterFlag, ParameterLoader,
+                                        PrimitiveParameter, MapParameter, SequenceParameter,
+                                        YamlRawParameter, load_file_configs, InvalidTypeError,
                                         CustomValidationError)
 from conda.common.serialize import yaml_load
 from conda.common.configuration import ValidationError
@@ -148,26 +148,73 @@ test_yaml_raw = {
           - $UNEXPANDED_VAR
           - regular_var
     """),
-
+    'nestedFile1': dals("""
+        nested_map:
+            key1:
+                - a1
+                - b1 #!bottom
+                - c1
+            key2:
+                - d1
+                - e1
+                - f1
+        nested_seq:
+            - #!bottom
+                key1: a1
+                key2: b1
+            - #!top 
+                key3: c1
+                key4: d1
+    """),
+    'nestedFile2': dals("""
+        nested_map:
+            key1:
+                - a2
+                - b2
+                - c2
+                - d2 #!top
+            key2: #!final
+                - d2
+                - e2
+                - f2
+        nested_seq:
+            -
+                key1: a2
+                key2: b2
+            - 
+                key3: c2
+                key4: d2
+            
+    """),
 }
 
 
 class SampleConfiguration(Configuration):
-    always_yes = PrimitiveParameter(False, aliases=('always_yes_altname1', 'yes',
-                                                    'always_yes_altname2'))
-    changeps1 = PrimitiveParameter(True)
-    proxy_servers = MapParameter(string_types)
-    channels = SequenceParameter(string_types, aliases=('channels_altname', ))
+    always_yes = ParameterLoader(PrimitiveParameter(False),
+                                 aliases=('always_yes_altname1', 'yes', 'always_yes_altname2'))
+    changeps1 = ParameterLoader(PrimitiveParameter(True))
+    proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=string_types)))
+    channels = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=string_types)),
+                               aliases=('channels_altname',))
 
-    always_an_int = PrimitiveParameter(0)
-    boolean_map = MapParameter(bool)
-    commented_map = MapParameter(string_types)
+    always_an_int = ParameterLoader(PrimitiveParameter(0))
+    boolean_map = ParameterLoader(MapParameter(PrimitiveParameter(False, element_type=bool)))
+    commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", string_types)))
 
-    env_var_map = MapParameter(string_types, expandvars=True)
-    env_var_str = PrimitiveParameter('', expandvars=True)
-    env_var_bool = PrimitiveParameter(False, element_type=bool, expandvars=True)
-    normal_str = PrimitiveParameter('', expandvars=False)
-    env_var_list = SequenceParameter(string_types, expandvars=True)
+    env_var_map = ParameterLoader(
+        MapParameter(PrimitiveParameter("", string_types)),
+        expandvars=True)
+    env_var_str = ParameterLoader(PrimitiveParameter(''), expandvars=True)
+    env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool), expandvars=True)
+    normal_str = ParameterLoader(PrimitiveParameter(''), expandvars=False)
+    env_var_list = ParameterLoader(
+        SequenceParameter(PrimitiveParameter('', string_types)),
+        expandvars=True)
+
+    nested_map = ParameterLoader(
+        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=string_types))))
+    nested_seq = ParameterLoader(
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=string_types))))
 
 
 def load_from_string_data(*seq):
@@ -301,9 +348,9 @@ class ConfigurationTests(TestCase):
             search_path = [condarc, not_a_file, condarcd]
             raw_data = load_file_configs(search_path)
             assert not_a_file not in raw_data
-            assert raw_data[condarc]['channels'].value(None)[0] == "wile"
+            assert raw_data[condarc]['channels'].value(None)[0].value(None) == "wile"
             assert raw_data[f1]['always_yes'].value(None) == "no"
-            assert raw_data[f2]['proxy_servers'].value(None)['http'] == "marv"
+            assert raw_data[f2]['proxy_servers'].value(None)['http'].value(None) == "marv"
 
             config = SampleConfiguration(search_path)
 
@@ -492,3 +539,16 @@ class ConfigurationTests(TestCase):
             assert config.env_var_bool is True
             assert config.normal_str == '$EXPANDED_VAR'
             assert config.env_var_list == ('itsexpanded', '$UNEXPANDED_VAR', 'regular_var')
+
+    def test_nested(self):
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data('nestedFile1', 'nestedFile2'))
+        assert config.nested_seq == (
+            {'key3': 'c1', 'key4': 'd1'}, # top item from nestedFile1
+            {'key1': 'a2', 'key2': 'b2'},
+            {'key3': 'c2', 'key4': 'd2'},
+            {'key1': 'a1', 'key2': 'b1'}) # bottom item from nestedFile2
+        assert config.nested_map == {
+            'key1': ('d2', 'a2', 'b2', 'c2', 'a1', 'c1', 'b1'),
+            'key2': ('d2', 'e2', 'f2')
+        }
