@@ -564,6 +564,7 @@ class LoadedParameter(object):
 
     @staticmethod
     def _typify_data_structure(value, source, type_hint=None):
+        # TODO object recursively typify each field with type LoadedParameter
         if isinstance(value, Mapping):
             return type(value)((k, v.typify(source)) for k, v in iteritems(value))
         elif isiterable(value):
@@ -709,14 +710,6 @@ class SequenceLoadedParameter(LoadedParameter):
         super(SequenceLoadedParameter, self).__init__(
             name, value, key_flag, value_flags, validation)
 
-    def __eq__(self, other):
-        if type(other) is type(self):
-            return self.value == other.value
-        return False
-
-    def __hash__(self):
-        return hash(self.value)
-
     def collect_errors(self, instance, typed_value, source="<<merged>>"):
         errors = super(SequenceLoadedParameter, self).collect_errors(
             instance, typed_value, self.value)
@@ -773,6 +766,35 @@ class SequenceLoadedParameter(LoadedParameter):
             self.key_flag,
             self.value_flags,
             validation=self._validation)
+
+
+class ObjectLoadedParameter(LoadedParameter):
+    """
+    LoadedParameter type that holds a sequence (i.e. list) of LoadedParameters.
+    """
+    _type = object
+
+    def __init__(self, name, value, element_type, key_flag, value_flags, validation=None):
+        """
+        Args:
+            value (Sequence): Sequence of LoadedParameter values.
+            element_type (Parameter): The Parameter type that is held in the sequence.
+            value_flags (Sequence): Sequence of priority value_flags.
+        """
+        self._element_type = element_type
+        super(ObjectLoadedParameter, self).__init__(
+            name, value, key_flag, value_flags, validation)
+
+    # def collect_errors(self, instance, typed_value, source="<<merged>>"):
+    #     errors = super(SequenceLoadedParameter, self).collect_errors(
+    #         instance, typed_value, self.value)
+    #     # recursively collect errors on the elements in the sequence
+    #     for idx, element in enumerate(self.value):
+    #         errors.extend(element.collect_errors(instance, typed_value[idx], source))
+    #     return errors
+
+    def merge(self, matches):
+        pass
 
 
 @with_metaclass(ABCMeta)
@@ -988,6 +1010,65 @@ class SequenceParameter(Parameter):
             match.keyflag(),
             match.valueflags(self._element_type),
             validation=self._validation)
+
+
+class ObjectParameter(Parameter):
+    """
+    Parameter type for a Configuration class that holds an object with Parameter fields.
+    """
+    _type = object
+
+    def __init__(self, element_type, default=None, validation=None):
+        """
+        Args:
+            element_type (Parameter): The object type with parameter fields held in ObjectParameter.
+            default (Sequence): default value, empty tuple if not given.
+        """
+        self._element_type = element_type
+        super(ObjectParameter, self).__init__(default, validation)
+
+    # TODO
+    # def get_all_matches(self, name, names, instance):
+    #     pass
+
+    def load(self, name, match):
+
+        value = match.value(self._element_type)
+        if value is None:
+            return ObjectLoadedParameter(
+                name,
+                None,
+                self._element_type,
+                match.keyflag(),
+                None,
+                validation=self._validation)
+
+        if not isinstance(value, Mapping):
+            raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
+                                   self._type.__name__)
+
+        object_parameter_attrs = {attr_name: parameter_type for
+                                  attr_name, parameter_type in
+                                  vars(self._element_type)
+                                  if isinstance(parameter_type, Parameter)
+                                  and attr_name in value.keys()}
+
+        loaded_attrs = {}
+        for attr_name, parameter_type in object_parameter_attrs:
+            raw_child_value = value.get(attr_name)
+            loaded_child_value = parameter_type.load(name, raw_child_value)
+            loaded_attrs[attr_name] = loaded_child_value
+
+        # TODO element type is object with fields x -> Parameter
+        # TODO copy element type object and modify fields x -> LoadedParameter
+        return ObjectLoadedParameter(
+            name,
+            frozendict(loaded_attrs),
+            self._element_type,
+            match.keyflag(),
+            match.valueflags(self._element_type),
+            validation=self._validation)
+
 
 
 class ParameterLoader(object):
