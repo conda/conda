@@ -132,7 +132,7 @@ def get_info_dict(system=False):
 
     virtual_pkg_index = {}
     _supplement_index_with_system(virtual_pkg_index)
-    virtual_pkgs = [[p.name, p.version] for p in virtual_pkg_index.values()]
+    virtual_pkgs = [[p.name, p.version] for p in virtual_pkg_index.values() if not p.name.startswith("__cpu_feature_")]
 
     channels = list(all_channel_urls(context.channels))
     if not context.json:
@@ -180,6 +180,7 @@ def get_info_dict(system=False):
         config_files=config_files,
         netrc_file=netrc_file,
         virtual_pkgs=virtual_pkgs,
+        cpu_flags=context.cpu_flags,
     )
     if on_win:
         from ..common._os.windows import is_admin_on_windows
@@ -239,6 +240,14 @@ def get_main_info_str(info_dict):
         '%s=%s' % tuple(x) for x in info_dict['virtual_pkgs']])
     info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else 'read only')
 
+    cpu_flags_lines = []
+    for flag in info_dict['cpu_flags']:
+        if cpu_flags_lines and len(cpu_flags_lines[-1]) + len(flag) + 1 < 100:
+            cpu_flags_lines[-1] += " " + flag
+        else:
+            cpu_flags_lines.append(flag)
+    info_dict['_cpu_flags'] = ('\n' + 26 * ' ').join(line for line in cpu_flags_lines)
+
     format_param = lambda nm, val: "%23s : %s" % (nm, val)
 
     builder = ['']
@@ -259,6 +268,7 @@ def get_main_info_str(info_dict):
         format_param('conda-build version', info_dict['conda_build_version']),
         format_param('python version', info_dict['python_version']),
         format_param('virtual packages', info_dict['_virtual_pkgs']),
+        format_param('cpu flags', info_dict['_cpu_flags']),
         format_param('base environment', '%s  (%s)' % (info_dict['root_prefix'],
                                                        info_dict['_rtwro'])),
         format_param('channel URLs', info_dict['_channels']),
