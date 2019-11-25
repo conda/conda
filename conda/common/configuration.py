@@ -21,6 +21,7 @@ try:
     from collections.abc import Mapping
 except ImportError:
     from collections import Mapping
+import copy
 from glob import glob
 from itertools import chain
 from logging import getLogger
@@ -397,6 +398,12 @@ class DefaultValueRawParameter(RawParameter):
                 children_values.append(DefaultValueRawParameter(
                     self.source, self.key, self._raw_value[i]))
             self._value = tuple(children_values)
+        elif isinstance(self._raw_value, ConfigurationObject):
+            self._value = self._raw_value
+            for attr_name, attr_value in vars(self._raw_value).items():
+                self._value.__setattr__(
+                    attr_name,
+                    DefaultValueRawParameter(self.source, self.key, attr_value))
         elif isinstance(self._raw_value, Enum):
             self._value = self._raw_value
         elif isinstance(self._raw_value, primitive_types):
@@ -415,6 +422,8 @@ class DefaultValueRawParameter(RawParameter):
             return frozendict()
         elif isiterable(self._raw_value):
             return tuple()
+        elif isinstance(self._raw_value, ConfigurationObject):
+            return None
         elif isinstance(self._raw_value, Enum):
             return None
         elif isinstance(self._raw_value, primitive_types):
@@ -524,6 +533,11 @@ class LoadedParameter(object):
             new_value = type(self.value)((k, v.expand()) for k, v in iteritems(self.value))
         elif isiterable(self.value):
             new_value = type(self.value)(v.expand() for v in self.value)
+        elif isinstance(self.value, ConfigurationObject):
+            for attr_name, attr_value in vars(self.value).items():
+                if isinstance(attr_value, LoadedParameter):
+                    self.value.__setattr__(attr_name, attr_value.expand())
+            return self.value
         else:
             new_value = expand_environment_variables(self.value)
         self.value = new_value
@@ -564,11 +578,15 @@ class LoadedParameter(object):
 
     @staticmethod
     def _typify_data_structure(value, source, type_hint=None):
-        # TODO object recursively typify each field with type LoadedParameter
         if isinstance(value, Mapping):
             return type(value)((k, v.typify(source)) for k, v in iteritems(value))
         elif isiterable(value):
             return type(value)(v.typify(source) for v in value)
+        elif isinstance(value, ConfigurationObject):
+            for attr_name, attr_value in vars(value).items():
+                if isinstance(attr_value, LoadedParameter):
+                    value.__setattr__(attr_name, attr_value.typify(source))
+            return value
         elif (isinstance(value, string_types)
               and isinstance(type_hint, type) and issubclass(type_hint, string_types)):
             # This block is necessary because if we fall through to typify(), we end up calling
@@ -777,24 +795,80 @@ class ObjectLoadedParameter(LoadedParameter):
     def __init__(self, name, value, element_type, key_flag, value_flags, validation=None):
         """
         Args:
-            value (Sequence): Sequence of LoadedParameter values.
-            element_type (Parameter): The Parameter type that is held in the sequence.
+            value (Sequence): Object with LoadedParameter fields.
+            element_type (object): The Parameter type that is held in the sequence.
             value_flags (Sequence): Sequence of priority value_flags.
         """
         self._element_type = element_type
         super(ObjectLoadedParameter, self).__init__(
             name, value, key_flag, value_flags, validation)
 
-    # def collect_errors(self, instance, typed_value, source="<<merged>>"):
-    #     errors = super(SequenceLoadedParameter, self).collect_errors(
-    #         instance, typed_value, self.value)
-    #     # recursively collect errors on the elements in the sequence
-    #     for idx, element in enumerate(self.value):
-    #         errors.extend(element.collect_errors(instance, typed_value[idx], source))
-    #     return errors
+    def collect_errors(self, instance, typed_value, source="<<merged>>"):
+        errors = super(ObjectLoadedParameter, self).collect_errors(
+            instance, typed_value, self.value)
 
+        # recursively validate the values in the object fields
+        if isinstance(self.value, ConfigurationObject):
+            for key, value in vars(self.value).items():
+                if isinstance(value, LoadedParameter):
+                    errors.extend(value.collect_errors(instance, typed_value[key], source))
+        return errors
+
+
+    # TODO(jeremyliu): deduplicate this?
     def merge(self, matches):
-        pass
+        # get matches up to and including first important_match
+        # but if no important_match, then all matches are important_matches
+        relevant_matches_and_values = tuple((match,
+                                             {k: v for k, v
+                                              in vars(match.value).items()
+                                              if isinstance(v, LoadedParameter)})
+                                            for match
+                                            in LoadedParameter._first_important_matches(matches))
+
+        for match, value in relevant_matches_and_values:
+            if not isinstance(value, Mapping):
+                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
+                                       self._type.__name__)
+
+        # map keys with important values
+        def key_is_important(match, key):
+            return match.value_flags.get(key) == ParameterFlag.final
+        important_maps = tuple(dict((k, v)
+                                    for k, v in iteritems(match_value)
+                                    if key_is_important(match, k))
+                               for match, match_value in relevant_matches_and_values)
+
+        # map each value by recursively calling merge on any entries with the same key
+        merged_values = frozendict(merge_with(
+            lambda value_matches: value_matches[0].merge(value_matches),
+            (match_value for _, match_value in relevant_matches_and_values)))
+
+        # dump all matches in a dict
+        # then overwrite with important matches
+        merged_values_important_overwritten = frozendict(merge(
+            concatv([merged_values], reversed(important_maps))))
+
+        # copy object and replace Parameter with LoadedParameter fields
+        object_copy = copy.deepcopy(self._element_type)
+        for attr_name, loaded_child_parameter in merged_values_important_overwritten.items():
+            object_copy.__setattr__(attr_name, loaded_child_parameter)
+
+        # create new parameter for the merged values
+        return ObjectLoadedParameter(
+            self._name,
+            object_copy,
+            self._element_type,
+            self.key_flag,
+            self.value_flags,
+            validation=self._validation)
+
+
+class ConfigurationObject(object):
+    """
+    Dummy class to mark whether a Python object has config parameters within.
+    """
+    pass
 
 
 @with_metaclass(ABCMeta)
@@ -1018,10 +1092,10 @@ class ObjectParameter(Parameter):
     """
     _type = object
 
-    def __init__(self, element_type, default=None, validation=None):
+    def __init__(self, element_type, default=ConfigurationObject(), validation=None):
         """
         Args:
-            element_type (Parameter): The object type with parameter fields held in ObjectParameter.
+            element_type (object): The object type with parameter fields held in ObjectParameter.
             default (Sequence): default value, empty tuple if not given.
         """
         self._element_type = element_type
@@ -1043,27 +1117,35 @@ class ObjectParameter(Parameter):
                 None,
                 validation=self._validation)
 
-        if not isinstance(value, Mapping):
+        if not (isinstance(value, Mapping) or isinstance(value, ConfigurationObject)):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
                                    self._type.__name__)
 
-        object_parameter_attrs = {attr_name: parameter_type for
-                                  attr_name, parameter_type in
-                                  vars(self._element_type)
+        # for a default object, extract out the instance variables
+        if isinstance(value, ConfigurationObject):
+            value = vars(value)
+
+        object_parameter_attrs = {attr_name: parameter_type
+                                  for attr_name, parameter_type
+                                  in vars(self._element_type).items()
                                   if isinstance(parameter_type, Parameter)
                                   and attr_name in value.keys()}
 
+        # recursively load object fields
         loaded_attrs = {}
-        for attr_name, parameter_type in object_parameter_attrs:
+        for attr_name, parameter_type in object_parameter_attrs.items():
             raw_child_value = value.get(attr_name)
             loaded_child_value = parameter_type.load(name, raw_child_value)
             loaded_attrs[attr_name] = loaded_child_value
 
-        # TODO element type is object with fields x -> Parameter
-        # TODO copy element type object and modify fields x -> LoadedParameter
+        # copy object and replace Parameter with LoadedParameter fields
+        object_copy = copy.deepcopy(self._element_type)
+        for attr_name, loaded_child_parameter in loaded_attrs.items():
+            object_copy.__setattr__(attr_name, loaded_child_parameter)
+
         return ObjectLoadedParameter(
             name,
-            frozendict(loaded_attrs),
+            object_copy,
             self._element_type,
             match.keyflag(),
             match.valueflags(self._element_type),
