@@ -109,17 +109,17 @@ def touch(path, mkdir=False, sudo_safe=False):
                     mkdir_p(dirpath)
             else:
                 assert isdir(dirname(path))
-            try:
-                fh = open(path, 'a')
-            except:
-                raise
-            else:
-                fh.close()
-                if sudo_safe and not on_win and os.environ.get('SUDO_UID') is not None:
-                    uid = int(os.environ['SUDO_UID'])
-                    gid = int(os.environ.get('SUDO_GID', -1))
-                    log.trace("chowning %s:%s %s", uid, gid, path)
-                    os.chown(path, uid, gid)
-                return False
+            with open(path, 'a'):
+                pass
+            # This chown call causes a false positive PermissionError to be
+            # raised (similar to #7109) when called in an environment which
+            # comes from sudo -u.
+            #
+            # if sudo_safe and not on_win and os.environ.get('SUDO_UID') is not None:
+            #     uid = int(os.environ['SUDO_UID'])
+            #     gid = int(os.environ.get('SUDO_GID', -1))
+            #     log.trace("chowning %s:%s %s", uid, gid, path)
+            #     os.chown(path, uid, gid)
+            return False
     except (IOError, OSError) as e:
         raise NotWritableError(path, e.errno, caused_by=e)
