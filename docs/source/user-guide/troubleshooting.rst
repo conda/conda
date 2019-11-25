@@ -1,13 +1,13 @@
-=================
+===============
 Troubleshooting
-=================
+===============
 
 .. contents::
    :local:
    :depth: 1
 
 
-Using Conda in Windows Batch script exits early
+Using conda in Windows Batch script exits early
 ===============================================
 
 In conda 4.6+, the way that you interact with conda goes through a batch script (``%PREFIX%\condabin\conda.bat``).
@@ -226,7 +226,7 @@ Conda has three similar options.
 
        # # ssl_verify (bool, str)
        # #   aliases: verify_ssl
-       # #   Conda verifies SSL certificates for HTTPS requests, just like a web
+       # #   conda verifies SSL certificates for HTTPS requests, just like a web
        # #   browser. By default, SSL verification is enabled and conda operations
        # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
@@ -253,7 +253,7 @@ Conda has three similar options.
 
        # # ssl_verify (bool, str)
        # #   aliases: verify_ssl
-       # #   Conda verifies SSL certificates for HTTPS requests, just like a web
+       # #   conda verifies SSL certificates for HTTPS requests, just like a web
        # #   browser. By default, SSL verification is enabled, and conda operations
        # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
@@ -274,6 +274,39 @@ Conda has three similar options.
    active conda environment's configuration file at
    ``<PATH_TO_ACTIVE_CONDA_ENV>/.condarc``. If ``--env`` is used and no
    environment is active, the user configuration file is used.
+
+SSL verification errors
+-----------------------
+
+Cause
+~~~~~
+
+This error may be caused by lack of activation on Windows or expired
+certifications:
+``SSL verification error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)``
+
+Solution
+~~~~~~~~
+Make sure your conda is up-to-date: ``conda --version``
+ 
+If not, run: ``conda update conda``
+
+Temporarily set your ``ssl_verify`` variable to false, upgrade the requests package, and then
+set ``ssl_verify`` back to true using the following commands::
+
+    conda config --set ssl_verify false
+    conda update requests
+    conda config --set ssl_verify true
+ 
+You can also set ``ssl_verify`` to a string path to a certificate, which can be used to verify
+SSL connections. Modify your .condarc and include the following:
+ 
+``ssl_verify: path-to-cert/chain/filename.ext``
+
+If the repository uses a self-signed certificate, use the actual path to the certificate.
+If the repository is signed by a private certificate authority (CA), the file needs to include
+the root certificate and any intermediate certificates.
+
 
 .. _permission-denied:
 
@@ -895,7 +928,7 @@ Now you have a software environment sandbox created with Python
 .. _auto-upgrade:
 
 Conda automatically upgrades to unwanted version
-===================================================
+================================================
 
 When making a Python package for an app, you create an
 environment for the app from a file ``req.txt`` that sets a
@@ -945,7 +978,7 @@ EXAMPLE: If my conda info says package cache : /opt/conda/pkgs and my Python ver
 
 
 ValidationError: Invalid value for timestamp
-=============================================
+============================================
 
 Cause
 ------
@@ -974,3 +1007,88 @@ Solution
 --------
 
 Remove all non-ASCII from PATH or switch to Python 3.
+
+
+Windows environment has not been activated
+==========================================
+
+Cause
+-----
+You may receive a warning message if you have not activated your environment:
+
+.. code-block:: Python
+
+   Warning:
+   This Python interpreter is in a conda environment, but the environment has
+   not been activated. Libraries may fail to load. To activate this environment
+   please see https://conda.io/activation
+
+Solution
+--------
+
+If you receive this warning, you need to activate your environment.
+To do so on Windows, use the Anaconda Prompt shortcut in your Windows
+start menu. If you have an existing cmd.exe session that you’d like to
+activate conda in, run:
+``call <your anaconda/miniconda install location>\Scripts\activate base``.
+
+
+.. _path-error:
+
+The system cannot find the path specified on Windows
+====================================================
+
+Cause
+-----
+PATH does not contain entries for all of the necessary conda directories.
+PATH may have too many entries from 3rd party software adding itself to
+PATH at install time, despite the user not needing to run the software via PATH lookup.
+
+Solution
+--------
+
+Strip PATH to have fewer entries and activate your environment.
+
+If there's some software that needs to be found on PATH (you run it via
+the CLI), we recommend that you create your own batch files to set PATH
+dynamically within a console session, rather than permanently modifying
+PATH in the system settings.
+
+For example, a new conda prompt batch file that first strips PATH, then
+calls the correct activation procedure could look like:
+
+.. code-block:: Python
+
+   set
+   PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”
+   call “<miniconda/anaconda root>\Scripts\activate”
+
+If you need to run 3rd party software (software other than Windows
+built-ins and Anaconda) from this custom conda prompt, then you should add
+those entries (and only those strictly necessary) to the set PATH entry
+above. Note that only the quotes wrapping the entire expression should be
+there. That is how variables are properly set in batch scripts, and these
+account for any spaces in any entries in PATH. No additional quotes should
+be within the value assigned to PATH.
+ 
+To make 3rd party software take precedence over the same-named programs
+as supplied by conda, add it to PATH after activating conda:
+
+.. code-block:: Python
+   
+   set
+   “PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\”
+   call “<miniconda/anaconda root>\Scripts\activate”
+   set “PATH=<3rd-party-entries>;%PATH%”
+
+
+To make conda software take precedence, call the activation script last.
+Because activation prepends the conda environment PATH entries,
+they have priority.
+
+.. code-block:: Python
+
+   set
+   PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”
+   call “<miniconda/anaconda root>\Scripts\activate”
+

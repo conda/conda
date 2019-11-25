@@ -30,7 +30,7 @@ To see the list of detected virtual packages, run:
 
 .. code-block:: bash
 
-   conda list
+   conda info
 
 If a package is detected, you will see it listed in the ``virtual packages``
 section, as shown in this example::

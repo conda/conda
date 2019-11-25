@@ -37,3 +37,5 @@ docs/source/_build
 **/.vscode
 conda.tmp/
 *.iml
+*.ipr
+*.iws

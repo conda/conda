@@ -18,6 +18,7 @@
   FOR %%A IN ("%~dp0.") DO @SET _sysp=%%~dpA
   IF NOT EXIST "!_sysp!\Scripts\conda.exe" @SET "_sysp=!_sysp!..\"
 )
+@FOR %%A in ("%TMP%") do @SET TMP=%%~sA
 @SET _sysp=!_sysp:~0,-1!
 @SET PATH=!_sysp!;!_sysp!\Library\mingw-w64\bin;!_sysp!\Library\usr\bin;!_sysp!\Library\bin;!_sysp!\Scripts;!_sysp!\bin;%PATH%
 @REM It seems that it is not possible to have "CONDA_EXE=Something With Spaces"

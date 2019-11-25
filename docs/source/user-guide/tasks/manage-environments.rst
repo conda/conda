@@ -337,6 +337,24 @@ the environment, and running any activation scripts that the environment may
 contain. These activation scripts are how packages can set arbitrary
 environment variables that may be necessary for their operation.
 
+When `installing Anaconda <http://docs.continuum.io/anaconda/install.html>`_,
+you have the option to “Add Anaconda
+to my PATH environment variable.” This is not recommended because the
+add to PATH option appends Anaconda to PATH. When the installer appends
+to PATH, it does not call the activation scripts.
+
+On Windows, PATH is composed of two parts, the system PATH and the
+user PATH. The system PATH always comes first. When you install
+Anaconda for Just Me, we add it to the user PATH. When you install
+for All Users, we add it to the system PATH. In the former case,
+you can end up with system PATH values taking precedence over
+our entries. In the latter case, you do not. We do not recommend
+All Users installs.
+
+Activation prepends to PATH. This only takes effect
+when you have the environment active so it is local to a terminal session,
+not global.
+
 To activate an environment: ``conda activate myenv``
 
 .. note::
@@ -344,11 +362,25 @@ To activate an environment: ``conda activate myenv``
 
 Conda prepends the path name ``myenv`` onto your system command.
 
+You may receive a warning message if you have not activated your environment:
+
+.. code-block:: Python
+
+   Warning:
+   This Python interpreter is in a conda environment, but the environment has
+   not been activated. Libraries may fail to load. To activate this environment
+   please see https://conda.io/activation.
+
+If you receive this warning, you need to activate your environment. To do
+so on Windows, run: ``c:\Anaconda3\Scripts\activate base`` in
+Anaconda Prompt.
+
 Windows is extremely sensitive to proper activation. This is because
 the Windows library loader does not support the concept of libraries
 and executables that know where to search for their dependencies
 (RPATH). Instead, Windows relies on a `dynamic-link library search order <https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order>`_.
-If environments are not active, libraries won't get found and there
+
+If environments are not active, libraries won't be found and there
 will be lots of errors. HTTP or SSL errors are common errors when the
 Python in a child environment can't find the necessary OpenSSL library.
 
@@ -358,6 +390,8 @@ with any child environment active. In general, calling any executable in
 an environment without first activating that environment will likely not work.
 For the ability to run executables in activated environments, you may be
 interested in the ``conda run`` command.
+
+If you experience errors with PATH, review our :ref:`troubleshooting <path-error>`.
 
 Conda init
 ----------
@@ -779,6 +813,22 @@ environments while changing ``.condarc`` affects them all.
 
 For details on creating an environment from this
 ``environment.yml`` file, see :ref:`create-env-from-file`.
+
+Restoring an environment
+========================
+
+Conda keeps a history of all the changes made to your environment,
+so you can easily "roll back" to a previous version. To list the history of each change to the current environment:
+``conda list --revisions``
+ 
+To restore environment to a previous revision: ``conda install --revision=REVNUM``
+or ``conda install --rev REVNUM``.
+ 
+.. note::
+   Replace REVNUM with the revision number.
+ 
+Example:
+If you want to restore your environment to revision 8, run ``conda install --rev 8``.
 
 Removing an environment
 =======================
