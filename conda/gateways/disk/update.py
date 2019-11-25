@@ -109,11 +109,11 @@ def touch(path, mkdir=False, sudo_safe=False):
                     mkdir_p(dirpath)
             else:
                 assert isdir(dirname(path))
-            with open(path, 'a') as fh:
+            with open(path, 'a'):
                 pass
             # This chown call causes a false positive PermissionError to be
             # raised (similar to #7109) when called in an environment which
-            # comes from sudo -u.            
+            # comes from sudo -u.
             #
             # if sudo_safe and not on_win and os.environ.get('SUDO_UID') is not None:
             #     uid = int(os.environ['SUDO_UID'])
