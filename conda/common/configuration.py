@@ -814,7 +814,6 @@ class ObjectLoadedParameter(LoadedParameter):
                     errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
-
     def merge(self, matches):
         # get matches up to and including first important_match
         # but if no important_match, then all matches are important_matches
@@ -1151,7 +1150,6 @@ class ObjectParameter(Parameter):
             match.keyflag(),
             match.valueflags(self._element_type),
             validation=self._validation)
-
 
 
 class ParameterLoader(object):
