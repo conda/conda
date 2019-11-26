@@ -815,7 +815,6 @@ class ObjectLoadedParameter(LoadedParameter):
         return errors
 
 
-    # TODO(jeremyliu): deduplicate this?
     def merge(self, matches):
         # get matches up to and including first important_match
         # but if no important_match, then all matches are important_matches
@@ -1101,9 +1100,11 @@ class ObjectParameter(Parameter):
         self._element_type = element_type
         super(ObjectParameter, self).__init__(default, validation)
 
-    # TODO
-    # def get_all_matches(self, name, names, instance):
-    #     pass
+    def get_all_matches(self, name, names, instance):
+        # it also config settings like `proxy_servers: ~`
+        matches, exceptions = super(ObjectParameter, self).get_all_matches(name, names, instance)
+        matches = tuple(m for m in matches if m._raw_value is not None)
+        return matches, exceptions
 
     def load(self, name, match):
 

@@ -6,9 +6,9 @@ from conda.common.io import env_var, env_vars
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
 from conda.common.configuration import (Configuration, ConfigurationObject, ObjectParameter,
-                                        ParameterFlag, ParameterLoader, PrimitiveParameter, MapParameter,
-                                        SequenceParameter, YamlRawParameter, load_file_configs,
-                                        InvalidTypeError, CustomValidationError)
+                                        ParameterFlag, ParameterLoader, PrimitiveParameter,
+                                        MapParameter, SequenceParameter, YamlRawParameter,
+                                        load_file_configs, InvalidTypeError, CustomValidationError)
 from conda.common.serialize import yaml_load
 from conda.common.configuration import ValidationError
 from os import environ, mkdir
