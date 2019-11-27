@@ -111,6 +111,25 @@ def run_inprocess_conda_command(command, disallow_stderr=True):
     return c.stdout, c.stderr, exit_code
 
 
+def add_subdir(dist_string):
+    channel_str, package_str = dist_string.split('::')
+    channel_str = channel_str + '/' +  context.subdir
+    return '::'.join([channel_str, package_str])
+
+
+def add_subdir_to_iter(iterable):
+    if isinstance(iterable, dict):
+        return {add_subdir(k) : v for k, v in iterable.items()}
+    elif isinstance(iterable, list):
+        return list(map(add_subdir, iterable))
+    elif isinstance(iterable, set):
+        return set(map(add_subdir, iterable))
+    elif isinstance(iterable, tuple):
+        return tuple(map(add_subdir, iterable))
+    else:
+        raise Exception("Unable to add subdir to object of unknown type.")
+
+
 @contextmanager
 def tempdir():
     tempdirdir = gettempdir()

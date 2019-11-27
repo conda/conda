@@ -25,7 +25,7 @@ from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
 from conda.resolve import MatchSpec
-from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, \
+from ..helpers import add_subdir_to_iter, get_index_r_1, get_index_r_2, get_index_r_4, \
     get_index_r_5, get_index_cuda, get_index_must_unfreeze
 
 from conda.common.compat import iteritems, on_win
@@ -154,7 +154,7 @@ def test_solve_1(tmpdir):
     with get_solver(tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -163,7 +163,7 @@ def test_solve_1(tmpdir):
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-3.3.2-0',
             'channel-1::numpy-1.7.1-py33_0',
-        )
+        ))
         assert convert_to_dist_str(final_state) == order
 
     specs_to_add = MatchSpec("python=2"),
@@ -171,7 +171,7 @@ def test_solve_1(tmpdir):
                     prefix_records=final_state, history_specs=specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -180,7 +180,7 @@ def test_solve_1(tmpdir):
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
             'channel-1::numpy-1.7.1-py27_0',
-        )
+        ))
         assert convert_to_dist_str(final_state) == order
 
 
@@ -190,7 +190,7 @@ def test_solve_2(tmpdir):
     with get_solver_aggregate_1(tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
-        order = (
+        order = add_subdir_to_iter((
             'channel-2::mkl-2017.0.3-0',
             'channel-2::openssl-1.0.2l-0',
             'channel-2::readline-6.2-2',
@@ -200,7 +200,7 @@ def test_solve_2(tmpdir):
             'channel-2::zlib-1.2.11-0',
             'channel-2::python-3.6.2-0',
             'channel-2::numpy-1.13.1-py36_0'
-        )
+        ))
         assert convert_to_dist_str(final_state) == order
 
     specs_to_add = MatchSpec("channel-4::numpy"),
@@ -242,9 +242,9 @@ def test_cuda_1(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             final_state = solver.solve_final_state()
             # print(convert_to_dist_str(final_state))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::cudatoolkit-9.0-0',
-            )
+            ))
             assert convert_to_dist_str(final_state) == order
 
 
@@ -255,9 +255,9 @@ def test_cuda_2(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             final_state = solver.solve_final_state()
             # print(convert_to_dist_str(final_state))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::cudatoolkit-10.0-0',
-            )
+            ))
             assert convert_to_dist_str(final_state) == order
 
 
@@ -298,7 +298,7 @@ def test_prune_1(tmpdir):
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::libnvvm-1.0-p0',
             'channel-1::mkl-rt-11.0-p0',
             'channel-1::openssl-1.0.1c-0',
@@ -321,7 +321,7 @@ def test_prune_1(tmpdir):
             'channel-1::scikit-learn-0.13.1-np16py27_p0',
             'channel-1::mkl-11.0-np16py27_p0',
             'channel-1::accelerate-1.1.0-np16py27_p0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_remove = MatchSpec("numbapro"),
@@ -330,7 +330,7 @@ def test_prune_1(tmpdir):
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
-        unlink_order = (
+        unlink_order = add_subdir_to_iter((
             'channel-1::accelerate-1.1.0-np16py27_p0',
             'channel-1::mkl-11.0-np16py27_p0',
             'channel-1::scikit-learn-0.13.1-np16py27_p0',
@@ -346,10 +346,10 @@ def test_prune_1(tmpdir):
             'channel-1::llvm-3.2-0',
             'channel-1::mkl-rt-11.0-p0',
             'channel-1::libnvvm-1.0-p0',
-        )
-        link_order = (
+        ))
+        link_order = add_subdir_to_iter((
             'channel-1::numpy-1.6.2-py27_4',
-        )
+        ))
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -360,7 +360,7 @@ def test_force_remove_1(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -369,7 +369,7 @@ def test_force_remove_1(tmpdir):
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
             'channel-1::numpy-1.7.1-py27_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     # without force_remove, taking out python takes out everything that depends on it, too,
@@ -382,10 +382,9 @@ def test_force_remove_1(tmpdir):
         print(convert_to_dist_str(final_state_2))
         # openssl remains because it is in the aggressive_update_packages set,
         #    but everything else gets removed
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
-
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
     # with force remove, we remove only the explicit specs that we provide
@@ -396,7 +395,7 @@ def test_force_remove_1(tmpdir):
         final_state_2 = solver.solve_final_state(force_remove=True)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::numpy-1.7.1-py27_0',
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -404,7 +403,7 @@ def test_force_remove_1(tmpdir):
             'channel-1::system-5.8-1',
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
     # re-solving restores order
@@ -412,7 +411,7 @@ def test_force_remove_1(tmpdir):
         final_state_3 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_3))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -421,7 +420,7 @@ def test_force_remove_1(tmpdir):
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
             'channel-1::numpy-1.7.1-py27_0'
-        )
+        ))
         assert convert_to_dist_str(final_state_3) == order
 
 
@@ -431,7 +430,7 @@ def test_no_deps_1(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -439,7 +438,7 @@ def test_no_deps_1(tmpdir):
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numba"),
@@ -447,7 +446,7 @@ def test_no_deps_1(tmpdir):
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -460,7 +459,7 @@ def test_no_deps_1(tmpdir):
             'channel-1::meta-0.4.2.dev-py27_0',
             'channel-1::numpy-1.7.1-py27_0',
             'channel-1::numba-0.8.1-np17py27_0'
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("numba"),
@@ -468,7 +467,7 @@ def test_no_deps_1(tmpdir):
         final_state_2 = solver.solve_final_state(deps_modifier='NO_DEPS')
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -477,7 +476,7 @@ def test_no_deps_1(tmpdir):
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
             'channel-1::numba-0.8.1-np17py27_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
 
@@ -487,7 +486,7 @@ def test_only_deps_1(tmpdir):
         final_state_1 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -499,7 +498,7 @@ def test_only_deps_1(tmpdir):
             'channel-1::llvmpy-0.11.2-py27_0',
             'channel-1::meta-0.4.2.dev-py27_0',
             'channel-1::numpy-1.7.1-py27_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
 
@@ -509,7 +508,7 @@ def test_only_deps_2(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -518,7 +517,7 @@ def test_only_deps_2(tmpdir):
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.3-7',
             'channel-1::numpy-1.5.1-py27_4',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numba=0.5"),
@@ -526,7 +525,7 @@ def test_only_deps_2(tmpdir):
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -540,7 +539,7 @@ def test_only_deps_2(tmpdir):
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.1-py27_0',
             # 'channel-1::numba-0.5.0-np17py27_0',  # not in the order because only_deps
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
     # fails because numpy=1.5 is in our history as an explicit spec
@@ -554,7 +553,7 @@ def test_only_deps_2(tmpdir):
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -568,7 +567,7 @@ def test_only_deps_2(tmpdir):
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.1-py27_0',
             # 'channel-1::numba-0.5.0-np17py27_0',   # not in the order because only_deps
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
 
@@ -578,7 +577,7 @@ def test_update_all_1(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -587,7 +586,7 @@ def test_update_all_1(tmpdir):
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.6.8-6',
             'channel-1::numpy-1.5.1-py26_4',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numba=0.6"), MatchSpec("numpy")
@@ -595,7 +594,7 @@ def test_update_all_1(tmpdir):
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -608,7 +607,7 @@ def test_update_all_1(tmpdir):
             'channel-1::nose-1.3.0-py26_0',
             'channel-1::numpy-1.7.1-py26_0',
             'channel-1::numba-0.6.0-np17py26_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("numba=0.6"),
@@ -616,7 +615,7 @@ def test_update_all_1(tmpdir):
         final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -629,7 +628,7 @@ def test_update_all_1(tmpdir):
             'channel-1::nose-1.3.0-py26_0',
             'channel-1::numpy-1.7.1-py26_0',
             'channel-1::numba-0.6.0-np17py26_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
 
@@ -639,7 +638,7 @@ def test_broken_install(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order_original = (
+        order_original = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -653,7 +652,7 @@ def test_broken_install(tmpdir):
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::scipy-0.12.0-np16py27_0',
             'channel-1::pandas-0.11.0-np16py27_1',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order_original
         assert solver._r.environment_is_consistent(final_state_1)
 
@@ -669,7 +668,7 @@ def test_broken_install(tmpdir):
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             "channel-1::numpy-1.7.1-py33_p0",
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -686,7 +685,7 @@ def test_broken_install(tmpdir):
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::flask-0.9-py27_0',
             'channel-1::pandas-0.11.0-np16py27_1'
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
         assert not solver._r.environment_is_consistent(final_state_2)
 
@@ -696,7 +695,7 @@ def test_broken_install(tmpdir):
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -713,7 +712,7 @@ def test_broken_install(tmpdir):
             'channel-1::flask-0.9-py27_0',
             'channel-1::scipy-0.12.0-np16py27_0',
             'channel-1::pandas-0.11.0-np16py27_1',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
         assert solver._r.environment_is_consistent(final_state_2)
 
@@ -731,7 +730,7 @@ def test_conda_downgrade(tmpdir):
         with get_solver_aggregate_1(tmpdir, specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-4::ca-certificates-2018.03.07-0',
                 'channel-2::conda-env-2.6.0-0',
                 'channel-2::libffi-3.2.1-1',
@@ -774,7 +773,7 @@ def test_conda_downgrade(tmpdir):
                 'channel-4::requests-2.19.1-py37_0',
                 'channel-4::conda-4.5.10-py37_0',
                 'channel-4::conda-build-3.12.1-py37_0'
-            )
+            ))
             assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("itsdangerous"),  # MatchSpec("conda"),
@@ -789,9 +788,9 @@ def test_conda_downgrade(tmpdir):
             unlink_order = (
                 # no conda downgrade
             )
-            link_order = (
+            link_order = add_subdir_to_iter((
                 'channel-2::itsdangerous-0.24-py_0',
-            )
+            ))
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
 
@@ -810,7 +809,7 @@ def test_conda_downgrade(tmpdir):
             unlink_precs, link_precs = solver.solve_for_diff()
             pprint(convert_to_dist_str(unlink_precs))
             pprint(convert_to_dist_str(link_precs))
-            unlink_order = (
+            unlink_order = add_subdir_to_iter((
                 # now conda gets downgraded
                 'channel-4::conda-build-3.12.1-py37_0',
                 'channel-4::conda-4.5.10-py37_0',
@@ -847,8 +846,8 @@ def test_conda_downgrade(tmpdir):
                 'channel-4::tk-8.6.7-hc745277_3',
                 'channel-4::openssl-1.0.2p-h14c3975_0',
                 'channel-4::ncurses-6.1-hf484d3e_0',
-            )
-            link_order = (
+            ))
+            link_order = add_subdir_to_iter((
                 'channel-2::openssl-1.0.2l-0',
                 'channel-2::readline-6.2-2',
                 'channel-2::sqlite-3.13.0-0',
@@ -882,7 +881,7 @@ def test_conda_downgrade(tmpdir):
                 'channel-2::pyopenssl-17.0.0-py36_0',
                 'channel-2::conda-4.3.30-py36h5d9f9f4_0',
                 'channel-4::conda-build-3.12.1-py36_0'
-            )
+            ))
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
     finally:
@@ -906,23 +905,23 @@ def test_unfreeze_when_required(tmpdir):
     with get_solver_must_unfreeze(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-freeze::libbar-2.0-0',
             'channel-freeze::libfoo-1.0-0',
             'channel-freeze::foobar-1.0-0',
             'channel-freeze::qux-1.0-0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     specs = MatchSpec("foobar"),
     with get_solver_must_unfreeze(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-freeze::libbar-2.0-0',
             'channel-freeze::libfoo-2.0-0',
             'channel-freeze::foobar-2.0-0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     # When frozen there is no solution - but conda tries really hard to not freeze things that conflict
@@ -937,12 +936,12 @@ def test_unfreeze_when_required(tmpdir):
         final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_SPECS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-freeze::libbar-2.0-0',
             'channel-freeze::libfoo-1.0-0',
             'channel-freeze::foobar-1.0-0',
             'channel-freeze::qux-1.0-0',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
 
@@ -952,7 +951,7 @@ def test_auto_update_conda(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -963,7 +962,7 @@ def test_auto_update_conda(tmpdir):
             'channel-1::python-2.7.5-0',
             'channel-1::pyyaml-3.10-py27_0',
             'channel-1::conda-1.3.5-py27_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -972,7 +971,7 @@ def test_auto_update_conda(tmpdir):
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
             print(convert_to_dist_str(final_state_2))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
                 'channel-1::sqlite-3.7.13-0',
@@ -984,7 +983,7 @@ def test_auto_update_conda(tmpdir):
                 'channel-1::pytz-2013b-py27_0',
                 'channel-1::pyyaml-3.10-py27_0',
                 'channel-1::conda-1.3.5-py27_0',
-            )
+            ))
             assert convert_to_dist_str(final_state_2) == order
 
     saved_sys_prefix = sys.prefix
@@ -996,7 +995,7 @@ def test_auto_update_conda(tmpdir):
                 final_state_2 = solver.solve_final_state()
                 # PrefixDag(final_state_2, specs).open_url()
                 print(convert_to_dist_str(final_state_2))
-                order = (
+                order = add_subdir_to_iter((
                     'channel-1::openssl-1.0.1c-0',
                     'channel-1::readline-6.2-0',
                     'channel-1::sqlite-3.7.13-0',
@@ -1008,7 +1007,7 @@ def test_auto_update_conda(tmpdir):
                     'channel-1::pytz-2013b-py27_0',
                     'channel-1::pyyaml-3.10-py27_0',
                     'channel-1::conda-1.5.2-py27_0',
-                )
+                ))
                 assert convert_to_dist_str(final_state_2) == order
 
         with env_vars({"CONDA_AUTO_UPDATE_CONDA": "no"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -1017,7 +1016,7 @@ def test_auto_update_conda(tmpdir):
                 final_state_2 = solver.solve_final_state()
                 # PrefixDag(final_state_2, specs).open_url()
                 print(convert_to_dist_str(final_state_2))
-                order = (
+                order = add_subdir_to_iter((
                     'channel-1::openssl-1.0.1c-0',
                     'channel-1::readline-6.2-0',
                     'channel-1::sqlite-3.7.13-0',
@@ -1029,7 +1028,7 @@ def test_auto_update_conda(tmpdir):
                     'channel-1::pytz-2013b-py27_0',
                     'channel-1::pyyaml-3.10-py27_0',
                     'channel-1::conda-1.3.5-py27_0',
-                )
+                ))
                 assert convert_to_dist_str(final_state_2) == order
     finally:
         sys.prefix = saved_sys_prefix
@@ -1041,7 +1040,7 @@ def test_explicit_conda_downgrade(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1052,7 +1051,7 @@ def test_explicit_conda_downgrade(tmpdir):
             'channel-1::python-2.7.5-0',
             'channel-1::pyyaml-3.10-py27_0',
             'channel-1::conda-1.5.2-py27_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -1061,7 +1060,7 @@ def test_explicit_conda_downgrade(tmpdir):
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
             print(convert_to_dist_str(final_state_2))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
                 'channel-1::sqlite-3.7.13-0',
@@ -1072,7 +1071,7 @@ def test_explicit_conda_downgrade(tmpdir):
                 'channel-1::python-2.7.5-0',
                 'channel-1::pyyaml-3.10-py27_0',
                 'channel-1::conda-1.3.5-py27_0',
-            )
+            ))
             assert convert_to_dist_str(final_state_2) == order
 
     saved_sys_prefix = sys.prefix
@@ -1084,7 +1083,7 @@ def test_explicit_conda_downgrade(tmpdir):
                 final_state_2 = solver.solve_final_state()
                 # PrefixDag(final_state_2, specs).open_url()
                 print(convert_to_dist_str(final_state_2))
-                order = (
+                order = add_subdir_to_iter((
                     'channel-1::openssl-1.0.1c-0',
                     'channel-1::readline-6.2-0',
                     'channel-1::sqlite-3.7.13-0',
@@ -1095,7 +1094,7 @@ def test_explicit_conda_downgrade(tmpdir):
                     'channel-1::python-2.7.5-0',
                     'channel-1::pyyaml-3.10-py27_0',
                     'channel-1::conda-1.3.5-py27_0',
-                )
+                ))
                 assert convert_to_dist_str(final_state_2) == order
 
         with env_vars({"CONDA_AUTO_UPDATE_CONDA": "no"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -1104,7 +1103,7 @@ def test_explicit_conda_downgrade(tmpdir):
                 final_state_2 = solver.solve_final_state()
                 # PrefixDag(final_state_2, specs).open_url()
                 print(convert_to_dist_str(final_state_2))
-                order = (
+                order = add_subdir_to_iter((
                     'channel-1::openssl-1.0.1c-0',
                     'channel-1::readline-6.2-0',
                     'channel-1::sqlite-3.7.13-0',
@@ -1115,7 +1114,7 @@ def test_explicit_conda_downgrade(tmpdir):
                     'channel-1::python-2.7.5-0',
                     'channel-1::pyyaml-3.10-py27_0',
                     'channel-1::conda-1.3.5-py27_0',
-                )
+                ))
                 assert convert_to_dist_str(final_state_2) == order
     finally:
         sys.prefix = saved_sys_prefix
@@ -1137,9 +1136,9 @@ def test_aggressive_update_packages(tmpdir):
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         base_state = solve(
             empty_state, ["libpng=1.2"],
-            (
+            add_subdir_to_iter((
                 'channel-1::libpng-1.2.50-0',
-            ))
+            )))
 
     # # ~~has "libpng" restricted to "=1.2" by history_specs~~ NOPE!
     # In conda 4.6 making aggressive_update *more* aggressive, making it override history specs.
@@ -1147,48 +1146,48 @@ def test_aggressive_update_packages(tmpdir):
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solve(
             state_1, ["cmake=2.8.9"],
-            (
+            add_subdir_to_iter((
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.5.13-1',
-            ))
+            )))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         state_1_2 = solve(
             state_1, ["cmake=2.8.9"],
-            (
+            add_subdir_to_iter((
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.2.50-0',
-            ))
+            )))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solve(
             state_1_2, ["cmake>2.8.9"],
-            (
+            add_subdir_to_iter((
                 'channel-1::cmake-2.8.10.2-0',
                 'channel-1::libpng-1.5.13-1',
-            ))
+            )))
 
     # use new history_specs to remove "libpng" version restriction
     state_2 = (base_state[0], (MatchSpec("libpng"),))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solve(
             state_2, ["cmake=2.8.9"],
-            (
+            add_subdir_to_iter((
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.5.13-1',
-            ))
+            )))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         state_2_2 = solve(
             state_2, ["cmake=2.8.9"],
-            (
+            add_subdir_to_iter((
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.2.50-0',
-            ))
+            )))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solve(
             state_2_2, ["cmake>2.8.9"],
-            (
+            add_subdir_to_iter((
                 'channel-1::cmake-2.8.10.2-0',
                 'channel-1::libpng-1.5.13-1',
-            ))
+            )))
 
 def test_python2_update(tmpdir):
     # Here we're actually testing that a user-request will uninstall incompatible packages
@@ -1197,7 +1196,7 @@ def test_python2_update(tmpdir):
     with get_solver_4(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
-        order1 = (
+        order1 = add_subdir_to_iter((
             'channel-4::ca-certificates-2018.03.07-0',
             'channel-4::conda-env-2.6.0-1',
             'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
@@ -1231,14 +1230,14 @@ def test_python2_update(tmpdir):
             'channel-4::urllib3-1.23-py27_0',
             'channel-4::requests-2.19.1-py27_0',
             'channel-4::conda-4.5.10-py27_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order1
 
     specs_to_add = MatchSpec("python=3"),
     with get_solver_4(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-4::ca-certificates-2018.03.07-0',
             'channel-4::conda-env-2.6.0-1',
             'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
@@ -1269,7 +1268,7 @@ def test_python2_update(tmpdir):
             'channel-4::urllib3-1.23-py37_0',
             'channel-4::requests-2.19.1-py37_0',
             'channel-4::conda-4.5.10-py37_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
 
@@ -1279,7 +1278,7 @@ def test_update_deps_1(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         # print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1287,14 +1286,14 @@ def test_update_deps_1(tmpdir):
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     specs2 = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
     with get_solver(tmpdir, specs2, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1304,14 +1303,14 @@ def test_update_deps_1(tmpdir):
             'channel-1::python-2.7.3-7',
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.0-py27_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(tmpdir, specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
         final_state_3a = solver.solve_final_state()
         print(convert_to_dist_str(final_state_3a))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1323,14 +1322,14 @@ def test_update_deps_1(tmpdir):
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.0-py27_0',
             'channel-1::iopro-1.5.0-np17py27_p0',
-        )
+        ))
         assert convert_to_dist_str(final_state_3a) == order
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(tmpdir, specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
         final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
         pprint(convert_to_dist_str(final_state_3))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1342,7 +1341,7 @@ def test_update_deps_1(tmpdir):
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
             'channel-1::iopro-1.5.0-np17py27_p0',
-        )
+        ))
         assert convert_to_dist_str(final_state_3) == order
 
     specs_to_add = MatchSpec("iopro"),
@@ -1350,7 +1349,7 @@ def test_update_deps_1(tmpdir):
         final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS,
                                                  deps_modifier=DepsModifier.ONLY_DEPS)
         pprint(convert_to_dist_str(final_state_3))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::unixodbc-2.3.1-0',
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1362,7 +1361,7 @@ def test_update_deps_1(tmpdir):
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
             # 'channel-1::iopro-1.5.0-np17py27_p0',
-        )
+        ))
         assert convert_to_dist_str(final_state_3) == order
 
 
@@ -1371,7 +1370,7 @@ def test_update_deps_2(tmpdir):
     with get_solver_aggregate_2(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
-        order1 = (
+        order1 = add_subdir_to_iter((
             'channel-4::ca-certificates-2018.03.07-0',
             'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
             'channel-4::libstdcxx-ng-8.2.0-hdf63c60_0',
@@ -1393,7 +1392,7 @@ def test_update_deps_2(tmpdir):
             'channel-4::setuptools-40.0.0-py36_0',
             'channel-2::jinja2-2.8-py36_1',
             'channel-2::flask-0.12-py36_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order1
 
     # The "conda update flask" case is held back by the jinja2==2.8 user-requested spec.
@@ -1402,12 +1401,12 @@ def test_update_deps_2(tmpdir):
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
-        unlink_order = (
+        unlink_order = add_subdir_to_iter((
             'channel-2::flask-0.12-py36_0',
-        )
-        link_order = (
+        ))
+        link_order = add_subdir_to_iter((
             'channel-4::flask-0.12.2-py36hb24657c_0',
-        )
+        ))
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -1417,14 +1416,14 @@ def test_update_deps_2(tmpdir):
         unlink_precs, link_precs = solver.solve_for_diff(update_modifier=UpdateModifier.UPDATE_DEPS)
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
-        unlink_order = (
+        unlink_order = add_subdir_to_iter((
             'channel-2::flask-0.12-py36_0',
             'channel-2::jinja2-2.8-py36_1',
-        )
-        link_order = (
+        ))
+        link_order = add_subdir_to_iter((
             'channel-4::jinja2-2.10-py36_0',
             'channel-4::flask-1.0.2-py36_1',
-        )
+        ))
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -1434,7 +1433,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
     with get_solver_4(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
-        order1 = (
+        order1 = add_subdir_to_iter((
             'channel-4::ca-certificates-2018.03.07-0',
             'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
             'channel-4::libstdcxx-ng-8.2.0-hdf63c60_0',
@@ -1447,7 +1446,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
             'channel-4::readline-7.0-ha6073c6_4',
             'channel-4::sqlite-3.21.0-h1bed415_2',
             'channel-4::python-2.7.14-h89e7a4a_22',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order1
 
     specs_to_add = MatchSpec("python"),
@@ -1455,19 +1454,19 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
-        unlink_order = (
+        unlink_order = add_subdir_to_iter((
             'channel-4::python-2.7.14-h89e7a4a_22',
             'channel-4::libedit-3.1-heed3624_0',
             'channel-4::openssl-1.0.2l-h077ae2c_5',
             'channel-4::ncurses-6.0-h9df7e31_2'
-        )
-        link_order = (
+        ))
+        link_order = add_subdir_to_iter((
             'channel-4::ncurses-6.1-hf484d3e_0',
             'channel-4::openssl-1.0.2p-h14c3975_0',
             'channel-4::xz-5.2.4-h14c3975_4',
             'channel-4::libedit-3.1.20170329-h6b74fdf_2',
             'channel-4::python-3.6.4-hc3d631a_1',  # python is upgraded
-        )
+        ))
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -1476,20 +1475,20 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
-        unlink_order = (
+        unlink_order = add_subdir_to_iter((
             'channel-4::python-2.7.14-h89e7a4a_22',
             'channel-4::sqlite-3.21.0-h1bed415_2',
             'channel-4::libedit-3.1-heed3624_0',
             'channel-4::openssl-1.0.2l-h077ae2c_5',
             'channel-4::ncurses-6.0-h9df7e31_2',
-        )
-        link_order = (
+        ))
+        link_order = add_subdir_to_iter((
             'channel-4::ncurses-6.1-hf484d3e_0',
             'channel-4::openssl-1.0.2p-h14c3975_0',
             'channel-4::libedit-3.1.20170329-h6b74fdf_2',
             'channel-4::sqlite-3.24.0-h84994c4_0',  # sqlite is upgraded
             'channel-4::python-2.7.15-h1571d57_0',  # python is not upgraded
-        )
+        ))
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -1507,7 +1506,7 @@ def test_pinned_1(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         pprint(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1516,7 +1515,7 @@ def test_pinned_1(tmpdir):
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-3.3.2-0',
             'channel-1::numpy-1.7.1-py33_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     with env_var("CONDA_PINNED_PACKAGES", "python=2.6&iopro<=1.4.2", stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -1525,9 +1524,9 @@ def test_pinned_1(tmpdir):
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
             pprint(convert_to_dist_str(final_state_1))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::system-5.8-0',
-            )
+            ))
             assert convert_to_dist_str(final_state_1) == order
 
         # ignore_pinned=True
@@ -1537,7 +1536,7 @@ def test_pinned_1(tmpdir):
             final_state_2 = solver.solve_final_state(ignore_pinned=True)
             # PrefixDag(final_state_1, specs).open_url()
             pprint(convert_to_dist_str(final_state_2))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
                 'channel-1::sqlite-3.7.13-0',
@@ -1545,7 +1544,7 @@ def test_pinned_1(tmpdir):
                 'channel-1::tk-8.5.13-0',
                 'channel-1::zlib-1.2.7-0',
                 'channel-1::python-3.3.2-0',
-            )
+            ))
             assert convert_to_dist_str(final_state_2) == order
 
         # ignore_pinned=False
@@ -1555,7 +1554,7 @@ def test_pinned_1(tmpdir):
             final_state_2 = solver.solve_final_state(ignore_pinned=False)
             # PrefixDag(final_state_1, specs).open_url()
             pprint(convert_to_dist_str(final_state_2))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
                 'channel-1::sqlite-3.7.13-0',
@@ -1563,7 +1562,7 @@ def test_pinned_1(tmpdir):
                 'channel-1::tk-8.5.13-0',
                 'channel-1::zlib-1.2.7-0',
                 'channel-1::python-2.6.8-6',
-            )
+            ))
             assert convert_to_dist_str(final_state_2) == order
 
         # incompatible CLI and configured specs
@@ -1583,7 +1582,7 @@ def test_pinned_1(tmpdir):
             final_state_3 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
             pprint(convert_to_dist_str(final_state_3))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
                 'channel-1::sqlite-3.7.13-0',
@@ -1596,7 +1595,7 @@ def test_pinned_1(tmpdir):
                 'channel-1::llvmpy-0.11.2-py26_0',
                 'channel-1::numpy-1.7.1-py26_0',
                 'channel-1::numba-0.8.1-np17py26_0',
-            )
+            ))
             assert convert_to_dist_str(final_state_3) == order
 
         specs_to_add = MatchSpec("python"),
@@ -1606,7 +1605,7 @@ def test_pinned_1(tmpdir):
             final_state_4 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
             # PrefixDag(final_state_1, specs).open_url()
             pprint(convert_to_dist_str(final_state_4))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
                 'channel-1::sqlite-3.7.13-0',
@@ -1619,7 +1618,7 @@ def test_pinned_1(tmpdir):
                 'channel-1::llvmpy-0.11.2-py26_0',
                 'channel-1::numpy-1.7.1-py26_0',
                 'channel-1::numba-0.8.1-np17py26_0',
-            )
+            ))
             assert convert_to_dist_str(final_state_4) == order
 
         specs_to_add = MatchSpec("python"),
@@ -1629,7 +1628,7 @@ def test_pinned_1(tmpdir):
             final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
             # PrefixDag(final_state_1, specs).open_url()
             pprint(convert_to_dist_str(final_state_5))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
                 'channel-1::sqlite-3.7.13-0',
@@ -1642,7 +1641,7 @@ def test_pinned_1(tmpdir):
                 'channel-1::llvmpy-0.11.2-py26_0',
                 'channel-1::numpy-1.7.1-py26_0',
                 'channel-1::numba-0.8.1-np17py26_0',
-            )
+            ))
             assert convert_to_dist_str(final_state_5) == order
 
     # now update without pinning
@@ -1653,7 +1652,7 @@ def test_pinned_1(tmpdir):
         final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_5))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1665,7 +1664,7 @@ def test_pinned_1(tmpdir):
             'channel-1::llvmpy-0.11.2-py33_0',
             'channel-1::numpy-1.7.1-py33_0',
             'channel-1::numba-0.8.1-np17py33_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_5) == order
 
 
@@ -1678,7 +1677,7 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1686,7 +1685,7 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("zope.interface"),
@@ -1694,7 +1693,7 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1704,7 +1703,7 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
             'channel-1::python-2.7.5-0',
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::zope.interface-4.0.5-py27_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("zope.interface>4.1"),
@@ -1718,7 +1717,7 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1728,7 +1727,7 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
             'channel-1::python-3.3.2-0',
             'channel-1::nose-1.3.0-py33_0',
             'channel-1::zope.interface-4.1.1.1-py33_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_2) == order
 
 
@@ -1738,7 +1737,7 @@ def test_force_reinstall_1(tmpdir):
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1746,7 +1745,7 @@ def test_force_reinstall_1(tmpdir):
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = specs
@@ -1771,7 +1770,7 @@ def test_force_reinstall_2(tmpdir):
         assert not unlink_dists
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(link_dists))
-        order = (
+        order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -1779,7 +1778,7 @@ def test_force_reinstall_2(tmpdir):
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
-        )
+        ))
         assert convert_to_dist_str(link_dists) == order
 
 
@@ -1789,7 +1788,7 @@ def test_timestamps_1(tmpdir):
         unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
         assert not unlink_dists
         pprint(convert_to_dist_str(link_dists))
-        order = (
+        order = add_subdir_to_iter((
             'channel-4::ca-certificates-2018.03.07-0',
             'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
             'channel-4::libstdcxx-ng-8.2.0-hdf63c60_0',
@@ -1804,7 +1803,7 @@ def test_timestamps_1(tmpdir):
             'channel-4::sqlite-3.23.1-he433501_0',
             'channel-4::python-3.6.2-hca45abc_19',  # this package has a later timestamp but lower hash value
                                                     # than the alternate 'channel-4::python-3.6.2-hda45abc_19'
-        )
+        ))
         assert convert_to_dist_str(link_dists) == order
 
 def test_channel_priority_churn_minimized(tmpdir):
@@ -1834,7 +1833,7 @@ def test_remove_with_constrained_dependencies(tmpdir):
         assert not unlink_dists_1
         pprint(convert_to_dist_str(link_dists_1))
         assert not unlink_dists_1
-        order = (
+        order = add_subdir_to_iter((
             'channel-4::ca-certificates-2018.03.07-0',
             'channel-4::conda-env-2.6.0-1',
             'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
@@ -1877,7 +1876,7 @@ def test_remove_with_constrained_dependencies(tmpdir):
             'channel-4::requests-2.19.1-py37_0',
             'channel-4::conda-4.5.10-py37_0',
             'channel-4::conda-build-3.12.1-py37_0',
-        )
+        ))
         assert convert_to_dist_str(link_dists_1) == order
 
     specs_to_remove = MatchSpec("pycosat"),
@@ -1885,11 +1884,11 @@ def test_remove_with_constrained_dependencies(tmpdir):
         unlink_dists_2, link_dists_2 = solver.solve_for_diff()
         assert not link_dists_2
         pprint(convert_to_dist_str(unlink_dists_2))
-        order = (
+        order = add_subdir_to_iter((
             'channel-4::conda-build-3.12.1-py37_0',
             'channel-4::conda-4.5.10-py37_0',
             'channel-4::pycosat-0.6.3-py37h14c3975_0',
-        )
+        ))
         for spec in order:
             assert spec in convert_to_dist_str(unlink_dists_2)
 
@@ -1901,7 +1900,7 @@ def test_priority_1(tmpdir):
             with get_solver_aggregate_1(tmpdir, specs) as solver:
                 final_state_1 = solver.solve_final_state()
                 pprint(convert_to_dist_str(final_state_1))
-                order = (
+                order = add_subdir_to_iter((
                     'channel-2::mkl-2017.0.3-0',
                     'channel-2::openssl-1.0.2l-0',
                     'channel-2::readline-6.2-2',
@@ -1914,7 +1913,7 @@ def test_priority_1(tmpdir):
                     'channel-2::six-1.10.0-py27_0',
                     'channel-2::python-dateutil-2.6.1-py27_0',
                     'channel-2::pandas-0.20.3-py27_0',
-                )
+                ))
                 assert convert_to_dist_str(final_state_1) == order
 
         with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -1924,10 +1923,10 @@ def test_priority_1(tmpdir):
                 pprint(convert_to_dist_str(final_state_2))
                 # python and pandas will be updated as they are explicit specs.  Other stuff may or may not,
                 #     as required to satisfy python and pandas
-                order = (
+                order = add_subdir_to_iter((
                     'channel-4::python-2.7.15-h1571d57_0',
                     'channel-4::pandas-0.23.4-py27h04863e7_0',
-                )
+                ))
                 for spec in order:
                     assert spec in convert_to_dist_str(final_state_2)
 
@@ -1938,10 +1937,10 @@ def test_priority_1(tmpdir):
                                     history_specs=specs) as solver:
             final_state_3 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_3))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-2::python-2.7.13-0',
                 'channel-2::pandas-0.20.3-py27_0',
-            )
+            ))
             for spec in order:
                 assert spec in convert_to_dist_str(final_state_3)
 
@@ -1951,10 +1950,10 @@ def test_priority_1(tmpdir):
                                     prefix_records=final_state_3, history_specs=specs) as solver:
             final_state_4 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_4))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-2::python-2.7.13-0',
                 'channel-2::six-1.9.0-py27_0',
-            )
+            ))
             for spec in order:
                 assert spec in convert_to_dist_str(final_state_4)
             assert 'pandas' not in convert_to_dist_str(final_state_4)
@@ -1969,7 +1968,7 @@ def test_features_solve_1(tmpdir):
         with get_solver_aggregate_1(tmpdir, specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-2::nomkl-1.0-0',
                 'channel-2::libgfortran-3.0.0-1',
                 'channel-2::openssl-1.0.2l-0',
@@ -1980,14 +1979,14 @@ def test_features_solve_1(tmpdir):
                 'channel-2::openblas-0.2.19-0',
                 'channel-2::python-2.7.13-0',
                 'channel-2::numpy-1.13.1-py27_nomkl_0',
-            )
+            ))
             assert convert_to_dist_str(final_state_1) == order
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with get_solver_aggregate_1(tmpdir, specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
-            order = (
+            order = add_subdir_to_iter((
                 'channel-4::blas-1.0-openblas',
                 'channel-4::ca-certificates-2018.03.07-0',
                 'channel-2::libffi-3.2.1-1',
@@ -2006,7 +2005,7 @@ def test_features_solve_1(tmpdir):
                 'channel-4::python-2.7.15-h1571d57_0',
                 'channel-4::numpy-base-1.15.0-py27h7cdd4dd_0',
                 'channel-4::numpy-1.15.0-py27h2aefc1b_0',
-            )
+            ))
             assert convert_to_dist_str(final_state_1) == order
 
 
@@ -2016,7 +2015,7 @@ def test_freeze_deps_1(tmpdir):
     with get_solver_2(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
-        order = (
+        order = add_subdir_to_iter((
             'channel-2::openssl-1.0.2l-0',
             'channel-2::readline-6.2-2',
             'channel-2::sqlite-3.13.0-0',
@@ -2025,7 +2024,7 @@ def test_freeze_deps_1(tmpdir):
             'channel-2::zlib-1.2.11-0',
             'channel-2::python-3.4.5-0',
             'channel-2::six-1.7.3-py34_0',
-        )
+        ))
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("bokeh"),
@@ -2034,7 +2033,7 @@ def test_freeze_deps_1(tmpdir):
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
         unlink_order = ()
-        link_order = (
+        link_order = add_subdir_to_iter((
             'channel-2::mkl-2017.0.3-0',
             'channel-2::yaml-0.1.6-0',
             'channel-2::backports_abc-0.5-py34_0',
@@ -2047,7 +2046,7 @@ def test_freeze_deps_1(tmpdir):
             'channel-2::python-dateutil-2.6.1-py34_0',
             'channel-2::tornado-4.4.2-py34_0',
             'channel-2::bokeh-0.12.4-py34_0',
-        )
+        ))
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -2059,7 +2058,7 @@ def test_freeze_deps_1(tmpdir):
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
         unlink_order = ()
-        link_order = (
+        link_order = add_subdir_to_iter((
             'channel-2::mkl-2017.0.3-0',
             'channel-2::yaml-0.1.6-0',
             'channel-2::backports_abc-0.5-py34_0',
@@ -2072,7 +2071,7 @@ def test_freeze_deps_1(tmpdir):
             'channel-2::python-dateutil-2.6.1-py34_0',
             'channel-2::tornado-4.4.2-py34_0',
             'channel-2::bokeh-0.12.4-py34_0',
-        )
+        ))
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -2093,12 +2092,12 @@ def test_freeze_deps_1(tmpdir):
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
-        unlink_order = (
+        unlink_order = add_subdir_to_iter((
             'channel-2::six-1.7.3-py34_0',
             'channel-2::python-3.4.5-0',
             'channel-2::xz-5.2.3-0',
-        )
-        link_order = (
+        ))
+        link_order = add_subdir_to_iter((
             'channel-2::mkl-2017.0.3-0',
             'channel-2::yaml-0.1.6-0',
             'channel-2::python-2.7.13-0',
@@ -2118,7 +2117,7 @@ def test_freeze_deps_1(tmpdir):
             'channel-2::jinja2-2.9.6-py27_0',
             'channel-2::tornado-4.5.2-py27_0',
             'channel-2::bokeh-0.12.5-py27_1',
-        )
+        ))
         assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -2241,7 +2240,7 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
         final_state_1 = solver.solve_final_state()
     # PrefixDag(final_state_1, specs).open_url()
     pprint(convert_to_dist_str(final_state_1))
-    order = (
+    order = add_subdir_to_iter((
         'channel-1::openssl-1.0.1c-0',
         'channel-1::readline-6.2-0',
         'channel-1::sqlite-3.7.13-0',
@@ -2249,7 +2248,7 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
         'channel-1::tk-8.5.13-0',
         'channel-1::zlib-1.2.7-0',
         'channel-1::python-2.6.8-6',
-    )
+    ))
     assert convert_to_dist_str(final_state_1) == order
 
     # incompatible CLI and configured specs

@@ -13,6 +13,7 @@ from conda.models.prefix_graph import PrefixGraph, GeneralGraph
 from conda.models.records import PackageRecord
 import pytest
 from tests.core.test_solve import get_solver_4, get_solver_5
+from tests.helpers import add_subdir_to_iter
 
 try:
     from unittest.mock import Mock, patch
@@ -218,17 +219,17 @@ def test_prefix_graph_1(tmpdir):
     )
     assert nodes == order
 
-    spec_matches = {
+    spec_matches = add_subdir_to_iter({
         'channel-4::intel-openmp-2018.0.3-0': {'intel-openmp'},
-    }
+    })
     assert {node.dist_str(): set(str(ms) for ms in specs) for node, specs in graph.spec_matches.items()} == spec_matches
 
     removed_nodes = graph.prune()
     nodes = tuple(rec.dist_str() for rec in graph.records)
     pprint(nodes)
-    order = (
+    order = add_subdir_to_iter((
         'channel-4::intel-openmp-2018.0.3-0',
-    )
+    ))
     assert nodes == order
 
     removed_nodes = tuple(rec.name for rec in removed_nodes)
