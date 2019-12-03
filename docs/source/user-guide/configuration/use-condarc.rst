@@ -628,7 +628,7 @@ EXAMPLE:
     - ~/my-envs
     - /opt/anaconda/envs
 
-The CONDA_ENVS_PATH environment variable overwrites the ``env_dirs`` setting:
+The CONDA_ENVS_PATH environment variable overwrites the ``envs_dirs`` setting:
 
 * For macOS and Linux:
   ``CONDA_ENVS_PATH=~/my-envs:/opt/anaconda/envs``
