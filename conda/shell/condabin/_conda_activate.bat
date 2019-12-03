@@ -27,13 +27,21 @@
 @REM @SET CONDA_EXES="%CONDA_EXE%" %_CE_M% %_CE_CONDA%
 @REM @FOR /F %%i IN ('%CONDA_EXES% shell.cmd.exe %*') DO @SET _TEMP_SCRIPT_PATH=%%i not return error
 @REM This method will not work if %TMP% contains any spaces.
-:tmpName
-@SET UNIQUE=%TMP%\conda-%RANDOM%-%RANDOM%.tmp
-@IF EXIST "%UNIQUE%" (goto :tmpName) ELSE (TYPE NUL 1>%UNIQUE%)
+@FOR /L %%I IN (1,1,100) DO @(
+    SET UNIQUE_DIR=%TMP%\conda-!RANDOM!
+    MKDIR !UNIQUE_DIR! > NUL 2>&1
+    IF NOT ERRORLEVEL 1 (
+        SET UNIQUE=!UNIQUE_DIR!\conda.tmp
+        TYPE NUL 1> !UNIQUE!
+        GOTO tmp_file_created
+    )
+)
+@ECHO Failed to create temp directory "%TMP%\conda-<RANDOM>\" & exit /b 1
+:tmp_file_created
 @"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE%
 @IF %ErrorLevel% NEQ 0 @EXIT /B %ErrorLevel%
 @FOR /F %%i IN (%UNIQUE%) DO @SET _TEMP_SCRIPT_PATH=%%i
-@DEL /F /Q "%UNIQUE%"
+@RMDIR /S /Q %UNIQUE_DIR%
 @FOR /F "delims=" %%A in (""!_TEMP_SCRIPT_PATH!"") DO @ENDLOCAL & @SET _TEMP_SCRIPT_PATH=%%~A
 @IF "%_TEMP_SCRIPT_PATH%" == "" @EXIT /B 1
 @IF NOT "%CONDA_PROMPT_MODIFIER%" == "" @CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
@@ -41,4 +49,4 @@
 @IF NOT "%CONDA_TEST_SAVE_TEMPS%x"=="x" @ECHO CONDA_TEST_SAVE_TEMPS :: retaining activate_batch %_TEMP_SCRIPT_PATH% 1>&2
 @IF "%CONDA_TEST_SAVE_TEMPS%x"=="x" @DEL /F /Q "%_TEMP_SCRIPT_PATH%"
 @SET _TEMP_SCRIPT_PATH=
-@SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
+@SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%" 
