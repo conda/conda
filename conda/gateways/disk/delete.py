@@ -182,7 +182,7 @@ try_rmdir_all_empty = move_to_trash = move_path_to_trash = rm_rf
 def delete_trash(prefix):
     if not prefix:
         prefix = sys.prefix
-    exclude = set(['envs'])
+    exclude = set(['envs', 'pkgs'])
     for root, dirs, files in walk(prefix, topdown=True):
         dirs[:] = [d for d in dirs if d not in exclude]
         for fn in files:
