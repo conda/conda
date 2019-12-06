@@ -5,10 +5,10 @@ from conda.common.io import env_var, env_vars
 
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
-from conda.common.configuration import (Configuration, ParameterFlag, ParameterLoader,
-                                        PrimitiveParameter, MapParameter, SequenceParameter,
-                                        YamlRawParameter, load_file_configs, InvalidTypeError,
-                                        CustomValidationError)
+from conda.common.configuration import (Configuration, ConfigurationObject, ObjectParameter,
+                                        ParameterFlag, ParameterLoader, PrimitiveParameter,
+                                        MapParameter, SequenceParameter, YamlRawParameter,
+                                        load_file_configs, InvalidTypeError, CustomValidationError)
 from conda.common.serialize import yaml_load
 from conda.common.configuration import ValidationError
 from os import environ, mkdir
@@ -183,10 +183,41 @@ test_yaml_raw = {
                 key2: b2
             - 
                 key3: c2
-                key4: d2
-            
+                key4: d2   
+    """),
+    'objectFile1': dals("""
+        test_object:
+            int_field: 10
+            str_field: sample
+            map_field:
+                key1: a1
+                key2: b1
+            seq_field:
+                - a1
+                - b1
+                - c1
+    """),
+    'objectFile2': dals("""
+        test_object:
+            int_field: 10
+            str_field: override
+            map_field:
+                key2: b2
+                key3: c2
+            seq_field:
+                - a2
+                - b2
     """),
 }
+
+
+class TestObject(ConfigurationObject):
+
+    def __init__(self):
+        self.int_field = PrimitiveParameter(0, element_type=int)
+        self.str_field = PrimitiveParameter("",element_type=string_types)
+        self.map_field = MapParameter(PrimitiveParameter("", element_type=string_types))
+        self.seq_field = SequenceParameter(PrimitiveParameter("", element_type=string_types))
 
 
 class SampleConfiguration(Configuration):
@@ -215,6 +246,9 @@ class SampleConfiguration(Configuration):
         MapParameter(SequenceParameter(PrimitiveParameter("", element_type=string_types))))
     nested_seq = ParameterLoader(
         SequenceParameter(MapParameter(PrimitiveParameter("", element_type=string_types))))
+
+    test_object = ParameterLoader(
+        ObjectParameter(TestObject()))
 
 
 def load_from_string_data(*seq):
@@ -552,3 +586,16 @@ class ConfigurationTests(TestCase):
             'key1': ('d2', 'a2', 'b2', 'c2', 'a1', 'c1', 'b1'),
             'key2': ('d2', 'e2', 'f2')
         }
+
+    def test_object(self):
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("objectFile1", "objectFile2"))
+        test_object = config.test_object
+        assert test_object.int_field == 10
+        assert test_object.str_field == "override"
+        assert test_object.map_field == {
+            "key1": "a1",
+            "key2": "b2",
+            "key3": "c2"
+        }
+        assert test_object.seq_field == ("a2", "b2", "a1", "b1", "c1")
