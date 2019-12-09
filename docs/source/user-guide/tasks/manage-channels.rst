@@ -31,14 +31,25 @@ listed channels and processes them as follows:
 
 #. Sorts packages from highest to lowest channel priority.
 
-#. Sorts tied packages---same channel priority---from highest to
-   lowest version number.
+#. Sorts tied packages---packages with the same channel priority---from highest to
+   lowest version number. For example, if channelA contains NumPy 1.12.0
+   and 1.13.1, NumPy 1.13.1 will be sorted higher.
 
-#. Sorts still-tied packages---same channel priority and same
-   version---from highest to lowest build number.
-
+#. Sorts still-tied packages---packages with the same channel priority and same
+   version---from highest to lowest build number. For example, if channelA contains
+   both NumPy 1.12.0 build 1 and build 2, build 2 is sorted first. Any packages
+   in channelB would be sorted below those in channelA. 
+   
 #. Installs the first package on the sorted list that satisfies
    the installation specifications.
+
+Essentially, the order goes:
+channelA::numpy-1.13_1 > channelA::numpy-1.12.1_1 > channelA::numpy-1.12.1_0 > channelB::numpy-1.13_1
+
+.. note::
+   If strict channel priority is turned on then channelB::numpy-1.13_1 isn't
+   included in the list at all.
+
 
 To make conda install the newest version
 of a package in any listed channel:
@@ -67,11 +78,11 @@ of the channel list, making it the highest priority::
 
   conda config --add channels new_channel
 
-Conda now has an equivalent command::
+Conda has an equivalent command::
 
   conda config --prepend channels new_channel
 
-Conda also now has a command that adds the new channel to the
+Conda also has a command that adds the new channel to the
 bottom of the channel list, making it the lowest priority::
 
   conda config --append channels new_channel
