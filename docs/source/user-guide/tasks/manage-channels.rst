@@ -31,15 +31,15 @@ listed channels and processes them as follows:
 
 #. Sorts packages from highest to lowest channel priority.
 
-#. Sorts tied packages---same channel priority---from highest to
+#. Sorts tied packages---packages with the same channel priority---from highest to
    lowest version number. For example, if channelA contains NumPy 1.12.0
    and 1.13.1, NumPy 1.13.1 will be sorted higher.
 
-#. Sorts still-tied packages---same channel priority and same
+#. Sorts still-tied packages---packages with the same channel priority and same
    version---from highest to lowest build number. For example, if channelA contains
    both NumPy 1.12.0 build 1 and build 2, build 2 is sorted first. Any packages
    in channelB would be sorted below those in channelA. 
-
+   
 #. Installs the first package on the sorted list that satisfies
    the installation specifications.
 
