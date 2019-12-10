@@ -161,7 +161,7 @@ command used to activate environments created by name::
   conda activate ./envs
  
 Specifying a path to a subdirectory of your project directory when
-creating an environment has the following benefits: 
+creating an environment has the following benefits:
 
   * It makes it easy to tell if your project uses an isolated environment
     by including the environment as a subdirectory.
@@ -349,7 +349,7 @@ Anaconda for Just Me, we add it to the user PATH. When you install
 for All Users, we add it to the system PATH. In the former case,
 you can end up with system PATH values taking precedence over
 our entries. In the latter case, you do not. We do not recommend
-All Users installs.
+`multi-user installs <https://docs.anaconda.com/anaconda/install/multi-user/>`_.
 
 Activation prepends to PATH. This only takes effect
 when you have the environment active so it is local to a terminal session,
@@ -426,15 +426,15 @@ By default, ``conda activate`` will deactivate the current environment
 before activating the new environment and reactivate it when
 deactivating the new environment. Sometimes you may want to leave
 the current environment PATH entries in place so that you can continue
-to easily access command line programs from the first environment. 
+to easily access command line programs from the first environment.
 This is most commonly encountered when common command-line utilities
 are installed in the base environment. To retain the current environment
 in the PATH, you can activate the new environment using:
 
 ``conda activate --stack myenv``
 
-If you wish to always stack when going from the outermost environment, 
-which is typically the base environment, you can set the ``auto_stack`` 
+If you wish to always stack when going from the outermost environment,
+which is typically the base environment, you can set the ``auto_stack``
 configuration option:
 
 ``conda config --set auto_stack 1``
@@ -442,6 +442,18 @@ configuration option:
 You may specify a larger number for a deeper level of automatic stacking,
 but this is not recommended since deeper levels of stacking are more likely
 to lead to confusion.
+
+Environment variable for DLL loading verification
+-------------------------------------------------
+
+If you don't want to activate your environment and you want Python
+to work for DLL loading verification, then follow the
+:ref:`troubleshooting directions <mkl_library>`.
+
+.. warning::
+   If you choose not to activate your environment, then
+   loading and setting environment variables to activate
+   scripts will not happen. We only support activation.
 
 Deactivating an environment
 ===========================

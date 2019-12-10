@@ -31,6 +31,7 @@ Neither the activation, nor the echo will happen. You must write this in your ba
 
 This is known behavior with cmd.exe, and we have not found any way to change it.  https://stackoverflow.com/questions/4798879/how-do-i-run-a-batch-script-from-within-a-batch-script/4798965
 
+.. _mkl_library:
 
 NumPy MKL library load failed
 =============================
@@ -61,7 +62,7 @@ If you are not activating your environments, start with doing that. There's more
 info at :ref:`Activating environments <activate-env>`. If you are still stuck, you need to consider
 more drastic measures.
 
-  1. Remove any MKL-related files from C:\\Windows\\System32. We recommend
+  #. Remove any MKL-related files from C:\\Windows\\System32. We recommend
      renaming them to add .bak to the filename to effectively hide them. Observe
      if any other software breaks. Try moving the DLL files alongside the .exe of
      the software that broke. If it works again, you can keep things in the
@@ -70,10 +71,10 @@ more drastic measures.
      creators of that software. Inform them that their practice of installing
      MKL to a global location is fragile and is breaking other people's software
      and wasting a lot of time. See the list of guilty parties below.
-  2. You may try a special DLL loading mode that Anaconda builds into Python.
-     This changes the DLL search path from system32 first to system32 as another
+  #. You may try a special DLL loading mode that Anaconda builds into Python.
+     This changes the DLL search path from System32 first to System32 as another
      entry on PATH, allowing libraries in your conda environment to be found
-     before the libraries in system32. Control of this feature is done with
+     before the libraries in System32. Control of this feature is done with
      environment variables. Only Python builds beyond these builds will react to
      these environment variables:
 
@@ -102,7 +103,7 @@ more drastic measures.
        * CLI: https://superuser.com/questions/79612/setting-and-getting-windows-environment-variables-from-the-command-prompt/79614
        * GUI: http://www.dowdandassociates.com/blog/content/howto-set-an-environment-variable-in-windows-gui/
 
-     These should be set to a value of ``1`` to enable them.  For example, in an anaconda prompt terminal::
+     These should be set to a value of ``1`` to enable them.  For example, in an Anaconda Prompt terminal::
 
        set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
     
