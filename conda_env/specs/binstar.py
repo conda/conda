@@ -54,7 +54,7 @@ class BinstarSpec(object):
         if self.valid_name():
             if self.binstar is None:
                 self.msg = ("Anaconda Client is required to interact with anaconda.org or an "
-                            "Anaconda API. Please run `conda install anaconda-client`.")
+                            "Anaconda API. Please run `conda install anaconda-client -n base`.")
                 return False
 
             return self.package is not None and self.valid_package()
