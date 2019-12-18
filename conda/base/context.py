@@ -8,7 +8,8 @@ from collections import OrderedDict
 from errno import ENOENT
 from logging import getLogger
 import os
-from os.path import abspath, basename, expanduser, isdir, isfile, join, lexists, split as path_split
+from os.path import (abspath, basename, expanduser, isdir, isfile, join, lexists,
+                     split as path_split)
 import platform
 import sys
 from json import loads
