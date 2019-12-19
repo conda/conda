@@ -39,4 +39,4 @@ def execute(args, parser):
         print(response.stdout, file=sys.stdout)
     if response.stderr:
         print(response.stderr, file=sys.stderr)
-    return response.rc
+    return response
