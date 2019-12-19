@@ -18,7 +18,7 @@ main_test: &main_test
           if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
             echo "Only docs changed detected, skipping tests"
           else
-            echo "local_repodata_ttl: 1800" >> ~/.condarc
+            echo "local_repodata_ttl: 1800" > ~/.condarc
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
             conda info
             # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
@@ -74,7 +74,7 @@ conda_build_test: &conda_build_test
         # pre-populating the package cache helps avoid race conditions for testing in parallel
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-          echo "safety_checks: disabled" >> ~/.condarc
+          echo "safety_checks: disabled" > ~/.condarc
           echo "local_repodata_ttl: 1800" >> ~/.condarc
           conda create -n blarg -yq --download-only python=2.7
           conda create -n blarg -yq -c https://repo.anaconda.com/pkgs/free --download-only python=3.4
