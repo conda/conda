@@ -380,6 +380,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                     ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"         \
                     "requirements)"
                 fh.write("{0}{1}\n".format(silencer, quote_for_shell(arguments)))
+            fh.write("{}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n".format(silencer))
             fh.write('{}chcp %_CONDA_OLD_CHCP%>NUL\n'.format(silencer))
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
