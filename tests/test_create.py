@@ -286,6 +286,8 @@ def run_command(command, prefix, *arguments, **kwargs):
         else:
             stdout = c.stdout
             stderr = c.stderr
+        print(stdout, file=sys.stdout)
+        print(stderr, file=sys.stderr)
 
     # Unfortunately there are other ways to change context, such as Commands.CREATE --offline.
     # You will probably end up playing whack-a-bug here adding more and more the tuple here.
