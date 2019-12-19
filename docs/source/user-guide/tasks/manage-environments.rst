@@ -335,7 +335,8 @@ Activating environments is essential to making the software in the environments
 work well. Activation entails two primary functions: adding entries to PATH for
 the environment, and running any activation scripts that the environment may
 contain. These activation scripts are how packages can set arbitrary
-environment variables that may be necessary for their operation.
+environment variables that may be necessary for their operation. You can also
+:ref:`use the config API to set environment variables <set-env-vars>`.
 
 When `installing Anaconda <http://docs.continuum.io/anaconda/install.html>`_,
 you have the option to “Add Anaconda
@@ -603,6 +604,41 @@ We recommend that you:
   - Conda env will export or create environments based on a file with
     conda and pip requirements
 
+.. _set-env-vars:
+
+Setting environment variables
+=============================
+
+If you want to associate environment variables with an environment,
+you can use the config API. This is recommended as an alternative to
+using activate and deactivate scripts since those are an execution of
+arbitrary code that may not be safe.
+
+First, create your environment and activate it::
+
+  Conda create -n test-env
+  Conda activate test-env
+
+To list any variables you may have, run ``conda env config vars list``.
+
+To set environment variables, run ``conda env config vars set my_var=value``.
+
+Once you have set an environment variable, you have to reactivate your environment:
+``conda activate test-env``
+
+To check if the environment variable has been set, run
+``echo my_var`` or ``conda env config vars list``.
+
+When you deactivate your environment, you can use those same commands to see that
+the environment variable goes away.
+
+To unset the environment variable, run ``conda env config vars unset my_var -n test-env``.
+
+When you deactivate your environment, you can see that environment variable goes away by rerunning 
+``echo my_var`` or ``conda env config vars list`` to show that the variable name
+is no longer present.
+
+To unset the env variable, run ``conda env config vars unset my_var -n test-env``.
 
 Saving environment variables
 ============================
