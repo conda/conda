@@ -51,7 +51,7 @@ __conda_activate() {
     rc=$?
     PATH="${CONDA_INTERNAL_OLDPATH}"
     \eval "$ask_conda"
-    if [[ $rc != 0 ]]; then
+    if [ $rc != 0 ]; then
         \export PATH
     fi
     __conda_hashr

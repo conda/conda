@@ -35,4 +35,8 @@ def execute(args, parser):
             log = getLogger(__name__)
             log.warning('CONDA_TEST_SAVE_TEMPS :: retaining main_run script_caller {}'.format(
                 script_caller))
-    return response
+    if response.stdout:
+        print(response.stdout, file=sys.stdout)
+    if response.stderr:
+        print(response.stderr, file=sys.stderr)
+    return response.rc
