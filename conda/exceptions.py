@@ -1368,5 +1368,4 @@ class ExceptionHandler(object):
 def conda_exception_handler(func, *args, **kwargs):
     exception_handler = ExceptionHandler()
     return_value = exception_handler(func, *args, **kwargs)
-    if isinstance(return_value, int):
-        return return_value
+    return return_value
