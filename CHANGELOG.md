@@ -1,3 +1,65 @@
+## 4.8.1 (2019-12-19)
+
+### Enhancements:
+
+* improve performance for conda run by avoiding Popen.communicate  (#9381)
+* Put conda keyring in /usr/share/keyrings on Debian (#9424)
+* refactor common.logic to fix some bugs and prepare for better modularity (#9427)
+* Support nested configuration  (#9449)
+* Support Object configuration parameters  (#9465)
+* Use freeze_installed to speed up conda env update  (#9511)
+* add networking args to conda env create (#9525)
+
+### Docs:
+
+* fix string concatenation running words together regarding CONDA_EXE  (#9411)
+* Fix typo ("list" -> "info")  (#9433)
+* typo in condarc key envs_dirs  (#9478)
+* Clarify channel priority and package sorting (#9492)
+* improve description of DLL loading verification and activating environments  (#9453)
+* Installing with specific build number  (#9534)
+
+### Bug fixes:
+
+* Fix calling python api run_command with list and string arguments  (#9331)
+* revert init bash completion  (#9421)
+* set tmp to shortened path that excludes spaces (#9409)
+* avoid function redefinition upon resourcing conda.fish  (#9444)
+* propagate pip error level when creating envs with conda env (#9460)
+* fix incorrect chown call (#9464)
+* Add subdir to PackageRecord dist_str  (#9418)
+* Fix running conda activate in multiple processes on windows  (#9477)
+* Don't check in pkgs for trash (#9472)
+* remove setuptools from run_constrained in recipe  (#9485)
+* Fix `__conda_activate` function to correctly return exit code  (#9532)
+* fix overly greedy capture done by subprocess for conda run  (#9537)
+
+
+### Contributors:
+
+* @AntoinePrv
+* @brettcannon
+* @bwildenhain
+* @cjmartian
+* @felker
+* @forrestwaters
+* @gilescope
+* @isuruf
+* @jeremyjliu
+* @jjhelmus
+* @jhultman
+* @marcuscaisey
+* @mbargull
+* @mingwandroid
+* @msarahan
+* @okhoma
+* @osamoylenko
+* @rrigdon
+* @rulerofthehuns
+* @soapy1
+* @tartansandal
+
+
 ## 4.8.0rc0 (2019-11-04)
 
 ### Enhancements:
