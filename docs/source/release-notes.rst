@@ -5,6 +5,72 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.8.1 (2019-12-19)
+==================
+
+Enhancements
+^^^^^^^^^^^^
+
+* Improve performance for conda run by avoiding Popen.communicate (#9381)
+* Put conda keyring in /usr/share/keyrings on Debian (#9424)
+* Refactor common.logic to fix some bugs and prepare for better modularity (#9427)
+* Support nested configuration (#9449)
+* Support Object configuration parameters (#9465)
+* Use freeze_installed to speed up conda env update (#9511)
+* Add networking args to conda env create (#9525)
+
+
+Bug fixes
+^^^^^^^^^
+
+* Fix calling Python API run_command with list and string arguments (#9331)
+* Set tmp to shortened path that excludes spaces (#9409)
+* Add subdir to PackageRecord dist_str (#9418)
+* Revert init bash completion (#9421)
+* Avoid function redefinition upon resourcing conda.fish (#9444)
+* Propagate PIP error level when creating envs with conda env (#9460)
+* Fix incorrect chown call (#9464)
+* Don't check in pkgs for trash (#9472)
+* Fix running conda activate in multiple processes on Windows (#9477)
+* Remove setuptools from run_constrained in recipe (#9485)
+* Fix ``__conda_activate`` function to correctly return exit code (#9532)
+* Fix overly greedy capture done by subprocess for conda run (#9537)
+
+
+Docs
+^^^^
+* Fix string concatenation running words together regarding CONDA_EXE (#9411)
+* Fix typo ("list" -> "info") (#9433)
+* Improve description of DLL loading verification and activating environments (#9453)
+* Installing with specific build number (#9534)
+* Typo in condarc key envs_dirs (#9478)
+* Clarify channel priority and package sorting (#9492)
+
+Contributors
+^^^^^^^^^^^^
+
+* @AntoinePrv
+* @brettcannon
+* @bwildenhain
+* @cjmartian
+* @felker
+* @forrestwaters
+* @gilescope
+* @isuruf
+* @jeremyjliu
+* @jjhelmus
+* @jhultman
+* @marcuscaisey
+* @mbargull
+* @mingwandroid
+* @msarahan
+* @okhoma
+* @osamoylenko
+* @rrigdon
+* @rulerofthehuns
+* @soapy1
+* @tartansandal
+
 4.8.0 (2019-11-04)
 ==================
 
