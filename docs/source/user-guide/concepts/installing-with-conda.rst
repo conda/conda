@@ -64,3 +64,14 @@ many conda packages and install them all with one command:
  
 Installing packages directly from the file does not resolve
 dependencies.
+
+
+Installing conda packages with a specific build number
+======================================================
+
+If you want to install conda packages with the correct package spec, try
+``pkg_name=version=build_string``.
+
+For example, if you want to install llvmlite 0.31.0dev0 on Python 3.7.8, you
+would enter::
+  conda install  -c numba/label/dev llvmlite=0.31.0dev0=py37_8
