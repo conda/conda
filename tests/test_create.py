@@ -271,18 +271,29 @@ def run_command(command, prefix, *arguments, **kwargs):
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % ' '.join(arguments), file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         arguments = encode_arguments(arguments)
+        is_run = arguments[0] == 'run'
+        if is_run:
+            cap_args = (None, None)
         with argv(['python_api'] + arguments), captured(*cap_args) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:
                 result = do_call(args, p)
-    print(c.stderr, file=sys.stderr)
-    print(c.stdout, file=sys.stderr)
+        if is_run:
+            stdout = result.stdout
+            stderr = result.stderr
+            result = result.rc
+        else:
+            stdout = c.stdout
+            stderr = c.stderr
+
+    print(stderr, file=sys.stderr)
+    print(stdout, file=sys.stderr)
     # Unfortunately there are other ways to change context, such as Commands.CREATE --offline.
     # You will probably end up playing whack-a-bug here adding more and more the tuple here.
     if command in (Commands.CONFIG,):
         reset_context([os.path.join(prefix + os.sep, 'condarc')], args)
-    return c.stdout, c.stderr, result
+    return stdout, stderr, result
 
 
 @contextmanager

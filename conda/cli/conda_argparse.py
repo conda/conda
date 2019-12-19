@@ -79,8 +79,7 @@ def do_call(args, parser):
     from importlib import import_module
     module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
 
-    exit_code = getattr(module, func_name)(args, parser)
-    return exit_code
+    return getattr(module, func_name)(args, parser)
 
 
 def find_builtin_commands(parser):
