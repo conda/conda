@@ -78,6 +78,9 @@ class frozendict(Mapping):
         # Works with auxlib's EntityEncoder.
         return self._dict
 
+    def to_json(self):
+        return self.__json__()
+
 
 class FrozenOrderedDict(frozendict):
     """
