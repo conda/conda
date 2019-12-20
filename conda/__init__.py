@@ -7,6 +7,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from os.path import abspath, dirname
 import sys
+
+from json import JSONEncoder
+
 # This hack is from http://kmike.ru/python-with-strings-attached/
 # It is needed ro prevent str() conversion of %r. Against general
 # advice, we return `unicode` from various things on Python 2,
@@ -173,3 +176,11 @@ def conda_signal_handler(signum, frame):
 
     from .exceptions import CondaSignalInterrupt
     raise CondaSignalInterrupt(signum)
+
+
+def _default(self, obj):
+    return getattr(obj.__class__, "to_json", _default.default)(obj)
+
+
+_default.default = JSONEncoder().default
+JSONEncoder.default = _default
