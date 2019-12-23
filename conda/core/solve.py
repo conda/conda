@@ -27,7 +27,8 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError, CondaSolverTimeoutError
+from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
+                          UnsatisfiableError, CondaSolverTimeoutError)
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -48,7 +49,7 @@ def solver_timeout(time):
     try:
         yield
     except TimeoutError:
-        print("Solver timeout error occured, proceeding with next solve configuration if applicable \n")
+        print("Solver timeout error occured, proceeding \n")
         raise CondaSolverTimeoutError
     finally:
         signal.signal(signal.SIGALRM, signal.SIG_IGN)
@@ -97,7 +98,6 @@ class Solver(object):
         self._r = None
         self._prepared = False
         self._pool_cache = {}
-
 
     def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
                               ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
@@ -289,16 +289,18 @@ class Solver(object):
 
         with solver_timeout(context.solver_timeout):
             with Spinner("Solving environment", not context.verbosity and not context.quiet,
-                     context.json, fail_message=fail_message):
+                         context.json, fail_message=fail_message):
                 ssc = self._remove_specs(ssc)
                 ssc = self._add_specs(ssc)
                 solution_precs = copy.copy(ssc.solution_precs)
 
-                pre_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
+                pre_packages = self.get_request_package_in_solution(
+                    ssc.solution_precs, ssc.specs_map)
                 ssc = self._find_inconsistent_packages(ssc)
                 # this will prune precs that are deps of precs that get removed due to conflicts
                 ssc = self._run_sat(ssc)
-                post_packages = self.get_request_package_in_solution(ssc.solution_precs, ssc.specs_map)
+                post_packages = self.get_request_package_in_solution(
+                    ssc.solution_precs, ssc.specs_map)
 
                 if ssc.update_modifier == UpdateModifier.UPDATE_SPECS:
                     constrained = self.get_constrained_packages(

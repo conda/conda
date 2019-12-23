@@ -316,7 +316,7 @@ class Context(Configuration):
     unsatisfiable_hints = ParameterLoader(PrimitiveParameter(True))
     unsatisfiable_hints_check_depth = ParameterLoader(PrimitiveParameter(2))
     # Time in seconds to wait for the solver
-    solver_timeout = PrimitiveParameter(300)
+    solver_timeout = ParameterLoader(PrimitiveParameter(300))
 
     # conda_build
     bld_path = ParameterLoader(PrimitiveParameter(''))
@@ -1234,7 +1234,7 @@ class Context(Configuration):
                 to True.
             """),
             'solver_timeout': dals("""
-                Timeout in seconds for solves. Once a solve has timed out, if 
+                Timeout in seconds for solves. Once a solve has timed out, if
                 applicable the remaining solves will be attempted respecting
                 the same timeout.
             """),
