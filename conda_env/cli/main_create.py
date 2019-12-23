@@ -112,7 +112,7 @@ def execute(args, parser):
             except InvalidInstaller:
                 sys.stderr.write(textwrap.dedent("""
                     Unable to install package for {0}.
-    
+
                     Please double check and ensure your dependencies file has
                     the correct spelling.  You might also try installing the
                     conda-env-{0} package to see if provides the required
