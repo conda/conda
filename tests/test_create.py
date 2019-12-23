@@ -53,7 +53,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError, CondaFileIOError
+    DisallowedPackageError, DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p, extract_tarball
 from conda.gateways.disk.delete import rm_rf, path_is_clean
@@ -1436,6 +1436,18 @@ class IntegrationTests(TestCase):
             assert not output
             assert not error
             assert rc == 5
+
+    def test_conda_run_nonexistant_prefix(self):
+        with make_temp_env(use_restricted_unicode=False, name=str(uuid4())[:7]) as prefix:
+            prefix = join(prefix, "clearly_a_prefix_that_does_not_exist")
+            with pytest.raises(EnvironmentLocationNotFound):
+                output, error, rc = run_command(Commands.RUN, prefix, 'echo', 'hello')
+
+    def test_conda_run_prefix_not_a_conda_env(self):
+        with tempdir() as prefix:
+            with pytest.raises(DirectoryNotACondaEnvironmentError):
+                output, error, rc = run_command(Commands.RUN, prefix, 'echo', 'hello')
+
 
     def test_clone_offline_multichannel_with_untracked(self):
         with env_vars({

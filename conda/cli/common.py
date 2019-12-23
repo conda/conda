@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os.path import basename, dirname
+from os.path import basename, dirname, isdir, isfile, join
 import re
 import sys
 
@@ -16,7 +16,7 @@ from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
 from ..models.match_spec import MatchSpec
-
+from ..exceptions import EnvironmentLocationNotFound, DirectoryNotACondaEnvironmentError
 
 def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
@@ -211,3 +211,10 @@ def check_non_admin():
             The create, install, update, and remove operations have been disabled
             on your system for non-privileged users.
         """))
+
+def is_valid_prefix(prefix):
+    if isdir(prefix):
+        if not isfile(join(prefix, 'conda-meta', 'history')):
+            raise DirectoryNotACondaEnvironmentError(prefix)
+    else:
+        raise EnvironmentLocationNotFound(prefix)
