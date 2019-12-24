@@ -13,13 +13,10 @@ if not set -q CONDA_SHLVL
 end
 
 function __conda_add_prompt
-  if set -q CONDA_DEFAULT_ENV
-      set_color normal
-      echo -n '('
+  if set -q CONDA_PROMPT_MODIFIER
       set_color -o green
-      echo -n $CONDA_DEFAULT_ENV
+      echo -n $CONDA_PROMPT_MODIFIER
       set_color normal
-      echo -n ') '
   end
 end
 
