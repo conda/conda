@@ -426,7 +426,7 @@ def test_unsat_shortest_chain_4():
         simple_rec(name="py_req_1"),
         simple_rec(name="py_req_2"),
         simple_rec(name='py', version='3.7.1', depends=['py_req_1', 'py_req_2']),
-        simple_rec(name='py', version='3.6.1', depends=['pr_req_1', 'py_req_2']),
+        simple_rec(name='py', version='3.6.1', depends=['py_req_1', 'py_req_2']),
     )
     r = Resolve(OrderedDict((prec, prec) for prec in index))
     with pytest.raises(UnsatisfiableError) as excinfo:

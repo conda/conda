@@ -397,16 +397,21 @@ class Resolve(object):
 
     def build_graph_of_deps(self, spec):
         deps_graph = {}
+        all_deps = set()
         matches = self.find_matches(spec)
         depends_on = []
         for mat in matches:
             if len(mat.depends) > 0:
-                depends_on = [self.build_graph_of_deps(MatchSpec(_)) for _ in mat.depends]
+                for i in mat.depends:
+                    dg, ad = self.build_graph_of_deps(MatchSpec(i))
+                    depends_on.append(dg)
+                    all_deps.update(ad)
+                    all_deps.update(MatchSpec(_) for _ in mat.depends)
             else:
                 depends_on.extend(mat.depends)
                 depends_on = [MatchSpec(_) for _ in depends_on]
         deps_graph[spec] = depends_on
-        return deps_graph
+        return deps_graph, all_deps
 
     def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
         """Perform a deeper analysis on conflicting specifications, by attempting
@@ -448,8 +453,16 @@ class Resolve(object):
         specs.update({_.to_match_spec() for _ in self._system_precs})
 
         dep_graph = {}
+        dep_list = {}
         for spec in specs:
-            dep_graph.update(self.build_graph_of_deps(spec))
+            dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
+            dep_graph.update(dep_graph_for_spec)
+            dep_list[spec.name] = [spec]
+            for dep in all_deps_for_spec:
+                if dep_list.get(dep.name):
+                    dep_list[dep.name].append(spec)
+                else:
+                    dep_list[dep.name] = [spec]
 
         import ipdb; ipdb.set_trace()
 
