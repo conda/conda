@@ -394,7 +394,6 @@ class Resolve(object):
                     new_path.append(adj)
                     queue.append(new_path)
 
-
     def breadth_first_search_for_dep_graph(self, root_spec, target_name, dep_graph):
         """Return shorted path from root_spec to target_name"""
         queue = []
@@ -406,27 +405,18 @@ class Resolve(object):
             if node in visited:
                 continue
             visited.append(node)
-            if node == target_name:
+            if node.name == target_name:
                 return path
-            children = []
-
-            import ipdb;
-            ipdb.set_trace(
-            )
-
-            specs = [_.depends for _ in dep_graph.get(node.name)] \
-                if node.name in dep_graph.keys() else None
-            if specs is None:
+            sub_graph = dep_graph
+            for p in path[0:-1]:
+                sub_graph = sub_graph[p]
+            children = [_ for _ in sub_graph.get(node, {})]
+            if children is None:
                 continue
-            for deps in specs:
-                children.extend([MatchSpec(d) for d in deps])
             for adj in children:
-                if adj.name == target_name.name and adj.version != target_name.version:
-                    pass
-                else:
-                    new_path = list(path)
-                    new_path.append(adj)
-                    queue.append(new_path)
+                new_path = list(path)
+                new_path.append(adj)
+                queue.append(new_path)
 
     def build_graph_of_deps(self, spec):
         deps_graph = {}
@@ -487,7 +477,10 @@ class Resolve(object):
         for spec in specs:
             dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
             dep_graph.update(dep_graph_for_spec)
-            dep_list[spec.name] = [spec]
+            if dep_list.get(spec.name):
+                dep_list[spec.name].append(spec)
+            else:
+                dep_list[spec.name] = [spec]
             for dep in all_deps_for_spec:
                 if dep_list.get(dep.name):
                     dep_list[dep.name].append(spec)
@@ -497,7 +490,7 @@ class Resolve(object):
         for k, v in dep_list.items():
             # Packages probably conflict
             if len(v) > 1:
-                print("CONFLICT FOUND FOR PACKAGE %s" % k)
+                print("\nCONFLICT FOUND FOR PACKAGE %s" % k)
                 for root_spec in v:
                     chain = self.breadth_first_search_for_dep_graph(root_spec, k, dep_graph)
                     print(chain)
