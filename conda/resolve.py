@@ -394,6 +394,20 @@ class Resolve(object):
                     new_path.append(adj)
                     queue.append(new_path)
 
+
+    def build_graph_of_deps(self, spec):
+        deps_graph = {}
+        matches = self.find_matches(spec)
+        depends_on = []
+        for mat in matches:
+            if len(mat.depends) > 0:
+                depends_on = [self.build_graph_of_deps(MatchSpec(_)) for _ in mat.depends]
+            else:
+                depends_on.extend(mat.depends)
+                depends_on = [MatchSpec(_) for _ in depends_on]
+        deps_graph[spec] = depends_on
+        return deps_graph
+
     def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
         """Perform a deeper analysis on conflicting specifications, by attempting
         to find the common dependencies that might be the cause of conflicts.
@@ -433,31 +447,29 @@ class Resolve(object):
                 specs = set(self.ms_depends(matches[0]))
         specs.update({_.to_match_spec() for _ in self._system_precs})
 
+        dep_graph = {}
+        for spec in specs:
+            dep_graph.update(self.build_graph_of_deps(spec))
+
+        import ipdb; ipdb.set_trace()
+
         # For each spec, assemble a dictionary of dependencies, with package
         # name as key, and all of the matching packages as values.
         sdeps = {k: self._get_package_pool((k, )) for k in specs}
-        # for ss in specs:
-        #     try:
-        #         sdeps[ss].pop(ss.name)
-        #     except:
-        #         pass
-
         # find deps with zero intersection between specs which include that dep
         bad_deps = []
         dep_collections = tuple(set(sdep.keys()) for sdep in sdeps.values())
         deps = set.union(*dep_collections) if dep_collections else []
-        spec_names = [_.name for _ in specs]
 
-        # import ipdb; ipdb.set_trace()
+        # for spec in specs:
+        #     recs = sdeps.get(spec)
+        #     for sp in specs:
+        #         versions = [_.version for _ in recs.get(sp.name, [])]
+        #         if (len(versions) > 0) and (sp.version is not None) and (sp.version not in versions):
+        #             print("BAD VERSION")
+        #             print(sp)
+        #             print(versions)
 
-        for spec in specs:
-            recs = sdeps.get(spec)
-            for sp in specs:
-                versions = [_.version for _ in recs.get(sp.name, [])]
-                if (len(versions) > 0) and (sp.version is not None) and (sp.version not in versions):
-                    print("BAD VERSION")
-                    print(sp)
-                    print(versions)
 
         import ipdb; ipdb.set_trace()
         with tqdm(total=len(deps), desc="Finding conflicts",
@@ -470,12 +482,11 @@ class Resolve(object):
                     if dep in v:
                         sdeps_with_dep[k] = v
 
-                if dep not in spec_names:
-                    if len(sdeps_with_dep) <= 1:
-                        continue
-                    # if all of the pools overlap, we're good.  Next dep.
-                    if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
-                        continue
+                if len(sdeps_with_dep) <= 1:
+                    continue
+                # if all of the pools overlap, we're good.  Next dep.
+                if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
+                    continue
                 spec_order = sdeps_with_dep.keys()
                 for spec in tqdm(spec_order, desc="Comparing specs that have this dependency",
                                  leave=False, disable=context.json):

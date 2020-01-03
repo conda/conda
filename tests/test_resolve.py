@@ -423,15 +423,15 @@ def test_unsat_shortest_chain_3():
 def test_unsat_shortest_chain_4():
     index = (
         simple_rec(name='a', depends=['py =3.7.1']),
-        simple_rec(name='b', depends=['py =3.6.1']),
-        simple_rec(name="py_req_1", version="1.0.0"),
-        simple_rec(name="py_req_2", version="1.0.0"),
+        simple_rec(name="py_req_1"),
+        simple_rec(name="py_req_2"),
         simple_rec(name='py', version='3.7.1', depends=['py_req_1', 'py_req_2']),
         simple_rec(name='py', version='3.6.1', depends=['pr_req_1', 'py_req_2']),
     )
     r = Resolve(OrderedDict((prec, prec) for prec in index))
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a', 'py=3.6.1'])
+    print(str(excinfo.value))
     assert "a -> py=3.7.1" in str(excinfo.value)
     assert "py=3.6.1" in str(excinfo.value)
     assert "py=3.6.1 -> py_req_2" not in str(excinfo.value)
