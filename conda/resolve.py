@@ -395,21 +395,51 @@ class Resolve(object):
                     queue.append(new_path)
 
 
+    def breadth_first_search_for_dep_graph(self, root_spec, target_name, dep_graph):
+        """Return shorted path from root_spec to target_name"""
+        queue = []
+        queue.append([root_spec])
+        visited = []
+        while queue:
+            path = queue.pop(0)
+            node = path[-1]
+            if node in visited:
+                continue
+            visited.append(node)
+            if node == target_name:
+                return path
+            children = []
+
+            import ipdb;
+            ipdb.set_trace(
+            )
+
+            specs = [_.depends for _ in dep_graph.get(node.name)] \
+                if node.name in dep_graph.keys() else None
+            if specs is None:
+                continue
+            for deps in specs:
+                children.extend([MatchSpec(d) for d in deps])
+            for adj in children:
+                if adj.name == target_name.name and adj.version != target_name.version:
+                    pass
+                else:
+                    new_path = list(path)
+                    new_path.append(adj)
+                    queue.append(new_path)
+
     def build_graph_of_deps(self, spec):
         deps_graph = {}
         all_deps = set()
         matches = self.find_matches(spec)
-        depends_on = []
+        depends_on = {}
         for mat in matches:
             if len(mat.depends) > 0:
                 for i in mat.depends:
                     dg, ad = self.build_graph_of_deps(MatchSpec(i))
-                    depends_on.append(dg)
+                    depends_on.update(dg)
                     all_deps.update(ad)
                     all_deps.update(MatchSpec(_) for _ in mat.depends)
-            else:
-                depends_on.extend(mat.depends)
-                depends_on = [MatchSpec(_) for _ in depends_on]
         deps_graph[spec] = depends_on
         return deps_graph, all_deps
 
@@ -464,6 +494,14 @@ class Resolve(object):
                 else:
                     dep_list[dep.name] = [spec]
 
+        for k, v in dep_list.items():
+            # Packages probably conflict
+            if len(v) > 1:
+                print("CONFLICT FOUND FOR PACKAGE %s" % k)
+                for root_spec in v:
+                    chain = self.breadth_first_search_for_dep_graph(root_spec, k, dep_graph)
+                    print(chain)
+
         import ipdb; ipdb.set_trace()
 
         # For each spec, assemble a dictionary of dependencies, with package
@@ -474,17 +512,6 @@ class Resolve(object):
         dep_collections = tuple(set(sdep.keys()) for sdep in sdeps.values())
         deps = set.union(*dep_collections) if dep_collections else []
 
-        # for spec in specs:
-        #     recs = sdeps.get(spec)
-        #     for sp in specs:
-        #         versions = [_.version for _ in recs.get(sp.name, [])]
-        #         if (len(versions) > 0) and (sp.version is not None) and (sp.version not in versions):
-        #             print("BAD VERSION")
-        #             print(sp)
-        #             print(versions)
-
-
-        import ipdb; ipdb.set_trace()
         with tqdm(total=len(deps), desc="Finding conflicts",
                   leave=False, disable=context.json) as t:
             for dep in deps:
@@ -544,6 +571,7 @@ class Resolve(object):
 
                 bad_deps.extend([[spec, MatchSpec.union(_)[0]] for _ in deps.values()])
 
+        import ipdb; ipdb.set_trace()
         bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
                                            strict_channel_priority)
         return bad_deps
