@@ -488,14 +488,27 @@ class Resolve(object):
                     dep_list[dep.name] = [spec]
 
         chains = []
+        conflicting_pkgs_pkgs = {}
         for k, v in dep_list.items():
             # Packages probably conflict
             if len(v) > 1:
-                print("\nCONFLICT FOUND FOR PACKAGE %s" % k)
-                for root_spec in v:
-                    chain = self.breadth_first_search_for_dep_graph(root_spec, k, dep_graph)
-                    print(chain)
-                    chains.append(chain)
+                if conflicting_pkgs_pkgs.get(frozenset(v)) is None:
+                    conflicting_pkgs_pkgs[frozenset(v)] = [k]
+                else:
+                    conflicting_pkgs_pkgs[frozenset(v)].append(k)
+
+        for roots, nodes in conflicting_pkgs_pkgs.items():
+            lroots = [_ for _ in roots]
+            current_shortest_chain = []
+            shortest_node = None
+            for node in nodes:
+                chain = self.breadth_first_search_for_dep_graph(lroots[0], node, dep_graph)
+                if len(current_shortest_chain) == 0 or len(chain) < len(current_shortest_chain):
+                    current_shortest_chain = chain
+                    shortest_node = node
+            chains.append(current_shortest_chain)
+            for root in lroots[1:]:
+                chains.append(self.breadth_first_search_for_dep_graph(root, shortest_node, dep_graph))
 
 
         # # For each spec, assemble a dictionary of dependencies, with package
