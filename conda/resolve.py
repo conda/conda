@@ -487,6 +487,7 @@ class Resolve(object):
                 else:
                     dep_list[dep.name] = [spec]
 
+        chains = []
         for k, v in dep_list.items():
             # Packages probably conflict
             if len(v) > 1:
@@ -494,78 +495,77 @@ class Resolve(object):
                 for root_spec in v:
                     chain = self.breadth_first_search_for_dep_graph(root_spec, k, dep_graph)
                     print(chain)
+                    chains.append(chain)
 
-        import ipdb; ipdb.set_trace()
 
-        # For each spec, assemble a dictionary of dependencies, with package
-        # name as key, and all of the matching packages as values.
-        sdeps = {k: self._get_package_pool((k, )) for k in specs}
-        # find deps with zero intersection between specs which include that dep
-        bad_deps = []
-        dep_collections = tuple(set(sdep.keys()) for sdep in sdeps.values())
-        deps = set.union(*dep_collections) if dep_collections else []
+        # # For each spec, assemble a dictionary of dependencies, with package
+        # # name as key, and all of the matching packages as values.
+        # sdeps = {k: self._get_package_pool((k, )) for k in specs}
+        # # find deps with zero intersection between specs which include that dep
+        # bad_deps = []
+        # dep_collections = tuple(set(sdep.keys()) for sdep in sdeps.values())
+        # deps = set.union(*dep_collections) if dep_collections else []
+        #
+        # with tqdm(total=len(deps), desc="Finding conflicts",
+        #           leave=False, disable=context.json) as t:
+        #     for dep in deps:
+        #         t.set_description("Examining {}".format(dep))
+        #         t.update()
+        #         sdeps_with_dep = {}
+        #         for k, v in sdeps.items():
+        #             if dep in v:
+        #                 sdeps_with_dep[k] = v
+        #
+        #         if len(sdeps_with_dep) <= 1:
+        #             continue
+        #         # if all of the pools overlap, we're good.  Next dep.
+        #         if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
+        #             continue
+        #         spec_order = sdeps_with_dep.keys()
+        #         for spec in tqdm(spec_order, desc="Comparing specs that have this dependency",
+        #                          leave=False, disable=context.json):
+        #             allowed_specs = sdeps[spec]
+        #             dep_vers = []
+        #             for key, val in allowed_specs.items():
+        #                 if key != [_.name for _ in spec_order]:
+        #                     dep_vers.extend([v.depends for v in val])
+        #             dep_ms = {MatchSpec(p) for pkgs in dep_vers for p in pkgs if dep in p}
+        #             dep_ms.update(msspec for msspec in sdeps.keys() if msspec.name == dep)
+        #             bad_deps_for_spec = []
+        #             # # sort specs from least specific to most specific.  Only continue
+        #             # #   to examine a dep if a conflict hasn't been found for its name
+        #             # dep_ms = sorted(list(dep_ms), key=lambda x: (
+        #             #     exactness_and_number_of_deps(self, x), x.dist_str()))
+        #             # conflicts_found = set()
+        #             with tqdm(total=len(dep_ms), desc="Finding conflict paths",
+        #                       leave=False, disable=context.json) as t2:
+        #                 for conflicting_spec in dep_ms:
+        #                     t2.set_description("Finding shortest conflict path for {}"
+        #                                        .format(conflicting_spec))
+        #                     t2.update()
+        #                     if conflicting_spec.name == spec.name:
+        #                         chain = [conflicting_spec] if \
+        #                             conflicting_spec.version == spec.version else None
+        #                     else:
+        #                         chain = self.breadth_first_search_by_spec(
+        #                             spec, conflicting_spec, allowed_specs)
+        #                     if chain:
+        #                         bad_deps_for_spec.append(chain)
+        #             if bad_deps_for_spec:
+        #                 bad_deps.extend(self.group_and_merge_specs(bad_deps_for_spec))
+        #
+        # if not bad_deps:
+        #     # no conflicting nor missing packages found, return the bad specs
+        #     bad_deps = []
+        #
+        #     for spec in specs:
+        #         precs = self.find_matches(spec)
+        #         deps = set.union(*[set(self.ms_depends_.get(prec) or []) for prec in precs])
+        #         deps = groupby(lambda x: x.name, deps)
+        #
+        #         bad_deps.extend([[spec, MatchSpec.union(_)[0]] for _ in deps.values()])
 
-        with tqdm(total=len(deps), desc="Finding conflicts",
-                  leave=False, disable=context.json) as t:
-            for dep in deps:
-                t.set_description("Examining {}".format(dep))
-                t.update()
-                sdeps_with_dep = {}
-                for k, v in sdeps.items():
-                    if dep in v:
-                        sdeps_with_dep[k] = v
-
-                if len(sdeps_with_dep) <= 1:
-                    continue
-                # if all of the pools overlap, we're good.  Next dep.
-                if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
-                    continue
-                spec_order = sdeps_with_dep.keys()
-                for spec in tqdm(spec_order, desc="Comparing specs that have this dependency",
-                                 leave=False, disable=context.json):
-                    allowed_specs = sdeps[spec]
-                    dep_vers = []
-                    for key, val in allowed_specs.items():
-                        if key != [_.name for _ in spec_order]:
-                            dep_vers.extend([v.depends for v in val])
-                    dep_ms = {MatchSpec(p) for pkgs in dep_vers for p in pkgs if dep in p}
-                    dep_ms.update(msspec for msspec in sdeps.keys() if msspec.name == dep)
-                    bad_deps_for_spec = []
-                    # # sort specs from least specific to most specific.  Only continue
-                    # #   to examine a dep if a conflict hasn't been found for its name
-                    # dep_ms = sorted(list(dep_ms), key=lambda x: (
-                    #     exactness_and_number_of_deps(self, x), x.dist_str()))
-                    # conflicts_found = set()
-                    with tqdm(total=len(dep_ms), desc="Finding conflict paths",
-                              leave=False, disable=context.json) as t2:
-                        for conflicting_spec in dep_ms:
-                            t2.set_description("Finding shortest conflict path for {}"
-                                               .format(conflicting_spec))
-                            t2.update()
-                            if conflicting_spec.name == spec.name:
-                                chain = [conflicting_spec] if \
-                                    conflicting_spec.version == spec.version else None
-                            else:
-                                chain = self.breadth_first_search_by_spec(
-                                    spec, conflicting_spec, allowed_specs)
-                            if chain:
-                                bad_deps_for_spec.append(chain)
-                    if bad_deps_for_spec:
-                        bad_deps.extend(self.group_and_merge_specs(bad_deps_for_spec))
-        
-        if not bad_deps:
-            # no conflicting nor missing packages found, return the bad specs
-            bad_deps = []
-
-            for spec in specs:
-                precs = self.find_matches(spec)
-                deps = set.union(*[set(self.ms_depends_.get(prec) or []) for prec in precs])
-                deps = groupby(lambda x: x.name, deps)
-
-                bad_deps.extend([[spec, MatchSpec.union(_)[0]] for _ in deps.values()])
-
-        import ipdb; ipdb.set_trace()
-        bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
+        bad_deps = self._classify_bad_deps(chains, specs_to_add, history_specs,
                                            strict_channel_priority)
         return bad_deps
 
