@@ -436,12 +436,30 @@ class Resolve(object):
         # For each spec, assemble a dictionary of dependencies, with package
         # name as key, and all of the matching packages as values.
         sdeps = {k: self._get_package_pool((k, )) for k in specs}
+        # for ss in specs:
+        #     try:
+        #         sdeps[ss].pop(ss.name)
+        #     except:
+        #         pass
 
         # find deps with zero intersection between specs which include that dep
         bad_deps = []
         dep_collections = tuple(set(sdep.keys()) for sdep in sdeps.values())
         deps = set.union(*dep_collections) if dep_collections else []
+        spec_names = [_.name for _ in specs]
 
+        # import ipdb; ipdb.set_trace()
+
+        for spec in specs:
+            recs = sdeps.get(spec)
+            for sp in specs:
+                versions = [_.version for _ in recs.get(sp.name, [])]
+                if (len(versions) > 0) and (sp.version is not None) and (sp.version not in versions):
+                    print("BAD VERSION")
+                    print(sp)
+                    print(versions)
+
+        import ipdb; ipdb.set_trace()
         with tqdm(total=len(deps), desc="Finding conflicts",
                   leave=False, disable=context.json) as t:
             for dep in deps:
@@ -451,11 +469,13 @@ class Resolve(object):
                 for k, v in sdeps.items():
                     if dep in v:
                         sdeps_with_dep[k] = v
-                if len(sdeps_with_dep) <= 1:
-                    continue
-                # if all of the pools overlap, we're good.  Next dep.
-                if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
-                    continue
+
+                if dep not in spec_names:
+                    if len(sdeps_with_dep) <= 1:
+                        continue
+                    # if all of the pools overlap, we're good.  Next dep.
+                    if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
+                        continue
                 spec_order = sdeps_with_dep.keys()
                 for spec in tqdm(spec_order, desc="Comparing specs that have this dependency",
                                  leave=False, disable=context.json):
@@ -488,7 +508,7 @@ class Resolve(object):
                                 bad_deps_for_spec.append(chain)
                     if bad_deps_for_spec:
                         bad_deps.extend(self.group_and_merge_specs(bad_deps_for_spec))
-
+        
         if not bad_deps:
             # no conflicting nor missing packages found, return the bad specs
             bad_deps = []
