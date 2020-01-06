@@ -297,7 +297,7 @@ class Resolve(object):
         history_specs = set(MatchSpec(_) for _ in history_specs or [])
         for chain in bad_deps:
             # sometimes chains come in as strings
-            if chain[-1].name == 'python' and len(chain) > 1 and \
+            if len(chain) > 1 and chain[-1].name == 'python' and \
                     not any(_.name == 'python' for _ in specs_to_add) and \
                     any(_[0] for _ in bad_deps if _[0].name == 'python'):
                 python_first_specs = [_[0] for _ in bad_deps if _[0].name == 'python']
@@ -399,6 +399,8 @@ class Resolve(object):
         queue = []
         queue.append([root_spec])
         visited = []
+        found_target = False
+        target_path = []
         while queue:
             path = queue.pop(0)
             node = path[-1]
@@ -406,7 +408,14 @@ class Resolve(object):
                 continue
             visited.append(node)
             if node.name == target_name:
-                return path
+                found_target = True
+                if len(target_path) == 0:
+                    target_path = path
+                else:
+                    last_spec = MatchSpec.union((path[-1], target_path[-1]))[0]
+                    target_path[-1] = last_spec
+                if len(queue) == 0:
+                    return target_path
             sub_graph = dep_graph
             for p in path[0:-1]:
                 sub_graph = sub_graph[p]
@@ -414,9 +423,11 @@ class Resolve(object):
             if children is None:
                 continue
             for adj in children:
-                new_path = list(path)
-                new_path.append(adj)
-                queue.append(new_path)
+                if found_target is False:
+                    new_path = list(path)
+                    new_path.append(adj)
+                    queue.append(new_path)
+        return target_path
 
     def build_graph_of_deps(self, spec):
         deps_graph = {}
