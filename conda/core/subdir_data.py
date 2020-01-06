@@ -98,7 +98,7 @@ class SubdirData(object):
             package_ref_or_match_spec))
 
         # TODO test timing with ProcessPoolExecutor
-        Executor = (DummyExecutor if context.debug or context.repodata_threads == 1
+        Executor = (DummyExecutor if context.debug or context.repodata_threads < 1
                     else partial(ThreadLimitedThreadPoolExecutor,
                                  max_workers=context.repodata_threads))
         with Executor() as executor:
