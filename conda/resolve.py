@@ -508,19 +508,29 @@ class Resolve(object):
                 else:
                     conflicting_pkgs_pkgs[frozenset(v)].append(k)
 
+
         for roots, nodes in conflicting_pkgs_pkgs.items():
             lroots = [_ for _ in roots]
             current_shortest_chain = []
             shortest_node = None
-            for node in nodes:
-                chain = self.breadth_first_search_for_dep_graph(lroots[0], node, dep_graph)
-                if len(current_shortest_chain) == 0 or len(chain) < len(current_shortest_chain):
-                    current_shortest_chain = chain
-                    shortest_node = node
-            chains.append(current_shortest_chain)
-            for root in lroots[1:]:
-                chains.append(self.breadth_first_search_for_dep_graph(root, shortest_node, dep_graph))
-
+            requested_spec_unsat = frozenset(nodes).intersection(set(_.name for _ in roots))
+            if requested_spec_unsat:
+                chains.append([_ for _ in roots if _.name in requested_spec_unsat])
+                shortest_node = chains[0][0]
+                for root in roots:
+                    if root != chains[0][0]:
+                        c = self.breadth_first_search_for_dep_graph(root, shortest_node.name, dep_graph)
+                        chains.append(c)
+            else:
+                for node in nodes:
+                    chain = self.breadth_first_search_for_dep_graph(lroots[0], node, dep_graph)
+                    if len(current_shortest_chain) == 0 or len(chain) < len(current_shortest_chain):
+                        current_shortest_chain = chain
+                        shortest_node = node
+                chains.append(current_shortest_chain)
+                for root in lroots[1:]:
+                    c = self.breadth_first_search_for_dep_graph(root, shortest_node, dep_graph)
+                    chains.append(c)
 
         # # For each spec, assemble a dictionary of dependencies, with package
         # # name as key, and all of the matching packages as values.
