@@ -10,7 +10,6 @@ from logging import DEBUG, getLogger
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
 from ._vendor.toolz import concat, groupby
-from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
@@ -508,7 +507,6 @@ class Resolve(object):
                 else:
                     conflicting_pkgs_pkgs[frozenset(v)].append(k)
 
-
         for roots, nodes in conflicting_pkgs_pkgs.items():
             lroots = [_ for _ in roots]
             current_shortest_chain = []
@@ -519,12 +517,14 @@ class Resolve(object):
                 shortest_node = chains[0][0]
                 for root in roots:
                     if root != chains[0][0]:
-                        c = self.breadth_first_search_for_dep_graph(root, shortest_node.name, dep_graph)
+                        c = self.breadth_first_search_for_dep_graph(
+                            root, shortest_node.name, dep_graph)
                         chains.append(c)
             else:
                 for node in nodes:
                     chain = self.breadth_first_search_for_dep_graph(lroots[0], node, dep_graph)
-                    if len(current_shortest_chain) == 0 or len(chain) < len(current_shortest_chain):
+                    if len(current_shortest_chain) == 0 or \
+                            len(chain) < len(current_shortest_chain):
                         current_shortest_chain = chain
                         shortest_node = node
                 chains.append(current_shortest_chain)
