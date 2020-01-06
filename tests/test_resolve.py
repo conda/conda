@@ -452,8 +452,8 @@ def test_unsat_chain():
     r = Resolve(OrderedDict((prec, prec) for prec in index))
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a', 'e'])
-    assert "a -> b -> c[version='>=1,<2'] -> d[version='>=1,<2']" in str(excinfo.value)
-    assert "e -> c[version='>=2,<3'] -> d[version='>=2,<3']" in str(excinfo.value)
+    assert "a -> b -> c[version='>=1,<2']" in str(excinfo.value)
+    assert "e -> c[version='>=2,<3']" in str(excinfo.value)
 
 
 def test_unsat_any_two_not_three():
