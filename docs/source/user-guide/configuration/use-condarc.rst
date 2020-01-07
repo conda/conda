@@ -155,7 +155,8 @@ Precedence
 The precedence by which the conda configuration is built out is shown below.
 Each new arrow takes precedence over the ones before it. For example, config
 files (by parse order) will be superceded by any of the other configuration
-options and environment variables will always take precedence over the other 3.
+options. Configuration environment variables (formatted like ``CONDA_<CONFIG NAME>``)
+will always take precedence over the other 3.
 
 .. figure:: /img/config-precedence.png
 
