@@ -393,13 +393,12 @@ class Resolve(object):
                     new_path.append(adj)
                     queue.append(new_path)
 
-    def breadth_first_search_for_dep_graph(self, root_spec, target_name, dep_graph):
+    def breadth_first_search_for_dep_graph(self, root_spec, target_name, dep_graph, num_targets=1):
         """Return shorted path from root_spec to target_name"""
         queue = []
         queue.append([root_spec])
         visited = []
-        found_target = False
-        target_path = []
+        target_paths = []
         while queue:
             path = queue.pop(0)
             node = path[-1]
@@ -407,14 +406,12 @@ class Resolve(object):
                 continue
             visited.append(node)
             if node.name == target_name:
-                found_target = True
-                if len(target_path) == 0:
-                    target_path = path
-                elif len(target_path) == len(path):
-                    last_spec = MatchSpec.union((path[-1], target_path[-1]))[0]
-                    target_path[-1] = last_spec
-                if len(queue) == 0:
-                    return target_path
+                target_paths.append(path)
+                if len(target_paths[-1]) == len(path):
+                    last_spec = MatchSpec.union((path[-1], target_paths[-1][-1]))[0]
+                    target_paths[-1][-1] = last_spec
+                if len(queue) == 0 or (len(target_paths) == num_targets and any(len(_) != len(path) for _ in queue)):
+                    return target_paths
             sub_graph = dep_graph
             for p in path[0:-1]:
                 sub_graph = sub_graph[p]
@@ -422,11 +419,11 @@ class Resolve(object):
             if children is None:
                 continue
             for adj in children:
-                if found_target is False:
+                if len(target_paths) < num_targets:
                     new_path = list(path)
                     new_path.append(adj)
                     queue.append(new_path)
-        return target_path
+        return target_paths
 
     def build_graph_of_deps(self, spec):
         deps_graph = {}
