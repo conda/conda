@@ -362,10 +362,13 @@ class Resolve(object):
                 continue
             visited.append(node)
             if node.name == target_name:
-                target_paths.append(path)
+                if len(target_paths) == 0:
+                    target_paths.append(path)
                 if len(target_paths[-1]) == len(path):
                     last_spec = MatchSpec.union((path[-1], target_paths[-1][-1]))[0]
                     target_paths[-1][-1] = last_spec
+                else:
+                    target_paths.append(path)
                 if len(queue) == 0 or (len(target_paths) == num_targets and any(len(_) != len(path) for _ in queue)):
                     return target_paths
             sub_graph = dep_graph
@@ -477,14 +480,16 @@ class Resolve(object):
                         chains.extend(c)
             else:
                 for node in nodes:
-                    chain = self.breadth_first_search_for_dep_graph(lroots[0], node, dep_graph)
+                    num_occurances = dep_list[node].count(lroots[0])
+                    chain = self.breadth_first_search_for_dep_graph(lroots[0], node, dep_graph, num_occurances)
                     chains.extend(chain)
                     if len(current_shortest_chain) == 0 or \
                             len(chain) < len(current_shortest_chain):
                         current_shortest_chain = chain
                         shortest_node = node
                 for root in lroots[1:]:
-                    c = self.breadth_first_search_for_dep_graph(root, shortest_node, dep_graph)
+                    num_occurances = dep_list[shortest_node].count(root)
+                    c = self.breadth_first_search_for_dep_graph(root, shortest_node, dep_graph, num_occurances)
                     chains.extend(c)
 
         bad_deps = self._classify_bad_deps(chains, specs_to_add, history_specs,

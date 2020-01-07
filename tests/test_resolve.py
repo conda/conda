@@ -490,6 +490,7 @@ def test_unsat_any_two_not_three():
     # a, b and c cannot be installed
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a', 'b', 'c'])
+
     assert "a -> d[version='>=1,<2|>=2,<3']" in str(excinfo.value)
     assert "b -> d[version='>=1,<2|>=3,<4']" in str(excinfo.value)
     assert "c -> d[version='>=2,<3|>=3,<4']" in str(excinfo.value)
