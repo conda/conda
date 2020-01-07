@@ -272,6 +272,7 @@ def test_cuda_fail_1(tmpdir):
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
 
+  - feature:/osx-64::__cuda==8.0=0
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
 Your installed CUDA driver is: 8.0""")
@@ -2261,7 +2262,7 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
         error_msg = str(exc.value).strip()
         assert "incompatible with the existing python installation in your environment:" in error_msg
         assert "- scikit-learn==0.13 -> python=2.7" in error_msg
-        assert "Your python: python=2.6"
+        assert "Your python: python=2.6" in error_msg
 
     specs_to_add = MatchSpec("unsatisfiable-with-py26"),
     with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
