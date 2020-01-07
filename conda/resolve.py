@@ -407,7 +407,6 @@ class Resolve(object):
                         new_path = list(path)
                         new_path.append(new_node)
                         queue.append(new_path)
-
         return dep_graph, all_deps
 
     def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
@@ -448,12 +447,13 @@ class Resolve(object):
             if len(matches) == 1:
                 specs = set(self.ms_depends(matches[0]))
         specs.update({_.to_match_spec() for _ in self._system_precs})
-        # Make sure the packages and deps exist
-        for k in specs:
-            self._get_package_pool((k,))
+        print("Building up graph of deps")
+        for spec in specs:
+            self._get_package_pool((spec, ))
 
         dep_graph = {}
         dep_list = {}
+        print("Building up graph of deps")
         for spec in specs:
             dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
             dep_graph.update(dep_graph_for_spec)
@@ -467,6 +467,7 @@ class Resolve(object):
                 else:
                     dep_list[dep.name] = [spec]
 
+        print("Finding conflicting packages")
         chains = []
         conflicting_pkgs_pkgs = {}
         for k, v in dep_list.items():
@@ -486,6 +487,7 @@ class Resolve(object):
                 chains.append([_ for _ in roots if _.name in requested_spec_unsat])
                 shortest_node = chains[0][0]
                 for root in roots:
+                    print("Examining conflicts for %s" % root)
                     if root != chains[0][0]:
                         search_node = shortest_node.name
                         num_occurances = dep_list[search_node].count(root)
@@ -503,11 +505,13 @@ class Resolve(object):
                         current_shortest_chain = chain
                         shortest_node = node
                 for root in lroots[1:]:
+                    print("Examining conflicts for %s" % root)
                     num_occurances = dep_list[shortest_node].count(root)
                     c = self.breadth_first_search_for_dep_graph(
                         root, shortest_node, dep_graph, num_occurances)
                     chains.extend(c)
 
+        print("classifying bad deps")
         bad_deps = self._classify_bad_deps(chains, specs_to_add, history_specs,
                                            strict_channel_priority)
         return bad_deps
