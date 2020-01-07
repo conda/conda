@@ -388,19 +388,27 @@ class Resolve(object):
         return target_paths
 
     def build_graph_of_deps(self, spec):
-        deps_graph = {}
+        dep_graph = {spec: {}}
         all_deps = set()
-        matches = self.find_matches(spec)
-        depends_on = {}
-        for mat in matches:
-            if len(mat.depends) > 0:
-                for i in mat.depends:
-                    dg, ad = self.build_graph_of_deps(MatchSpec(i))
-                    depends_on.update(dg)
-                    all_deps.update(ad)
-                    all_deps.update(MatchSpec(_) for _ in mat.depends)
-        deps_graph[spec] = depends_on
-        return deps_graph, all_deps
+        queue = [[spec]]
+        while queue:
+            path = queue.pop(0)
+            sub_graph = dep_graph
+            for p in path:
+                sub_graph = sub_graph[p]
+            parent_node = path[-1]
+            matches = self.find_matches(parent_node)
+            for mat in matches:
+                if len(mat.depends) > 0:
+                    for i in mat.depends:
+                        new_node = MatchSpec(i)
+                        sub_graph.update({new_node: {}})
+                        all_deps.add(new_node)
+                        new_path = list(path)
+                        new_path.append(new_node)
+                        queue.append(new_path)
+
+        return dep_graph, all_deps
 
     def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
         """Perform a deeper analysis on conflicting specifications, by attempting
@@ -411,7 +419,7 @@ class Resolve(object):
             It is assumed that the specs conflict.
 
         Returns:
-            Nothing, because it always raises an UnsatisfiableError.
+            bad_deps: A list of lists of bad deps
 
         Strategy:
             If we're here, we know that the specs conflict. This could be because:
