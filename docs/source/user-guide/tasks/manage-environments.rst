@@ -616,8 +616,8 @@ arbitrary code that may not be safe.
 
 First, create your environment and activate it::
 
-  Conda create -n test-env
-  Conda activate test-env
+  conda create -n test-env
+  conda activate test-env
 
 To list any variables you may have, run ``conda env config vars list``.
 
@@ -632,13 +632,14 @@ To check if the environment variable has been set, run
 When you deactivate your environment, you can use those same commands to see that
 the environment variable goes away.
 
+You can specify the environment you want to affect using the ``-n`` and ``-p`` flags.
+
 To unset the environment variable, run ``conda env config vars unset my_var -n test-env``.
 
 When you deactivate your environment, you can see that environment variable goes away by rerunning 
 ``echo my_var`` or ``conda env config vars list`` to show that the variable name
 is no longer present.
 
-To unset the env variable, run ``conda env config vars unset my_var -n test-env``.
 
 Saving environment variables
 ============================
