@@ -437,6 +437,8 @@ class Resolve(object):
             if len(matches) == 1:
                 specs = set(self.ms_depends(matches[0]))
         specs.update({_.to_match_spec() for _ in self._system_precs})
+        sdeps = {k: self._get_package_pool((k, )) for k in specs}
+
 
         dep_graph = {}
         dep_list = {}
