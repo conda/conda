@@ -514,20 +514,22 @@ class Resolve(object):
                 shortest_node = chains[0][0]
                 for root in roots:
                     if root != chains[0][0]:
+                        search_node = shortest_node.name
+                        num_occurances = dep_list[search_node].count(root)
                         c = self.breadth_first_search_for_dep_graph(
-                            root, shortest_node.name, dep_graph)
-                        chains.append(c)
+                            root, search_node, dep_graph, num_occurances)
+                        chains.extend(c)
             else:
                 for node in nodes:
                     chain = self.breadth_first_search_for_dep_graph(lroots[0], node, dep_graph)
+                    chains.extend(chain)
                     if len(current_shortest_chain) == 0 or \
                             len(chain) < len(current_shortest_chain):
                         current_shortest_chain = chain
                         shortest_node = node
-                chains.append(current_shortest_chain)
                 for root in lroots[1:]:
                     c = self.breadth_first_search_for_dep_graph(root, shortest_node, dep_graph)
-                    chains.append(c)
+                    chains.extend(c)
 
         # # For each spec, assemble a dictionary of dependencies, with package
         # # name as key, and all of the matching packages as values.
