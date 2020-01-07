@@ -418,6 +418,7 @@ def test_unsat_shortest_chain_3():
     r = Resolve(OrderedDict((prec, prec) for prec in index))
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['c=1.3.6', 'a', 'b'])
+    import ipdb; ipdb.set_trace()
     assert "a -> e -> c[version='<1.3.0']" in str(excinfo.value)
     assert "b -> c" in str(excinfo.value)
     assert "c=1.3.6" in str(excinfo.value)

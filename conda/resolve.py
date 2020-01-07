@@ -410,7 +410,7 @@ class Resolve(object):
                 found_target = True
                 if len(target_path) == 0:
                     target_path = path
-                else:
+                elif len(target_path) == len(path):
                     last_spec = MatchSpec.union((path[-1], target_path[-1]))[0]
                     target_path[-1] = last_spec
                 if len(queue) == 0:
