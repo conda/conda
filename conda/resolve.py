@@ -369,7 +369,10 @@ class Resolve(object):
                     target_paths[-1][-1] = last_spec
                 else:
                     target_paths.append(path)
-                if len(queue) == 0 or (len(target_paths) == num_targets and any(len(_) != len(path) for _ in queue)):
+
+                found_all_targets = len(target_paths) == num_targets and \
+                    any(len(_) != len(path) for _ in queue)
+                if len(queue) == 0 or found_all_targets:
                     return target_paths
             sub_graph = dep_graph
             for p in path[0:-1]:
@@ -437,8 +440,9 @@ class Resolve(object):
             if len(matches) == 1:
                 specs = set(self.ms_depends(matches[0]))
         specs.update({_.to_match_spec() for _ in self._system_precs})
-        sdeps = {k: self._get_package_pool((k, )) for k in specs}
-
+        # Make sure the packages and deps exist
+        for k in specs:
+            self._get_package_pool((k,))
 
         dep_graph = {}
         dep_list = {}
@@ -483,7 +487,8 @@ class Resolve(object):
             else:
                 for node in nodes:
                     num_occurances = dep_list[node].count(lroots[0])
-                    chain = self.breadth_first_search_for_dep_graph(lroots[0], node, dep_graph, num_occurances)
+                    chain = self.breadth_first_search_for_dep_graph(
+                        lroots[0], node, dep_graph, num_occurances)
                     chains.extend(chain)
                     if len(current_shortest_chain) == 0 or \
                             len(chain) < len(current_shortest_chain):
@@ -491,7 +496,8 @@ class Resolve(object):
                         shortest_node = node
                 for root in lroots[1:]:
                     num_occurances = dep_list[shortest_node].count(root)
-                    c = self.breadth_first_search_for_dep_graph(root, shortest_node, dep_graph, num_occurances)
+                    c = self.breadth_first_search_for_dep_graph(
+                        root, shortest_node, dep_graph, num_occurances)
                     chains.extend(c)
 
         bad_deps = self._classify_bad_deps(chains, specs_to_add, history_specs,
