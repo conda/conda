@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict, OrderedDict, deque
 import copy
 from logging import DEBUG, getLogger
+from tqdm import tqdm
 
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
@@ -453,23 +454,23 @@ class Resolve(object):
 
         dep_graph = {}
         dep_list = {}
-        for spec in specs:
-            print("Building up graph of deps for %s" % spec)
-
-            dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
-            print("Done building up graph of deps for %s" % spec)
-            dep_graph.update(dep_graph_for_spec)
-            if dep_list.get(spec.name):
-                dep_list[spec.name].append(spec)
-            else:
-                dep_list[spec.name] = [spec]
-            for dep in all_deps_for_spec:
-                if dep_list.get(dep.name):
-                    dep_list[dep.name].append(spec)
+        with tqdm(total=len(specs), desc="Building graph of deps",
+                  leave=False, disable=context.json) as t:
+            for spec in specs:
+                t.set_description("Examining {}".format(spec))
+                t.update()
+                dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
+                dep_graph.update(dep_graph_for_spec)
+                if dep_list.get(spec.name):
+                    dep_list[spec.name].append(spec)
                 else:
-                    dep_list[dep.name] = [spec]
+                    dep_list[spec.name] = [spec]
+                for dep in all_deps_for_spec:
+                    if dep_list.get(dep.name):
+                        dep_list[dep.name].append(spec)
+                    else:
+                        dep_list[dep.name] = [spec]
 
-        print("Finding conflicting packages")
         chains = []
         conflicting_pkgs_pkgs = {}
         for k, v in dep_list.items():
@@ -485,40 +486,41 @@ class Resolve(object):
                     else:
                         conflicting_pkgs_pkgs[set_v].append(k)
 
-        for roots, nodes in conflicting_pkgs_pkgs.items():
-            lroots = [_ for _ in roots]
-            current_shortest_chain = []
-            shortest_node = None
-            requested_spec_unsat = frozenset(nodes).intersection(set(_.name for _ in roots))
-            if requested_spec_unsat:
-                chains.append([_ for _ in roots if _.name in requested_spec_unsat])
-                shortest_node = chains[0][0]
-                for root in roots:
-                    print("Examining conflicts for %s" % root)
-                    if root != chains[0][0]:
-                        search_node = shortest_node.name
-                        num_occurances = dep_list[search_node].count(root)
+        with tqdm(total=len(specs), desc="Determining conflicts",
+                  leave=False, disable=context.json) as t:
+            for roots, nodes in conflicting_pkgs_pkgs.items():
+                t.set_description("Examining {}".format(roots))
+                t.update()
+                lroots = [_ for _ in roots]
+                current_shortest_chain = []
+                shortest_node = None
+                requested_spec_unsat = frozenset(nodes).intersection(set(_.name for _ in roots))
+                if requested_spec_unsat:
+                    chains.append([_ for _ in roots if _.name in requested_spec_unsat])
+                    shortest_node = chains[0][0]
+                    for root in roots:
+                        if root != chains[0][0]:
+                            search_node = shortest_node.name
+                            num_occurances = dep_list[search_node].count(root)
+                            c = self.breadth_first_search_for_dep_graph(
+                                root, search_node, dep_graph, num_occurances)
+                            chains.extend(c)
+                else:
+                    for node in nodes:
+                        num_occurances = dep_list[node].count(lroots[0])
+                        chain = self.breadth_first_search_for_dep_graph(
+                            lroots[0], node, dep_graph, num_occurances)
+                        chains.extend(chain)
+                        if len(current_shortest_chain) == 0 or \
+                                len(chain) < len(current_shortest_chain):
+                            current_shortest_chain = chain
+                            shortest_node = node
+                    for root in lroots[1:]:
+                        num_occurances = dep_list[shortest_node].count(root)
                         c = self.breadth_first_search_for_dep_graph(
-                            root, search_node, dep_graph, num_occurances)
+                            root, shortest_node, dep_graph, num_occurances)
                         chains.extend(c)
-            else:
-                for node in nodes:
-                    num_occurances = dep_list[node].count(lroots[0])
-                    chain = self.breadth_first_search_for_dep_graph(
-                        lroots[0], node, dep_graph, num_occurances)
-                    chains.extend(chain)
-                    if len(current_shortest_chain) == 0 or \
-                            len(chain) < len(current_shortest_chain):
-                        current_shortest_chain = chain
-                        shortest_node = node
-                for root in lroots[1:]:
-                    print("Examining conflicts for %s" % root)
-                    num_occurances = dep_list[shortest_node].count(root)
-                    c = self.breadth_first_search_for_dep_graph(
-                        root, shortest_node, dep_graph, num_occurances)
-                    chains.extend(c)
 
-        print("classifying bad deps")
         bad_deps = self._classify_bad_deps(chains, specs_to_add, history_specs,
                                            strict_channel_priority)
         return bad_deps
