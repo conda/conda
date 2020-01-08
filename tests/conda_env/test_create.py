@@ -113,3 +113,12 @@ class IntegrationTests(TestCase):
                     # six may now be conda-installed because of packaging changes
                     assert package_is_installed(prefix, 'six', pip=False)
                 assert package_is_installed(prefix, 'xmltodict=0.10.2', pip=True)
+
+    def test_create_empty_env(self):
+        with make_temp_envs_dir() as envs_dir:
+            with env_var('CONDA_ENVS_DIRS', envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+                env_name = str(uuid4())[:8]
+                prefix = join(envs_dir, env_name)
+                run_command(Commands.CREATE, env_name, support_file('empty_env.yml'))
+                assert exists(prefix)
+
