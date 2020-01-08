@@ -474,12 +474,16 @@ class Resolve(object):
         conflicting_pkgs_pkgs = {}
         for k, v in dep_list.items():
             set_v = frozenset(v)
-            # Packages probably conflict
-            if len(set_v) > 1:
-                if conflicting_pkgs_pkgs.get(set_v) is None:
-                    conflicting_pkgs_pkgs[set_v] = [k]
-                else:
-                    conflicting_pkgs_pkgs[set_v].append(k)
+            # Packages probably conflict if it's cuda
+            if k == '__cuda':
+                conflicting_pkgs_pkgs[set_v] = [k]
+            else:
+                # Packages probably conflicts if many specs depend on it
+                if len(set_v) > 1:
+                    if conflicting_pkgs_pkgs.get(set_v) is None:
+                        conflicting_pkgs_pkgs[set_v] = [k]
+                    else:
+                        conflicting_pkgs_pkgs[set_v].append(k)
 
         for roots, nodes in conflicting_pkgs_pkgs.items():
             lroots = [_ for _ in roots]

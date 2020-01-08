@@ -270,12 +270,20 @@ def test_cuda_fail_1(tmpdir):
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
+    if sys.platform == "darwin":
+        plat = "osx-64"
+    elif sys.platform == "linux":
+        plat = "linux-64"
+    elif sys.platform == "win32":
+        plat = "win-64"
+    else:
+        plat = "linux-64"
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
 
-  - feature:/osx-64::__cuda==8.0=0
+  - feature:/{}::__cuda==8.0=0
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed CUDA driver is: 8.0""")
+Your installed CUDA driver is: 8.0""".format(plat))
 
 
 
