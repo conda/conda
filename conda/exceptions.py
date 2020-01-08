@@ -677,8 +677,7 @@ explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
                     '''),
                     'direct': dals('''
 
-The following specifications were found to be incompatible with each other:\n
-
+The following specifications were found to be incompatible with each other:
                     '''),
                     'cuda': dals('''
 
@@ -709,7 +708,8 @@ conda config --set unsatisfiable_hints True
                                     dep_constraint_map[dep[0][-1].name] = []
                                 dep_constraint_map[dep[0][-1].name].append(dep[0])
                         for dep, chain in dep_constraint_map.items():
-                            msg += "\nPackage %s conflicts for:\n" % dep
+                            msg += "\n\nPackage %s conflicts for:\n" % dep
+                            msg += "Requested package -> Available versions\n"
                             msg += "\n".join([" -> ".join([str(i) for i in c]) for c in chain])
                     else:
                         for dep_chain, installed_blocker in dep_class:
