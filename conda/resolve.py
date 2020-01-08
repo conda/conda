@@ -498,7 +498,7 @@ class Resolve(object):
                 requested_spec_unsat = frozenset(nodes).intersection(set(_.name for _ in roots))
                 if requested_spec_unsat:
                     chains.append([_ for _ in roots if _.name in requested_spec_unsat])
-                    shortest_node = chains[0][0]
+                    shortest_node = chains[-1][0]
                     for root in roots:
                         if root != chains[0][0]:
                             search_node = shortest_node.name
