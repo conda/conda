@@ -707,9 +707,9 @@ conda config --set unsatisfiable_hints True
                                 if not dep_constraint_map.get(dep[0][-1].name):
                                     dep_constraint_map[dep[0][-1].name] = []
                                 dep_constraint_map[dep[0][-1].name].append(dep[0])
+                        msg += "\nOutput in format: Requested package -> Available versions"
                         for dep, chain in dep_constraint_map.items():
                             msg += "\n\nPackage %s conflicts for:\n" % dep
-                            msg += "Requested package -> Available versions\n"
                             msg += "\n".join([" -> ".join([str(i) for i in c]) for c in chain])
                     else:
                         for dep_chain, installed_blocker in dep_class:
