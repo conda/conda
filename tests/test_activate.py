@@ -107,7 +107,7 @@ def bash_unsupported_because():
             reason = 'bash: WSL is not yet supported. Pull requests welcome.'
         else:
             output = check_output(bash + ' --version')
-            if b'msys' not in output and 'bcygwin' not in output:
+            if b'msys' not in output and b'cygwin' not in output:
                 reason = 'bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{}\n'.format(output)
             elif bash.startswith(sys.prefix):
                 reason = ('bash: MSYS2 bash installed from m2-bash in prefix {}.\n'
