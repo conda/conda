@@ -314,6 +314,7 @@ class Context(Configuration):
     target_prefix_override = ParameterLoader(PrimitiveParameter(''))
 
     unsatisfiable_hints = ParameterLoader(PrimitiveParameter(True))
+    unsatisfiable_hints_check_depth = ParameterLoader(PrimitiveParameter(3))
 
     # conda_build
     bld_path = ParameterLoader(PrimitiveParameter(''))
@@ -892,7 +893,8 @@ class Context(Configuration):
             'report_errors',
             'show_channel_urls',
             'verbosity',
-            'unsatisfiable_hints'
+            'unsatisfiable_hints',
+            'unsatisfiable_hints_check_depth'
         )),
         ('CLI-only', (
             'deps_modifier',
@@ -1283,6 +1285,12 @@ class Context(Configuration):
             'unsatisfiable_hints': dals("""
                 A boolean to determine if conda should find conflicting packages in the case
                 of a failed install.
+                """),
+            'unsatisfiable_hints_check_depth': dals("""
+                An integer that specifies how many levels deep to search for unsatisfiable
+                dependencies. If this number is 1 it will complete the unsatisfiable hints
+                fastest (but perhaps not the most complete). The higher this number, the
+                longer the generation of the unsat hint will take. Defaults to 3.
                 """),
 
         })

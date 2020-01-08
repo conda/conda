@@ -407,7 +407,7 @@ class Resolve(object):
                         all_deps.add(new_node)
                         new_path = list(path)
                         new_path.append(new_node)
-                        if len(new_path) <= 3:
+                        if len(new_path) <= context.unsatisfiable_hints_check_depth:
                             queue.append(new_path)
         return dep_graph, all_deps
 
@@ -489,7 +489,8 @@ class Resolve(object):
         with tqdm(total=len(specs), desc="Determining conflicts",
                   leave=False, disable=context.json) as t:
             for roots, nodes in conflicting_pkgs_pkgs.items():
-                t.set_description("Examining {}".format(roots))
+                t.set_description("Examining conflict for {}".format(
+                    " ".join(_.name for _ in roots)))
                 t.update()
                 lroots = [_ for _ in roots]
                 current_shortest_chain = []
