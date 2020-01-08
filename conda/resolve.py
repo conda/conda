@@ -406,7 +406,8 @@ class Resolve(object):
                         all_deps.add(new_node)
                         new_path = list(path)
                         new_path.append(new_node)
-                        queue.append(new_path)
+                        if len(new_path) <= 3:
+                            queue.append(new_path)
         return dep_graph, all_deps
 
     def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
@@ -447,15 +448,16 @@ class Resolve(object):
             if len(matches) == 1:
                 specs = set(self.ms_depends(matches[0]))
         specs.update({_.to_match_spec() for _ in self._system_precs})
-        print("Building up graph of deps")
         for spec in specs:
             self._get_package_pool((spec, ))
 
         dep_graph = {}
         dep_list = {}
-        print("Building up graph of deps")
         for spec in specs:
+            print("Building up graph of deps for %s" % spec)
+
             dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
+            print("Done building up graph of deps for %s" % spec)
             dep_graph.update(dep_graph_for_spec)
             if dep_list.get(spec.name):
                 dep_list[spec.name].append(spec)
@@ -471,12 +473,13 @@ class Resolve(object):
         chains = []
         conflicting_pkgs_pkgs = {}
         for k, v in dep_list.items():
+            set_v = frozenset(v)
             # Packages probably conflict
-            if len(v) > 1:
-                if conflicting_pkgs_pkgs.get(frozenset(v)) is None:
-                    conflicting_pkgs_pkgs[frozenset(v)] = [k]
+            if len(set_v) > 1:
+                if conflicting_pkgs_pkgs.get(set_v) is None:
+                    conflicting_pkgs_pkgs[set_v] = [k]
                 else:
-                    conflicting_pkgs_pkgs[frozenset(v)].append(k)
+                    conflicting_pkgs_pkgs[set_v].append(k)
 
         for roots, nodes in conflicting_pkgs_pkgs.items():
             lroots = [_ for _ in roots]
