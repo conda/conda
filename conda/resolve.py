@@ -535,7 +535,7 @@ class Resolve(object):
         return pool
 
     @time_recorder(module_name=__name__)
-    def get_reduced_index(self, explicit_specs, sort_by_exactness=True):
+    def get_reduced_index(self, explicit_specs, sort_by_exactness=True, exit_on_conflict=False):
         # TODO: fix this import; this is bad
         from .core.subdir_data import make_feature_record
 
@@ -647,16 +647,19 @@ class Resolve(object):
         # chance after their first "False" reduction. This catches more instances
         # where one package's filter affects another. But we don't have to be
         # perfect about this, so performance matters.
+        pruned_to_zero = set()
         for _ in range(2):
             snames.clear()
             slist = deque(explicit_specs)
-            reduced = False
             while slist:
                 s = slist.popleft()
-                top_level_spec = s
-                reduced = filter_group([s])
-                if reduced:
+                if filter_group([s]):
                     slist.append(s)
+                else:
+                    pruned_to_zero.add(s)
+
+        if pruned_to_zero and exit_on_conflict:
+            return {}
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
@@ -1066,18 +1069,24 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, channels=self.channels)
-        C = r2.gen_clauses()
-        solution = mysat(all_specs, True)
-        final_unsat_specs = ()
+        if reduced_index:
+            r2 = Resolve(reduced_index, True, channels=self.channels)
+            C = r2.gen_clauses()
+            solution = mysat(all_specs, True)
+        else:
+            solution = None
 
-        if not solution:
+        if solution:
+            final_unsat_specs = ()
+        elif context.unsatisfiable_hints:
             r2 = Resolve(self.index, True, channels=self.channels)
             C = r2.gen_clauses()
             # This first result is just a single unsatisfiable core. There may be several.
-            final_unsat_specs = minimal_unsatisfiable_subset(specs, sat=mysat,
-                                                             explicit_specs=explicit_specs)
-        return tuple(final_unsat_specs)
+            final_unsat_specs = tuple(minimal_unsatisfiable_subset(specs, sat=mysat,
+                                                                   explicit_specs=explicit_specs))
+        else:
+            final_unsat_specs = None
+        return final_unsat_specs
 
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
@@ -1225,9 +1234,11 @@ class Resolve(object):
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
 
-        reduced_index = self.get_reduced_index(specs)
+        reduced_index = self.get_reduced_index(
+            specs, exit_on_conflict=not context.unsatisfiable_hints)
         if not reduced_index:
-            # something is intrinsically unsatisfiable - either not found or not the right version
+            # something is intrinsically unsatisfiable - either not found or
+            # not the right version
             not_found_packages = set()
             wrong_version_packages = set()
             for s in specs:

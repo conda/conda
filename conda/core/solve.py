@@ -659,7 +659,7 @@ class Solver(object):
             conflicts = ssc.r.get_conflicting_specs(tuple(MatchSpec(_)
                                                           for _ in ssc.specs_map.values()),
                                                     specs_to_add)
-            for conflict in conflicts:
+            for conflict in conflicts or ():
                 # neuter the spec due to a conflict
                 if (conflict.name in ssc.specs_map and (
                         # add optional because any pinned specs will include it
@@ -799,11 +799,18 @@ class Solver(object):
         if log.isEnabledFor(DEBUG):
             log.debug("final specs to add: %s",
                       dashlist(sorted(text_type(s) for s in final_environment_specs)))
-        ssc.solution_precs = ssc.r.solve(tuple(final_environment_specs),
-                                         specs_to_add=self.specs_to_add,
-                                         history_specs=ssc.specs_from_history_map,
-                                         should_retry_solve=ssc.should_retry_solve
-                                         )
+
+        # this will raise for unsatisfiable stuff.  We can
+        if not conflicting_specs or context.unsatisfiable_hints:
+            ssc.solution_precs = ssc.r.solve(tuple(final_environment_specs),
+                                             specs_to_add=self.specs_to_add,
+                                             history_specs=ssc.specs_from_history_map,
+                                             should_retry_solve=ssc.should_retry_solve
+                                             )
+        else:
+            # shortcut to raise an unsat error without needing another solve step when
+            # unsatisfiable_hints is off
+            raise UnsatisfiableError({})
 
         self.neutered_specs = tuple(v for k, v in ssc.specs_map.items() if
                                     k in ssc.specs_from_history_map and
