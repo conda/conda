@@ -26,7 +26,7 @@ if ("`alias conda`" == "") then
         set prompt=""
     endif
 else
-    set PATH="`dirname ${_CONDA_EXE}`:$PATH"
+    setenv PATH "`dirname ${_CONDA_EXE}`:$PATH"
     switch ( "${1}" )
         case "activate":
             set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh activate '${2}' ${argv[3-]})`" || exit ${status}
