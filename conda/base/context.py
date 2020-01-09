@@ -314,7 +314,7 @@ class Context(Configuration):
     target_prefix_override = ParameterLoader(PrimitiveParameter(''))
 
     unsatisfiable_hints = ParameterLoader(PrimitiveParameter(True))
-    unsatisfiable_hints_check_depth = ParameterLoader(PrimitiveParameter(3))
+    unsatisfiable_hints_check_depth = ParameterLoader(PrimitiveParameter(2))
 
     # conda_build
     bld_path = ParameterLoader(PrimitiveParameter(''))
