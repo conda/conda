@@ -6,11 +6,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict, OrderedDict, deque
 import copy
 from logging import DEBUG, getLogger
+from tqdm import tqdm
 
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
 from ._vendor.toolz import concat, groupby
-from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
@@ -297,7 +297,7 @@ class Resolve(object):
         history_specs = set(MatchSpec(_) for _ in history_specs or [])
         for chain in bad_deps:
             # sometimes chains come in as strings
-            if chain[-1].name == 'python' and len(chain) > 1 and \
+            if len(chain) > 1 and chain[-1].name == 'python' and \
                     not any(_.name == 'python' for _ in specs_to_add) and \
                     any(_[0] for _ in bad_deps if _[0].name == 'python'):
                 python_first_specs = [_[0] for _ in bad_deps if _[0].name == 'python']
@@ -350,49 +350,66 @@ class Resolve(object):
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
         raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
-    def group_and_merge_specs(self, bad_deps_for_spec):
-        bad_deps = []
-        bd = groupby(lambda x: x[-1].name and len(x), bad_deps_for_spec)
-        for _, group in bd.items():
-            if len(group) > 1:
-                try:
-                    last_merged_spec = MatchSpec.union(ch[-1] for ch in group)[0]
-                    bad_dep = group[0][0:-1]
-                    bad_dep.append(last_merged_spec)
-                    bad_deps.append(bad_dep)
-                except ValueError:
-                    bad_deps.extend(group)
-            else:
-                bad_deps.extend(group)
-        return bad_deps
-
-    def breadth_first_search_by_spec(self, root_spec, target_spec, allowed_specs):
-        """Return shorted path from root_spec to spec_name"""
+    def breadth_first_search_for_dep_graph(self, root_spec, target_name, dep_graph, num_targets=1):
+        """Return shorted path from root_spec to target_name"""
         queue = []
         queue.append([root_spec])
         visited = []
+        target_paths = []
         while queue:
             path = queue.pop(0)
             node = path[-1]
             if node in visited:
                 continue
             visited.append(node)
-            if node == target_spec:
-                return path
-            children = []
-            specs = [_.depends for _ in allowed_specs.get(node.name)] \
-                if node.name in allowed_specs.keys() else None
-            if specs is None:
-                continue
-            for deps in specs:
-                children.extend([MatchSpec(d) for d in deps])
-            for adj in children:
-                if adj.name == target_spec.name and adj.version != target_spec.version:
-                    pass
+            if node.name == target_name:
+                if len(target_paths) == 0:
+                    target_paths.append(path)
+                if len(target_paths[-1]) == len(path):
+                    last_spec = MatchSpec.union((path[-1], target_paths[-1][-1]))[0]
+                    target_paths[-1][-1] = last_spec
                 else:
+                    target_paths.append(path)
+
+                found_all_targets = len(target_paths) == num_targets and \
+                    any(len(_) != len(path) for _ in queue)
+                if len(queue) == 0 or found_all_targets:
+                    return target_paths
+            sub_graph = dep_graph
+            for p in path[0:-1]:
+                sub_graph = sub_graph[p]
+            children = [_ for _ in sub_graph.get(node, {})]
+            if children is None:
+                continue
+            for adj in children:
+                if len(target_paths) < num_targets:
                     new_path = list(path)
                     new_path.append(adj)
                     queue.append(new_path)
+        return target_paths
+
+    def build_graph_of_deps(self, spec):
+        dep_graph = {spec: {}}
+        all_deps = set()
+        queue = [[spec]]
+        while queue:
+            path = queue.pop(0)
+            sub_graph = dep_graph
+            for p in path:
+                sub_graph = sub_graph[p]
+            parent_node = path[-1]
+            matches = self.find_matches(parent_node)
+            for mat in matches:
+                if len(mat.depends) > 0:
+                    for i in mat.depends:
+                        new_node = MatchSpec(i)
+                        sub_graph.update({new_node: {}})
+                        all_deps.add(new_node)
+                        new_path = list(path)
+                        new_path.append(new_node)
+                        if len(new_path) <= context.unsatisfiable_hints_check_depth:
+                            queue.append(new_path)
+        return dep_graph, all_deps
 
     def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
         """Perform a deeper analysis on conflicting specifications, by attempting
@@ -403,7 +420,7 @@ class Resolve(object):
             It is assumed that the specs conflict.
 
         Returns:
-            Nothing, because it always raises an UnsatisfiableError.
+            bad_deps: A list of lists of bad deps
 
         Strategy:
             If we're here, we know that the specs conflict. This could be because:
@@ -432,75 +449,80 @@ class Resolve(object):
             if len(matches) == 1:
                 specs = set(self.ms_depends(matches[0]))
         specs.update({_.to_match_spec() for _ in self._system_precs})
+        for spec in specs:
+            self._get_package_pool((spec, ))
 
-        # For each spec, assemble a dictionary of dependencies, with package
-        # name as key, and all of the matching packages as values.
-        sdeps = {k: self._get_package_pool((k, )) for k in specs}
-
-        # find deps with zero intersection between specs which include that dep
-        bad_deps = []
-        dep_collections = tuple(set(sdep.keys()) for sdep in sdeps.values())
-        deps = set.union(*dep_collections) if dep_collections else []
-
-        with tqdm(total=len(deps), desc="Finding conflicts",
+        dep_graph = {}
+        dep_list = {}
+        with tqdm(total=len(specs), desc="Building graph of deps",
                   leave=False, disable=context.json) as t:
-            for dep in deps:
-                t.set_description("Examining {}".format(dep))
-                t.update()
-                sdeps_with_dep = {}
-                for k, v in sdeps.items():
-                    if dep in v:
-                        sdeps_with_dep[k] = v
-                if len(sdeps_with_dep) <= 1:
-                    continue
-                # if all of the pools overlap, we're good.  Next dep.
-                if bool(set.intersection(*[v[dep] for v in sdeps_with_dep.values()])):
-                    continue
-                spec_order = sdeps_with_dep.keys()
-                for spec in tqdm(spec_order, desc="Comparing specs that have this dependency",
-                                 leave=False, disable=context.json):
-                    allowed_specs = sdeps[spec]
-                    dep_vers = []
-                    for key, val in allowed_specs.items():
-                        if key != [_.name for _ in spec_order]:
-                            dep_vers.extend([v.depends for v in val])
-                    dep_ms = {MatchSpec(p) for pkgs in dep_vers for p in pkgs if dep in p}
-                    dep_ms.update(msspec for msspec in sdeps.keys() if msspec.name == dep)
-                    bad_deps_for_spec = []
-                    # # sort specs from least specific to most specific.  Only continue
-                    # #   to examine a dep if a conflict hasn't been found for its name
-                    # dep_ms = sorted(list(dep_ms), key=lambda x: (
-                    #     exactness_and_number_of_deps(self, x), x.dist_str()))
-                    # conflicts_found = set()
-                    with tqdm(total=len(dep_ms), desc="Finding conflict paths",
-                              leave=False, disable=context.json) as t2:
-                        for conflicting_spec in dep_ms:
-                            t2.set_description("Finding shortest conflict path for {}"
-                                               .format(conflicting_spec))
-                            t2.update()
-                            if conflicting_spec.name == spec.name:
-                                chain = [conflicting_spec] if \
-                                    conflicting_spec.version == spec.version else None
-                            else:
-                                chain = self.breadth_first_search_by_spec(
-                                    spec, conflicting_spec, allowed_specs)
-                            if chain:
-                                bad_deps_for_spec.append(chain)
-                    if bad_deps_for_spec:
-                        bad_deps.extend(self.group_and_merge_specs(bad_deps_for_spec))
-
-        if not bad_deps:
-            # no conflicting nor missing packages found, return the bad specs
-            bad_deps = []
-
             for spec in specs:
-                precs = self.find_matches(spec)
-                deps = set.union(*[set(self.ms_depends_.get(prec) or []) for prec in precs])
-                deps = groupby(lambda x: x.name, deps)
+                t.set_description("Examining {}".format(spec))
+                t.update()
+                dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
+                dep_graph.update(dep_graph_for_spec)
+                if dep_list.get(spec.name):
+                    dep_list[spec.name].append(spec)
+                else:
+                    dep_list[spec.name] = [spec]
+                for dep in all_deps_for_spec:
+                    if dep_list.get(dep.name):
+                        dep_list[dep.name].append(spec)
+                    else:
+                        dep_list[dep.name] = [spec]
 
-                bad_deps.extend([[spec, MatchSpec.union(_)[0]] for _ in deps.values()])
+        chains = []
+        conflicting_pkgs_pkgs = {}
+        for k, v in dep_list.items():
+            set_v = frozenset(v)
+            # Packages probably conflict if it's cuda
+            if k == '__cuda':
+                conflicting_pkgs_pkgs[set_v] = [k]
+            else:
+                # Packages probably conflicts if many specs depend on it
+                if len(set_v) > 1:
+                    if conflicting_pkgs_pkgs.get(set_v) is None:
+                        conflicting_pkgs_pkgs[set_v] = [k]
+                    else:
+                        conflicting_pkgs_pkgs[set_v].append(k)
 
-        bad_deps = self._classify_bad_deps(bad_deps, specs_to_add, history_specs,
+        with tqdm(total=len(specs), desc="Determining conflicts",
+                  leave=False, disable=context.json) as t:
+            for roots, nodes in conflicting_pkgs_pkgs.items():
+                t.set_description("Examining conflict for {}".format(
+                    " ".join(_.name for _ in roots)))
+                t.update()
+                lroots = [_ for _ in roots]
+                current_shortest_chain = []
+                shortest_node = None
+                requested_spec_unsat = frozenset(nodes).intersection(set(_.name for _ in roots))
+                if requested_spec_unsat:
+                    chains.append([_ for _ in roots if _.name in requested_spec_unsat])
+                    shortest_node = chains[-1][0]
+                    for root in roots:
+                        if root != chains[0][0]:
+                            search_node = shortest_node.name
+                            num_occurances = dep_list[search_node].count(root)
+                            c = self.breadth_first_search_for_dep_graph(
+                                root, search_node, dep_graph, num_occurances)
+                            chains.extend(c)
+                else:
+                    for node in nodes:
+                        num_occurances = dep_list[node].count(lroots[0])
+                        chain = self.breadth_first_search_for_dep_graph(
+                            lroots[0], node, dep_graph, num_occurances)
+                        chains.extend(chain)
+                        if len(current_shortest_chain) == 0 or \
+                                len(chain) < len(current_shortest_chain):
+                            current_shortest_chain = chain
+                            shortest_node = node
+                    for root in lroots[1:]:
+                        num_occurances = dep_list[shortest_node].count(root)
+                        c = self.breadth_first_search_for_dep_graph(
+                            root, shortest_node, dep_graph, num_occurances)
+                        chains.extend(c)
+
+        bad_deps = self._classify_bad_deps(chains, specs_to_add, history_specs,
                                            strict_channel_priority)
         return bad_deps
 

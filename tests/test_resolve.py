@@ -316,10 +316,12 @@ def test_unsat_from_r1():
     assert "numpy=1.5" in str(excinfo.value)
     assert "scipy==0.12.0b1 -> numpy[version='1.6.*|1.7.*']" in str(excinfo.value)
     # numpy 1.5 does not have a python 3 package
+
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['numpy 1.5*', 'python 3*'])
     assert "numpy=1.5 -> python[version='2.6.*|2.7.*']" in str(excinfo.value)
     assert "python=3" in str(excinfo.value)
+
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['numpy 1.5*', 'numpy 1.6*'])
     assert "numpy=1.5" in str(excinfo.value)
@@ -420,6 +422,22 @@ def test_unsat_shortest_chain_3():
     assert "c=1.3.6" in str(excinfo.value)
 
 
+def test_unsat_shortest_chain_4():
+    index = (
+        simple_rec(name='a', depends=['py =3.7.1']),
+        simple_rec(name="py_req_1"),
+        simple_rec(name="py_req_2"),
+        simple_rec(name='py', version='3.7.1', depends=['py_req_1', 'py_req_2']),
+        simple_rec(name='py', version='3.6.1', depends=['py_req_1', 'py_req_2']),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    with pytest.raises(UnsatisfiableError) as excinfo:
+        r.install(['a', 'py=3.6.1'])
+    print(str(excinfo.value))
+    assert "a -> py=3.7.1" in str(excinfo.value)
+    assert "py=3.6.1" in str(excinfo.value)
+    assert "py=3.6.1 -> py_req_2" not in str(excinfo.value)
+
 def test_unsat_chain():
     # a -> b -> c=1.x -> d=1.x
     # e      -> c=2.x -> d=2.x
@@ -436,8 +454,8 @@ def test_unsat_chain():
     r = Resolve(OrderedDict((prec, prec) for prec in index))
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a', 'e'])
-    assert "a -> b -> c[version='>=1,<2'] -> d[version='>=1,<2']" in str(excinfo.value)
-    assert "e -> c[version='>=2,<3'] -> d[version='>=2,<3']" in str(excinfo.value)
+    assert "a -> b -> c[version='>=1,<2']" in str(excinfo.value)
+    assert "e -> c[version='>=2,<3']" in str(excinfo.value)
 
 
 def test_unsat_any_two_not_three():
@@ -472,6 +490,7 @@ def test_unsat_any_two_not_three():
     # a, b and c cannot be installed
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a', 'b', 'c'])
+
     assert "a -> d[version='>=1,<2|>=2,<3']" in str(excinfo.value)
     assert "b -> d[version='>=1,<2|>=3,<4']" in str(excinfo.value)
     assert "c -> d[version='>=2,<3|>=3,<4']" in str(excinfo.value)
