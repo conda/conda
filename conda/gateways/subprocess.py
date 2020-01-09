@@ -57,7 +57,8 @@ def any_subprocess(args, prefix, env=None, cwd=None):
     return stdout, stderr, process.returncode
 
 
-def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True, stdout=PIPE, stderr=PIPE):
+def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True,
+                    stdout=PIPE, stderr=PIPE):
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """
@@ -67,7 +68,8 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
         command = shlex_split_unicode(command)
     command_str = command if isinstance(command, string_types) else ' '.join(command)
     log.debug("executing>> %s", command_str)
-    p = Popen(encode_arguments(command), cwd=cwd, stdin=stdin, stdout=stdout, stderr=stderr, env=env)
+    p = Popen(encode_arguments(command), cwd=cwd, stdin=stdin, stdout=stdout,
+              stderr=stderr, env=env)
     ACTIVE_SUBPROCESSES.add(p)
     stdout, stderr = p.communicate()
     if hasattr(stdout, "decode"):
