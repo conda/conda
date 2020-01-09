@@ -16,6 +16,7 @@ from ..core.solve import Solver
 from ..exceptions import CondaEnvironmentError, CondaValueError
 from ..gateways.disk.delete import rm_rf, path_is_clean
 from ..models.match_spec import MatchSpec
+from ..exceptions import PackagesNotFoundError
 
 log = logging.getLogger(__name__)
 
@@ -65,8 +66,10 @@ def execute(args, parser):
                 neutered_specs={},
             )
             txn = UnlinkLinkTransaction(stp)
-            handle_txn(txn, prefix, args, False, True)
-
+            try:
+                handle_txn(txn, prefix, args, False, True)
+            except PackagesNotFoundError:
+                print("No packages found in %s. Continuing environment removal" % prefix)
         rm_rf(prefix, clean_empty_parents=True)
         unregister_env(prefix)
 
