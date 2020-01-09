@@ -75,4 +75,5 @@ Learn more about `package specifications and metadata <https://docs.conda.io/pro
 
 For example, if you want to install llvmlite 0.31.0dev0 on Python 3.7.8, you
 would enter::
-  conda install  -c numba/label/dev llvmlite=0.31.0dev0=py37_8
+    
+    conda install  -c numba/label/dev llvmlite=0.31.0dev0=py37_8

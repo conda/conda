@@ -7,6 +7,7 @@ Explore the links to learn more about conda foundations.
 .. toctree::
    :maxdepth: 1
 
+   conda-commands
    packages
    pkg-specs
    channels
