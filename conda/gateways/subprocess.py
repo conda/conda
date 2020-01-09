@@ -15,7 +15,7 @@ from ..utils import wrap_subprocess_call
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
 from .._vendor.auxlib.ish import dals
-from ..common.compat import (string_types, encode_arguments,
+from ..common.compat import (ensure_binary, string_types, encode_arguments,
                              on_win, encode_environment, isiterable)
 from ..gateways.disk.delete import rm_rf
 from ..base.context import context
@@ -68,6 +68,7 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
         command = shlex_split_unicode(command)
     command_str = command if isinstance(command, string_types) else ' '.join(command)
     log.debug("executing>> %s", command_str)
+	stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
     p = Popen(encode_arguments(command), cwd=cwd, stdin=stdin, stdout=stdout,
               stderr=stderr, env=env)
     ACTIVE_SUBPROCESSES.add(p)
