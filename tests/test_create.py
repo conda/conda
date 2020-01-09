@@ -2834,6 +2834,11 @@ class IntegrationTests(TestCase):
             #    If this command runs successfully (does not raise), then all is well.
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "imagesize")
 
+    @pytest.mark.integration
+    def test_remove_empty_env(self):
+        with make_temp_env() as prefix:
+            run_command(Commands.CREATE, prefix)
+            run_command(Commands.REMOVE, prefix, '--all')
 
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")
 @pytest.mark.integration
