@@ -69,7 +69,7 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     log.debug("executing>> %s", command_str)
     p = Popen(encode_arguments(command), cwd=cwd, stdin=stdin, stdout=stdout, stderr=stderr, env=env)
     ACTIVE_SUBPROCESSES.add(p)
-	stdout, stderr = p.communicate()
+    stdout, stderr = p.communicate()
     if hasattr(stdout, "decode"):
         stdout = stdout.decode('utf-8', errors='replace')
     if hasattr(stderr, "decode"):
