@@ -25,7 +25,7 @@ def execute(args, parser):
                                                        args.dev, args.debug_wrapper_scripts, call)
     env = encode_environment(os.environ.copy())
 
-    response = subprocess_call(command_args, env=env, path=cwd, raise_on_error=False)
+    response = subprocess_call(command_args, env=env, path=cwd, raise_on_error=False, stdout=sys.stdout, stderr=sys.stderr, stdin=sys.stdin)
     if response.rc != 0:
         log = getLogger(__name__)
         log.error("Subprocess for 'conda run {}' command failed.  (See above for error)"
@@ -37,8 +37,4 @@ def execute(args, parser):
             log = getLogger(__name__)
             log.warning('CONDA_TEST_SAVE_TEMPS :: retaining main_run script_caller {}'.format(
                 script_caller))
-    if response.stdout:
-        print(response.stdout, file=sys.stdout)
-    if response.stderr:
-        print(response.stderr, file=sys.stderr)
     return response
