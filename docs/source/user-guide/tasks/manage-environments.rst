@@ -632,7 +632,7 @@ To check if the environment variable has been set, run
 When you deactivate your environment, you can use those same commands to see that
 the environment variable goes away.
 
-You can specify the environment you want to affect using the ``-n`` and ``-p`` flags.
+You can specify the environment you want to affect using the ``-n`` and ``-p`` flags. The ``-n`` flag allows you to name the environment and ``-p`` allows you to specify the path to the environment.
 
 To unset the environment variable, run ``conda env config vars unset my_var -n test-env``.
 
