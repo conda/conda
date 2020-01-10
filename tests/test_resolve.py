@@ -1892,6 +1892,42 @@ def test_update_deps():
     ])
 
 
+def test_fast_error_on_unsat():
+    installed = r.install(["zope.interface=4.1.1"])
+    result = [rec.dist_str() for rec in installed]
+
+    assert result == add_subdir_to_iter([
+        'channel-1::nose-1.3.0-py33_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-3.3.2-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+        "channel-1::zope.interface-4.1.1.1-py33_0",
+    ])
+
+    _installed = r.install(['python 2.7*'], installed=installed)
+    result = [rec.dist_str() for rec in _installed]
+    assert result == add_subdir_to_iter([
+        'channel-1::nose-1.3.0-py27_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+        'channel-1::zope.interface-4.0.5-py27_0',
+    ])
+
+    r._reduced_index_cache.clear()
+    with env_var("CONDA_UNSATISFIABLE_HINTS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with pytest.raises(UnsatisfiableError):
+            _installed = r.install(["python 2.7*"], installed=installed)
+
+
 def test_surplus_features_1():
     index = (
         PackageRecord(**{

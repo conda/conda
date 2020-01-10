@@ -2135,7 +2135,7 @@ class IntegrationTests(TestCase):
                 # TODO: this should match the specs above.  It does, at least as far as I can tell from text
                 #    comparison.   Unfortunately, it doesn't evaluate as a match, even though the text all matches.
                 #    I suspect some strange equality of objects issue.
-                mock_method.assert_called_with(specs)
+                mock_method.assert_called_with(specs, exit_on_conflict=False)
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
