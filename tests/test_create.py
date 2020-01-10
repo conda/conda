@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
+from _pytest.monkeypatch import MonkeyPatch
 
 from contextlib import contextmanager
 from datetime import datetime
@@ -71,6 +72,11 @@ try:
     from unittest.mock import Mock, patch, ANY
 except ImportError:
     from mock import Mock, patch, ANY
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 log = getLogger(__name__)
@@ -482,6 +488,13 @@ class IntegrationTests(TestCase):
 
     def setUp(self):
         PackageCacheData.clear()
+		# Lets mock sys.stdin with a mock stream (ensure to add `fileno` to treat like a real string)
+        self.monkeypatch = MonkeyPatch()
+        stdin = StringIO()
+        def fileno():
+            return 0
+        stdin.fileno = fileno
+        self.monkeypatch.setattr('sys.stdin', stdin)
 
     def test_install_python2_and_search(self):
         with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
