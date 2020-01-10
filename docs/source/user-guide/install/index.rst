@@ -35,10 +35,6 @@ System requirements
 
 * Windows, macOS, or Linux.
 
-* Python 2.7, 3.4, 3.5, or 3.6.
-* pycosat.
-* PyYaml.
-* Requests.
 
 .. note::
    You do not need administrative or root permissions to
