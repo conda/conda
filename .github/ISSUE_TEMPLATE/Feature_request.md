@@ -2,8 +2,6 @@
 name: Feature request
 about: Suggest an idea for this project
 
-Anaconda Community Code of Conduct: https://www.anaconda.com/community-code-of-conduct/
-
 ---
 
 <!--
@@ -11,6 +9,8 @@ Hi!  Read this; it's important.
 
 This is an issue tracker for conda -- the package manager.  File feature requests
 for conda here, as well as bug reports about something conda has messed up.
+
+Anaconda Community Code of Conduct: https://www.anaconda.com/community-code-of-conduct/
 
 If your issue is a feature request for:
   * a specific conda package from Anaconda ('defaults' channel):
