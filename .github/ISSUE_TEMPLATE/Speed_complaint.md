@@ -8,6 +8,8 @@ about: If you think conda is going too slow
 <!--
 Hi!  Read this; it's important.
 
+Anaconda Community Code of Conduct: https://www.anaconda.com/community-code-of-conduct/
+
 We get a lot of reports on the conda issue tracker about speed. These are mostly
 not very helpful, because they only very generally complain about the total time
 conda is taking. They often don’t even say what conda is taking so long to do -
