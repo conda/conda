@@ -2,6 +2,8 @@
 name: Feature request
 about: Suggest an idea for this project
 
+Anaconda Community Code of Conduct: https://www.anaconda.com/community-code-of-conduct/
+
 ---
 
 <!--
