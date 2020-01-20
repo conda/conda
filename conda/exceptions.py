@@ -606,6 +606,27 @@ class PackagesNotFoundError(CondaError):
         )
 
 
+class SimpleUnsatisfiableError(CondaError):
+    """
+    TODO(jeremyliu)
+    """
+
+    def __init__(self, bad_deps):
+
+        msg = '''
+The following required specifications were filtered to 0 in index reduction and thus the requested
+solve is unsatisfiable. If you would like to know which packages conflict ensure that you have
+enabled unsatisfiable hints.
+
+conda config --set unsatisfiable_hints True
+
+Specifications:
+'''
+        for dep in bad_deps:
+            msg += " - %s\n" % dep
+        super(SimpleUnsatisfiableError, self).__init__(msg)
+
+
 class UnsatisfiableError(CondaError):
     """An exception to report unsatisfiable dependencies.
 

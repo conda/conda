@@ -19,7 +19,7 @@ from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolve
                            minimal_unsatisfiable_subset)
 from .common.toposort import toposort
 from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFound,
-                         UnsatisfiableError)
+                         SimpleUnsatisfiableError, UnsatisfiableError)
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
@@ -681,7 +681,7 @@ class Resolve(object):
                     pruned_to_zero.add(s)
 
         if pruned_to_zero and exit_on_conflict:
-            return {}
+            raise SimpleUnsatisfiableError(pruned_to_zero)
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}

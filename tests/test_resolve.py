@@ -10,7 +10,7 @@ import pytest
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import env_var
-from conda.exceptions import UnsatisfiableError
+from conda.exceptions import SimpleUnsatisfiableError, UnsatisfiableError
 from conda.gateways.disk.read import read_python_record
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
@@ -366,7 +366,7 @@ def test_unsat_simple_dont_find_conflicts():
     )
     with env_var("CONDA_UNSATISFIABLE_HINTS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         r = Resolve(OrderedDict((prec, prec) for prec in index))
-        with pytest.raises(UnsatisfiableError) as excinfo:
+        with pytest.raises(SimpleUnsatisfiableError) as excinfo:
             r.install(['a', 'b '])
         assert "a -> c[version='>=1,<2']" not in str(excinfo.value)
         assert "b -> c[version='>=2,<3']" not in str(excinfo.value)
@@ -1924,7 +1924,7 @@ def test_fast_error_on_unsat():
 
     r._reduced_index_cache.clear()
     with env_var("CONDA_UNSATISFIABLE_HINTS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with pytest.raises(UnsatisfiableError):
+        with pytest.raises(SimpleUnsatisfiableError):
             _installed = r.install(["python 2.7*"], installed=installed)
 
 
