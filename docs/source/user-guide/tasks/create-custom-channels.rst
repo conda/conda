@@ -53,7 +53,7 @@ To create a custom channel:
       you must rerun ``conda index`` for conda to see the update.
 
 #. To test custom channels, serve the custom channel using a web
-   server or using a ``file:// url`` to the channel directory.
+   server or using a ``file://`` URL to the channel directory.
    Test by sending a search command to the custom channel.
 
    EXAMPLE: If you want a file in the custom channel location
@@ -61,7 +61,7 @@ To create a custom channel:
   
    .. code::
 
-      conda search -c file://opt/channel/ --override-channels
+      conda search -c file:///opt/channel/ --override-channels
 
    .. note::
       The channel URL does not include the platform, as conda
