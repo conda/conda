@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import inspect
+try:
+    from inspect import getfullargspec as getargspec
+except ImportError:
+    from inspect import getargspec
 
-from datetime import datetime
 import pytest
 
 from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData, \
@@ -21,9 +23,10 @@ class PositionalArgument:
 
 
 def inspect_arguments(f, arguments):
-    result = inspect.getargspec(f)
+    # FullArgSpec(args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults, annotations)
+    result = getargspec(f)
     arg_names = result[0]
-    defaults = result.defaults or ()
+    defaults = result[3] or ()
     default_val_first_idx = len(arg_names) - len(defaults)
     arg_values = [PositionalArgument] * default_val_first_idx + list(defaults)
     for (recorded_name, recorded_value), (arg_name, arg_value) in zip(arguments.items(), zip(arg_names, arg_values)):

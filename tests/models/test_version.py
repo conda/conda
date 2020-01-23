@@ -216,7 +216,7 @@ class TestVersionSpec(unittest.TestCase):
             # ('1.8/*|1.9.*', False),  what was this supposed to be?
             ('>1.7,<1.8', True), ('>1.7.1,<1.8', False),
             ('^1.7.1$', True), (r'^1\.7\.1$', True), (r'^1\.7\.[0-9]+$', True),
-            ('^1\.8.*$', False), (r'^1\.[5-8]\.1$', True), (r'^[^1].*$', False),
+            (r'^1\.8.*$', False), (r'^1\.[5-8]\.1$', True), (r'^[^1].*$', False),
             (r'^[0-9+]+\.[0-9+]+\.[0-9]+$', True), ('^$', False),
             ('^.*$', True), ('1.7.*|^0.*$', True), ('1.6.*|^0.*$', False),
             ('1.6.*|^0.*$|1.7.1', True), ('^0.*$|1.7.1', True),

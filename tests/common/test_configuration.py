@@ -211,7 +211,7 @@ test_yaml_raw = {
 }
 
 
-class TestObject(ConfigurationObject):
+class DummyTestObject(ConfigurationObject):
 
     def __init__(self):
         self.int_field = PrimitiveParameter(0, element_type=int)
@@ -248,7 +248,7 @@ class SampleConfiguration(Configuration):
         SequenceParameter(MapParameter(PrimitiveParameter("", element_type=string_types))))
 
     test_object = ParameterLoader(
-        ObjectParameter(TestObject()))
+        ObjectParameter(DummyTestObject()))
 
 
 def load_from_string_data(*seq):
