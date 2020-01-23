@@ -161,7 +161,6 @@ def main(*args, **kwargs):
     # that need to set the PATH env var) and all subprocess envs.
     #
 
-    from os import environ, getpid, pathsep, sep
     from psutil import Process
     pp = Process(Process(getpid()).ppid())
     silent = 'hook' in args
@@ -178,8 +177,7 @@ def main(*args, **kwargs):
                 print('IDE ({}) launched me: {}'.format(pp.name(), cmdline))
         else:
             if not silent:
-                print('unknowwn ({}) launched22 me: {}'.format(pp.name(), cmdline))
-    if sys.platform == 'win32' and 'CONDA_PREFIX' in environ:
+    if 'CONDA_PREFIX' in environ:
         oep = environ['PATH']
         paths = oep.split(pathsep)
         # We do not catch the case of CONDA_PREFIX == sys.prefix. That just works.
@@ -190,7 +188,7 @@ def main(*args, **kwargs):
                 oep = oep.replace(res, '', 1)
                 if oep.startswith(sep):
                     oep.replace(sep, '', 1)
-                environ['PATH'] = oep
+                os.environ['PATH'] = oep
             from logging import getLogger
             log = getLogger(__name__)
             log.warning("WARNING: Stripping sys.prefix from PATH as it comes before CONDA_PREFIX.\n"
