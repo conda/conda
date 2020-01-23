@@ -147,6 +147,41 @@ def main(*args, **kwargs):
             return ExceptionHandler().handle_exception(exc_val, exc_tb)
 
     from ..exceptions import conda_exception_handler
+
+    # Here we are detecting (badly) the case when conda.bat has been run but not
+    # to activate or deactivate. conda.bat will have added entries for sys.prefix
+    # to the front of PATH (so that this conda executable can find its DLLs), but
+    # that is problematic for conda run, if executed through conda.bat because
+    # we do not prefix PATH with the new prefixes entries; we swap them in-place
+    # (a-la reactivate) or may even do nothing at all when re-activating the
+    # currently active env.
+    #
+    # I do not want to be messing with PATH here at all though (at least not until
+    # conda has loaded every DLL it could possibly want). We need a new proxy for
+    # os.environ['PATH'] which gets used for any PATH qeuries made by conda and
+    # which strips sysp from the result (which would be emitted to all script files
+    # (that need to set the PATH env var) and all subprocess envs.
+    #
+
+    from os import environ, pathsep, sep
+    if 'CONDA_PREFIX' in environ:
+        oep = environ['PATH']
+        paths = oep.split(pathsep)
+        # We do not catch the case of CONDA_PREFIX == sys.prefix. That just works.
+        if paths.index(sys.prefix) < paths.index(environ['CONDA_PREFIX']):
+            from conda.cli.activate import get_activate_path
+            res = get_activate_path(sys.prefix, 'cmd.exe')
+            if res in environ['PATH']:
+                oep = oep.replace(res, '', 1)
+                if oep.startswith(sep):
+                    oep.replace(sep, '', 1)
+                os.environ['PATH'] = oep
+            from logging import getLogger
+            log = getLogger(__name__)
+            log.warning("WARNING: Stripping sys.prefix from PATH as it comes before CONDA_PREFIX.\n"
+                        "         .. it was probably added there by conda.bat (sysp stuff)\n"
+                        "         .. and will cause the wrong software to run in some cases.")
+
     return conda_exception_handler(_main, *args, **kwargs)
 
 

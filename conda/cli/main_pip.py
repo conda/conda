@@ -15,7 +15,7 @@ log = getLogger(__name__)
 
 
 def pip_installed_post_parse_hook(args, p):
-    if args.cmd not in ('init', 'info'):
+    if args.cmd not in ('init', 'info', 'run'):
         raise CondaError(dals("""
         Conda has not been initialized.
 
