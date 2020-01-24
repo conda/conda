@@ -554,7 +554,7 @@ def parse_arch(raw_arch_string):
     raw_arch_string = raw_arch_string.lower()
 
     # X86
-    if re.match('^i\d86$|^x86$|^x86_32$|^i86pc$|^ia32$|^ia-32$|^bepc$', raw_arch_string):
+    if re.match(r'^i\d86$|^x86$|^x86_32$|^i86pc$|^ia32$|^ia-32$|^bepc$', raw_arch_string):
         arch = 'X86_32'
         bits = 32
     elif re.match('^x64$|^x86_64$|^x86_64t$|^i686-64$|^amd64$|^ia64$|^ia-64$', raw_arch_string):

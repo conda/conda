@@ -181,7 +181,11 @@ class PythonDistribution(object):
         entries_data = odict()
         config = ConfigParser()
         config.optionxform = lambda x: x  # Avoid lowercasing keys
-        config.readfp(StringIO(data))
+        try:
+            do_read = config.read_file
+        except AttributeError:
+            do_read = config.readfp
+        do_read(StringIO(data))
         for section in config.sections():
             entries_data[section] = odict(config.items(section))
 
