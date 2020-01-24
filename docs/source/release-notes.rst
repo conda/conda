@@ -5,6 +5,42 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.8.2 (2020-01-24)
+==================
+
+Enhancements
+^^^^^^^^^^^^
+
+* Improved solver messaging  (#9560)
+
+Docs
+^^^^
+
+* Added precedence and conflict info  (#9565)
+* Added how to set env variables with config API  (#9536)
+* Updated user guide, deleted Overview, minor clean up (#9581)
+* Added code of conduct (#9601, #9602, #9603, #9603, #9604, #9605)
+
+Bug fixes
+^^^^^^^^^
+
+* Change fish prompt only if changeps1 is true  (#7000)
+* Make frozendict JSON serializable (#9539)
+* Conda env create empty dir (#9543)
+
+
+Contributors
+^^^^^^^^^^^^
+
+* @msarahan
+* @jjhelmus
+* @rrigdon
+* @soapy1
+* @teake
+* @csoja
+* @kfranz
+
+
 4.8.1 (2019-12-19)
 ==================
 
