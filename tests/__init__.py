@@ -9,7 +9,7 @@ initialize_logging()
 # Attempt to move any conda entries in PATH to the front of it.
 # IDEs have their own ideas about how PATH should be managed and
 # they do dumb stuff like add /usr/bin to the front of it
-# meaning conda takes a submissve role and the wrong stuff
+# meaning conda takes a submissive role and the wrong stuff
 # runs (when other conda prefixes get activated they replace
 # the wrongly placed entries with newer wrongly placed entries).
 #
