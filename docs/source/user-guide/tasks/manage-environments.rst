@@ -738,7 +738,7 @@ You may want to share your environment with someone else---for
 example, so they can re-create a test that you have done. To
 allow them to quickly reproduce your environment, with all of its
 packages and versions, give them a copy of your
-``environment.yml file``.
+``environment.yml`` file.
 
 Exporting the environment.yml file
 ----------------------------------
