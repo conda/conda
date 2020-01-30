@@ -14,16 +14,16 @@ to create a conda environment over HTTP.
 You may need to set the conda environment to use the root certificate
 provided by your company rather than conda’s generic ones.
 
-One workflow to resolve this on MacOS is:
+One workflow to resolve this on macOS is:
 
 * Open Chrome, got to any website, click on the lock icon on the left
   of the URL. Click on «Certificate» on the dropdown. In the next window
   you see a stack of certificates. The uppermost (aka top line in window)
   is the root certificate (e.g. Zscaler Root CA).
-* Open MacOS keychain, click on «Certificates» and choose among the
+* Open macOS keychain, click on «Certificates» and choose among the
   many certificates the root certificate that you just identified.
   Export this to any folder of your choosing.
 * Convert this certificate with OpenSSL: ``openssl x509 -inform der -in /path/to/your/certificate.cer -out /path/to/converted/certificate.pem``
-* For a quick check set your shell to acknowledge the certificate: ``export REQUESTS_CA_BUNDLE=/path/to/converted/certificate.pem``
+* For a quick check, set your shell to acknowledge the certificate: ``export REQUESTS_CA_BUNDLE=/path/to/converted/certificate.pem``
 * To set this permanently, open your shell profile (.bshrs or e.g. .zshrc) and add this line: ``export REQUESTS_CA_BUNDLE=/path/to/converted/certificate.pem.``
   Now exit your terminal/shell and reopen. Check again.

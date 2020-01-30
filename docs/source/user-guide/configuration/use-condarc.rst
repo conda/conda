@@ -35,13 +35,13 @@ The ``.condarc`` file can change many parameters, including:
 
 * Where conda lists known environments.
 
-* Whether to update the bash prompt with the currently activated
+* Whether to update the Bash prompt with the currently activated
   environment name.
 
 * Whether user-built packages should be uploaded to
   `Anaconda.org <http://anaconda.org>`_.
 
-* Default packages or features to include in new environments.
+* What default packages or features to include in new environments.
 
 Creating and editing
 ====================
@@ -62,7 +62,7 @@ EXAMPLE:
   conda config --add channels conda-forge
 
 Alternatively, you can open a text editor such as Notepad
-on Windows, TextEdit on MacOS, or VS Code. Name the new file
+on Windows, TextEdit on macOS, or VS Code. Name the new file
 ``.condarc`` and save it to your user home directory or root
 directory. To edit the ``.condarc`` file, open it from your
 home or root directory and make edits in the same way you would
@@ -81,7 +81,7 @@ home directory or root directory.
 To set configuration options, edit the ``.condarc`` file directly
 or use the ``conda config --set`` command.
 
-EXAMPLE: To set the auto_update_conda option to ``False``, run::
+EXAMPLE: To set the ``auto_update_conda option`` to ``False``, run::
 
   conda config --set auto_update_conda False
 
@@ -190,7 +190,7 @@ here, in the order given.
 
 Use ``defaults`` to automatically include all default channels.
 Non-URL channels are interpreted as Anaconda.org user names. You
-can change this by modifying the channel_alias as described
+can change this by modifying the ``channel_alias`` as described
 in :ref:`set-ch-alias`. The default is just ``defaults``.
 
 EXAMPLE:
@@ -220,25 +220,25 @@ Allow other channels (allow_other_channels)
 
 The system-level ``.condarc`` file may specify a set of allowed
 channels, and it may allow users to install packages from other
-channels with the boolean flag allow_other_channels. The default
+channels with the boolean flag ``allow_other_channels``. The default
 is ``True``.
 
-If allow_other_channels is set to ``False``, only those channels
+If ``allow_other_channels`` is set to ``False``, only those channels
 explicitly specified in the system ``.condarc`` file are allowed:
 
 .. code-block:: yaml
 
   allow_other_channels: False
 
-When allow_other_channels is set to ``True`` or not specified,
+When ``allow_other_channels`` is set to ``True`` or not specified,
 each user has access to the default channels and to any channels
 that the user specifies in their local ``.condarc`` file. When
-allow_other_channels is set to ``false``, if the user specifies
-other channels, the other channels are blocked, and the user
+``allow_other_channels`` is set to ``false``, if the user specifies
+other channels, the other channels are blocked and the user
 receives a message reporting that channels are blocked. For more
 information, see :ref:`admin-inst`.
 
-If the system ``.condarc`` file specifies a channel_alias,
+If the system ``.condarc`` file specifies a ``channel_alias``,
 it overrides any channel aliases set in a user's ``.condarc``
 file. See :ref:`channel-alias`.
 
@@ -249,13 +249,13 @@ Default channels (default_channels)
 -----------------------------------
 
 Normally the defaults channel points to several channels at the
-`repo.continuum.io <http:repo.continuum.io>`_ repository, but if
-default_channels is defined, it sets the new list of default channels.
-This is especially useful for air gap and enterprise installations:
+`repo.anaconda.com <https://repo.anaconda.com/>`_ repository, but if
+``default_channels`` is defined, it sets the new list of default channels.
+This is especially useful for airgapped and enterprise installations:
 
 To ensure that all users only pull packages from an on-premises
-repository, an administrator can set both :ref:`channel-alias` and
-default_channels.
+repository, an administrator can set both :ref:`channel alias <channel-alias>` and
+``default_channels``.
 
 .. code-block:: yaml
 
@@ -327,8 +327,8 @@ EXAMPLE:
 Add pip as Python dependency (add_pip_as_python_dependency)
 -----------------------------------------------------------
 
-Add pip, wheel and setuptools as dependencies of Python. This
-ensures that pip, wheel and setuptools are always installed any
+Add pip, wheel, and setuptools as dependencies of Python. This
+ensures that pip, wheel, and setuptools are always installed any
 time Python is installed. The default is ``True``.
 
 EXAMPLE:
@@ -377,12 +377,12 @@ to the given scheme and exact host name:
   proxy_servers:
     'http://10.20.1.128': 'http://10.10.1.10:5323'
 
-If you do not include the user name and password or if
-authentication fails, conda prompts for a user name and password.
+If you do not include the username and password or if
+authentication fails, conda prompts for a username and password.
 
 If your password contains special characters, you need escape
 them as described in `Percent-encoding reserved characters
-<https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_ ,
+<https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_
 on Wikipedia.
 
 Be careful not to use ``http`` when you mean https or
@@ -396,7 +396,7 @@ SSL verification (ssl_verify)
 
 If you are behind a proxy that does SSL inspection such as a
 Cisco IronPort Web Security Appliance (WSA), you may need to use
-ssl_verify to override the SSL verification settings.
+``ssl_verify`` to override the SSL verification settings.
 
 By default this variable is ``True``, which means that SSL
 verification is used and conda verifies certificates for SSL
@@ -407,7 +407,7 @@ connection's normal security and is not recommended:
 
   ssl_verify: False
 
-You can also set ssl_verify to a string path to a certificate,
+You can also set ``ssl_verify`` to a string path to a certificate,
 which can be used to verify SSL connections:
 
 .. code-block:: yaml
@@ -447,12 +447,12 @@ Advanced configuration
 Disallow soft-linking (allow_softlinks)
 ---------------------------------------
 
-When allow_softlinks is ``True``, conda uses hard-links when
+When ``allow_softlinks`` is ``True``, conda uses hard-links when
 possible and soft-links---symlinks---when hard-links are not
 possible, such as when installing on a different file system
 than the one that the package cache is on.
 
-When allow_softlinks is ``False``, conda still uses
+When ``allow_softlinks`` is ``False``, conda still uses
 hard-links when possible, but when it is not possible, conda
 copies files. Individual packages can override this option,
 specifying that certain files should never be soft-linked.
@@ -476,12 +476,12 @@ Set a channel alias (channel_alias)
 Whenever you use the ``-c`` or ``--channel`` flag to give conda a
 channel name that is not a URL, conda prepends the ``channel_alias``
 to the name that it was given. The default ``channel_alias`` is
-https://conda.anaconda.org/.
+https://conda.anaconda.org.
 
 If ``channel_alias`` is set
 to ``https://my.anaconda.repo:8080/conda/``, then a user who runs the
 command ``conda install -c conda-forge some-package`` will install the
-package ``some-package`` from ``https://my.anaconda.repo:8080/conda/conda-forge``.
+package some-package from https://my.anaconda.repo:8080/conda/conda-forge.
 
 For example, the command::
 
@@ -491,9 +491,9 @@ is the same as::
 
   conda install --channel https://conda.anaconda.org/asmeurer <package>
 
-You can set channel_alias to your own repository.
+You can set ``channel_alias`` to your own repository.
 
-EXAMPLE: To set channel_alias to your repository at
+EXAMPLE: To set ``channel_alias`` to your repository at
 https://your.repo.com:
 
 .. code-block:: yaml
@@ -504,7 +504,7 @@ On Windows, you must include a slash ("/") at the end of the URL:
 
 EXAMPLE: https://your.repo/conda/
 
-When channel_alias set to your repository at
+When ``channel_alias`` set to your repository at
 https://your.repo.com::
 
   conda install --channel jsmith <package>
@@ -540,8 +540,8 @@ Track features (track_features)
 -------------------------------
 
 Enable certain features to be tracked by default. The default is
-to not track any features. This is similar to adding mkl to
-the create_default_packages list.
+to not track any features. This is similar to adding MKL to
+the ``create_default_packages`` list.
 
 EXAMPLE:
 
@@ -563,7 +563,7 @@ packages to the latest version.
 
 In this case, if you would prefer that conda update all dependencies
 to the latest version that is compatible with the environment,
-set update_dependencies to ``True``.
+set ``update_dependencies`` to ``True``.
 
 The default is ``False``.
 
@@ -649,7 +649,7 @@ EXAMPLE:
     - ~/my-envs
     - /opt/anaconda/envs
 
-The CONDA_ENVS_PATH environment variable overwrites the ``envs_dirs`` setting:
+The ``CONDA_ENVS_PATH`` environment variable overwrites the ``envs_dirs`` setting:
 
 * For macOS and Linux:
   ``CONDA_ENVS_PATH=~/my-envs:/opt/anaconda/envs``
@@ -677,7 +677,7 @@ EXAMPLE:
   pkgs_dirs:
     - /opt/anaconda/pkgs
 
-The CONDA_PKGS_DIRS environment variable overwrites the
+The ``CONDA_PKGS_DIRS`` environment variable overwrites the
 ``pkgs_dirs`` setting:
 
 * For macOS and Linux:
@@ -708,7 +708,7 @@ EXAMPLE:
 
 .. note::
 
-   This is forced to True if conda-build is installed and older than 3.18.3,
+   This is forced to ``True`` if conda-build is installed and older than 3.18.3,
    because older versions of conda break when conda feeds it the new file format.
 
 Conda-build configuration
@@ -737,10 +737,10 @@ Specify conda-build output root directory (root-dir)
 ----------------------------------------------------
 
 Build output root directory. You can also set this with the
-CONDA_BLD_PATH environment variable. The default is
+``CONDA_BLD_PATH`` environment variable. The default is
 ``<CONDA_PREFIX>/conda-bld/``. If you do not have write
-permissions to ``<CONDA_PREFIX>/conda-bld/`` , the default is
-``~/conda-bld/`` .
+permissions to ``<CONDA_PREFIX>/conda-bld/``, the default is
+``~/conda-bld/``.
 
 EXAMPLE:
 
@@ -783,10 +783,10 @@ EXAMPLE:
 Token to be used for Anaconda.org uploads (conda-build 3.0+) (anaconda_token)
 -----------------------------------------------------------------------------
 
-Tokens are a means of authenticating with anaconda.org without logging in.
+Tokens are a means of authenticating with Anaconda.org without logging in.
 You can pass your token to conda-build with this condarc setting, or with a CLI
 argument. This is unset by default. Setting it implicitly enables
-anaconda_upload.
+``anaconda_upload``.
 
   .. code-block:: yaml
 
@@ -820,9 +820,9 @@ with the following config entry:
    conda-build:
        filename_hashing: false
 
-.. note::
+.. warning::
 
-   Conda-build does no checking when clobbering packages. If you
+   Conda-build does not check when clobbering packages. If you
    utilize conda-build 3's build matrices with a build configuration that is not
    reflected in the build string, packages will be missing due to clobbering.
 
@@ -973,7 +973,7 @@ These are:
 - ``migrated_custom_channels``
 - ``whitelist_channels``
 
-This allows you to e.g. store the credentials of a private repository in an
+This allows you to store the credentials of a private repository in an
 environment variable, like so:
 
 .. code-block:: yaml
@@ -1037,7 +1037,7 @@ add configuration to control the number of threads. You may
 want to do this to tweak conda to better utilize your system.
 If you have a very fast SSD, you might increase the number
 of threads to shorten the time it takes for conda to create
-environments and install/remove packages. 
+environments and install/remove packages.
 
 **repodata_threads**
 
