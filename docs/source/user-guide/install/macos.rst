@@ -28,7 +28,9 @@ Installing on macOS
 #. To make the changes take effect, close and then re-open your
    terminal window.
 
-#. :doc:`Test your installation <test-installation>`.
+#. Test your installation. In your terminal window or
+   Anaconda Prompt, run the command ``conda list``. A list of installed packages appears
+   if it has been installed correctly.
 
 
 .. _install-macos-silent:
@@ -64,7 +66,7 @@ The installer prompts “Do you wish the installer to initialize Miniconda3 by r
 
 **MacOS Catalina**
 
-If you are on MacOS Catalina, the new default shell is zsh. You will instead need to run ``source <path to conda>/bin/activate`` followed by ``conda init zsh``.
+If you are on macOS Catalina, the new default shell is zsh. You will instead need to run ``source <path to conda>/bin/activate`` followed by ``conda init zsh``.
 
 Updating Anaconda or Miniconda
 ==============================
@@ -84,8 +86,6 @@ Uninstalling Anaconda or Miniconda
 #. Remove the entire Miniconda install directory with::
 
      rm -rf ~/miniconda
-
-#. You may also:
 
 #. OPTIONAL: Edit ``~/.bash_profile`` to remove the Miniconda
    directory from your PATH environment variable.

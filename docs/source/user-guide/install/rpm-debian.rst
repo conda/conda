@@ -1,13 +1,13 @@
 -----------------------------------------
 RPM and Debian Repositories for Miniconda
 -----------------------------------------
-Conda, the package manager from Anaconda, is now available as either a RedHat RPM or as a Debian package. The packages are the equivalent to the Miniconda installer which only contains conda and its dependencies. You can use yum or apt-get to install, uninstall and manage conda on your system. To install conda, follow the instructions for your Linux distribution.
+Conda, the package manager from Anaconda, is available as either a RedHat RPM or as a Debian package. The packages are the equivalent to the Miniconda installer which only contains conda and its dependencies. You can use yum or apt-get to install, uninstall and manage conda on your system. To install conda, follow the instructions for your Linux distribution.
  
-To install the RPM on RedHat, CentOS, Fedora distributions, and other RPM-based distributions such as openSUSE, download the gpg key and add a repository configuration file for conda.
+To install the RPM on RedHat, CentOS, Fedora distributions, and other RPM-based distributions such as openSUSE, download the GPG key and add a repository configuration file for conda.
 
 .. code-block:: none
 
-   # Import our gpg public key
+   # Import our GPG public key
    rpm --import https://repo.anaconda.com/pkgs/misc/gpgkeys/anaconda.asc
  
    # Add the Anaconda repository
@@ -56,11 +56,11 @@ Conda is ready to install on your RPM-based distribution.
    Installed size: 210 M
    Is this ok [y/N]:
  
-To install on Debian-based Linux distributions such as Ubuntu, download the public gpg key and add the conda repository to the sources list.
+To install on Debian-based Linux distributions such as Ubuntu, download the public GPG key and add the conda repository to the sources list.
  
 .. code-block:: none
 
-   # Install our public gpg key to trusted store
+   # Install our public GPG key to trusted store
    curl https://repo.anaconda.com/pkgs/misc/gpgkeys/anaconda.asc | gpg --dearmor > conda.gpg
    install -o root -g root -m 644 conda.gpg /usr/share/keyrings/conda-archive-keyring.gpg
 
@@ -104,9 +104,14 @@ Check to see if the installation is successful by typing:
    conda 4.5.11
 
 
-Installing conda packages with the system package manager makes it very easy to distribute conda across a cluster of machines running Linux without having to worry about any non privileged user modifying the installation. Any non privileged user simply needs to run `source/opt/conda/etc/profile.d/conda.sh` to use conda.
+Installing conda packages with the system package manager makes it very easy
+to distribute conda across a cluster of machines running Linux without having
+to worry about any non-privileged user modifying the installation.
+Any non-privileged user simply needs to run ``source/opt/conda/etc/profile.d/conda.sh`` to use conda.
 
-Administrators can also distribute a .condarc file at /opt/conda/.condarc so that a predefined configuration for channels, package cache directory and environment locations is pre-seeded to all users in a large organization. A sample configuration could look like:
+Administrators can also distribute a .condarc file at /opt/conda/.condarc so that a
+predefined configuration for channels, package cache directory, and environment locations
+is pre-seeded to all users in a large organization. A sample configuration could look like:
 
 .. code-block:: none
 

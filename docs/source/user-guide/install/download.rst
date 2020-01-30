@@ -35,10 +35,10 @@ Choose Anaconda if you:
 
 * Are new to conda or Python.
 
-* Like the convenience of having Python and over 150 scientific
+* Like the convenience of having Python and over 1,500 scientific
   packages automatically installed at once.
 
-* Have the time and disk space---a few minutes and 300 MB.
+* Have the time and disk space---a few minutes and 3 GB.
 
 * Do not want to individually install each of the packages you
   want to use.
@@ -48,7 +48,7 @@ Choose Miniconda if you:
 * Do not mind installing each of the packages you want to use
   individually.
 
-* Do not have time or disk space to install over 150 packages at
+* Do not have time or disk space to install over 1,500 packages at
   once.
 
 * Want fast access to Python and the conda commands and you wish
@@ -124,9 +124,9 @@ Download the installer file and before installing verify it as follows:
 
     #. Navigate to the file.
 
-    #. Run the following command:
-       
-       Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
+    #. Run the following command::
+    
+        Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
 
 * macOS: In iTerm or a terminal window enter ``shasum -a 256 filename``.
 
