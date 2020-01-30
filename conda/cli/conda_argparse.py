@@ -1090,6 +1090,12 @@ def configure_parser_run(sub_parsers):
         help="Current working directory for command to run in.  Defaults to cwd",
         default=os.getcwd()
     )
+    p.add_argument(
+        "--no-capture-output",
+        help="Don't capture stdout/stdout",
+        action=NullCountAction,
+        default=NULL,
+    )
 
     p.add_argument(
         'executable_call',
