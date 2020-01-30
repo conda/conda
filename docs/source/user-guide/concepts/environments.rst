@@ -70,6 +70,8 @@ built-in venv library, whereas conda has its own notion of virtual
 environments that is lower-level (Python itself is a dependency provided
 in conda environments).
 
+Scroll to the right in the table below.
+
 Some other traits are:
 
 .. list-table::
@@ -82,41 +84,41 @@ Some other traits are:
    * - **Libraries**
      - Statically link, vendor libraries in wheels,
        or use apt/yum/brew/etc.
-     - Install system-level libraries as conda dependencies
+     - Install system-level libraries as conda dependencies.
    * - **System**
-     - Depend on base system install of Python
-     - Python is independent from system
+     - Depend on base system install of Python.
+     - Python is independent from system.
    * - **Extending environment**
-     - Extend environment with pip
-     - Extended environment with conda or pip
+     - Extend environment with pip.
+     - Extended environment with conda or pip.
    * - **Non-Python dependencies**
      -
      - Manages non-Python dependencies (R, Perl,
-       arbitrary executables)
+       arbitrary executables).
    * - **Tracking dependencies**
      -
-     - Tracks binary dependencies explicitly
+     - Tracks binary dependencies explicitly.
 
 |
 
 Why use venv-based virtual environments
 ---------------------------------------
 
-- You prefer their workflow or spec formats
-- You prefer to use the system Python and libraries
+- You prefer their workflow or spec formats.
+- You prefer to use the system Python and libraries.
 - Your project maintainers only publish to PyPI, and
   you prefer packages that come more directly from the
   project maintainers, rather than someone else providing
-  builds based on the same code
+  builds based on the same code.
 
 Why use conda virtual environments?
 -----------------------------------
 
-- You want control over binary compatibility choices
-- You want to utilize newer language standards, such as C++ 17
-- You need libraries beyond what the system Python offers
+- You want control over binary compatibility choices.
+- You want to utilize newer language standards, such as C++ 17.
+- You need libraries beyond what the system Python offers.
 - You want to manage packages from languages other than Python
-  in the same space
+  in the same space.
 
 Workflow differentiators
 ========================

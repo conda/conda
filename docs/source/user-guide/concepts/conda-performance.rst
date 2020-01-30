@@ -17,13 +17,13 @@ packages. At any point along these steps, performance issues may arise.
 
 Conda follows these steps when installing a package:
 
-#. Downloading and processing index metadata
-#. Reducing the index
-#. Expressing the package data and constraints as a SAT problem
-#. Running the solver
-#. Downloading and extracting packages
-#. Verifying package contents
-#. Linking packages from package cache into environments
+#. Downloading and processing index metadata.
+#. Reducing the index.
+#. Expressing the package data and constraints as a SAT problem.
+#. Running the solver.
+#. Downloading and extracting packages.
+#. Verifying package contents.
+#. Linking packages from package cache into environments.
 
 Therefore, if you're experiencing a slowdown, evaluate the following questions
 to identify potential causes:
@@ -34,7 +34,6 @@ to identify potential causes:
 * What packages are you installing?
 * Is the channel metadata sane?
 * Are channels interacting in bad ways?
-
 
 
 Improving conda performance

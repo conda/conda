@@ -14,11 +14,11 @@ What is a conda package?
 A conda package is a compressed tarball file (.tar.bz2) or
 .conda file that contains:
 
-* system-level libraries
-* Python or other modules
-* executable programs and other components
-* metadata under the ``info/`` directory
-* a collection of files that are installed directly into an ``install`` prefix
+* system-level libraries.
+* Python or other modules.
+* executable programs and other components.
+* metadata under the ``info/`` directory.
+* a collection of files that are installed directly into an ``install`` prefix.
 
 Conda keeps track of the dependencies between packages and platforms.
 The conda package format is identical across platforms and
@@ -36,7 +36,7 @@ The .conda file format was introduced in conda 4.7 as a more
 compact, and thus faster, alternative to a tarball.
 
 The .conda file format consists of an outer, uncompressed
-ZIP-format container, with two inner compressed .tar files.
+ZIP-format container, with 2 inner compressed .tar files.
 
 For the .conda format's initial internal compression format support,
 we chose Zstandard (zstd). The actual compression format used does not
@@ -76,7 +76,7 @@ Using packages
   conda install scipy
 
 
-* You may build a package after `installing conda build <https://docs.conda.io/projects/conda-build/en/latest/index.html>`_
+* You may build a package after `installing conda-build <https://docs.conda.io/projects/conda-build/en/latest/index.html>`_
 
 .. code-block:: bash
 
@@ -101,11 +101,11 @@ Package structure
   └── lib
       └── python3.5
 
-* bin contains relevant binaries for the package
+* bin contains relevant binaries for the package.
 
-* lib contains the relevant library files (eg. the .py files)
+* lib contains the relevant library files (eg. the .py files).
 
-* info contains package metadata
+* info contains package metadata.
 
 
 .. _meta-package:
@@ -273,7 +273,7 @@ distribute docs, datasets, and source code in conda packages.
 Noarch Python packages are described below.
 
 Declaring these packages as ``noarch`` in the ``build`` section of
-the meta.yaml reduces shared CI resources. Therefore, all packages
+the ``meta.yaml`` reduces shared CI resources. Therefore, all packages
 that qualify to be noarch packages should be declared as such.
 
 Noarch Python
@@ -289,28 +289,28 @@ at install time.
 In order to qualify as a noarch Python package, all of the following
 criteria must be fulfilled:
 
-* No compiled extensions
+* No compiled extensions.
 
-* No post-link or pre-link or pre-unlink scripts
+* No post-link, pre-link, or pre-unlink scripts.
 
-* No OS-specific build scripts
+* No OS-specific build scripts.
 
-* No python version specific requirements
+* No Python version-specific requirements.
 
 * No skips except for Python version. If the recipe is py3 only,
   remove skip statement and add version constraint on Python in host
   and run section.
 
-* 2to3 is not used
+* 2to3 is not used.
 
-* Scripts argument in setup.py is not used
+* Scripts argument in setup.py is not used.
 
 * If ``console_script`` entrypoints are in setup.py,
-  they are listed in meta.yaml
+  they are listed in ``meta.yaml``.
 
-* No activate scripts
+* No activate scripts.
 
-* Not a dependency of conda
+* Not a dependency of conda.
 
 .. note::
    While ``noarch: python`` does not work with selectors, it does
@@ -319,7 +319,7 @@ criteria must be fulfilled:
    subsections, for example: ``python >=3`` instead of just ``python``.
 
 .. note::
-   Only ``console_script`` entry points have to be listed in meta.yaml.
+   Only ``console_script`` entry points have to be listed in ``meta.yaml``.
    Other entry points do not conflict with ``noarch`` and therefore do
    not require extra treatment.
 
