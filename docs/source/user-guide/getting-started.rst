@@ -113,7 +113,7 @@ If a newer version of conda is available, type ``y`` to update:
 Managing environments
 =====================
 
-Conda allows you to create separate environments containing files, packages
+Conda allows you to create separate environments containing files, packages,
 and their dependencies that will not interact with other environments.
 
 When you begin using conda, you already have a default environment named
@@ -131,7 +131,7 @@ Create separate environments to keep your programs isolated from each other.
       conda create --name snowflakes biopython
 
    Conda checks to see what additional packages ("dependencies")
-   Biopython will need, and asks if you want to proceed:
+   BioPython will need, and asks if you want to proceed:
 
    .. code::
 
@@ -142,7 +142,7 @@ Create separate environments to keep your programs isolated from each other.
 #. To use, or "activate" the new environment, type the following:
 
    * Windows: ``conda activate snowflakes``
-   * Linux and macOS: ``conda activate snowflakes``
+   * macOS and Linux: ``conda activate snowflakes``
 
    .. note::
       ``conda activate`` only works on conda 4.6 and later versions.
@@ -150,7 +150,7 @@ Create separate environments to keep your programs isolated from each other.
    For conda versions prior to 4.6, type:
 
    * Windows: ``activate snowflakes``
-   * Linux and macOS: ``source activate snowflakes``
+   * macOS and Linux: ``source activate snowflakes``
 
    Now that you are in your ``snowflakes`` environment, any conda
    commands you type will go to that environment until
@@ -181,7 +181,7 @@ Create separate environments to keep your programs isolated from each other.
       For versions prior to conda 4.6, use:
 
         * Windows:  ``activate``
-        * Linux, macOS: ``source activate``
+        * macOS, Linux: ``source activate``
 
    .. tip::
       When the environment is deactivated, its name is no
@@ -210,7 +210,7 @@ specify the version of Python that you want.
 #. Activate the new environment:
      
    * Windows: ``conda activate snakes``
-   * Linux and macOS: ``conda activate snakes``
+   * macOS and Linux: ``conda activate snakes``
 
    .. note::
       ``conda activate`` only works on conda 4.6 and later versions.
@@ -218,7 +218,7 @@ specify the version of Python that you want.
    For conda versions prior to 4.6, type:
 
    * Windows: ``activate snakes``
-   * Linux and macOS: ``source activate snakes``
+   * macOS and Linux: ``source activate snakes``
 
 #. Verify that the snakes environment has been added and is active:
 
@@ -258,7 +258,7 @@ specify the version of Python that you want.
       For versions prior to conda 4.6, use:
        
         * Windows:  ``activate``
-        * Linux, macOS: ``source activate``
+        * macOS, Linux: ``source activate``
 
 
 .. _managing-pkgs:

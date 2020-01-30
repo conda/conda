@@ -45,14 +45,14 @@ Example administrator-controlled installation
 
 The following example describes how to view the system
 configuration file, review the settings, compare it to a user's
-configuration file and determine what happens when the user
+configuration file, and determine what happens when the user
 attempts to access a file from a blocked channel. It then
 describes how the user must modify their configuration file to
 access the channels allowed by the administrator.
 
 
 System configuration file
----------------------------
+-------------------------
 
 #. The system configuration file must be in the top-level conda
    installation directory. Check the path where conda is located:
@@ -94,7 +94,7 @@ System configuration file
 .. _admin-inst-user:
 
 User configuration file
--------------------------
+-----------------------
 
 #. Check the location of the user's conda installation:
 
@@ -103,14 +103,14 @@ User configuration file
      $ conda info
      Current conda install:
      . . .
-            channel URLs : http://repo.continuum.io/pkgs/free/osx-64/
-                           http://repo.continuum.io/pkgs/pro/osx-64/
-            config file : /Users/gergely/.condarc
+            channel URLs : https://repo.anaconda.com/pkgs/free/osx-64/
+                           https://repo.anaconda.com/pkgs/pro/osx-64/
+            config file : /Users/username/.condarc
 
    The ``conda info`` command shows that conda is using the
-   user's ``.condarc file``, located at
-   ``/Users/gergely/.condarc`` and that the default channels
-   such as ``repo.continuum.io`` are listed as channel URLs.
+   user's ``.condarc`` file, located at
+   ``/Users/username/.condarc`` and that the default channels
+   such as ``repo.anaconda.com`` are listed as channel URLs.
 
 #. View the contents of the administrative ``.condarc`` file in
    the directory that was located in step 1:
@@ -132,7 +132,7 @@ User configuration file
 
       $ conda search flask
       Fetching package metadata:
-      Error: URL 'http://repo.continuum.io/pkgs/pro/osx-64/' not
+      Error: URL 'http://repo.anaconda.com/pkgs/pro/osx-64/' not
       in allowed channels.
       Allowed channels are:
        - https://conda.anaconda.org/admin/osx-64/

@@ -16,7 +16,7 @@ support Windows XP.
 You can install Anaconda 2.3.0 and then update it with
 ``conda update conda`` and ``conda update --all``. Download
 ``Anaconda3-2.3.0-Windows-x86.exe`` at
-https://repo.continuum.io/archive/. Install it in any location,
+https://repo.anaconda.com/archive/. Install it in any location,
 such as ``C:\Anaconda``.
 
 Using a proxy with Windows XP
@@ -82,8 +82,8 @@ EXAMPLE: This example shows proxy information without passwords::
   ssl_verify: False
 
 Once the proxy is configured, you can run ``conda update conda``
-and then create and manage environments with the Anaconda
-Launcher GUI.
+and then create and manage environments with the `Anaconda
+Navigator <https://docs.anaconda.com/anaconda/navigator/>`_.
 
 Some packages such as ``flask-login`` may not be available
 through conda, so you may need to use pip to install them:

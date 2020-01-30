@@ -23,7 +23,7 @@ from a PyPI server over HTTPS.
 
 .. warning::
    This option causes your computer to download and execute arbitrary
-   code over a connection that it cannot verify as secure. This option is not
+   code over a connection that it cannot verify as secure. This is not
    recommended and should only be used if necessary. Use this option at your own
    risk.
 

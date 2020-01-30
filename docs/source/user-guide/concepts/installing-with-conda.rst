@@ -25,13 +25,13 @@ Read more about :doc:`conda environments and directory structure <../concepts/en
 
 * When you ``conda install`` a package that exists in a channel and has no dependencies, conda:
 
-  * looks at your configured channels (in priority)
+  * Looks at your configured channels (in priority).
 
-  * reaches out to the repodata associated with your channels/platform
+  * Reaches out to the repodata associated with your channels/platform.
 
-  * parses repodata to search for the package
+  * Parses repodata to search for the package.
 
-  * once the package is found, conda pulls it down and installs
+  * Once the package is found, conda pulls it down and installs.
 
 Conda update versus conda install
 =================================

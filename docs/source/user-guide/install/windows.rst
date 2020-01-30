@@ -22,7 +22,9 @@ Installing on Windows
    When installation is finished, from the **Start** menu, open the
    Anaconda Prompt.
 
-#. :doc:`Test your installation <test-installation>`.
+#. Test your installation. In your terminal window or
+   Anaconda Prompt, run the command ``conda list``. A list of installed packages appears
+   if it has been installed correctly.
 
 
 .. _install-win-silent:
@@ -38,8 +40,8 @@ To run the the Windows installer for Miniconda in
 :ref:`silent mode <silent-mode-glossary>`, use the ``/S``
 argument. The following optional arguments are supported:
 
-* ``/InstallationType=[JustMe|AllUsers]``---Default is``JustMe``.
-* ``/AddToPath=[0|1]``---Default is ``1``'
+* ``/InstallationType=[JustMe|AllUsers]``---Default is ``JustMe``.
+* ``/AddToPath=[0|1]``---Default is ``1``
 * ``/RegisterPython=[0|1]``---Make this the system's default
   Python.
   ``0`` indicates ``JustMe``, which is the default. ``1``

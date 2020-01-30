@@ -4,7 +4,7 @@ Installing on Linux
 
 #. Download the installer:
 
-   * `Miniconda installer for Linux <https://conda.io/miniconda.html>`_.
+   * `Miniconda installer for Linux <https://docs.conda.io/en/latest/miniconda.html#linux-installers>`_.
 
    * `Anaconda installer for Linux <https://www.anaconda.com/download/>`_.
 
@@ -32,7 +32,9 @@ Installing on Linux
 #. To make the changes take effect, close and then re-open your
    terminal window.
 
-#. :doc:`Test your installation <test-installation>`.
+#.  Test your installation. In your terminal window or
+    Anaconda Prompt, run the command ``conda list``. A list of installed packages appears
+    if it has been installed correctly.
 
 
 .. _install-linux-silent:
@@ -64,7 +66,7 @@ Uninstalling Anaconda or Miniconda
 
 #. Open a terminal window.
 
-#. Remove the entire miniconda install directory with::
+#. Remove the entire Miniconda install directory with::
 
      rm -rf ~/miniconda
 

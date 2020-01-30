@@ -77,7 +77,7 @@ info/index.json
 This file contains basic information about the package, such as
 name, version, build string, and dependencies. The content of this
 file is stored in ``repodata.json``, which is the repository
-index file, hence the name ``index.json``. The json object is a
+index file, hence the name ``index.json``. The JSON object is a
 dictionary containing the keys shown below. The filename of the
 conda package is composed of the first 3 values, as in:
 ``<name>-<version>-<build>.tar.bz2``. 
@@ -436,12 +436,11 @@ To obtain a predictable version ordering, it is crucial to keep the
 version number scheme of a given package consistent over time.
 Conda considers prerelease versions as less than release versions.
 
-Specifically,
+* Version strings should always have the same number of components
+  (except for an optional tag suffix or local version string).
 
-  * version strings should always have the same number of components
-    (except for an optional tag suffix or local version string),
-  * letters/strings indicating non-release versions should always
-    occur at the same position.
+* Letters/Strings indicating non-release versions should always
+  occur at the same position.
 
 Before comparison, version strings are parsed as follows:
 
@@ -467,12 +466,14 @@ Examples:
 The resulting lists are compared lexicographically, where the following
 rules are applied to each pair of corresponding subcomponents:
 
-  * integers are compared numerically
-  * strings are compared lexicographically, case-insensitive
-  * strings are smaller than integers, except
-  * ``dev`` versions are smaller than all corresponding versions of other types
-  * ``post`` versions are greater than all corresponding versions of other types
-  * if a subcomponent has no correspondent, the missing correspondent is
+  * Integers are compared numerically.
+  * Strings are compared lexicographically, case-insensitive.
+  * Strings are smaller than integers, except
+
+      * ``dev`` versions are smaller than all corresponding versions of other types.
+      
+      * ``post`` versions are greater than all corresponding versions of other types.
+  * If a subcomponent has no correspondent, the missing correspondent is
     treated as integer 0 to ensure ``'1.1' == 1.1.0'``.
 
 The resulting order is::

@@ -13,7 +13,7 @@ Glossary
 
 The Conda Runtime Configuration file, an optional ``.yaml`` file
 that allows you to configure many aspects of conda, such as which
-channels it searches for packages, proxy settings and environment
+channels it searches for packages, proxy settings, and environment
 directories. A ``.condarc`` file is not included by default, but
 it is automatically created in your home directory
 when you use the ``conda config`` command. The ``.condarc`` file
@@ -25,7 +25,7 @@ Pronounced "conda r-c".
 
 .. _activate-deactivate-glossary:
 
-activate/deactivate environment
+Activate/Deactivate environment
 ===============================
 
 Conda commands used to switch or move between installed
@@ -48,21 +48,21 @@ environment with just ``program_name``.
 Anaconda
 ========
 
-A downloadable, free, open source, high-performance and optimized
+A downloadable, free, open-source, high-performance, and optimized
 Python and R distribution. Anaconda includes
-:ref:`conda <conda-glossary>`, conda-build, Python, and 100+
-automatically installed, open source scientific packages and
+:ref:`conda <conda-glossary>`, conda-build, Python, and 250+
+automatically installed, open-source scientific packages and
 their dependencies that have been tested to work well together,
-including SciPy, NumPy and many others. Use the ``conda install`` command
-to easily install 1,000+ popular open source packages
+including SciPy, NumPy, and many others. Use the ``conda install`` command
+to easily install 7,500+ popular open-source packages
 for data science--including advanced and scientific
 analytics--from the Anaconda repository. Use the ``conda``
-command to install thousands more open source packages.
+command to install thousands more open-source packages.
 
 Because Anaconda is a Python distribution, it can make
 installing Python quick and easy even for new users.
 
-Available for Windows, macOS and Linux, all versions of
+Available for Windows, macOS, and Linux, all versions of
 Anaconda are supported by the community.
 
 See also :ref:`miniconda-glossary` and :ref:`conda-glossary`.
@@ -73,12 +73,11 @@ See also :ref:`miniconda-glossary` and :ref:`conda-glossary`.
 Anaconda Cloud
 ==============
 
-A web-based repository hosting service in the cloud. Packages
+A web-based, repository hosting service in the cloud. Packages
 created locally can be published to the cloud to be shared with
-others. Free accounts on Cloud can publish packages to be shared
-publicly. Paid subscriptions to Cloud can designate packages as
-private to be shared with authorized users. Anaconda Cloud is a
-public version of Anaconda Repository.
+others. `Anaconda Cloud <https://docs.anaconda.com/anaconda-cloud/>`_
+is a public version of Anaconda Repository.
+
 
 .. _navigator-glossary:
 
@@ -87,8 +86,8 @@ Anaconda Navigator
 
 A desktop graphical user interface (GUI) included in all versions
 of Anaconda that allows you to easily manage conda packages,
-environments, channels and notebooks without a command line
-interface (CLI).
+environments, channels, and notebooks without a command line
+interface (CLI). See more about `Navigator <https://docs.anaconda.com/anaconda/navigator/>`_.
 
 .. _channels-glossary:
 
@@ -99,7 +98,7 @@ The locations of the repositories where conda looks for packages.
 Channels may point to a Cloud repository or a private
 location on a remote or local repository that you or your organization
 created. The ``conda channel`` command has a default set of channels to
-search, beginning with https://repo.continuum.io/pkgs/, which you may
+search, beginning with https://repo.anaconda.com/pkgs/, which you may
 override, for example, to maintain a private or internal channel.
 These default channels are referred to in conda commands and in
 the ``.condarc`` file by the channel name "defaults."
@@ -107,7 +106,7 @@ the ``.condarc`` file by the channel name "defaults."
 
 .. _conda-glossary:
 
-Conda
+conda
 =====
 
 The package and environment manager program bundled with Anaconda
@@ -118,7 +117,7 @@ your local computer.
 
 .. _conda-environment-glossary:
 
-Conda environment
+conda environment
 =================
 
 A folder or directory that contains a specific collection of
@@ -137,22 +136,22 @@ language packages. Environments can be created from:
 
 .. _conda-package-glossary:
 
-Conda package
+conda package
 =============
 
 A compressed file that contains everything that a software
 program needs in order to be installed and run, so that you do
 not have to manually find and install each dependency separately.
 A conda package includes system-level libraries, Python or R
-language modules, executable programs and other components. You
+language modules, executable programs, and other components. You
 manage conda packages with conda.
 
 .. _conda-repository-glossary:
 
-Conda repository
+conda repository
 ================
 
-A cloud-based repository that contains 720+ open source certified
+A cloud-based repository that contains 7,500+ open-source certified
 packages that are easily installed locally with the
 ``conda install`` command. Anyone can access the repository from:
 
@@ -160,7 +159,7 @@ packages that are easily installed locally with the
 
 * A terminal or Anaconda Prompt using conda commands
 
-*  https://repo.continuum.io/pkgs/
+*  https://repo.anaconda.com/pkgs/
 
 
 .. _metapackage-glossary:
@@ -181,12 +180,12 @@ Miniconda
 
 A free minimal installer for conda. `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_
 is a small, bootstrap version of Anaconda that includes only conda,
-Python, the packages they depend on and a small number of other useful
-packages, including pip, zlib and a few others. Use the
-``conda install`` command to install 720+ additional conda
+Python, the packages they depend on, and a small number of other useful
+packages, including pip, zlib, and a few others. Use the
+``conda install`` command to install 7,500+ additional conda
 packages from the Anaconda repository.
 
-Because Miniconda is a Python distribution, and it can make
+Miniconda is a Python distribution that can make
 installing Python quick and easy even for new users.
 
 See also :ref:`anaconda-glossary` and :ref:`conda-glossary`.
@@ -208,7 +207,7 @@ Package manager
 ===============
 
 A collection of software tools that automates the process of
-installing, updating, configuring and removing computer programs
+installing, updating, configuring, and removing computer programs
 for a computer's operating system. Also known as a package management
 system. Conda is a package manager.
 
@@ -218,7 +217,7 @@ Packages
 ========
 
 Software files and information about the software, such as its
-name, the specific version and a description, bundled into a
+name, the specific version, and a description, bundled into a
 file that can be installed and managed by a package manager.
 
 .. _repository-glossary:
