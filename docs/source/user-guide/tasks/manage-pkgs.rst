@@ -170,7 +170,6 @@ works hard to be as compatible with pip as possible.
    Both pip and conda are included in Anaconda and Miniconda, so you do not
    need to install them separately.
 
-.. note::
    Conda environments replace virtualenv, so there is no need to activate a
    virtualenv before using pip.
 
@@ -194,7 +193,7 @@ To install a non-conda package:
 #. Activate the environment where you want to put the program:
 
    * On Windows, in your Anaconda Prompt, run ``activate myenv``.
-   * On macOS and Linux,in your terminal window, run ``conda activate myenv``.
+   * On macOS and Linux, in your terminal window, run ``conda activate myenv``.
 
 #. To use pip to install a program such as See, in your terminal window or an Anaconda Prompt,
    run::
@@ -290,23 +289,23 @@ then choose whether or not to install it.
 
 Use the terminal or an Anaconda Prompt for the following steps.
 
-To update a specific package:
+* To update a specific package:
 
-.. code::
+  .. code::
 
-   conda update biopython
+    conda update biopython
 
-To update Python:
+* To update Python:
 
-.. code::
+  .. code::
 
-   conda update python
+    conda update python
 
-To update conda itself:
+* To update conda itself:
 
-.. code::
+  .. code::
 
-   conda update conda
+    conda update conda
 
 .. note::
    Conda updates to the highest version in its series, so
@@ -346,7 +345,7 @@ named ``pinned`` that includes a list of the packages that you
 do not want updated.
 
 EXAMPLE: The file below forces NumPy to stay on the 1.7 series,
-which is any version that starts with 1.7, and forces SciPy to
+which is any version that starts with 1.7. This also forces SciPy to
 stay at exactly version 0.14.2::
 
   numpy 1.7.*
@@ -387,27 +386,27 @@ Removing packages
 
 Use the terminal or an Anaconda Prompt for the following steps.
 
-To remove a package such as SciPy in an environment such as
-myenv:
+* To remove a package such as SciPy in an environment such as
+  myenv:
 
-.. code-block:: bash
+  .. code-block:: bash
 
-   conda remove -n myenv scipy
+    conda remove -n myenv scipy
 
-To remove a package such as SciPy in the current environment:
+* To remove a package such as SciPy in the current environment:
 
-.. code-block:: bash
+  .. code-block:: bash
 
-   conda remove scipy
+    conda remove scipy
 
-To remove multiple packages at once, such as SciPy and cURL:
+* To remove multiple packages at once, such as SciPy and cURL:
 
-.. code-block:: bash
+  .. code-block:: bash
 
-   conda remove scipy curl
+    conda remove scipy curl
 
-To confirm that a package has been removed:
+* To confirm that a package has been removed:
 
-.. code::
+  .. code::
 
-   conda list
+    conda list

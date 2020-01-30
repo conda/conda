@@ -224,13 +224,13 @@ For example, it may be the case that:
   package (add new dependency and remove old dependency).
 
 If any of these occur, all you need to do is update the contents of
-your environment.yml file accordingly and then run the following
+your ``environment.yml`` file accordingly and then run the following
 command::
 
 $ conda env update --prefix ./env --file environment.yml  --prune
 
 .. note::
-   The --prune option causes conda to remove any dependencies
+   The ``--prune`` option causes conda to remove any dependencies
    that are no longer required from the environment.
 
 
@@ -278,18 +278,18 @@ Use the terminal or an Anaconda Prompt for the following steps:
       # $ conda create --name <env> --file <this file>
       # platform: osx-64
       @EXPLICIT
-      https://repo.continuum.io/pkgs/free/osx-64/mkl-11.3.3-0.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/numpy-1.11.1-py35_0.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/openssl-1.0.2h-1.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/pip-8.1.2-py35_0.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/python-3.5.2-0.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/readline-6.2-2.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/setuptools-25.1.6-py35_0.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/sqlite-3.13.0-0.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/tk-8.5.18-0.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/wheel-0.29.0-py35_0.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/xz-5.2.2-0.tar.bz2
-      https://repo.continuum.io/pkgs/free/osx-64/zlib-1.2.8-3.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/mkl-11.3.3-0.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/numpy-1.11.1-py35_0.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/openssl-1.0.2h-1.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/pip-8.1.2-py35_0.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/python-3.5.2-0.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/readline-6.2-2.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/setuptools-25.1.6-py35_0.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/sqlite-3.13.0-0.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/tk-8.5.18-0.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/wheel-0.29.0-py35_0.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/xz-5.2.2-0.tar.bz2
+      https://repo.anaconda.com/pkgs/free/osx-64/zlib-1.2.8-3.tar.bz2
 
 
 #. To create this spec list as a file in the current working
@@ -322,7 +322,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
    Conda does not check architecture or dependencies when installing
    from a spec file. To ensure that the packages work correctly,
    make sure that the file was created from a working environment,
-   and use it on the same architecture, operating system and
+   and use it on the same architecture, operating system, and
    platform, such as linux-64 or osx-64.
 
 
@@ -333,12 +333,12 @@ Activating an environment
 
 Activating environments is essential to making the software in the environments
 work well. Activation entails two primary functions: adding entries to PATH for
-the environment, and running any activation scripts that the environment may
+the environment and running any activation scripts that the environment may
 contain. These activation scripts are how packages can set arbitrary
 environment variables that may be necessary for their operation. You can also
 :ref:`use the config API to set environment variables <set-env-vars>`.
 
-When `installing Anaconda <http://docs.continuum.io/anaconda/install.html>`_,
+When `installing Anaconda <http://docs.anaconda.com/anaconda/install.html>`_,
 you have the option to “Add Anaconda
 to my PATH environment variable.” This is not recommended because the
 add to PATH option appends Anaconda to PATH. When the installer appends
@@ -400,16 +400,16 @@ Conda init
 Earlier versions of conda introduced scripts to make activation
 behavior uniform across operating systems. Conda 4.4 allowed
 ``conda activate myenv``. Conda 4.6 added extensive initialization
-support so that conda works more quickly and less disruptively on
+support so that conda works faster and less disruptively on
 a wide variety of shells (bash, zsh, csh, fish, xonsh, and more).
 Now these shells can use the ``conda activate`` command.
 Removing the need to modify PATH makes conda less disruptive to
 other software on your system. For more information, read the
 output from ``conda init --help``.
 
-One setting may be useful to you when using ``conda init`` is:
+One setting may be useful to you when using ``conda init`` is::
 
-``auto_activate_base: bool``
+  auto_activate_base: bool
 
 This setting controls whether or not conda activates your base
 environment when it first starts up. You'll have the ``conda``
@@ -427,18 +427,18 @@ By default, ``conda activate`` will deactivate the current environment
 before activating the new environment and reactivate it when
 deactivating the new environment. Sometimes you may want to leave
 the current environment PATH entries in place so that you can continue
-to easily access command line programs from the first environment.
+to easily access command-line programs from the first environment.
 This is most commonly encountered when common command-line utilities
 are installed in the base environment. To retain the current environment
-in the PATH, you can activate the new environment using:
+in the PATH, you can activate the new environment using::
 
-``conda activate --stack myenv``
+  conda activate --stack myenv
 
 If you wish to always stack when going from the outermost environment,
 which is typically the base environment, you can set the ``auto_stack``
-configuration option:
+configuration option::
 
-``conda config --set auto_stack 1``
+  conda config --set auto_stack 1
 
 You may specify a larger number for a deeper level of automatic stacking,
 but this is not recommended since deeper levels of stacking are more likely
@@ -552,12 +552,12 @@ To see a list of all packages installed in a specific environment:
 
      conda list
 
-To see if a specific package is installed in an environment, in your
-terminal window or an Anaconda Prompt, run:
+* To see if a specific package is installed in an environment, in your
+  terminal window or an Anaconda Prompt, run:
 
-.. code-block:: bash
+  .. code-block:: bash
 
-   conda list -n myenv scipy
+    conda list -n myenv scipy
 
 
 .. _pip-in-env:
@@ -584,25 +584,25 @@ pip requirements should be stored in text files.
 We recommend that you:
 
 **Use pip only after conda**
-  - Install as many requirements as possible with conda then use pip
-  - Pip should be run with ``--upgrade-strategy only-if-needed`` (the default)
-  - Do not use pip with the ``--user`` argument, avoid all “users” installs
+  - Install as many requirements as possible with conda then use pip.
+  - Pip should be run with ``--upgrade-strategy only-if-needed`` (the default).
+  - Do not use pip with the ``--user`` argument, avoid all users installs.
 
 **Use conda environments for isolation**
-  - Create a conda environment to isolate any changes pip makes
-  - Environments take up little space thanks to hard links
-  - Care should be taken to avoid running pip in the “root” environment
+  - Create a conda environment to isolate any changes pip makes.
+  - Environments take up little space thanks to hard links.
+  - Care should be taken to avoid running pip in the root environment.
 
 **Recreate the environment if changes are needed**
-  - Once pip has been used, conda will be unaware of the changes
+  - Once pip has been used, conda will be unaware of the changes.
   - To install additional conda packages, it is best to recreate
-    the environment
+    the environment.
 
 **Store conda and pip requirements in text files**
-  - Package requirements can be passed to conda via the ``--file`` argument
-  - Pip accepts a list of Python packages with ``-r`` or ``--requirements``
+  - Package requirements can be passed to conda via the ``--file`` argument.
+  - Pip accepts a list of Python packages with ``-r`` or ``--requirements``.
   - Conda env will export or create environments based on a file with
-    conda and pip requirements
+    conda and pip requirements.
 
 .. _set-env-vars:
 
@@ -624,7 +624,7 @@ To list any variables you may have, run ``conda env config vars list``.
 To set environment variables, run ``conda env config vars set my_var=value``.
 
 Once you have set an environment variable, you have to reactivate your environment:
-``conda activate test-env``
+``conda activate test-env``.
 
 To check if the environment variable has been set, run
 ``echo my_var`` or ``conda env config vars list``.
@@ -692,7 +692,7 @@ Windows
      set MY_FILE=
 
 When you run ``conda activate analytics``, the environment variables
-MY_KEY and MY_FILE are set to the values you wrote into the file.
+``MY_KEY`` and ``MY_FILE`` are set to the values you wrote into the file.
 When you run ``conda deactivate``, those variables are erased.
 
 .. _macos-linux-save-env-variables:
@@ -726,7 +726,7 @@ macOS and Linux
      unset MY_FILE
 
 When you run ``conda activate analytics``, the environment
-variables MY_KEY and MY_FILE are set to the values you wrote into
+variables ``MY_KEY`` and ``MY_FILE`` are set to the values you wrote into
 the file. When you run ``conda deactivate``, those variables are
 erased.
 
@@ -806,7 +806,7 @@ only export those you specifically chose:
 Creating an environment file manually
 -------------------------------------
 
-You can create an environment file (environment.yml) manually
+You can create an environment file (``environment.yml``) manually
 to share with others.
 
 EXAMPLE: A simple environment file:

@@ -6,7 +6,7 @@ Channels are the path that conda takes to look for packages. The
 easiest way to use and manage custom channels is to use a private
 or public repository on `Anaconda.org <https://anaconda.org/>`_.
 If you designate your Anaconda.org
-repository as private, then only you and those you grant access
+repository as private, then only you and those you grant access to
 can access your private repository.
 
 If you do not wish to upload your packages to the Internet, you

@@ -84,6 +84,6 @@ Update conda by running: ``conda update -n base conda``
 Run the following command from your terminal or Anaconda Prompt:
 ``conda config --set notify_outdated_conda false``
  
-Or add the following line in your .condarc file:
+Or add the following line in your ``.condarc`` file:
 ``notify_outdated_conda: false``
 

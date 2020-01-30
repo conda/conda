@@ -127,7 +127,7 @@ Bootstrap your environment
 ==========================
 
 To bootstrap your environment, use the standalone conda
-approach in your appveyor.yml:
+approach in your ``appveyor.yml``:
 
 .. code-block:: yaml
    
