@@ -11,9 +11,9 @@ Using conda in Windows Batch script exits early
 ===============================================
 
 In conda 4.6+, the way that you interact with conda goes through a batch script (``%PREFIX%\condabin\conda.bat``).
-Unfortunately, this means it's a little complicated to use conda from other batch scripts.  When using batch
-scripts from within batch scripts, you must prefix your command with ``CALL``.  If you do not do this, your batch
-script that calls conda will exit immediately after the conda usage.  In other words, if you write this in a .bat file:
+Unfortunately, this means it's a little complicated to use conda from other batch scripts. When using batch
+scripts from within batch scripts, you must prefix your command with ``CALL``. If you do not do this, your batch
+script that calls conda will exit immediately after the conda usage. In other words, if you write this in a .bat file:
 
    .. code-block:: bash
 
@@ -29,7 +29,8 @@ Neither the activation, nor the echo will happen. You must write this in your ba
       CALL conda activate myenv
       echo test
 
-This is known behavior with cmd.exe, and we have not found any way to change it.  https://stackoverflow.com/questions/4798879/how-do-i-run-a-batch-script-from-within-a-batch-script/4798965
+This is known behavior with cmd.exe, and we have not found any way to change it.
+https://stackoverflow.com/questions/4798879/how-do-i-run-a-batch-script-from-within-a-batch-script/4798965
 
 .. _mkl_library:
 
@@ -38,10 +39,14 @@ NumPy MKL library load failed
 
 Error messages like
 
+.. code-block::
+   
     Intel MKL FATAL ERROR: Cannot load mkl_intel_thread.dll
 
 or
 
+.. code-block::
+    
     The ordinal 241 could not be located in the the dynamic link library
 
 Cause
@@ -59,7 +64,7 @@ Solution
 --------
 
 If you are not activating your environments, start with doing that. There's more
-info at :ref:`Activating environments <activate-env>`. If you are still stuck, you need to consider
+info at :ref:`Activating environments <activate-env>`. If you are still stuck, you may need to consider
 more drastic measures.
 
   #. Remove any MKL-related files from C:\\Windows\\System32. We recommend
@@ -110,7 +115,7 @@ more drastic measures.
     .. note::
        Only ``CONDA_DLL_SEARCH_MODIFICATION_ENABLE`` should be set finally.
 
-List of known bad software that installs Intel libraries to C:\\Windows\\System32:
+List of known software that installs Intel libraries to C:\\Windows\\System32:
 
 * Amplitube, by IK Multimedia
 * ASIO4ALL, by Michael Tippach
@@ -166,7 +171,7 @@ were earlier in the PATH order and shadowed any other executables or libraries.
 To make this easier, we began recommending "activation" instead of modifying
 PATH. Activation is a tool where conda sets your PATH, and also runs any custom
 package scripts which are often used to set additional environment variables
-that are necessary for software to run (e.g. JAVA_HOME). Because activation runs
+that are necessary for software to run (e.g. ``JAVA_HOME``). Because activation runs
 only in a local terminal session (as opposed to the permanent PATH entry), it is
 safe to put Anaconda's PATH entries first. That means that Anaconda's libraries
 get higher priority when you're running Anaconda but Anaconda doesn't interfere
@@ -283,8 +288,9 @@ Cause
 ~~~~~
 
 This error may be caused by lack of activation on Windows or expired
-certifications:
-``SSL verification error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)``
+certifications::
+    
+    SSL verification error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
 
 Solution
 ~~~~~~~~
@@ -293,16 +299,16 @@ Make sure your conda is up-to-date: ``conda --version``
 If not, run: ``conda update conda``
 
 Temporarily set your ``ssl_verify`` variable to false, upgrade the requests package, and then
-set ``ssl_verify`` back to true using the following commands::
+set ``ssl_verify`` back to ``true`` using the following commands::
 
     conda config --set ssl_verify false
     conda update requests
     conda config --set ssl_verify true
  
 You can also set ``ssl_verify`` to a string path to a certificate, which can be used to verify
-SSL connections. Modify your .condarc and include the following:
+SSL connections. Modify your ``.condarc`` and include the following::
  
-``ssl_verify: path-to-cert/chain/filename.ext``
+    ssl_verify: path-to-cert/chain/filename.ext
 
 If the repository uses a self-signed certificate, use the actual path to the certificate.
 If the repository is signed by a private certificate authority (CA), the file needs to include
@@ -312,7 +318,7 @@ the root certificate and any intermediate certificates.
 .. _permission-denied:
 
 Permission denied errors during installation
-=============================================
+============================================
 
 Cause
 -----
@@ -323,7 +329,7 @@ have a very restrictive ``umask``, such as ``077``, you get
 "permission denied" errors.
 
 Solution
------------
+--------
 
 Set a less restrictive ``umask`` before calling conda commands.
 Conda was intended as a user space tool, but often users need to
@@ -364,10 +370,10 @@ Once you run conda with sudo, you must use sudo forever. We recommend that you N
 .. _fix-broken-conda:
 
 Already installed error message
-================================
+===============================
 
 Cause
-------
+-----
 
 If you are trying to fix conda problems without removing the
 current installation and you try to reinstall Miniconda or
@@ -375,14 +381,14 @@ Anaconda to fix it, you get an error message that Miniconda
 or Anaconda is already installed and you cannot continue.
 
 Solution
-----------
+--------
 
 Install using the ``--force`` option.
 
 
 Download and install the appropriate Miniconda
 for your operating system from the `Miniconda download page
-<https://conda.io/miniconda.html>`_ using the force option
+<https://docs.conda.io/en/latest/miniconda.html>`_ using the force option
 ``--force`` or ``-f``:
 
 .. code-block:: bash
@@ -412,12 +418,12 @@ There are several possible causes for this problem, each with its
 own solution.
 
 Cause
-------
+-----
 
 You are not in the same conda environment as your package.
 
 Solution
------------
+--------
 
 #. Make sure that you are in the same conda environment as your
    package. The ``conda info`` command tells you what environment
@@ -433,7 +439,7 @@ Solution
 
 
 Cause
-------
+-----
 For Python packages, you have set the ``PYTHONPATH`` or ``PYTHONHOME``
 variable. These environment variables cause Python to load files
 from locations other than the standard ones. Conda works best
@@ -469,9 +475,9 @@ Cause
 
 You have site-specific directories or, for Python, you have
 so-called site-specific files. These are typically located in
-``~/.local`` on Linux and macOS. For a full description of the locations of
+``~/.local`` on macOS and Linux. For a full description of the locations of
 site-specific packages, see `PEP 370
-<http://legacy.python.org/dev/peps/pep-0370/>`_.  As with
+<http://legacy.python.org/dev/peps/pep-0370/>`_. As with
 ``PYTHONPATH``, Python may try importing packages from this
 directory, which can cause issues.
 
@@ -487,8 +493,8 @@ Cause
 For C libraries, the following environment variables have been
 set:
 
-* macOS---DYLD_LIBRARY_PATH.
-* Linux---LD_LIBRARY_PATH.
+* macOS---``DYLD_LIBRARY_PATH``.
+* Linux---``LD_LIBRARY_PATH``.
 
 These act similarly to ``PYTHONPATH`` for Python. If they are
 set, they can cause libraries to be loaded from locations other
@@ -499,11 +505,11 @@ what these are set to.
 Solution
 --------
 
-Unset DYLD_LIBRARY_PATH or LD_LIBRARY_PATH.
+Unset ``DYLD_LIBRARY_PATH`` or ``LD_LIBRARY_PATH``.
 
 
 Cause
-------
+-----
 
 Occasionally, an installed package becomes corrupted. Conda works
 by unpacking the packages in the ``pkgs`` directory and then
@@ -549,7 +555,7 @@ Solution
 
 Force reinstall conda. A useful way to work off the development
 version of conda is to run ``python setup.py develop`` on a
-checkout of the `conda git repository
+checkout of the `conda GitHub repository
 <https://github.com/conda/conda>`_. However, if you are not
 regularly running ``git pull``, it is a good idea to un-develop,
 as you will otherwise not get any regular updates to conda. The
@@ -562,7 +568,7 @@ conda is installed.
 
 The fix is to use the ``./bin/conda`` executable in the conda
 git repository to force reinstall conda. That is, run
-``./bin/conda install -f conda``.  You can then verify with
+``./bin/conda install -f conda``. You can then verify with
 ``conda info`` that you have the latest version of conda, and not
 a git checkout. The version should not include any hashes.
 
@@ -570,17 +576,17 @@ a git checkout. The version should not include any hashes.
 .. _unknown-locale:
 
 macOS error "ValueError unknown locale: UTF-8"
-===============================================
+==============================================
 
 Cause
-------
+-----
 
 This is a bug in the macOS Terminal app that shows up only in
 certain locales. Locales are country-language combinations.
 
 
 Solution
----------
+--------
 
 #. Open Terminal in ``/Applications/Utilities``
 
@@ -592,7 +598,7 @@ Solution
 
    |
 
-This sets your LANG environment variable to be empty. This may
+This sets your ``LANG`` environment variable to be empty. This may
 cause Terminal to use incorrect settings for your locale. The
 ``locale`` command in Terminal tells you what settings are used.
 
@@ -610,7 +616,7 @@ which is typically ``~/.profile``:
 The command ``locale -a`` displays all the specifiers. For
 example, the language code for US English is ``en_US.UTF-8``. The
 locale affects what translations are used when they are available
-and also how dates, currencies and decimals are formatted.
+and also how dates, currencies, and decimals are formatted.
 
 
 .. _AttributeError-getproxies:
@@ -623,7 +629,7 @@ get an ``AttributeError: 'module' object has no attribute
 'getproxies'``.
 
 Cause
-------
+-----
 
 This can be caused by an old version of ``requests`` or by having
 the ``PYTHONPATH`` environment variable set.
@@ -656,7 +662,7 @@ When you run a command within a conda environment, conda does not
 access the correct package executable.
 
 Cause
--------
+-----
 
 In both bash and zsh, when you enter a command, the shell
 searches the paths in PATH one by one until it finds the command.
@@ -672,7 +678,7 @@ hashed.
 
 
 Solution
----------
+--------
 
 Reactivate the environment or run ``hash -r`` (in bash) or
 ``rehash`` (in zsh).
@@ -708,7 +714,7 @@ Programs fail due to invoking conda Python instead of system Python
 ===================================================================
 
 Cause
-------
+-----
 
 After installing Anaconda or Miniconda, programs that run
 ``python`` switch from invoking the system Python to invoking the
@@ -720,7 +726,7 @@ environment on Linux Mint have reported these crashes.
 
 
 Solution
----------
+--------
 
 Edit your ``.bash_profile`` and ``.bashrc`` files so that the
 conda binary directory, such as ``~/miniconda3/bin``, is no
@@ -744,10 +750,10 @@ including after running ``conda activate root``, running
 .. _unsatisfiable:
 
 UnsatisfiableSpecifications error
-====================================
+=================================
 
 Cause
--------
+-----
 
 Some conda package installation specifications are impossible to
 satisfy. For example, ``conda create -n tmp python=3 wxpython=3``
@@ -765,7 +771,7 @@ message such as this one::
 
 This indicates that the specification to install wxpython 3
 depends on installing Python 2.7, which conflicts with the
-specification to install python 3.
+specification to install Python 3.
 
 Solution
 --------
@@ -805,10 +811,10 @@ this example, you could install wxPython with Python 2.7::
 .. _version-from-channel:
 
 Package installation fails from a specific channel
-====================================================
+==================================================
 
 Cause
--------
+-----
 
 Sometimes it is necessary to install a specific version from a
 specific channel because that version is not available from the
@@ -816,7 +822,7 @@ default channel.
 
 
 Solution
----------
+--------
 
 The following example describes the problem in detail and its
 solution.
@@ -896,7 +902,7 @@ command line:
    Fetching package metadata: ..........
    Solving package specifications: .........
 
-   Package plan for installation in environment /Users/ijstokes/anaconda/envs/cxfreeze_py34:
+   Package plan for installation in environment /Users/username/anaconda/envs/cxfreeze_py34:
 
    The following packages will be downloaded:
 
@@ -938,7 +944,7 @@ certain version, such as ``python=2.7.9``. However, when you
 later version, such as ``2.7.10``.
 
 Cause
-------
+-----
 
 If you make a conda package for the app using conda-build, you
 can set dependencies with specific version numbers. The
@@ -947,7 +953,7 @@ requirements lines that say ``- python`` could be
 before the == operator and no space after.
 
 Solution
----------
+--------
 
 Exercise caution when coding version requirements.
 
@@ -971,7 +977,7 @@ Downgrading conda from 4.6.1 to 4.5.x and then trying to ``conda install conda``
 Solution
 --------
 
-Change the .condarc file. Set the parameter by editing the .condarc file directly: 
+Change the ``.condarc`` file. Set the parameter by editing the ``.condarc`` file directly: 
 ``allow_conda_downgrades: true`` in conda version 4.5.12. This will then let you upgrade. If you have something older than 4.5.12, install conda 4.6.1 again from the package cache. 
 
 EXAMPLE: If my conda info says package cache : /opt/conda/pkgs and my Python version is 3.7, then on the command line, type ``conda install /opt/conda/pkgs/conda-4.6.1-py37_0.tar.bz2`` to resolve the issue.
@@ -982,13 +988,13 @@ ValidationError: Invalid value for timestamp
 ============================================
 
 Cause
-------
+-----
 
 This happens when certain packages are installed with conda 4.3.28, and then
 conda is downgraded to 4.3.27 or earlier.
 
 Solution
----------
+--------
 
 See https://github.com/conda/conda/issues/6096.
 
