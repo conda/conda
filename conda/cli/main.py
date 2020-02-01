@@ -166,16 +166,21 @@ def main(*args, **kwargs):
     from os import environ, getpid, pathsep, sep
     from psutil import Process
     pp = Process(Process(getpid()).ppid())
+    silent = 'hook' in args
+    silent = True
     if pp and pp.name() == 'conda.exe':
         pp = Process(Process(Process(getpid()).ppid()).ppid())
     if pp:
         cmdline = pp.cmdline()[0]
         if 'conda.bat' in pp.name():
-            print('conda.bat launched me')
+            if not silent:
+                print('conda.bat launched me')
         elif 'charm' in pp.name() or 'code' in pp.name():
-            print('IDE ({}) launched me: {}'.format(pp.name(), cmdline))
+            if not silent:
+                print('IDE ({}) launched me: {}'.format(pp.name(), cmdline))
         else:
-            print('unknowwn ({}) launched me: {}'.format(pp.name(), cmdline))
+            if not silent:
+                print('unknowwn ({}) launched22 me: {}'.format(pp.name(), cmdline))
     if sys.platform == 'win32' and 'CONDA_PREFIX' in environ:
         oep = environ['PATH']
         paths = oep.split(pathsep)
