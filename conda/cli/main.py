@@ -163,8 +163,20 @@ def main(*args, **kwargs):
     # (that need to set the PATH env var) and all subprocess envs.
     #
 
-    from os import environ, pathsep, sep
-    if 'CONDA_PREFIX' in environ:
+    from os import environ, getpid, pathsep, sep
+    from psutil import Process
+    pp = Process(Process(getpid()).ppid())
+    if pp and pp.name() == 'conda.exe':
+        pp = Process(Process(Process(getpid()).ppid()).ppid())
+    if pp:
+        cmdline = pp.cmdline()[0]
+        if 'conda.bat' in pp.name():
+            print('conda.bat launched me')
+        elif 'charm' in pp.name() or 'code' in pp.name():
+            print('IDE ({}) launched me: {}'.format(pp.name(), cmdline))
+        else:
+            print('unknowwn ({}) launched me: {}'.format(pp.name(), cmdline))
+    if sys.platform == 'win32' and 'CONDA_PREFIX' in environ:
         oep = environ['PATH']
         paths = oep.split(pathsep)
         # We do not catch the case of CONDA_PREFIX == sys.prefix. That just works.
@@ -175,7 +187,7 @@ def main(*args, **kwargs):
                 oep = oep.replace(res, '', 1)
                 if oep.startswith(sep):
                     oep.replace(sep, '', 1)
-                os.environ['PATH'] = oep
+                environ['PATH'] = oep
             from logging import getLogger
             log = getLogger(__name__)
             log.warning("WARNING: Stripping sys.prefix from PATH as it comes before CONDA_PREFIX.\n"
