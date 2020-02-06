@@ -163,6 +163,8 @@ class TestJson(unittest.TestCase):
     def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
 
+
+class TestRunErrorLevel(unittest.TestCase):
     @pytest.mark.integration
     def test_run_returns_int(self):
         stdout, stderr, result = run_inprocess_conda_command('conda run python -c "x = 1"')
@@ -180,4 +182,3 @@ class TestJson(unittest.TestCase):
         stdout, stderr, result = run_inprocess_conda_command('conda run exit 5')
         
         assert result == 5
-
