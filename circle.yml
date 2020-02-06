@@ -32,7 +32,7 @@ main_test: &main_test
             echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-            py.test $ADD_COV --cov-append -m "integration and not installed" -k "test_run_" -v
+            py.test $ADD_COV --cov-append -m "integration and not installed" -k "test_run_returns_int" -v
             python -m conda.common.io
           fi
     # - run:
