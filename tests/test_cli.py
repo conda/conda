@@ -172,12 +172,12 @@ class TestJson(unittest.TestCase):
             assert isinstance(result, int)
 
     def test_run_returns_zero_errorlevel(self):
-        stdout, stderr, result = run_inprocess_conda_command('conda run python -c "exit(0)"')
+        stdout, stderr, result = run_inprocess_conda_command('conda run exit 0')
         
         assert result == 0
 
     def test_run_returns_nonzero_errorlevel(self):
-        stdout, stderr, result = run_inprocess_conda_command('conda run python -c "exit(5)"')
+        stdout, stderr, result = run_inprocess_conda_command('conda run exit 5')
         
         assert result == 5
 
