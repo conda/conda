@@ -167,9 +167,14 @@ class TestJson(unittest.TestCase):
 class TestRunErrorLevel(unittest.TestCase):
     @pytest.mark.integration
     def test_run_returns_int(self):
-        stdout, stderr, result = run_inprocess_conda_command('conda run -n base python -c "x = 1"')
-        
-        assert isinstance(result, int)
+        from tempfile import gettempdir
+        from tests.test_create import make_temp_env, make_temp_prefix
+
+        prefix = make_temp_prefix(name='test')
+        with make_temp_env(prefix=prefix):
+            stdout, stderr, result = run_inprocess_conda_command('conda run -p {} exit 1'.format(prefix))
+            
+            assert isinstance(result, int)
 
     # @pytest.mark.integration
     # def test_run_returns_zero_errorlevel(self):
