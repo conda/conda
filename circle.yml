@@ -25,25 +25,25 @@ main_test: &main_test
             sudo rm -rf /opt/conda/pkgs/*-*-*
             py.test $ADD_COV -m "not integration and not installed" -v
           fi
-    - run:
-        name: integration tests
-        command: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
-            echo "Only docs changed detected, skipping tests"
-          else
-            eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-            py.test $ADD_COV --cov-append -m "integration and not installed" -v
-            python -m conda.common.io
-          fi
-    - run:
-        name: upload codecov
-        command: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
-            echo "No codecov report to upload"
-          else
-            /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
-            echo "No codecov report to upload"
-          fi
+    # - run:
+    #     name: integration tests
+    #     command: |
+    #       if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+    #         echo "Only docs changed detected, skipping tests"
+    #       else
+    #         eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+    #         py.test $ADD_COV --cov-append -m "integration and not installed" -v
+    #         python -m conda.common.io
+    #       fi
+    # - run:
+    #     name: upload codecov
+    #     command: |
+    #       if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+    #         echo "No codecov report to upload"
+    #       else
+    #         /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
+    #         echo "No codecov report to upload"
+    #       fi
 
 
 conda_build_test: &conda_build_test
