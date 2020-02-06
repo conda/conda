@@ -167,12 +167,7 @@ class TestJson(unittest.TestCase):
 class TestRunErrorLevel(unittest.TestCase):
     @pytest.mark.integration
     def test_run_returns_int(self):
-        import os
-        from tempfile import gettempdir
-
-        # Jank
-        os.chdir(gettempdir())
-        stdout, stderr, result = run_inprocess_conda_command('conda run python -c "x = 1"')
+        stdout, stderr, result = run_inprocess_conda_command('conda run -n base python -c "x = 1"')
         
         assert isinstance(result, int)
 
