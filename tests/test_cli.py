@@ -167,18 +167,18 @@ class TestJson(unittest.TestCase):
 class TestRunErrorLevel(unittest.TestCase):
     @pytest.mark.integration
     def test_run_returns_int(self):
-        stdout, stderr, result = run_inprocess_conda_command('conda run python -c "x = 1"')
+        stdout, stderr, result = run_inprocess_conda_command('conda run --dev python -c "x = 1"')
         
         assert isinstance(result, int)
 
     @pytest.mark.integration
     def test_run_returns_zero_errorlevel(self):
-        stdout, stderr, result = run_inprocess_conda_command('conda run exit 0')
+        stdout, stderr, result = run_inprocess_conda_command('conda run --dev exit 0')
         
         assert result == 0
 
     @pytest.mark.integration
     def test_run_returns_nonzero_errorlevel(self):
-        stdout, stderr, result = run_inprocess_conda_command('conda run exit 5')
+        stdout, stderr, result = run_inprocess_conda_command('conda run --dev exit 5')
         
         assert result == 5
