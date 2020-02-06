@@ -165,10 +165,9 @@ class TestJson(unittest.TestCase):
 
 
 class TestRunErrorLevel(unittest.TestCase):
-    @pytest.mark.integration
     def test_run_returns_int(self):
-        from tempfile import gettempdir
-        from tests.test_create import make_temp_env, make_temp_prefix
+        from tests.test_create import make_temp_env
+        from tests.test_create import make_temp_prefix
 
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
@@ -176,19 +175,22 @@ class TestRunErrorLevel(unittest.TestCase):
             
             assert isinstance(result, int)
 
-    # @pytest.mark.integration
-    # def test_run_returns_zero_errorlevel(self):
-    #     import os
-    #     from tempfile import gettempdir
+    def test_run_returns_zero_errorlevel(self):
+        from tests.test_create import make_temp_env
+        from tests.test_create import make_temp_prefix
 
-    #     # Jank
-    #     os.chdir(gettempdir())
-    #     stdout, stderr, result = run_inprocess_conda_command('conda run exit 0')
-        
-    #     assert result == 0
+        prefix = make_temp_prefix(name='test')
+        with make_temp_env(prefix=prefix):
+            stdout, stderr, result = run_inprocess_conda_command('conda run -p {} exit 0'.format(prefix))
+            
+            assert result == 0
 
-    # @pytest.mark.integration
-    # def test_run_returns_nonzero_errorlevel(self):
-    #     stdout, stderr, result = run_inprocess_conda_command('conda run exit 5')
-        
-    #     assert result == 5
+    def test_run_returns_nonzero_errorlevel(self):
+        from tests.test_create import make_temp_env
+        from tests.test_create import make_temp_prefix
+
+        prefix = make_temp_prefix(name='test')
+        with make_temp_env(prefix=prefix) as prefix:
+            stdout, stderr, result = run_inprocess_conda_command('conda run -p "{}" exit 5'.format(prefix))
+            
+            assert result == 5
