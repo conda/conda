@@ -1,4 +1,5 @@
 import json
+from tempfile import gettempdir
 import unittest
 
 from conda._vendor.auxlib.ish import dals
@@ -165,21 +166,21 @@ class TestJson(unittest.TestCase):
 
     def test_run_returns_int(self):
         from tests.test_create import make_temp_env
-        with make_temp_env() as prefix:
+        with make_temp_env(prefix=gettempdir()) as prefix:
             stdout, stderr, result = run_inprocess_conda_command('conda run python -c "x = 1"'.format(prefix))
             
             assert isinstance(result, int)
 
     def test_run_returns_zero_errorlevel(self):
         from tests.test_create import make_temp_env
-        with make_temp_env() as prefix:
+        with make_temp_env(prefix=gettempdir()) as prefix:
             stdout, stderr, result = run_inprocess_conda_command('conda run exit 0')
             
             assert result == 0
 
     def test_run_returns_nonzero_errorlevel(self):
         from tests.test_create import make_temp_env
-        with make_temp_env() as prefix:
+        with make_temp_env(prefix=gettempdir()) as prefix:
             stdout, stderr, result = run_inprocess_conda_command('conda run exit 5')
             
             assert result == 5
