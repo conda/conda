@@ -163,15 +163,14 @@ class TestJson(unittest.TestCase):
     def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
 
-
-class TestRunErrorLevel(unittest.TestCase):
+class TestRun(unittest.TestCase):
     def test_run_returns_int(self):
         from tests.test_create import make_temp_env
         from tests.test_create import make_temp_prefix
 
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
-            stdout, stderr, result = run_inprocess_conda_command('conda run -p {} exit 1'.format(prefix))
+            stdout, stderr, result = run_inprocess_conda_command('conda run -p {} echo hi'.format(prefix))
             
             assert isinstance(result, int)
 
