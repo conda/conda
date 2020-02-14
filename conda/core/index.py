@@ -174,7 +174,7 @@ def _supplement_index_with_system(index):
     for flag in context.cpu_flags:
         if os.getenv("CONDA_OVERRIDE_CPU_FEATURE_{}".format(flag.upper()), "1") == "":
             continue
-        rec = _make_virtual_package('__cpu_feature_' + flag.lower(), "1.0.0")
+        rec = _make_virtual_package('__cpu_feature_' + flag.lower(), "1")
         index[rec] = rec
 
     for var, value in os.environ.items():
