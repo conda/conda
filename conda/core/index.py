@@ -180,7 +180,7 @@ def _supplement_index_with_system(index):
     for var, value in os.environ.items():
         if var.startswith("CONDA_OVERRIDE_CPU_FEATURE_") and value != "":
             flag = var[len("CONDA_OVERRIDE_CPU_FEATURE_"):]
-            rec = _make_virtual_package('__cpu_feature_' + flag.lower(), "1.0.0")
+            rec = _make_virtual_package('__cpu_feature_' + flag.lower(), "1")
             index[rec] = rec
 
 
