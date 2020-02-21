@@ -483,8 +483,6 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
         resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
                            timeout=timeout)
-        if log.isEnabledFor(DEBUG):
-            log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
 
     except RequestsProxyError:
