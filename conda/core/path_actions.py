@@ -1265,8 +1265,21 @@ class ExtractPackageAction(PathAction):
             if self.size is not None:
                 assert size == self.size, (size, self.size)
             md5 = self.md5 or compute_md5sum(self.source_full_path)
+
+            # Handle package placed in incorrect channel subdir, allow channel subdir to override
+            subdir = raw_index_json['subdir']
+            if channel.subdir != subdir:
+                subdir = channel.subdir
+
             repodata_record = PackageRecord.from_objects(
-                raw_index_json, url=url, channel=channel, fn=fn, sha256=sha256, size=size, md5=md5,
+                raw_index_json,
+                url=url,
+                channel=channel,
+                subdir=subdir,
+                fn=fn,
+                sha256=sha256,
+                size=size,
+                md5=md5,
             )
         else:
             repodata_record = PackageRecord.from_objects(self.record_or_spec, raw_index_json)
