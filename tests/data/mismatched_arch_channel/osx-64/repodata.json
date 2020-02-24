@@ -1,0 +1,23 @@
+{
+  "info": {
+    "subdir": "osx-64"
+  },
+  "packages": {
+    "test-package-1.0.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "58234c16dd47f8325274f4952f95b758",
+      "name": "test-package",
+      "noarch": "generic",
+      "sha256": "254c7235dc854763d4a51c28db61af98645a2059de724371aafa630ea862ada5",
+      "size": 2440,
+      "subdir": "noarch",
+      "timestamp": 1582573743591,
+      "version": "1.0.0"
+    }
+  },
+  "packages.conda": {},
+  "removed": [],
+  "repodata_version": 1
+}
