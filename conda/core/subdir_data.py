@@ -12,7 +12,7 @@ from genericpath import getmtime, isfile
 import hashlib
 from io import open as io_open
 import json
-from logging import DEBUG, getLogger
+from logging import getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, isdir, join, splitext
 import re
@@ -21,7 +21,6 @@ import warnings
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.logz import stringify
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
@@ -427,6 +426,7 @@ class SubdirData(object):
                 package_record = PackageRecord(**info)
 
                 _package_records.append(package_record)
+
                 _names_index[package_record.name].append(package_record)
                 for ftr_name in package_record.track_features:
                     _track_features_index[ftr_name].append(package_record)
