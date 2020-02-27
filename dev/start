@@ -7,7 +7,7 @@
 devenv="${1:-./devenv}"
 pyver="${2:-3}"
 _CONDA="$devenv/bin/conda"
-[[ -f ${_CONDA} ]] || _CONDA="$denvenv/Scripts/conda"
+[[ -f ${_CONDA} ]] || _CONDA="$devenv/Scripts/conda"
 
 if ! [ -f "$devenv/conda-meta/history" ]; then
     if [ "$(uname)" = Darwin ]; then
