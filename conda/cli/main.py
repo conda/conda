@@ -162,8 +162,8 @@ def main(*args, **kwargs):
     #
 
     from os import environ, getpid, pathsep, sep
-    from psutil import Process
     try:
+        from psutil import Process
         pp = Process(Process(getpid()).ppid())
         if pp and pp.name() == 'conda.exe':
             pp = Process(Process(Process(getpid()).ppid()).ppid())
