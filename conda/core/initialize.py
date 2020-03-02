@@ -449,7 +449,10 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             })
 
         if 'zsh' in shells and for_user:
-            zshrc_path = expand(join('~', '.zshrc'))
+            if 'ZDOTDIR' in os.environ:
+                zshrc_path = expand(join('$ZDOTDIR', '.zshrc'))
+            else:
+                zshrc_path = expand(join('~', '.zshrc'))
             plan.append({
                 'function': init_sh_user.__name__,
                 'kwargs': {
