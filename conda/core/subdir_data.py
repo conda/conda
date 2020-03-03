@@ -75,6 +75,12 @@ class SubdirDataType(type):
 class SubdirData(object):
     _cache_ = {}
 
+    @classmethod
+    def clear_cached_local_channel_data(cls):
+        # This should only ever be needed during unit tests, when
+        # CONDA_USE_ONLY_TAR_BZ2 may change during process lifetime.
+        cls._cache_ = {k: v for k, v in cls._cache_.items() if not k[0].startswith('file://')}
+
     @staticmethod
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
                   repodata_fn=REPODATA_FN):
