@@ -636,7 +636,7 @@ def configure_parser_init(sub_parsers):
     )
     setup_type_group.add_argument(
         "--no-user",
-        action="store_false",
+        action="store_true",
         # help="Don't initialize conda for the current user (default).",
         help=SUPPRESS,
         default=NULL,
