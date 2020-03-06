@@ -485,8 +485,8 @@ class Solver(object):
         if inconsistent_precs:
             print(dedent("""
             The environment is inconsistent, please check the package plan carefully
-            The following packages are causing the inconsistency:"""))
-            print(dashlist(inconsistent_precs))
+            The following packages are causing the inconsistency:"""), file=sys.stderr)
+            print(dashlist(inconsistent_precs), file=sys.stderr)
             for prec in inconsistent_precs:
                 # pop and save matching spec in specs_map
                 spec = ssc.specs_map.pop(prec.name, None)

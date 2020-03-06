@@ -2138,8 +2138,10 @@ dependencies:
             rc = p.returncode
             assert int(rc) == 0
 
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'imagesize')
-            assert not stderr
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'imagesize', '--json')
+            assert json.loads(stdout)['success']
+            assert "The environment is inconsistent" in stderr
+
             stdout, stderr, _ = run_command(Commands.LIST, prefix, '--json')
             pkgs = json.loads(stdout)
             for entry in pkgs:
