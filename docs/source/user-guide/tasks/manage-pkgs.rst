@@ -254,7 +254,7 @@ your environment, there is not one specific conda command.
 It requires a series of steps:
  
 #. List the dependencies that a specific package requires to run:
-   ``conda info package_name``
+   ``conda search package_name --info``
  
 #. Find your installation’s package cache directory:
    ``conda info``
