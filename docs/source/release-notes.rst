@@ -5,6 +5,32 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.8.3 (2020-03-13)
+==================
+
+Docs
+^^^^
+
+* Add release notes for 4.8.2 to docs (#9632)
+* Fix typos in docs (#9637, #9643)
+* Grammatical and formatting changes (#9647)
+
+Bug fixes
+^^^^^^^^^
+
+* Account for channel is specs (#9748)
+
+Contributors
+^^^^^^^^^^^^
+
+* @bernardoduarte
+* @forrestwaters
+* @jjhelmus
+* @msarahan
+* @rrigdon
+* @timgates42
+
+
 4.8.2 (2020-01-24)
 ==================
 
