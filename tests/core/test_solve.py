@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from contextlib import contextmanager
 import os
 from pprint import pprint
+from platform import architecture
 import sys
 from textwrap import dedent
 import copy
@@ -273,11 +274,11 @@ def test_cuda_fail_1(tmpdir):
     if sys.platform == "darwin":
         plat = "osx-64"
     elif sys.platform == "linux":
-        plat = "linux-64"
+        plat = "linux-%s" % architecture()[0][0:2]
     elif sys.platform == "win32":
         plat = "win-64"
     else:
-        plat = "linux-64"
+        plat = "linux-%s" % architecture()[0][0:2]
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
 
   - feature:/{}::__cuda==8.0=0
