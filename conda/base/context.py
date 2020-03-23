@@ -11,6 +11,7 @@ import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
 import sys
+import struct
 
 from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
@@ -474,7 +475,7 @@ class Context(Configuration):
         if self.force_32bit:
             return 32
         else:
-            return 8 * tuple.__itemsize__
+            return 8 * struct.calcsize("P")
 
     @property
     def root_dir(self):
