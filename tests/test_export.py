@@ -120,9 +120,6 @@ class ExportIntegrationTests(TestCase):
 
                 urls1 = set(url for url in output.split() if url.startswith("file"))
 
-                print("OUTPUT: " + output)
-                print("URLS1: " + str(urls1))
-
                 # delete the installed package from the package cache
                 test_package_cache_entries = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)
                                               if "test-package" in d]
