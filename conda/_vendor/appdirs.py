@@ -334,7 +334,7 @@ def _get_win_folder_with_ctypes(csidl_name):
 
 if sys.platform == "win32":
     try:
-        import win32com.shell
+        from win32com.shell import shellcon, shell
         _get_win_folder = _get_win_folder_with_pywin32
     except ImportError:
         try:
