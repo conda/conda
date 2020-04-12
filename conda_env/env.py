@@ -148,7 +148,7 @@ def from_file(filename):
     if any(filename.startswith(prefix) for prefix in ("https://", "http://")):
         try:
             yamlstr = urllib.request.urlopen(filename).read()
-        except urllib.error.HTTPError as e:
+        except urllib.error.HTTPError:
             raise exceptions.EnvironmentFileNotFound(filename)
     elif not os.path.exists(filename):
         raise exceptions.EnvironmentFileNotFound(filename)

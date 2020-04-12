@@ -27,10 +27,13 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
       See: https://pip.pypa.io/en/stable/user_guide/#requirements-files
            https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
     """
-    try:
-        pip_workdir = op.dirname(op.abspath(args.file))
-    except AttributeError:
+    if any(args.file.startswith(prefix) for prefix in ("http://", "https://")):
         pip_workdir = None
+    else:
+        try:
+            pip_workdir = op.dirname(op.abspath(args.file))
+        except AttributeError:
+            pip_workdir = None
     requirements = None
     try:
         # Generate the temporary requirements file

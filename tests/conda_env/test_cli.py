@@ -244,6 +244,13 @@ class IntegrationTests(unittest.TestCase):
             len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]), 0
         )
 
+    def test_conda_env_create_http(self):
+        '''
+        Test `conda env create --file=https://some-website.com/environment.yml`
+        '''
+        run_env_command(Commands.ENV_CREATE, None, '--file', 'https://raw.githubusercontent.com/conda/conda/master/tests/conda_env/support/simple.yml')
+        self.assertTrue(env_is_created("nlp"))
+
     def test_update(self):
         create_env(environment_1)
         run_env_command(Commands.ENV_CREATE, None)
