@@ -21,7 +21,10 @@ def detect(**kwargs):
     fname, ext = os.path.splitext(filename)
 
     # First check if file exists and test the known valid extension for specs
-    file_exists = filename and os.path.isfile(filename)
+    file_exists = (
+        filename and os.path.isfile(filename) or
+        any(filename.startswith(prefix) for prefix in ("https://", "http://"))
+    )
     if file_exists:
         if ext == '' or ext not in all_valid_exts:
             raise EnvironmentFileExtensionNotValid(filename)

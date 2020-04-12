@@ -8,6 +8,7 @@ from itertools import chain
 import os
 import re
 import json
+import urllib
 
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
@@ -144,11 +145,17 @@ def from_yaml(yamlstr, **kwargs):
 
 
 def from_file(filename):
-    if not os.path.exists(filename):
+    if any(filename.startswith(prefix) for prefix in ("https://", "http://")):
+        try:
+            yamlstr = urllib.request.urlopen(filename).read()
+        except urllib.error.HTTPError as e:
+            raise exceptions.EnvironmentFileNotFound(filename)
+    elif not os.path.exists(filename):
         raise exceptions.EnvironmentFileNotFound(filename)
-    with open(filename, 'r') as fp:
-        yamlstr = fp.read()
-        return from_yaml(yamlstr, filename=filename)
+    else:
+        with open(filename, 'r') as fp:
+            yamlstr = fp.read()
+    return from_yaml(yamlstr, filename=filename)
 
 
 # TODO test explicitly

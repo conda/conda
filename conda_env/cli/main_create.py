@@ -76,8 +76,12 @@ def execute(args, parser):
     name = args.remote_definition or args.name
 
     try:
-        spec = specs.detect(name=name, filename=expand(args.file),
-                            directory=os.getcwd())
+        if not any(args.file.startswith(s) for s in ("https://", "http://")):
+            filename = expand(args.file)
+        else:
+            filename = args.file
+
+        spec = specs.detect(name=name, filename=filename, directory=os.getcwd())
         env = spec.environment
 
         # FIXME conda code currently requires args to have a name or prefix
