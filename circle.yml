@@ -195,7 +195,7 @@ flake8: &flake8
 build_docs: &build_docs
   working_directory: ~/conda
   docker:
-    - image: readthedocs/build
+    - image: readthedocs/build:5.0
   steps:
     - checkout
     - run:
