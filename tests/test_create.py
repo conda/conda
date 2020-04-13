@@ -82,7 +82,8 @@ BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
 # UNICODE_CHARACTERS_RESTRICTED_PY2 = u"ÀÁÂÃÄÅ"
 UNICODE_CHARACTERS_RESTRICTED_PY2 = u"abcdef"
-UNICODE_CHARACTERS_RESTRICTED_PY3 = u"áêñßôç"
+# UNICODE_CHARACTERS_RESTRICTED_PY3 = u"áêñßôç"
+UNICODE_CHARACTERS_RESTRICTED_PY3 = u"abcdef"
 which_or_where = "which" if not on_win else "where"
 cp_or_copy = "cp" if not on_win else "copy"
 env_or_set = "env" if not on_win else "set"
@@ -327,7 +328,7 @@ def make_temp_env(*packages, **kwargs):
 
 @contextmanager
 def make_temp_package_cache():
-    prefix = make_temp_prefix()
+    prefix = make_temp_prefix(use_restricted_unicode=on_win)
     pkgs_dir = join(prefix, 'pkgs')
     mkdir_p(pkgs_dir)
     touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
@@ -1932,7 +1933,7 @@ class IntegrationTests(TestCase):
 
     def test_conda_pip_interop_conda_editable_package(self):
         with env_var('CONDA_RESTORE_FREE_CHANNEL', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("python=2.7", "pip", "git", use_restricted_unicode=on_win) as prefix:
+            with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
                 conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
                 workdir = prefix
 
