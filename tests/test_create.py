@@ -592,8 +592,9 @@ class IntegrationTests(TestCase):
             assert message1 in error_message
             assert message2 in error_message
 
-            with open(join(prefix, 'condarc'), 'a') as fh:
+            with open(join(prefix, 'condarc'), 'w') as fh:
                 fh.write("safety_checks: warn\n")
+                fh.write("extra_safety_checks: true\n")
             reload_config(prefix)
             assert context.safety_checks is SafetyChecks.warn
 
@@ -1338,7 +1339,7 @@ class IntegrationTests(TestCase):
             assert not stderr
 
             try:
-                with open(join(prefix, 'condarc'), 'a') as fh:
+                with open(join(prefix, 'condarc'), 'w') as fh:
                     fh.write('default_python: anaconda\n')
                     fh.write('ssl_verify: /path/doesnt/exist\n')
                 reload_config(prefix)
@@ -2302,7 +2303,7 @@ class IntegrationTests(TestCase):
         SubdirData._cache_.clear()
 
         try:
-            with make_temp_env() as prefix:
+            with make_temp_env(use_restricted_unicode=on_win) as prefix:
                 pkgs_dir = join(prefix, 'pkgs')
                 with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     with make_temp_channel(['flask-0.12.2']) as channel:
@@ -2757,7 +2758,7 @@ class IntegrationTests(TestCase):
         assert "python 3.5.4" in output
 
     def test_toolz_cytoolz_package_cache_regression(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.5", use_restricted_unicode=on_win) as prefix:
             pkgs_dir = join(prefix, 'pkgs')
             with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 assert context.pkgs_dirs == (pkgs_dir,)
