@@ -964,3 +964,18 @@ class MatchSpecMergeTests(TestCase):
         assert str(merged[0]) in str_specs
         assert str(merged[1]) in str_specs
         assert str(merged[0]) != str(merged[1])
+
+
+    def test_dist_str(self):
+        m1 = MatchSpec.from_dist_str("anaconda/{}::python-3.6.6-0.tar.bz2".format(context.subdir))
+        m2 = MatchSpec.from_dist_str("anaconda/{}::python-3.6.6-0".format(context.subdir))
+        m3 = MatchSpec.from_dist_str("https://someurl.org/anaconda/{}::python-3.6.6-0.tar.bz2".format(context.subdir))
+        m4 = MatchSpec.from_dist_str("python-3.6.6-0.tar.bz2")
+
+        pref = DPkg("anaconda::python-3.6.6-0.tar.bz2")
+        pref.url = "https://someurl.org/anaconda/{}::python-3.6.6-0.tar.bz2".format(context.subdir)
+
+        assert m1.match(pref)
+        assert m2.match(pref)
+        assert m3.match(pref)
+        assert m4.match(pref)
