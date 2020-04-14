@@ -183,7 +183,7 @@ class MatchSpec(object):
         if '::' in dist_str:
             channel_subdir_str, dist_str = dist_str.split("::", 1)
             if '/' in channel_subdir_str:
-                channel_str, subdir = channel_subdir_str.split('/', 2)
+                channel_str, subdir = channel_subdir_str.rsplit('/', 1)
                 parts.update({
                     'channel': channel_str,
                     'subdir': subdir,
