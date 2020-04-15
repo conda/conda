@@ -31,7 +31,7 @@ init:
 
 install:
   - CALL "%PYTHON_ROOT%\\Scripts\\activate.bat"
-  - 'conda install -y -c conda-canary -c defaults -c conda-forge python=%PYTHON_VERSION% pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3>1.23 pexpect pywin32 anaconda-client conda-package-handling'
+  - 'conda install -y -c conda-canary -c defaults -c conda-forge python=%PYTHON_VERSION% pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling'
   - "conda install -yq conda-build=3.17"
   # conda install -y -c defaults -c conda-forge pytest pytest-cov pytest-timeout mock responses pexpect xonsh
   # TODO: add xonsh for PY3 builds
