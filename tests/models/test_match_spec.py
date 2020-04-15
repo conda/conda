@@ -825,6 +825,35 @@ class SpecStrParsingTests(TestCase):
         #     "build_number": '>=3',
         # }
 
+    def test_dist_str(self):
+        m1 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0.tar.bz2".format(context.subdir))
+        m2 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0".format(context.subdir))
+        m3 = MatchSpec.from_dist_str("https://someurl.org/anaconda/{0}::python-3.6.6-0.tar.bz2".format(context.subdir))
+        m4 = MatchSpec.from_dist_str("python-3.6.6-0.tar.bz2")
+        m5 = MatchSpec.from_dist_str("https://someurl.org/anaconda::python-3.6.6-0.tar.bz2")
+
+        pref = DPkg("anaconda::python-3.6.6-0.tar.bz2")
+        pref.url = "https://someurl.org/anaconda/{}".format(context.subdir)
+
+        assert m1.match(pref)
+        assert m2.match(pref)
+        assert m3.match(pref)
+        assert m4.match(pref)
+        pref.url = "https://someurl.org/anaconda"
+
+        pref_dict = {
+                'name': 'python',
+                'version': '3.6.6',
+                'build': '0',
+                'build_number': 0,
+                'channel': Channel("anaconda"),
+                'fn': 'python-3.6.6-0.tar.bz2',
+                'md5': '012345789',
+                'url': 'https://someurl.org/anaconda'
+                }
+
+        assert m5.match(pref_dict)
+
 
 class MatchSpecMergeTests(TestCase):
 
@@ -964,21 +993,3 @@ class MatchSpecMergeTests(TestCase):
         assert str(merged[0]) in str_specs
         assert str(merged[1]) in str_specs
         assert str(merged[0]) != str(merged[1])
-
-
-    def test_dist_str(self):
-        m1 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0.tar.bz2".format(context.subdir))
-        m2 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0".format(context.subdir))
-        m3 = MatchSpec.from_dist_str("https://someurl.org/anaconda/{0}::python-3.6.6-0.tar.bz2".format(context.subdir))
-        m4 = MatchSpec.from_dist_str("python-3.6.6-0.tar.bz2")
-        m5 = MatchSpec.from_dist_str("https://someurl.org/anaconda::python-3.6.6-0.tar.bz2")
-
-        pref = DPkg("anaconda::python-3.6.6-0.tar.bz2")
-        pref.url = "https://someurl.org/anaconda/{}".format(context.subdir)
-
-        assert m1.match(pref)
-        assert m2.match(pref)
-        assert m3.match(pref)
-        assert m4.match(pref)
-        pref.url = "https://someurl.org/anaconda"
-        assert m5.match(pref)

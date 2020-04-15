@@ -187,7 +187,7 @@ class MatchSpec(object):
                 channel_str, subdir = channel_subdir_str.rsplit('/', 1)
                 if subdir not in context.known_subdirs:
                     channel_str = channel_subdir_str
-                    subdir = context.subdir
+                    subdir = None
                 parts.update({
                     'channel': channel_str,
                     'subdir': subdir,
