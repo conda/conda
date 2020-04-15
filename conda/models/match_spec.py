@@ -27,6 +27,7 @@ from ..common.io import dashlist
 from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec
+from ..base.context import context
 
 log = getLogger(__name__)
 
@@ -184,6 +185,9 @@ class MatchSpec(object):
             channel_subdir_str, dist_str = dist_str.split("::", 1)
             if '/' in channel_subdir_str:
                 channel_str, subdir = channel_subdir_str.rsplit('/', 1)
+                if subdir not in context.known_subdirs:
+                    channel_str = channel_subdir_str
+                    subdir = context.subdir
                 parts.update({
                     'channel': channel_str,
                     'subdir': subdir,
