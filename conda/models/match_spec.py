@@ -188,10 +188,9 @@ class MatchSpec(object):
                 if subdir not in context.known_subdirs:
                     channel_str = channel_subdir_str
                     subdir = None
-                parts.update({
-                    'channel': channel_str,
-                    'subdir': subdir,
-                })
+                parts['channel'] = channel_str
+                if subdir:
+                    parts['subdir'] = subdir
             else:
                 parts['channel'] = channel_subdir_str
 
