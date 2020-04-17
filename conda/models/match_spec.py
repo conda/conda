@@ -500,7 +500,7 @@ class MatchSpec(object):
                 if union:
                     try:
                         final = this_component.union(that_component)
-                    except (AttributeError, ValueError):
+                    except (AttributeError, ValueError, TypeError):
                         final = '%s|%s' % (this_component, that_component)
                 else:
                     final = this_component.merge(that_component)

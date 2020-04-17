@@ -23,7 +23,28 @@ main_test: &main_test
             conda info
             # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
             sudo rm -rf /opt/conda/pkgs/*-*-*
-            py.test $ADD_COV -m "not integration and not installed" -k "test_run_returns_" -v
+            py.test $ADD_COV -m "not integration and not installed" -v
+          fi
+    - run:
+        name: integration tests
+        command: |
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+            echo "Only docs changed detected, skipping tests"
+          else
+            eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+            sudo su root -c "/opt/conda/bin/conda install -yq conda-build"
+            conda-build tests/test-recipes/activate_deactivate_package
+            py.test $ADD_COV --cov-append -m "integration and not installed" -v
+            python -m conda.common.io
+          fi
+    - run:
+        name: upload codecov
+        command: |
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+            echo "No codecov report to upload"
+          else
+            /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
+            echo "No codecov report to upload"
           fi
     # - run:
     #     name: integration tests
@@ -193,7 +214,7 @@ flake8: &flake8
 build_docs: &build_docs
   working_directory: ~/conda
   docker:
-    - image: readthedocs/build
+    - image: readthedocs/build:5.0
   steps:
     - checkout
     - run:
@@ -241,5 +262,5 @@ workflows:
       # - py36 main tests
       - py27 main tests
       # - 3.10 conda-build
-      # - flake8
-      # - build_docs
+      - flake8
+      - build_docs

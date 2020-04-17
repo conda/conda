@@ -1222,7 +1222,7 @@ def messages(prefix):
                 m = fi.read()
                 if hasattr(m, "decode"):
                     m = m.decode('utf-8')
-                print(m.encode('utf-8'), file=sys.stderr if context.json else sys.stdout)
+                print(m, file=sys.stderr if context.json else sys.stdout)
                 return m
     finally:
         rm_rf(path)

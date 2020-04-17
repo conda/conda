@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from enum import Enum, EnumMeta
 from os.path import join
+import struct
 
 from ..common.compat import itervalues, on_win, six_with_metaclass, string_types
 
@@ -20,7 +21,7 @@ PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this program on itself will leave it unchanged
                       'anaconda3')
 
-machine_bits = 8 * tuple.__itemsize__
+machine_bits = 8 * struct.calcsize("P")
 
 APP_NAME = 'conda'
 
@@ -66,6 +67,7 @@ PLATFORM_DIRECTORIES = (
     "linux-aarch64",
     "linux-armv6l",
     "linux-armv7l",
+    "linux-ppc64",
     "linux-ppc64le",
     "osx-64",
     "win-32",

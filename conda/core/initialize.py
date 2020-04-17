@@ -41,6 +41,7 @@ from os.path import abspath, basename, dirname, exists, expanduser, isdir, isfil
 from random import randint
 import re
 import sys
+import struct
 
 try:
     FileNotFoundError
@@ -788,7 +789,7 @@ def make_entry_point(target_path, conda_prefix, module, func):
 def make_entry_point_exe(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
     exe_path = target_path
-    bits = 8 * tuple.__itemsize__
+    bits = 8 * struct.calcsize("P")
     source_exe_path = join(CONDA_PACKAGE_ROOT, 'shell', 'cli-%d.exe' % bits)
     if isfile(exe_path):
         if compute_md5sum(exe_path) == compute_md5sum(source_exe_path):
