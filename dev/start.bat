@@ -40,8 +40,8 @@ set PYTHONHOME=
 @CALL "%devenv%\Scripts\conda" update -p "%devenv%" -yq --all
 @ECHO               ^>^> conda install -yp "%devenv%" defaults::git
 @CALL "%devenv%\Scripts\conda" install -yp "%devenv%" defaults::git
-@ECHO               ^>^> conda install -yq -p "%devenv%" --file dev/test-requirements.txt -c defaults -c conda-forge
-@CALL "%devenv%\Scripts\conda" install -yq -p "%devenv%" --file dev/test-requirements.txt -c defaults -c conda-forge
+@ECHO               ^>^> conda install -yq -p "%devenv%" --file dev/test-requirements.txt -c defaults
+@CALL "%devenv%\Scripts\conda" install -yq -p "%devenv%" --file dev/test-requirements.txt -c defaults
 
 @CALL "%devenv%\python" -m conda init --dev cmd.exe > NUL
 
