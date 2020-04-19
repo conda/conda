@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from random import shuffle
 import unittest
 
 from conda.exceptions import InvalidVersionSpec
@@ -33,6 +34,7 @@ class TestVersionSpec(unittest.TestCase):
            ("1.0.4b1",    [[0], [1], [0], [4, 'b', 1]]),
            ("1.0.4",      [[0], [1], [0], [4]]),
            ("1.1dev1",    [[0], [1], [1, 'DEV', 1]]),
+           ("1.1_",       [[0], [1], [1, '_']]),
            ("1.1a1",      [[0], [1], [1, 'a', 1]]),
            ("1.1.dev1",   [[0], [1], [1], [0, 'DEV', 1]]),
            ("1.1.a1",     [[0], [1], [1], [0, 'a', 1]]),
@@ -97,10 +99,29 @@ class TestVersionSpec(unittest.TestCase):
         self.assertFalse(VersionOrder("0.4.1").startswith(VersionOrder("0.4.1+1.3")))
         self.assertFalse(VersionOrder("0.4.1+1").startswith(VersionOrder("0.4.1+1.3")))
 
-        # test openssl convention
-        openssl = [VersionOrder(k) for k in ['1.0.1', '1.0.1post.a', '1.0.1post.b',
-                                             '1.0.1post.z', '1.0.1post.za', '1.0.2']]
-        self.assertEqual(sorted(openssl), openssl)
+    def test_openssl_convention(self):
+        openssl = [VersionOrder(k) for k in (
+            '1.0.1dev',
+            '1.0.1_',  # <- this
+            '1.0.1a',
+            '1.0.1b',
+            '1.0.1c',
+            '1.0.1d',
+            '1.0.1r',
+            '1.0.1rc',
+            '1.0.1rc1',
+            '1.0.1rc2',
+            '1.0.1s',
+            '1.0.1',  # <- compared to this
+            '1.0.1post.a',
+            '1.0.1post.b',
+            '1.0.1post.z',
+            '1.0.1post.za',
+            '1.0.2',
+        )]
+        shuffled = openssl.copy()
+        shuffle(shuffled)
+        assert sorted(shuffled) == openssl
 
     def test_pep440(self):
         # this list must be in sorted order (slightly modified from the PEP 440 test suite
