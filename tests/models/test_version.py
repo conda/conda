@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from copy import copy
 from random import shuffle
 import unittest
 
@@ -119,7 +120,7 @@ class TestVersionSpec(unittest.TestCase):
             '1.0.1post.za',
             '1.0.2',
         )]
-        shuffled = openssl.copy()
+        shuffled = copy(openssl)
         shuffle(shuffled)
         assert sorted(shuffled) == openssl
 
