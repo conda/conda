@@ -8,6 +8,7 @@ import pytest
 
 from conda.common.compat import PY3
 from conda.gateways.disk.create import TemporaryDirectory
+from conda.core.subdir_data import SubdirData
 
 win_default_shells = ["cmd.exe", "powershell", "git_bash", "cygwin"]
 shells = ["bash", "zsh"]
@@ -63,6 +64,11 @@ def set_tmpdir(tmpdir):
     if sys.platform == 'win32' and sys.version_info.major == 2 and hasattr(td, 'encode'):
         os.environ['CONDA_TEST_TMPDIR'] = td.encode('utf-8')
     tmpdir_in_use = td
+
+
+@pytest.fixture(autouse=True)
+def clear_subdir_cache(tmpdir):
+    SubdirData.clear_cached_local_channel_data()
 
 
 # From: https://hackebrot.github.io/pytest-tricks/fixtures_as_class_attributes/
