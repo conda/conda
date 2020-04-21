@@ -201,10 +201,12 @@ def test_subdir_data_prefers_conda_to_tar_bz2():
 
 def test_use_only_tar_bz2():
     channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    SubdirData.clear_cached_local_channel_data()
     with env_var('CONDA_USE_ONLY_TAR_BZ2', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".tar.bz2")
+    SubdirData.clear_cached_local_channel_data()
     with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
