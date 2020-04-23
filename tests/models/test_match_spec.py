@@ -221,6 +221,9 @@ class MatchSpecTests(TestCase):
         assert m("numpy~=1.10.1") == "numpy~=1.10.1"
         assert m("numpy ~=1.10.1 py38_0") == "numpy[version='~=1.10.1',build=py38_0]"
 
+        assert m("openssl=1.1.1_") == "openssl=1.1.1_"
+        assert m("openssl>=1.1.1_,!=1.1.1c") == "openssl[version='>=1.1.1_,!=1.1.1c']"
+
         # # a full, exact spec looks like 'defaults/linux-64::numpy==1.8=py26_0'
         # # can we take an old dist str and reliably parse it with MatchSpec?
         # assert m("numpy-1.10-py38_0") == "numpy==1.10=py38_0"
@@ -387,6 +390,11 @@ class MatchSpecTests(TestCase):
         assert ms.get_exact_value('version') == '1.2.7'
         assert ms.get_exact_value('build') == '0'
         assert ms._to_filename_do_not_use() == 'zlib-1.2.7-0.tar.bz2'
+
+    def test_openssl_match(self):
+        dst = Dist('defaults::openssl-1.0.1_-4')
+        assert MatchSpec('openssl>=1.0.1_').match(DPkg(dst))
+        assert not MatchSpec('openssl>=1.0.1').match(DPkg(dst))
 
     def test_track_features_match(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')

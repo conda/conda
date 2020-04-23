@@ -127,6 +127,7 @@ class VersionOrder(object):
          < 0.960923
          < 1.0
          < 1.1dev1    # special case 'dev'
+         < 1.1_       # appended underscore is special case for openssl-like versions
          < 1.1a1
          < 1.1.0dev1  # special case 'dev'
         == 1.1.dev1   # 0 is inserted before string
@@ -146,12 +147,12 @@ class VersionOrder(object):
     In particular, openssl interprets letters as version counters rather than
     pre-release identifiers. For openssl, the relation
 
-      1.0.1 < 1.0.1a   =>   True   # for openssl
+      1.0.1 < 1.0.1a  =>  False  # should be true for openssl
 
     holds, whereas conda packages use the opposite ordering. You can work-around
-    this problem by appending a dash to plain version numbers:
+    this problem by appending an underscore to plain version numbers:
 
-      1.0.1a  =>  1.0.1post.a      # ensure correct ordering for openssl
+      1.0.1_ < 1.0.1a =>  True   # ensure correct ordering for openssl
     """
     _cache_ = {}
 
@@ -200,7 +201,15 @@ class VersionOrder(object):
             raise InvalidVersionSpec(vstr, "duplicated local version separator '+'")
 
         # split version
-        self.version = epoch + version[0].replace('_', '.').split('.')
+        if version[0][-1] == "_":
+            # If the last character of version is "-" or "_", don't split that out
+            # individually. Implements the instructions for openssl-like versions
+            #   > You can work-around this problem by appending a dash to plain version numbers
+            split_version = version[0][:-1].replace('_', '.').split('.')
+            split_version[-1] += "_"
+        else:
+            split_version = version[0].replace('_', '.').split('.')
+        self.version = epoch + split_version
 
         # split components into runs of numerals and non-numerals,
         # convert numerals to int, handle special strings
