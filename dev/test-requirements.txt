@@ -1,4 +1,4 @@
-# run as 'conda install --file dev/test-requirements.txt -c defaults -c conda-forge'
+# run as 'conda install --file dev/test-requirements.txt -c defaults'
 # conda
 conda-package-handling
 flake8
