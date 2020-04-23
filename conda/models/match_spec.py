@@ -20,7 +20,7 @@ from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
 from ..common.io import dashlist
@@ -179,7 +179,9 @@ class MatchSpec(object):
     @classmethod
     def from_dist_str(cls, dist_str):
         parts = {}
-        if dist_str.endswith(CONDA_PACKAGE_EXTENSION_V1):
+        if dist_str[-len(CONDA_PACKAGE_EXTENSION_V2):] == CONDA_PACKAGE_EXTENSION_V2:
+            dist_str = dist_str[:-len(CONDA_PACKAGE_EXTENSION_V2)]
+        elif dist_str[-len(CONDA_PACKAGE_EXTENSION_V1):] == CONDA_PACKAGE_EXTENSION_V1:
             dist_str = dist_str[:-len(CONDA_PACKAGE_EXTENSION_V1)]
         if '::' in dist_str:
             channel_subdir_str, dist_str = dist_str.split("::", 1)

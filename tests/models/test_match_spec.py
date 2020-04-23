@@ -7,6 +7,7 @@ from conda._vendor.auxlib.collection import frozendict
 import pytest
 
 from conda import text_type
+from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import arg2spec, spec_from_line
 from conda.common.io import env_unmodified
@@ -826,33 +827,33 @@ class SpecStrParsingTests(TestCase):
         # }
 
     def test_dist_str(self):
-        m1 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0.tar.bz2".format(context.subdir))
-        m2 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0".format(context.subdir))
-        m3 = MatchSpec.from_dist_str("https://someurl.org/anaconda/{0}::python-3.6.6-0.tar.bz2".format(context.subdir))
-        m4 = MatchSpec.from_dist_str("python-3.6.6-0.tar.bz2")
-        m5 = MatchSpec.from_dist_str("https://someurl.org/anaconda::python-3.6.6-0.tar.bz2")
+        for ext in (CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2):
+            m1 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0{1}".format(context.subdir, ext))
+            m2 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0".format(context.subdir))
+            m3 = MatchSpec.from_dist_str("https://someurl.org/anaconda/{0}::python-3.6.6-0{1}".format(context.subdir, ext))
+            m4 = MatchSpec.from_dist_str("python-3.6.6-0{0}".format(ext))
+            m5 = MatchSpec.from_dist_str("https://someurl.org/anaconda::python-3.6.6-0{0}".format(ext))
 
-        pref = DPkg("anaconda::python-3.6.6-0.tar.bz2")
-        pref.url = "https://someurl.org/anaconda/{}".format(context.subdir)
+            pref = DPkg("anaconda::python-3.6.6-0{0}".format(ext))
+            pref.url = "https://someurl.org/anaconda/{0}".format(context.subdir)
 
-        assert m1.match(pref)
-        assert m2.match(pref)
-        assert m3.match(pref)
-        assert m4.match(pref)
-        pref.url = "https://someurl.org/anaconda"
+            assert m1.match(pref)
+            assert m2.match(pref)
+            assert m3.match(pref)
+            assert m4.match(pref)
+            pref.url = "https://someurl.org/anaconda"
 
-        pref_dict = {
+            pref_dict = {
                 'name': 'python',
                 'version': '3.6.6',
                 'build': '0',
                 'build_number': 0,
                 'channel': Channel("anaconda"),
-                'fn': 'python-3.6.6-0.tar.bz2',
+                'fn': 'python-3.6.6-0{0}'.format(ext),
                 'md5': '012345789',
                 'url': 'https://someurl.org/anaconda'
-                }
-
-        assert m5.match(pref_dict)
+            }
+            assert m5.match(pref_dict)
 
 
 class MatchSpecMergeTests(TestCase):
