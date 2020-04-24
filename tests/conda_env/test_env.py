@@ -78,12 +78,14 @@ class from_file_TestCase(unittest.TestCase):
         assert 'foo' in e.dependencies['pip']
         assert 'baz' in e.dependencies['pip']
 
+    @pytest.mark.integration
     def test_http(self):
         e = get_simple_environment()
         f = env.from_file("https://raw.githubusercontent.com/conda/conda/master/tests/conda_env/support/simple.yml")
         self.assertEqual(e.dependencies, f.dependencies)
         assert e.dependencies == f.dependencies
 
+    @pytest.mark.integration
     def test_http_raises(self):
         with self.assertRaises(HTTPError):
             env.from_file("https://raw.githubusercontent.com/conda/conda/master/tests/conda_env/support/does-not-exist.yml")

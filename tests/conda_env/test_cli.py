@@ -244,6 +244,7 @@ class IntegrationTests(unittest.TestCase):
             len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]), 0
         )
 
+    @pytest.mark.integration
     def test_conda_env_create_http(self):
         '''
         Test `conda env create --file=https://some-website.com/environment.yml`
