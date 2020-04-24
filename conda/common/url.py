@@ -4,7 +4,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
-from functools import lru_cache
 from getpass import getpass
 from os.path import abspath, expanduser
 import re
@@ -290,7 +289,7 @@ def split_platform(known_subdirs, url):
     return cleaned_url.rstrip('/'), platform
 
 
-@lru_cache()
+@memoize
 def _split_platform_re(known_subdirs):
     _platform_match_regex = r'/(%s)(?:/|$)' % r'|'.join(r'%s' % d for d in known_subdirs)
     return re.compile(_platform_match_regex, re.IGNORECASE)
