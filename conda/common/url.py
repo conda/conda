@@ -279,8 +279,8 @@ def split_platform(url, known_subdirs):
 
     Examples:
         >>> from conda.base.constants import PLATFORM_DIRECTORIES
-        >>> split_platform("https://1.2.3.4/t/tk-123/osx-64/path", PLATFORM_DIRECTORIES)
-        (u'https://1.2.3.4/t/tk-123/path', u'osx-64')
+        >>> split_platform("https://1.2.3.4/t/tk-123/linux-ppc64le/path", PLATFORM_DIRECTORIES)
+        (u'https://1.2.3.4/t/tk-123/path', u'linux-ppc64le')
 
     """
     _platform_match_regex = r'/(%s)/?' % r'|'.join(r'%s' % d for d in known_subdirs)

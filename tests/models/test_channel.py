@@ -1083,3 +1083,11 @@ def test_multichannel_priority():
                 ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 3)),
                 ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 3)),
             ])
+
+
+def test_ppc64le_vs_ppc64():
+    ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
+    assert ppc64le_channel.url() == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+
+    ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
+    assert ppc64_channel.url() == "https://conda.anaconda.org/dummy-channel/linux-ppc64"

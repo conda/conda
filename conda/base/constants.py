@@ -67,8 +67,8 @@ PLATFORM_DIRECTORIES = (
     "linux-aarch64",
     "linux-armv6l",
     "linux-armv7l",
-    "linux-ppc64",
-    "linux-ppc64le",
+    "linux-ppc64le",  # ppc64le needs to come before ppc64 because
+    "linux-ppc64",    # conda.common.url.split_platform() will find the first match for the subdir
     "osx-64",
     "win-32",
     "win-64",
