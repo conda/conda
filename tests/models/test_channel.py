@@ -1086,8 +1086,23 @@ def test_multichannel_priority():
 
 
 def test_ppc64le_vs_ppc64():
-    ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
-    assert ppc64le_channel.url() == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+    Channel._cache_.clear()
 
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
-    assert ppc64_channel.url() == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+    assert ppc64_channel.subdir == "linux-ppc64"
+    assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+
+    ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
+    assert ppc64le_channel.subdir == "linux-ppc64le"
+    assert ppc64le_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+    print(Channel._cache_)
+    Channel._cache_.clear()
+
+    ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
+    assert ppc64le_channel.subdir == "linux-ppc64le"
+    assert ppc64le_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+
+    ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
+    assert ppc64_channel.subdir == "linux-ppc64"
+    assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+

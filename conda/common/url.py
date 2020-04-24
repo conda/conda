@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
+from functools import lru_cache
 from getpass import getpass
 from os.path import abspath, expanduser
 import re
@@ -274,20 +275,25 @@ def split_anaconda_token(url):
     return cleaned_url.rstrip('/'), token
 
 
-def split_platform(url, known_subdirs):
+def split_platform(known_subdirs, url):
     """
 
     Examples:
         >>> from conda.base.constants import PLATFORM_DIRECTORIES
-        >>> split_platform("https://1.2.3.4/t/tk-123/linux-ppc64le/path", PLATFORM_DIRECTORIES)
+        >>> split_platform(PLATFORM_DIRECTORIES, "https://1.2.3.4/t/tk-123/linux-ppc64le/path")
         (u'https://1.2.3.4/t/tk-123/path', u'linux-ppc64le')
 
     """
-    _platform_match_regex = r'/(%s)/?' % r'|'.join(r'%s' % d for d in known_subdirs)
-    _platform_match = re.search(_platform_match_regex, url, re.IGNORECASE)
+    _platform_match = _split_platform_re(known_subdirs).search(url)
     platform = _platform_match.groups()[0] if _platform_match else None
     cleaned_url = url.replace('/' + platform, '', 1) if platform is not None else url
     return cleaned_url.rstrip('/'), platform
+
+
+@lru_cache()
+def _split_platform_re(known_subdirs):
+    _platform_match_regex = r'/(%s)(?:/|$)' % r'|'.join(r'%s' % d for d in known_subdirs)
+    return re.compile(_platform_match_regex, re.IGNORECASE)
 
 
 def has_platform(url, known_subdirs):
@@ -315,10 +321,10 @@ def split_scheme_auth_token(url):
     return remainder_url, url_parts.scheme, url_parts.auth, token
 
 
-def split_conda_url_easy_parts(url, known_subdirs):
+def split_conda_url_easy_parts(known_subdirs, url):
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
-    cleaned_url, platform = split_platform(cleaned_url, known_subdirs)
+    cleaned_url, platform = split_platform(known_subdirs, cleaned_url)
     _, ext = strip_pkg_extension(cleaned_url)
     cleaned_url, package_filename = cleaned_url.rsplit('/', 1) if ext else (cleaned_url, None)
 
