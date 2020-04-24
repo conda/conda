@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
+from conda.gateways.connection import HTTPError
 from conda.models.match_spec import MatchSpec
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_load
@@ -84,7 +85,7 @@ class from_file_TestCase(unittest.TestCase):
         assert e.dependencies == f.dependencies
 
     def test_http_raises(self):
-        with self.assertRaises(exceptions.EnvironmentFileNotFound):
+        with self.assertRaises(HTTPError):
             env.from_file("https://raw.githubusercontent.com/conda/conda/master/tests/conda_env/support/does-not-exist.yml")
 
 
