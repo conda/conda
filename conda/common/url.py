@@ -279,8 +279,8 @@ def split_platform(known_subdirs, url):
     """
 
     Examples:
-        >>> from conda.base.constants import PLATFORM_DIRECTORIES
-        >>> split_platform(PLATFORM_DIRECTORIES, "https://1.2.3.4/t/tk-123/linux-ppc64le/path")
+        >>> from conda.base.constants import KNOWN_SUBDIRS
+        >>> split_platform(KNOWN_SUBDIRS, "https://1.2.3.4/t/tk-123/linux-ppc64le/path")
         (u'https://1.2.3.4/t/tk-123/path', u'linux-ppc64le')
 
     """
