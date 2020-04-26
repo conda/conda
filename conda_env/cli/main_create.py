@@ -11,6 +11,7 @@ import textwrap
 from conda._vendor.auxlib.path import expand
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, add_parser_networking
+from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 from .common import get_prefix, print_result
@@ -76,8 +77,13 @@ def execute(args, parser):
     name = args.remote_definition or args.name
 
     try:
-        spec = specs.detect(name=name, filename=expand(args.file),
-                            directory=os.getcwd())
+        url_scheme = args.file.split("://", 1)[0]
+        if url_scheme in CONDA_SESSION_SCHEMES:
+            filename = args.file
+        else:
+            filename = expand(args.file)
+
+        spec = specs.detect(name=name, filename=filename, directory=os.getcwd())
         env = spec.environment
 
         # FIXME conda code currently requires args to have a name or prefix

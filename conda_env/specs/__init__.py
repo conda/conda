@@ -4,6 +4,7 @@
 
 import os
 
+from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from .binstar import BinstarSpec
 from .notebook import NotebookSpec
 from .requirements import RequirementsSpec
@@ -13,7 +14,7 @@ from ..exceptions import (EnvironmentFileExtensionNotValid, EnvironmentFileNotFo
 
 
 def detect(**kwargs):
-    filename = kwargs.get('filename')
+    filename = kwargs.get('filename', '')
     remote_definition = kwargs.get('name')
 
     # Check extensions
@@ -21,10 +22,12 @@ def detect(**kwargs):
     fname, ext = os.path.splitext(filename)
 
     # First check if file exists and test the known valid extension for specs
-    file_exists = filename and os.path.isfile(filename)
+    file_exists = (
+        os.path.isfile(filename) or filename.split("://", 1)[0] in CONDA_SESSION_SCHEMES
+    )
     if file_exists:
         if ext == '' or ext not in all_valid_exts:
-            raise EnvironmentFileExtensionNotValid(filename)
+            raise EnvironmentFileExtensionNotValid(filename or None)
         elif ext in YamlFileSpec.extensions:
             specs = [YamlFileSpec]
         elif ext in RequirementsSpec.extensions:
@@ -41,7 +44,7 @@ def detect(**kwargs):
             return spec
 
     if not file_exists and remote_definition is None:
-        raise EnvironmentFileNotFound(filename=filename)
+        raise EnvironmentFileNotFound(filename=filename or None)
     else:
         raise SpecNotFound(build_message(spec_instances))
 

@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
+from conda.exceptions import CondaHTTPError
 from conda.models.match_spec import MatchSpec
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_load
@@ -76,6 +77,18 @@ class from_file_TestCase(unittest.TestCase):
         assert 'pip' in e.dependencies
         assert 'foo' in e.dependencies['pip']
         assert 'baz' in e.dependencies['pip']
+
+    @pytest.mark.integration
+    def test_http(self):
+        e = get_simple_environment()
+        f = env.from_file("https://raw.githubusercontent.com/conda/conda/master/tests/conda_env/support/simple.yml")
+        self.assertEqual(e.dependencies, f.dependencies)
+        assert e.dependencies == f.dependencies
+
+    @pytest.mark.integration
+    def test_http_raises(self):
+        with self.assertRaises(CondaHTTPError):
+            env.from_file("https://raw.githubusercontent.com/conda/conda/master/tests/conda_env/support/does-not-exist.yml")
 
 
 class EnvironmentTestCase(unittest.TestCase):
