@@ -13,7 +13,8 @@ from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.serialize import yaml_load_standard
 from conda.core.prefix_data import PrefixData
-from conda.gateways.connection.session import CondaSession
+from conda.gateways.connection.download import download_text
+from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
@@ -145,10 +146,9 @@ def from_yaml(yamlstr, **kwargs):
 
 
 def from_file(filename):
-    if any(filename.startswith(prefix) for prefix in ("https://", "http://")):
-        response = CondaSession().get(filename)
-        response.raise_for_status()
-        yamlstr = response.text
+    url_scheme = filename.split("://", 1)[0]
+    if url_scheme in CONDA_SESSION_SCHEMES:
+        yamlstr = download_text(filename)
     elif not os.path.exists(filename):
         raise exceptions.EnvironmentFileNotFound(filename)
     else:

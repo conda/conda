@@ -6,6 +6,7 @@ from __future__ import absolute_import
 import os
 import os.path as op
 from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from conda_env.pip_util import pip_subprocess, get_pip_installed_packages
 from logging import getLogger
 
@@ -27,7 +28,8 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
       See: https://pip.pypa.io/en/stable/user_guide/#requirements-files
            https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
     """
-    if any(args.file.startswith(prefix) for prefix in ("http://", "https://")):
+    url_scheme = args.file.split("://", 1)[0]
+    if url_scheme in CONDA_SESSION_SCHEMES:
         pip_workdir = None
     else:
         try:

@@ -186,6 +186,53 @@ def download(
                              caused_by=e)
 
 
+def download_text(url):
+    if sys.platform == 'win32':
+        preload_openssl()
+    if not context.ssl_verify:
+        disable_ssl_verify_warning()
+    try:
+        timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+        session = CondaSession()
+        response = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
+        if log.isEnabledFor(DEBUG):
+            log.debug(stringify(response, content_max_len=256))
+        response.raise_for_status()
+    except RequestsProxyError:
+        raise ProxyError()  # see #3962
+    except InvalidSchema as e:
+        if 'SOCKS' in text_type(e):
+            message = dals("""
+                Requests has identified that your current working environment is configured
+                to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your
+                proxy configuration, run `conda install pysocks`, and then you can re-enable
+                your proxy configuration.
+                """)
+            raise CondaDependencyError(message)
+        else:
+            raise
+    except (ConnectionError, HTTPError, SSLError) as e:
+        status_code = getattr(e.response, 'status_code', None)
+        if status_code == 404:
+            help_message = dals("""
+            An HTTP error occurred when trying to retrieve this URL.
+            The URL does not exist.
+            """)
+        else:
+            help_message = dals("""
+            An HTTP error occurred when trying to retrieve this URL.
+            HTTP errors are often intermittent, and a simple retry will get you on your way.
+            """)
+        raise CondaHTTPError(help_message,
+                             url,
+                             status_code,
+                             getattr(e.response, 'reason', None),
+                             getattr(e.response, 'elapsed', None),
+                             e.response,
+                             caused_by=e)
+    return response.text
+
+
 class TmpDownload(object):
     """
     Context manager to handle downloads to a tempfile
