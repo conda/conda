@@ -2033,7 +2033,9 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, "urllib3>=1.21")
                 assert not stderr
                 json_obj = json_loads(stdout)
-                unlink_dists = json_obj["actions"]["UNLINK"]
+                unlink_dists = [
+                    dist_obj for dist_obj in json_obj["actions"]["UNLINK"] if dist_obj.get("platform") == "pypi"
+                ]  # filter out conda package upgrades like python and libffi
                 assert len(unlink_dists) == 1
                 assert unlink_dists[0]["name"] == "urllib3"
                 assert unlink_dists[0]["channel"] == "pypi"
