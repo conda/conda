@@ -1029,18 +1029,23 @@ def configure_parser_run(sub_parsers):
         dest="verbosity",
         default=NULL,
     )
+    p.add_argument(
+        "--cwd",
+        help="Current working directory for command to run in.  Defaults to cwd.",
+        action="store",
+    )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help=SUPPRESS,
+        # help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains "
+        #      "the root of conda development sources.  This is mainly for use "
+        #      "during tests where we test new conda source against old Python "
+        #      "versions.",
+        dest="dev",
+        default=NULL,
+    )
     if on_win:
-        p.add_argument(
-            "--dev",
-            action=NullCountAction,
-            help=SUPPRESS,
-            # help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains "
-            #      "the root of conda development sources.  This is mainly for use "
-            #      "during tests where we test new conda source against old Python "
-            #      "versions.",
-            dest="dev",
-            default=NULL,
-        )
         p.add_argument(
             "--debug-wrapper-scripts",
             action=NullCountAction,
@@ -1048,11 +1053,6 @@ def configure_parser_run(sub_parsers):
                  "will echo to stderr a lot of debugging information.",
             dest="debug_wrapper_scripts",
             default=NULL,
-        )
-        p.add_argument(
-            "--cwd",
-            help="Current working directory for command to run in.  Defaults to cwd.",
-            default=os.getcwd()
         )
     p.add_argument(
         'executable_call',

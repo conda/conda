@@ -1428,7 +1428,7 @@ class IntegrationTests(TestCase):
     def test_compile_pyc_new_python(self):
         return self._test_compile_pyc(use_sys_python=False)
 
-    def test_conda_run(self):
+    def test_conda_run_1(self):
         with make_temp_env(use_restricted_unicode=False, name=str(uuid4())[:7]) as prefix:
             output, error, rc = run_command(Commands.RUN, prefix, 'echo', 'hello')
             assert output == 'hello' + os.linesep

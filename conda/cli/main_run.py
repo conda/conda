@@ -21,7 +21,7 @@ def execute_win(args, parser):
     log = getLogger(__name__)
 
     call = args.executable_call
-    cwd = args.cwd
+    cwd = args.cwd or os.getcwd()
     prefix = context.target_prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
     is_valid_prefix(prefix)
 
@@ -51,13 +51,16 @@ def execute(args, parser):
         return execute_win(args, parser)
 
     from .conda_argparse import _exec
+
+    if args.cwd:
+        os.chdir(args.cwd)
+
     env_vars = get_activated_env_vars()
 
     if context.verbosity >= 2:
         print(json.dumps(
             env_vars, sort_keys=True, indent=2, separators=(',', ': '), ensure_ascii=False
         ), file=sys.stderr)
-
     _exec(args.executable_call, env_vars)
 
 
