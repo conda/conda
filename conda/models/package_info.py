@@ -6,38 +6,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from .channel import Channel
-from .enums import NoarchType
-from .records import PackageRecord, PathsData
-from .._vendor.auxlib.entity import (ComposableField, Entity, EnumField, ImmutableEntity,
-                                     IntegerField, ListField, StringField)
-from ..common.compat import string_types
+from .records import LinkMetadata, PackageRecord, PathsData
+from .._vendor.auxlib.entity import ComposableField, ImmutableEntity, StringField
 
 log = getLogger(__name__)
 
 
-class NoarchField(EnumField):
-    def box(self, instance, instance_type, val):
-        return super(NoarchField, self).box(instance, instance_type, NoarchType.coerce(val))
-
-
-class Noarch(Entity):
-    type = NoarchField(NoarchType)
-    entry_points = ListField(string_types, required=False, nullable=True, default=None,
-                             default_in_dump=False)
-
-
-class PreferredEnv(Entity):
-    name = StringField()
-    executable_paths = ListField(string_types, required=False, nullable=True)
-    softlink_paths = ListField(string_types, required=False, nullable=True)
-
-
-class PackageMetadata(Entity):
-    # from info/package_metadata.json
-    package_metadata_version = IntegerField()
-    noarch = ComposableField(Noarch, required=False, nullable=True)
-    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True, default=None,
-                                    default_in_dump=False)
 
 
 class PackageInfo(ImmutableEntity):
@@ -51,7 +25,8 @@ class PackageInfo(ImmutableEntity):
 
     # attributes within the package tarball
     icondata = StringField(required=False, nullable=True)
-    package_metadata = ComposableField(PackageMetadata, required=False, nullable=True)
+    link_metadata = ComposableField(LinkMetadata, required=False, nullable=True,
+                                    default=None, default_in_dump=False)
     paths_data = ComposableField(PathsData)
 
     def dist_str(self):
@@ -72,3 +47,8 @@ class PackageInfo(ImmutableEntity):
     @property
     def build_number(self):
         return self.repodata_record.build_number
+
+    @property
+    def noarch_type(self):
+        return self.link_metadata and self.link_metadata.noarch or None
+

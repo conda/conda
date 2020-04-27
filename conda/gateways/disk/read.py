@@ -29,7 +29,7 @@ from ...common.pkg_formats.python import (
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PackageType, PathType
-from ...models.package_info import PackageInfo, PackageMetadata
+from ...models.package_info import PackageInfo, LinkMetadata
 from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
@@ -96,7 +96,7 @@ def find_first_existing(*globs):
 def read_package_info(record, package_cache_record):
     epd = package_cache_record.extracted_package_dir
     icondata = read_icondata(epd)
-    package_metadata = read_package_metadata(epd)
+    link_metadata = read_link_metadata(epd)
     paths_data = read_paths_json(epd)
 
     return PackageInfo(
@@ -107,7 +107,7 @@ def read_package_info(record, package_cache_record):
         url=package_cache_record.url,
 
         icondata=icondata,
-        package_metadata=package_metadata,
+        linkmetadata=link_metadata,
         paths_data=paths_data,
     )
 
@@ -141,10 +141,10 @@ def read_icondata(extracted_package_directory):
         return None
 
 
-def read_package_metadata(extracted_package_directory):
+def read_link_metadata(extracted_package_directory):
     def _paths():
         yield join(extracted_package_directory, 'info', 'link.json')
-        yield join(extracted_package_directory, 'info', 'package_metadata.json')
+        yield join(extracted_package_directory, 'info', 'package_metadata.json')  # legacy
 
     path = first(_paths(), key=isfile)
     if not path:
@@ -158,8 +158,8 @@ def read_package_metadata(extracted_package_directory):
                 only supports link.json schema version 1.)  Please update conda to install
                 this package.
                 """))
-        package_metadata = PackageMetadata(**data)
-        return package_metadata
+        link_metadata = LinkMetadata(**data)
+        return link_metadata
 
 
 def read_paths_json(extracted_package_directory):

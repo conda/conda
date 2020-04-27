@@ -85,16 +85,16 @@ class PathActionsTests(TestCase):
 
     def test_CompileMultiPycAction_generic(self):
         package_info = AttrDict(
-            package_metadata=AttrDict(
+            link_metadata=AttrDict(
                 noarch=AttrDict(
                     type=NoarchType.generic))
         )
-        noarch = package_info.package_metadata and package_info.package_metadata.noarch
+        noarch = package_info.link_metadata and package_info.link_metadata.noarch
         assert noarch.type == NoarchType.generic
         axns = CompileMultiPycAction.create_actions({}, package_info, self.prefix, None, ())
         assert axns == ()
 
-        package_info = AttrDict(package_metadata=None)
+        package_info = AttrDict(link_metadata=None)
         axns = CompileMultiPycAction.create_actions({}, package_info, self.prefix, None, ())
         assert axns == ()
 
@@ -108,7 +108,7 @@ class PathActionsTests(TestCase):
             'target_python_version': target_python_version,
             'target_site_packages_short_path': sp_dir,
         }
-        package_info = AttrDict(package_metadata=AttrDict(noarch=AttrDict(type=NoarchType.python)))
+        package_info = AttrDict(link_metadata=AttrDict(noarch=AttrDict(type=NoarchType.python)))
 
         file_link_actions = [
             AttrDict(
@@ -185,7 +185,7 @@ class PathActionsTests(TestCase):
         assert not isfile(target_full_path1)
 
     def test_CreatePythonEntryPointAction_generic(self):
-        package_info = AttrDict(package_metadata=None)
+        package_info = AttrDict(link_metadata=None)
         axns = CreatePythonEntryPointAction.create_actions({}, package_info, self.prefix, None)
         assert axns == ()
 
@@ -194,7 +194,7 @@ class PathActionsTests(TestCase):
         transaction_context = {
             'target_python_version': target_python_version,
         }
-        package_info = AttrDict(package_metadata=AttrDict(noarch=AttrDict(
+        package_info = AttrDict(link_metadata=AttrDict(noarch=AttrDict(
             type=NoarchType.python,
             entry_points=(
                 'command1=some.module:main',
@@ -374,7 +374,7 @@ class PathActionsTests(TestCase):
     #     package_info = AttrDict(
     #         index_json_record=AttrDict(name="yellow_package"),
     #         repodata_record=AttrDict(preferred_env="yellow"),
-    #         package_metadata=AttrDict(
+    #         link_metadata=AttrDict(
     #             preferred_env=AttrDict(
     #                 softlink_paths=[
     #                     test_file,
@@ -419,7 +419,7 @@ class PathActionsTests(TestCase):
     #     package_info = AttrDict(
     #         index_json_record=AttrDict(name="green_package"),
     #         repodata_record=AttrDict(preferred_env="green"),
-    #         package_metadata=AttrDict(
+    #         link_metadata=AttrDict(
     #             preferred_env=AttrDict(
     #                 softlink_paths=[
     #                     test_file_1,
@@ -490,7 +490,7 @@ class PathActionsTests(TestCase):
     #     package_info = AttrDict(
     #         index_json_record=AttrDict(name="green_package"),
     #         repodata_record=AttrDict(preferred_env="green"),
-    #         package_metadata=AttrDict(
+    #         link_metadata=AttrDict(
     #             preferred_env=AttrDict(
     #                 softlink_paths=[
     #                     test_file_1,

@@ -208,10 +208,13 @@ class LinkPathAction(CreateInPrefixPathAction):
 
         def make_file_link_action(source_path_data):
             # TODO: this inner function is still kind of a mess
-            noarch = package_info.repodata_record.noarch
-            if noarch is None and package_info.package_metadata is not None:
+            noarch = package_info.link_metadata and package_info.link_metadata.noarch
+            if noarch is None:
+                # look in repodata_record instead of link.json as legacy fallback
+                noarch = package_info.repodata_record.noarch
+            if package_info.link_metadata is not None:
                 # Look in package metadata in case it was omitted from repodata (see issue #8311)
-                noarch = package_info.package_metadata.noarch
+                noarch = package_info.link_metadata.noarch
                 if noarch is not None:
                     noarch = noarch.type
             if noarch == NoarchType.python:
@@ -505,7 +508,7 @@ class CompileMultiPycAction(MultiPathAction):
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
                        file_link_actions):
-        noarch = package_info.package_metadata and package_info.package_metadata.noarch
+        noarch = package_info.link_metadata and package_info.link_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
             noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
             py_ver = transaction_context['target_python_version']
@@ -598,7 +601,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        noarch = package_info.package_metadata and package_info.package_metadata.noarch
+        noarch = package_info.link_metadata and package_info.link_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
@@ -700,9 +703,9 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 #     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):  # NOQA
 #         preferred_env = package_info.repodata_record.preferred_env
 #         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
-#             exe_paths = (package_info.package_metadata
-#                          and package_info.package_metadata.preferred_env
-#                          and package_info.package_metadata.preferred_env.executable_paths
+#             exe_paths = (package_info.link_metadata
+#                          and package_info.link_metadata.preferred_env
+#                          and package_info.link_metadata.preferred_env.executable_paths
 #                          or ())
 #
 #             # target_prefix for the instantiated path action is the root prefix, not the same
@@ -760,9 +763,9 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 #     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):  # NOQA
 #         preferred_env = package_info.repodata_record.preferred_env
 #         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
-#             softlink_paths = (package_info.package_metadata
-#                               and package_info.package_metadata.preferred_env
-#                               and package_info.package_metadata.preferred_env.softlink_paths
+#             softlink_paths = (package_info.link_metadata
+#                               and package_info.link_metadata.preferred_env
+#                               and package_info.link_metadata.preferred_env.softlink_paths
 #                               or ())
 #
 #             # target_prefix for the instantiated path action is the root prefix, not the same
@@ -887,7 +890,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         self.prefix_record = PrefixRecord.from_objects(
             self.package_info.repodata_record,
             # self.package_info.index_json_record,
-            self.package_info.package_metadata,
+            self.package_info.link_metadata,
             requested_spec=text_type(self.requested_spec),
             paths_data=paths_data,
             files=files,
@@ -895,6 +898,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             url=self.package_info.url,
             extracted_package_dir=extracted_package_dir,
             package_tarball_full_path=package_tarball_full_path,
+            link_metadata=self.package_info.link_metadata,
         )
 
         log.trace("creating linked package record %s", self.target_full_path)

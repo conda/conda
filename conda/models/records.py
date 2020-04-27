@@ -426,6 +426,26 @@ class PackageCacheRecord(PackageRecord):
             return md5sum
 
 
+class Noarch(Entity):
+    type = NoarchField(NoarchType)
+    entry_points = ListField(string_types, required=False, nullable=True, default=None,
+                             default_in_dump=False)
+
+
+class PreferredEnv(Entity):
+    name = StringField()
+    executable_paths = ListField(string_types, required=False, nullable=True)
+    softlink_paths = ListField(string_types, required=False, nullable=True)
+
+
+class LinkMetadata(Entity):
+    # from info/link.json
+    package_metadata_version = IntegerField()
+    noarch = ComposableField(Noarch, required=False, nullable=True)
+    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True, default=None,
+                                    default_in_dump=False)
+
+
 class PrefixRecord(PackageRecord):
 
     package_tarball_full_path = StringField(required=False)
@@ -444,6 +464,9 @@ class PrefixRecord(PackageRecord):
 
     # # a new concept introduced in 4.4 for private env packages
     # leased_paths = ListField(LeasedPathEntry, required=False)
+
+    link_metadata = ComposableField(LinkMetadata, required=False, nullable=True,
+                                    default=None, default_in_dump=False)
 
     # @classmethod
     # def load(cls, conda_meta_json_path):

@@ -3,8 +3,8 @@ from unittest import TestCase
 from conda.base.context import context
 from conda.models.channel import Channel
 from conda.models.enums import FileMode, PathType
-from conda.models.records import PackageRecord, PathData, PathsData
-from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
+from conda.models.records import Noarch, PackageRecord, PathData, PathsData
+from conda.models.package_info import PackageInfo, LinkMetadata
 
 
 class DefaultPackageInfo(TestCase):
@@ -13,7 +13,7 @@ class DefaultPackageInfo(TestCase):
                                           channel='defaults', subdir=context.subdir, fn='doesnt-matter',
                                           md5='0123456789')
         icondata = "icondata"
-        package_metadata = PackageMetadata(
+        link_metadata = LinkMetadata(
             package_metadata_version=1,
             noarch=Noarch(type="python", entry_points=["test:foo"]),
         )
@@ -34,10 +34,10 @@ class DefaultPackageInfo(TestCase):
 
             index_json_record=index_json_record,
             icondata=icondata,
-            package_metadata=package_metadata,
+            link_metadata=link_metadata,
             paths_data=paths_data,
         )
 
         self.assertIsInstance(package_info.paths_data.paths[0], PathData)
-        self.assertIsInstance(package_info.package_metadata.noarch, Noarch)
+        self.assertIsInstance(package_info.link_metadata.noarch, Noarch)
         assert package_info.paths_data.paths[0].path == "test/path/1"
