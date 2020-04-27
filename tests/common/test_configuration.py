@@ -5,10 +5,10 @@ from conda.common.io import env_var, env_vars
 
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
-from conda.common.configuration import (Configuration, ConfigurationObject, ObjectParameter,
-                                        ParameterFlag, ParameterLoader, PrimitiveParameter,
-                                        MapParameter, SequenceParameter, YamlRawParameter,
-                                        load_file_configs, InvalidTypeError, CustomValidationError)
+from conda.common.configuration import (Configuration, MapParameter, ParameterFlag,
+                                        PrimitiveParameter, SequenceParameter, YamlRawParameter,
+                                        load_file_configs, MultiValidationError, InvalidTypeError,
+                                        CustomValidationError)
 from conda.common.serialize import yaml_load
 from conda.common.configuration import ValidationError
 from os import environ, mkdir
@@ -21,12 +21,10 @@ from unittest import TestCase
 test_yaml_raw = {
     'file1': dals("""
         always_yes: no
-
         proxy_servers:
           http: taz
           https: sly
           s3: pepé
-
         channels_altname:
           - bugs
           - daffy
@@ -35,11 +33,9 @@ test_yaml_raw = {
     'file2': dals("""
         always_yes: yes
         changeps1: no
-
         proxy_servers:
           http: marv
           https: sam
-
         channels:
           - porky
           - bugs
@@ -47,12 +43,10 @@ test_yaml_raw = {
     """),
     'file3': dals("""
         always_yes_altname2: yes  #!final
-
         proxy_servers:
           http: foghorn  #!final
           https: elmer
           s3: porky
-
         channels:
           - wile   #!top
           - daffy
@@ -61,11 +55,9 @@ test_yaml_raw = {
     'file4': dals("""
         always_yes: yes  #!final
         changeps1: no  #!final
-
         proxy_servers:  #!final
           http: bugs
           https: daffy
-
         channels:  #!final
           - pepé
           - marv
@@ -138,117 +130,36 @@ test_yaml_raw = {
         env_var_map:
           expanded: $EXPANDED_VAR
           unexpanded: $UNEXPANDED_VAR
-        
+
         env_var_str: $EXPANDED_VAR
         env_var_bool: $BOOL_VAR
         normal_str: $EXPANDED_VAR
-        
+
         env_var_list:
           - $EXPANDED_VAR
           - $UNEXPANDED_VAR
           - regular_var
     """),
-    'nestedFile1': dals("""
-        nested_map:
-            key1:
-                - a1
-                - b1 #!bottom
-                - c1
-            key2:
-                - d1
-                - e1
-                - f1
-        nested_seq:
-            - #!bottom
-                key1: a1
-                key2: b1
-            - #!top 
-                key3: c1
-                key4: d1
-    """),
-    'nestedFile2': dals("""
-        nested_map:
-            key1:
-                - a2
-                - b2
-                - c2
-                - d2 #!top
-            key2: #!final
-                - d2
-                - e2
-                - f2
-        nested_seq:
-            -
-                key1: a2
-                key2: b2
-            - 
-                key3: c2
-                key4: d2   
-    """),
-    'objectFile1': dals("""
-        test_object:
-            int_field: 10
-            str_field: sample
-            map_field:
-                key1: a1
-                key2: b1
-            seq_field:
-                - a1
-                - b1
-                - c1
-    """),
-    'objectFile2': dals("""
-        test_object:
-            int_field: 10
-            str_field: override
-            map_field:
-                key2: b2
-                key3: c2
-            seq_field:
-                - a2
-                - b2
-    """),
+
 }
 
 
-class DummyTestObject(ConfigurationObject):
-
-    def __init__(self):
-        self.int_field = PrimitiveParameter(0, element_type=int)
-        self.str_field = PrimitiveParameter("",element_type=string_types)
-        self.map_field = MapParameter(PrimitiveParameter("", element_type=string_types))
-        self.seq_field = SequenceParameter(PrimitiveParameter("", element_type=string_types))
-
-
 class SampleConfiguration(Configuration):
-    always_yes = ParameterLoader(PrimitiveParameter(False),
-                                 aliases=('always_yes_altname1', 'yes', 'always_yes_altname2'))
-    changeps1 = ParameterLoader(PrimitiveParameter(True))
-    proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=string_types)))
-    channels = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=string_types)),
-                               aliases=('channels_altname',))
+    always_yes = PrimitiveParameter(False, aliases=('always_yes_altname1', 'yes',
+                                                    'always_yes_altname2'))
+    changeps1 = PrimitiveParameter(True)
+    proxy_servers = MapParameter(string_types)
+    channels = SequenceParameter(string_types, aliases=('channels_altname',))
 
-    always_an_int = ParameterLoader(PrimitiveParameter(0))
-    boolean_map = ParameterLoader(MapParameter(PrimitiveParameter(False, element_type=bool)))
-    commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", string_types)))
+    always_an_int = PrimitiveParameter(0)
+    boolean_map = MapParameter(bool)
+    commented_map = MapParameter(string_types)
 
-    env_var_map = ParameterLoader(
-        MapParameter(PrimitiveParameter("", string_types)),
-        expandvars=True)
-    env_var_str = ParameterLoader(PrimitiveParameter(''), expandvars=True)
-    env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool), expandvars=True)
-    normal_str = ParameterLoader(PrimitiveParameter(''), expandvars=False)
-    env_var_list = ParameterLoader(
-        SequenceParameter(PrimitiveParameter('', string_types)),
-        expandvars=True)
-
-    nested_map = ParameterLoader(
-        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=string_types))))
-    nested_seq = ParameterLoader(
-        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=string_types))))
-
-    test_object = ParameterLoader(
-        ObjectParameter(DummyTestObject()))
+    env_var_map = MapParameter(string_types, expandvars=True)
+    env_var_str = PrimitiveParameter('', expandvars=True)
+    env_var_bool = PrimitiveParameter(False, element_type=bool, expandvars=True)
+    normal_str = PrimitiveParameter('', expandvars=False)
+    env_var_list = SequenceParameter(string_types, expandvars=True)
 
 
 def load_from_string_data(*seq):
@@ -286,6 +197,7 @@ class ConfigurationTests(TestCase):
     def test_env_var_config(self):
         def make_key(appname, key):
             return "{0}_{1}".format(appname.upper(), key.upper())
+
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'always_yes')] = 'yes'
@@ -303,6 +215,7 @@ class ConfigurationTests(TestCase):
     def test_env_var_config_alias(self):
         def make_key(appname, key):
             return "{0}_{1}".format(appname.upper(), key.upper())
+
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'yes')] = 'yes'
@@ -320,6 +233,7 @@ class ConfigurationTests(TestCase):
     def test_env_var_config_split_sequence(self):
         def make_key(appname, key):
             return "{0}_{1}".format(appname.upper(), key.upper())
+
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'channels')] = 'channel1,channel2'
@@ -335,6 +249,7 @@ class ConfigurationTests(TestCase):
     def test_env_var_config_no_split_sequence(self):
         def make_key(appname, key):
             return "{0}_{1}".format(appname.upper(), key.upper())
+
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'channels')] = 'channel1'
@@ -350,6 +265,7 @@ class ConfigurationTests(TestCase):
     def test_env_var_config_empty_sequence(self):
         def make_key(appname, key):
             return "{0}_{1}".format(appname.upper(), key.upper())
+
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'channels')] = ''
@@ -382,9 +298,9 @@ class ConfigurationTests(TestCase):
             search_path = [condarc, not_a_file, condarcd]
             raw_data = load_file_configs(search_path)
             assert not_a_file not in raw_data
-            assert raw_data[condarc]['channels'].value(None)[0].value(None) == "wile"
+            assert raw_data[condarc]['channels'].value(None)[0] == "wile"
             assert raw_data[f1]['always_yes'].value(None) == "no"
-            assert raw_data[f2]['proxy_servers'].value(None)['http'].value(None) == "marv"
+            assert raw_data[f2]['proxy_servers'].value(None)['http'] == "marv"
 
             config = SampleConfiguration(search_path)
 
@@ -573,29 +489,3 @@ class ConfigurationTests(TestCase):
             assert config.env_var_bool is True
             assert config.normal_str == '$EXPANDED_VAR'
             assert config.env_var_list == ('itsexpanded', '$UNEXPANDED_VAR', 'regular_var')
-
-    def test_nested(self):
-        config = SampleConfiguration()._set_raw_data(
-            load_from_string_data('nestedFile1', 'nestedFile2'))
-        assert config.nested_seq == (
-            {'key3': 'c1', 'key4': 'd1'}, # top item from nestedFile1
-            {'key1': 'a2', 'key2': 'b2'},
-            {'key3': 'c2', 'key4': 'd2'},
-            {'key1': 'a1', 'key2': 'b1'}) # bottom item from nestedFile2
-        assert config.nested_map == {
-            'key1': ('d2', 'a2', 'b2', 'c2', 'a1', 'c1', 'b1'),
-            'key2': ('d2', 'e2', 'f2')
-        }
-
-    def test_object(self):
-        config = SampleConfiguration()._set_raw_data(
-            load_from_string_data("objectFile1", "objectFile2"))
-        test_object = config.test_object
-        assert test_object.int_field == 10
-        assert test_object.str_field == "override"
-        assert test_object.map_field == {
-            "key1": "a1",
-            "key2": "b2",
-            "key3": "c2"
-        }
-        assert test_object.seq_field == ("a2", "b2", "a1", "b1", "c1")
