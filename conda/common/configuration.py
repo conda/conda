@@ -22,12 +22,15 @@ try:
 except ImportError:
     from collections import Mapping
 import copy
-from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
 from os.path import basename, join, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir
 
 from enum import Enum, EnumMeta
 
@@ -440,8 +443,10 @@ def load_file_configs(search_path):
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
     def _dir_yaml_loader(fullpath):
-        for filepath in sorted(concatv(glob(join(fullpath, "*.yml")),
-                                       glob(join(fullpath, "*.yaml")))):
+        for filepath in sorted(
+            p for p in (entry.path for entry in scandir(fullpath))
+            if p[-4:] == ".yml" or p[-5:] == ".yaml"
+        ):
             yield filepath, YamlRawParameter.make_raw_parameters_from_file(filepath)
 
     # map a stat result to a file loader or a directory loader

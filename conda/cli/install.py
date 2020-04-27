@@ -6,6 +6,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 import os
 from os.path import abspath, basename, exists, isdir, isfile, join
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir
 
 from . import common
 from .common import check_non_admin
@@ -42,7 +46,7 @@ def check_prefix(prefix, json=False):
     if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
-        if isdir(prefix) and 'conda-meta' not in os.listdir(prefix):
+        if isdir(prefix) and 'conda-meta' not in tuple(entry.name for entry in scandir(prefix)):
             return None
         error = "prefix already exists: %s" % prefix
 

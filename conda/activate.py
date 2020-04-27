@@ -6,27 +6,27 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 from errno import ENOENT
-from glob import glob
 from itertools import chain
-from logging import getLogger
+import json
 import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, exists
 import re
 import sys
 from textwrap import dedent
-import json
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CondaError
 from ._vendor.toolz import concatv, drop
 from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
-from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
-
-log = getLogger(__name__)
 
 
 class _Activator(object):
@@ -619,7 +619,10 @@ class _Activator(object):
                 while last_idx is None and prefix_dirs_idx > -1:
                     last_idx = index_of_path(path_list, prefix_dirs[prefix_dirs_idx])
                     if last_idx is None:
-                        log.info("Did not find path entry {}".format(prefix_dirs[prefix_dirs_idx]))
+                        print(
+                            "Did not find path entry {0}".format(prefix_dirs[prefix_dirs_idx]),
+                            file=sys.stderr
+                        )
                     prefix_dirs_idx = prefix_dirs_idx - 1
                 # this compensates for an extra Library/bin dir entry from the interpreter on
                 #     windows.  If that entry isn't being added, it should have no effect.
@@ -696,14 +699,27 @@ class _Activator(object):
             return ""
 
     def _get_activate_scripts(self, prefix):
-        return self.path_conversion(sorted(glob(join(
-            prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension
-        ))))
+        _script_extension = self.script_extension
+        se_len = -len(_script_extension)
+        try:
+            paths = (entry.path for entry in scandir(join(prefix, 'etc', 'conda', 'activate.d')))
+        except EnvironmentError:
+            return ()
+        return self.path_conversion(sorted(
+            p for p in paths if p[se_len:] == _script_extension
+        ))
 
     def _get_deactivate_scripts(self, prefix):
-        return self.path_conversion(sorted(glob(join(
-            prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
-        )), reverse=True))
+        _script_extension = self.script_extension
+        se_len = -len(_script_extension)
+        try:
+            paths = (entry.path for entry in scandir(join(prefix, 'etc', 'conda', 'deactivate.d')))
+        except EnvironmentError:
+            return ()
+        return self.path_conversion(sorted(
+            (p for p in paths if p[se_len:] == _script_extension),
+            reverse=True
+        ))
 
     def _get_environment_env_vars(self, prefix):
         env_vars_file = join(prefix, PREFIX_STATE_FILE)
@@ -712,8 +728,8 @@ class _Activator(object):
 
         # First get env vars from packages
         if exists(pkg_env_var_dir):
-            for pkg_env_var_file in sorted(os.listdir(pkg_env_var_dir)):
-                with open(join(pkg_env_var_dir, pkg_env_var_file), 'r') as f:
+            for pkg_env_var_path in sorted(entry.path for entry in scandir(pkg_env_var_dir)):
+                with open(pkg_env_var_path, 'r') as f:
                     env_vars.update(json.loads(f.read(), object_pairs_hook=OrderedDict))
 
         # Then get env vars from environment specification

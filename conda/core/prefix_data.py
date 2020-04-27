@@ -3,13 +3,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from fnmatch import filter as fnmatch_filter
-from logging import getLogger
-from os import listdir
-from os.path import basename, isdir, isfile, join, lexists
-import re
 from collections import OrderedDict
 import json
+from logging import getLogger
+from os.path import basename, isdir, isfile, join, lexists
+import re
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir
 
 from ..base.constants import PREFIX_STATE_FILE
 from .._vendor.auxlib.exceptions import ValidationError
@@ -69,8 +71,13 @@ class PrefixData(object):
         self.__prefix_records = {}
         _conda_meta_dir = join(self.prefix_path, 'conda-meta')
         if lexists(_conda_meta_dir):
-            for meta_file in fnmatch_filter(listdir(_conda_meta_dir), '*.json'):
-                self._load_single_record(join(_conda_meta_dir, meta_file))
+            conda_meta_json_paths = (
+                p for p in
+                (entry.path for entry in scandir(_conda_meta_dir))
+                if p[-5:] == ".json"
+            )
+            for meta_file in conda_meta_json_paths:
+                self._load_single_record(meta_file)
         if self._pip_interop_enabled:
             self._load_site_packages()
 

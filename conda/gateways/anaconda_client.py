@@ -5,10 +5,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import re
-from glob import glob
 from logging import getLogger
 from os.path import basename, isdir, isfile, join
 from stat import S_IREAD, S_IWRITE
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir
 
 from .disk.delete import rm_rf
 from .._vendor.appdirs import AppDirs, EnvAppDirs
@@ -36,10 +39,11 @@ def read_binstar_tokens():
     if not isdir(token_dir):
         return tokens
 
-    token_files = glob(join(token_dir, '*.token'))
-    for tkn_file in token_files:
-        url = re.sub(r'\.token$', '', unquote_plus(basename(tkn_file)))
-        with open(tkn_file) as f:
+    for tkn_entry in scandir(token_dir):
+        if tkn_entry.name[-6:] != ".token":
+            continue
+        url = re.sub(r'\.token$', '', unquote_plus(tkn_entry.name))
+        with open(tkn_entry.path) as f:
             token = f.read()
         tokens[url] = tokens[replace_first_api_with_conda(url)] = token
     return tokens

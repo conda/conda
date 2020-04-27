@@ -7,13 +7,15 @@ from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
 from functools import partial
-from glob import glob
 import hashlib
 from itertools import chain
 import json
 from logging import getLogger
-from os import listdir
 from os.path import isdir, isfile, join
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir
 
 from .link import islink, lexists
 from .create import TemporaryDirectory
@@ -34,7 +36,7 @@ from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
 
-listdir = listdir
+listdir = lambda d: list(entry.name for entry in scandir(d))
 lexists, isdir, isfile = lexists, isdir, isfile
 
 
@@ -79,14 +81,6 @@ def compute_md5sum(file_full_path):
 
 def compute_sha256sum(file_full_path):
     return _digest_path('sha256', file_full_path)
-
-
-def find_first_existing(*globs):
-    for g in globs:
-        for path in glob(g):
-            if lexists(path):
-                return path
-    return None
 
 
 # ####################################################

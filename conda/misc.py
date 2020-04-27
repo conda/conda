@@ -13,6 +13,10 @@ from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 import re
 import shutil
 import sys
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir
 
 from .base.context import context
 from .common.compat import itervalues, on_win, open
@@ -125,7 +129,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
     binignore = {'conda', 'activate', 'deactivate'}
     if sys.platform == 'darwin':
         ignore.update({'python.app', 'Launcher.app'})
-    for fn in os.listdir(prefix):
+    for fn in (entry.name for entry in scandir(prefix)):
         if ignore_predefined_files and fn in ignore:
             continue
         if isfile(join(prefix, fn)):

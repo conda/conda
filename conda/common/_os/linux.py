@@ -5,9 +5,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 from genericpath import exists
-from glob import glob
 from logging import getLogger
 import sys
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir
 
 from ..._vendor.auxlib.decorators import memoize
 from ..compat import iteritems
@@ -58,8 +61,7 @@ def linux_get_libc_version():
     # version refers to that of uClibc. readlink() can help to try to
     # figure out a better name instead.
     if family == 'NPTL':  # pragma: no cover
-        clibs = glob('/lib/libc.so*')
-        for clib in clibs:
+        for clib in (entry.path for entry in scandir("/lib") if entry.name[:7] == "libc.so"):
             clib = readlink(clib)
             if exists(clib):
                 if clib.startswith('libuClibc'):
