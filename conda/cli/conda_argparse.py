@@ -548,9 +548,10 @@ def configure_parser_create(sub_parsers):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
-             "This is mainly for use during tests where we test new conda source "
-             "against old Python versions.",
+        help=SUPPRESS,
+        # help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
+        #      "This is mainly for use during tests where we test new conda source "
+        #      "against old Python versions.",
         dest="dev",
         default=NULL,
     )
@@ -769,9 +770,10 @@ def configure_parser_install(sub_parsers):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
-             "This is mainly for use during tests where we test new conda source "
-             "against old Python versions.",
+        help=SUPPRESS,
+        # help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
+        #      "This is mainly for use during tests where we test new conda source "
+        #      "against old Python versions.",
         dest="dev",
         default=NULL,
     )
@@ -990,9 +992,10 @@ def configure_parser_remove(sub_parsers, name='remove'):
     p.add_argument(
         "--dev",
         action=NullCountAction,
-        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
-             "This is mainly for use during tests where we test new conda source "
-             "against old Python versions.",
+        help=SUPPRESS,
+        # help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
+        #      "This is mainly for use during tests where we test new conda source "
+        #      "against old Python versions.",
         dest="dev",
         default=NULL,
     )
@@ -1003,12 +1006,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
 def configure_parser_run(sub_parsers):
     help = "Run an executable in a conda environment. [Experimental]"
     descr = help + dedent("""
-
-    Use '--' (double dash) to separate CLI flags for 'conda run' from CLI flags sent to
-    the process being launched.
-
     Example usage:
-
         $ conda create -y -n my-python-2-env python=2
         $ conda run -n my-python-2-env python --version
     """)
@@ -1031,32 +1029,31 @@ def configure_parser_run(sub_parsers):
         dest="verbosity",
         default=NULL,
     )
-
-    p.add_argument(
-        "--dev",
-        action=NullCountAction,
-        help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains "
-             "the root of conda development sources.  This is mainly for use "
-             "during tests where we test new conda source against old Python "
-             "versions.",
-        dest="dev",
-        default=NULL,
-    )
-
-    p.add_argument(
-        "--debug-wrapper-scripts",
-        action=NullCountAction,
-        help="When this is set, where implemented, the shell wrapper scripts"
-             "will echo to stderr a lot of debugging information.",
-        dest="debug_wrapper_scripts",
-        default=NULL,
-    )
-    p.add_argument(
-        "--cwd",
-        help="Current working directory for command to run in.  Defaults to cwd",
-        default=os.getcwd()
-    )
-
+    if on_win:
+        p.add_argument(
+            "--dev",
+            action=NullCountAction,
+            help=SUPPRESS,
+            # help="Sets `CONDA_EXE` to `python -m conda`, assuming the CWD contains "
+            #      "the root of conda development sources.  This is mainly for use "
+            #      "during tests where we test new conda source against old Python "
+            #      "versions.",
+            dest="dev",
+            default=NULL,
+        )
+        p.add_argument(
+            "--debug-wrapper-scripts",
+            action=NullCountAction,
+            help="When this is set, where implemented, the shell wrapper scripts"
+                 "will echo to stderr a lot of debugging information.",
+            dest="debug_wrapper_scripts",
+            default=NULL,
+        )
+        p.add_argument(
+            "--cwd",
+            help="Current working directory for command to run in.  Defaults to cwd.",
+            default=os.getcwd()
+        )
     p.add_argument(
         'executable_call',
         nargs=REMAINDER,

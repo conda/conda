@@ -1871,6 +1871,7 @@ class InteractiveShell(object):
             return default
         return ensure_text_type(value).strip()
 
+
 def which_powershell():
     r"""
     Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
@@ -1893,6 +1894,7 @@ def which_powershell():
     posh = which('pwsh-preview')
     if posh:
         return 'pwsh-preview', posh
+
 
 @pytest.mark.integration
 class ShellWrapperIntegrationTests(TestCase):
@@ -2067,7 +2069,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline("type conda")
         shell.expect(conda_is_a_function)
 
-        shell.sendline('conda run {} h5stat --version'.format(dev_arg))
+        shell.sendline('conda run -vv h5stat --version')
         shell.expect(r'.*h5stat: Version 1.10.2.*')
 
         # regression test for #6840
@@ -2519,7 +2521,7 @@ class ActivationIntegrationTests(TestCase):
         activate_deactivate_package = "activate_deactivate_package"
         activate_deactivate_package_path_string = "teststringfromactivate/bin/test"
         original_path = os.environ.get("PATH")
-        run_command(Commands.INSTALL, self.prefix2, activate_deactivate_package, "--use-local")
+        run_command(Commands.INSTALL, self.prefix2, activate_deactivate_package, "-c", "https://conda-web.anaconda.org/conda-test")
 
         with InteractiveShell(shell) as shell:
             shell.sendline('conda activate "%s"' % self.prefix2)
