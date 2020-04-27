@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import re
 from logging import getLogger
-from os.path import basename, isdir, isfile, join
+from os.path import isdir, isfile, join
 from stat import S_IREAD, S_IWRITE
 try:
     from os import scandir

@@ -25,7 +25,7 @@ import copy
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
-from os.path import basename, join, expandvars
+from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 try:
     from os import scandir
