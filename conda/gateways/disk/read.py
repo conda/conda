@@ -98,7 +98,6 @@ def read_package_info(record, package_cache_record):
     icondata = read_icondata(epd)
     link_metadata = read_link_metadata(epd)
     paths_data = read_paths_json(epd)
-
     return PackageInfo(
         extracted_package_dir=epd,
         package_tarball_full_path=package_cache_record.package_tarball_full_path,
@@ -107,7 +106,7 @@ def read_package_info(record, package_cache_record):
         url=package_cache_record.url,
 
         icondata=icondata,
-        linkmetadata=link_metadata,
+        link_metadata=link_metadata,
         paths_data=paths_data,
     )
 

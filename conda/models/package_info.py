@@ -12,8 +12,6 @@ from .._vendor.auxlib.entity import ComposableField, ImmutableEntity, StringFiel
 log = getLogger(__name__)
 
 
-
-
 class PackageInfo(ImmutableEntity):
 
     # attributes external to the package tarball
@@ -51,4 +49,3 @@ class PackageInfo(ImmutableEntity):
     @property
     def noarch_type(self):
         return self.link_metadata and self.link_metadata.noarch or None
-
