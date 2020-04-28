@@ -66,6 +66,7 @@ def execute(args, parser):
 
 def get_activated_env_vars():
     env_location = context.target_prefix
+    is_valid_prefix(env_location)
     if on_win:
         env_var_map = _get_activated_env_vars_win(env_location)
     else:

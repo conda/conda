@@ -226,6 +226,15 @@ def run_command(command, prefix, *arguments, **kwargs):
     arguments = massage_arguments(arguments)
 
     use_exception_handler = kwargs.get('use_exception_handler', False)
+
+    if not on_win and command == Commands.RUN:
+        raise_on_error = not use_exception_handler
+        response = subprocess_call(
+            [sys.executable, "-m", "conda", "run", "-p", prefix] + arguments,
+            raise_on_error=raise_on_error
+        )
+        return response
+
     # These commands require 'dev' mode to be enabled during testing because
     # they end up calling run_script() in link.py and that uses wrapper scripts for e.g. activate.
     # Setting `dev` means that, in these scripts, conda is executed via:
@@ -1428,28 +1437,31 @@ class IntegrationTests(TestCase):
     def test_compile_pyc_new_python(self):
         return self._test_compile_pyc(use_sys_python=False)
 
-    def test_conda_run_1(self):
+    def test_run_conda_run_1(self):
         with make_temp_env(use_restricted_unicode=False, name=str(uuid4())[:7]) as prefix:
             output, error, rc = run_command(Commands.RUN, prefix, 'echo', 'hello')
             assert output == 'hello' + os.linesep
             assert not error
             assert rc == 0
-            output, error, rc = run_command(Commands.RUN, prefix, 'exit', '5')
+            output, error, rc = run_command(Commands.RUN, prefix, "sh", "-c", "exit 5", use_exception_handler=True)
             assert not output
             assert not error
             assert rc == 5
 
-    def test_conda_run_nonexistant_prefix(self):
+    def test_run_conda_run_nonexistant_prefix(self):
         with make_temp_env(use_restricted_unicode=False, name=str(uuid4())[:7]) as prefix:
             prefix = join(prefix, "clearly_a_prefix_that_does_not_exist")
-            with pytest.raises(EnvironmentLocationNotFound):
-                output, error, rc = run_command(Commands.RUN, prefix, 'echo', 'hello')
+            stdout, stderr, rc = run_command(Commands.RUN, prefix, 'echo', 'hello', use_exception_handler=True)
+            assert rc == 1
+            assert "EnvironmentLocationNotFound" in stderr
+            assert not stdout
 
-    def test_conda_run_prefix_not_a_conda_env(self):
+    def test_run_conda_run_prefix_not_a_conda_env(self):
         with tempdir() as prefix:
-            with pytest.raises(DirectoryNotACondaEnvironmentError):
-                output, error, rc = run_command(Commands.RUN, prefix, 'echo', 'hello')
-
+            stdout, stderr, rc = run_command(Commands.RUN, prefix, 'echo', 'hello', use_exception_handler=True)
+            assert rc == 1
+            assert "DirectoryNotACondaEnvironmentError" in stderr
+            assert not stdout
 
     def test_clone_offline_multichannel_with_untracked(self):
         with env_vars({
@@ -2557,7 +2569,20 @@ class IntegrationTests(TestCase):
         finally:
             rm_rf(prefix)
 
-    def test_multiline_run_command(self):
+    @pytest.mark.skipif(on_win, reason="test for unix")
+    def test_run_multiline_run_command_unix(self):
+        with make_temp_env() as prefix:
+            'sh -c "env | sort ; which conda"'
+            env_which_etc, errs_etc, rc = run_command(
+                Commands.RUN, prefix, '--cwd', prefix,
+                "sh", "-c", "env | sort ; which conda"
+            )
+        assert rc == 0
+        assert env_which_etc
+        assert not errs_etc
+
+    @pytest.mark.skipif(not on_win, reason="test for windows")
+    def test_multiline_run_command_win(self):
         with make_temp_env() as prefix:
             env_which_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', prefix, dedent("""
             {env} | sort
@@ -2746,7 +2771,9 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'openssl')
                 assert rs.call_count == 1
 
-    def test_post_link_run_in_env(self):
+    def test_run_post_link_run_in_env(self):
+        # TODO: How can this be passing in CI? The test_pkg has invalid paths.json with nothing
+        #       in the bin/ directory of the package.
         test_pkg = '_conda_test_env_activated_when_post_link_executed'
         # a non-unicode name must be provided here as activate.d scripts
         # are not executed on windows, see https://github.com/conda/conda/issues/8241
