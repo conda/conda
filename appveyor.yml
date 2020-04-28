@@ -36,7 +36,7 @@ install:
   - "conda install -yq conda-build=3.17"
   # conda install -y -c defaults -c conda-forge pytest pytest-cov pytest-timeout mock responses pexpect xonsh
   # TODO: add xonsh for PY3 builds
-  - "pip install codecov==2.0.5"
+  - "pip install codecov==2.0.5 scandir"  # scandir isn't required for py>35 but easier to install here than figure out how to add the conditional
   - "python -m conda init cmd.exe --dev"
 
 build: false
