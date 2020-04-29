@@ -297,7 +297,7 @@ class YamlSource(Source):
     def load(self):
         with PackageFile(self._location, self.parent_config.package) as fh:
             import yaml
-            contents = yaml.load(fh)
+            contents = yaml.safe_load(fh)
             if self.provides is None:
                 return contents
             else:

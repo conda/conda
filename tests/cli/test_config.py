@@ -9,7 +9,7 @@ from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
 from conda.common.configuration import ConfigurationLoadError
-from conda.common.serialize import yaml_load
+from conda.common.serialize import yaml_round_trip_load
 from conda.gateways.disk.delete import rm_rf
 
 
@@ -143,7 +143,7 @@ def test_config_command_show():
     # test alphabetical yaml output
     with make_temp_condarc() as rc:
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--show')
-        output_keys = yaml_load(stdout).keys()
+        output_keys = yaml_round_trip_load(stdout).keys()
 
         assert stderr == ''
         assert sorted(output_keys) == [item for item in output_keys]
@@ -255,7 +255,7 @@ changeps1: false
 always_yes: true
 """
     # First verify that this itself is valid YAML
-    assert yaml_load(condarc) == {'channels': ['test', 'defaults'],
+    assert yaml_round_trip_load(condarc) == {'channels': ['test', 'defaults'],
                                   'create_default_packages': ['ipython', 'numpy'],
                                   'changeps1': False,
                                   'always_yes': True}
@@ -349,7 +349,7 @@ def test_config_command_remove_force():
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
                                            '--remove', 'channels', 'test')
         assert stdout == stderr == ''
-        assert yaml_load(_read_test_condarc(rc)) == {'channels': ['defaults'],
+        assert yaml_round_trip_load(_read_test_condarc(rc)) == {'channels': ['defaults'],
                                                      'always_yes': True}
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
@@ -367,7 +367,7 @@ def test_config_command_remove_force():
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
                                            '--remove-key', 'always_yes')
         assert stdout == stderr == ''
-        assert yaml_load(_read_test_condarc(rc)) == {'channels': ['defaults']}
+        assert yaml_round_trip_load(_read_test_condarc(rc)) == {'channels': ['defaults']}
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
                                            '--remove-key', 'always_yes', use_exception_handler=True)
@@ -403,7 +403,7 @@ def test_config_set():
         assert stdout == ''
         assert stderr == ''
         with open(rc) as fh:
-            content = yaml_load(fh.read())
+            content = yaml_round_trip_load(fh.read())
             assert content['always_yes'] is True
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
@@ -411,7 +411,7 @@ def test_config_set():
         assert stdout == ''
         assert stderr == ''
         with open(rc) as fh:
-            content = yaml_load(fh.read())
+            content = yaml_round_trip_load(fh.read())
             assert content['always_yes'] is False
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
@@ -419,7 +419,7 @@ def test_config_set():
         assert stdout == ''
         assert stderr == ''
         with open(rc) as fh:
-            content = yaml_load(fh.read())
+            content = yaml_round_trip_load(fh.read())
             assert content['always_yes'] is False
             assert content['proxy_servers'] == {'http': '1.2.3.4:5678'}
 
