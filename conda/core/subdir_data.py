@@ -346,8 +346,11 @@ class SubdirData(object):
         return _pickled_state
 
     def _process_raw_repodata_str(self, raw_repodata_str):
-        json_obj = json.loads(raw_repodata_str or '{}')
-
+        try:
+            json_obj = json.loads(raw_repodata_str or '{}')
+        except json.decoder.JSONDecodeError:
+            log.debug("Conda repository may be experiencing issues, please try again later or use another mirror")
+            raise
         subdir = json_obj.get('info', {}).get('subdir') or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
