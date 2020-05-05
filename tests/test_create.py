@@ -2033,7 +2033,9 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, "urllib3>=1.21")
                 assert not stderr
                 json_obj = json_loads(stdout)
-                unlink_dists = json_obj["actions"]["UNLINK"]
+                unlink_dists = [
+                    dist_obj for dist_obj in json_obj["actions"]["UNLINK"] if dist_obj.get("platform") == "pypi"
+                ]  # filter out conda package upgrades like python and libffi
                 assert len(unlink_dists) == 1
                 assert unlink_dists[0]["name"] == "urllib3"
                 assert unlink_dists[0]["channel"] == "pypi"
@@ -2679,7 +2681,7 @@ class IntegrationTests(TestCase):
 
     # This test *was* very flaky on Python 2 when using `py_ver = sys.version_info[0]`. Changing it to `py_ver = '3'`
     # seems to work. I've done as much as I can to isolate this test.  It is a particularly tricky one.
-    # @pytest.mark.skipif(sys.version_info[0]==2, reason='Test is flaky on Python 2, errcode of -11 with no apparent error, some signal issue?')
+    @pytest.mark.skipif(on_win and sys.version_info[0]==2, reason='Test is flaky on Python 2, errcode of -11 with no apparent error, some signal issue?')
     def test_conda_downgrade(self):
         # Create an environment with the current conda under test, but include an earlier
         # version of conda and other packages in that environment.

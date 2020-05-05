@@ -24,6 +24,14 @@ log = getLogger(__name__)
 RETRIES = 3
 
 
+CONDA_SESSION_SCHEMES = frozenset((
+    "http",
+    "https",
+    "ftp",
+    "s3",
+    "file",
+))
+
 class EnforceUnusedAdapter(BaseAdapter):
 
     def send(self, request, *args, **kwargs):

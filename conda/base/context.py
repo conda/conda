@@ -16,7 +16,7 @@ import struct
 from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
-                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
+                        ERROR_UPLOAD_URL, KNOWN_SUBDIRS, PREFIX_MAGIC_FILE, PathConflict,
                         ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
@@ -469,7 +469,7 @@ class Context(Configuration):
 
     @memoizedproperty
     def known_subdirs(self):
-        return frozenset(concatv(PLATFORM_DIRECTORIES, self.subdirs))
+        return frozenset(concatv(KNOWN_SUBDIRS, self.subdirs))
 
     @property
     def bits(self):
