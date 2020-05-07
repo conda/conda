@@ -54,7 +54,7 @@ if PY2:
 
 
 def yaml_round_trip_load(string):
-    return yaml.load(string, Loader=yaml.RoundTripLoader, version="1.2")
+    return yaml.round_trip_load(string, version="1.2")
 
 
 def yaml_safe_load(string):
@@ -64,20 +64,20 @@ def yaml_safe_load(string):
         {'key': 'value'}
 
     """
-    return yaml.load(string, Loader=yaml.SafeLoader, version="1.2")
+    return yaml.safe_load(string, version="1.2")
 
 
 def yaml_round_trip_dump(object):
     """dump object to string"""
-    return yaml.dump(
-        object, Dumper=yaml.RoundTripDumper, block_seq_indent=2, default_flow_style=False, indent=2
+    return yaml.round_trip_dump(
+        object, block_seq_indent=2, default_flow_style=False, indent=2
     )
 
 
 def yaml_safe_dump(object):
     """dump object to string"""
-    return yaml.dump(
-        object, Dumper=yaml.SafeDumper, block_seq_indent=2, default_flow_style=False, indent=2
+    return yaml.safe_dump(
+        object, block_seq_indent=2, default_flow_style=False, indent=2
     )
 
 
