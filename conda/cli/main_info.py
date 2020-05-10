@@ -132,7 +132,7 @@ def get_info_dict(system=False):
 
     virtual_pkg_index = {}
     _supplement_index_with_system(virtual_pkg_index)
-    virtual_pkgs = [[p.name, p.version] for p in virtual_pkg_index.values()]
+    virtual_pkgs = [[p.name, p.version, p.build] for p in virtual_pkg_index.values()]
 
     channels = list(all_channel_urls(context.channels))
     if not context.json:
@@ -236,7 +236,7 @@ def get_main_info_str(info_dict):
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
 
     info_dict['_virtual_pkgs'] = ('\n' + 26 * ' ').join([
-        '%s=%s' % tuple(x) for x in info_dict['virtual_pkgs']])
+        '%s=%s=%s' % tuple(x) for x in info_dict['virtual_pkgs']])
     info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else 'read only')
 
     format_param = lambda nm, val: "%23s : %s" % (nm, val)
