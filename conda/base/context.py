@@ -61,6 +61,7 @@ non_x86_linux_machines = {
     'aarch64',
     'ppc64',
     'ppc64le',
+    's390x',
 }
 _arch_names = {
     32: 'x86',
