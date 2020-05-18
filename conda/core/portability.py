@@ -60,12 +60,17 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
-    if mode == FileMode.text:
-        data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
-    elif mode == FileMode.binary:
-        data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
-    else:
-        raise CondaIOError("Invalid mode: %r" % mode)
+    popular_encodings = ['utf-8', 'utf-16', 'utf-32']
+    for encoding in popular_encodings:
+        if mode == FileMode.text:
+            data = data.replace(placeholder.encode(encoding),
+                                new_prefix.encode(encoding))
+        elif mode == FileMode.binary:
+            data = binary_replace(data,
+                                  placeholder.encode(encoding),
+                                  new_prefix.encode(encoding))
+        else:
+            raise CondaIOError("Invalid mode: %r" % mode)
     return data
 
 
