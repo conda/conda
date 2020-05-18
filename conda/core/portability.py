@@ -60,7 +60,11 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
-    popular_encodings = ['utf-8', 'utf-16', 'utf-32']
+    popular_encodings = [
+        'utf-8',
+        'utf-16-le', 'utf-16-be',
+        'utf-32-le', 'utf-32-bg'
+    ]
     for encoding in popular_encodings:
         if mode == FileMode.text:
             data = data.replace(placeholder.encode(encoding),
