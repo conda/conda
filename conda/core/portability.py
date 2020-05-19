@@ -62,6 +62,8 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
 def replace_prefix(mode, data, placeholder, new_prefix):
     popular_encodings = [
         'utf-8',
+        # Make sure to specify -le and -be so that the UTF endian prefix
+        # doesn't show up in the string
         'utf-16-le', 'utf-16-be',
         'utf-32-le', 'utf-32-be'
     ]
