@@ -33,10 +33,15 @@ def generate_random_path():
 class TestBinaryReplace(unittest.TestCase):
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
-    def test_simple(self):
+    @pytest.mark.parametrize(encoding, ['utf-8', 'utf-16-le', 'utf-16-be', 'utf-32-le', 'utf-32-be'])
+    def test_simple(self, encoding):
+        a = 'aaaaa'.encode(encoding)
+        b = 'bbbb'.encode(encoding)
+        data_in  = 'xxxaaaaaxyz\0zz'.encode(encoding)
+        data_out = 'xxxbbbbxyz\0\0zz'.encode(encoding)
         self.assertEqual(
-            binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbb'),
-            b'xxxbbbbbxyz\x00zz')
+            binary_replace(data_in, a, b, encoding=encoding),
+            data_out)
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_shorter(self):
