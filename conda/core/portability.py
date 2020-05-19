@@ -71,8 +71,8 @@ def replace_prefix(mode, data, placeholder, new_prefix):
                                 new_prefix.encode(encoding))
         elif mode == FileMode.binary:
             data = binary_replace(data,
-                                  placeholder,
-                                  new_prefix,
+                                  placeholder.encode(encoding),
+                                  new_prefix.encode(encoding),
                                   encoding=encoding)
         else:
             raise CondaIOError("Invalid mode: %r" % mode)
@@ -84,9 +84,12 @@ def binary_replace(data, a, b, encoding='utf-8'):
     Perform a binary replacement of `data`, where the placeholder `a` is
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
+
+    Parameters
+    ----------
+    encoding: str
+        The encoding of the expected string in the binary.
     """
-    a = a.encode(encoding)
-    b = b.encode(encoding)
     zeros = '\0'.encode(encoding)
     if on_win:
         # on Windows for binary files, we currently only replace a pyzzer-type entry point
