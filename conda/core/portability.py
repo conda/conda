@@ -109,7 +109,7 @@ def binary_replace(data, a, b, encoding='utf-8'):
     original_data_len = len(data)
     pat = re.compile(
         re.escape(a) +
-        b'(?:(?!(?:' + zeros + b'|' + re.escape(a) + b')).)*' + zeros
+        b'(?:(?!(?:' + zeros + b')).)*' + zeros
     )
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
