@@ -63,7 +63,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
     popular_encodings = [
         'utf-8',
         'utf-16-le', 'utf-16-be',
-        'utf-32-le', 'utf-32-bg'
+        'utf-32-le', 'utf-32-be'
     ]
     for encoding in popular_encodings:
         if mode == FileMode.text:
@@ -71,19 +71,23 @@ def replace_prefix(mode, data, placeholder, new_prefix):
                                 new_prefix.encode(encoding))
         elif mode == FileMode.binary:
             data = binary_replace(data,
-                                  placeholder.encode(encoding),
-                                  new_prefix.encode(encoding))
+                                  placeholder,
+                                  new_prefix,
+                                  encoding=encoding)
         else:
             raise CondaIOError("Invalid mode: %r" % mode)
     return data
 
 
-def binary_replace(data, a, b):
+def binary_replace(data, a, b, encoding='utf-8'):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
     """
+    a = a.encode(encoding)
+    b = b.encode(encoding)
+    zeros = '\0'.encode(encoding)
     if on_win:
         # on Windows for binary files, we currently only replace a pyzzer-type entry point
         #   we skip all other prefix replacement
@@ -100,7 +104,10 @@ def binary_replace(data, a, b):
         return match.group().replace(a, b) + b'\0' * padding
 
     original_data_len = len(data)
-    pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
+    pat = re.compile(
+        re.escape(a) +
+        b'(?:(?!(?:' + zeros + b'|' + re.escape(a) + b')).)*' + zeros
+    )
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
 
