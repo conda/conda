@@ -24,6 +24,14 @@ SHEBANG_REGEX = (br'^(#!'  # pretty much the whole match string
                  br'(.*)'  # the rest of the line can contain option flags
                  br')$')  # end whole_shebang group
 
+popular_encodings = [
+    'utf-8',
+    # Make sure to specify -le and -be so that the UTF endian prefix
+    # doesn't show up in the string
+    'utf-16-le', 'utf-16-be',
+    'utf-32-le', 'utf-32-be'
+]
+
 
 class _PaddingError(Exception):
     pass
@@ -60,28 +68,18 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
-    popular_encodings = [
-        'utf-8',
-        # Make sure to specify -le and -be so that the UTF endian prefix
-        # doesn't show up in the string
-        'utf-16-le', 'utf-16-be',
-        'utf-32-le', 'utf-32-be'
-    ]
-    for encoding in popular_encodings:
-        if mode == FileMode.text:
+    if mode == FileMode.text:
+        for encoding in popular_encodings:
             data = data.replace(placeholder.encode(encoding),
                                 new_prefix.encode(encoding))
-        elif mode == FileMode.binary:
-            data = binary_replace(data,
-                                  placeholder.encode(encoding),
-                                  new_prefix.encode(encoding),
-                                  encoding=encoding)
-        else:
-            raise CondaIOError("Invalid mode: %r" % mode)
+    elif mode == FileMode.binary:
+        data = binary_replace(data, placeholder, new_prefix)
+    else:
+        raise CondaIOError("Invalid mode: %r" % mode)
     return data
 
 
-def binary_replace(data, a, b, encoding='utf-8'):
+def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
     replaced with `b` and the remaining string is padded with null characters.
@@ -92,7 +90,6 @@ def binary_replace(data, a, b, encoding='utf-8'):
     encoding: str
         The encoding of the expected string in the binary.
     """
-    zeros = '\0'.encode(encoding)
     if on_win:
         # on Windows for binary files, we currently only replace a pyzzer-type entry point
         #   we skip all other prefix replacement
@@ -101,19 +98,40 @@ def binary_replace(data, a, b, encoding='utf-8'):
         else:
             return data
 
+    a_encoded = {}
+    b_encoded = {}
+    replacement_patterns = {}
+
+    for encoding in popular_encodings:
+        a_encoded[encoding] = a.encode(encoding)
+        b_encoded[encoding] = b.encode(encoding)
+        zeros = '\0'.encode(encoding)
+        original_data_len = len(data)
+        pat = (re.escape(a_encoded[encoding]) +
+               b'(?:(?!(?:' + zeros + b')).)*' + zeros)
+
+        replacement_patterns[pat] = encoding
+
+    regex = re.compile(
+        b"(" +
+        b"|".join(re.escape(k) for k in replacement_patterns) +
+        b")"
+    )
+
     def replace(match):
+
+        match_key = match.string[match.start():match.end()]
+        encoding = replacement_patterns[match_key]
+        a = a_encoded[encoding]
+        b = b_encoded[encoding]
+
         occurances = match.group().count(a)
         padding = (len(a) - len(b)) * occurances
         if padding < 0:
             raise _PaddingError
         return match.group().replace(a, b) + b'\0' * padding
 
-    original_data_len = len(data)
-    pat = re.compile(
-        re.escape(a) +
-        b'(?:(?!(?:' + zeros + b')).)*' + zeros
-    )
-    data = pat.sub(replace, data)
+    data = regex.sub(replace, data)
     assert len(data) == original_data_len
 
     return data
