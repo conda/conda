@@ -1,0 +1,62 @@
+# Use default triggering logic
+# trigger: ...
+# pr: ...
+
+pool:
+  vmImage: 'vs2017-win2016'
+strategy:
+  matrix:
+    Python27_32:
+      python.version: '2.7'
+      conda.subdir: 'win-32'
+    Python27_64:
+      python.version: '2.7'
+      conda.subdir: 'win-64'
+    Python37_32:
+      python.version: '3.7'
+      conda.subdir: 'win-32'
+    Python37_64:
+      python.version: '3.7'
+      conda.subdir: 'win-64'
+
+steps:
+- script: |
+    CALL $(CONDA)\scripts\activate.bat
+    set CONDA_SUBDIR=$(conda.subdir)
+    CALL conda create -n ci_base -y python=$(python.version) pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling
+    CALL conda activate ci_base
+    CALL conda install -yq pip conda-build=3.17
+    pip install codecov==2.0.5
+    cd $(Build.SourcesDirectory)
+    python -m conda init cmd.exe --dev
+  displayName: Initialize test environment
+
+- script: |
+    set CONDA_SUBDIR=$(conda.subdir)
+    cd $(Build.SourcesDirectory)
+    CALL dev-init.bat
+    CALL conda info -a
+    CALL conda-build tests\test-recipes\activate_deactivate_package
+    CALL py.test --junitxml=junit/unit-test-results.xml --cov=conda --cov-report=xml --cov-report=html -m "not integration and not installed" -v
+  displayName: py$(python.version) $(conda.subdir) unit tests 
+
+- task: PublishTestResults@2
+  displayName: 'Publish unit test results'
+  condition: succeededOrFailed()
+  inputs:
+    testResultsFiles: '**/unit-test-*.xml'
+    testRunTitle: 'py$(python.version) $(conda.subdir) unit tests'
+
+# Azure Pipelines does not merge coverage files so this is only useful for early dev phase
+- task: PublishCodeCoverageResults@1
+  displayName: 'Publish coverage results'
+  condition: succeededOrFailed()
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+    reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+#- script: |
+#    pip install pytest pytest-azurepipelines
+#    pytest
+#  displayName: 'pytest'
