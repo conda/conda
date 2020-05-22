@@ -40,48 +40,48 @@ class TestBinaryReplace(unittest.TestCase):
             data   = 'xxxaaaaaxyz\0zz'.encode(encoding)
             result = 'xxxbbbbxyz\0\0zz'.encode(encoding)
             self.assertEqual(
-                binary_replace(data, a, b, encoding=encoding),
+                binary_replace(data, a, b),
                 result)
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_shorter(self):
         self.assertEqual(
-            binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbb'),
+            binary_replace(b'xxxaaaaaxyz\x00zz', 'aaaaa', 'bbbb'),
             b'xxxbbbbxyz\x00\x00zz')
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_too_long(self):
         self.assertRaises(_PaddingError, binary_replace,
-                          b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbbbbb')
+                          b'xxxaaaaaxyz\x00zz', 'aaaaa', 'bbbbbbbb')
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_no_extra(self):
-        self.assertEqual(binary_replace(b'aaaaa\x00', b'aaaaa', b'bbbbb'),
+        self.assertEqual(binary_replace(b'aaaaa\x00', 'aaaaa', 'bbbbb'),
                          b'bbbbb\x00')
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_two(self):
         self.assertEqual(
-            binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', b'aaaaa',
-                           b'bbbbb'),
+            binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', 'aaaaa',
+                           'bbbbb'),
             b'bbbbb\x001234bbbbbcc\x00\x00')
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_spaces(self):
         self.assertEqual(
-            binary_replace(b' aaaa \x00', b'aaaa', b'bbbb'),
+            binary_replace(b' aaaa \x00', 'aaaa', 'bbbb'),
             b' bbbb \x00')
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_multiple(self):
         self.assertEqual(
-            binary_replace(b'aaaacaaaa\x00', b'aaaa', b'bbbb'),
+            binary_replace(b'aaaacaaaa\x00', 'aaaa', 'bbbb'),
             b'bbbbcbbbb\x00')
         self.assertEqual(
-            binary_replace(b'aaaacaaaa\x00', b'aaaa', b'bbb'),
+            binary_replace(b'aaaacaaaa\x00', 'aaaa', 'bbb'),
             b'bbbcbbb\x00\x00\x00')
         self.assertRaises(_PaddingError, binary_replace,
-                          b'aaaacaaaa\x00', b'aaaa', b'bbbbb')
+                          b'aaaacaaaa\x00', 'aaaa', 'bbbbb')
 
     @pytest.mark.integration
     @pytest.mark.skipif(not on_win, reason="exe entry points only necessary on win")

@@ -114,15 +114,17 @@ def binary_replace(data, a, b):
 
     regex = re.compile(
         b"(" +
-        b"|".join(re.escape(k) for k in replacement_patterns) +
+        b"|".join(k for k in replacement_patterns) +
         b")"
     )
 
     def replace(match):
-
         match_key = match.string[match.start():match.end()]
-        encoding = replacement_patterns[match_key]
-        a = a_encoded[encoding]
+        for encoding, a in a_encoded.items():
+            if match_key.startswith(a):
+                break
+        else:
+            raise RuntimeError('match key not found')
         b = b_encoded[encoding]
 
         occurances = match.group().count(a)
@@ -130,7 +132,6 @@ def binary_replace(data, a, b):
         if padding < 0:
             raise _PaddingError
         return match.group().replace(a, b) + b'\0' * padding
-
     data = regex.sub(replace, data)
     assert len(data) == original_data_len
 
