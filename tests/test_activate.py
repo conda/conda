@@ -2090,7 +2090,10 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH = shell.get_env_var('PATH')
         assert len(PATH0.split(':')) == len(PATH.split(':'))
-        assert PATH0 == PATH
+        if on_win:
+            assert PATH0.lower() == PATH.lower()
+        else:
+            assert PATH0 == PATH
 
         shell.sendline(shell.print_env_var % 'PS1')
         shell.expect('.*\n')
@@ -2132,12 +2135,18 @@ class ShellWrapperIntegrationTests(TestCase):
         PATH4 = shell.get_env_var('PATH')
         assert 'charizard' in PATH4
         assert 'venusaur' in PATH4
-        assert PATH4 == PATH2
+        if on_win:
+            assert PATH4.lower() == PATH2.lower()
+        else:
+            assert PATH4 == PATH2
 
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH5 = shell.get_env_var('PATH')
-        assert PATH1 == PATH5
+        if on_win:
+            assert PATH1.lower() == PATH5.lower()
+        else:
+            assert PATH1 == PATH5
 
         # Test auto_stack
         shell.sendline('conda config --env --set auto_stack 1' )
