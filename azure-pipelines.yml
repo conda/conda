@@ -7,6 +7,8 @@ jobs:
     timeoutInMinutes: 90
     pool:
       vmImage: 'vs2017-win2016'
+    variables:
+      pytest.verbosity: ''
     strategy:
       matrix:
         Python27_32_unit:
@@ -34,6 +36,7 @@ jobs:
           conda.subdir: 'win-32'
           test.style: 'integration'
           pytest.marker: 'integration and not installed'
+          pytest.verbosity: '' # CAUTION: Occasionally run out of memory with higher verbosity in py27 win-32 config  
         Python27_64_integration:
           python.version: '2.7'
           conda.subdir: 'win-64'
@@ -44,6 +47,7 @@ jobs:
           conda.subdir: 'win-32'
           test.style: 'integration'
           pytest.marker: 'integration and not installed'
+          pytest.verbosity: ''
         Python37_64_integration:
           python.version: '3.7'
           conda.subdir: 'win-64'
@@ -59,6 +63,7 @@ jobs:
           mklink /J \conda_bin $(CONDA)
           mklink /J \conda_src $(Build.SourcesDirectory)
         displayName: Link conda and source folders on temp drive
+
       - script: |
           set CONDA_SUBDIR=$(conda.subdir)
           pushd %TEMP%
@@ -70,6 +75,7 @@ jobs:
           pip install codecov
           python -m conda init cmd.exe --dev
         displayName: Initialize test environment
+
       - script: |
           set CONDA_SUBDIR=$(conda.subdir)
           pushd %TEMP%
@@ -77,26 +83,19 @@ jobs:
           CALL dev-init.bat
           CALL conda info -a
           CALL conda-build tests\test-recipes\activate_deactivate_package
-          CALL py.test --junitxml=junit/unit-test-results.xml --cov=conda --cov-report=xml --cov-report=html -m "$(pytest.marker)" -v
+          CALL py.test --junitxml=junit/test-results.xml --cov=conda --cov-report=xml -m "$(pytest.marker)" $(pytest.verbosity)
         displayName: py$(python.version) $(conda.subdir) $(test.style) tests
         
       - task: PublishTestResults@2
         displayName: 'Publish $(test.style) test results'
         condition: succeededOrFailed()
         inputs:
-          testResultsFiles: '**/unit-test-*.xml'
+          testResultsFiles: '**/test-*.xml'
           testRunTitle: 'py$(python.version) $(conda.subdir) $(test.style) tests'
 
-      # # Azure Pipelines does not merge coverage files so this is only useful for early dev phase
-      # - task: PublishCodeCoverageResults@1
-      #   displayName: 'Publish coverage results'
-      #   condition: succeededOrFailed()
-      #   inputs:
-      #     codeCoverageTool: Cobertura
-      #     summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
-      #     reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
-
-      #- script: |
-      #    pip install pytest pytest-azurepipelines
-      #    pytest
-      #  displayName: 'pytest'
+      - script: |
+          pushd %TEMP%
+          cd \conda_src
+          curl -s https://codecov.io/bash > codecov_uploader.sh
+          bash -c ". codecov_uploader.sh -C $(Build.SourceVersion)"
+        displayName: 'Upload to codecov.io'
