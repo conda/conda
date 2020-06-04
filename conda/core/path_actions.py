@@ -615,7 +615,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                 actions += tuple(
                     LinkPathAction.create_python_entry_point_windows_exe_action(
                         transaction_context, package_info, target_prefix,
-                        requested_link_type, ep_def
+                        LinkType.copy, ep_def
                     ) for ep_def in noarch.entry_points or ()
                 )
 
