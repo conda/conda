@@ -318,7 +318,10 @@ class MatchSpec(metaclass=MatchSpecType):
             elif version[-2:] == ".*":
                 builder.append("=" + version[:-2])
             elif version[-1] == "*":
-                builder.append("=" + version[:-1])
+                if len(version) == 1:
+                    builder.append("=*")
+                else:
+                    builder.append("=" + version[:-1])
             elif version.startswith("=="):
                 builder.append(version)
                 version_exact = True
@@ -532,6 +535,8 @@ def _parse_version_plus_build(v_plus_b):
         ('*', '*')
     """
     parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>~])(?:[ =])([^-=,|<>~]+?))?$', v_plus_b)
+
+
     if parts:
         version, build = parts.groups()
         build = build and build.strip()

@@ -140,6 +140,13 @@ class MatchSpecTests(TestCase):
         assert c != d
         assert hash(c) != hash(d)
 
+    def test_roundtrip(self):
+        a = MatchSpec("numpy=*=*bla")
+        b = MatchSpec(a.__repr__())
+        assert (a == b)
+        assert (a.conda_build_form() == b.conda_build_form())
+        assert (a.__repr__() == b.__repr__())
+
     # def test_string_mcg1969(self):
     #     a = MatchSpec("foo1 >=1.3 2", optional=True, target="burg")
     #     b = MatchSpec('* [name="foo1", version=">=1.3", build="2"]', optional=True, target="burg")
@@ -228,6 +235,7 @@ class MatchSpecTests(TestCase):
         assert m("openssl=1.1.1_") == "openssl=1.1.1_"
         assert m("openssl>=1.1.1_,!=1.1.1c") == "openssl[version='>=1.1.1_,!=1.1.1c']"
 
+        assert m("numpy *") == "numpy=*"
         # # a full, exact spec looks like 'defaults/linux-64::numpy==1.8=py26_0'
         # # can we take an old dist str and reliably parse it with MatchSpec?
         # assert m("numpy-1.10-py38_0") == "numpy==1.10=py38_0"
