@@ -11,7 +11,7 @@ To install the RPM on RedHat, CentOS, Fedora distributions, and other RPM-based 
    rpm --import https://repo.anaconda.com/pkgs/misc/gpgkeys/anaconda.asc
  
    # Add the Anaconda repository
-   cat <<EOF > /etc/yum.repos.d/conda.repo
+   cat <<EOF > /etc/yum/repos.d/conda.repo
    [conda]
    name=Conda
    baseurl=https://repo.anaconda.com/pkgs/misc/rpmrepo/conda
