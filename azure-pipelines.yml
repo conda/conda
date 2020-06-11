@@ -77,20 +77,36 @@ jobs:
           CALL conda info -a
           CALL conda-build tests\test-recipes\activate_deactivate_package
         displayName: Build activate-deactivate package
-            
+      
       - script: |
           @ECHO ON
           set CONDA_SUBDIR=$(conda.subdir)
           pushd %TEMP%
           cd \conda_src
           CALL dev-init.bat
-          IF $(test.style)==unit (
-            CALL py.test -m "not integration and not installed"                     --junitxml=junit/test-results.xml --cov=conda --cov-report=xml $(pytest.verbosity)
-          ) ELSE IF $(test.style)==integration (
-            CALL py.test -m "integration and not installed" -k "not test_create.py" --junitxml=junit/test-results.xml --cov=conda --cov-report=xml $(pytest.verbosity)
-            CALL py.test -m "integration and not installed" -k "test_create.py"     --junitxml=junit/test-results.xml --cov=conda --cov-report=xml $(pytest.verbosity) --cov-append
-          )
-        displayName: py$(python.version) $(conda.subdir) $(test.style) tests
+          CALL py.test -m "not integration and not installed" --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml $(pytest.verbosity)
+        displayName: py$(python.version) $(conda.subdir) unit tests
+        condition: eq(variables['test.style'], 'unit')
+
+      - script: |
+          @ECHO ON
+          set CONDA_SUBDIR=$(conda.subdir)
+          pushd %TEMP%
+          cd \conda_src
+          CALL dev-init.bat
+          CALL py.test -m "integration and not installed" -k "not test_create and not cli" --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml $(pytest.verbosity)
+        displayName: py$(python.version) $(conda.subdir) integration test group 1
+        condition: eq(variables['test.style'], 'integration')
+
+      - script: |
+          @ECHO ON
+          set CONDA_SUBDIR=$(conda.subdir)
+          pushd %TEMP%
+          cd \conda_src
+          CALL dev-init.bat
+          CALL py.test -m "integration and not installed" -k "test_create or cli"       --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml $(pytest.verbosity) --cov-append
+        displayName: py$(python.version) $(conda.subdir) integration test group 2
+        condition: eq(variables['test.style'], 'integration')
 
       - task: PublishTestResults@2
         displayName: 'Publish $(test.style) test results'
