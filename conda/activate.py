@@ -941,10 +941,10 @@ class XonshActivator(_Activator):
         import platform
         if platform.system() == 'Windows':
             self.script_extension = '.bat'
-            self.run_script_tmpl = 'source-cmd "%s"'
+            self.run_script_tmpl = 'source-cmd --suppress-skip-message "%s"'
         else:
             self.script_extension = '.sh'
-            self.run_script_tmpl = 'source-bash "%s"'
+            self.run_script_tmpl = 'source-bash --suppress-skip-message "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
 
@@ -952,6 +952,19 @@ class XonshActivator(_Activator):
 
     def _hook_preamble(self):
         return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
+
+    def _hook_postamble(self):
+        s = 'if $CONDA_PREFIX != "%s":\n' % self.path_conversion(context.conda_prefix)
+        s += (
+            "    import sys as _sys\n"
+            '    print("WARNING: conda environment not activated properly. '
+            'This is likely because you have a conda init inside of your '
+            '~/.bashrc (unix) or *.bat activation file (windows). This is '
+            'causing conda to activate twice in xonsh. Please remove the conda '
+            'init block from your other shell.", file=_sys.stderr)\n'
+        )
+        return s
+
 
 
 class CmdExeActivator(_Activator):
