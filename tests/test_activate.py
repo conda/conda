@@ -1497,7 +1497,7 @@ class ShellWrapperUnitTests(TestCase):
                 e_deactivate_info['sourcer'] = 'source-cmd'
                 e_deactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat'))
             else:
-                e_deactivate_info['sourcer'] = 'source-bash'
+                e_deactivate_info['sourcer'] = 'source-bash --suppress-skip-message'
                 e_deactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh'))
             e_deactivate_data = e_deactivate_template % e_deactivate_info
             assert deactivate_data == e_deactivate_data
