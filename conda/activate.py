@@ -953,19 +953,6 @@ class XonshActivator(_Activator):
     def _hook_preamble(self):
         return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
 
-    def _hook_postamble(self):
-        s = 'if $CONDA_PREFIX != "%s":\n' % self.path_conversion(context.conda_prefix)
-        s += (
-            "    import sys as _sys\n"
-            '    print("WARNING: conda environment not activated properly. '
-            'This is likely because you have a conda init inside of your '
-            '~/.bashrc (unix) or *.bat activation file (windows). This is '
-            'causing conda to activate twice in xonsh. Please remove the conda '
-            'init block from your other shell.", file=_sys.stderr)\n'
-        )
-        return s
-
-
 
 class CmdExeActivator(_Activator):
 
