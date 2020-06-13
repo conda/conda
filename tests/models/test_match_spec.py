@@ -7,6 +7,7 @@ from conda._vendor.auxlib.collection import frozendict
 import pytest
 
 from conda import text_type
+from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import arg2spec, spec_from_line
 from conda.common.io import env_unmodified
@@ -221,6 +222,9 @@ class MatchSpecTests(TestCase):
         assert m("numpy~=1.10.1") == "numpy~=1.10.1"
         assert m("numpy ~=1.10.1 py38_0") == "numpy[version='~=1.10.1',build=py38_0]"
 
+        assert m("openssl=1.1.1_") == "openssl=1.1.1_"
+        assert m("openssl>=1.1.1_,!=1.1.1c") == "openssl[version='>=1.1.1_,!=1.1.1c']"
+
         # # a full, exact spec looks like 'defaults/linux-64::numpy==1.8=py26_0'
         # # can we take an old dist str and reliably parse it with MatchSpec?
         # assert m("numpy-1.10-py38_0") == "numpy==1.10=py38_0"
@@ -387,6 +391,11 @@ class MatchSpecTests(TestCase):
         assert ms.get_exact_value('version') == '1.2.7'
         assert ms.get_exact_value('build') == '0'
         assert ms._to_filename_do_not_use() == 'zlib-1.2.7-0.tar.bz2'
+
+    def test_openssl_match(self):
+        dst = Dist('defaults::openssl-1.0.1_-4')
+        assert MatchSpec('openssl>=1.0.1_').match(DPkg(dst))
+        assert not MatchSpec('openssl>=1.0.1').match(DPkg(dst))
 
     def test_track_features_match(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
@@ -824,6 +833,35 @@ class SpecStrParsingTests(TestCase):
         #     "name": "python",
         #     "build_number": '>=3',
         # }
+
+    def test_dist_str(self):
+        for ext in (CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2):
+            m1 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0{1}".format(context.subdir, ext))
+            m2 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0".format(context.subdir))
+            m3 = MatchSpec.from_dist_str("https://someurl.org/anaconda/{0}::python-3.6.6-0{1}".format(context.subdir, ext))
+            m4 = MatchSpec.from_dist_str("python-3.6.6-0{0}".format(ext))
+            m5 = MatchSpec.from_dist_str("https://someurl.org/anaconda::python-3.6.6-0{0}".format(ext))
+
+            pref = DPkg("anaconda::python-3.6.6-0{0}".format(ext))
+            pref.url = "https://someurl.org/anaconda/{0}".format(context.subdir)
+
+            assert m1.match(pref)
+            assert m2.match(pref)
+            assert m3.match(pref)
+            assert m4.match(pref)
+            pref.url = "https://someurl.org/anaconda"
+
+            pref_dict = {
+                'name': 'python',
+                'version': '3.6.6',
+                'build': '0',
+                'build_number': 0,
+                'channel': Channel("anaconda"),
+                'fn': 'python-3.6.6-0{0}'.format(ext),
+                'md5': '012345789',
+                'url': 'https://someurl.org/anaconda'
+            }
+            assert m5.match(pref_dict)
 
 
 class MatchSpecMergeTests(TestCase):

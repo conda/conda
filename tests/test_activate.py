@@ -2519,7 +2519,7 @@ class ActivationIntegrationTests(TestCase):
         activate_deactivate_package = "activate_deactivate_package"
         activate_deactivate_package_path_string = "teststringfromactivate/bin/test"
         original_path = os.environ.get("PATH")
-        run_command(Commands.INSTALL, self.prefix2, activate_deactivate_package, "-c", "c3i_test2")
+        run_command(Commands.INSTALL, self.prefix2, activate_deactivate_package, "--use-local")
 
         with InteractiveShell(shell) as shell:
             shell.sendline('conda activate "%s"' % self.prefix2)

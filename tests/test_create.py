@@ -82,7 +82,8 @@ BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
 # UNICODE_CHARACTERS_RESTRICTED_PY2 = u"ÀÁÂÃÄÅ"
 UNICODE_CHARACTERS_RESTRICTED_PY2 = u"abcdef"
-UNICODE_CHARACTERS_RESTRICTED_PY3 = u"áêñßôç"
+# UNICODE_CHARACTERS_RESTRICTED_PY3 = u"áêñßôç"
+UNICODE_CHARACTERS_RESTRICTED_PY3 = u"abcdef"
 which_or_where = "which" if not on_win else "where"
 cp_or_copy = "cp" if not on_win else "copy"
 env_or_set = "env" if not on_win else "set"
@@ -327,7 +328,7 @@ def make_temp_env(*packages, **kwargs):
 
 @contextmanager
 def make_temp_package_cache():
-    prefix = make_temp_prefix()
+    prefix = make_temp_prefix(use_restricted_unicode=on_win)
     pkgs_dir = join(prefix, 'pkgs')
     mkdir_p(pkgs_dir)
     touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
@@ -591,8 +592,9 @@ class IntegrationTests(TestCase):
             assert message1 in error_message
             assert message2 in error_message
 
-            with open(join(prefix, 'condarc'), 'a') as fh:
+            with open(join(prefix, 'condarc'), 'w') as fh:
                 fh.write("safety_checks: warn\n")
+                fh.write("extra_safety_checks: true\n")
             reload_config(prefix)
             assert context.safety_checks is SafetyChecks.warn
 
@@ -1337,7 +1339,7 @@ class IntegrationTests(TestCase):
             assert not stderr
 
             try:
-                with open(join(prefix, 'condarc'), 'a') as fh:
+                with open(join(prefix, 'condarc'), 'w') as fh:
                     fh.write('default_python: anaconda\n')
                     fh.write('ssl_verify: /path/doesnt/exist\n')
                 reload_config(prefix)
@@ -1932,7 +1934,7 @@ class IntegrationTests(TestCase):
 
     def test_conda_pip_interop_conda_editable_package(self):
         with env_var('CONDA_RESTORE_FREE_CHANNEL', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("python=2.7", "pip", "git", use_restricted_unicode=on_win) as prefix:
+            with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
                 conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
                 workdir = prefix
 
@@ -2031,7 +2033,9 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, "urllib3>=1.21")
                 assert not stderr
                 json_obj = json_loads(stdout)
-                unlink_dists = json_obj["actions"]["UNLINK"]
+                unlink_dists = [
+                    dist_obj for dist_obj in json_obj["actions"]["UNLINK"] if dist_obj.get("platform") == "pypi"
+                ]  # filter out conda package upgrades like python and libffi
                 assert len(unlink_dists) == 1
                 assert unlink_dists[0]["name"] == "urllib3"
                 assert unlink_dists[0]["channel"] == "pypi"
@@ -2301,7 +2305,7 @@ class IntegrationTests(TestCase):
         SubdirData._cache_.clear()
 
         try:
-            with make_temp_env() as prefix:
+            with make_temp_env(use_restricted_unicode=on_win) as prefix:
                 pkgs_dir = join(prefix, 'pkgs')
                 with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     with make_temp_channel(['flask-0.12.2']) as channel:
@@ -2677,7 +2681,7 @@ class IntegrationTests(TestCase):
 
     # This test *was* very flaky on Python 2 when using `py_ver = sys.version_info[0]`. Changing it to `py_ver = '3'`
     # seems to work. I've done as much as I can to isolate this test.  It is a particularly tricky one.
-    # @pytest.mark.skipif(sys.version_info[0]==2, reason='Test is flaky on Python 2, errcode of -11 with no apparent error, some signal issue?')
+    @pytest.mark.skipif(on_win and sys.version_info[0]==2, reason='Test is flaky on Python 2, errcode of -11 with no apparent error, some signal issue?')
     def test_conda_downgrade(self):
         # Create an environment with the current conda under test, but include an earlier
         # version of conda and other packages in that environment.
@@ -2756,7 +2760,7 @@ class IntegrationTests(TestCase):
         assert "python 3.5.4" in output
 
     def test_toolz_cytoolz_package_cache_regression(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.5", use_restricted_unicode=on_win) as prefix:
             pkgs_dir = join(prefix, 'pkgs')
             with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 assert context.pkgs_dirs == (pkgs_dir,)

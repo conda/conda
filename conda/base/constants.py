@@ -60,13 +60,14 @@ CONDA_HOMEPAGE_URL = 'https://conda.io'
 ERROR_UPLOAD_URL = 'https://conda.io/conda-post/unexpected-error'
 DEFAULTS_CHANNEL_NAME = 'defaults'
 
-PLATFORM_DIRECTORIES = (
+KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "noarch",
     "linux-32",
     "linux-64",
     "linux-aarch64",
     "linux-armv6l",
     "linux-armv7l",
+    "linux-ppc64",
     "linux-ppc64le",
     "osx-64",
     "win-32",

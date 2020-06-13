@@ -639,6 +639,9 @@ class _Activator(object):
     def _build_activate_shell_custom(self, export_vars):
         # A method that can be overriden by shell-specific implementations.
         # The signature of this method may change in the future.
+        if on_win:
+            import ctypes
+            export_vars.update({"PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),})
         pass
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
