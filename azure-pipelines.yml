@@ -8,7 +8,7 @@ jobs:
     pool:
       vmImage: 'vs2017-win2016'
     variables:
-      pytest.verbosity: ''
+      pytest.verbosity: '-v'
     strategy:
       matrix:
         Python27_32_unit:
@@ -64,13 +64,13 @@ jobs:
           CALL conda create -n ci_base -y python=$(python.version) pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling
           CALL conda activate ci_base
           CALL conda install -yq pip conda-build=3.17 conda-verify
+          CALL conda update openssl ca-certificates certifi
           pip install codecov
           python -m conda init cmd.exe --dev
         displayName: Initialize test environment
 
       - script: |
           @ECHO ON
-          set CONDA_SUBDIR=$(conda.subdir)
           pushd %TEMP%
           cd \conda_src
           CALL dev-init.bat
@@ -80,7 +80,6 @@ jobs:
       
       - script: |
           @ECHO ON
-          set CONDA_SUBDIR=$(conda.subdir)
           pushd %TEMP%
           cd \conda_src
           CALL dev-init.bat
@@ -90,21 +89,19 @@ jobs:
 
       - script: |
           @ECHO ON
-          set CONDA_SUBDIR=$(conda.subdir)
           pushd %TEMP%
           cd \conda_src
           CALL dev-init.bat
-          CALL py.test -m "integration and not installed" -k "not test_create and not cli" --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml $(pytest.verbosity)
+          CALL py.test -m "integration and not installed" -k "cli" --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml $(pytest.verbosity)
         displayName: py$(python.version) $(conda.subdir) integration test group 1
         condition: eq(variables['test.style'], 'integration')
 
       - script: |
           @ECHO ON
-          set CONDA_SUBDIR=$(conda.subdir)
           pushd %TEMP%
           cd \conda_src
           CALL dev-init.bat
-          CALL py.test -m "integration and not installed" -k "test_create or cli"       --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml $(pytest.verbosity) --cov-append
+          CALL py.test -m "integration and not installed" -k "not cli" --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml $(pytest.verbosity)  --cov-append
         displayName: py$(python.version) $(conda.subdir) integration test group 2
         condition: eq(variables['test.style'], 'integration')
 
