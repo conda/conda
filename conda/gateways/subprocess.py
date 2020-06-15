@@ -10,13 +10,14 @@ from os.path import abspath
 from conda._vendor.auxlib.compat import shlex_split_unicode
 import sys
 from subprocess import CalledProcessError, PIPE, Popen
+from threading import Thread
 from ..utils import wrap_subprocess_call
 
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
 from .._vendor.auxlib.ish import dals
-from ..common.compat import (ensure_binary, string_types, encode_arguments,
-                             on_win, encode_environment, isiterable)
+from ..common.compat import (ensure_binary, string_types, StringIO, encode_arguments,
+                             on_win, PY3, encode_environment, isiterable)
 from ..gateways.disk.delete import rm_rf
 from ..base.context import context
 
@@ -57,6 +58,24 @@ def any_subprocess(args, prefix, env=None, cwd=None):
     return stdout, stderr, process.returncode
 
 
+def write_process_output_to_stream(p, source, target):
+    out = StringIO()
+
+    def start_streaming():
+        while p.poll() is None:
+            data = source.readline().decode('utf-8')
+            target.write(data)
+            target.flush()
+            out.write(data)
+            out.flush()
+
+    th = Thread(target=start_streaming)
+    if PY3:
+        th.daemon = True
+    th.start()
+    return out
+
+
 def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True,
                     stdout=PIPE, stderr=PIPE):
     """This utility function should be preferred for all conda subprocessing.
@@ -69,14 +88,22 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     command_str = command if isinstance(command, string_types) else ' '.join(command)
     log.debug("executing>> %s", command_str)
     stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
-    p = Popen(encode_arguments(command), cwd=cwd, stdin=stdin, stdout=stdout,
-              stderr=stderr, env=env)
+    p = Popen(encode_arguments(command), cwd=cwd, stdin=stdin, stdout=PIPE,
+              stderr=PIPE, env=env)
     ACTIVE_SUBPROCESSES.add(p)
-    stdout, stderr = p.communicate()
-    if hasattr(stdout, "decode"):
-        stdout = stdout.decode('utf-8', errors='replace')
-    if hasattr(stderr, "decode"):
-        stderr = stderr.decode('utf-8', errors='replace')
+    if stdout == PIPE:
+        stdout, stderr = p.communicate()
+        if hasattr(stdout, "decode"):
+            stdout = stdout.decode('utf-8', errors='replace')
+        if hasattr(stderr, "decode"):
+            stderr = stderr.decode('utf-8', errors='replace')
+    else:
+        # If we're redirecting output, then do so and capture it into another stream.
+        out_stream = write_process_output_to_stream(p, p.stdout, sys.stdout)
+        err_stream = write_process_output_to_stream(p, p.stderr, sys.stderr)
+        p.wait()
+        stdout, stderr = out_stream.getvalue(), err_stream.getvalue()
+
     rc = p.returncode
     ACTIVE_SUBPROCESSES.remove(p)
     if (raise_on_error and rc != 0) or log.isEnabledFor(TRACE):
