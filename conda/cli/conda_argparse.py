@@ -55,6 +55,7 @@ def generate_parser():
     sub_parsers.required = True
 
     configure_parser_clean(sub_parsers)
+    configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
     configure_parser_create(sub_parsers)
     configure_parser_help(sub_parsers)
@@ -860,6 +861,39 @@ def configure_parser_list(sub_parsers):
     )
     p.set_defaults(func='.main_list.execute')
 
+def configure_parser_compare(sub_parsers):
+    descr = "Compare packages between conda environments."
+
+    # Note, the formatting of this is designed to work well with help2man
+    examples = dedent("""
+    Examples:
+
+    Compare packages in the current environment with respect to 'environment.yml':
+
+        conda compare environment.yml
+
+    Comapre packages installed into the environment 'myenv' with respect to 'environment.yml':
+
+        conda compare -n myenv environment.yml
+
+    """)
+    p = sub_parsers.add_parser(
+        'compare',
+        description=descr,
+        help=descr,
+        formatter_class=RawDescriptionHelpFormatter,
+        epilog=examples,
+        add_help=False,
+    )
+    add_parser_help(p)
+    add_parser_json(p)
+    add_parser_prefix(p)
+    p.add_argument(
+        'file',
+        action="store",
+        help="Path to the environment file that is to be compared against",
+    )
+    p.set_defaults(func='.main_compare.execute')
 
 def configure_parser_package(sub_parsers):
     descr = "Low-level conda package utility. (EXPERIMENTAL)"
