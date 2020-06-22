@@ -24,7 +24,7 @@ def get_packages(prefix):
         raise EnvironmentLocationNotFound(prefix)
 
     return sorted(PrefixData(prefix, pip_interop_enabled=True).iter_records(),
-                       key=lambda x: x.name)
+                  key=lambda x: x.name)
 
 def _get_name_tuple(pkg):
     return pkg.name, pkg
@@ -43,7 +43,7 @@ def compare_packages(active_pkgs, specification_pkgs):
             if not pkg_spec.match(active_pkgs[name]):
                 ok = False
                 output.append("{} found but mismatch. Specification pkg: {}, Running pkg: {}"
-                      .format(name, pkg, _to_str(active_pkgs[name])))
+                              .format(name, pkg, _to_str(active_pkgs[name])))
         else:
             ok = False
             output.append("{} not found".format(name))
