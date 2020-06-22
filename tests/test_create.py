@@ -196,6 +196,7 @@ def FORCE_temp_prefix(name=None, use_restricted_unicode=False):
 
 
 class Commands:
+    COMPARE = "compare"
     CONFIG = "config"
     CLEAN = "clean"
     CREATE = "create"
@@ -246,7 +247,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     if command is Commands.CONFIG:
         arguments.append('--file')
         arguments.append(join(prefix, 'condarc'))
-    if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
+    if command in (Commands.LIST, Commands.COMPARE, Commands.CREATE, Commands.INSTALL,
                    Commands.REMOVE, Commands.UPDATE, Commands.RUN):
         arguments.insert(0, '-p')
         arguments.insert(1, prefix)
@@ -912,6 +913,39 @@ class IntegrationTests(TestCase):
             _rm_rf(prefix)
             assert not isdir(prefix)
             assert prefix not in PrefixData._cache_
+
+    def test_compare_success(self):
+        with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+            env_file = join(prefix, 'env.yml')
+            touch(env_file)
+            with open(env_file, "w") as f:
+                f.write(
+"""name: dummy
+channels:
+  - defaults
+dependencies:
+  - bzip2=1.0.8
+  - flask>=1.0.1,<=1.0.4""")
+            output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
+            assert "Success" in output
+            rmtree(prefix, ignore_errors=True)
+
+    def test_compare_fail(self):
+        with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+            env_file = join(prefix, 'env.yml')
+            touch(env_file)
+            with open(env_file, "w") as f:
+                f.write(
+"""name: dummy
+channels:
+  - defaults
+dependencies:
+  - yaml
+  - flask=1.0.3""")
+            output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
+            assert "yaml not found" in output
+            assert "flask found but mismatch. Specification pkg: flask=1.0.3, Running pkg: flask==1.0.2=py36_1" in output
+            rmtree(prefix, ignore_errors=True)
 
     def test_install_tarball_from_local_channel(self):
         # Regression test for #2812
