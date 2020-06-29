@@ -429,11 +429,11 @@ class UrlsData(object):
     def __init__(self, pkgs_dir):
         self.pkgs_dir = pkgs_dir
         self.urls_txt_path = urls_txt_path = join(pkgs_dir, 'urls.txt')
-        if isfile(urls_txt_path):
+        try:
             with open(urls_txt_path, 'rb') as fh:
                 self._urls_data = [line.strip().decode('utf-8') for line in fh]
                 self._urls_data.reverse()
-        else:
+        except (PermissionError, FileNotFoundError):
             self._urls_data = []
 
     def __contains__(self, url):
