@@ -1142,10 +1142,6 @@ class JSONFormatMixin(_Activator):
         }
 
 
-class JSONPosixActivator(PosixActivator, JSONFormatMixin):
-    pass
-
-
 activator_map = {
     'posix': PosixActivator,
     'ash': PosixActivator,
@@ -1158,8 +1154,27 @@ activator_map = {
     'cmd.exe': CmdExeActivator,
     'fish': FishActivator,
     'powershell': PowerShellActivator,
-    'posix:json': JSONPosixActivator,
 }
+
+formatter_map = {
+    'json': JSONFormatMixin,
+}
+
+
+def _build_activator_cls(shell):
+    """Construct the activator class dynamically from a base activator and any
+    number of formatters, appended using '+' to the name. For example,
+    `posix+json` (as in `conda shell.posix+json activate`) would use the
+    `PosixActivator` base class and add the `JSONFormatMixin`."""
+    shell_etc = shell.split('+')
+    activator, formatters = shell_etc[0], shell_etc[1:]
+    bases = [activator_map[activator]]
+
+    for f in formatters:
+        bases.append(formatter_map[f])
+
+    cls = type(str('Activator'), tuple(bases), {})
+    return cls
 
 
 def main(argv=None):
@@ -1174,9 +1189,10 @@ def main(argv=None):
     shell = argv[1].replace('shell.', '', 1)
     activator_args = argv[2:]
     try:
-        activator_cls = activator_map[shell]
+        activator_cls = _build_activator_cls(shell)
     except KeyError:
         raise CondaError("%s is not a supported shell." % shell)
+
     activator = activator_cls(activator_args)
     try:
         print(activator.execute(), end='')

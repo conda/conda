@@ -18,7 +18,7 @@ from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
-    PowerShellActivator, XonshActivator, JSONPosixActivator, activator_map, \
+    PowerShellActivator, XonshActivator, activator_map, _build_activator_cls, \
     main as activate_main, native_path_to_unix
 from conda.base.constants import ROOT_ENV_NAME, PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, \
     CONDA_ENV_VARS_UNSET_VAR
@@ -1673,11 +1673,11 @@ class ShellWrapperUnitTests(TestCase):
                         rc = activate_main(['', shell] + activate_args + [self.prefix])
 
     def test_json_basic(self):
-        activator = JSONPosixActivator()
+        activator = _build_activator_cls('posix+json')()
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(['', 'shell.posix:json'] + activate_args + [self.prefix])
+            rc = activate_main(['', 'shell.posix+json'] + activate_args + [self.prefix])
         assert not c.stderr
         assert rc == 0
         activate_data = c.stdout
@@ -1715,9 +1715,9 @@ class ShellWrapperUnitTests(TestCase):
             'CONDA_SHLVL': '1',
             'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
         }):
-            activator = JSONPosixActivator()
+            activator = _build_activator_cls('posix+json')()
             with captured() as c:
-                rc = activate_main(['', 'shell.posix:json'] + reactivate_args)
+                rc = activate_main(['', 'shell.posix+json'] + reactivate_args)
             assert not c.stderr
             assert rc == 0
             reactivate_data = c.stdout
@@ -1745,7 +1745,7 @@ class ShellWrapperUnitTests(TestCase):
             assert json.loads(reactivate_data) == e_reactivate_data
 
             with captured() as c:
-                rc = activate_main(['', 'shell.posix:json'] + deactivate_args)
+                rc = activate_main(['', 'shell.posix+json'] + deactivate_args)
             assert not c.stderr
             assert rc == 0
             deactivate_data = c.stdout
