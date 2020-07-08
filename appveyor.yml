@@ -46,7 +46,8 @@ test_script:
   - conda-build tests\test-recipes\activate_deactivate_package
   - py.test %ADD_COV% -m "not integration and not installed" -v --basetemp=C:\tmp
   - py.test %ADD_COV% --cov-append -m "integration and not installed" -v --basetemp=C:\tmp
+  - curl -s https://codecov.io/bash > codecov_uploader.sh
+  - bash -c ". codecov_uploader.sh -f coverage.xml"
   - DEL /Q /F conda.egg-info
   - conda build conda.recipe
-  - codecov --env PYTHON_VERSION --required
   - python -m conda.common.io
