@@ -641,7 +641,9 @@ class _Activator(object):
         # The signature of this method may change in the future.
         if on_win:
             import ctypes
-            export_vars.update({"PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),})
+            export_vars.update({
+                "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
+            })
         pass
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
