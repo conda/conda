@@ -1,5 +1,8 @@
 image: Visual Studio 2017
 
+# Don't run the (redundant) branch build with a pull request
+skip_branch_with_pr: true
+
 environment:
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
