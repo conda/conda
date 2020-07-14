@@ -13,18 +13,27 @@ environment:
     secure: ZaE7K9EHorv40AjYhSuWtQeRAsMN1+QqPf7u8rOlvEY50kdaHj87Mh5GIDZgJBzj
   CONDA_INSTRUMENTATION_ENABLED: "true"
   matrix:
-    - PYTHON_VERSION: "3.6"
-      TEST_MODE: "package"
-    - PYTHON_VERSION: "2.7"
-      TEST_MODE: "package"
+    # Note that we're using Python 3 for package builds even when building
+    # the Python 2.7 version of the package. This is because of an issue
+    # unpacking the menuinst .conda package on p27
     - PYTHON_VERSION: "3.6"
       TEST_MODE: "not integration"
+      CONDA_ROOT: "C:\\Miniconda36-x64"
     - PYTHON_VERSION: "2.7"
       TEST_MODE: "not integration"
+      CONDA_ROOT: "C:\\Miniconda"
     - PYTHON_VERSION: "3.6"
       TEST_MODE: "integration"
+      CONDA_ROOT: "C:\\Miniconda36-x64"
     - PYTHON_VERSION: "2.7"
       TEST_MODE: "integration"
+      CONDA_ROOT: "C:\\Miniconda"
+    - PYTHON_VERSION: "3.6"
+      TEST_MODE: "package"
+      CONDA_ROOT: "C:\\Miniconda36-x64"
+    - PYTHON_VERSION: "2.7"
+      TEST_MODE: "package"
+      CONDA_ROOT: "C:\\Miniconda36"
 
 #init:
   # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -35,24 +44,29 @@ environment:
 # conda install -y -c defaults -c conda-forge pytest pytest-cov pytest-timeout mock responses pexpect xonsh
 # TODO: add xonsh for PY3 builds  
 install:
-  - if "%PYTHON_VERSION%" EQU "2.7" AND "%TEST_MODE%" NEQ "package" call C:\Miniconda\Scripts\activate.bat
-  - if "%PYTHON_VERSION%" NEQ "2.7" OR  "%TEST_MODE%" EQU "package" call C:\Miniconda36-x64\Scripts\activate.bat
-  - if "%TEST_MODE%" EQU "package" conda install -yq conda conda-build=3.17
-  - if "%TEST_MODE%" NEQ "package" conda install -yq python="%PYTHON_VERSION%" conda conda-build=3.17 pytest pytest-cov codecov pytest-timeout mock responses pexpect
-  - if "%TEST_MODE%" NEQ "package" python -m conda init cmd.exe --dev
+  - call %CONDA_ROOT%\Scripts\activate.bat
+  - if "%TEST_MODE%" == "package" (
+      conda install -yq conda conda-build=3.17
+    ) else (
+      conda install -yq python=%PYTHON_VERSION% conda conda-build=3.17 &&
+      conda install -yq pycosat requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling &&
+      pip install codecov==2.0.5 &&
+      conda init cmd.exe --dev
+    )
 
 build: false
 
 # There has to be a better way to do this, but AppVeyor is finicky with multi-line scripts
 test_script:
-  - if "%PYTHON_VERSION%" EQU "2.7" call C:\Miniconda\Scripts\activate.bat
-  - if "%PYTHON_VERSION%" NEQ "2.7" call C:\Miniconda36-x64\Scripts\activate.bat
-  - if "%PYTHON_VERSION%" EQU "2.7" (set PYTHON_ARCH=32) else (set PYTHON_ARCH=64)
-  - if "%PYTHON_VERSION%" EQU "2.7" set PYTHONIOENCODING=UTF-8
-  - if "%TEST_MODE%" EQU "package" conda-build conda.recipe --python=%PYTHON_VERSION%
-  - if "%TEST_MODE%" EQU "integration" conda-build tests\test-recipes\activate_deactivate_package
-  - if "%TEST_MODE%" NEQ "package" call dev-init.bat
-  - if "%TEST_MODE%" NEQ "package" py.test -m "%TEST_MODE% and not installed" -v --basetemp=C:\tmp
-  - if "%TEST_MODE%" NEQ "package" curl -s https://codecov.io/bash > codecov_uploader.sh
-  - if "%TEST_MODE%" NEQ "package" bash -c ". codecov_uploader.sh -f coverage.xml"
-  - if "%TEST_MODE%" NEQ "package" python -m conda.common.io
+  - call %CONDA_ROOT%\Scripts\activate.bat
+  - if "%PYTHON_VERSION" == "2.7" (set PYTHON_ARCH="32") else (set PYTHON_ARCH="64")
+  - if "%TEST_MODE%" == "package" (
+      conda-build conda.recipe --python=%PYTHON_VERSION%
+    ) else (
+      call dev-init.bat &&
+      (if "%TEST_MODE%" == "integration" conda-build tests\test-recipes\activate_deactivate_package) &&
+      py.test -m "%TEST_MODE% and not installed" -v --basetemp=C:\tmp &&
+      curl -s https://codecov.io/bash > codecov_uploader.sh &&
+      bash -c ". codecov_uploader.sh -f coverage.xml" &&
+      python -m conda.common.io
+    )
