@@ -7,13 +7,9 @@ from collections import OrderedDict
 from genericpath import exists
 from logging import getLogger
 import sys
-try:
-    from os import scandir
-except ImportError:
-    from scandir import scandir
 
 from ..._vendor.auxlib.decorators import memoize
-from ..compat import iteritems
+from ..compat import iteritems, scandir
 
 
 log = getLogger(__name__)

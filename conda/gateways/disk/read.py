@@ -12,10 +12,6 @@ from itertools import chain
 import json
 from logging import getLogger
 from os.path import isdir, isfile, join
-try:
-    from os import scandir
-except ImportError:
-    from scandir import scandir
 
 from .link import islink, lexists
 from .create import TemporaryDirectory
@@ -23,7 +19,7 @@ from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.compat import shlex_split_unicode
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import open
+from ...common.compat import open, scandir
 from ...common.pkg_formats.python import (
     PythonDistribution, PythonEggInfoDistribution, PythonEggLinkDistribution,
     PythonInstalledDistribution,

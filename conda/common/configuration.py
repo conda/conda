@@ -27,15 +27,11 @@ from logging import getLogger
 from os import environ, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
-try:
-    from os import scandir
-except ImportError:
-    from scandir import scandir
 
 from enum import Enum, EnumMeta
 
 from .compat import (binary_type, isiterable, iteritems, itervalues, odict, primitive_types,
-                     string_types, text_type, with_metaclass)
+                     scandir, string_types, text_type, with_metaclass)
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_load

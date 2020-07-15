@@ -13,10 +13,6 @@ from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, j
 import re
 import sys
 from textwrap import dedent
-try:
-    from os import scandir
-except ImportError:
-    from scandir import scandir
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -25,7 +21,8 @@ from ._vendor.toolz import concatv, drop
 from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
+from .common.compat import (FILESYSTEM_ENCODING, PY2, iteritems, on_win,
+                            scandir, string_types, text_type)
 from .common.path import paths_equal
 
 

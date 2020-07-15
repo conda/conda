@@ -15,13 +15,9 @@ from posixpath import normpath as posix_normpath
 import re
 import sys
 import warnings
-try:
-    from os import scandir
-except ImportError:
-    from scandir import scandir
 
 from ... import CondaError
-from ..compat import PY2, StringIO, itervalues, odict, open, string_types
+from ..compat import PY2, StringIO, itervalues, odict, open, scandir, string_types
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )

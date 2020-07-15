@@ -8,16 +8,13 @@ import json
 from logging import getLogger
 from os.path import basename, isdir, isfile, join, lexists
 import re
-try:
-    from os import scandir
-except ImportError:
-    from scandir import scandir
 
 from ..base.constants import PREFIX_STATE_FILE
 from .._vendor.auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import JSONDecodeError, itervalues, odict, string_types, with_metaclass
+from ..common.compat import (JSONDecodeError, itervalues, odict, scandir,
+                             string_types, with_metaclass)
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok

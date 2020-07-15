@@ -7,14 +7,10 @@ from errno import EACCES, EROFS, ENOENT
 from logging import getLogger
 from os import devnull
 from os.path import dirname, isdir, isfile, join, normpath
-try:
-    from os import scandir
-except ImportError:
-    from scandir import scandir
 
 from .prefix_data import PrefixData
 from ..base.context import context
-from ..common.compat import ensure_text_type, on_win, open
+from ..common.compat import ensure_text_type, on_win, open, scandir
 from ..common._os import is_admin
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines

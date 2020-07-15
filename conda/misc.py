@@ -13,13 +13,9 @@ from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 import re
 import shutil
 import sys
-try:
-    from os import scandir
-except ImportError:
-    from scandir import scandir
 
 from .base.context import context
-from .common.compat import itervalues, on_win, open
+from .common.compat import itervalues, on_win, open, scandir
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index

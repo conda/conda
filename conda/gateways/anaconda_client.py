@@ -8,13 +8,10 @@ import re
 from logging import getLogger
 from os.path import isdir, isfile, join
 from stat import S_IREAD, S_IWRITE
-try:
-    from os import scandir
-except ImportError:
-    from scandir import scandir
 
 from .disk.delete import rm_rf
 from .._vendor.appdirs import AppDirs, EnvAppDirs
+from ..common.compat import scandir
 from ..common.url import quote_plus, unquote_plus
 
 log = getLogger(__name__)
