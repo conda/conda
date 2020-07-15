@@ -872,7 +872,7 @@ def configure_parser_compare(sub_parsers):
 
         conda compare environment.yml
 
-    Comapre packages installed into the environment 'myenv' with respect to 'environment.yml':
+    Compare packages installed into the environment 'myenv' with respect to 'environment.yml':
 
         conda compare -n myenv environment.yml
 
