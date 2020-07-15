@@ -108,7 +108,7 @@ elif PY2:  # pragma: py3 no cover
     #   File "<stdin>", line 1, in <module>
     # UnicodeEncodeError: 'ascii' codec can't encode characters in position 3-6: ordinal not in range(128)
     from io import StringIO
-    from os import scandir
+    from scandir import scandir
     from itertools import izip as zip, izip_longest as zip_longest
     JSONDecodeError = ValueError
 
