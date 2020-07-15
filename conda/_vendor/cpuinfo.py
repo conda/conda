@@ -2165,8 +2165,8 @@ def get_cpu_info():
 # Make sure we are running on a supported system
 def _check_arch():
     arch, bits = parse_arch(DataSource.raw_arch_string)
-    if not arch in ['X86_32', 'X86_64', 'ARM_7', 'ARM_8', 'PPC_64']:
-        raise Exception("py-cpuinfo currently only works on X86 and some PPC and ARM CPUs.")
+    if not arch in ['X86_32', 'X86_64', 'ARM_7', 'ARM_8', 'PPC_64', 'S390X']:
+        raise Exception("py-cpuinfo currently only works on X86 and some PPC, S390X and ARM CPUs.")
 
 def main():
     try:
