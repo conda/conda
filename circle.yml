@@ -43,8 +43,7 @@ main_test: &main_test
           if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
             echo "No codecov report to upload"
           else
-            /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
-            echo "No codecov report to upload"
+            bash <(curl -s https://codecov.io/bash)
           fi
 
 
