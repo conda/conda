@@ -111,7 +111,7 @@ class Channel(object):
         else:
             # at this point assume we don't have a bare (non-scheme) url
             #   e.g. this would be bad:  repo.anaconda.com/pkgs/free
-            _stripped, platform = split_platform(value, context.known_subdirs)
+            _stripped, platform = split_platform(context.known_subdirs, value)
             if _stripped in context.custom_multichannels:
                 return MultiChannel(_stripped, context.custom_multichannels[_stripped], platform)
             else:
@@ -364,7 +364,7 @@ def _get_channel_for_name(channel_name):
                 return None
             return _get_channel_for_name_helper(test_name)
 
-    _stripped, platform = split_platform(channel_name, context.known_subdirs)
+    _stripped, platform = split_platform(context.known_subdirs, channel_name)
     channel = _get_channel_for_name_helper(_stripped)
 
     if channel is not None:
@@ -447,7 +447,7 @@ def _read_channel_configuration(scheme, host, port, path):
 
 def parse_conda_channel_url(url):
     (scheme, auth, token, platform, package_filename,
-     host, port, path, query) = split_conda_url_easy_parts(url, context.known_subdirs)
+     host, port, path, query) = split_conda_url_easy_parts(context.known_subdirs, url)
 
     # recombine host, port, path to get a channel_name and channel_location
     (channel_location, channel_name, configured_scheme, configured_auth,

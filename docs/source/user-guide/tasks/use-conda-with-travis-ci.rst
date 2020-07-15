@@ -8,7 +8,7 @@ Using conda with Travis CI
 
 
 If you are already using Travis CI, using conda is a preferable
-alternative to using apt-get and pip to install packages. The
+alternative to using apt and pip to install packages. The
 Debian repos provided by Travis may not include packages for all
 versions of Python or may not be updated as quickly. Installing
 such packages with pip may also be undesirable, as this can take
@@ -37,7 +37,7 @@ project that supports Python 2.7, 3.5, and 3.6:
      - "3.5"
      - "3.6"
    install:
-     - sudo apt-get update
+     - sudo apt update
      # We do this conditionally because it saves us some downloading if the
      # version is the same.
      - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then

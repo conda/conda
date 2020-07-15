@@ -56,9 +56,9 @@ Are you:
           For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
         * If you are using R, instead of specifying only ``r-essentials``, specify ``r-base=3.5 r-essentials``.
     * Feeling frustrated with “verifying transaction” and also feeling lucky?
-        * Run ``conda config –set safety_checks disabled``.
+        * Run ``conda config --set safety_checks disabled``.
     * Getting strange mixtures of defaults and conda-forge?
-        * Run ``conda config –set channel_priority strict``.
+        * Run ``conda config --set channel_priority strict``.
         * This also makes things go faster by eliminating possible mixed solutions.
     * Observing that an Anaconda or Miniconda installation is getting slower over time?
         * Create a fresh environment. As environments grow, they become harder
