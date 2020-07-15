@@ -72,7 +72,7 @@ def rmtree(path, *args, **kwargs):
             except CalledProcessError as e:
                 if e.returncode != 5:
                     log.error("Removing folder {} the fast way failed.  Output was: {}"
-                              .format(out))
+                              .format(name, out))
                     raise
                 else:
                     log.debug("removing dir contents the fast way failed.  Output was: {}"
