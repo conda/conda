@@ -134,7 +134,7 @@ class PythonDistribution(object):
         https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
         """
         requires = odict()
-        lines = [l.strip() for l in data.split('\n') if l]
+        lines = [line.strip() for line in data.split('\n') if line]
 
         if lines and not (lines[0].startswith('[') and lines[0].endswith(']')):
             # Add dummy section for unsectioned items
