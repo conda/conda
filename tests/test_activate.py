@@ -1496,7 +1496,7 @@ class ShellWrapperUnitTests(TestCase):
                 'conda_exe_export': conda_exe_export,
             }
             if on_win:
-                e_deactivate_info['sourcer'] = 'source-cmd'
+                e_deactivate_info['sourcer'] = 'source-cmd --suppress-skip-message'
                 e_deactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat'))
             else:
                 e_deactivate_info['sourcer'] = 'source-bash --suppress-skip-message'
