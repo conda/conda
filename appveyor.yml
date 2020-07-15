@@ -45,7 +45,7 @@ environment:
 # TODO: add xonsh for PY3 builds  
 install:
   - call %CONDA_ROOT%\Scripts\activate.bat
-  - if "%PYTHON_VERSION%" == "2.7" SCANDIR=scandir
+  - if "%PYTHON_VERSION%" == "2.7" set SCANDIR=scandir
   - if "%TEST_MODE%" == "package" (
       conda install -yq conda conda-build=3.17
     ) else (
