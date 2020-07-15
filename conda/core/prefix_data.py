@@ -376,7 +376,7 @@ def get_python_version_for_prefix(prefix):
     next_record = next(py_record_iter, None)
     if next_record is not None:
         raise CondaDependencyError("multiple python records found in prefix %s" % prefix)
-    elif record.version[4].isdigit():
+    elif record.version[3].isdigit():
         return record.version[:4]
     else:
         return record.version[:3]
