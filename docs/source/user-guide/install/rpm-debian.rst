@@ -11,7 +11,7 @@ To install the RPM on RedHat, CentOS, Fedora distributions, and other RPM-based 
    rpm --import https://repo.anaconda.com/pkgs/misc/gpgkeys/anaconda.asc
  
    # Add the Anaconda repository
-   cat <<EOF > /etc/yum.repos.d/conda.repo
+   cat <<EOF > /etc/yum/repos.d/conda.repo
    [conda]
    name=Conda
    baseurl=https://repo.anaconda.com/pkgs/misc/rpmrepo/conda
@@ -107,7 +107,7 @@ Check to see if the installation is successful by typing:
 Installing conda packages with the system package manager makes it very easy
 to distribute conda across a cluster of machines running Linux without having
 to worry about any non-privileged user modifying the installation.
-Any non-privileged user simply needs to run ``source/opt/conda/etc/profile.d/conda.sh`` to use conda.
+Any non-privileged user simply needs to run ``source /opt/conda/etc/profile.d/conda.sh`` to use conda.
 
 Administrators can also distribute a .condarc file at /opt/conda/.condarc so that a
 predefined configuration for channels, package cache directory, and environment locations
