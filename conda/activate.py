@@ -1058,6 +1058,87 @@ class PowerShellActivator(_Activator):
         return None
 
 
+class JSONFormatMixin(_Activator):
+    """Returns the necessary values for activation as JSON, so that tools can use them."""
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = list
+        self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+        self.command_join = list
+
+        super(JSONFormatMixin, self).__init__(arguments)
+
+    def _hook_preamble(self):
+        if context.dev:
+            return {
+                'PYTHONPATH': dirname(CONDA_PACKAGE_ROOT),
+                'CONDA_EXE': sys.executable,
+                '_CE_M': '-m',
+                '_CE_CONDA': 'conda',
+                '_CONDA_ROOT': '{python_path}{s}conda'.format(
+                    python_path=dirname(CONDA_PACKAGE_ROOT), s=os.sep),
+                '_CONDA_EXE': context.conda_exe,
+            }
+        else:
+            return {
+                'CONDA_EXE': context.conda_exe,
+                '_CE_M': '',
+                '_CE_CONDA': '',
+                '_CONDA_ROOT': context.conda_prefix,
+                '_CONDA_EXE': context.conda_exe,
+            }
+
+    def get_scripts_export_unset_vars(self, **kwargs):
+        export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict(kwargs))
+        script_export_vars = script_unset_vars = None
+        if export_vars:
+            script_export_vars = dict(export_vars.items())
+        if unset_vars:
+            script_unset_vars = unset_vars
+        return script_export_vars or {}, script_unset_vars or []
+
+    def _finalize(self, commands, ext):
+        merged = {}
+        for _cmds in commands:
+            merged.update(_cmds)
+
+        commands = merged
+        if ext is None:
+            return json.dumps(commands, indent=2)
+        elif ext:
+            with Utf8NamedTemporaryFile('w+', suffix=ext, delete=False) as tf:
+                # the default mode is 'w+b', and universal new lines don't work in that mode
+                # command_join should account for that
+                json.dump(commands, tf, indent=2)
+            return tf.name
+        else:
+            raise NotImplementedError()
+
+    def _yield_commands(self, cmds_dict):
+        # TODO: _Is_ defining our own object shape here any better than
+        # just dumping the `cmds_dict`?
+        path = cmds_dict.get('export_path', {})
+        export_vars = cmds_dict.get('export_vars', {})
+        # treat PATH specially
+        if 'PATH' in export_vars:
+            new_path = path.get('PATH', [])
+            new_path.extend(export_vars.pop('PATH'))
+            path['PATH'] = new_path
+
+        yield {
+            'path': path,
+            'vars': {
+                'export': export_vars,
+                'unset': cmds_dict.get('unset_vars', ()),
+                'set': cmds_dict.get('set_vars', {}),
+            },
+            'scripts': {
+                'activate': cmds_dict.get('activate_scripts', ()),
+                'deactivate': cmds_dict.get('deactivate_scripts', ()),
+            }
+        }
+
+
 activator_map = {
     'posix': PosixActivator,
     'ash': PosixActivator,
@@ -1072,6 +1153,26 @@ activator_map = {
     'powershell': PowerShellActivator,
 }
 
+formatter_map = {
+    'json': JSONFormatMixin,
+}
+
+
+def _build_activator_cls(shell):
+    """Construct the activator class dynamically from a base activator and any
+    number of formatters, appended using '+' to the name. For example,
+    `posix+json` (as in `conda shell.posix+json activate`) would use the
+    `PosixActivator` base class and add the `JSONFormatMixin`."""
+    shell_etc = shell.split('+')
+    activator, formatters = shell_etc[0], shell_etc[1:]
+    bases = [activator_map[activator]]
+
+    for f in formatters:
+        bases.append(formatter_map[f])
+
+    cls = type(str('Activator'), tuple(bases), {})
+    return cls
+
 
 def main(argv=None):
     from .common.compat import init_std_stream_encoding
@@ -1085,9 +1186,10 @@ def main(argv=None):
     shell = argv[1].replace('shell.', '', 1)
     activator_args = argv[2:]
     try:
-        activator_cls = activator_map[shell]
+        activator_cls = _build_activator_cls(shell)
     except KeyError:
         raise CondaError("%s is not a supported shell." % shell)
+
     activator = activator_cls(activator_args)
     try:
         print(activator.execute(), end='')
