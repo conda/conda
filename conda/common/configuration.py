@@ -436,19 +436,19 @@ class DefaultValueRawParameter(RawParameter):
 def load_file_configs(search_path):
     # returns an ordered map of filepath and dict of raw parameter objects
 
-    def _file_yaml_loader(fullpath):
+    def _file_loader(fullpath):
         assert fullpath.endswith((".yml", ".yaml")) or "condarc" in basename(fullpath), fullpath
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
-    def _dir_yaml_loader(fullpath):
+    def _dir_loader(fullpath):
         for filepath in sorted(concatv(glob(join(fullpath, "*.yml")),
                                        glob(join(fullpath, "*.yaml")))):
             yield filepath, YamlRawParameter.make_raw_parameters_from_file(filepath)
 
     # map a stat result to a file loader or a directory loader
     _loader = {
-        S_IFREG: _file_yaml_loader,
-        S_IFDIR: _dir_yaml_loader,
+        S_IFREG: _file_loader,
+        S_IFDIR: _dir_loader,
     }
 
     def _get_st_mode(path):
