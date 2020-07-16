@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
@@ -938,10 +937,10 @@ class XonshActivator(_Activator):
         import platform
         if platform.system() == 'Windows':
             self.script_extension = '.bat'
-            self.run_script_tmpl = 'source-cmd "%s"'
+            self.run_script_tmpl = 'source-cmd --suppress-skip-message "%s"'
         else:
             self.script_extension = '.sh'
-            self.run_script_tmpl = 'source-bash "%s"'
+            self.run_script_tmpl = 'source-bash --suppress-skip-message "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
 

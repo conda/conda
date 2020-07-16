@@ -1431,10 +1431,10 @@ class ShellWrapperUnitTests(TestCase):
             'conda_exe_export': conda_exe_export,
         }
         if on_win:
-            e_activate_info['sourcer'] = 'source-cmd'
+            e_activate_info['sourcer'] = 'source-cmd --suppress-skip-message'
             e_activate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat'))
         else:
-            e_activate_info['sourcer'] = 'source-bash'
+            e_activate_info['sourcer'] = 'source-bash --suppress-skip-message'
             e_activate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh'))
         e_activate_data = e_activate_template % e_activate_info
         assert activate_data == e_activate_data
@@ -1464,11 +1464,11 @@ class ShellWrapperUnitTests(TestCase):
                 'native_prefix': self.prefix,
             }
             if on_win:
-                e_reactivate_info['sourcer'] = 'source-cmd'
+                e_reactivate_info['sourcer'] = 'source-cmd --suppress-skip-message'
                 e_reactivate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat'))
                 e_reactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat'))
             else:
-                e_reactivate_info['sourcer'] = 'source-bash'
+                e_reactivate_info['sourcer'] = 'source-bash --suppress-skip-message'
                 e_reactivate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh'))
                 e_reactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh'))
             e_reactivate_data = e_reactivate_template % e_reactivate_info
@@ -1496,10 +1496,10 @@ class ShellWrapperUnitTests(TestCase):
                 'conda_exe_export': conda_exe_export,
             }
             if on_win:
-                e_deactivate_info['sourcer'] = 'source-cmd'
+                e_deactivate_info['sourcer'] = 'source-cmd --suppress-skip-message'
                 e_deactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat'))
             else:
-                e_deactivate_info['sourcer'] = 'source-bash'
+                e_deactivate_info['sourcer'] = 'source-bash --suppress-skip-message'
                 e_deactivate_info['deactivate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh'))
             e_deactivate_data = e_deactivate_template % e_deactivate_info
             assert deactivate_data == e_deactivate_data
