@@ -45,7 +45,7 @@ from conda.common.compat import (ensure_text_type, iteritems, string_types, text
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
-from conda.common.serialize import yaml_load, json_dump
+from conda.common.serialize import yaml_round_trip_load, json_dump
 from conda.common.url import path_to_url
 from conda.core.index import get_reduced_index, get_index
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
@@ -1694,7 +1694,7 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
             run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "flask")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(stdout)
+            yml_obj = yaml_round_trip_load(stdout)
             assert yml_obj['create_default_packages'] == ['flask', 'pip']
 
             assert not package_is_installed(prefix, 'python=2')
@@ -1717,7 +1717,7 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
             run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "flask")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(stdout)
+            yml_obj = yaml_round_trip_load(stdout)
             assert yml_obj['create_default_packages'] == ['flask', 'pip']
 
             assert not package_is_installed(prefix, 'python=2')
@@ -2216,7 +2216,7 @@ dependencies:
             channel_url = "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal"
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(stdout)
+            yml_obj = yaml_round_trip_load(stdout)
             assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
 
             with pytest.raises(PackagesNotFoundError):
@@ -2248,7 +2248,7 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             output, _, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(output)
+            yml_obj = yaml_round_trip_load(output)
             assert yml_obj['channels'] == [channel_url]
 
             output, _, _ = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
@@ -2267,7 +2267,7 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(stdout)
+            yml_obj = yaml_round_trip_load(stdout)
 
             assert yml_obj['channels'] == ["https://conda.anaconda.org/t/<TOKEN>/kalefranz"]
 

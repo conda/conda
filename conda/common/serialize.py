@@ -43,6 +43,7 @@ def represent_ordereddict(dumper, data):
 
 
 yaml.representer.RoundTripRepresenter.add_representer(odict, represent_ordereddict)
+yaml.representer.SafeRepresenter.add_representer(odict, represent_ordereddict)
 
 if PY2:
     def represent_unicode(self, data):
@@ -52,35 +53,32 @@ if PY2:
     yaml.representer.RoundTripRepresenter.add_representer(unicode, represent_unicode)  # NOQA
 
 
-def yaml_load(string):
-    return yaml.load(string, Loader=yaml.RoundTripLoader, version="1.2")
+def yaml_round_trip_load(string):
+    return yaml.round_trip_load(string, version="1.2")
 
 
-def yaml_load_safe(string):
+def yaml_safe_load(string):
     """
     Examples:
-        >>> yaml_load_safe("key: value")
+        >>> yaml_safe_load("key: value")
         {'key': 'value'}
 
     """
-    return yaml.load(string, Loader=yaml.SafeLoader, version="1.2")
+    return yaml.safe_load(string, version="1.2")
 
 
-def yaml_load_standard(string):
-    """Uses the default (unsafe) loader.
-
-    Examples:
-        >>> yaml_load_standard("prefix: !!python/unicode '/Users/darwin/test'")
-        {'prefix': '/Users/darwin/test'}
-    """
-    return yaml.load(string, Loader=yaml.Loader, version="1.2")
-
-
-def yaml_dump(object):
+def yaml_round_trip_dump(object):
     """dump object to string"""
-    return yaml.dump(object, Dumper=yaml.RoundTripDumper,
-                     block_seq_indent=2, default_flow_style=False,
-                     indent=2)
+    return yaml.round_trip_dump(
+        object, block_seq_indent=2, default_flow_style=False, indent=2
+    )
+
+
+def yaml_safe_dump(object):
+    """dump object to string"""
+    return yaml.safe_dump(
+        object, block_seq_indent=2, default_flow_style=False, indent=2
+    )
 
 
 def json_load(string):

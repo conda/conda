@@ -11,15 +11,15 @@ import json
 
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
-from conda.common.serialize import yaml_load_standard
+from conda.common.compat import odict
+from conda.common.serialize import yaml_safe_load, yaml_safe_dump
 from conda.core.prefix_data import PrefixData
 from conda.gateways.connection.download import download_text
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
-from conda_env.yaml import dump
-from . import compat, exceptions, yaml
+from . import compat, exceptions
 from conda.history import History
 
 try:
@@ -135,7 +135,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
 
 def from_yaml(yamlstr, **kwargs):
     """Load and return a ``Environment`` from a given ``yaml string``"""
-    data = yaml_load_standard(yamlstr)
+    data = yaml_safe_load(yamlstr)
     data = validate_keys(data, kwargs)
 
     if kwargs is not None:
@@ -232,7 +232,7 @@ class Environment(object):
         self.channels = []
 
     def to_dict(self, stream=None):
-        d = yaml.dict([('name', self.name)])
+        d = odict([('name', self.name)])
         if self.channels:
             d['channels'] = self.channels
         if self.dependencies:
@@ -245,7 +245,7 @@ class Environment(object):
 
     def to_yaml(self, stream=None):
         d = self.to_dict()
-        out = compat.u(dump(d))
+        out = compat.u(yaml_safe_dump(d))
         if stream is None:
             return out
         stream.write(compat.b(out, encoding="utf-8"))

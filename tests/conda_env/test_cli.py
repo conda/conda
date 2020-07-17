@@ -1,25 +1,23 @@
 import json
 import os
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
-import unittest
 
 import pytest
+import unittest
 
+from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser
+from conda.common.compat import odict
 from conda.common.io import captured
+from conda.common.serialize import yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
+from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
 from conda.utils import massage_arguments
-from conda.exceptions import EnvironmentLocationNotFound
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
-from conda_env.exceptions import EnvironmentFileExtensionNotValid, EnvironmentFileNotFound, CondaEnvException
-from conda_env.yaml import load as yaml_load
-from conda_env.yaml import odict
-
-from . import support_file
+from conda_env.exceptions import CondaEnvException, EnvironmentFileExtensionNotValid, EnvironmentFileNotFound
 
 environment_1 = '''
 name: env-1
@@ -459,7 +457,7 @@ class NewIntegrationTests(unittest.TestCase):
             # regression test for #6220
             snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2, '--no-builds')
             assert not e.strip()
-            env_description = yaml_load(snowflake)
+            env_description = yaml_safe_load(snowflake)
             assert len(env_description['dependencies'])
             for spec_str in env_description['dependencies']:
                 assert spec_str.count('=') == 1
