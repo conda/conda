@@ -45,7 +45,7 @@ from conda.common.compat import (ensure_text_type, iteritems, string_types, text
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
-from conda.common.serialize import yaml_load, json_dump
+from conda.common.serialize import yaml_round_trip_load, json_dump
 from conda.common.url import path_to_url
 from conda.core.index import get_reduced_index, get_index
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
@@ -196,6 +196,7 @@ def FORCE_temp_prefix(name=None, use_restricted_unicode=False):
 
 
 class Commands:
+    COMPARE = "compare"
     CONFIG = "config"
     CLEAN = "clean"
     CREATE = "create"
@@ -246,7 +247,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     if command is Commands.CONFIG:
         arguments.append('--file')
         arguments.append(join(prefix, 'condarc'))
-    if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
+    if command in (Commands.LIST, Commands.COMPARE, Commands.CREATE, Commands.INSTALL,
                    Commands.REMOVE, Commands.UPDATE, Commands.RUN):
         arguments.insert(0, '-p')
         arguments.insert(1, prefix)
@@ -912,6 +913,39 @@ class IntegrationTests(TestCase):
             _rm_rf(prefix)
             assert not isdir(prefix)
             assert prefix not in PrefixData._cache_
+
+    def test_compare_success(self):
+        with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+            env_file = join(prefix, 'env.yml')
+            touch(env_file)
+            with open(env_file, "w") as f:
+                f.write(
+"""name: dummy
+channels:
+  - defaults
+dependencies:
+  - bzip2=1.0.8
+  - flask>=1.0.1,<=1.0.4""")
+            output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
+            assert "Success" in output
+            rmtree(prefix, ignore_errors=True)
+
+    def test_compare_fail(self):
+        with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+            env_file = join(prefix, 'env.yml')
+            touch(env_file)
+            with open(env_file, "w") as f:
+                f.write(
+"""name: dummy
+channels:
+  - defaults
+dependencies:
+  - yaml
+  - flask=1.0.3""")
+            output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
+            assert "yaml not found" in output
+            assert "flask found but mismatch. Specification pkg: flask=1.0.3, Running pkg: flask==1.0.2=py36_1" in output
+            rmtree(prefix, ignore_errors=True)
 
     def test_install_tarball_from_local_channel(self):
         # Regression test for #2812
@@ -1660,7 +1694,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
             run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "flask")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(stdout)
+            yml_obj = yaml_round_trip_load(stdout)
             assert yml_obj['create_default_packages'] == ['flask', 'pip']
 
             assert not package_is_installed(prefix, 'python=2')
@@ -1683,7 +1717,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
             run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "flask")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(stdout)
+            yml_obj = yaml_round_trip_load(stdout)
             assert yml_obj['create_default_packages'] == ['flask', 'pip']
 
             assert not package_is_installed(prefix, 'python=2')
@@ -2182,7 +2216,7 @@ class IntegrationTests(TestCase):
             channel_url = "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal"
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(stdout)
+            yml_obj = yaml_round_trip_load(stdout)
             assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
 
             with pytest.raises(PackagesNotFoundError):
@@ -2214,7 +2248,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             output, _, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(output)
+            yml_obj = yaml_round_trip_load(output)
             assert yml_obj['channels'] == [channel_url]
 
             output, _, _ = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
@@ -2233,7 +2267,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-            yml_obj = yaml_load(stdout)
+            yml_obj = yaml_round_trip_load(stdout)
 
             assert yml_obj['channels'] == ["https://conda.anaconda.org/t/<TOKEN>/kalefranz"]
 

@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from conda._vendor.auxlib.ish import dals
-from conda.common.serialize import yaml_dump, yaml_load
+from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 
 log = getLogger(__name__)
 
@@ -14,7 +14,7 @@ def test_dump():
         ('a_seq', [1, 2, 3]),
         ('a_map', {'a_key': 'a_value'}),
     ])
-    assert obj == yaml_load(yaml_dump(obj))
+    assert obj == yaml_round_trip_load(yaml_round_trip_dump(obj))
 
 
 def test_seq_simple():
@@ -24,7 +24,7 @@ def test_seq_simple():
       - 2
       - 3
     """)
-    assert test_string == yaml_dump({'a_seq': [1, 2, 3]})
+    assert test_string == yaml_round_trip_dump({'a_seq': [1, 2, 3]})
 
 
 def test_yaml_complex():
@@ -70,10 +70,10 @@ def test_yaml_complex():
         },
     }
 
-    loaded_from_string = yaml_load(test_string)
+    loaded_from_string = yaml_round_trip_load(test_string)
     assert python_structure == loaded_from_string
 
-    dumped_from_load = yaml_dump(loaded_from_string)
+    dumped_from_load = yaml_round_trip_dump(loaded_from_string)
     print(dumped_from_load)
     assert dumped_from_load == test_string
 
@@ -83,4 +83,4 @@ def test_map():
     a_map:
       a_key: a_value
     """)
-    assert test_string == yaml_dump({'a_map': {'a_key': 'a_value'}})
+    assert test_string == yaml_round_trip_dump({'a_map': {'a_key': 'a_value'}})

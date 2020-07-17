@@ -10,7 +10,7 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.exceptions import CondaHTTPError
 from conda.models.match_spec import MatchSpec
 from conda.common.io import env_vars
-from conda.common.serialize import yaml_load
+from conda.common.serialize import yaml_round_trip_load
 from conda.install import on_win
 
 from . import support_file
@@ -195,7 +195,7 @@ class EnvironmentTestCase(unittest.TestCase):
             'dependencies': ['nodejs']
         }
 
-        actual = yaml_load(StringIO(e.to_yaml()))
+        actual = yaml_round_trip_load(StringIO(e.to_yaml()))
         self.assertEqual(expected, actual)
 
     def test_to_yaml_returns_proper_yaml(self):
@@ -237,7 +237,7 @@ class EnvironmentTestCase(unittest.TestCase):
             '  - nodejs',
             '',
         ])
-        self.assertEqual(expected, s.output)
+        assert expected == s.output
 
     def test_can_add_dependencies_to_environment(self):
         e = get_simple_environment()
@@ -253,7 +253,7 @@ class EnvironmentTestCase(unittest.TestCase):
             '  - bar',
             ''
         ])
-        self.assertEqual(expected, s.output)
+        assert expected == s.output
 
     def test_dependencies_update_after_adding(self):
         e = get_simple_environment()
@@ -402,7 +402,7 @@ class SaveExistingEnvTestCase(unittest.TestCase):
                 # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
                 run_command(Commands.EXPORT, env_name, out_file)
                 with open(out_file) as f:
-                    d = yaml_load(f)
+                    d = yaml_round_trip_load(f)
                 assert {'pip': ['argh==0.26.2']} in d['dependencies']
 
 

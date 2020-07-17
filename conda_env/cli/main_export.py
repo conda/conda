@@ -116,3 +116,4 @@ def execute(args, parser):
     else:
         fp = open(args.file, 'wb')
         env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)
+        fp.close()

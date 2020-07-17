@@ -45,9 +45,19 @@ def _raise_pipeline_error(pipeline):
 
 
 def _conda_activate_handler(env_name_or_prefix):
+    import os
+
     __xonsh__.execer.exec($($CONDA_EXE shell.xonsh activate @(env_name_or_prefix)),
                           glbs=__xonsh__.ctx,
                           filename="$(conda shell.xonsh activate " + env_name_or_prefix + ")")
+    if $CONDA_DEFAULT_ENV != os.path.split(env_name_or_prefix)[1]:
+        import sys as _sys
+
+        print("WARNING: conda environment not activated properly. "
+              "This is likely because you have a conda init inside of your "
+              "~/.bashrc (unix) or *.bat activation file (windows). This is "
+              "causing conda to activate twice in xonsh. Please remove the conda "
+              "init block from your other shell.", file=_sys.stderr)
 
 
 def _conda_deactivate_handler():

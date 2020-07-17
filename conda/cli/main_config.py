@@ -21,7 +21,7 @@ from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalue
                              text_type)
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
-from ..common.serialize import yaml, yaml_dump, yaml_load
+from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
 
 
 def execute(args, parser):
@@ -76,7 +76,7 @@ def parameter_description_builder(name):
     builder.append('')
     builder = ['# ' + line for line in builder]
 
-    builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
+    builder.extend(yaml_round_trip_dump({name: json.loads(default_value_str)}).strip().split('\n'))
 
     builder = ['# ' + line for line in builder]
     builder.append('')
@@ -222,7 +222,8 @@ def execute_config(args, parser):
     # read existing condarc
     if os.path.exists(rc_path):
         with open(rc_path, 'r') as fh:
-            rc_config = yaml_load(fh) or {}
+            # round trip load required because... we need to round trip
+            rc_config = yaml_round_trip_load(fh) or {}
     else:
         rc_config = {}
 
@@ -275,7 +276,8 @@ def execute_config(args, parser):
         if not content:
             return
         try:
-            parsed = yaml_load(content)
+            # round trip load required because... we need to round trip
+            parsed = yaml_round_trip_load(content)
             rc_config.update(parsed)
         except Exception:  # pragma: no cover
             from ..exceptions import ParseError
@@ -361,7 +363,7 @@ def execute_config(args, parser):
 
         try:
             with open(rc_path, 'w') as rc:
-                rc.write(yaml_dump(rc_config))
+                rc.write(yaml_round_trip_dump(rc_config))
         except (IOError, OSError) as e:
             raise CondaError('Cannot write to condarc file at %s\n'
                              'Caused by %r' % (rc_path, e))

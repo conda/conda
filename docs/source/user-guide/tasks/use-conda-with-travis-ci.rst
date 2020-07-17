@@ -37,7 +37,6 @@ project that supports Python 2.7, 3.5, and 3.6:
      - "3.5"
      - "3.6"
    install:
-     - sudo apt update
      # We do this conditionally because it saves us some downloading if the
      # version is the same.
      - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then

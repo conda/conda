@@ -22,19 +22,20 @@ try:
 except ImportError:
     from collections import Mapping
 import copy
+from enum import Enum, EnumMeta
+from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
-
-from enum import Enum, EnumMeta
+import sys
 
 from .compat import (binary_type, isiterable, iteritems, itervalues, odict, primitive_types,
                      scandir, string_types, text_type, with_metaclass)
 from .constants import NULL
 from .path import expand
-from .serialize import yaml_load
+from .serialize import yaml_round_trip_load
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import AttrDict, first, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
@@ -304,6 +305,7 @@ class YamlRawParameter(RawParameter):
             self._value_flags = None
             self._value = self._raw_value
         else:
+            print(type(self._raw_value), self._raw_value, file=sys.stderr)
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
     def value(self, parameter_obj):
@@ -362,7 +364,7 @@ class YamlRawParameter(RawParameter):
     def make_raw_parameters_from_file(cls, filepath):
         with open(filepath, 'r') as fh:
             try:
-                ruamel_yaml = yaml_load(fh)
+                yaml_obj = yaml_round_trip_load(fh)
             except ScannerError as err:
                 mark = err.problem_mark
                 raise ConfigurationLoadError(
@@ -375,7 +377,7 @@ class YamlRawParameter(RawParameter):
                 raise ConfigurationLoadError(filepath,
                                              "  reason: invalid yaml at position %(position)s",
                                              position=err.position)
-            return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
+            return cls.make_raw_parameters(filepath, yaml_obj) or EMPTY_MAP
 
 
 class DefaultValueRawParameter(RawParameter):
@@ -434,11 +436,11 @@ class DefaultValueRawParameter(RawParameter):
 def load_file_configs(search_path):
     # returns an ordered map of filepath and dict of raw parameter objects
 
-    def _file_yaml_loader(fullpath):
+    def _file_loader(fullpath):
         assert fullpath.endswith((".yml", ".yaml")) or "condarc" in basename(fullpath), fullpath
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
-    def _dir_yaml_loader(fullpath):
+    def _dir_loader(fullpath):
         for filepath in sorted(
             p for p in (entry.path for entry in scandir(fullpath))
             if p[-4:] == ".yml" or p[-5:] == ".yaml"
@@ -447,8 +449,8 @@ def load_file_configs(search_path):
 
     # map a stat result to a file loader or a directory loader
     _loader = {
-        S_IFREG: _file_yaml_loader,
-        S_IFDIR: _dir_yaml_loader,
+        S_IFREG: _file_loader,
+        S_IFDIR: _dir_loader,
     }
 
     def _get_st_mode(path):
