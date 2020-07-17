@@ -8,7 +8,7 @@ set of certificates, which requires custom settings.
 If you are using a non-standard set of certificates, then the
 requests package requires the setting of ``REQUESTS_CA_BUNDLE``.
 If you receive an error with self-signed certifications, you may
-consider unsetting ``REQUESTS_CA_BUNDLE`` and `disabling SSL verification <https://conda.io/projects/conda/en/latest/user-guide/configuration/disable-ssl-verification.html>`_
+consider unsetting ``REQUESTS_CA_BUNDLE`` as well as ``CURL_CA_BUNDLE`` and `disabling SSL verification <https://conda.io/projects/conda/en/latest/user-guide/configuration/disable-ssl-verification.html>`_
 to create a conda environment over HTTP.
 
 You may need to set the conda environment to use the root certificate
