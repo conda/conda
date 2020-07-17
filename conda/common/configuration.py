@@ -23,7 +23,6 @@ except ImportError:
     from collections import Mapping
 import copy
 from enum import Enum, EnumMeta
-from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
