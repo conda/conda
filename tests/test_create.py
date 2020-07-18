@@ -2112,6 +2112,9 @@ class IntegrationTests(TestCase):
         # create an initial env
         with make_temp_env("python=2", use_restricted_unicode=on_win, no_capture=True) as prefix:
             assert package_is_installed(prefix, "python=2.7.*")
+            # Install a version older than the last one
+            run_command(Commands.INSTALL, prefix, "setuptools=40.*")
+
             stdout, stderr, _ = run_command(Commands.LIST, prefix, '--json')
 
             pkgs = json.loads(stdout)
