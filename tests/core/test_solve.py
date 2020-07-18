@@ -236,6 +236,16 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
+def test_virtual_package_solver(tmpdir):
+    specs = MatchSpec("cudatoolkit"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            final_state = solver.solve_final_state()
+            # Check the cuda virtual package is included in the solver
+            assert '__cuda' in solver.ssc.specs_map.keys()
+
+
 def test_cuda_1(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
