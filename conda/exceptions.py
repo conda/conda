@@ -679,11 +679,11 @@ explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
 
 The following specifications were found to be incompatible with each other:
                     '''),
-                    'cuda': dals('''
+                    'virtual_package': dals('''
 
-The following specifications were found to be incompatible with your CUDA driver:\n{specs}
+The following specifications were found to be incompatible with your system:\n{specs}
 
-Your installed CUDA driver is: {ref}
+Your installed version is: {ref}
 ''')}
 
         msg = ""

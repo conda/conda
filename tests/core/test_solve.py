@@ -282,12 +282,13 @@ def test_cuda_fail_1(tmpdir):
             plat = "win-64"
     else:
         plat = "linux-64"
-    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
+
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
   - feature:/{}::__cuda==8.0=0
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed CUDA driver is: 8.0""".format(plat))
+Your installed version is: 8.0""".format(plat))
 
 
 
@@ -299,11 +300,12 @@ def test_cuda_fail_2(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
-    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
+
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed CUDA driver is: not available""")
+Your installed version is: not available""")
 
 def test_prune_1(tmpdir):
     specs = MatchSpec("numpy=1.6"), MatchSpec("python=2.7.3"), MatchSpec("accelerate"),

@@ -292,7 +292,8 @@ class Resolve(object):
         classes = {'python': set(),
                    'request_conflict_with_history': set(),
                    'direct': set(),
-                   'cuda': set(), }
+                   'virtual_package': set(),
+                   }
         specs_to_add = set(MatchSpec(_) for _ in specs_to_add or [])
         history_specs = set(MatchSpec(_) for _ in history_specs or [])
         for chain in bad_deps:
@@ -307,10 +308,10 @@ class Resolve(object):
                             set(self.find_matches(chain[-1]))):
                         classes['python'].add((tuple([chain[0], chain[-1]]),
                                                str(MatchSpec(python_spec, target=None))))
-            elif chain[-1].name == '__cuda':
-                cuda_version = [_ for _ in self._system_precs if _.name == '__cuda']
-                cuda_version = cuda_version[0].version if cuda_version else "not available"
-                classes['cuda'].add((tuple(chain), cuda_version))
+            elif chain[-1].name.startswith('__'):
+                version = [_ for _ in self._system_precs if _.name == chain[-1].name]
+                virtual_package_version = version[0].version if version else "not available"
+                classes['virtual_package'].add((tuple(chain), virtual_package_version))
             elif chain[0] in specs_to_add:
                 match = False
                 for spec in history_specs:
