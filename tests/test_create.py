@@ -2113,33 +2113,19 @@ class IntegrationTests(TestCase):
         with make_temp_env("python=2", use_restricted_unicode=on_win, no_capture=True) as prefix:
             assert package_is_installed(prefix, "python=2.7.*")
             stdout, stderr, _ = run_command(Commands.LIST, prefix, '--json')
+
             pkgs = json.loads(stdout)
-            specs = set()
-            for entry in pkgs:
-                if entry['name'] in DEFAULT_AGGRESSIVE_UPDATE_PACKAGES:
-                    specs.add(MatchSpec(entry['name']))
-                else:
-                    specs.add(MatchSpec(entry['name'],
-                                        version=entry['version'],
-                                        channel=entry['channel'],
-                                        subdir=entry['platform'],
-                                        build=entry['build_string']))
-            ms = MatchSpec('imagesize')
-            specs.add(ms)
 
-            import conda.core.solve
-            r = conda.core.solve.Resolve(get_index())
-            reduced_index = r.get_reduced_index([ms])
+            run_command(Commands.INSTALL, prefix, "imagesize", "--freeze-installed")
 
-            # now add imagesize to that env.  The call to get_reduced_index should include our exact specs
-            #     for the existing env.  doing so will greatly reduce the search space for the initial solve
-            with patch.object(conda.core.solve.Resolve, 'get_reduced_index',
-                              return_value=reduced_index) as mock_method:
-                run_command(Commands.INSTALL, prefix, "imagesize")
-                # TODO: this should match the specs above.  It does, at least as far as I can tell from text
-                #    comparison.   Unfortunately, it doesn't evaluate as a match, even though the text all matches.
-                #    I suspect some strange equality of objects issue.
-                mock_method.assert_called_with(specs, exit_on_conflict=False)
+            stdout, _, _ = run_command(Commands.LIST, prefix, '--json')
+            pkgs_after_install = json.loads(stdout)
+
+            # Compare before and after installing package
+            for pkg in pkgs:
+                for pkg_after in pkgs_after_install:
+                    if pkg["name"] == pkg_after["name"]:
+                        assert pkg["version"] == pkg_after["version"]
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
