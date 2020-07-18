@@ -445,6 +445,8 @@ class Resolve(object):
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
         specs = set(specs) | (specs_to_add or set())
+        # Remove virtual packages
+        specs = set([spec for spec in specs if not spec.name.startswith('__')])
         if len(specs) == 1:
             matches = self.find_matches(next(iter(specs)))
             if len(matches) == 1:
