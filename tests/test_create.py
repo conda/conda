@@ -22,7 +22,7 @@ import re
 from shutil import copyfile, rmtree
 from subprocess import check_call, check_output, Popen, PIPE
 import sys
-from tempfile import gettempdir
+from tempfile import gettempdir, TemporaryDirectory
 from textwrap import dedent
 from unittest import TestCase
 from uuid import uuid4
@@ -2877,6 +2877,22 @@ dependencies:
         with make_temp_env() as prefix:
             run_command(Commands.CREATE, prefix)
             run_command(Commands.REMOVE, prefix, '--all')
+
+    def test_remove_ignore_nonenv(self):
+        with TemporaryDirectory() as test_root:
+            prefix = join(test_root, "not-an-env")
+            filename = join(prefix, "file.dat")
+
+            os.mkdir(prefix)
+            with open(filename, "wb") as empty:
+                pass
+
+            with pytest.raises(DirectoryNotACondaEnvironmentError):
+                run_command(Commands.REMOVE, prefix, "--all")
+
+            assert(exists(filename))
+            assert(exists(prefix))
+
 
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")
 @pytest.mark.integration
