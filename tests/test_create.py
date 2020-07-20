@@ -2878,6 +2878,22 @@ dependencies:
             run_command(Commands.CREATE, prefix)
             run_command(Commands.REMOVE, prefix, '--all')
 
+    def test_remove_ignore_nonenv(self):
+        with tempdir() as test_root:
+            prefix = join(test_root, "not-an-env")
+            filename = join(prefix, "file.dat")
+
+            os.mkdir(prefix)
+            with open(filename, "wb") as empty:
+                pass
+
+            with pytest.raises(DirectoryNotACondaEnvironmentError):
+                run_command(Commands.REMOVE, prefix, "--all")
+
+            assert(exists(filename))
+            assert(exists(prefix))
+
+
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")
 @pytest.mark.integration
 class PrivateEnvIntegrationTests(TestCase):
