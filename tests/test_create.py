@@ -22,7 +22,7 @@ import re
 from shutil import copyfile, rmtree
 from subprocess import check_call, check_output, Popen, PIPE
 import sys
-from tempfile import gettempdir, TemporaryDirectory
+from tempfile import gettempdir
 from textwrap import dedent
 from unittest import TestCase
 from uuid import uuid4
@@ -2879,7 +2879,7 @@ dependencies:
             run_command(Commands.REMOVE, prefix, '--all')
 
     def test_remove_ignore_nonenv(self):
-        with TemporaryDirectory() as test_root:
+        with tempdir() as test_root:
             prefix = join(test_root, "not-an-env")
             filename = join(prefix, "file.dat")
 
