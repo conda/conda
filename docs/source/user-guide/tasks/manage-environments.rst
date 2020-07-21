@@ -50,8 +50,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
       proceed ([y]/n)?
 
   This creates the myenv environment in ``/envs/``. No
-  packages will be installed in this environment. Python
-  will be the Python of the base environment.
+  packages will be installed in this environment.
 
 3. To create an environment with a specific version of Python:
 
