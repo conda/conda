@@ -53,7 +53,8 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedPackageError, DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound
+    DisallowedPackageError, DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound, \
+    CondaValueError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p, extract_tarball
 from conda.gateways.disk.delete import rm_rf, path_is_clean
@@ -1759,6 +1760,12 @@ dependencies:
         names = set(d['name'] for d in loaded['actions']['LINK'])
         assert "python" in names
         assert "flask" in names
+
+    def test_create_dry_run_yes_safety(self):
+        with make_temp_env() as prefix:
+            with pytest.raises(CondaValueError):
+                run_command(Commands.CREATE, prefix, "--dry-run", "--yes")
+            assert exists(prefix)
 
     def test_packages_not_found(self):
         with make_temp_env() as prefix:
