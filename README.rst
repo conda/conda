@@ -26,7 +26,7 @@
 |
 
 .. image:: https://s3.amazonaws.com/conda-dev/conda-announce-signup-button.svg
-   :alt: Join the Conda Announcment List
+   :alt: Join the Conda Announcement List
    :target: http://conda.pydata.org/docs/announcements.html
 
 |
