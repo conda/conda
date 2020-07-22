@@ -84,6 +84,8 @@ def _main(*args, **kwargs):
     exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code
+    elif hasattr(exit_code, 'rc'):
+        return exit_code.rc
 
 
 if sys.platform == 'win32' and sys.version_info[0] == 2:
