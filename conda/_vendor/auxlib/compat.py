@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function
 
 import codecs
-import collections
 from itertools import chain
 import os
 import sys
