@@ -85,7 +85,8 @@ def execute(args, parser):
         # Note, this is a hack fofr get_prefix that assumes argparse results
         # TODO Refactor common.get_prefix
         name = os.environ.get('CONDA_DEFAULT_ENV', False)
-        if not name:
+        prefix = os.environ.get('CONDA_PREFIX', False)
+        if not (name or prefix):
             msg = "Unable to determine environment\n\n"
             msg += textwrap.dedent("""
                 Please re-run this command with one of the following options:
@@ -94,11 +95,14 @@ def execute(args, parser):
                 * Re-run this command inside an activated conda environment.""").lstrip()
             # TODO Add json support
             raise CondaEnvException(msg)
-        if os.sep in name:
-            # assume "names" with a path seperator are actually paths
-            args.prefix = name
+        if name:
+            if os.sep in name:
+                # assume "names" with a path seperator are actually paths
+                args.prefix = name
+            else:
+                args.name = name
         else:
-            args.name = name
+            args.prefix = prefix
     else:
         name = args.name
     prefix = get_prefix(args)
