@@ -208,7 +208,7 @@ else:  # pragma: no cover
         return find_data.reserved[0] == IO_REPARSE_TAG_SYMLINK
 
     def _patch_path(path):
-        """
+        r"""
         Paths have a max length of api.MAX_PATH characters (260). If a target path
         is longer than that, it needs to be made absolute and prepended with
         \\?\ in order to work with API calls.
@@ -247,7 +247,7 @@ else:  # pragma: no cover
             raise builtins.WindowsError(local_format(tmpl))
 
     def find_files(spec):
-        """
+        r"""
         A pythonic wrapper around the FindFirstFile/FindNextFile win32 api.
         >>> root_files = tuple(find_files(r'c:\*'))
         >>> len(root_files) > 1

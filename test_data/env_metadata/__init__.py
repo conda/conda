@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""
+r"""
 Example packages used in this data testing:
 - https://github.com/cherrypy/cherrypy.git
 - https://github.com/dask/dask.git
