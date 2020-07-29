@@ -369,6 +369,8 @@ class Solver(object):
             return update_constrained
 
         for pkg in self.specs_to_add:
+            if pkg.name.startswith('__'):  # ignore virtual packages
+                continue
             current_version = max(i[1] for i in pre_packages[pkg.name])
             if current_version == max(i.version for i in index_keys if i.name == pkg.name):
                 continue
