@@ -1,19 +1,17 @@
-# -*- coding: utf-8 -*-
 # source: https://raw.githubusercontent.com/tqdm/tqdm/v4.19.8/tqdm/__init__.py
-# version: 4.22.0
-# date: 2018-04-12
+# version: 4.48.0
+# date: 2020-07-20
 # The modules _tqdm_gui, _tqdm_notebook, and _tqdm_pandas are not included.
 # Also removed syscall on import in _version module.
 
-from ._tqdm import tqdm
-from ._tqdm import trange
-# from ._tqdm_gui import tqdm_gui
-# from ._tqdm_gui import tgrange
+from .std import tqdm, trange
+# from .gui import tqdm as tqdm_gui  # TODO: remove in v5.0.0
+# from .gui import trange as tgrange  # TODO: remove in v5.0.0
 # from ._tqdm_pandas import tqdm_pandas
-from ._main import main
+from .cli import main  # TODO: remove in v5.0.0
 from ._monitor import TMonitor, TqdmSynchronisationWarning
 from ._version import __version__  # NOQA
-from ._tqdm import TqdmTypeError, TqdmKeyError, TqdmWarning, \
+from .std import TqdmTypeError, TqdmKeyError, TqdmWarning, \
     TqdmDeprecationWarning, TqdmExperimentalWarning, \
     TqdmMonitorWarning
 
@@ -24,8 +22,7 @@ from ._tqdm import TqdmTypeError, TqdmKeyError, TqdmWarning, \
 #            'TqdmExperimentalWarning',
 #            'TqdmMonitorWarning', 'TqdmSynchronisationWarning',
 #            '__version__']
-__all__ = ['tqdm', 'trange',
-           'main', 'TMonitor',
+__all__ = ['tqdm', 'trange', 'main', 'TMonitor',
            'TqdmTypeError', 'TqdmKeyError',
            'TqdmWarning', 'TqdmDeprecationWarning',
            'TqdmExperimentalWarning',
@@ -34,15 +31,22 @@ __all__ = ['tqdm', 'trange',
 
 
 # def tqdm_notebook(*args, **kwargs):  # pragma: no cover
-#     """See tqdm._tqdm_notebook.tqdm_notebook for full documentation"""
-#     from ._tqdm_notebook import tqdm_notebook as _tqdm_notebook
+#     """See tqdm.notebook.tqdm for full documentation"""
+#     from .notebook import tqdm as _tqdm_notebook
+#     from warnings import warn
+#     warn("This function will be removed in tqdm==5.0.0\n"
+#          "Please use `tqdm.notebook.tqdm` instead of `tqdm.tqdm_notebook`",
+#          TqdmDeprecationWarning, stacklevel=2)
 #     return _tqdm_notebook(*args, **kwargs)
-#
-#
+# 
+# 
 # def tnrange(*args, **kwargs):  # pragma: no cover
 #     """
-#     A shortcut for tqdm_notebook(xrange(*args), **kwargs).
-#     On Python3+ range is used instead of xrange.
+#     A shortcut for `tqdm.notebook.tqdm(xrange(*args), **kwargs)`.
+#     On Python3+, `range` is used instead of `xrange`.
 #     """
-#     from ._tqdm_notebook import tnrange as _tnrange
+#     from .notebook import trange as _tnrange
+#     from warnings import warn
+#     warn("Please use `tqdm.notebook.trange` instead of `tqdm.tnrange`",
+#          TqdmDeprecationWarning, stacklevel=2)
 #     return _tnrange(*args, **kwargs)
