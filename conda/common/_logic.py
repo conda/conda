@@ -8,12 +8,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from array import array
 from itertools import combinations
 from logging import DEBUG, getLogger
-from sys import maxsize
+import sys
 
 log = getLogger(__name__)
 
 
-_BIG_NUMBER = maxsize
+# maxsize transitions to type(long) on 2.7 64-bit machines and breaks int
+# type checks in logic.py
+if sys.version_info.major == 2:
+    _BIG_NUMBER = sys.maxint
+else:
+    _BIG_NUMBER = sys.maxsize
+
 TRUE = _BIG_NUMBER
 FALSE = -TRUE
 
