@@ -1,3 +1,4 @@
 *.sh text eol=lf
 *.psm1 text eol=lf
 dev/start text eol=lf
+*activate.bat text eol=crlf

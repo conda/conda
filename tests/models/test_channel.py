@@ -13,7 +13,7 @@ from conda.base.context import Context, conda_tests_ctxt_mgmt_def_pol, context, 
 from conda.common.compat import odict, text_type
 from conda.common.configuration import YamlRawParameter
 from conda.common.io import env_unmodified, env_var, env_vars
-from conda.common.serialize import yaml_load
+from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -185,7 +185,7 @@ class AnacondaServerChannelTests(TestCase):
           - http://10.2.3.4:7070/conda
         """)
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -337,7 +337,7 @@ class CustomConfigChannelTests(TestCase):
           - http://192.168.0.15:8080/pkgs/msys2
         """)
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -645,7 +645,7 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
           expanded: http://user33:$EXPANDED_PWD@another.url:8080/with/path/t/tk-1234
         """)
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(channels_config)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(channels_config)))
         context._set_raw_data(rd)
 
     @classmethod
@@ -684,7 +684,7 @@ class ChannelAuthTokenPriorityTests(TestCase):
           - http://us:pw@192.168.0.15:8080/t/tkn-123/pkgs/r
         """)
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -1026,7 +1026,7 @@ class OtherChannelParsingTests(TestCase):
            - http://test/conda/anaconda-cluster
         """)
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -1083,3 +1083,26 @@ def test_multichannel_priority():
                 ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 3)),
                 ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 3)),
             ])
+
+
+def test_ppc64le_vs_ppc64():
+    Channel._cache_.clear()
+
+    ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
+    assert ppc64_channel.subdir == "linux-ppc64"
+    assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+
+    ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
+    assert ppc64le_channel.subdir == "linux-ppc64le"
+    assert ppc64le_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+    print(Channel._cache_)
+    Channel._cache_.clear()
+
+    ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
+    assert ppc64le_channel.subdir == "linux-ppc64le"
+    assert ppc64le_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+
+    ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
+    assert ppc64_channel.subdir == "linux-ppc64"
+    assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+

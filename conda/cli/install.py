@@ -13,7 +13,7 @@ from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
-from ..common.compat import text_type
+from ..common.compat import scandir, text_type
 from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
@@ -42,7 +42,7 @@ def check_prefix(prefix, json=False):
     if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
-        if isdir(prefix) and 'conda-meta' not in os.listdir(prefix):
+        if isdir(prefix) and 'conda-meta' not in tuple(entry.name for entry in scandir(prefix)):
             return None
         error = "prefix already exists: %s" % prefix
 
@@ -148,7 +148,7 @@ def install(args, parser, command='install'):
                 # fall-through expected under normal operation
                 pass
         else:
-            if args.mkdir:
+            if hasattr(args, "mkdir") and args.mkdir:
                 try:
                     mkdir_p(prefix)
                 except EnvironmentError as e:

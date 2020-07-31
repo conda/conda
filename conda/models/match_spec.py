@@ -20,13 +20,14 @@ from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
 from ..common.io import dashlist
 from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec
+from ..base.context import context
 
 log = getLogger(__name__)
 
@@ -178,16 +179,20 @@ class MatchSpec(object):
     @classmethod
     def from_dist_str(cls, dist_str):
         parts = {}
-        if dist_str.endswith(CONDA_PACKAGE_EXTENSION_V1):
+        if dist_str[-len(CONDA_PACKAGE_EXTENSION_V2):] == CONDA_PACKAGE_EXTENSION_V2:
+            dist_str = dist_str[:-len(CONDA_PACKAGE_EXTENSION_V2)]
+        elif dist_str[-len(CONDA_PACKAGE_EXTENSION_V1):] == CONDA_PACKAGE_EXTENSION_V1:
             dist_str = dist_str[:-len(CONDA_PACKAGE_EXTENSION_V1)]
         if '::' in dist_str:
             channel_subdir_str, dist_str = dist_str.split("::", 1)
             if '/' in channel_subdir_str:
-                channel_str, subdir = channel_subdir_str.split('/', 2)
-                parts.update({
-                    'channel': channel_str,
-                    'subdir': subdir,
-                })
+                channel_str, subdir = channel_subdir_str.rsplit('/', 1)
+                if subdir not in context.known_subdirs:
+                    channel_str = channel_subdir_str
+                    subdir = None
+                parts['channel'] = channel_str
+                if subdir:
+                    parts['subdir'] = subdir
             else:
                 parts['channel'] = channel_subdir_str
 
@@ -500,7 +505,7 @@ class MatchSpec(object):
                 if union:
                     try:
                         final = this_component.union(that_component)
-                    except (AttributeError, ValueError):
+                    except (AttributeError, ValueError, TypeError):
                         final = '%s|%s' % (this_component, that_component)
                 else:
                     final = this_component.merge(that_component)

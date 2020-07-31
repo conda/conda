@@ -32,6 +32,8 @@ main_test: &main_test
             echo "Only docs changed detected, skipping tests"
           else
             eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+            sudo su root -c "/opt/conda/bin/conda install -yq conda-build"
+            conda-build tests/test-recipes/activate_deactivate_package
             py.test $ADD_COV --cov-append -m "integration and not installed" -v
             python -m conda.common.io
           fi
@@ -41,8 +43,7 @@ main_test: &main_test
           if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
             echo "No codecov report to upload"
           else
-            /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
-            echo "No codecov report to upload"
+            bash <(curl -s https://codecov.io/bash)
           fi
 
 
@@ -193,7 +194,7 @@ flake8: &flake8
 build_docs: &build_docs
   working_directory: ~/conda
   docker:
-    - image: readthedocs/build
+    - image: readthedocs/build:5.0
   steps:
     - checkout
     - run:
@@ -240,6 +241,6 @@ workflows:
       - py37 main tests
       # - py36 main tests
       - py27 main tests
-      - 3.10 conda-build
+      # - 3.10 conda-build
       - flake8
       - build_docs

@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
@@ -6,27 +5,24 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 from errno import ENOENT
-from glob import glob
 from itertools import chain
-from logging import getLogger
+import json
 import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, exists
 import re
 import sys
 from textwrap import dedent
-import json
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CondaError
 from ._vendor.toolz import concatv, drop
 from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
-from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
-from .common.path import paths_equal
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
-
-log = getLogger(__name__)
+from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
+from .common.compat import (FILESYSTEM_ENCODING, PY2, iteritems, on_win,
+                            scandir, string_types, text_type)
+from .common.path import paths_equal
 
 
 class _Activator(object):
@@ -619,7 +615,10 @@ class _Activator(object):
                 while last_idx is None and prefix_dirs_idx > -1:
                     last_idx = index_of_path(path_list, prefix_dirs[prefix_dirs_idx])
                     if last_idx is None:
-                        log.info("Did not find path entry {}".format(prefix_dirs[prefix_dirs_idx]))
+                        print(
+                            "Did not find path entry {0}".format(prefix_dirs[prefix_dirs_idx]),
+                            file=sys.stderr
+                        )
                     prefix_dirs_idx = prefix_dirs_idx - 1
                 # this compensates for an extra Library/bin dir entry from the interpreter on
                 #     windows.  If that entry isn't being added, it should have no effect.
@@ -696,14 +695,27 @@ class _Activator(object):
             return ""
 
     def _get_activate_scripts(self, prefix):
-        return self.path_conversion(sorted(glob(join(
-            prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension
-        ))))
+        _script_extension = self.script_extension
+        se_len = -len(_script_extension)
+        try:
+            paths = (entry.path for entry in scandir(join(prefix, 'etc', 'conda', 'activate.d')))
+        except EnvironmentError:
+            return ()
+        return self.path_conversion(sorted(
+            p for p in paths if p[se_len:] == _script_extension
+        ))
 
     def _get_deactivate_scripts(self, prefix):
-        return self.path_conversion(sorted(glob(join(
-            prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
-        )), reverse=True))
+        _script_extension = self.script_extension
+        se_len = -len(_script_extension)
+        try:
+            paths = (entry.path for entry in scandir(join(prefix, 'etc', 'conda', 'deactivate.d')))
+        except EnvironmentError:
+            return ()
+        return self.path_conversion(sorted(
+            (p for p in paths if p[se_len:] == _script_extension),
+            reverse=True
+        ))
 
     def _get_environment_env_vars(self, prefix):
         env_vars_file = join(prefix, PREFIX_STATE_FILE)
@@ -712,8 +724,8 @@ class _Activator(object):
 
         # First get env vars from packages
         if exists(pkg_env_var_dir):
-            for pkg_env_var_file in sorted(os.listdir(pkg_env_var_dir)):
-                with open(join(pkg_env_var_dir, pkg_env_var_file), 'r') as f:
+            for pkg_env_var_path in sorted(entry.path for entry in scandir(pkg_env_var_dir)):
+                with open(pkg_env_var_path, 'r') as f:
                     env_vars.update(json.loads(f.read(), object_pairs_hook=OrderedDict))
 
         # Then get env vars from environment specification
@@ -938,10 +950,10 @@ class XonshActivator(_Activator):
         import platform
         if platform.system() == 'Windows':
             self.script_extension = '.bat'
-            self.run_script_tmpl = 'source-cmd "%s"'
+            self.run_script_tmpl = 'source-cmd --suppress-skip-message "%s"'
         else:
             self.script_extension = '.sh'
-            self.run_script_tmpl = 'source-bash "%s"'
+            self.run_script_tmpl = 'source-bash --suppress-skip-message "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
 
@@ -1058,6 +1070,87 @@ class PowerShellActivator(_Activator):
         return None
 
 
+class JSONFormatMixin(_Activator):
+    """Returns the necessary values for activation as JSON, so that tools can use them."""
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = list
+        self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+        self.command_join = list
+
+        super(JSONFormatMixin, self).__init__(arguments)
+
+    def _hook_preamble(self):
+        if context.dev:
+            return {
+                'PYTHONPATH': dirname(CONDA_PACKAGE_ROOT),
+                'CONDA_EXE': sys.executable,
+                '_CE_M': '-m',
+                '_CE_CONDA': 'conda',
+                '_CONDA_ROOT': '{python_path}{s}conda'.format(
+                    python_path=dirname(CONDA_PACKAGE_ROOT), s=os.sep),
+                '_CONDA_EXE': context.conda_exe,
+            }
+        else:
+            return {
+                'CONDA_EXE': context.conda_exe,
+                '_CE_M': '',
+                '_CE_CONDA': '',
+                '_CONDA_ROOT': context.conda_prefix,
+                '_CONDA_EXE': context.conda_exe,
+            }
+
+    def get_scripts_export_unset_vars(self, **kwargs):
+        export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict(kwargs))
+        script_export_vars = script_unset_vars = None
+        if export_vars:
+            script_export_vars = dict(export_vars.items())
+        if unset_vars:
+            script_unset_vars = unset_vars
+        return script_export_vars or {}, script_unset_vars or []
+
+    def _finalize(self, commands, ext):
+        merged = {}
+        for _cmds in commands:
+            merged.update(_cmds)
+
+        commands = merged
+        if ext is None:
+            return json.dumps(commands, indent=2)
+        elif ext:
+            with Utf8NamedTemporaryFile('w+', suffix=ext, delete=False) as tf:
+                # the default mode is 'w+b', and universal new lines don't work in that mode
+                # command_join should account for that
+                json.dump(commands, tf, indent=2)
+            return tf.name
+        else:
+            raise NotImplementedError()
+
+    def _yield_commands(self, cmds_dict):
+        # TODO: _Is_ defining our own object shape here any better than
+        # just dumping the `cmds_dict`?
+        path = cmds_dict.get('export_path', {})
+        export_vars = cmds_dict.get('export_vars', {})
+        # treat PATH specially
+        if 'PATH' in export_vars:
+            new_path = path.get('PATH', [])
+            new_path.extend(export_vars.pop('PATH'))
+            path['PATH'] = new_path
+
+        yield {
+            'path': path,
+            'vars': {
+                'export': export_vars,
+                'unset': cmds_dict.get('unset_vars', ()),
+                'set': cmds_dict.get('set_vars', {}),
+            },
+            'scripts': {
+                'activate': cmds_dict.get('activate_scripts', ()),
+                'deactivate': cmds_dict.get('deactivate_scripts', ()),
+            }
+        }
+
+
 activator_map = {
     'posix': PosixActivator,
     'ash': PosixActivator,
@@ -1072,6 +1165,26 @@ activator_map = {
     'powershell': PowerShellActivator,
 }
 
+formatter_map = {
+    'json': JSONFormatMixin,
+}
+
+
+def _build_activator_cls(shell):
+    """Construct the activator class dynamically from a base activator and any
+    number of formatters, appended using '+' to the name. For example,
+    `posix+json` (as in `conda shell.posix+json activate`) would use the
+    `PosixActivator` base class and add the `JSONFormatMixin`."""
+    shell_etc = shell.split('+')
+    activator, formatters = shell_etc[0], shell_etc[1:]
+    bases = [activator_map[activator]]
+
+    for f in formatters:
+        bases.append(formatter_map[f])
+
+    cls = type(str('Activator'), tuple(bases), {})
+    return cls
+
 
 def main(argv=None):
     from .common.compat import init_std_stream_encoding
@@ -1085,9 +1198,10 @@ def main(argv=None):
     shell = argv[1].replace('shell.', '', 1)
     activator_args = argv[2:]
     try:
-        activator_cls = activator_map[shell]
+        activator_cls = _build_activator_cls(shell)
     except KeyError:
         raise CondaError("%s is not a supported shell." % shell)
+
     activator = activator_cls(activator_args)
     try:
         print(activator.execute(), end='')

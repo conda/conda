@@ -105,6 +105,7 @@ def get_info_dict(system=False):
         from requests import __version__ as requests_version
         # These environment variables can influence requests' behavior, along with configuration
         # in a .netrc file
+        #   CURL_CA_BUNDLE
         #   REQUESTS_CA_BUNDLE
         #   HTTP_PROXY
         #   HTTPS_PROXY
@@ -190,6 +191,7 @@ def get_info_dict(system=False):
 
     env_var_keys = {
         'CIO_TEST',
+        'CURL_CA_BUNDLE',
         'REQUESTS_CA_BUNDLE',
         'SSL_CERT_FILE',
     }

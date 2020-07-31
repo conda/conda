@@ -1,6 +1,7 @@
-from threading import Event, Thread
+from threading import Event, Thread, current_thread
 from time import time
 from warnings import warn
+import atexit
 __all__ = ["TMonitor", "TqdmSynchronisationWarning"]
 
 
@@ -15,6 +16,7 @@ class TMonitor(Thread):
     Monitoring thread for tqdm bars.
     Monitors if tqdm bars are taking too much time to display
     and readjusts miniters automatically if necessary.
+
     Parameters
     ----------
     tqdm_cls  : class
@@ -42,12 +44,20 @@ class TMonitor(Thread):
             self._event = TMonitor._event
         else:
             self._event = Event
+        atexit.register(self.exit)
         self.start()
 
     def exit(self):
         self.was_killed.set()
-        self.join()
+        if self is not current_thread():
+            self.join()
         return self.report()
+
+    def get_instances(self):
+        # returns a copy of started `tqdm_cls` instances
+        return [i for i in self.tqdm_cls._instances.copy()
+                # Avoid race by checking that the instance started
+                if hasattr(i, 'start_t')]
 
     def run(self):
         cur_t = self._time()
@@ -65,14 +75,11 @@ class TMonitor(Thread):
             with self.tqdm_cls.get_lock():
                 cur_t = self._time()
                 # Check tqdm instances are waiting too long to print
-                instances = self.tqdm_cls._instances.copy()
+                instances = self.get_instances()
                 for instance in instances:
                     # Check event in loop to reduce blocking time on exit
                     if self.was_killed.is_set():
                         return
-                    # Avoid race by checking that the instance started
-                    if not hasattr(instance, 'start_t'):  # pragma: nocover
-                        continue
                     # Only if mininterval > 1 (else iterations are just slow)
                     # and last refresh exceeded maxinterval
                     if instance.miniters > 1 and \
@@ -83,10 +90,10 @@ class TMonitor(Thread):
                         instance.miniters = 1
                         # Refresh now! (works only for manual tqdm)
                         instance.refresh(nolock=True)
-                if instances != self.tqdm_cls._instances:  # pragma: nocover
+                if instances != self.get_instances():  # pragma: nocover
                     warn("Set changed size during iteration" +
                          " (see https://github.com/tqdm/tqdm/issues/481)",
-                         TqdmSynchronisationWarning)
+                         TqdmSynchronisationWarning, stacklevel=2)
 
     def report(self):
         return not self.was_killed.is_set()

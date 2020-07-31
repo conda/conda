@@ -129,7 +129,7 @@ def is_prefix_activated_PATHwise(prefix=sys.prefix, test_programs=()):
 # from conda.common.io import env_vars
 # from conda.common.compat import odict
 # from conda.common.configuration import YamlRawParameter
-# from conda.common.serialize import yaml_load
+# from conda.common.serialize import yaml_safe_load
 # from conda.models.channel import Channel
 # from .test_create import make_temp_prefix
 # from os.path import join
@@ -170,7 +170,7 @@ def is_prefix_activated_PATHwise(prefix=sys.prefix, test_programs=()):
 # def make_default_conda_config(env=dict({})):
 #     with env_vars(env, stack_context_default):
 #         reset_context(())
-#         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load('')))
+#         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_safe_load('')))
 #         context._set_raw_data(rd)
 #         Channel._reset_state()
 #         try:

@@ -7,9 +7,8 @@ from collections import namedtuple
 from csv import reader as csv_reader
 from email.parser import HeaderParser
 from errno import ENOENT
-from fnmatch import filter as fnmatch_filter
 from logging import getLogger
-from os import listdir, name as os_name, strerror
+from os import name as os_name, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
 import platform
 from posixpath import normpath as posix_normpath
@@ -18,7 +17,7 @@ import sys
 import warnings
 
 from ... import CondaError
-from ..compat import PY2, StringIO, itervalues, odict, open, string_types
+from ..compat import PY2, StringIO, itervalues, odict, open, scandir, string_types
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )
@@ -134,7 +133,7 @@ class PythonDistribution(object):
         https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
         """
         requires = odict()
-        lines = [l.strip() for l in data.split('\n') if l]
+        lines = [line.strip() for line in data.split('\n') if line]
 
         if lines and not (lines[0].startswith('[') and lines[0].endswith(']')):
             # Add dummy section for unsectioned items
@@ -874,7 +873,8 @@ def parse_specification(spec):
 def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
     """Get all the anchor files for the site packages directory."""
     site_packages_anchor_files = set()
-    for fname in listdir(site_packages_path):
+    for entry in scandir(site_packages_path):
+        fname = entry.name
         anchor_file = None
         if fname.endswith('.dist-info'):
             anchor_file = "%s/%s/%s" % (site_packages_dir, fname, 'RECORD')
@@ -921,7 +921,11 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
             egg_link_contents = fh.readlines()[0].strip()
 
     if lexists(egg_link_contents):
-        egg_info_fnames = fnmatch_filter(listdir(egg_link_contents), '*.egg-info')
+        egg_info_fnames = tuple(
+            name for name in
+            (entry.name for entry in scandir(egg_link_contents))
+            if name[-9:] == ".egg-info"
+        )
     else:
         egg_info_fnames = ()
 

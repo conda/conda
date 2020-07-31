@@ -49,9 +49,8 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
       proceed ([y]/n)?
 
-  This creates the myenv environment in ``/envs/``. This
-  environment uses the same version of Python that you are
-  currently using because you did not specify a version.
+  This creates the myenv environment in ``/envs/``. No
+  packages will be installed in this environment.
 
 3. To create an environment with a specific version of Python:
 

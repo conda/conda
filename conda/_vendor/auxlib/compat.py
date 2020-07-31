@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function
 
 import codecs
-import collections
 from itertools import chain
 import os
 import sys
@@ -34,7 +33,11 @@ def isiterable(obj):
                 and not isinstance(obj, string_types)
                 and type(obj) is not type)
     else:
-        return not isinstance(obj, string_types) and isinstance(obj, collections.Iterable)
+        try:
+            from collections.abc import Iterable
+        except ImportError:
+            from collections import Iterable
+        return not isinstance(obj, string_types) and isinstance(obj, Iterable)
 
 
 # shlex.split() is a poor function to use for anything general purpose (like calling subprocess).

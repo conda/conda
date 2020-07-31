@@ -3,19 +3,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from fnmatch import filter as fnmatch_filter
-from logging import getLogger
-from os import listdir
-from os.path import basename, isdir, isfile, join, lexists
-import re
 from collections import OrderedDict
 import json
+from logging import getLogger
+from os.path import basename, isdir, isfile, join, lexists
+import re
 
 from ..base.constants import PREFIX_STATE_FILE
 from .._vendor.auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import JSONDecodeError, itervalues, odict, string_types, with_metaclass
+from ..common.compat import (JSONDecodeError, itervalues, odict, scandir,
+                             string_types, with_metaclass)
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -69,8 +68,13 @@ class PrefixData(object):
         self.__prefix_records = {}
         _conda_meta_dir = join(self.prefix_path, 'conda-meta')
         if lexists(_conda_meta_dir):
-            for meta_file in fnmatch_filter(listdir(_conda_meta_dir), '*.json'):
-                self._load_single_record(join(_conda_meta_dir, meta_file))
+            conda_meta_json_paths = (
+                p for p in
+                (entry.path for entry in scandir(_conda_meta_dir))
+                if p[-5:] == ".json"
+            )
+            for meta_file in conda_meta_json_paths:
+                self._load_single_record(meta_file)
         if self._pip_interop_enabled:
             self._load_site_packages()
 
@@ -376,6 +380,8 @@ def get_python_version_for_prefix(prefix):
     next_record = next(py_record_iter, None)
     if next_record is not None:
         raise CondaDependencyError("multiple python records found in prefix %s" % prefix)
+    elif record.version[3].isdigit():
+        return record.version[:4]
     else:
         return record.version[:3]
 

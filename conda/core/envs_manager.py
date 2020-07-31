@@ -5,12 +5,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EACCES, EROFS, ENOENT
 from logging import getLogger
-from os import devnull, listdir
+from os import devnull
 from os.path import dirname, isdir, isfile, join, normpath
 
 from .prefix_data import PrefixData
 from ..base.context import context
-from ..common.compat import ensure_text_type, on_win, open
+from ..common.compat import ensure_text_type, on_win, open, scandir
 from ..common._os import is_admin
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines
@@ -58,7 +58,7 @@ def unregister_env(location):
     if isdir(location):
         meta_dir = join(location, 'conda-meta')
         if isdir(meta_dir):
-            meta_dir_contents = listdir(meta_dir)
+            meta_dir_contents = tuple(entry.name for entry in scandir(meta_dir))
             if len(meta_dir_contents) > 1:
                 # if there are any files left other than 'conda-meta/history'
                 #   then don't unregister
@@ -73,7 +73,7 @@ def list_all_known_prefixes():
     if is_admin():
         if on_win:
             home_dir_dir = dirname(expand('~'))
-            search_dirs = tuple(join(home_dir_dir, d) for d in listdir(home_dir_dir))
+            search_dirs = tuple(entry.path for entry in scandir(home_dir_dir))
         else:
             from pwd import getpwall
             search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
@@ -88,7 +88,7 @@ def list_all_known_prefixes():
     # all envs_dirs
     envs_dirs = (envs_dir for envs_dir in context.envs_dirs if isdir(envs_dir))
     all_env_paths.update(path for path in (
-        join(envs_dir, name) for envs_dir in envs_dirs for name in listdir(envs_dir)
+        entry.path for envs_dir in envs_dirs for entry in scandir(envs_dir)
     ) if path not in all_env_paths and is_conda_environment(path))
 
     all_env_paths.add(context.root_prefix)

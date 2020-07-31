@@ -9,7 +9,7 @@ from conda.common.configuration import (Configuration, ConfigurationObject, Obje
                                         ParameterFlag, ParameterLoader, PrimitiveParameter,
                                         MapParameter, SequenceParameter, YamlRawParameter,
                                         load_file_configs, InvalidTypeError, CustomValidationError)
-from conda.common.serialize import yaml_load
+from conda.common.serialize import yaml_round_trip_load
 from conda.common.configuration import ValidationError
 from os import environ, mkdir
 from os.path import join
@@ -252,7 +252,7 @@ class SampleConfiguration(Configuration):
 
 
 def load_from_string_data(*seq):
-    return odict((f, YamlRawParameter.make_raw_parameters(f, yaml_load(test_yaml_raw[f])))
+    return odict((f, YamlRawParameter.make_raw_parameters(f, yaml_round_trip_load(test_yaml_raw[f])))
                  for f in seq)
 
 
@@ -532,7 +532,7 @@ class ConfigurationTests(TestCase):
         string = dals("""
         proxy_servers: bad values
         """)
-        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', yaml_load(string)))
+        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', yaml_round_trip_load(string)))
         config = SampleConfiguration()._set_raw_data(data)
         raises(InvalidTypeError, config.validate_all)
 

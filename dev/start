@@ -14,13 +14,13 @@ if ! [ -f "$devenv/conda-meta/history" ]; then
             curl https://repo.anaconda.com/miniconda/Miniconda${pyver}-latest-MacOSX-x86_64.sh -o miniconda${pyver}.sh
         fi
         bash miniconda${pyver}.sh -bfp "$devenv"
-        "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
+        "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults
     elif [ "$(uname)" = Linux ]; then
         if [ ! -f miniconda${pyver}.sh ]; then
             curl https://repo.anaconda.com/miniconda/Miniconda${pyver}-latest-Linux-x86_64.sh -o miniconda${pyver}.sh
         fi
         bash miniconda${pyver}.sh -bfp "$devenv"
-        "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
+        "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults
         "${_CONDA}" install -yq -p $devenv patchelf  # for conda-build
     else
         if [ ! -f miniconda${pyver}.exe ]; then
@@ -28,13 +28,12 @@ if ! [ -f "$devenv/conda-meta/history" ]; then
         fi
         cmd.exe /c "start /wait \"\" miniconda${pyver}.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $devenv)"
         _CONDA="$devenv/Scripts/conda"
-        "$devenv/Scripts/conda" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
     fi
 fi
 
 
 if ! [ -f "$devenv/.dev-start-ed" ]; then
-  "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
+  "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults
   touch "$devenv/.dev-start-ed"
 fi
 

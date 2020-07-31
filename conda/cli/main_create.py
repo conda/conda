@@ -21,6 +21,10 @@ def execute(args, parser):
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
+        if context.dry_run:
+            # Taking the "easy" way out, rather than trying to fake removing
+            # the existing environment before creating a new one.
+            raise CondaValueError("Cannot `create --dry-run` with an existing conda environment")
         confirm_yn("WARNING: A conda environment already exists at '%s'\n"
                    "Remove existing environment" % context.target_prefix,
                    default='no',

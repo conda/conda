@@ -82,7 +82,7 @@ stdoutlog = getLogger('conda.stdoutlog')
 # in __init__.py to help with circular imports
 mkdir_p = mkdir_p
 
-python_entry_point_template = dals("""
+python_entry_point_template = dals(r"""
 # -*- coding: utf-8 -*-
 import re
 import sys

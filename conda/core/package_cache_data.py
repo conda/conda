@@ -7,7 +7,6 @@ import codecs
 from collections import defaultdict
 from errno import EACCES, ENOENT, EPERM, EROFS
 from logging import getLogger
-from os import listdir
 from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
@@ -20,8 +19,8 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_EXTENSION_V1,
                               CONDA_PACKAGE_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
-from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
-                             text_type, with_metaclass)
+from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, scandir,
+                             string_types, text_type, with_metaclass)
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path
@@ -87,7 +86,8 @@ class PackageCacheData(object):
             return
 
         _CONDA_TARBALL_EXTENSIONS = CONDA_PACKAGE_EXTENSIONS
-        for base_name in self._dedupe_pkgs_dir_contents(listdir(self.pkgs_dir)):
+        pkgs_dir_contents = tuple(entry.name for entry in scandir(self.pkgs_dir))
+        for base_name in self._dedupe_pkgs_dir_contents(pkgs_dir_contents):
             full_path = join(self.pkgs_dir, base_name)
             if islink(full_path):
                 continue

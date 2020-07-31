@@ -303,7 +303,7 @@ def win_path_to_unix(path, root_prefix=""):
         def _translation(found_path):  # NOQA
             found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
             return root_prefix + "/" + found
-        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[/\\\\]+)*[^:*?"<>|;/\\\\]+?(?![a-zA-Z]:))'  # noqa
         path = re.sub(path_re, _translation, path).replace(";/", ":/")
     return path
 
