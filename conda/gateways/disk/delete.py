@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 import fnmatch
 from logging import getLogger
-from os import environ, getcwd, listdir, makedirs, rename, rmdir, unlink, walk
+from os import environ, getcwd, makedirs, rename, rmdir, unlink, walk
 from os.path import abspath, basename, dirname, exists, isdir, isfile, join, normpath, split
 import shutil
 from subprocess import CalledProcessError, STDOUT, check_output
@@ -17,7 +17,7 @@ from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
-from ...common.compat import on_win
+from ...common.compat import on_win, scandir
 
 if not on_win:
     from ...common.path import which
@@ -143,7 +143,8 @@ def unlink_or_rename_to_trash(path):
 def remove_empty_parent_paths(path):
     # recurse to clean up empty folders that were created to have a nested hierarchy
     parent_path = dirname(path)
-    while(isdir(parent_path) and not listdir(parent_path)):
+
+    while isdir(parent_path) and not next(scandir(parent_path), None):
         rmdir(parent_path)
         parent_path = dirname(parent_path)
 

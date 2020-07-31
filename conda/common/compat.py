@@ -87,9 +87,11 @@ if PY3:  # pragma: py2 no cover
     from io import StringIO
     from itertools import zip_longest
     if sys.version_info[1] >= 5:
+        from os import scandir
         from json import JSONDecodeError
         JSONDecodeError = JSONDecodeError
     else:
+        from scandir import scandir
         JSONDecodeError = ValueError
 elif PY2:  # pragma: py3 no cover
     from collections import Mapping, Sequence
@@ -106,6 +108,7 @@ elif PY2:  # pragma: py3 no cover
     #   File "<stdin>", line 1, in <module>
     # UnicodeEncodeError: 'ascii' codec can't encode characters in position 3-6: ordinal not in range(128)
     from io import StringIO
+    from scandir import scandir
     from itertools import izip as zip, izip_longest as zip_longest
     JSONDecodeError = ValueError
 

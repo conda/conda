@@ -45,11 +45,12 @@ environment:
 # TODO: add xonsh for PY3 builds  
 install:
   - call %CONDA_ROOT%\Scripts\activate.bat
+  - if "%PYTHON_VERSION%" == "2.7" set SCANDIR=scandir
   - if "%TEST_MODE%" == "package" (
       conda install -yq conda conda-build=3.17
     ) else (
       conda install -yq python=%PYTHON_VERSION% conda conda-build=3.17 &&
-      conda install -yq pycosat requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling &&
+      conda install -yq pycosat requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling %SCANDIR% &&
       pip install codecov==2.0.5 &&
       conda init cmd.exe --dev
     )

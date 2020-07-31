@@ -23,16 +23,15 @@ except ImportError:
     from collections import Mapping
 import copy
 from enum import Enum, EnumMeta
-from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
-from os.path import basename, join, expandvars
+from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 from .compat import (binary_type, isiterable, iteritems, itervalues, odict, primitive_types,
-                     string_types, text_type, with_metaclass)
+                     scandir, string_types, text_type, with_metaclass)
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -441,8 +440,10 @@ def load_file_configs(search_path):
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
     def _dir_loader(fullpath):
-        for filepath in sorted(concatv(glob(join(fullpath, "*.yml")),
-                                       glob(join(fullpath, "*.yaml")))):
+        for filepath in sorted(
+            p for p in (entry.path for entry in scandir(fullpath))
+            if p[-4:] == ".yml" or p[-5:] == ".yaml"
+        ):
             yield filepath, YamlRawParameter.make_raw_parameters_from_file(filepath)
 
     # map a stat result to a file loader or a directory loader
