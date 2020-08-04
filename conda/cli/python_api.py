@@ -43,8 +43,8 @@ def run_command(command, *arguments, **kwargs):
 
     Args:
         command: one of the Commands.
-        *arguments: instructions you would normally pass to the conda comamnd on the command line
-                    see below for examples. Be very careful to delimit arguements exactly as you
+        *arguments: instructions you would normally pass to the conda command on the command line
+                    see below for examples. Be very careful to delimit arguments exactly as you
                     want them to be delivered. No 'combine then split at spaces' or other
                     information destroying processing gets performed on the arguments.
         **kwargs: special instructions for programmatic overrides
