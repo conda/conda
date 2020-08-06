@@ -390,6 +390,14 @@ class Solver(object):
             if pkg_name not in ssc.specs_map and ssc.prefix_data.get(pkg_name, None):
                 ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
 
+        # Add virtual packages so they are taken into account by the solver
+        virtual_pkg_index = {}
+        _supplement_index_with_system(virtual_pkg_index)
+        virtual_pkgs = [p.name for p in virtual_pkg_index.keys()]
+        for virtual_pkgs_name in (virtual_pkgs):
+            if virtual_pkgs_name not in ssc.specs_map:
+                ssc.specs_map[virtual_pkgs_name] = MatchSpec(virtual_pkgs_name)
+
         for prec in ssc.prefix_data.iter_records():
             # first check: add everything if we have no history to work with.
             #    This happens with "update --all", for example.
