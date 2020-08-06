@@ -59,6 +59,7 @@ non_x86_machines = {
     'armv6l',
     'armv7l',
     'aarch64',
+    'arm64',
     'ppc64',
     'ppc64le',
     's390x',
