@@ -6,6 +6,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from itertools import chain
 from logging import getLogger
+import platform
+import sys
 
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
@@ -133,12 +135,12 @@ def _supplement_index_with_cache(index):
             index[pcrec] = pcrec
 
 
-def _make_virtual_package(name, version=None):
+def _make_virtual_package(name, version=None, build_string='0'):
     return PackageRecord(
             package_type=PackageType.VIRTUAL_SYSTEM,
             name=name,
             version=version or '0',
-            build='0',
+            build_string=build_string,
             channel='@',
             subdir=context.subdir,
             md5="12345678901234567890123456789012",
@@ -159,17 +161,56 @@ def _supplement_index_with_system(index):
         index[rec] = rec
 
     dist_name, dist_version = context.os_distribution_name_version
-    if dist_name == 'OSX':
+    if context.subdir.startswith("osx-"):
+        # User will have to set env variable when using CONDA_SUBDIR var
         dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
-        if len(dist_version) > 0:
+        if dist_version:
             rec = _make_virtual_package('__osx', dist_version)
             index[rec] = rec
 
     libc_family, libc_version = context.libc_family_version
-    if libc_family and libc_version:
+    is_linux = context.subdir.startswith("linux-")
+    if is_linux:
+        if not (libc_family and libc_version):
+            # Default to glibc when using CONDA_SUBDIR var
+            libc_family = "glibc"
         libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
-        rec = _make_virtual_package('__' + libc_family, libc_version)
+        if libc_version:
+            rec = _make_virtual_package('__' + libc_family, libc_version)
+            index[rec] = rec
+
+    archspec_name = get_archspec_name()
+    archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC", archspec_name)
+    if archspec_name:
+        rec = _make_virtual_package('__archspec', "1", archspec_name)
         index[rec] = rec
+
+
+def get_archspec_name():
+    from conda.base.context import non_x86_linux_machines, _arch_names, _platform_map
+
+    target_plat, target_arch = context.subdir.split("-")
+    # This has to reverse what Context.subdir is doing
+    if target_plat == "linux" and target_arch in non_x86_linux_machines:
+        machine = target_arch
+    elif target_arch == "zos":
+        return None
+    elif target_arch.isdigit():
+        machine = _arch_names[int(target_arch)]
+    else:
+        return None
+
+    # This has to match what Context.platform is doing
+    native_plat = _platform_map.get(sys.platform, 'unknown')
+
+    if native_plat != target_plat or platform.machine() != machine:
+        return machine
+
+    try:
+        import archspec.cpu
+        return str(archspec.cpu.host())
+    except ImportError:
+        return machine
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
