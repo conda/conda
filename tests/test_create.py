@@ -2870,6 +2870,12 @@ dependencies:
             #    If this command runs successfully (does not raise), then all is well.
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "imagesize")
 
+    # https://github.com/conda/conda/issues/10116
+    @pytest.mark.skipif(not context.subdir.startswith('linux'), reason="__glibc only available on linux")
+    def test_install_bound_virtual_package(self):
+        with make_temp_env("__glibc>0") as prefix:
+            pass
+
     @pytest.mark.integration
     def test_remove_empty_env(self):
         with make_temp_env() as prefix:
