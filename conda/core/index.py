@@ -191,7 +191,7 @@ def get_archspec_name():
 
     target_plat, target_arch = context.subdir.split("-")
     # This has to reverse what Context.subdir is doing
-    if target_plat == "linux" and target_arch in non_x86_machines:
+    if target_arch in non_x86_machines:
         machine = target_arch
     elif target_arch == "zos":
         return None
