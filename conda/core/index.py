@@ -187,11 +187,11 @@ def _supplement_index_with_system(index):
 
 
 def get_archspec_name():
-    from conda.base.context import non_x86_linux_machines, _arch_names, _platform_map
+    from conda.base.context import non_x86_machines, _arch_names, _platform_map
 
     target_plat, target_arch = context.subdir.split("-")
     # This has to reverse what Context.subdir is doing
-    if target_plat == "linux" and target_arch in non_x86_linux_machines:
+    if target_arch in non_x86_machines:
         machine = target_arch
     elif target_arch == "zos":
         return None
