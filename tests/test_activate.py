@@ -2028,10 +2028,10 @@ class ShellWrapperIntegrationTests(TestCase):
         # is variable, but at least it is not slow.
         if not which('git') or which('git').startswith(sys.prefix):
             log.warning("Installing `git` into {} because during these tests"
-                        "`conda` uses `git` to get its version, and the git"
-                        "found on `PATH` on this system seems to be part of"
-                        "a conda env. They stack envs which means that the"
-                        "the original sys.prefix conda env falls off of it."
+                         "`conda` uses `git` to get its version, and the git"
+                         "found on `PATH` on this system seems to be part of"
+                         "a conda env. They stack envs which means that the"
+                         "the original sys.prefix conda env falls off of it."
                         .format(sys.prefix))
             run_command(Commands.INSTALL, self.prefix3, "git")
 
