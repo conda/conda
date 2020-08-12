@@ -99,7 +99,7 @@ PKG_B_ENV_VARS = '''
 @memoize
 def bash_unsupported_because():
     bash = which('bash')
-    reason = None
+    reason = ''
     if not bash:
         reason = 'bash: was not found on PATH'
     elif on_win:
