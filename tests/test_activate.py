@@ -99,7 +99,7 @@ PKG_B_ENV_VARS = '''
 @memoize
 def bash_unsupported_because():
     bash = which('bash')
-    reason = None
+    reason = 'no_reason'
     if not bash:
         reason = 'bash: was not found on PATH'
     elif on_win:
@@ -115,15 +115,12 @@ def bash_unsupported_because():
                 reason = ('bash: MSYS2 bash installed from m2-bash in prefix {}.\n'
                           'This is unsupportable due to Git-for-Windows conflicts.\n'
                           'Please use upstream MSYS2 and have it on PATH.  .'.format(sys.prefix))
-    if reason is None:
-        print('reason was marked none')
-        reason = 'no_reason'
     return reason
 
 
 def bash_unsupported():
     unsupported_reason = bash_unsupported_because()
-    return True if unsupported_reason is not None and unsupported_reason != 'no_reason' else False
+    return True if unsupported_reason != 'no_reason' else False
 
 
 def bash_unsupported_win_because():
