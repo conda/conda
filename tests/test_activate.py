@@ -2006,33 +2006,37 @@ class ShellWrapperIntegrationTests(TestCase):
             pass
 
     def setUp(self):
-        tempdirdir = gettempdir()
+        try:
+            tempdirdir = gettempdir()
 
-        prefix_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
-        self.prefix = join(tempdirdir, prefix_dirname)
-        mkdir_p(join(self.prefix, 'conda-meta'))
-        assert isdir(self.prefix)
-        touch(join(self.prefix, 'conda-meta', 'history'))
+            prefix_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
+            self.prefix = join(tempdirdir, prefix_dirname)
+            mkdir_p(join(self.prefix, 'conda-meta'))
+            assert isdir(self.prefix)
+            touch(join(self.prefix, 'conda-meta', 'history'))
 
-        self.prefix2 = join(self.prefix, 'envs', 'charizard')
-        mkdir_p(join(self.prefix2, 'conda-meta'))
-        touch(join(self.prefix2, 'conda-meta', 'history'))
+            self.prefix2 = join(self.prefix, 'envs', 'charizard')
+            mkdir_p(join(self.prefix2, 'conda-meta'))
+            touch(join(self.prefix2, 'conda-meta', 'history'))
 
-        self.prefix3 = join(self.prefix, 'envs', 'venusaur')
-        mkdir_p(join(self.prefix3, 'conda-meta'))
-        touch(join(self.prefix3, 'conda-meta', 'history'))
+            self.prefix3 = join(self.prefix, 'envs', 'venusaur')
+            mkdir_p(join(self.prefix3, 'conda-meta'))
+            touch(join(self.prefix3, 'conda-meta', 'history'))
 
-        # We can engineer ourselves out of having `git` on PATH if we install
-        # it via conda, so, when we have no git on PATH, install this. Yes it
-        # is variable, but at least it is not slow.
-        if not which('git') or which('git').startswith(sys.prefix):
-            log.warning("Installing `git` into {} because during these tests"
-                         "`conda` uses `git` to get its version, and the git"
-                         "found on `PATH` on this system seems to be part of"
-                         "a conda env. They stack envs which means that the"
-                         "the original sys.prefix conda env falls off of it."
-                        .format(sys.prefix))
-            run_command(Commands.INSTALL, self.prefix3, "git")
+            # We can engineer ourselves out of having `git` on PATH if we install
+            # it via conda, so, when we have no git on PATH, install this. Yes it
+            # is variable, but at least it is not slow.
+            if not which('git') or which('git').startswith(sys.prefix):
+                log.warning("Installing `git` into {} because during these tests"
+                            "`conda` uses `git` to get its version, and the git"
+                            "found on `PATH` on this system seems to be part of"
+                            "a conda env. They stack envs which means that the"
+                            "the original sys.prefix conda env falls off of it."
+                            .format(sys.prefix))
+                run_command(Commands.INSTALL, self.prefix3, "git")
+        except Exception as e:
+            print('error: ' + e)
+            log.warning('warning error in setup: ' + e)
 
     def tearDown(self):
         rm_rf(self.prefix)
