@@ -82,13 +82,13 @@ the package:
 
 .. code-block:: bash
 
-   conda install scipy=0.15.0 curl=7.26.0
+   conda install scipy==0.15.0 curl==7.26.0
 
 To install a package for a specific Python version:
 
 .. code-block:: bash
 
-   conda install scipy=0.15.0 curl=7.26.0 -n py34_env
+   conda install scipy==0.15.0 curl==7.26.0 -n py34_env
 
 If you want to use a specific Python version, it is best to use
 an environment with that version. For more information,
