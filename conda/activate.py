@@ -915,18 +915,8 @@ class CshActivator(_Activator):
 
 class XonshActivator(_Activator):
 
-    @staticmethod
-    def path_conversion(paths):
-        if not on_win:
-            return path_identity(paths)
-        elif isinstance(paths, string_types):
-            return paths.replace('\\', '/')
-        elif paths is None:
-            return None
-        else:
-            return tuple([path.replace('\\', '/') for path in paths])
-
     def __init__(self, arguments=None):
+        self.path_conversion = path_identity
         self.pathsep_join = ';'.join if on_win else ':'.join
         self.sep = '/'
         self.tempfile_extension = None
