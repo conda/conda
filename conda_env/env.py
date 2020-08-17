@@ -132,7 +132,8 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
             canonical_name = prec.channel.canonical_name
             if canonical_name not in channels:
                 channels.insert(0, canonical_name)
-    return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix)
+    return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix,
+                       variables=variables)
 
 
 def from_yaml(yamlstr, **kwargs):

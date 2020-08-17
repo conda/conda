@@ -3,4 +3,6 @@ channels:
   - anaconda
 dependencies:
   - nltk
+variables:
+  VARIABLE: value
 prefix: /something/miniconda/envs/test

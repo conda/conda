@@ -27,6 +27,17 @@ channels:
   - defaults
 '''
 
+environment_1_with_variables = '''
+name: env-1
+dependencies:
+  - python
+channels:
+  - defaults
+variables:
+  DUDE: woah
+  SWEET: yaaa
+'''
+
 environment_2 = '''
 name: env-1
 dependencies:
@@ -235,6 +246,26 @@ class IntegrationTests(unittest.TestCase):
         create_env(environment_1)
         run_env_command(Commands.ENV_CREATE, None)
         self.assertTrue(env_is_created(test_env_name_1))
+
+        o, e = run_conda_command(Commands.INFO, None, "--json")
+        parsed = json.loads(o)
+        self.assertNotEqual(
+            len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]), 0
+        )
+
+    def test_create_valid_env_with_variables(self):
+        '''
+        Creates an environment.yml file and
+        creates and environment with it
+        '''
+
+        create_env(environment_1_with_variables)
+        run_env_command(Commands.ENV_CREATE, None)
+        self.assertTrue(env_is_created(test_env_name_1))
+
+        o, e = run_env_command(Commands.ENV_CONFIG, test_env_name_1, "vars", "list", "--json", '-n', test_env_name_1)
+        output_env_vars = json.loads(o)
+        assert output_env_vars == {'DUDE': 'woah', "SWEET": "yaaa"}
 
         o, e = run_conda_command(Commands.INFO, None, "--json")
         parsed = json.loads(o)
@@ -461,6 +492,38 @@ class NewIntegrationTests(unittest.TestCase):
             assert len(env_description['dependencies'])
             for spec_str in env_description['dependencies']:
                 assert spec_str.count('=') == 1
+            
+
+        run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+        assert not env_is_created(test_env_name_2)
+
+    def test_env_export_with_variables(self):
+        """
+            Test conda env export
+        """
+
+        run_conda_command(Commands.CREATE, test_env_name_2, "flask")
+        assert env_is_created(test_env_name_2)
+
+        run_env_command(Commands.ENV_CONFIG, test_env_name_2, "vars", "set", "DUDE=woah", "SWEET=yaaa", "-n", test_env_name_2)
+
+        snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
+
+        with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
+            env_yaml.write(snowflake)
+            env_yaml.flush()
+            env_yaml.close()
+
+            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+            self.assertFalse(env_is_created(test_env_name_2))
+            run_env_command(Commands.ENV_CREATE, None, "--file", env_yaml.name)
+            self.assertTrue(env_is_created(test_env_name_2))
+
+            snowflake, e = run_env_command(Commands.ENV_EXPORT, test_env_name_2, '--no-builds')
+            assert not e.strip()
+            env_description = yaml_safe_load(snowflake)
+            assert len(env_description['variables'])
+            assert env_description['variables'].keys()
 
         run_env_command(Commands.ENV_REMOVE, test_env_name_2)
         assert not env_is_created(test_env_name_2)
