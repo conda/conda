@@ -651,8 +651,8 @@ as shown here::
       - python=3.7
       - codecov
     variables:
-      - VAR1: valueA
-      - VAR2: valueB
+      VAR1: valueA
+      VAR2: valueB
 
 
 Saving environment variables
