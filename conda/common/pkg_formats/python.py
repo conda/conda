@@ -268,7 +268,7 @@ class PythonDistribution(object):
             csv_delimiter = ','
             if PY2:
                 csv_delimiter = csv_delimiter.encode('utf-8')
-            with open(manifest_full_path) as csvfile:
+            with open(manifest_full_path, newline='') as csvfile:
                 record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                 # format of each record is (path, checksum, size)
                 records = process_csv_row(record_reader)
