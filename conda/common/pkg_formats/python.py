@@ -244,6 +244,8 @@ class PythonDistribution(object):
                 seen = []
                 records = []
                 for row in reader:
+                    if not row:
+                        continue
                     cleaned_path = posix_normpath("%s%s%s" % (sp_dir, path_prepender, row[0]))
                     if len(row) == 3:
                         checksum, size = row[1:]
