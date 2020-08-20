@@ -9,7 +9,6 @@ jobs:
       vmImage: 'vs2017-win2016'
     variables:
       pytest.verbosity: '-v'
-      pytest.num_cpus: 2
     strategy:
       matrix:
         #Python27_32_unit:
