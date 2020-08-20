@@ -1,0 +1,120 @@
+# Use default triggering logic
+# trigger: ...
+# pr: ...
+
+jobs:
+  - job: 'CondaTestSuite'
+    timeoutInMinutes: 90
+    pool:
+      vmImage: 'vs2017-win2016'
+    variables:
+      pytest.verbosity: '-v'
+    strategy:
+      matrix:
+        Python27_32_unit:
+          python.version: '2.7'
+          conda.subdir: 'win-32'
+          test.style: 'unit'
+        Python27_64_unit:
+          python.version: '2.7'
+          conda.subdir: 'win-64'
+          test.style: 'unit'
+        Python37_32_unit:
+          python.version: '3.7'
+          conda.subdir: 'win-32'
+          test.style: 'unit'
+        Python37_64_unit:
+          python.version: '3.7'
+          conda.subdir: 'win-64'
+          test.style: 'unit'
+        Python27_32_integration:
+          python.version: '2.7'
+          conda.subdir: 'win-32'
+          test.style: 'integration'
+        Python27_64_integration:
+          python.version: '2.7'
+          conda.subdir: 'win-64'
+          test.style: 'integration'
+        Python37_32_integration:
+          python.version: '3.7'
+          conda.subdir: 'win-32'
+          test.style: 'integration'
+        Python37_64_integration:
+          python.version: '3.7'
+          conda.subdir: 'win-64'
+          test.style: 'integration'
+    steps:
+      # Test suite expectes to reach python and temp folders via relative paths. On Windows, relative paths can only
+      #   be constructed when the two folders are on the same drive. This is not guaranteed when using a hosted agent
+      #   and, even if it happens to be the case, it could change at anytime. Use junctions to co-locate these folders
+      #   and support relative pathing.
+      - script: |
+          @ECHO ON
+          pushd %TEMP%
+          mklink /J \conda_bin $(CONDA)
+          mklink /J \conda_src $(Build.SourcesDirectory)
+        displayName: Link conda and source folders on temp drive
+
+      - script: |
+          @ECHO ON
+          set CONDA_SUBDIR=$(conda.subdir)
+          pushd %TEMP%
+          cd \conda_src
+          CALL \conda_bin\scripts\activate.bat
+          CALL conda create -n ci_base -y python=$(python.version) pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling
+          CALL conda activate ci_base
+          CALL conda install -yq pip conda-build=3.17 conda-verify
+          CALL conda update openssl ca-certificates certifi
+          pip install codecov
+          python -m conda init cmd.exe --dev
+        displayName: Initialize test environment
+
+      - script: |
+          @ECHO ON
+          pushd %TEMP%
+          cd \conda_src
+          CALL dev-init.bat
+          CALL conda info -a
+          CALL conda-build tests\test-recipes\activate_deactivate_package
+        displayName: Build activate-deactivate package
+      
+      - script: |
+          @ECHO ON
+          pushd %TEMP%
+          cd \conda_src
+          CALL dev-init.bat
+          CALL py.test -m "not integration and not installed" --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml $(pytest.verbosity)
+        displayName: py$(python.version) $(conda.subdir) unit tests
+        condition: eq(variables['test.style'], 'unit')
+
+      - script: |
+          @ECHO ON
+          pushd %TEMP%
+          cd \conda_src
+          CALL dev-init.bat
+          CALL py.test -m "integration and not installed" -k "cli" --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml $(pytest.verbosity)
+        displayName: py$(python.version) $(conda.subdir) integration test group 1
+        condition: eq(variables['test.style'], 'integration')
+
+      - script: |
+          @ECHO ON
+          pushd %TEMP%
+          cd \conda_src
+          CALL dev-init.bat
+          CALL py.test -m "integration and not installed" -k "not cli" --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml $(pytest.verbosity)  --cov-append
+        displayName: py$(python.version) $(conda.subdir) integration test group 2
+        condition: eq(variables['test.style'], 'integration')
+
+      - task: PublishTestResults@2
+        displayName: 'Publish $(test.style) test results'
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFiles: '**/test-*.xml'
+          testRunTitle: 'py$(python.version) $(conda.subdir) $(test.style) tests'
+
+      - script: |
+          pushd %TEMP%
+          cd \conda_src
+          curl -s https://codecov.io/bash > codecov_uploader.sh
+          bash -c ". codecov_uploader.sh -C $(Build.SourceVersion)"
+        displayName: 'Upload to codecov.io'

@@ -75,7 +75,7 @@ def test_ProgressiveFetchExtract_prefers_conda_v2_format():
         rec = next(iter(index))
         for rec in index:
             # zlib is the one package in the test index that has a .conda file record
-            if rec.name == 'zlib':
+            if rec.name == 'zlib' and rec.version == '1.2.11':
                 break
         cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(rec)
     assert cache_action.target_package_basename.endswith('.conda')
