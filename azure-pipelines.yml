@@ -58,7 +58,7 @@ jobs:
       - script: |
           @ECHO ON
           set CONDA_SUBDIR=$(conda.subdir)
-          if $(python.version) == "2.7" set SCANDIR=scandir
+          if $(python.version) == 2.7 set SCANDIR=scandir
           pushd %TEMP%
           cd \conda_src
           CALL \conda_bin\scripts\activate.bat
