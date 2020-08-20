@@ -9,36 +9,37 @@ jobs:
       vmImage: 'vs2017-win2016'
     variables:
       pytest.verbosity: '-v'
+      pytest.num_cpus: 2
     strategy:
       matrix:
-        Python27_32_unit:
-          python.version: '2.7'
-          conda.subdir: 'win-32'
-          test.style: 'unit'
+        #Python27_32_unit:
+        #  python.version: '2.7'
+        #  conda.subdir: 'win-32'
+        #  test.style: 'unit'
         Python27_64_unit:
           python.version: '2.7'
           conda.subdir: 'win-64'
           test.style: 'unit'
-        Python37_32_unit:
-          python.version: '3.7'
-          conda.subdir: 'win-32'
-          test.style: 'unit'
+        #Python37_32_unit:
+        #  python.version: '3.7'
+        #  conda.subdir: 'win-32'
+        #  test.style: 'unit'
         Python37_64_unit:
           python.version: '3.7'
           conda.subdir: 'win-64'
           test.style: 'unit'
-        Python27_32_integration:
-          python.version: '2.7'
-          conda.subdir: 'win-32'
-          test.style: 'integration'
+        #Python27_32_integration:
+        #  python.version: '2.7'
+        #  conda.subdir: 'win-32'
+        #  test.style: 'integration'
         Python27_64_integration:
           python.version: '2.7'
           conda.subdir: 'win-64'
           test.style: 'integration'
-        Python37_32_integration:
-          python.version: '3.7'
-          conda.subdir: 'win-32'
-          test.style: 'integration'
+        #Python37_32_integration:
+        #  python.version: '3.7'
+        #  conda.subdir: 'win-32'
+        #  test.style: 'integration'
         Python37_64_integration:
           python.version: '3.7'
           conda.subdir: 'win-64'
@@ -61,7 +62,7 @@ jobs:
           pushd %TEMP%
           cd \conda_src
           CALL \conda_bin\scripts\activate.bat
-          CALL conda create -n ci_base -y python=$(python.version) pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling
+          CALL conda create -n ci_base -y python=$(python.version) pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling pytest-xdist
           CALL conda activate ci_base
           CALL conda install -yq pip conda-build=3.17 conda-verify
           CALL conda update openssl ca-certificates certifi
@@ -92,7 +93,7 @@ jobs:
           pushd %TEMP%
           cd \conda_src
           CALL dev-init.bat
-          CALL py.test -m "integration and not installed" -k "cli" --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml $(pytest.verbosity)
+          CALL py.test -m "integration and not installed" -k "cli" -n $(pytest.num_cpus) --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml $(pytest.verbosity)
         displayName: py$(python.version) $(conda.subdir) integration test group 1
         condition: eq(variables['test.style'], 'integration')
 
@@ -101,7 +102,7 @@ jobs:
           pushd %TEMP%
           cd \conda_src
           CALL dev-init.bat
-          CALL py.test -m "integration and not installed" -k "not cli" --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml $(pytest.verbosity)  --cov-append
+          CALL py.test -m "integration and not installed" -k "not cli" -n $(pytest.num_cpus) --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml $(pytest.verbosity)  --cov-append
         displayName: py$(python.version) $(conda.subdir) integration test group 2
         condition: eq(variables['test.style'], 'integration')
 
