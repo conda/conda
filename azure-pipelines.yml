@@ -84,7 +84,7 @@ jobs:
           pushd %TEMP%
           cd \conda_src
           CALL dev-init.bat
-          CALL py.test -m "not integration and not installed" --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml $(pytest.verbosity)
+          CALL py.test -m "not integration and not installed" -n $(pytest.num_cpus) --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml $(pytest.verbosity)
         displayName: py$(python.version) $(conda.subdir) unit tests
         condition: eq(variables['test.style'], 'unit')
 
