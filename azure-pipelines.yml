@@ -58,10 +58,11 @@ jobs:
       - script: |
           @ECHO ON
           set CONDA_SUBDIR=$(conda.subdir)
+          if $(python.version) == "2.7" set SCANDIR=scandir
           pushd %TEMP%
           cd \conda_src
           CALL \conda_bin\scripts\activate.bat
-          CALL conda create -n ci_base -y python=$(python.version) pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling
+          CALL conda create -n ci_base -y python=$(python.version) pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling %SCANDIR%
           CALL conda activate ci_base
           CALL conda install -yq pip conda-build=3.17 conda-verify
           CALL conda update openssl ca-certificates certifi
