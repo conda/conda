@@ -13,7 +13,7 @@ jobs:
       matrix:
         Python27_64_unit:
           python.version: '2.7'
-          conda.subdir: 'win-32'
+          conda.subdir: 'win-64'
           test.style: 'unit'
         Python37_64_unit:
           python.version: '3.7'
@@ -21,7 +21,7 @@ jobs:
           test.style: 'unit'
         Python27_64_integration:
           python.version: '2.7'
-          conda.subdir: 'win-32'
+          conda.subdir: 'win-64'
           test.style: 'integration'
         Python37_64_integration:
           python.version: '3.7'
