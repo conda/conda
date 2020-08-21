@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from itertools import chain
 import os
-from os.path import join
+from os.path import join, abspath
 from tempfile import gettempdir
 from unittest import TestCase
 
@@ -216,7 +216,7 @@ class ContextCustomRcTests(TestCase):
             pprint(context.describe_parameter(name))
 
     def test_local_build_root_custom_rc(self):
-        assert context.local_build_root == "C:\\some\\test\\path" if on_win else "/some/test/path"
+        assert context.local_build_root == abspath("/some/test/path")
 
         test_path_1 = join(os.getcwd(), 'test_path_1')
         with env_var("CONDA_CROOT", test_path_1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
