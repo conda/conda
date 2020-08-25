@@ -11,9 +11,9 @@
     :target: https://circleci.com/gh/conda/workflows/conda/tree/master
     :alt: Unix tests (CircleCI)
 
-.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/master.svg?maxAge=900&label=Windows
-    :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
-    :alt: Windows tests (Appveyor)
+.. image:: https://img.shields.io/github/workflow/status/conda/conda/CondaCI?label=Windows
+    :target: https://github.com/conda/conda/actions?query=workflow%3ACondaCI+branch%3Amaster
+    :alt: Windows tests (GitHub Actions)
 
 .. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg?label=coverage
    :alt: Codecov Status
