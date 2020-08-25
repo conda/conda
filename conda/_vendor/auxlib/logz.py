@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
-from json import JSONEncoder
+from itertools import islice
+from json import JSONEncoder, dumps
 from logging import getLogger, INFO, Formatter, StreamHandler, DEBUG
-from pprint import pformat
 from sys import stderr
 
 from . import NullHandler
@@ -120,7 +120,9 @@ def stringify(obj, content_max_len=0):
             builder.append('')
             content_type = response_object.headers.get('Content-Type')
             if content_type == 'application/json':
-                content = pformat(response_object.json(), indent=2)
+                resp = response_object.json()
+                resp = dict(islice(resp.items(), content_max_len))
+                content = dumps(resp, indent=2)
                 content = content[:content_max_len] if len(content) > content_max_len else content
                 builder.append(content)
                 builder.append('')
