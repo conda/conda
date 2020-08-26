@@ -164,11 +164,11 @@ class SubdirData(object):
 
     @property
     def cache_path_json(self):
-        return self.cache_path_base + '.json'
+        return self.cache_path_base + ('1' if context.use_only_tar_bz2 else '0') + '.json'
 
     @property
     def cache_path_pickle(self):
-        return self.cache_path_base + '.q'
+        return self.cache_path_base + ('1' if context.use_only_tar_bz2 else '0') + '.q'
 
     def load(self):
         _internal_state = self._load()
