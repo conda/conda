@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     container: condatest/linux-64-python-3.7
     steps:
+      - name: chown that directory
+        run: | 
+          sudo chown -R $USER:$USER /
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
