@@ -1,0 +1,78 @@
+name: CondaCI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    container: condatest/linux-64-python-3.7
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: build the docs
+        run: |
+          pip3 install -r utils/requirements-docs.txt
+          cd docs
+          make html
+  build_docs:
+    runs-on: ubuntu-latest
+    container: readthedocs/build:5.0
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: flake8
+        run: /opt/conda/bin/flake8 --statistics
+  test:
+    runs-on: ubuntu-latest
+    container: condatest/linux-64-python-${{ matrix.python_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: [2.7, 3.7]
+        test_type: ['unit', 'integration']
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: unit tests
+        working-directory: ~/conda
+        run: |
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+              echo "Only docs changed detected, skipping tests"
+          else
+              echo "local_repodata_ttl: 1800" > ~/.condarc
+              eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+              conda info
+              # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
+              sudo rm -rf /opt/conda/pkgs/*-*-*
+              py.test $ADD_COV -m "not integration and not installed" -v
+          fi
+      - name: integration tests
+        working-directory: ~/conda
+        run: |
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+            echo "Only docs changed detected, skipping tests"
+          else
+            eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+            sudo su root -c "/opt/conda/bin/conda install -yq conda-build"
+            conda-build tests/test-recipes/activate_deactivate_package
+            py.test $ADD_COV --cov-append -m "integration and not installed" -v
+            python -m conda.common.io
+          fi
+      - name: upload codecov
+        working-directory: ~/conda
+        run: |
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+            echo "No codecov report to upload"
+          else
+            bash <(curl -s https://codecov.io/bash)
+          fi
+
