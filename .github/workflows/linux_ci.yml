@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+          path: ~/conda
       - name: build the docs
         run: |
           pip3 install -r utils/requirements-docs.txt
