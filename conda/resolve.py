@@ -911,7 +911,9 @@ class Resolve(object):
         for prec in itervalues(self.index):
             nkey = C.Not(self.to_sat_name(prec))
             for ms in self.ms_depends(prec):
-                C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
+                # Virtual packages can't be installed, we ignore them
+                if not ms.name.startswith('__'):
+                    C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
         if log.isEnabledFor(DEBUG):
             log.debug("gen_clauses returning with clause count: %d", C.get_clause_count())
