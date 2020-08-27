@@ -107,9 +107,10 @@ def execute_config(args, parser):
 
     if args.show_sources:
         if context.json:
-            stdout_write(
-                json.dumps(context.collect_all(), sort_keys=True, indent=2, separators=(',', ': '))
-            )
+            stdout_write(json.dumps(
+                context.collect_all(), sort_keys=True, indent=2, separators=(',', ': '),
+                cls=EntityEncoder
+            ))
         else:
             lines = []
             for source, reprs in iteritems(context.collect_all()):
