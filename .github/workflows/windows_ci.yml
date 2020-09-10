@@ -1,0 +1,96 @@
+name: CondaCI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: [2.7, 3.7]
+        conda_subdir: ['win-64']
+        test_type: ['unit', 'integration']
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Link conda and source folders on temp drive
+      shell: cmd
+      run: |
+        @ECHO ON
+        pushd %TEMP%
+        set CONDA=C:\Miniconda
+        mklink /J \conda_bin %CONDA%
+        mklink /J \conda_src %GITHUB_WORKSPACE%
+
+    - name: Initialize test environment
+      shell: cmd
+      run: |
+        @ECHO ON
+        set CONDA_SUBDIR=${{ matrix.conda_subdir }}
+        if ${{ matrix.python_version }} == 2.7 set SCANDIR=scandir
+        pushd %TEMP%
+        cd \conda_src
+        CALL \conda_bin\scripts\activate.bat
+        CALL conda create -n ci_base -y python=${{ matrix.python_version }} pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling %SCANDIR%
+        CALL conda activate ci_base
+        CALL conda install -yq pip conda-build=3.17 conda-verify
+        CALL conda update openssl ca-certificates certifi
+        pip install codecov
+        python -m conda init cmd.exe --dev
+      
+    - name: Build activate-deactivate package
+      shell: cmd
+      run: |
+        @ECHO ON
+        pushd %TEMP%
+        cd \conda_src
+        CALL dev-init.bat
+        CALL conda info -a
+        CALL conda-build tests\test-recipes\activate_deactivate_package
+    
+    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} unit tests
+      shell: cmd
+      if: ${{ matrix.test_type == 'unit' }}
+      run: |
+        @ECHO ON
+        pushd %TEMP%
+        cd \conda_src
+        CALL dev-init.bat
+        CALL py.test -m "not integration and not installed" --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml -v
+    
+    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 1
+      shell: cmd
+      if: ${{ matrix.test_type == 'integration' }}
+      run: |
+        @ECHO ON
+        pushd %TEMP%
+        cd \conda_src
+        CALL dev-init.bat
+        CALL py.test -m "integration and not installed" -k "cli" --basetemp=C:\tmp --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml -v
+
+    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 2
+      shell: cmd
+      if: ${{ matrix.test_type == 'integration' }}
+      run: |
+        @ECHO ON
+        pushd %TEMP%
+        cd \conda_src
+        CALL dev-init.bat
+        CALL py.test -m "integration and not installed" -k "not cli" --basetemp=C:\tmp  --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml -v --cov-append
+
+    - name: 'Upload to codecov.io'
+      shell: cmd
+      run: |
+        pushd %TEMP%
+        cd \conda_src
+        curl -s https://codecov.io/bash > codecov_uploader.sh
+        bash -c ". codecov_uploader.sh -C $GITHUB_SHA"
