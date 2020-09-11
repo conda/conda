@@ -18,8 +18,11 @@ from ..exceptions import CondaUpgradeError
 class Arch(Enum):
     x86 = 'x86'
     x86_64 = 'x86_64'
+    # arm64 is for macOS only
+    arm64 = 'arm64'
     armv6l = 'armv6l'
     armv7l = 'armv7l'
+    # aarch64 is for Linux only
     aarch64 = 'aarch64'
     ppc64 = 'ppc64'
     ppc64le = 'ppc64le'
