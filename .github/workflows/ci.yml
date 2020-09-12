@@ -146,7 +146,6 @@ jobs:
             bash <(curl -s https://codecov.io/bash)
           fi
 
-
   linux-tests-py27:
     runs-on: ubuntu-latest
     strategy:
