@@ -145,6 +145,35 @@ jobs:
           else
             bash <(curl -s https://codecov.io/bash)
           fi
+  linux-tests-py38:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test_type: ['unit', 'integration']
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: py38 unit tests
+        if: ${{ matrix.test_type == 'unit' }}
+        uses: docker://angloyna/linux-64-python3.8:latest
+        with:
+          entrypoint: /bin/bash
+          args: ./ci/unit_test.sh
+      - name: py38 integration tests
+        if: ${{ matrix.test_type == 'integration' }}
+        uses: docker://angloyna/linux-64-python3.8:latest
+        with:
+          entrypoint: /bin/bash
+          args: ./ci/integration_tests.sh
+      - name: upload codecov
+        run: |
+          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
+            echo "No codecov report to upload"
+          else
+            bash <(curl -s https://codecov.io/bash)
+          fi
 
   linux-tests-py27:
     runs-on: ubuntu-latest
