@@ -161,7 +161,8 @@ def _supplement_index_with_system(index):
         index[rec] = rec
 
     dist_name, dist_version = context.os_distribution_name_version
-    if context.subdir.startswith("osx-"):
+    is_osx = context.subdir.startswith("osx-")
+    if is_osx:
         # User will have to set env variable when using CONDA_SUBDIR var
         dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
         if dist_version:
@@ -178,6 +179,13 @@ def _supplement_index_with_system(index):
         if libc_version:
             rec = _make_virtual_package('__' + libc_family, libc_version)
             index[rec] = rec
+
+    if is_linux or is_osx:
+        rec = _make_virtual_package('__unix')
+        index[rec] = rec
+    elif context.subdir.startswith('win-'):
+        rec = _make_virtual_package('__win')
+        index[rec] = rec
 
     archspec_name = get_archspec_name()
     archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC", archspec_name)
