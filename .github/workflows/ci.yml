@@ -100,7 +100,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: build the docs
-        uses: docker://angloyna/linux-64-python3.7:latest
+        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
         with:
           entrypoint: /bin/bash
           args: ./ci/build_docs.sh
@@ -111,7 +111,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: flake8
-        uses: docker://angloyna/linux-64-python3.7:latest
+        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
         with:
           entrypoint: /bin/bash
           args: -c "/opt/conda/bin/flake8 --statistics"
@@ -128,13 +128,13 @@ jobs:
           fetch-depth: 0
       - name: py37 unit tests
         if: ${{ matrix.test_type == 'unit' }}
-        uses: docker://angloyna/linux-64-python3.7:latest
+        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
         with:
           entrypoint: /bin/bash
           args: ./ci/unit_test.sh
       - name: py37 integration tests
         if: ${{ matrix.test_type == 'integration' }}
-        uses: docker://angloyna/linux-64-python3.7:latest
+        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
         with:
           entrypoint: /bin/bash
           args: ./ci/integration_tests.sh
@@ -157,13 +157,13 @@ jobs:
           fetch-depth: 0
       - name: py38 unit tests
         if: ${{ matrix.test_type == 'unit' }}
-        uses: docker://angloyna/linux-64-python3.8:latest
+        uses: docker://continuumio/conda-ci-linux-64-python3.8:latest
         with:
           entrypoint: /bin/bash
           args: ./ci/unit_test.sh
       - name: py38 integration tests
         if: ${{ matrix.test_type == 'integration' }}
-        uses: docker://angloyna/linux-64-python3.8:latest
+        uses: docker://continuumio/conda-ci-linux-64-python3.8:latest
         with:
           entrypoint: /bin/bash
           args: ./ci/integration_tests.sh
@@ -187,13 +187,13 @@ jobs:
           fetch-depth: 0
       - name: py27 unit tests
         if: ${{ matrix.test_type == 'unit' }}
-        uses: docker://angloyna/linux-64-python2.7:latest
+        uses: docker://continuumio/conda-ci-linux-64-python2.7:latest
         with:
           entrypoint: /bin/bash
           args: ./ci/unit_test.sh
       - name: py27 integration tests
         if: ${{ matrix.test_type == 'integration' }}
-        uses: docker://angloyna/linux-64-python2.7:latest
+        uses: docker://continuumio/conda-ci-linux-64-python2.7:latest
         with:
           entrypoint: /bin/bash
           args: ./ci/integration_tests.sh
