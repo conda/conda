@@ -16,6 +16,7 @@ import pytest
 
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, Context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver, UpdateModifier, Resolve
@@ -257,6 +258,18 @@ def test_virtual_package_solver(tmpdir):
             assert ssc.r.bad_installed(ssc.solution_precs, ())[1] is None
 
 
+def test_solve_msgs_exclude_vp(tmpdir):
+    # Sovler hints should exclude virtual packages that are not dependencies
+    specs = MatchSpec("python =2.7.5"), MatchSpec("readline =7.0"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            with pytest.raises(UnsatisfiableError) as exc:
+                final_state = solver.solve_final_state()
+
+    assert "__cuda==10.0" not in str(exc.value).strip()
+
+
 def test_cuda_1(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
@@ -312,7 +325,6 @@ def test_cuda_fail_1(tmpdir):
 Your installed version is: 8.0""".format(plat))
 
 
-
 def test_cuda_fail_2(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
@@ -327,6 +339,95 @@ def test_cuda_fail_2(tmpdir):
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
 Your installed version is: not available""")
+
+
+def test_cuda_constrain_absent(tmpdir):
+    specs = MatchSpec("cuda-constrain"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', ''):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            final_state = solver.solve_final_state()
+            # print(convert_to_dist_str(final_state))
+            order = add_subdir_to_iter((
+                'channel-1::cuda-constrain-11.0-0',
+            ))
+            assert convert_to_dist_str(final_state) == order
+
+
+@pytest.mark.skip(reason="known broken; fix to be implemented")
+def test_cuda_constrain_sat(tmpdir):
+    specs = MatchSpec("cuda-constrain"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            final_state = solver.solve_final_state()
+            # print(convert_to_dist_str(final_state))
+            order = add_subdir_to_iter((
+                'channel-1::cuda-constrain-10.0-0',
+            ))
+            assert convert_to_dist_str(final_state) == order
+
+
+@pytest.mark.skip(reason="known broken; fix to be implemented")
+def test_cuda_constrain_unsat(tmpdir):
+    specs = MatchSpec("cuda-constrain"),
+
+    # No cudatoolkit in index for CUDA 8.0
+    with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            with pytest.raises(UnsatisfiableError) as exc:
+                final_state = solver.solve_final_state()
+
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
+
+  - feature:|@/{}::__cuda==8.0=0
+  - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
+
+Your installed version is: 8.0""".format(context.subdir))
+
+
+@pytest.mark.skipif(not on_linux, reason="linux-only test")
+def test_cuda_glibc_sat(tmpdir):
+    specs = MatchSpec("cuda-glibc"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            final_state = solver.solve_final_state()
+            # print(convert_to_dist_str(final_state))
+            order = add_subdir_to_iter((
+                'channel-1::cuda-glibc-10.0-0',
+            ))
+            assert convert_to_dist_str(final_state) == order
+
+
+@pytest.mark.skip(reason="known broken; fix to be implemented")
+@pytest.mark.skipif(not on_linux, reason="linux-only test")
+def test_cuda_glibc_unsat_depend(tmpdir):
+    specs = MatchSpec("cuda-glibc"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '8.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            with pytest.raises(UnsatisfiableError) as exc:
+                final_state = solver.solve_final_state()
+
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
+
+  - feature:|@/{}::__cuda==8.0=0
+  - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
+
+Your installed version is: 8.0""".format(context.subdir))
+
+
+@pytest.mark.skip(reason="known broken; fix to be implemented")
+@pytest.mark.skipif(not on_linux, reason="linux-only test")
+def test_cuda_glibc_unsat_constrain(tmpdir):
+    specs = MatchSpec("cuda-glibc"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.12'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            with pytest.raises(UnsatisfiableError) as exc:
+                final_state = solver.solve_final_state()
+
 
 def test_prune_1(tmpdir):
     specs = MatchSpec("numpy=1.6"), MatchSpec("python=2.7.3"), MatchSpec("accelerate"),
