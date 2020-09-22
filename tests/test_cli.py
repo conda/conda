@@ -1,5 +1,6 @@
 import json
 import unittest
+import uuid
 
 from conda._vendor.auxlib.ish import dals
 import pytest
@@ -173,7 +174,7 @@ class TestJson(unittest.TestCase):
     def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
 
-class TestRun(unittest.TestCase):
+class TestRun(object):
     def test_run_returns_int(self):
         from tests.test_create import make_temp_env
         from tests.test_create import make_temp_prefix
@@ -181,7 +182,7 @@ class TestRun(unittest.TestCase):
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
             stdout, stderr, result = run_inprocess_conda_command('conda run -p {} echo hi'.format(prefix))
-            
+
             assert isinstance(result, int)
 
     def test_run_returns_zero_errorlevel(self):
@@ -191,7 +192,7 @@ class TestRun(unittest.TestCase):
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
             stdout, stderr, result = run_inprocess_conda_command('conda run -p {} exit 0'.format(prefix))
-            
+
             assert result == 0
 
     def test_run_returns_nonzero_errorlevel(self):
@@ -201,5 +202,22 @@ class TestRun(unittest.TestCase):
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix) as prefix:
             stdout, stderr, result = run_inprocess_conda_command('conda run -p "{}" exit 5'.format(prefix))
-            
+
             assert result == 5
+
+    def test_run_uncaptured(self, capfd):
+        from tests.test_create import make_temp_env
+        from tests.test_create import make_temp_prefix
+
+        prefix = make_temp_prefix(name='test')
+        with make_temp_env(prefix=prefix):
+            random_text = uuid.uuid4().hex
+            stdout, stderr, result = run_inprocess_conda_command('conda run -p {} --no-capture-output echo {}'.format(prefix, random_text))
+
+            assert result == 0
+            # Output is not captured
+            assert stdout == ""
+
+            # Check that the expected output is somewhere between the conda logs
+            captured = capfd.readouterr()
+            assert random_text in captured.out
