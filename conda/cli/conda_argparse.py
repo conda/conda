@@ -1092,7 +1092,7 @@ def configure_parser_run(sub_parsers):
     )
     p.add_argument(
         "--no-capture-output",
-        help="Don't capture stdout/stdout",
+        help="Don't capture stdout/stderr",
         action=NullCountAction,
         default=NULL,
     )
