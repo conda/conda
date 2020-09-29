@@ -95,6 +95,7 @@ class CondaSession(Session):
         self.mount("file://", LocalFSAdapter())
 
         self.headers['User-Agent'] = context.user_agent
+        self.headers.update(context.headers)
 
         self.verify = context.ssl_verify
 

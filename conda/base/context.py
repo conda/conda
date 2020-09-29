@@ -116,6 +116,14 @@ def default_python_validation(value):
     return "default_python value '%s' not of the form '[23].[0-9]' or ''" % value
 
 
+def headers_validation(map_):
+    reserved_headers = set(['content-type', 'last-modified', 'content-length', 'etag',])
+    for k, v in map_.items():
+        if k.lower() in reserved_headers:
+            return "headers may not contain these reserved headers: %s" % (reserved_headers,)
+    return True
+
+
 def ssl_verify_validation(value):
     if isinstance(value, string_types):
         if not isfile(value) and not isdir(value):
@@ -229,6 +237,11 @@ class Context(Configuration):
     remote_backoff_factor = ParameterLoader(PrimitiveParameter(1))
 
     add_anaconda_token = ParameterLoader(PrimitiveParameter(True), aliases=('add_binstar_token',))
+
+    headers = ParameterLoader(
+        MapParameter(PrimitiveParameter("", string_types), {},
+                     validation=headers_validation), aliases=('headers',),
+        expandvars=True)
 
     # #############################
     # channels
@@ -845,6 +858,7 @@ class Context(Configuration):
             ('Network Configuration', (
                 'client_ssl_cert',
                 'client_ssl_cert_key',
+                'headers',
                 'local_repodata_ttl',
                 'offline',
                 'proxy_servers',
@@ -1126,6 +1140,9 @@ class Context(Configuration):
             #     to build 32-bit packages on a 64-bit system).  We don't want to mention it
             #     in the documentation, because it can mess up a lot of things.
             #     """),
+            'headers': dals("""
+                A map of key-value pairs to use as HTTP headers that are added to web requests
+                """),
             'json': dals("""
                 Ensure all output written to stdout is structured json.
                 """),
