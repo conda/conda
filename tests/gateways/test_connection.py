@@ -85,6 +85,10 @@ class CondaSessionTests(TestCase):
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
 
+        for k, v in headers.items():
+            assert(k in context.headers)
+            assert(v == context.headers.get(k))
+
         session = CondaSession()
         req = Request('GET', 'https://anaconda.org')
         prepared_req = session.prepare_request(req)

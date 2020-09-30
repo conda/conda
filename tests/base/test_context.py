@@ -333,7 +333,7 @@ class ContextCustomRcTests(TestCase):
 
         string = dals("""
         headers:
-          X-User: {}
+          X-User: "{}"
           X-Location: anywhere
         """.format(username_str))
 
