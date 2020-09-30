@@ -73,8 +73,9 @@ def execute(args, parser):
                 handle_txn(txn, prefix, args, False, True)
             except PackagesNotFoundError:
                 print("No packages found in %s. Continuing environment removal" % prefix)
-        rm_rf(prefix, clean_empty_parents=True)
-        unregister_env(prefix)
+        if not context.dry_run:
+            rm_rf(prefix, clean_empty_parents=True)
+            unregister_env(prefix)
 
         return
 
