@@ -41,11 +41,13 @@ def update_file_in_place_as_binary(file_full_path, callback):
         try:
             fh.write(callback(data))
             fh.truncate()
+            return True
         except CancelOperation:
             pass  # NOQA
     finally:
         if fh:
             fh.close()
+    return False
 
 
 def rename(source_path, destination_path, force=False):

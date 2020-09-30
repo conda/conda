@@ -60,9 +60,9 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
 
         return data
 
-    update_file_in_place_as_binary(realpath(path), _update_prefix)
+    updated = update_file_in_place_as_binary(realpath(path), _update_prefix)
 
-    if mode == FileMode.binary and subdir == "osx-arm64" and sys.platform == "darwin":
+    if updated and mode == FileMode.binary and subdir == "osx-arm64" and sys.platform == "darwin":
         # Apple arm64 needs signed executables
         subprocess.run(['codesign', '-s', '-', '-f', realpath(path)])
 
