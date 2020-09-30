@@ -150,6 +150,8 @@ CONDA_TEMP_EXTENSION = '.c~'
 UNKNOWN_CHANNEL = "<unknown>"
 REPODATA_FN = 'repodata.json'
 
+# headers that cannot be modified by the condarc
+RESERVED_HEADERS = set(['content-type', 'last-modified', 'content-length', 'etag',])
 
 class SafetyChecks(Enum):
     disabled = 'disabled'

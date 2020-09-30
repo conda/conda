@@ -17,7 +17,8 @@ from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODA
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
                         ERROR_UPLOAD_URL, KNOWN_SUBDIRS, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, UpdateModifier)
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice,
+                        UpdateModifier, RESERVED_HEADERS)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
@@ -117,10 +118,10 @@ def default_python_validation(value):
 
 
 def headers_validation(map_):
-    reserved_headers = set(['content-type', 'last-modified', 'content-length', 'etag',])
+
     for k, v in map_.items():
-        if k.lower() in reserved_headers:
-            return "headers may not contain these reserved headers: %s" % (reserved_headers,)
+        if k.lower() in RESERVED_HEADERS:
+            return "headers may not contain these reserved headers: %s" % (RESERVED_HEADERS,)
     return True
 
 
@@ -240,8 +241,7 @@ class Context(Configuration):
 
     headers = ParameterLoader(
         MapParameter(PrimitiveParameter("", string_types), {},
-                     validation=headers_validation), aliases=('headers',),
-        expandvars=True)
+                     validation=headers_validation), expandvars=True)
 
     # #############################
     # channels
