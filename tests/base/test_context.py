@@ -12,7 +12,7 @@ import pytest
 from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
-from conda.base.constants import PathConflict, ChannelPriority
+from conda.base.constants import PathConflict, ChannelPriority, RESERVED_HEADERS
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import odict, iteritems
 from conda.common.configuration import ValidationError, YamlRawParameter
@@ -323,6 +323,42 @@ class ContextCustomRcTests(TestCase):
             assert context.repodata_threads == 1
             assert context.execute_threads == 3
 
+    def test_headers(self):
+        if on_win:
+            username_str = "%USERNAME%"
+            username = "USERNAME"
+        else:
+            username_str = "$USER"
+            username = "USER"
+
+        string = dals("""
+        headers:
+          X-User: {}
+          X-Location: anywhere
+        """.format(username_str))
+
+        reset_context()
+        # Test with environment expansion
+        with env_var(username, 'TEST_USER'):
+            rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+            context._set_raw_data(rd)
+            context.validate_configuration()
+            assert context.headers['X-User'] == 'TEST_USER'
+            assert context.headers['X-Location'] == 'anywhere'
+
+        def check_bad_headers(header):
+            string = dals("""
+            headers:
+              {}: anything
+            """.format(header))
+            reset_context()
+            rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+            context._set_raw_data(rd)
+            pytest.raises(ValidationError, context.validate_configuration)
+
+        # Verify RESERVED_HEADERS are not allowed
+        for header in RESERVED_HEADERS:
+            check_bad_headers(header)
 
 class ContextDefaultRcTests(TestCase):
 

@@ -7,10 +7,14 @@ from unittest import TestCase
 import warnings
 
 import pytest
-from requests import HTTPError
+from requests import HTTPError, Request
 
-from conda.common.compat import ensure_binary, PY3
+from conda._vendor.auxlib.ish import dals
+from conda.base.context import context, reset_context
+from conda.common.compat import ensure_binary, PY3, odict
+from conda.common.configuration import YamlRawParameter
 from conda.common.url import path_to_url
+from conda.common.serialize import yaml_round_trip_load
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.gateways.connection.session import CondaHttpAuth, CondaSession
 from conda.gateways.disk.delete import rm_rf
@@ -66,3 +70,27 @@ class CondaSessionTests(TestCase):
         finally:
             if test_path is not None:
                 rm_rf(test_path)
+
+    def test_headers(self):
+        string = dals("""
+        headers:
+          X-User: test_user
+          X-Location: anywhere
+        """)
+
+        headers = {'X-User': 'test_user', 'X-Location': 'anywhere'}
+
+        # Load configuration
+        reset_context()
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        context._set_raw_data(rd)
+
+        session = CondaSession()
+        req = Request('GET', 'https://anaconda.org')
+        prepared_req = session.prepare_request(req)
+
+        for k, v in headers.items():
+            assert(k in prepared_req.headers)
+            assert(v == prepared_req.headers.get(k))
+
+
