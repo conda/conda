@@ -7,8 +7,11 @@ from logging import getLogger
 from os.path import realpath
 import re
 import struct
+import subprocess
+import sys
 
 from ..base.constants import PREFIX_PLACEHOLDER
+from ..base.context import context
 from ..common.compat import on_win
 from ..exceptions import CondaIOError, BinaryPrefixReplacementError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
@@ -29,7 +32,7 @@ class _PaddingError(Exception):
     pass
 
 
-def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text):
+def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text, subdir=context.subdir):
     if on_win and mode == FileMode.text:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
@@ -57,8 +60,10 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
         return data
 
     update_file_in_place_as_binary(realpath(path), _update_prefix)
-    import subprocess
-    subprocess.run(['codesign', '-s', '-', '-f', realpath(path)])
+
+    if mode == FileMode.binary and subdir == "osx-arm64" and sys.platform == "darwin":
+        # Apple arm64 needs signed executables
+        subprocess.run(['codesign', '-s', '-', '-f', realpath(path)])
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
