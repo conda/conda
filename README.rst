@@ -146,6 +146,13 @@ that ``conda install`` will find and install their packages, run
 (replacing ``username`` with the user name of the person whose channel you want
 to add).
 
+####      NEW FEATURES IN CONDA
+• Compiled with Latest Python release: Anaconda 5.3 is compiled with Python 3.7, taking advantage of Python’s speed and feature improvements.
+• Better Reliability: The reliability of Anaconda has been improved in the latest release by capturing and storing the package metadata for installed packages.
+• Enhanced CPU Peformance: The Intel Math Kernel Library 2019 for Deep Neural Networks(MKL 2019) has been introduced in Anaconda 5.3 distribution. Users deploying Tensorflow can make use of MKL 2019 for Deep Neural Networks. These Python binary packages are provided to achieve high CPU performance.
+• New packages are added: There are over 230 packages which has been updated and added in the new release.
+• Work in Progress: There is a casting bug in Numpy with Python 3.7 but the team is currently working on patching it until Numpy is updated.
+
 Getting Help
 ------------
 
