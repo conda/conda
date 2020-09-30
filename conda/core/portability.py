@@ -57,6 +57,8 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
         return data
 
     update_file_in_place_as_binary(realpath(path), _update_prefix)
+    import subprocess
+    subprocess.run(['codesign', '-s', '-', '-f', realpath(path)])
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
