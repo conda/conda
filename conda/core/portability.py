@@ -32,7 +32,8 @@ class _PaddingError(Exception):
     pass
 
 
-def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text, subdir=context.subdir):
+def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text,
+                  subdir=context.subdir):
     if on_win and mode == FileMode.text:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
