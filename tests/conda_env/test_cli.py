@@ -361,6 +361,14 @@ class IntegrationTests(unittest.TestCase):
         output = json.loads(stdout)
         assert output["message"] == "All requested packages already installed."
 
+    def test_remove_dry_run(self):
+        # Test for GH-10231
+        create_env(environment_1)
+        run_env_command(Commands.ENV_CREATE, None)
+        env_name = "env-1"
+        run_env_command(Commands.ENV_REMOVE, env_name, "--dry-run")
+        self.assertTrue(env_is_created(env_name))
+
     def test_set_unset_env_vars(self):
         create_env(environment_1)
         run_env_command(Commands.ENV_CREATE, None)
