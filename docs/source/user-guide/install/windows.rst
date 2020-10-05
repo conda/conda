@@ -41,7 +41,7 @@ To run the the Windows installer for Miniconda in
 argument. The following optional arguments are supported:
 
 * ``/InstallationType=[JustMe|AllUsers]``---Default is ``JustMe``.
-* ``/AddToPath=[0|1]``---Default is ``1``
+* ``/AddToPath=[0|1]``---Default is ``0``
 * ``/RegisterPython=[0|1]``---Make this the system's default
   Python.
   ``0`` indicates ``JustMe``, which is the default. ``1``
