@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover
     from conda._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 
-VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels')
+VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')
 
 
 def validate_keys(data, kwargs):
@@ -95,12 +95,14 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
     Returns:     Environment object
     """
     # requested_specs_map = History(prefix).get_requested_specs_map()
+    pd = PrefixData(prefix, pip_interop_enabled=True)
+    variables = pd.get_environment_env_vars()
+
     if from_history:
         history = History(prefix).get_requested_specs_map()
         deps = [str(package) for package in history.values()]
         return Environment(name=name, dependencies=deps, channels=list(context.channels),
-                           prefix=prefix)
-    pd = PrefixData(prefix, pip_interop_enabled=True)
+                           prefix=prefix, variables=variables)
 
     precs = tuple(PrefixGraph(pd.iter_records()).graph)
     grouped_precs = groupby(lambda x: x.package_type, precs)
@@ -130,7 +132,8 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
             canonical_name = prec.channel.canonical_name
             if canonical_name not in channels:
                 channels.insert(0, canonical_name)
-    return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix)
+    return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix,
+                       variables=variables)
 
 
 def from_yaml(yamlstr, **kwargs):
@@ -215,11 +218,12 @@ def unique(seq, key=None):
 
 class Environment(object):
     def __init__(self, name=None, filename=None, channels=None,
-                 dependencies=None, prefix=None):
+                 dependencies=None, prefix=None, variables=None):
         self.name = name
         self.filename = filename
         self.prefix = prefix
         self.dependencies = Dependencies(dependencies)
+        self.variables = variables
 
         if channels is None:
             channels = []
@@ -237,6 +241,8 @@ class Environment(object):
             d['channels'] = self.channels
         if self.dependencies:
             d['dependencies'] = self.dependencies.raw
+        if self.variables:
+            d['variables'] = self.variables
         if self.prefix:
             d['prefix'] = self.prefix
         if stream is None:

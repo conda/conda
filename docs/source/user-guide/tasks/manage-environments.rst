@@ -639,6 +639,21 @@ When you deactivate your environment, you can see that environment variable goes
 ``echo my_var`` or ``conda env config vars list`` to show that the variable name
 is no longer present.
 
+Environment variables set using ``conda env config vars`` will be retained in the output of
+``conda env export``. Further, you can declare environment variables in the environment.yml file
+as shown here::
+
+    name: env-name
+    channels:
+      - conda-forge
+      - defaults
+    dependencies:
+      - python=3.7
+      - codecov
+    variables:
+      VAR1: valueA
+      VAR2: valueB
+
 
 Saving environment variables
 ============================

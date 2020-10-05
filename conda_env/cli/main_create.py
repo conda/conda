@@ -11,6 +11,7 @@ import textwrap
 from conda._vendor.auxlib.path import expand
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, add_parser_networking
+from conda.core.prefix_data import PrefixData
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
@@ -126,6 +127,10 @@ def execute(args, parser):
                     """).lstrip().format(installer_type)
                 )
                 return -1
+
+    if env.variables:
+        pd = PrefixData(prefix)
+        pd.set_environment_env_vars(env.variables)
 
     touch_nonadmin(prefix)
     print_result(args, prefix, result)
