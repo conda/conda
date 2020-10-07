@@ -423,7 +423,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             update_prefix(self.intermediate_path,
                           context.target_prefix_override or self.target_prefix,
                           self.prefix_placeholder,
-                          self.file_mode)
+                          self.file_mode, subdir=self.package_info.repodata_record.subdir)
         except _PaddingError:
             raise PaddingError(self.target_full_path, self.prefix_placeholder,
                                len(self.prefix_placeholder))
