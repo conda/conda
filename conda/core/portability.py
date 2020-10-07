@@ -64,7 +64,7 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
 
     if updated and mode == FileMode.binary and subdir == "osx-arm64" and sys.platform == "darwin":
         # Apple arm64 needs signed executables
-        subprocess.run(['codesign', '-s', '-', '-f', realpath(path)])
+        subprocess.run(['/usr/bin/codesign', '-s', '-', '-f', realpath(path)])
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
