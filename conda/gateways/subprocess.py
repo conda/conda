@@ -58,7 +58,8 @@ def any_subprocess(args, prefix, env=None, cwd=None):
     return stdout, stderr, process.returncode
 
 
-def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True, live_stream=False):
+def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True,
+                    live_stream=False):
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """

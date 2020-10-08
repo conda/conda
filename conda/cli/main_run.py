@@ -25,7 +25,8 @@ def execute(args, parser):
                                                        args.dev, args.debug_wrapper_scripts, call)
     env = encode_environment(os.environ.copy())
 
-    response = subprocess_call(command_args, env=env, path=cwd, raise_on_error=False, live_stream=args.live_stream)
+    response = subprocess_call(command_args, env=env, path=cwd, raise_on_error=False,
+                               live_stream=args.live_stream)
     if response.rc != 0:
         log = getLogger(__name__)
         log.error("Subprocess for 'conda run {}' command failed.  (See above for error)"
