@@ -1,6 +1,6 @@
 # source: https://raw.githubusercontent.com/tqdm/tqdm/v4.50.2/tqdm/__init__.py
 # version: 4.50.2
-# date: 2020-10-07
+# date: 2020-10-08
 # These modules are omitted:
 #   gui, notebook, keras, contrib.bells, contrib.discord, contrib.telegram
 # Also removed syscall on import in _version module.
