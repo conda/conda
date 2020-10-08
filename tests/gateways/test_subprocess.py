@@ -15,17 +15,14 @@ def test_subprocess_call_with_live_stream(mock_stdout, mock_stderr):
         live_stream=True,
     )
 
-    mock_stdout.write.assert_has_calls([
-        call('1\n'),
-        call(''),
-        call('end\n'),
-        call(''),
-    ])
+    def get_write_calls(mock_stream):
+        return [args[0].replace('\r\n', '\n') for args, kwargs in mock_stream.write.call_args_list]
 
-    mock_stderr.write.assert_has_calls([
-        call('2\n'),
-        call(''),
-    ])
+    stdout_calls = get_write_calls(mock_stdout)
+    stderr_calls = get_write_calls(mock_stderr)
+
+    assert ['1\n', '', 'end\n', ''] == stdout_calls
+    assert ['2\n', ''] == stderr_calls
 
     assert resp.stdout == '1\nend\n'
     assert resp.stderr == "2\n"
