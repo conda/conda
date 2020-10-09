@@ -201,10 +201,17 @@ class _Activator(object):
         return None
 
     def _parse_and_set_args(self, arguments):
-        # the first index of arguments MUST be either activate, deactivate, or reactivate
-        if arguments is None:
+
+        def raise_invalid_command_error(actual_command=None):
             from .exceptions import ArgumentError
-            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+            message = "'activate', 'deactivate', 'hook', 'commands', or 'reactivate' " \
+                "command must be given"
+            if actual_command:
+                message += ". Instead got '%s'." % actual_command
+            raise ArgumentError(message)
+
+        if arguments is None or len(arguments) < 1:
+            raise_invalid_command_error()
 
         command = arguments[0]
         arguments = tuple(drop(1, arguments))
@@ -214,10 +221,7 @@ class _Activator(object):
         remainder_args = list(arg for arg in non_help_args if arg and arg != command)
 
         if not command:
-            from .exceptions import ArgumentError
-            raise ArgumentError("'activate', 'deactivate', 'hook', "
-                                "'commands', or 'reactivate' "
-                                "command must be given")
+            raise_invalid_command_error()
         elif help_requested:
             from .exceptions import ActivateHelp, DeactivateHelp, GenericHelp
             help_classes = {
@@ -229,8 +233,7 @@ class _Activator(object):
             }
             raise help_classes[command]
         elif command not in ('activate', 'deactivate', 'reactivate', 'hook', 'commands'):
-            from .exceptions import ArgumentError
-            raise ArgumentError("invalid command '%s'" % command)
+            raise_invalid_command_error(actual_command=command)
 
         if command.endswith('activate') or command == 'hook':
             try:
@@ -1193,7 +1196,7 @@ def main(argv=None):
 
     init_std_stream_encoding()
     argv = argv or sys.argv
-    assert len(argv) >= 3
+    assert len(argv) >= 2
     assert argv[1].startswith('shell.')
     shell = argv[1].replace('shell.', '', 1)
     activator_args = argv[2:]
