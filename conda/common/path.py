@@ -14,7 +14,7 @@ from .compat import on_win, string_types
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.toolz import accumulate, concat, take
-import setuptools
+import setuptools  # NOQA
 from distutils.spawn import find_executable
 
 try:
