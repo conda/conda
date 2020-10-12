@@ -2,18 +2,15 @@
 General helpers required for `tqdm.std`.
 """
 from functools import wraps
-import os
-from platform import system as _curos
-import re
-import subprocess
 from warnings import warn
+import os
+import re
+import sys
+import subprocess
 
-CUR_OS = _curos()
-IS_WIN = CUR_OS in ['Windows', 'cli']
-IS_NIX = (not IS_WIN) and any(
-    CUR_OS.startswith(i) for i in
-    ['CYGWIN', 'MSYS', 'Linux', 'Darwin', 'SunOS',
-     'FreeBSD', 'NetBSD', 'OpenBSD'])
+CUR_OS = sys.platform
+IS_WIN = any(CUR_OS.startswith(i) for i in ['win32', 'cygwin'])
+IS_NIX = any(CUR_OS.startswith(i) for i in ['aix', 'linux', 'darwin'])
 RE_ANSI = re.compile(r"\x1b\[[;\d]*[A-Za-z]")
 
 
@@ -212,6 +209,41 @@ class SimpleTextIOWrapper(ObjectWrapper):
         return self._wrapped == getattr(other, '_wrapped', other)
 
 
+class DisableOnWriteError(ObjectWrapper):
+    """
+    Disable the given `tqdm_instance` upon `write()` or `flush()` errors.
+    """
+    @staticmethod
+    def disable_on_exception(tqdm_instance, func):
+        """
+        Quietly set `tqdm_instance.miniters=inf` if `func` raises `errno=5`.
+        """
+        def inner(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except (IOError, OSError) as e:
+                if e.errno != 5:
+                    raise
+                tqdm_instance.miniters = float('inf')
+            except ValueError as e:
+                if 'closed' not in str(e):
+                    raise
+                tqdm_instance.miniters = float('inf')
+        return inner
+
+    def __init__(self, wrapped, tqdm_instance):
+        super(DisableOnWriteError, self).__init__(wrapped)
+        if hasattr(wrapped, 'write'):
+            self.wrapper_setattr('write', self.disable_on_exception(
+                tqdm_instance, wrapped.write))
+        if hasattr(wrapped, 'flush'):
+            self.wrapper_setattr('flush', self.disable_on_exception(
+                tqdm_instance, wrapped.flush))
+
+    def __eq__(self, other):
+        return self._wrapped == getattr(other, '_wrapped', other)
+
+
 class CallbackIOWrapper(ObjectWrapper):
     def __init__(self, callback, stream, method="read"):
         """
@@ -310,9 +342,9 @@ def _screen_shape_windows(fp):  # pragma: no cover
 def _screen_shape_tput(*_):  # pragma: no cover
     """cygwin xterm (windows)"""
     try:
-        import shlex
-        from conda._vendor.auxlib.compat import shlex_split_unicode
-        return [int(subprocess.check_call(shlex_split_unicode('tput ' + i))) - 1
+        # from shlex import split as ss
+        from conda._vendor.auxlib.compat import shlex_split_unicode as ss
+        return [int(subprocess.check_call(ss('tput ' + i))) - 1
                 for i in ('cols', 'lines')]
     except:
         pass

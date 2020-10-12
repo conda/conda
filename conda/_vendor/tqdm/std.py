@@ -12,19 +12,16 @@ from __future__ import absolute_import, division
 from .utils import _supports_unicode, _screen_shape_wrapper, _range, _unich, \
     _term_move_up, _unicode, WeakSet, _basestring, _OrderedDict, \
     Comparable, _is_ascii, FormatReplace, disp_len, disp_trim, \
-    SimpleTextIOWrapper, CallbackIOWrapper
+    SimpleTextIOWrapper, DisableOnWriteError, CallbackIOWrapper
 from ._monitor import TMonitor
 # native libraries
 from contextlib import contextmanager
-import sys
 from numbers import Number
 from time import time
-# For parallelism safety
-import threading as th
 from warnings import warn
+import sys
 
-__author__ = {"github.com/": ["noamraph", "obiwanus", "kmike", "hadim",
-                              "casperdcl", "lrq3000"]}
+__author__ = "https://github.com/tqdm/tqdm#contributions"
 __all__ = ['tqdm', 'trange',
            'TqdmTypeError', 'TqdmKeyError', 'TqdmWarning',
            'TqdmExperimentalWarning', 'TqdmDeprecationWarning',
@@ -67,6 +64,15 @@ class TqdmMonitorWarning(TqdmWarning, RuntimeWarning):
     pass
 
 
+def TRLock(*args, **kwargs):
+    """threading RLock"""
+    try:
+        from threading import RLock
+        return RLock(*args, **kwargs)
+    except (ImportError, OSError):  # pragma: no cover
+        pass
+
+
 class TqdmDefaultWriteLock(object):
     """
     Provide a default write lock for thread and multiprocessing safety.
@@ -76,13 +82,22 @@ class TqdmDefaultWriteLock(object):
     On Windows, you need to supply the lock from the parent to the children as
     an argument to joblib or the parallelism lib you use.
     """
+    # global thread lock so no setup required for multithreading.
+    # NB: Do not create multiprocessing lock as it sets the multiprocessing
+    # context, disallowing `spawn()`/`forkserver()`
+    th_lock = TRLock()
+
     def __init__(self):
         # Create global parallelism locks to avoid racing issues with parallel
         # bars works only if fork available (Linux/MacOSX, but not Windows)
-        self.create_mp_lock()
-        self.create_th_lock()
         cls = type(self)
+        root_lock = cls.th_lock
+        if root_lock is not None:
+            root_lock.acquire()
+        cls.create_mp_lock()
         self.locks = [lk for lk in [cls.mp_lock, cls.th_lock] if lk is not None]
+        if root_lock is not None:
+            root_lock.release()
 
     def acquire(self, *a, **k):
         for lock in self.locks:
@@ -103,26 +118,15 @@ class TqdmDefaultWriteLock(object):
         if not hasattr(cls, 'mp_lock'):
             try:
                 from multiprocessing import RLock
-                cls.mp_lock = RLock()  # multiprocessing lock
-            except ImportError:  # pragma: no cover
-                cls.mp_lock = None
-            except OSError:  # pragma: no cover
+                cls.mp_lock = RLock()
+            except (ImportError, OSError):  # pragma: no cover
                 cls.mp_lock = None
 
     @classmethod
     def create_th_lock(cls):
-        if not hasattr(cls, 'th_lock'):
-            try:
-                cls.th_lock = th.RLock()  # thread lock
-            except OSError:  # pragma: no cover
-                cls.th_lock = None
-
-
-# Create a thread lock before instantiation so that no setup needs to be done
-# before running in a multithreaded environment.
-# Do not create the multiprocessing lock because it sets the multiprocessing
-# context and does not allow the user to use 'spawn' or 'forkserver' methods.
-TqdmDefaultWriteLock.create_th_lock()
+        assert hasattr(cls, 'th_lock')
+        warn("create_th_lock not needed anymore", TqdmDeprecationWarning,
+             stacklevel=2)
 
 
 class Bar(object):
@@ -141,15 +145,44 @@ class Bar(object):
     ASCII = " 123456789#"
     UTF = u" " + u''.join(map(_unich, range(0x258F, 0x2587, -1)))
     BLANK = "  "
+    COLOUR_RESET = '\x1b[0m'
+    COLOUR_RGB = '\x1b[38;2;%d;%d;%dm'
+    COLOURS = dict(BLACK='\x1b[30m', RED='\x1b[31m', GREEN='\x1b[32m',
+                   YELLOW='\x1b[33m', BLUE='\x1b[34m', MAGENTA='\x1b[35m',
+                   CYAN='\x1b[36m', WHITE='\x1b[37m')
 
-    def __init__(self, frac, default_len=10, charset=UTF):
-        if not (0 <= frac <= 1):
+    def __init__(self, frac, default_len=10, charset=UTF, colour=None):
+        if not 0 <= frac <= 1:
             warn("clamping frac to range [0, 1]", TqdmWarning, stacklevel=2)
             frac = max(0, min(1, frac))
         assert default_len > 0
         self.frac = frac
         self.default_len = default_len
         self.charset = charset
+        self.colour = colour
+
+    @property
+    def colour(self):
+        return self._colour
+
+    @colour.setter
+    def colour(self, value):
+        if not value:
+            self._colour = None
+            return
+        try:
+            if value.upper() in self.COLOURS:
+                self._colour = self.COLOURS[value.upper()]
+            elif value[0] == '#' and len(value) == 7:
+                self._colour = self.COLOUR_RGB % tuple(
+                    int(i, 16) for i in (value[1:3], value[3:5], value[5:7]))
+            else:
+                raise KeyError
+        except (KeyError, AttributeError):
+            warn("Unknown colour (%s); valid choices: [hex (#00ff00), %s]" % (
+                 value, ", ".join(self.COLOURS)),
+                 TqdmWarning, stacklevel=2)
+            self._colour = None
 
     def __format__(self, format_spec):
         if format_spec:
@@ -174,14 +207,11 @@ class Bar(object):
         bar_length, frac_bar_length = divmod(
             int(self.frac * N_BARS * nsyms), nsyms)
 
-        bar = charset[-1] * bar_length
-        frac_bar = charset[frac_bar_length]
-
-        # whitespace padding
-        if bar_length < N_BARS:
-            return bar + frac_bar + \
+        res = charset[-1] * bar_length
+        if bar_length < N_BARS:  # whitespace padding
+            res = res + charset[frac_bar_length] + \
                 charset[0] * (N_BARS - bar_length - 1)
-        return bar
+        return self.colour + res + self.COLOUR_RESET if self.colour else res
 
 
 class tqdm(Comparable):
@@ -301,7 +331,7 @@ class tqdm(Comparable):
         last_len = [0]
 
         def print_status(s):
-            len_s = len(s)
+            len_s = disp_len(s)
             fp_write('\r' + s + (' ' * max(last_len[0] - len_s, 0)))
             last_len[0] = len_s
 
@@ -310,7 +340,8 @@ class tqdm(Comparable):
     @staticmethod
     def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
                      unit='it', unit_scale=False, rate=None, bar_format=None,
-                     postfix=None, unit_divisor=1000, **extra_kwargs):
+                     postfix=None, unit_divisor=1000, initial=0, colour=None,
+                     **extra_kwargs):
         """
         Return a string-based progress bar given some parameters
 
@@ -366,6 +397,10 @@ class tqdm(Comparable):
             However other types are supported (#382).
         unit_divisor  : float, optional
             [default: 1000], ignored unless `unit_scale` is True.
+        initial  : int or float, optional
+            The initial counter value [default: 0].
+        colour  : str, optional
+            Bar colour (e.g. 'green', '#00ff00').
 
         Returns
         -------
@@ -390,7 +425,7 @@ class tqdm(Comparable):
         # if unspecified, attempt to use rate = average speed
         # (we allow manual override since predicting time is an arcane art)
         if rate is None and elapsed:
-            rate = n / elapsed
+            rate = (n - initial) / elapsed
         inv_rate = 1 / rate if rate else None
         format_sizeof = tqdm.format_sizeof
         rate_noinv_fmt = ((format_sizeof(rate) if unit_scale else
@@ -440,6 +475,7 @@ class tqdm(Comparable):
             rate_noinv_fmt=rate_noinv_fmt, rate_inv=inv_rate,
             rate_inv_fmt=rate_inv_fmt,
             postfix=postfix, unit_divisor=unit_divisor,
+            colour=colour,
             # plus more useful definitions
             remaining=remaining_str, remaining_s=remaining,
             l_bar=l_bar, r_bar=r_bar,
@@ -481,7 +517,8 @@ class tqdm(Comparable):
                 frac,
                 max(1, ncols - disp_len(nobar))
                 if ncols else 10,
-                charset=Bar.ASCII if ascii is True else ascii or Bar.UTF)
+                charset=Bar.ASCII if ascii is True else ascii or Bar.UTF,
+                colour=colour)
             if not _is_ascii(full_bar.charset) and _is_ascii(bar_format):
                 bar_format = _unicode(bar_format)
             res = bar_format.format(bar=full_bar, **format_dict)
@@ -499,7 +536,8 @@ class tqdm(Comparable):
                 0,
                 max(1, ncols - disp_len(nobar))
                 if ncols else 10,
-                charset=Bar.BLANK)
+                charset=Bar.BLANK,
+                colour=colour)
             res = bar_format.format(bar=full_bar, **format_dict)
             return disp_trim(res, ncols) if ncols else res
         else:
@@ -508,7 +546,7 @@ class tqdm(Comparable):
                 '{0}{1} [{2}, {3}{4}]'.format(
                     n_fmt, unit, elapsed_str, rate_fmt, postfix)
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *_, **__):
         # Create a new instance
         instance = object.__new__(cls)
         # Construct the lock if it does not exist
@@ -566,15 +604,6 @@ class tqdm(Comparable):
                     inst = min(instances, key=lambda i: i.pos)
                     inst.clear(nolock=True)
                     inst.pos = abs(instance.pos)
-            # Kill monitor if no instances are left
-            if not cls._instances and cls.monitor:
-                try:
-                    cls.monitor.exit()
-                    del cls.monitor
-                except AttributeError:  # pragma: nocover
-                    pass
-                else:
-                    cls.monitor = None
 
     @classmethod
     def write(cls, s, file=None, end="\n", nolock=False):
@@ -800,7 +829,7 @@ class tqdm(Comparable):
                  unit_scale=False, dynamic_ncols=False, smoothing=0.3,
                  bar_format=None, initial=0, position=None, postfix=None,
                  unit_divisor=1000, write_bytes=None, lock_args=None,
-                 nrows=None,
+                 nrows=None, colour=None,
                  gui=False, **kwargs):
         """
         Parameters
@@ -906,6 +935,8 @@ class tqdm(Comparable):
             The screen height. If specified, hides nested bars outside this
             bound. If unspecified, attempts to use environment height.
             The fallback is 20.
+        colour  : str, optional
+            Bar colour (e.g. 'green', '#00ff00').
         gui  : bool, optional
             WARNING: internal parameter - do not use.
             Use tqdm.gui.tqdm(...) instead. If set, will attempt to use
@@ -926,6 +957,8 @@ class tqdm(Comparable):
             # should have bytes written to them.
             file = SimpleTextIOWrapper(
                 file, encoding=getattr(file, 'encoding', None) or 'utf-8')
+
+        file = DisableOnWriteError(file, tqdm_instance=self)
 
         if disable is None and hasattr(file, "isatty") and not file.isatty():
             disable = True
@@ -1019,14 +1052,16 @@ class tqdm(Comparable):
         self.unit = unit
         self.unit_scale = unit_scale
         self.unit_divisor = unit_divisor
+        self.initial = initial
         self.lock_args = lock_args
         self.gui = gui
         self.dynamic_ncols = dynamic_ncols
         self.smoothing = smoothing
         self.avg_time = None
-        self._time = time
         self.bar_format = bar_format
         self.postfix = None
+        self.colour = colour
+        self._time = time
         if postfix:
             try:
                 self.set_postfix(refresh=False, **postfix)
@@ -1202,6 +1237,11 @@ class tqdm(Comparable):
             Increment to add to the internal counter of iterations
             [default: 1]. If using float, consider specifying `{n:.3f}`
             or similar in `bar_format`, or specifying `unit_scale`.
+
+        Returns
+        -------
+        out  : bool or None
+            True if a `display()` was triggered.
         """
         # N.B.: see __iter__() for more comments.
         if self.disable:
@@ -1257,6 +1297,7 @@ class tqdm(Comparable):
                 # Store old values for next call
                 self.last_print_n = self.n
                 self.last_print_t = cur_t
+                return True
 
     def close(self):
         """Cleanup and (if leave=False) close the progressbar."""
@@ -1442,7 +1483,8 @@ class tqdm(Comparable):
             unit_scale=self.unit_scale,
             rate=1 / self.avg_time if self.avg_time else None,
             bar_format=self.bar_format, postfix=self.postfix,
-            unit_divisor=self.unit_divisor)
+            unit_divisor=self.unit_divisor, initial=self.initial,
+            colour=self.colour)
 
     def display(self, msg=None, pos=None):
         """

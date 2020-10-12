@@ -18,6 +18,7 @@ def execute(args, parser):
 
     call = args.executable_call
     cwd = args.cwd
+    no_capture_output = args.no_capture_output
     prefix = context.target_prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
     is_valid_prefix(prefix)
 
@@ -26,7 +27,7 @@ def execute(args, parser):
     env = encode_environment(os.environ.copy())
 
     response = subprocess_call(command_args, env=env, path=cwd, raise_on_error=False,
-                               live_stream=args.live_stream)
+                               capture_output=not no_capture_output, live_stream=args.live_stream)
     if response.rc != 0:
         log = getLogger(__name__)
         log.error("Subprocess for 'conda run {}' command failed.  (See above for error)"

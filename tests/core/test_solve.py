@@ -241,9 +241,20 @@ def test_virtual_package_solver(tmpdir):
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            final_state = solver.solve_final_state()
+            _ = solver.solve_final_state()
+            ssc = solver.ssc
             # Check the cuda virtual package is included in the solver
-            assert '__cuda' in solver.ssc.specs_map.keys()
+            assert '__cuda' in ssc.specs_map.keys()
+
+            # Check that the environment is consistent after installing a
+            # package which *depends* on a virtual package
+            for pkgs in ssc.solution_precs:
+                if pkgs.name == 'cudatoolkit':
+                    # make sure this package depends on the __cuda virtual
+                    # package as a dependency since this is requirement of the
+                    # test the test
+                    assert '__cuda' in pkgs.depends[0]
+            assert ssc.r.bad_installed(ssc.solution_precs, ())[1] is None
 
 
 def test_cuda_1(tmpdir):
