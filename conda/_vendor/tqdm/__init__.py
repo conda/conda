@@ -1,8 +1,10 @@
-# source: https://raw.githubusercontent.com/tqdm/tqdm/v4.19.8/tqdm/__init__.py
-# version: 4.48.0
-# date: 2020-07-20
-# The modules _tqdm_gui, _tqdm_notebook, and _tqdm_pandas are not included.
+# source: https://raw.githubusercontent.com/tqdm/tqdm/v4.50.2/tqdm/__init__.py
+# version: 4.50.2
+# date: 2020-10-08
+# These modules are omitted:
+#   gui, notebook, keras, contrib.bells, contrib.discord, contrib.telegram
 # Also removed syscall on import in _version module.
+# Also omitted man pages & shell completions.
 
 from .std import tqdm, trange
 # from .gui import tqdm as tqdm_gui  # TODO: remove in v5.0.0
@@ -38,8 +40,8 @@ __all__ = ['tqdm', 'trange', 'main', 'TMonitor',
 #          "Please use `tqdm.notebook.tqdm` instead of `tqdm.tqdm_notebook`",
 #          TqdmDeprecationWarning, stacklevel=2)
 #     return _tqdm_notebook(*args, **kwargs)
-# 
-# 
+#
+#
 # def tnrange(*args, **kwargs):  # pragma: no cover
 #     """
 #     A shortcut for `tqdm.notebook.tqdm(xrange(*args), **kwargs)`.
