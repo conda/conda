@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
+from io import StringIO
 from logging import getLogger
 import os
 from os.path import abspath
@@ -58,7 +59,7 @@ def any_subprocess(args, prefix, env=None, cwd=None):
 
 
 def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True,
-                    capture_output=True):
+                    capture_output=True, live_stream=False):
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """
@@ -68,12 +69,18 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
         command = shlex_split_unicode(command)
     command_str = command if isinstance(command, string_types) else ' '.join(command)
     log.debug("executing>> %s", command_str)
+
     if capture_output:
-        p = Popen(encode_arguments(command), cwd=cwd, stdin=PIPE, stdout=PIPE,
-                  stderr=PIPE, env=env)
+        p = Popen(encode_arguments(command), cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                  env=env)
         ACTIVE_SUBPROCESSES.add(p)
         stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
-        stdout, stderr = p.communicate(input=stdin)
+
+        if live_stream:
+            stdout, stderr = _realtime_output_for_subprocess(p)
+        else:
+            stdout, stderr = p.communicate(input=stdin)
+
         if hasattr(stdout, "decode"):
             stdout = stdout.decode('utf-8', errors='replace')
         if hasattr(stderr, "decode"):
@@ -90,6 +97,7 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
         ACTIVE_SUBPROCESSES.remove(p)
         stdout = None
         stderr = None
+
     if (raise_on_error and rc != 0) or log.isEnabledFor(TRACE):
         formatted_output = _format_output(command_str, cwd, rc, stdout, stderr)
     if raise_on_error and rc != 0:
@@ -100,6 +108,36 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
         log.trace(formatted_output)
 
     return Response(stdout, stderr, int(rc))
+
+
+def _realtime_output_for_subprocess(p):
+    """Consumes the stdout and stderr streams from the subprocess in real-time.
+    """
+    stdout_io = StringIO()
+    stderr_io = StringIO()
+    while True:
+        buff = p.stdout.readline()
+        if hasattr(buff, "decode"):
+            buff = buff.decode('utf-8', errors='replace')
+        if buff == '' and p.poll() is not None:
+            break
+        if buff:
+            stdout_io.write(buff)
+            print(buff, file=sys.stdout, end='')
+
+        errbuff = p.stderr.readline()
+        if hasattr(errbuff, "decode"):
+            errbuff = errbuff.decode('utf-8', errors='replace')
+        if errbuff:
+            stderr_io.write(errbuff)
+            print(errbuff, file=sys.stderr, end='')
+
+    p.wait()
+
+    stdout = stdout_io.getvalue()
+    stderr = stderr_io.getvalue()
+
+    return stdout, stderr
 
 
 def _subprocess_clean_env(env, clean_python=True, clean_conda=True):

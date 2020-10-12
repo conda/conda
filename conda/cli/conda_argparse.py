@@ -1103,6 +1103,14 @@ def configure_parser_run(sub_parsers):
         help="Executable name, with additional arguments to be passed to the executable "
              "on invocation.",
     )
+
+    p.add_argument(
+        '--live-stream',
+        action="store_true",
+        default=False,
+        help="Display the output for the subprocess stdout and stderr on real time.",
+    )
+
     p.set_defaults(func='.main_run.execute')
 
 
