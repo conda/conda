@@ -1,3 +1,15 @@
+## 4.8.5 (2020-09-14)
+
+### Enhancements
+
+* Add `osx-arm64` as a recognized platform (#10128, #10134)
+
+### Contributors
+
+* @isuruf
+* @jjhelmus
+
+
 ## 4.8.4 (2020-08-06)
 
 ### Enhancements:
