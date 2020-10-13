@@ -16769,14 +16769,14 @@
     "requires": [],
     "version": "6.2"
   },
-  "readline-7.0-0.tar.bz2": {
+  "readline-5.0-0.tar.bz2": {
     "build": "0",
     "build_number": 0,
     "depends": [],
     "md5": "7802f80168494982f4f72fff244f72d5",
     "name": "readline",
     "requires": [],
-    "version": "7.0"
+    "version": "5.0"
   },
   "redis-2.4.15-0.tar.bz2": {
     "build": "0",

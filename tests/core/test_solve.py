@@ -260,7 +260,7 @@ def test_virtual_package_solver(tmpdir):
 
 def test_solve_msgs_exclude_vp(tmpdir):
     # Sovler hints should exclude virtual packages that are not dependencies
-    specs = MatchSpec("python =2.7.5"), MatchSpec("readline =7.0"),
+    specs = MatchSpec("python =2.7.5"), MatchSpec("readline =5.0"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
