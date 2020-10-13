@@ -478,16 +478,15 @@ class Resolve(object):
         conflicting_pkgs_pkgs = {}
         for k, v in dep_list.items():
             set_v = frozenset(v)
-            # Packages probably conflict if it's cuda
-            if k == '__cuda':
+            # Packages probably conflicts if many specs depend on it
+            if len(set_v) > 1:
+                if conflicting_pkgs_pkgs.get(set_v) is None:
+                    conflicting_pkgs_pkgs[set_v] = [k]
+                else:
+                    conflicting_pkgs_pkgs[set_v].append(k)
+            # Conflict if required virtual package is not present
+            elif k.startswith("__") and any(s for s in set_v if s.name != k):
                 conflicting_pkgs_pkgs[set_v] = [k]
-            else:
-                # Packages probably conflicts if many specs depend on it
-                if len(set_v) > 1:
-                    if conflicting_pkgs_pkgs.get(set_v) is None:
-                        conflicting_pkgs_pkgs[set_v] = [k]
-                    else:
-                        conflicting_pkgs_pkgs[set_v].append(k)
 
         with tqdm(total=len(specs), desc="Determining conflicts",
                   leave=False, disable=context.json) as t:
