@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 from os.path import dirname, join
 from unittest import TestCase
+from time import sleep
 
 import pytest
 
@@ -201,14 +202,57 @@ def test_subdir_data_prefers_conda_to_tar_bz2():
 
 def test_use_only_tar_bz2():
     channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    SubdirData.clear_cached_local_channel_data()
     with env_var('CONDA_USE_ONLY_TAR_BZ2', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".tar.bz2")
+    SubdirData.clear_cached_local_channel_data()
     with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".conda")
+
+
+def test_metadata_cache_works():
+    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    SubdirData.clear_cached_local_channel_data()
+
+    # Sadly, on Windows, st_mtime resolution is limited to 2 seconds. (See note in Python docs
+    # on os.stat_result.)  To ensure that the timestamp on the existing JSON file is safely
+    # in the past before this test starts, we need to wait for more than 2 seconds...
+
+    sleep(3)
+
+    with patch('conda.core.subdir_data.fetch_repodata_remote_request',
+               wraps=fetch_repodata_remote_request) as fetcher:
+        sd_a = SubdirData(channel)
+        precs_a = tuple(sd_a.query("zlib"))
+        assert fetcher.call_count == 1
+
+        sd_b = SubdirData(channel)
+        assert sd_b is sd_a
+        precs_b = tuple(sd_b.query("zlib"))
+        assert fetcher.call_count == 1
+
+
+def test_metadata_cache_clearing():
+    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    SubdirData.clear_cached_local_channel_data()
+
+    with patch('conda.core.subdir_data.fetch_repodata_remote_request',
+               wraps=fetch_repodata_remote_request) as fetcher:
+        sd_a = SubdirData(channel)
+        precs_a = tuple(sd_a.query("zlib"))
+        assert fetcher.call_count == 1
+
+        SubdirData.clear_cached_local_channel_data()
+
+        sd_b = SubdirData(channel)
+        assert sd_b is not sd_a
+        precs_b = tuple(sd_b.query("zlib"))
+        assert fetcher.call_count == 2
+        assert precs_b == precs_a
 
 
 # @pytest.mark.integration
