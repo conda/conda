@@ -97,10 +97,14 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
         prec = prefix_data.get(pcrec.name, None)
         if prec:
-            precs_to_remove.append(prec)
+            # If we've already got matching specifications, then don't bother re-linking it
+            if next(prefix_data.query(new_spec), None):
+                specs_pcrecs[q][0] = None
+            else:
+                precs_to_remove.append(prec)
 
-    stp = PrefixSetup(prefix, precs_to_remove, tuple(sp[1] for sp in specs_pcrecs),
-                      (), tuple(sp[0] for sp in specs_pcrecs), ())
+    stp = PrefixSetup(prefix, precs_to_remove, tuple(sp[1] for sp in specs_pcrecs if sp[0]),
+                      (), tuple(sp[0] for sp in specs_pcrecs if sp[0]), ())
 
     txn = UnlinkLinkTransaction(stp)
     txn.execute()
