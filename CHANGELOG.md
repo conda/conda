@@ -1,3 +1,66 @@
+## 4.9.0 (2020-10-19)
+
+### Enhancements:
+
+* Add `osx-arm64` as a recognized platform (#10128, #10134, #10137)
+* Resign files modified during installation on ARM64 macOS (#10260)
+* Add `__archspec` virtual package to identify CPU microarchitecture (#9930)
+* Add `__unix` and `__win` virtual packages (#10214)
+* Add `--no-capture--output` option to `conda run` (#9646)
+* Add `--live-stream` option to `conda run` (#10270)
+* Export and import environment variables set using `conda env config` (#10169)
+* Cache repodata from `file://` channels (#9730)
+* Do not relink already-installed packages (#10208)
+* Speed up JSON formatting in logz module (#10189)
+
+
+### Bug fixes:
+
+* Stop `env remove --dry-run` from actually removing environments (#10261)
+* Virtual package requirements are now considered by the solver (#10057)
+* Fix cached filename processing when using only tar.bz2 (#10193)
+* Stop showing solver hints about CUDA when it is not a dependency (#10275)
+* Ignore virtual packages when checking environment consistency (#10196)
+* Fix `config --json` output errors in certain circumstances (#10194)
+* More consistent error handling by `conda shell` (#10238)
+* Bump vendored version of tqdm to fix various threading and I/O bugs (#10266)
+
+
+### Docs:
+
+* Correctly state default `/AddToPath` option in Windows installer (#10179)
+* Fix typos in `--repodata-fn` help text (#10279)
+
+
+### Miscellaneous:
+
+* Update CI infrastructure to use GitHub Actions (#10176, #10186, #10234)
+* Update README badge to show GitHub Actions status (#10254)
+
+
+### Contributors
+
+* @AlbertDeFusco
+* @angloyna
+* @bbodenmiller
+* @casperdcl
+* @chenghlee
+* @chrisburr
+* @cjmartian
+* @dhirschfeld
+* @ericpre
+* @gabrielcnr
+* @InfiniteChai
+* @isuruf
+* @jjhelmus
+* @LorcanHamill
+* @maresb
+* @mingwandroid
+* @mlline00
+* @xhochy
+* @ydmytryk
+
+
 ## 4.8.5 (2020-09-14)
 
 ### Enhancements
