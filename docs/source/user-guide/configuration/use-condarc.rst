@@ -145,8 +145,8 @@ Conflict merging strategy
 -------------------------
 When conflicts between configurations arise, the following strategies are employed:
 
-* Lists - merge
-* Dictionaries - merge
+* Lists - extend
+* Dictionaries - update
 * Primitive - clobber
 
 Precedence
