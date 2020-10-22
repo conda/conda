@@ -2550,6 +2550,15 @@ dependencies:
         rm_rf(prefix, clean_empty_parents=True)
         run_command(Commands.REMOVE, prefix, "--all")
 
+    def test_download_only_flag_file(self):
+        from conda.core.link import UnlinkLinkTransaction
+        with patch.object(UnlinkLinkTransaction, 'execute') as mock_method:
+            file_location = "C:/testenvfile.yml"
+        with make_temp_env('--download-only', "--file", file_location, use_exception_handler=True) as prefix:
+            assert mock_method.call_count == 0
+        with make_temp_env("--file", file_location, use_exception_handler=True) as prefix:
+            assert mock_method.call_count == 1
+
     def test_download_only_flag(self):
         from conda.core.link import UnlinkLinkTransaction
         with patch.object(UnlinkLinkTransaction, 'execute') as mock_method:

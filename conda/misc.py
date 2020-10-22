@@ -14,6 +14,7 @@ import re
 import shutil
 import sys
 
+from conda import CondaExitZero
 from .base.context import context
 from .common.compat import itervalues, on_win, open, scandir
 from .common.path import expand
@@ -82,6 +83,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
     pfe = ProgressiveFetchExtract(fetch_specs)
     pfe.execute()
+
+    if context.download_only:
+        raise CondaExitZero('Package caches prepared. UnlinkLinkTransaction cancelled with '
+                            '--download-only option.')
 
     # now make an UnlinkLinkTransaction with the PackageCacheRecords as inputs
     # need to add package name to fetch_specs so that history parsing keeps track of them correctly
