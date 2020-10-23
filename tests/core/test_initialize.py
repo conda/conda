@@ -890,7 +890,7 @@ class InitializeTests(TestCase):
         def _read_windows_registry_mock(target_path, value=None):
             if not value:
                 value = "yada\\yada\\conda_hook.bat"
-            return 'echo hello & "{}" & echo "world"'.format(value), None
+            return 'echo hello & if exist "{v}" "{v}" & echo "world"'.format(v=value), None
 
         from conda.core import initialize
         orig_read_windows_registry = initialize._read_windows_registry
@@ -908,7 +908,7 @@ class InitializeTests(TestCase):
             initialize._read_windows_registry = orig_read_windows_registry
             initialize.join = orig_join
 
-        expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat\" & echo \"world\""
+        expected = "echo hello & if exist \"c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat\" \"c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat\" & echo \"world\""
         assert c.stdout.strip().splitlines()[-1][1:] == expected
 
         # test the reverse (remove the key)
