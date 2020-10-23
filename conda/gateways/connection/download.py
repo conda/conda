@@ -8,10 +8,6 @@ from logging import DEBUG, getLogger
 from os.path import basename, exists, join
 import tempfile
 import warnings
-import sys
-import os
-import ctypes
-from ctypes.util import find_library
 
 from . import (ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema,
                SSLError, RequestsProxyError)
