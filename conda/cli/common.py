@@ -99,7 +99,7 @@ spec_pat = re.compile(r'(?P<name>[^=<>!\s]+)'  # package name  # lgtm [py/regex/
                       r'('
                       r'(?P<cc>=[^=]+(=[^=]+)?)'  # conda constraint
                       r'|'
-                      r'(?P<pc>(?:[=!]=|[><]=?).+)'  # new (pip-style) constraint(s)
+                      r'(?P<pc>(?:[=!]=|[><]=?|~=).+)'  # new (pip-style) constraint(s)
                       r')?$',
                       re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
 
@@ -116,7 +116,15 @@ def spec_from_line(line):
     if cc:
         return name + cc.replace('=', ' ')
     elif pc:
-        return name + ' ' + pc.replace(' ', '')
+        if pc.startswith('~='):
+            assert pc.count('~=') == 1,\
+                "Overly complex 'Compatible release' spec not handled {}".format(line)
+            assert pc.count('.'), "No '.' in 'Compatible release' version {}".format(line)
+            ver = pc.replace('~=', '')
+            ver2 = '.'.join(ver.split('.')[:-1]) + '.*'
+            return name + ' >=' + ver + ',==' + ver2
+        else:
+            return name + ' ' + pc.replace(' ', '')
     else:
         return name
 
