@@ -116,11 +116,11 @@ def spec_from_line(line):
     if cc:
         return name + cc.replace('=', ' ')
     elif pc:
-        if pc.startswith('~='):
+        if pc.startswith('~= '):
             assert pc.count('~=') == 1,\
                 "Overly complex 'Compatible release' spec not handled {}".format(line)
             assert pc.count('.'), "No '.' in 'Compatible release' version {}".format(line)
-            ver = pc.replace('~=', '')
+            ver = pc.replace('~= ', '')
             ver2 = '.'.join(ver.split('.')[:-1]) + '.*'
             return name + ' >=' + ver + ',==' + ver2
         else:
