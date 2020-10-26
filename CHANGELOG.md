@@ -1,3 +1,19 @@
+## 4.9.0 (2020-10-26)
+
+### Enhancements
+
+* Respect PEP 440 `~=` "compatible release" clause (#10313)
+
+### Bug fixes
+
+* Remove `preload_openssl` for Win32 (#10298)
+* Add `if exist` to Windows registry hook (#10305)
+
+### Contributors
+
+* @mingwandroid
+
+
 ## 4.9.0 (2020-10-19)
 
 ### Enhancements:
