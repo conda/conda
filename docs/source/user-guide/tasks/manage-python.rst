@@ -85,6 +85,16 @@ Python version into it:
 
       python --version
 
+Installing PyPy
+===============
+
+To use the PyPy builds you can do the following::
+
+    conda config conda config --add channels confa-forge
+    conda config --set channel_priority strict
+    conda create -n pypy pypy
+    conda activate pypy
+
 
 Using a different version of Python
 ====================================
