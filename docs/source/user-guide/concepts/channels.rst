@@ -16,9 +16,10 @@ They serve as the base for hosting and managing packages.
 Conda :doc:`packages <../concepts/packages>` are downloaded
 from remote channels, which are URLs to directories
 containing conda packages.
-The ``conda`` command searches a default set of channels,
-and packages are automatically downloaded and updated from
-https://repo.anaconda.com/pkgs/.
+The ``conda`` command searches a set of channels. By default,
+packages are automatically downloaded and updated from
+the ``default`` channel https://repo.anaconda.com/pkgs/ which may require
+a commercial license. The ``conda-forge`` channel is free for all to use.
 You can modify what remote channels are automatically searched.
 You might want to do this to maintain a private or internal channel.
 For details, see how to :ref:`modify your channel lists <config-channels>`.
