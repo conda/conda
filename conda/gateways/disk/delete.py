@@ -85,15 +85,19 @@ def rmtree(path, *args, **kwargs):
         # yes, this looks strange.  See
         #    https://unix.stackexchange.com/a/79656/34459
         #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html  # NOQA
-        rsync = which('rsync')
-        if rsync and isdir('.empty'):
-            try:
-                out = check_output(
-                    [rsync, '-a', '--force', '--delete', join(getcwd(), '.empty') + "/",
-                     path + "/"],
-                    stderr=STDOUT)
-            except CalledProcessError:
-                log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
+
+        if isdir('.empty'):
+            rsync = which('rsync')
+
+            if rsync:
+                try:
+                    out = check_output(
+                        [rsync, '-a', '--force', '--delete', join(getcwd(), '.empty') + "/",
+                        path + "/"],
+                        stderr=STDOUT)
+                except CalledProcessError:
+                    log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
+
             shutil.rmtree('.empty')
     shutil.rmtree(path)
 
