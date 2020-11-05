@@ -6,11 +6,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict, OrderedDict, deque
 import copy
 from logging import DEBUG, getLogger
-from tqdm import tqdm
 
 from ._vendor.auxlib.collection import frozendict
 from ._vendor.auxlib.decorators import memoize, memoizemethod
 from ._vendor.toolz import concat, groupby
+from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
