@@ -5,6 +5,35 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.9.2 (2020-11-10)
+==================
+
+Enhancements
+^^^^^^^^^^^^
+
+* Use vendored `tqdm` in `conda.resolve` for better consistency (#10337)
+
+Bug fixes
+^^^^^^^^^
+
+* Revert to previous naming scheme for repodata cache files when
+  `use_only_tar_bz2` config option is false (#10350)
+
+Docs
+^^^^
+
+* Fix missing release notes (#10342)
+* Fix permission errors when configuring deb repositories (#10347)
+
+Contributors
+^^^^^^^^^^^^
+
+* @chenghlee
+* @csoja
+* @dylanmorroll
+* @sscherfke
+
+
 4.9.1 (2020-10-26)
 ==================
 
