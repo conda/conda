@@ -32,13 +32,12 @@ class NullHandler(Handler):  # NOQA
 getLogger('auxlib').addHandler(NullHandler())
 
 __all__ = [
-    "__name__", "__version__", "__author__",
+    "__version__", "__author__",
     "__email__", "__license__", "__copyright__",
     "__summary__", "__url__",
     "BuildPyCommand", "SDistCommand", "Tox", "get_version",
 ]
 
-__name__ = "auxlib"
 __author__ = 'Kale Franz'
 __email__ = 'kale@franz.io'
 __url__ = 'https://github.com/kalefranz/auxlib'
