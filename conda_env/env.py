@@ -155,8 +155,12 @@ def from_file(filename):
     elif not os.path.exists(filename):
         raise exceptions.EnvironmentFileNotFound(filename)
     else:
-        with open(filename, 'r') as fp:
-            yamlstr = fp.read()
+        with open(filename, 'rb') as fp:
+            yamlb = fp.read()
+            try:
+                yamlstr = yamlb.decode('utf-8')
+            except UnicodeDecodeError:
+                yamlstr = yamlb.decode('utf-16')
     return from_yaml(yamlstr, filename=filename)
 
 
