@@ -1,7 +1,3 @@
-setenv CONDA_EXE "/apps/user/cdd/dev/miniconda3/4.8.3/bin/conda"
-setenv _CONDA_ROOT "/apps/user/cdd/dev/miniconda3/4.8.3"
-setenv _CONDA_EXE "/apps/user/cdd/dev/miniconda3/4.8.3/bin/conda"
-setenv CONDA_PYTHON_EXE "/apps/user/cdd/dev/miniconda3/4.8.3/bin/python"
 echo "Copyright (C) 2012 Anaconda, Inc" > /dev/null
 echo "SPDX-License-Identifier: BSD-3-Clause" > /dev/null
 
