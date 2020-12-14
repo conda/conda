@@ -26,13 +26,13 @@ if ("`alias conda`" == "") then
         set prompt=""
     endif
 else
-    set conda_tmp_path=$PATH
+    set conda_tmp_path="$PATH"
     setenv PATH "`dirname ${_CONDA_EXE}`:$PATH"
     switch ( "${1}" )
         case "activate":
             set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh activate '${2}' ${argv[3-]})`"
             set conda_tmp_status=$status
-            setenv PATH $conda_tmp_path
+            setenv PATH "$conda_tmp_path"
             if( $conda_tmp_status != 0 ) exit ${conda_tmp_status}
             eval "${ask_conda}"
             rehash
@@ -40,7 +40,7 @@ else
         case "deactivate":
             set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh deactivate '${2}' ${argv[3-]})`"
             set conda_tmp_status=$status
-            setenv PATH $conda_tmp_path
+            setenv PATH "$conda_tmp_path"
             if( $conda_tmp_status != 0 ) exit ${conda_tmp_status}
             eval "${ask_conda}"
             rehash
@@ -49,14 +49,14 @@ else
             $_CONDA_EXE $argv[1-]
             set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh reactivate)`"
             set conda_tmp_status=$status
-            setenv PATH $conda_tmp_path
+            setenv PATH "$conda_tmp_path"
             if( $conda_tmp_status != 0 ) exit ${conda_tmp_status}
             eval "${ask_conda}"
             rehash
             breaksw
         default:
             $_CONDA_EXE $argv[1-]
-            setenv PATH $conda_tmp_path
+            setenv PATH "$conda_tmp_path"
             breaksw
     endsw
 endif
