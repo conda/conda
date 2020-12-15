@@ -586,6 +586,13 @@ class Context(Configuration):
         return join(self.conda_prefix, bin_dir, exe)
 
     @property
+    def av_data_dir(self):
+        """ Directory where critical data for artifact verification (e.g.,
+        various public keys) can be found. """
+        # TODO (AV): Find ways to make this user configurable?
+        return join(self.conda_prefix, 'etc', 'conda')
+
+    @property
     def conda_exe_vars_dict(self):
         '''
         An OrderedDict so the vars can refer to each other if necessary.

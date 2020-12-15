@@ -907,6 +907,9 @@ class UnlinkLinkTransaction(object):
             for prec in setup.unlink_precs:
                 actions['UNLINK'].append(prec)
             for prec in setup.link_precs:
+                # TODO (AV): maybe add warnings about unverified packages here;
+                # be warned that doing so may break compatibility with other
+                # applications.
                 actions['LINK'].append(prec)
 
             legacy_action_groups.append(actions)
@@ -928,6 +931,7 @@ class UnlinkLinkTransaction(object):
         return legacy_action_groups
 
     def _change_report_str(self, change_report):
+        # TODO (AV): add warnings about unverified packages in this function
         builder = ['', '## Package Plan ##\n']
         builder.append('  environment location: %s' % change_report.prefix)
         builder.append('')

@@ -256,6 +256,9 @@ class SubdirData(object):
                       self.url_w_repodata_fn, self.cache_path_json)
 
         try:
+            if context.extra_safety_checks:
+                # TODO (AV): refresh root, key_mgr data
+                pass
             raw_repodata_str = fetch_repodata_remote_request(
                 self.url_w_credentials,
                 mod_etag_headers.get('_etag'),
@@ -422,6 +425,7 @@ class SubdirData(object):
         for group, copy_legacy_md5 in (
                 (iteritems(conda_packages), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
+            # TODO (AV): the loop below is most likely the best place to verify package metadata signatures
             for fn, info in group:
                 info['fn'] = fn
                 info['url'] = join_url(channel_url, fn)
