@@ -151,6 +151,62 @@ UNKNOWN_CHANNEL = "<unknown>"
 REPODATA_FN = 'repodata.json'
 
 
+# THIS ROOT METADATA USES TWO TEST GPG KEYS THAT ARE NOT SECURE -- THEY ARE
+# FREELY AVAILABLE FOR TEST PURPOSES, IN THE tests/testdata/ directory.
+#
+# TODO: ✅💣⚠️ OBVIOUSLY, switch to the production root data here after dev.
+#
+# TODO: Also, conda.base is probably not the right place for this data.
+#       It should indeed be a constant, probably, but conda.base may not be
+#       appropriate.
+#
+# You could argue that the signatures being here is not necessary; indeed, we
+# are not necessarily going to be able to check them *properly* (based on some
+# prior expectations) as the user, since this is the beginning of trust
+# bootstrapping, the first/backup version of the root of trust metadata.
+# Still, the signatures here are useful for diagnostic purposes, and, more
+# important, to allow self-consistency checks: that helps us avoid breaking the
+# chain of trust if someone accidentally lists the wrong keys down the line. (:
+# The discrepancy can be detected when loading the root data, and we can
+# decline to cache incorrect trust metadata that would make further root
+# updates impossible.
+#
+INITIAL_TRUST_ROOT = {
+  "signatures": {
+    "a59cea0987ee9046d68d2d011e919eb9278e3f478cca77f5204d65191ff8d7a5": {
+      "other_headers": "04001608001d1621040a14b126c986f276831c7b04134f35b47db4364305025fac507e",
+      "signature": "6585e1667673a72b2cea980b9ca28c0e956051dffc16c064482d65c1744d121f32caf8ff37fa8e8cd77514eff9d8c94f5723b551dac13e1fc5bf2021925bda05"
+    },
+    "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c": {
+      "other_headers": "04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025fac507e",
+      "signature": "6e7ad181d4dff9ea462fc076041e19f90a765cba6d6c9c9bad28a8b5094145ea7372c5aca74911daf75e2e5efc8dc9b745bd286c6d9787198659f89bfdb7fd01"
+    }
+  },
+  "signed": {
+    "delegations": {
+      "key_mgr": {
+        "pubkeys": [
+          "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+        ],
+        "threshold": 1
+      },
+      "root": {
+        "pubkeys": [
+          "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c",
+          "a59cea0987ee9046d68d2d011e919eb9278e3f478cca77f5204d65191ff8d7a5"
+        ],
+        "threshold": 2
+      }
+    },
+    "expiration": "2021-11-11T20:58:37Z",
+    "metadata_spec_version": "0.6.0",
+    "timestamp": "2020-11-11T20:58:37Z",
+    "type": "root",
+    "version": 2
+  }
+}
+
+
 class SafetyChecks(Enum):
     disabled = 'disabled'
     warn = 'warn'
