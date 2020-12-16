@@ -69,7 +69,7 @@ class Channel(object):
         self.auth = auth
         self.location = location
         self.token = token
-        self.name = name
+        self.name = name or ''
         self.platform = platform
         self.package_filename = package_filename
 

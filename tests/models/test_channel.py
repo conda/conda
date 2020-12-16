@@ -132,7 +132,7 @@ class DefaultConfigChannelTests(TestCase):
         assert channel.location == "conda-01"
         assert channel.platform is None
         assert channel.canonical_name == url
-        assert channel.name is None
+        assert channel.name is ''
 
         assert channel.base_url == url
         assert channel.url() == join_url(url, context.subdir)
