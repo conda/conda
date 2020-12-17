@@ -69,6 +69,19 @@ class DefaultConfigChannelTests(TestCase):
         ]
 
 
+    def test_channel_host_port(self):
+        channel = Channel('https://192.168.0.0:8000')
+        assert channel.channel_name == ""
+        assert channel.channel_location == "192.168.0.0:8000"
+        assert channel.platform is None
+        assert channel.package_filename is None
+        assert channel.canonical_name == "https://192.168.0.0:8000"
+        assert channel.urls() == [
+            'https://192.168.0.0:8000/%s' % context.subdir,
+            'https://192.168.0.0:8000/noarch',
+        ]
+
+
     def test_channel_cache(self):
         Channel._reset_state()
         assert len(Channel._cache_) == 0
