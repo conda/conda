@@ -84,7 +84,7 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'flask=1.0.2')
                 assert not package_is_installed(prefix, 'flask=0.12.2')
 
-
+    @pytest.mark.skip(reason="Need to find an appropriate server to test this on.")
     def test_create_host_port(self):
         with make_temp_envs_dir() as envs_dir:
             with env_var('CONDA_ENVS_DIRS', envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
