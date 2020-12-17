@@ -84,6 +84,18 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'flask=1.0.2')
                 assert not package_is_installed(prefix, 'flask=0.12.2')
 
+    @pytest.mark.skip(reason="Need to find an appropriate server to test this on.")
+    def test_create_host_port(self):
+        with make_temp_envs_dir() as envs_dir:
+            with env_var('CONDA_ENVS_DIRS', envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+                env_name = str(uuid4())[:8]
+                prefix = join(envs_dir, env_name)
+                python_path = join(prefix, PYTHON_BINARY)
+
+                run_command(Commands.CREATE, env_name, support_file('example/environment_host_port.yml'))
+                assert exists(python_path)
+                assert package_is_installed(prefix, 'flask=1.0.2')
+
 
     # This test will not run from an unactivated conda in an IDE. You *will* get complaints about being unable
     # to load the SSL module. Never try to test conda from outside an activated env. Maybe this should be a
