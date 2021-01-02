@@ -41,9 +41,9 @@ install_requires = [
 ]
 
 if os.getenv('CONDA_BUILD', None) == '1':
-    install_requires.append("ruamel_yaml >=0.11.14")
+    install_requires.append("ruamel_yaml_conda >=0.11.14")
 else:
-    install_requires.append("ruamel.yaml >=0.11.14")
+    install_requires.append("ruamel_yaml_conda >=0.11.14")
 
 
 def package_files(*root_directories):
