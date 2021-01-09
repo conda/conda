@@ -10,6 +10,7 @@ from conda._vendor.auxlib.path import expand
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.misc import touch_nonadmin
 from .common import get_prefix, print_result
+from conda.core.prefix_data import PrefixData
 from .. import exceptions, specs as install_specs
 from ..exceptions import CondaEnvException
 from ..installers.base import InvalidInstaller, get_installer
@@ -117,6 +118,10 @@ def execute(args, parser):
                 """).lstrip().format(installer_type)
             )
             return -1
+
+    if env.variables:
+        pd = PrefixData(prefix)
+        pd.set_environment_env_vars(env.variables)
 
     result = {"conda": None, "pip": None}
     for installer_type, specs in env.dependencies.items():
