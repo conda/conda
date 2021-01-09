@@ -233,6 +233,7 @@ def execute_config(args, parser):
     primitive_parameters = grouped_paramaters['primitive']
     sequence_parameters = grouped_paramaters['sequence']
     map_parameters = grouped_paramaters['map']
+    all_parameters = primitive_parameters + sequence_parameters + map_parameters
 
     # Get
     if args.get is not None:
@@ -240,31 +241,43 @@ def execute_config(args, parser):
         if args.get == []:
             args.get = sorted(rc_config.keys())
         for key in args.get:
-            if key not in primitive_parameters + sequence_parameters:
-                message = "unknown key %s" % key
-                if not context.json:
-                    stderr_write(message)
+            remaining_key = key
+            remaining_rc_config = rc_config
+            while remaining_key != '':
+                try:
+                    parent_key, remaining_key = remaining_key.split('.', 1)
+                except:  # noqa
+                    parent_key, remaining_key = remaining_key, ''
+                # This if is checking for the first go around the loop since all_parameters only has top level params.
+                # What a crock of under-considered then over-engineered shit this is.
+                if parent_key + '.' + remaining_key == key and parent_key not in all_parameters:
+                    remaining_key = None
+                    message = "unknown key %s" % parent_key
+                    if not context.json:
+                        stderr_write(message)
+                    else:
+                        json_warnings.append(message)
+                    continue
+                if parent_key not in remaining_rc_config:
+                    continue
                 else:
-                    json_warnings.append(message)
-                continue
-            if key not in rc_config:
-                continue
+                    remaining_rc_config = remaining_rc_config[parent_key]
 
             if context.json:
-                json_get[key] = rc_config[key]
+                json_get[key] = remaining_rc_config
                 continue
 
-            if isinstance(rc_config[key], (bool, int, string_types)):
-                stdout_write(" ".join(("--set", key, text_type(rc_config[key]))))
+            if isinstance(remaining_rc_config, (bool, int, string_types)):
+                stdout_write(" ".join(("--set", key, text_type(remaining_rc_config))))
             else:  # assume the key is a list-type
                 # Note, since conda config --add prepends, these are printed in
                 # the reverse order so that entering them in this order will
                 # recreate the same file
-                items = rc_config.get(key, [])
+                items = remaining_rc_config or []
                 numitems = len(items)
                 for q, item in enumerate(reversed(items)):
                     # Use repr so that it can be pasted back in to conda config --add
-                    if key == "channels" and q in (0, numitems-1):
+                    if parent_key == "channels" and q in (0, numitems-1):
                         stdout_write(" ".join((
                             "--add", key, repr(item),
                             "  # lowest priority" if q == 0 else "  # highest priority"
@@ -350,7 +363,7 @@ def execute_config(args, parser):
 
         # Add representers for enums.
         # Because a representer cannot be added for the base Enum class (it must be added for
-        # each specific Enum subclass), and because of import rules), I don't know of a better
+        # each specific Enum subclass - and because of import rules), I don't know of a better
         # location to do this.
         def enum_representer(dumper, data):
             return dumper.represent_str(str(data))
