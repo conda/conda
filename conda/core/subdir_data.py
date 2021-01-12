@@ -9,12 +9,13 @@ from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
 from genericpath import getmtime, isfile
+from glob import iglob
 import hashlib
 from io import open as io_open
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
-from os.path import dirname, isdir, join, splitext, exists
+from os.path import basename, dirname, isdir, join, splitext, exists
 import re
 from time import time
 import warnings
@@ -46,8 +47,11 @@ from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 
 # TODO: May want to regularize these later once CAR code is vendored in.
-import car.common
-import car.authentication
+try:
+    import car.common
+    import car.authentication
+except ImportError:
+    car = None
 
 try:
     import cPickle as pickle
@@ -214,6 +218,69 @@ class SubdirData(object):
             self.load()
         return iter(self._package_records)
 
+    def _refresh_signing_metadata(self):
+        ## TODO (AV): formalize paths for `*.root.json` and `key_mgr.json` on server-side
+        self._trusted_root = INITIAL_TRUST_ROOT
+
+        # Load current trust root metadata from filesystem
+        latest_root_id, latest_root_path = -1, None
+        for cur_path in iglob(join(context.av_data_dir, "*.root.json")):
+            # TODO (AV): better pattern matching in above glob
+            cur_id = int(basename(cur_path).split(".")[0])
+            if cur_id > latest_root_id:
+                latest_root_id, latest_root_path = cur_id, cur_path
+
+        if latest_root_path is None:
+            log.warn(f"Could not find root metadata in {context.av_data_dir}. "
+                      "Falling back to built-in default.")
+        else:
+            log.info(f"Loading root metadata from {latest_root_path}.")
+            self._trusted_root = car.common.load_metadata_from_file(latest_root_path)
+
+        # Refresh trust root metadata
+        attempt_refresh = True
+        while attempt_refresh:
+            ## TODO (AV): caching mechanism to reduce number of refresh requests
+            next_version_of_root = 1 + self._trusted_root['signed']['version']
+            next_root_fname = str(next_version_of_root) + '.root.json'
+            try:
+                update_url = f"{self.channel.base_url}/{next_root_fname}"
+                log.info(f"Attempting to fetch updated trust root {update_url}")
+
+                ## TODO (AV): support fetching root data with credentials
+                untrusted_root = fetch_channel_signing_data(self.channel.base_url, next_root_fname)
+
+                car.authentication.verify_root(self._trusted_root, untrusted_root)
+
+                # New trust root metadata checks out
+                self._trusted_root = untrusted_root
+                car.common.write_metadata_to_file(self._trusted_root, join(context.av_data_dir, next_root_fname))
+
+            ## TODO (AV): much more sensible error handling here
+            except Exception as err:
+                log.error(err)
+                attempt_refresh = False
+
+        # Refresh key manager metadata
+        self._key_mgr_filename = "key_mgr.json"     ## TODO (AV): make this a constant or config value
+        self._key_mgr = None
+
+        key_mgr_path = join(context.av_data_dir, self._key_mgr_filename)
+        try:
+            untrusted_key_mgr = fetch_channel_signing_data(self.channel.base_url, self._key_mgr_filename)
+            car.authentication.verify_delegation("key_mgr", untrusted_key_mgr, self._trusted_root)
+            self._key_mgr = untrusted_key_mgr
+            car.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
+        except (HTTPError,) as err:
+            log.warn(f"Could not retrieve {self.channel.base_url}/{self._keymgr_filename} not available")
+        except (car.common.MetadataVerificationError,) as err:
+            log.error(err)
+
+        # If key_mgr is unavailable from server, fall back to copy on disk
+        if self._key_mgr is None and exists(key_mgr_path):
+            self._key_mgr = car.load_metadata_from_file(key_mgr_path)
+
+
     def _load(self):
         try:
             mtime = getmtime(self.cache_path_json)
@@ -261,135 +328,11 @@ class SubdirData(object):
                       self.url_w_repodata_fn, self.cache_path_json)
 
 
-        # edit note: Pulling out the pieces that don't need to be in the same "try"
-        if context.extra_safety_checks:
-            # Load currently-trusted root metadata from disk
-            # #1: Try $CONDA_PREFIX/etc/conda first, fetching the highest-number-prefixed *.root.json in that directory (e.g. 10.root.json instead of 2.root.json)
-            # #2: If none is found, fetch the root metadata that's part of the conda codebase we're using.
-            #    The initial / backup root metadata lives in base.constants.INITIAL_TRUST_ROOT
-            try:
-                # TODO❗️: #1 just above.  Populates currently_trusted_root.
-                currently_trusted_root = None
-
-            except: # TODO❗️: appropriate exceptions, or strip try/except and use if/else (if a root file has not been found in #1, then:)
-                # #2 just above
-                currently_trusted_root = base.constants.INITIAL_TRUST_ROOT
-
+        ## TODO (AV): Pull contents of this conditional into a separate module/function
+        if context.extra_safety_checks and car is not None:
+            self._refresh_signing_metadata()
 
         try:
-            # TODO FOR LATER: We'll want to pull this full "if
-            # context.extra_safety_checks" section out of the try, into the if
-            # above, and then modularize the file fetching try/else around the
-            # fetch_repodata_remote_request call using a helper function or
-            # subfunction.  It's too spaghetti this way.
-            if context.extra_safety_checks:    # Note: I'm not sure this needs to be in this try, either; we may be able to just move this into the if above, too.  I'm leaving it here for now to not make a mess of the old UnavailableInvalidChannel exception handling code... sorta.
-
-                # This code will refresh root and key_mgr data.
-
-                # Loop to update root iteratively, one version at a time.
-                while (1): # TODO: Use a term that ends the looping when we are unable to obtain a newer version of root, or just stick with the usage of break.
-
-                    # Note that the next version of root is:
-                    next_version_of_root = 1 + currently_trusted_root['signed']['version']
-                    next_root_name = str(next_version_of_root) + '.root.json'
-
-                    # TODO❗️: (for PoC) Fetch file <next_root_fname> from
-                    #       channel, in the same way as one fetches repodata
-                    #       (try fetch_repodata_remote_request below or lower func)
-                    #       Probably a "try" here.
-                    #       IF WE CANNOT FIND the next version of root on the
-                    #       server, then we're done, so BREAK out of this while
-                    #       loop.
-                    untrusted_root_metadata_fname = None # populate me :D
-
-                    # Now we read and validate the new root metadata.
-                    # TODO: (AFTER PoC): additional input validation (security)
-                    untrusted_root = car.common.load_metadata_from_file(
-                            untrusted_root_metadata_fname)
-
-                    try:
-                        car.authentication.verify_root(
-                                currently_trusted_root, untrusted_root)
-
-                        # If we're still here, the new data checks out.
-                        currently_trusted_root = untrusted_root
-
-                        # TODO❗️: Move the new, now-trusted root file to disk
-                        #       in $CONDA_PREFIX/etc/conda/
-                        # You can just move the existing file if you left it on
-                        # disk above,there is one, or you can write it again if
-                        # that's preferable, using:
-                        #     car.common.write_metadata_to_file(currently_trusted_root, <appropriate full fname>)     #(this will canonicalize it properly)
-
-
-                    except car.common.MetadataVerificationError:
-                        # We failed to update to a later version of root
-                        # because the new one we obtained was NOT TRUSTWORTHY.
-                        # TODO: Retry, failure message.
-                        break
-
-
-                key_mgr = None
-
-                # TODO❗️: Fetch key_mgr.json from channel, in the same way as
-                #       one fetches repodata
-                #       (try fetch_repodata_remote_request? lower func?)
-                untrusted_key_mgr_metadata_fname = None # populate me :D
-
-                #     TODO: LATER: Phase 1: Switch to a central location for root & key_mgr, as provided by premium repo
-
-                # If we managed to retrieve new key_mgr metadata
-                if untrusted_key_mgr_metadata_fname is not None:
-
-                    untrusted_key_mgr = car.common.load_metadata_from_file(
-                                untrusted_key_mgr_metadata_fname)
-
-                    try:
-                        car.authentication.verify_delegation(
-                                delegation_name="key_mgr",
-                                untrusted_key_mgr, # key_mgr contents
-                                currently_trusted_root)  # root contents
-
-                        key_mgr = untrusted_key_mgr
-
-                    except car.common.MetadataVerificationError:
-                        # Received a file, but it was untrustworthy.  Suspect.
-                        # TODO: Later: logging / messaging / retry
-                        pass
-
-                    if key_mgr is not None:
-
-                        # TODO❗️: Move the now-trusted key_mgr file into place
-                        #         in $CONDA_PREFIX/etc/conda/
-                        #         You can move the existing file you obtained,
-                        #         or you can write this data to disk using
-                        #       car.common.write_metadata_to_file(key_mgr, <appropriate full fname>)     #(this will canonicalize it properly)
-                        pass
-
-
-                if key_mgr is None:
-                    # We failed to download key_mgr.
-                    # Check for an already-trusted one on disk.
-
-                    # TODO❗️: Check $CONDA_PREFIX/etc/conda for "key_mgr.json".
-                    key_mgr_metadata_fname = None    # Populate me :D
-
-
-                    if key_mgr_metadata_fname is None:
-                        # TODO❗️: Log / warn something.  Cannot verify artifacts.
-                        #         (Welllll, we tried.  We can't verify
-                        #         artifacts since we simply don't know what
-                        #         keys to trust because this conda instance has
-                        #         never seen a trustworthy key_mgr file.
-                        pass
-
-                    else:
-                        key_mgr = car.load_metadata_from_file(key_mgr_metadata_fname)
-
-                        # TODO❗️: Stash this key_mgr info somewhere we can
-                        #         reference when we're checking sigs on package
-                        #         metadata later.
-
             raw_repodata_str = fetch_repodata_remote_request(
                 self.url_w_credentials,
                 mod_etag_headers.get('_etag'),
@@ -611,6 +554,36 @@ def get_cache_control_max_age(cache_control_value):
 
 class Response304ContentUnchanged(Exception):
     pass
+
+
+## TODO (AV): move this to a more appropriate place
+def fetch_channel_signing_data(channel_url, filename, etag=None, mod_stamp=None):
+    if not context.ssl_verify:
+        warnings.simplefilter('ignore', InsecureRequestWarning)
+
+    session = CondaSession()
+
+    headers = {}
+    if etag:
+        headers["If-None-Match"] = etag
+    if mod_stamp:
+        headers["If-Modified-Since"] = mod_stamp
+
+    headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
+    headers['Content-Type'] = 'application/json'
+
+    try:
+        timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+        file_url = join(channel_url, filename)
+        resp = session.get(file_url, headers=headers, proxies=session.proxies,
+                           timeout=timeout)
+        resp.raise_for_status()
+    except:
+        ## TODO (AV): more sensible error handling
+        raise
+
+    ## TODO (AV): safer loading and error handling
+    return json.loads(resp.content)
 
 
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
