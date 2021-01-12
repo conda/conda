@@ -45,11 +45,13 @@ from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+from ..models.enums import MetadataSignatureStatus
 
 # TODO: May want to regularize these later once CAR code is vendored in.
 try:
     import car.common
     import car.authentication
+    import car.signing
 except ImportError:
     car = None
 
@@ -449,6 +451,8 @@ class SubdirData(object):
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
+        signatures = json_obj.get("signatures", {})
+
         _internal_state = {
             'channel': self.channel,
             'url_w_subdir': self.url_w_subdir,
@@ -499,8 +503,25 @@ class SubdirData(object):
         for group, copy_legacy_md5 in (
                 (iteritems(conda_packages), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
-            # TODO (AV): the loop below is most likely the best place to verify package metadata signatures
             for fn, info in group:
+
+                # Verify metadata signature before anything else so run-time
+                # updates to the info dictionary performed below do not
+                # invalidate the signatures provided in metadata.json.
+                if context.extra_safety_checks and car is not None:
+                    if fn in signatures:
+                        signable = car.signing.wrap_as_signable(info)
+                        signable['signatures'].update(signatures[fn])
+                        try:
+                            car.authentication.verify_delegation('pkg_mgr', signable, self._key_mgr)
+                            info['metadata_signature_status'] = MetadataSignatureStatus.verified
+                        ## TODO (AV): more granular signature errors (?)
+                        except car.common.SignatureError:
+                            log.warn(f"invalid signature for {fn}")
+                            info['metadata_signature_status'] = MetadataSignatureStatus.error
+                    else:
+                        info['metadata_signature_status'] = MetadataSignatureStatus.unsigned
+
                 info['fn'] = fn
                 info['url'] = join_url(channel_url, fn)
                 if copy_legacy_md5:
