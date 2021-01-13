@@ -274,7 +274,7 @@ class SubdirData(object):
             self._key_mgr = untrusted_key_mgr
             car.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
         except (HTTPError,) as err:
-            log.warn(f"Could not retrieve {self.channel.base_url}/{self._keymgr_filename} not available")
+            log.warn(f"Could not retrieve {self.channel.base_url}/{self._key_mgr_filename} not available")
         except (car.common.MetadataVerificationError,) as err:
             log.error(err)
 
