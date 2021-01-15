@@ -105,7 +105,7 @@ if [ -z "${CONDA_SHLVL+x}" ]; then
     \export CONDA_SHLVL=0
     # In dev-mode CONDA_EXE is python.exe and on Windows
     # it is in a different relative location to condabin.
-    if [ -n "${_CE_CONDA+x}" ] && [ -n "${WINDIR+x}" ]; then
+    if [ -n "${_CE_CONDA:+x}" ] && [ -n "${WINDIR+x}" ]; then
         PATH="$(\dirname "$CONDA_EXE")/condabin${PATH:+":${PATH}"}"
     else
         PATH="$(\dirname "$(\dirname "$CONDA_EXE")")/condabin${PATH:+":${PATH}"}"
