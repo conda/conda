@@ -1035,9 +1035,10 @@ class UnlinkLinkTransaction(object):
                 # TODO (AV): deal with virtual packages more sensibly
                 status_str = ""
             elif status == MetadataSignatureStatus.verified:
-                status_str = ""
+                # TODO (AV): replaced hard-coded signer name with data from key
+                status_str = " (INFO: package metadata is signed by Anaconda and trusted)"
             elif status == MetadataSignatureStatus.unsigned:
-                status_str = " (WARNING: package metadata is unsigned)"
+                status_str = ""
             else:
                 status_str = " (WARNING: metadata signature verification failed)"
             return status_str
