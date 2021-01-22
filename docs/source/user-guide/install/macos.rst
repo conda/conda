@@ -42,27 +42,50 @@ Installing in silent mode
    The following instructions are for Miniconda. For Anaconda,
    substitute ``Anaconda`` for ``Miniconda`` in all of the commands.
 
+.. note::
+   These instructions are also written for Linux.
+
 To run the :ref:`silent installation <silent-mode-glossary>` of
 Miniconda for macOS or Linux, specify the -b and -p arguments of
 the bash installer. The following arguments are supported:
 
-* -b---Batch mode with no PATH modifications to ``~/.bashrc``.
+* ``-b`` --- Batch mode with no PATH modifications to ``~/.bashrc``.
   Assumes that you agree to the license agreement. Does not edit
   the ``.bashrc`` or ``.bash_profile`` files.
-* -p---Installation prefix/path.
-* -f---Force installation even if prefix -p already exists.
+* ``-p <prefix>`` --- Installation prefix/path.
+* ``-f`` --- Force installation even if prefix ``-p`` already exists.
 
 EXAMPLE:
 
 .. code-block:: bash
 
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O ~/miniconda.sh
-    bash ~/miniconda.sh -b -p $HOME/miniconda
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O /tmp/install_miniconda.sh
+    bash /tmp/install_miniconda.sh -b -p $~/miniconda
 
-The installer prompts “Do you wish the installer to initialize Miniconda3 by running ``conda init``?” We recommend “yes”.
+    # You may want to put *only* the conda binary on your $PATH.
+    ln -s ~/miniconda/bin/conda ~/.local/bin/
+
+The installer prompts “Do you wish the installer to initialize Miniconda3 by running ``conda init``?” We recommend “yes” if you want it to modify
+``~/.bashrc``.
 
 .. note::
-   If you enter “no”, then conda will not modify your shell scripts at all. In order to initialize after the installation process is done, first run ``source <path to conda>/bin/activate`` and then run ``conda init``.
+   If you enter “no”, then conda will not modify your login shell scripts
+   (``~/.bashrc``, ``~/.bash_profile``) at all. In order to initialize after
+   the installation process is done, first run
+   ``source <path to conda>/bin/activate`` and then run ``conda init``.
+
+.. note::
+   If you want to control when ``conda`` affects your shell environment, you
+   can also add the following ``bash`` function to your ``~/.bashrc``:
+
+   .. code-block:: bash
+
+      conda-setup() {
+          # This assumes conda is on your PATH, and bash is your primary shell.
+          eval "$(conda shell.bash hook)"
+      }
+
+    Then you can drop into the conda environment calling ``conda-setup``.
 
 **MacOS Catalina**
 
