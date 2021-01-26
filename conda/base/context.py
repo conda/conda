@@ -102,7 +102,7 @@ def default_python_default():
 
 def default_python_validation(value):
     if value:
-        if len(value) == 3 and value[1] == '.':
+        if len(value) >= 3 and value[1] == '.':
             try:
                 value = float(value)
                 if 2.0 <= value < 4.0:
@@ -113,7 +113,7 @@ def default_python_validation(value):
         # Set to None or '' meaning no python pinning
         return True
 
-    return "default_python value '%s' not of the form '[23].[0-9]' or ''" % value
+    return "default_python value '%s' not of the form '[23].[0-9][0-9]?' or ''" % value
 
 
 def ssl_verify_validation(value):
