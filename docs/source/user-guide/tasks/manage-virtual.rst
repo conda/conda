@@ -16,6 +16,8 @@ corresponds to the package. The currently supported list of virtual packages inc
   * ``__cuda``: Maximum version of CUDA supported by the display driver.
   * ``__osx``: OSX version if applicable.
   * ``__glibc``: Version of glibc supported by the OS.
+  * ``__unix``: Available when running on OSX or Linux.
+  * ``__win``: Available when running on Win.
 
 Other virtual packages will be added in future conda releases. These are denoted
 by a leading double-underscore in the package name.
