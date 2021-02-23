@@ -1385,7 +1385,7 @@ dependencies:
                 assert len(exc.value.errors) == 2
                 str_exc_value = str(exc.value)
                 assert str("must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs") in str_exc_value
-                assert str("default_python value 'anaconda' not of the form '[23].[0-9]'") in str_exc_value
+                assert str("default_python value 'anaconda' not of the form '[23].[0-9][0-9]?'") in str_exc_value
             finally:
                 reset_context()
 
