@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 from logging import Handler, getLogger
 from os.path import exists, join
+from shutil import rmtree
 from unittest import TestCase
 from uuid import uuid4
 
@@ -10,12 +11,15 @@ import pytest
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import dashlist, env_var, env_vars
+from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
 from conda.install import on_win
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
+from ..test_create import run_command as run_conda_command, \
+    Commands as CondaCommands
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 from tests.test_utils import is_prefix_activated_PATHwise
@@ -134,3 +138,47 @@ class IntegrationTests(TestCase):
                 run_command(Commands.CREATE, env_name, support_file('empty_env.yml'))
                 assert exists(prefix)
 
+
+    def test_create_env_default_packages(self):
+        with make_temp_envs_dir() as envs_dir:
+            with env_var('CONDA_ENVS_DIRS', envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+                # set packages
+                run_conda_command(CondaCommands.CONFIG, envs_dir, "--add", "create_default_packages", "pip")
+                run_conda_command(CondaCommands.CONFIG, envs_dir, "--add", "create_default_packages", "flask")
+                stdout, stderr, _ = run_conda_command(CondaCommands.CONFIG, envs_dir, "--show")
+                yml_obj = yaml_round_trip_load(stdout)
+                assert yml_obj['create_default_packages'] == ['flask', 'pip']
+
+                assert not package_is_installed(envs_dir, 'python=2')
+                assert not package_is_installed(envs_dir, 'pytz')
+                assert not package_is_installed(envs_dir, 'flask')
+
+                env_name = str(uuid4())[:8]
+                prefix = join(envs_dir, env_name)
+                run_command(Commands.CREATE, env_name, support_file('env_with_dependencies.yml'))
+                assert exists(prefix)
+                assert package_is_installed(prefix, 'python=2')
+                assert package_is_installed(prefix, 'pytz')
+                assert package_is_installed(prefix, 'flask')
+
+    def test_create_env_no_default_packages(self):
+        with make_temp_envs_dir() as envs_dir:
+            with env_var('CONDA_ENVS_DIRS', envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+                # set packages
+                run_conda_command(CondaCommands.CONFIG, envs_dir, "--add", "create_default_packages", "pip")
+                run_conda_command(CondaCommands.CONFIG, envs_dir, "--add", "create_default_packages", "flask")
+                stdout, stderr, _ = run_conda_command(CondaCommands.CONFIG, envs_dir, "--show")
+                yml_obj = yaml_round_trip_load(stdout)
+                assert yml_obj['create_default_packages'] == ['flask', 'pip']
+
+                assert not package_is_installed(envs_dir, 'python=2')
+                assert not package_is_installed(envs_dir, 'pytz')
+                assert not package_is_installed(envs_dir, 'flask')
+
+                env_name = str(uuid4())[:8]
+                prefix = join(envs_dir, env_name)
+                run_command(Commands.CREATE, env_name, support_file('env_with_dependencies.yml'), "--no-default-packages")
+                assert exists(prefix)
+                assert package_is_installed(prefix, 'python=2')
+                assert package_is_installed(prefix, 'pytz')
+                assert not package_is_installed(prefix, 'flask')

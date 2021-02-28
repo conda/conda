@@ -536,11 +536,7 @@ def configure_parser_create(sub_parsers):
         metavar='ENV',
     )
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
-    solver_mode_options.add_argument(
-        "--no-default-packages",
-        action="store_true",
-        help='Ignore create_default_packages in the .condarc file.',
-    )
+    add_parser_default_packages(solver_mode_options)
     p.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -1668,4 +1664,11 @@ def add_parser_known(p):
         default=False,
         dest='unknown',
         help=SUPPRESS,
+    )
+
+def add_parser_default_packages(p):
+    p.add_argument(
+        "--no-default-packages",
+        action="store_true",
+        help='Ignore create_default_packages in the .condarc file.',
     )
