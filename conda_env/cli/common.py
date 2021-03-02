@@ -6,11 +6,11 @@ from os.path import isdir, join
 import sys
 
 from conda._vendor.auxlib.entity import EntityEncoder
+from conda._vendor.auxlib.path import expand
 from conda.base.context import context
 from conda.cli import install as cli_install
 from conda.cli import common as cli_common
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
-from conda._vendor.auxlib.path import expand
 
 base_env_name = 'base'
 

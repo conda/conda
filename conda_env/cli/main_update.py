@@ -6,7 +6,6 @@ import os
 import sys
 import textwrap
 
-from conda._vendor.auxlib.path import expand
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.misc import touch_nonadmin
 from .common import get_prefix, print_result, get_filename
