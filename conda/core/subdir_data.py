@@ -275,7 +275,7 @@ class SubdirData(object):
             car.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
         except (HTTPError,) as err:
             log.warn(f"Could not retrieve {self.channel.base_url}/{self._key_mgr_filename} not available")
-        except (car.common.MetadataVerificationError,) as err:
+        except (car.common.MetadataVerificationError, ValueError) as err:
             log.error(err)
 
         # If key_mgr is unavailable from server, fall back to copy on disk
@@ -603,8 +603,19 @@ def fetch_channel_signing_data(channel_url, filename, etag=None, mod_stamp=None)
         ## TODO (AV): more sensible error handling
         raise
 
-    ## TODO (AV): safer loading and error handling
-    return json.loads(resp.content)
+    # In certain cases (e.g., using `-c` access anaconda.org channels), the
+    # `CondaSession.get()` retry logic combined with the remote server's
+    # behavior can result in non-JSON content being returned.  Parse returned
+    # content here (rather than directly in the return statement) so callers of
+    # this function only have to worry about a ValueError being raised.
+    try:
+        str_data = json.loads(resp.content)
+    except json.decoder.JSONDecodeError as err:
+        raise ValueError(f"Invalid JSON data returned for {channel_url}/{filename}")
+
+    ## TODO (AV): additional loading and error handling improvements?
+
+    return str_data
 
 
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
