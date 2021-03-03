@@ -280,7 +280,7 @@ class SubdirData(object):
 
         # If key_mgr is unavailable from server, fall back to copy on disk
         if self._key_mgr is None and exists(key_mgr_path):
-            self._key_mgr = car.load_metadata_from_file(key_mgr_path)
+            self._key_mgr = car.common.load_metadata_from_file(key_mgr_path)
 
 
     def _load(self):
