@@ -273,9 +273,10 @@ class SubdirData(object):
             car.authentication.verify_delegation("key_mgr", untrusted_key_mgr, self._trusted_root)
             self._key_mgr = untrusted_key_mgr
             car.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
-        except (HTTPError,) as err:
+        except (ConnectionError, HTTPError,) as err:
             log.warn(f"Could not retrieve {self.channel.base_url}/{self._key_mgr_filename} not available")
-        except (car.common.MetadataVerificationError, ValueError) as err:
+        ## TODO (AV): much more sensible error handling here
+        except Exception as err:
             log.error(err)
 
         # If key_mgr is unavailable from server, fall back to copy on disk
