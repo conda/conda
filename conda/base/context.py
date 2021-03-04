@@ -171,6 +171,9 @@ class Context(Configuration):
         aliases=('aggressive_update_packages',))
     safety_checks = ParameterLoader(PrimitiveParameter(SafetyChecks.warn))
     extra_safety_checks = ParameterLoader(PrimitiveParameter(False))
+    _signing_metadata_url_base = ParameterLoader(
+        PrimitiveParameter(None, element_type=string_types + (NoneType,)),
+        aliases=('signing_metadata_url_base',))
     path_conflict = ParameterLoader(PrimitiveParameter(PathConflict.clobber))
 
     pinned_packages = ParameterLoader(SequenceParameter(
@@ -591,6 +594,16 @@ class Context(Configuration):
         various public keys) can be found. """
         # TODO (AV): Find ways to make this user configurable?
         return join(self.conda_prefix, 'etc', 'conda')
+
+    @property
+    def signing_metadata_url_base(self):
+        """ Base URL where artifact verification signing metadata (*.root.json,
+        key_mgr.json) can be obtained. """
+        if self._signing_metadata_url_base:
+            return self._signing_metadata_url_base
+        else:
+            # TODO (AV): Find a more reasonable default
+            return self.default_channels[0].base_url
 
     @property
     def conda_exe_vars_dict(self):

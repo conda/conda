@@ -250,7 +250,9 @@ class SubdirData(object):
                 log.info(f"Attempting to fetch updated trust root {update_url}")
 
                 ## TODO (AV): support fetching root data with credentials
-                untrusted_root = fetch_channel_signing_data(self.channel.base_url, next_root_fname)
+                untrusted_root = fetch_channel_signing_data(
+                        context.signing_metadata_url_base,
+                        next_root_fname)
 
                 car.authentication.verify_root(self._trusted_root, untrusted_root)
 
@@ -269,7 +271,9 @@ class SubdirData(object):
 
         key_mgr_path = join(context.av_data_dir, self._key_mgr_filename)
         try:
-            untrusted_key_mgr = fetch_channel_signing_data(self.channel.base_url, self._key_mgr_filename)
+            untrusted_key_mgr = fetch_channel_signing_data(
+                    context.signing_metadata_url_base,
+                    self._key_mgr_filename)
             car.authentication.verify_delegation("key_mgr", untrusted_key_mgr, self._trusted_root)
             self._key_mgr = untrusted_key_mgr
             car.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
@@ -579,7 +583,7 @@ class Response304ContentUnchanged(Exception):
 
 
 ## TODO (AV): move this to a more appropriate place
-def fetch_channel_signing_data(channel_url, filename, etag=None, mod_stamp=None):
+def fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=None):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
@@ -596,7 +600,7 @@ def fetch_channel_signing_data(channel_url, filename, etag=None, mod_stamp=None)
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        file_url = join(channel_url, filename)
+        file_url = join(signing_data_url, filename)
         resp = session.get(file_url, headers=headers, proxies=session.proxies,
                            timeout=timeout)
         resp.raise_for_status()
@@ -612,7 +616,7 @@ def fetch_channel_signing_data(channel_url, filename, etag=None, mod_stamp=None)
     try:
         str_data = json.loads(resp.content)
     except json.decoder.JSONDecodeError as err:
-        raise ValueError(f"Invalid JSON data returned for {channel_url}/{filename}")
+        raise ValueError(f"Invalid JSON data returned for {signing_data_url}/{filename}")
 
     ## TODO (AV): additional loading and error handling improvements?
 
