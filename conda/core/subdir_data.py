@@ -505,6 +505,13 @@ class SubdirData(object):
             k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
         )
 
+        if context.extra_safety_checks and car is not None:
+            verify_metadata_signatures = self._key_mgr is not None
+            if not verify_metadata_signatures:
+                log.warn("could not find key_mgr data for metadata signature verification")
+        else:
+            verify_metadata_signatures = False
+
         for group, copy_legacy_md5 in (
                 (iteritems(conda_packages), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
@@ -513,7 +520,7 @@ class SubdirData(object):
                 # Verify metadata signature before anything else so run-time
                 # updates to the info dictionary performed below do not
                 # invalidate the signatures provided in metadata.json.
-                if context.extra_safety_checks and car is not None:
+                if verify_metadata_signatures:
                     if fn in signatures:
                         signable = car.signing.wrap_as_signable(info)
                         signable['signatures'].update(signatures[fn])
