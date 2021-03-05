@@ -608,8 +608,17 @@ def fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
         file_url = join(signing_data_url, filename)
+
+        # The `auth` arugment below looks a bit weird, but passing `None` seems
+        # insufficient for suppressing modifying the URL to add an Anaconda
+        # server token; for whatever reason, we must pass an actual callable in
+        # order to suppress the HTTP auth behavior configured in the session.
+        #
+        # TODO (AV): Figure how to handle authn for obtaining trust metadata,
+        # independently of the authn used to access package repositories.
         resp = session.get(file_url, headers=headers, proxies=session.proxies,
-                           timeout=timeout)
+                           auth=lambda r: r, timeout=timeout)
+
         resp.raise_for_status()
     except:
         ## TODO (AV): more sensible error handling
