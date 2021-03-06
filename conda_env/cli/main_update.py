@@ -6,10 +6,9 @@ import os
 import sys
 import textwrap
 
-from conda._vendor.auxlib.path import expand
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.misc import touch_nonadmin
-from .common import get_prefix, print_result
+from .common import get_prefix, print_result, get_filename
 from .. import exceptions, specs as install_specs
 from ..exceptions import CondaEnvException
 from ..installers.base import InvalidInstaller, get_installer
@@ -64,7 +63,7 @@ def execute(args, parser):
     name = args.remote_definition or args.name
 
     try:
-        spec = install_specs.detect(name=name, filename=expand(args.file),
+        spec = install_specs.detect(name=name, filename=get_filename(args.file),
                                     directory=os.getcwd())
         env = spec.environment
     except exceptions.SpecNotFound:

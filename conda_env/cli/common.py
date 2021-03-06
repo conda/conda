@@ -6,9 +6,11 @@ from os.path import isdir, join
 import sys
 
 from conda._vendor.auxlib.entity import EntityEncoder
+from conda._vendor.auxlib.path import expand
 from conda.base.context import context
 from conda.cli import install as cli_install
 from conda.cli import common as cli_common
+from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 
 base_env_name = 'base'
 
@@ -50,3 +52,12 @@ def print_result(args, prefix, result):
             cli_common.stdout_json_success(prefix=prefix, actions=actions)
     else:
         cli_install.print_activate(args.name if args.name else prefix)
+
+
+def get_filename(filename):
+    """Expand filename if local path or return the url"""
+    url_scheme = filename.split("://", 1)[0]
+    if url_scheme in CONDA_SESSION_SCHEMES:
+        return filename
+    else:
+        return expand(filename)
