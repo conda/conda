@@ -260,7 +260,13 @@ class SubdirData(object):
                 self._trusted_root = untrusted_root
                 car.common.write_metadata_to_file(self._trusted_root, join(context.av_data_dir, next_root_fname))
 
-            ## TODO (AV): much more sensible error handling here
+            ## TODO (AV): more error handling improvements (?)
+            except (HTTPError,) as err:
+                # HTTP 404 implies no updated root.json is available, which is
+                # not really an "error" and does not need to be logged.
+                if err.response.status_code not in (404,):
+                    log.error(err)
+                attempt_refresh = False
             except Exception as err:
                 log.error(err)
                 attempt_refresh = False
@@ -278,7 +284,7 @@ class SubdirData(object):
             self._key_mgr = untrusted_key_mgr
             car.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
         except (ConnectionError, HTTPError,) as err:
-            log.warn(f"Could not retrieve {self.channel.base_url}/{self._key_mgr_filename} not available")
+            log.warn(f"Could not retrieve {self.channel.base_url}/{self._key_mgr_filename}: {err}")
         ## TODO (AV): much more sensible error handling here
         except Exception as err:
             log.error(err)
