@@ -53,7 +53,7 @@ def validate_keys(data, kwargs):
 
     deps = data.get('dependencies', [])
     depsplit = re.compile(r"[<>~\s=]")
-    is_pip = lambda dep : 'pip' in depsplit.split(dep)[0].split(':')
+    is_pip = lambda dep: 'pip' in depsplit.split(dep)[0].split(':')
     lists_pip = any(is_pip(_) for _ in deps if not hasattr(_, 'keys'))
     for dep in deps:
         if (isinstance(dep, dict) and 'pip' in dep and not lists_pip):
