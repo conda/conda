@@ -53,7 +53,7 @@ def validate_keys(data, kwargs):
 
     deps = data.get('dependencies', [])
     depsplit = re.compile(r"[<>~\s=]")
-    lists_pip = any('pip' in depsplit.split(_)[0].split(':') for _ in deps if not hasattr(_, 'keys')))
+    lists_pip = any('pip' in depsplit.split(_)[0].split(':') for _ in deps if not hasattr(_, 'keys'))
     for dep in deps:
         if (isinstance(dep, dict) and 'pip' in dep and not lists_pip):
             print("Warning: you have pip-installed dependencies in your environment file, "
