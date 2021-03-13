@@ -343,8 +343,12 @@ class SubdirData(object):
 
 
         ## TODO (AV): Pull contents of this conditional into a separate module/function
-        if context.extra_safety_checks and cct is not None:
-            self._refresh_signing_metadata()
+        if context.extra_safety_checks:
+            if cct is None:
+                log.warn("metadata signature verification requested, "
+                         "but `conda-content-trust` is not installed.")
+            else:
+                self._refresh_signing_metadata()
 
         try:
             raw_repodata_str = fetch_repodata_remote_request(
@@ -512,10 +516,16 @@ class SubdirData(object):
             k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
         )
 
-        if context.extra_safety_checks and cct is not None:
-            verify_metadata_signatures = self._key_mgr is not None
-            if not verify_metadata_signatures:
+        if context.extra_safety_checks:
+            if cct is None:
+                log.warn("metadata signature verification requested, "
+                         "but `conda-content-trust` is not installed.")
+                verify_metadata_signatures = False
+            elif self._key_mgr is None:
                 log.warn("could not find key_mgr data for metadata signature verification")
+                verify_metadata_signatures = False
+            else:
+                verify_metadata_signatures = True
         else:
             verify_metadata_signatures = False
 
