@@ -49,11 +49,12 @@ from ..models.enums import MetadataSignatureStatus
 
 # TODO: May want to regularize these later once CAR code is vendored in.
 try:
-    import car.common
-    import car.authentication
-    import car.signing
+    import conda_content_trust as cct
+    import conda_content_trust.common
+    import conda_content_trust.authentication
+    import conda_content_trust.signing
 except ImportError:
-    car = None
+    cct = None
 
 try:
     import cPickle as pickle
@@ -237,7 +238,7 @@ class SubdirData(object):
                       "Falling back to built-in default.")
         else:
             log.info(f"Loading root metadata from {latest_root_path}.")
-            self._trusted_root = car.common.load_metadata_from_file(latest_root_path)
+            self._trusted_root = cct.common.load_metadata_from_file(latest_root_path)
 
         # Refresh trust root metadata
         attempt_refresh = True
@@ -254,11 +255,11 @@ class SubdirData(object):
                         context.signing_metadata_url_base,
                         next_root_fname)
 
-                car.authentication.verify_root(self._trusted_root, untrusted_root)
+                cct.authentication.verify_root(self._trusted_root, untrusted_root)
 
                 # New trust root metadata checks out
                 self._trusted_root = untrusted_root
-                car.common.write_metadata_to_file(self._trusted_root, join(context.av_data_dir, next_root_fname))
+                cct.common.write_metadata_to_file(self._trusted_root, join(context.av_data_dir, next_root_fname))
 
             ## TODO (AV): more error handling improvements (?)
             except (HTTPError,) as err:
@@ -280,9 +281,9 @@ class SubdirData(object):
             untrusted_key_mgr = fetch_channel_signing_data(
                     context.signing_metadata_url_base,
                     self._key_mgr_filename)
-            car.authentication.verify_delegation("key_mgr", untrusted_key_mgr, self._trusted_root)
+            cct.authentication.verify_delegation("key_mgr", untrusted_key_mgr, self._trusted_root)
             self._key_mgr = untrusted_key_mgr
-            car.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
+            cct.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
         except (ConnectionError, HTTPError,) as err:
             log.warn(f"Could not retrieve {self.channel.base_url}/{self._key_mgr_filename}: {err}")
         ## TODO (AV): much more sensible error handling here
@@ -291,7 +292,7 @@ class SubdirData(object):
 
         # If key_mgr is unavailable from server, fall back to copy on disk
         if self._key_mgr is None and exists(key_mgr_path):
-            self._key_mgr = car.common.load_metadata_from_file(key_mgr_path)
+            self._key_mgr = cct.common.load_metadata_from_file(key_mgr_path)
 
 
     def _load(self):
@@ -342,7 +343,7 @@ class SubdirData(object):
 
 
         ## TODO (AV): Pull contents of this conditional into a separate module/function
-        if context.extra_safety_checks and car is not None:
+        if context.extra_safety_checks and cct is not None:
             self._refresh_signing_metadata()
 
         try:
@@ -511,7 +512,7 @@ class SubdirData(object):
             k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
         )
 
-        if context.extra_safety_checks and car is not None:
+        if context.extra_safety_checks and cct is not None:
             verify_metadata_signatures = self._key_mgr is not None
             if not verify_metadata_signatures:
                 log.warn("could not find key_mgr data for metadata signature verification")
@@ -528,13 +529,13 @@ class SubdirData(object):
                 # invalidate the signatures provided in metadata.json.
                 if verify_metadata_signatures:
                     if fn in signatures:
-                        signable = car.signing.wrap_as_signable(info)
+                        signable = cct.signing.wrap_as_signable(info)
                         signable['signatures'].update(signatures[fn])
                         try:
-                            car.authentication.verify_delegation('pkg_mgr', signable, self._key_mgr)
+                            cct.authentication.verify_delegation('pkg_mgr', signable, self._key_mgr)
                             info['metadata_signature_status'] = MetadataSignatureStatus.verified
                         ## TODO (AV): more granular signature errors (?)
-                        except car.common.SignatureError:
+                        except cct.common.SignatureError:
                             log.warn(f"invalid signature for {fn}")
                             info['metadata_signature_status'] = MetadataSignatureStatus.error
                     else:
