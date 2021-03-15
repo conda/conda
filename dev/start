@@ -28,6 +28,7 @@ if ! [ -f "$devenv/conda-meta/history" ]; then
         fi
         cmd.exe /c "start /wait \"\" miniconda${pyver}.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $devenv)"
         _CONDA="$devenv/Scripts/conda"
+        "$devenv/Scripts/conda" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults -c conda-forge
     fi
 fi
 

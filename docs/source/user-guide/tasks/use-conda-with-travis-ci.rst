@@ -55,7 +55,7 @@ project that supports Python 2.7, 3.5, and 3.6:
      # Replace dep1 dep2 ... with your dependencies
      - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION dep1 dep2 ...
      - conda activate test-environment
-     - python setup.py install
+     - python -m pip install .
 
    script:
      # Your test script goes here
