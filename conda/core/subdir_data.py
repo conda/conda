@@ -15,6 +15,7 @@ from io import open as io_open
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
+from os import makedirs
 from os.path import basename, dirname, isdir, join, splitext, exists
 import re
 from time import time
@@ -222,6 +223,13 @@ class SubdirData(object):
         return iter(self._package_records)
 
     def _refresh_signing_metadata(self):
+        if not isdir(context.av_data_dir):
+            log.info("creating directory for artifact verification metadata")
+            makedirs(context.av_data_dir)
+        self._refresh_signing_root()
+        self._refresh_signing_keymgr()
+
+    def _refresh_signing_root(self):
         ## TODO (AV): formalize paths for `*.root.json` and `key_mgr.json` on server-side
         self._trusted_root = INITIAL_TRUST_ROOT
 
@@ -272,6 +280,7 @@ class SubdirData(object):
                 log.error(err)
                 attempt_refresh = False
 
+    def _refresh_signing_keymgr(self):
         # Refresh key manager metadata
         self._key_mgr_filename = "key_mgr.json"     ## TODO (AV): make this a constant or config value
         self._key_mgr = None
@@ -293,7 +302,6 @@ class SubdirData(object):
         # If key_mgr is unavailable from server, fall back to copy on disk
         if self._key_mgr is None and exists(key_mgr_path):
             self._key_mgr = cct.common.load_metadata_from_file(key_mgr_path)
-
 
     def _load(self):
         try:
