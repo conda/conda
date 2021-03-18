@@ -235,11 +235,13 @@ class SubdirData(object):
 
         # Load current trust root metadata from filesystem
         latest_root_id, latest_root_path = -1, None
-        for cur_path in iglob(join(context.av_data_dir, "*.root.json")):
+        for cur_path in iglob(join(context.av_data_dir, "[0-9]*.root.json")):
             # TODO (AV): better pattern matching in above glob
-            cur_id = int(basename(cur_path).split(".")[0])
-            if cur_id > latest_root_id:
-                latest_root_id, latest_root_path = cur_id, cur_path
+            cur_id = basename(cur_path).split(".")[0]
+            if cur_id.isdigit():
+                cur_id = int(cur_id)
+                if cur_id > latest_root_id:
+                    latest_root_id, latest_root_path = cur_id, cur_path
 
         if latest_root_path is None:
             log.warn(f"Could not find root metadata in {context.av_data_dir}. "
