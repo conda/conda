@@ -1,0 +1,7 @@
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=2
+  - pytz
