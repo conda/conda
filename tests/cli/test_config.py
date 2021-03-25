@@ -411,13 +411,13 @@ def test_add_invalid_key():
 
 
 def test_remove_key():
+    key, value = "changeps1", "false"
     with make_temp_condarc(CONDARC_BASE) as rc:
         stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
-                                        '--remove-key', 'changeps1',
+                                        '--remove-key', key,
                                         use_exception_handler=True)
         assert stdout == stderr == ''
-        assert _read_test_condarc(rc) == \
-            CONDARC_BASE.replace("\nchangeps1: false\n", "")
+        assert f"{key}: {value}\n" not in _read_test_condarc(rc)
 
 
 def test_remove_key_duplicate():
@@ -432,8 +432,7 @@ def test_remove_key_duplicate():
                                         use_exception_handler=True)
         assert stdout == ''
         assert stderr.strip() == error
-        assert _read_test_condarc(rc) == \
-            CONDARC_BASE.replace(f"\n{key}: {value}\n", "")
+        assert f"{key}: {value}\n" not in _read_test_condarc(rc)
 
 
 def test_remove_unconfigured_key():
