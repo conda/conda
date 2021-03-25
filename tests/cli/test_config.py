@@ -67,6 +67,16 @@ always_yes: true
 channel_alias: http://alpha.conda.anaconda.org
 """
 
+CONDARC_MAPS = """\
+proxy_servers:
+  http: 1.2.3.4:5678
+  https: 1.2.3.4:5678
+
+conda_build:
+  cache_dir: /tmp/conda-bld
+  error_overlinking: true
+"""
+
 CONDARC_BASE = CONDARC_CHANNELS + "\n" + CONDARC_OTHER
 
 
@@ -211,6 +221,23 @@ def test_get_all():
         assert stderr.strip() == "unknown key invalid_key"
 
 
+def test_get_all_inc_maps():
+    condarc = ("invalid_key: true\nchangeps1: false\n" +
+                CONDARC_CHANNELS + CONDARC_MAPS)
+    with make_temp_condarc(condarc) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc, '--get', use_exception_handler=True)
+        assert stdout == dedent("""\
+            --set changeps1 False
+            --add channels 'defaults'   # lowest priority
+            --add channels 'test'   # highest priority
+            --set conda_build.cache_dir /tmp/conda-bld
+            --set conda_build.error_overlinking True
+            --set proxy_servers.http 1.2.3.4:5678
+            --set proxy_servers.https 1.2.3.4:5678
+            """)
+        assert stderr.strip() == "unknown key invalid_key"
+
+
 def test_get_channels_list():
     with make_temp_condarc(CONDARC_BASE) as rc:
         stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
@@ -238,6 +265,27 @@ def test_get_string_value():
         assert stderr == ""
 
 
+@pytest.mark.parametrize("key,value", [
+    ("proxy_servers.http", "1.2.3.4:5678"),
+    ("conda_build.cache_dir", "/tmp/conda-bld"),
+    ])
+def test_get_map_subkey(key, value):
+    with make_temp_condarc(CONDARC_MAPS) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', key)
+        assert stdout.strip() == f"--set {key} {value}"
+        assert stderr == ""
+
+
+def test_get_map_full():
+    with make_temp_condarc(CONDARC_MAPS) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'proxy_servers')
+        assert "--set proxy_servers.http 1.2.3.4:5678\n" in stdout
+        assert "--set proxy_servers.https 1.2.3.4:5678\n" in stdout
+        assert stderr == ""
+
+
 def test_get_multiple_keys():
     with make_temp_condarc(CONDARC_BASE) as rc:
         stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
@@ -246,6 +294,29 @@ def test_get_multiple_keys():
             --set changeps1 False
             --add channels 'defaults'   # lowest priority
             --add channels 'test'   # highest priority
+            """)
+        assert stderr == ""
+
+
+def test_get_multiple_keys_incl_map_subkey():
+    with make_temp_condarc(CONDARC_BASE + CONDARC_MAPS) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'changeps1', 'proxy_servers.http')
+        assert stdout == dedent("""\
+            --set changeps1 False
+            --set proxy_servers.http 1.2.3.4:5678
+            """)
+        assert stderr == ""
+
+
+def test_get_multiple_keys_incl_map_full():
+    with make_temp_condarc(CONDARC_BASE + CONDARC_MAPS) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'changeps1', 'proxy_servers')
+        assert stdout == dedent("""\
+            --set changeps1 False
+            --set proxy_servers.http 1.2.3.4:5678
+            --set proxy_servers.https 1.2.3.4:5678
             """)
         assert stderr == ""
 
@@ -276,6 +347,24 @@ def test_set_key():
         assert stdout == stderr == ''
         assert _read_test_condarc(rc)== \
                 CONDARC_BASE.replace(f"{key}: {from_val}", f"{key}: {to_val}")
+
+
+@pytest.mark.parametrize("key,from_val,to_val", [
+    ("proxy_servers.http", "1.2.3.4:5678", "4.3.2.1:9876"),
+    ("conda_build.cache_dir", "/tmp/conda-bld", "/var/tmp/build"),
+    # broken: write process for conda_build section converts bools to strings
+    pytest.param("conda_build.error_overlinking", "true", "false",
+                 marks=pytest.mark.skip("known to be broken")),
+    ])
+def test_set_map_key(key, from_val, to_val):
+    parent_key, sub_key = key.split(".")
+    with make_temp_condarc(CONDARC_MAPS) as rc:
+        stdout, stderr, _= run_command(Commands.CONFIG, '--file', rc,
+                                       '--set', key, to_val)
+        assert stdout == stderr == ''
+        assert _read_test_condarc(rc) == \
+                CONDARC_MAPS.replace(f"  {sub_key}: {from_val}",
+                                     f"  {sub_key}: {to_val}")
 
 
 def test_set_unconfigured_key():
