@@ -99,6 +99,28 @@ def describe_all_parameters():
     return '\n'.join(builder)
 
 
+def print_config_item(key, value):
+    stdout_write = getLogger("conda.stdout").info
+    if isinstance(value, (dict,)):
+        for k, v in value.items():
+            print_config_item(key + "." + k, v)
+    elif isinstance(value, (bool, int, string_types)):
+        stdout_write(" ".join(("--set", key, text_type(value))))
+    elif isinstance(value, (list, tuple)):
+        # Note, since `conda config --add` prepends, print `--add` commands in
+        # reverse order (using repr), so that entering them in this order will
+        # recreate the same file.
+        numitems = len(value)
+        for q, item in enumerate(reversed(value)):
+            if key == "channels" and q in (0, numitems-1):
+                stdout_write(" ".join((
+                    "--add", key, repr(item),
+                    "  # lowest priority" if q == 0 else "  # highest priority"
+                )))
+            else:
+                stdout_write(" ".join(("--add", key, repr(item))))
+
+
 def execute_config(args, parser):
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
@@ -240,51 +262,33 @@ def execute_config(args, parser):
         context.validate_all()
         if args.get == []:
             args.get = sorted(rc_config.keys())
-        for key in args.get:
-            remaining_key = key
-            remaining_rc_config = rc_config
-            while remaining_key != '':
-                try:
-                    parent_key, remaining_key = remaining_key.split('.', 1)
-                except:  # noqa
-                    parent_key, remaining_key = remaining_key, ''
-                # This if is checking for the first go around the loop ..
-                # .. all_parameters only has top-level params which makes
-                # this check kind of pointless in the face of nested keys
-                if parent_key + '.' + remaining_key == key and parent_key not in all_parameters:
-                    remaining_key = None
-                    message = "unknown key %s" % parent_key
-                    if not context.json:
-                        stderr_write(message)
-                    else:
-                        json_warnings.append(message)
-                    continue
-                if parent_key not in remaining_rc_config:
-                    continue
-                else:
-                    remaining_rc_config = remaining_rc_config[parent_key]
 
-            if context.json:
-                json_get[key] = remaining_rc_config
+        value_not_found = object()
+        for key in args.get:
+            key_parts = key.split(".")
+
+            if key_parts[0] not in all_parameters:
+                message = "unknown key %s" % key_parts[0]
+                if not context.json:
+                    stderr_write(message)
+                else:
+                    json_warnings.append(message)
                 continue
 
-            if isinstance(remaining_rc_config, (bool, int, string_types)):
-                stdout_write(" ".join(("--set", key, text_type(remaining_rc_config))))
-            else:  # assume the key is a list-type
-                # Note, since conda config --add prepends, these are printed in
-                # the reverse order so that entering them in this order will
-                # recreate the same file
-                items = remaining_rc_config or []
-                numitems = len(items)
-                for q, item in enumerate(reversed(items)):
-                    # Use repr so that it can be pasted back in to conda config --add
-                    if parent_key == "channels" and q in (0, numitems-1):
-                        stdout_write(" ".join((
-                            "--add", key, repr(item),
-                            "  # lowest priority" if q == 0 else "  # highest priority"
-                        )))
-                    else:
-                        stdout_write(" ".join(("--add", key, repr(item))))
+            remaining_rc_config = rc_config
+            for k in key_parts:
+                if k in remaining_rc_config:
+                    remaining_rc_config = remaining_rc_config[k]
+                else:
+                    remaining_rc_config = value_not_found
+                    break
+
+            if remaining_rc_config is value_not_found:
+                pass
+            elif context.json:
+                json_get[key] = remaining_rc_config
+            else:
+                print_config_item(key, remaining_rc_config)
 
     if args.stdin:
         content = timeout(5, sys.stdin.read)
