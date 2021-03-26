@@ -16,13 +16,13 @@ Installing on Linux
 
      .. code::
 
-        bash Miniconda3-latest-Linux-x86_64.sh
+        /bin/sh Miniconda3-latest-Linux-x86_64.sh
 
    * Anaconda:
 
      .. code::
 
-        bash Anaconda-latest-Linux-x86_64.sh
+        /bin/sh Anaconda-latest-Linux-x86_64.sh
 
 #. Follow the prompts on the installer screens.
 
@@ -42,7 +42,7 @@ Installing on Linux
 Using with fish shell
 =========================
 
-To use conda with fish shell, run the following in your terminal: 
+To use conda with fish shell, run the following in your terminal:
 
   ``conda init fish``
 

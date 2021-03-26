@@ -16,7 +16,7 @@ Installing on macOS
 
      .. code::
 
-        bash Miniconda3-latest-MacOSX-x86_64.sh
+        /bin/sh Miniconda3-latest-MacOSX-x86_64.sh
 
    * Anaconda---Double-click the ``.pkg`` file.
 
@@ -57,7 +57,7 @@ EXAMPLE:
 .. code-block:: bash
 
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O ~/miniconda.sh
-    bash ~/miniconda.sh -b -p $HOME/miniconda
+    /bin/sh ~/miniconda.sh -b -p $HOME/miniconda
 
 The installer prompts “Do you wish the installer to initialize Miniconda3 by running ``conda init``?” We recommend “yes”.
 
