@@ -172,6 +172,11 @@ def _supplement_index_with_system(index):
     libc_family, libc_version = context.libc_family_version
     is_linux = context.subdir.startswith("linux-")
     if is_linux:
+        dist_version = os.environ.get('CONDA_OVERRIDE_LINUX', context.platform_system_release[1])
+        if '-' in dist_version:
+            dist_version = dist_version.split('-')[0]
+        rec = _make_virtual_package('__linux', dist_version)
+        index[rec] = rec
         if not (libc_family and libc_version):
             # Default to glibc when using CONDA_SUBDIR var
             libc_family = "glibc"

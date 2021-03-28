@@ -8,14 +8,13 @@ import os
 import sys
 import textwrap
 
-from conda._vendor.auxlib.path import expand
 from conda.cli import install as cli_install
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, add_parser_networking
+from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
+    add_parser_prefix, add_parser_networking
 from conda.core.prefix_data import PrefixData
-from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
-from .common import get_prefix, print_result
+from .common import get_prefix, print_result, get_filename
 from .. import exceptions, specs
 from ..installers.base import InvalidInstaller, get_installer
 
@@ -69,6 +68,7 @@ def configure_parser(sub_parsers):
         action='store_true',
         default=False,
     )
+    add_parser_default_packages(p)
     add_parser_json(p)
     p.set_defaults(func='.main_create.execute')
 
@@ -78,13 +78,7 @@ def execute(args, parser):
     name = args.remote_definition or args.name
 
     try:
-        url_scheme = args.file.split("://", 1)[0]
-        if url_scheme in CONDA_SESSION_SCHEMES:
-            filename = args.file
-        else:
-            filename = expand(args.file)
-
-        spec = specs.detect(name=name, filename=filename, directory=os.getcwd())
+        spec = specs.detect(name=name, filename=get_filename(args.file), directory=os.getcwd())
         env = spec.environment
 
         # FIXME conda code currently requires args to have a name or prefix
@@ -106,6 +100,13 @@ def execute(args, parser):
     # channel_urls = args.channel or ()
 
     result = {"conda": None, "pip": None}
+
+    args_packages = context.create_default_packages if not args.no_default_packages else []
+    if args_packages:
+        installer_type = "conda"
+        installer = get_installer(installer_type)
+        result[installer_type] = installer.install(prefix, args_packages, args, env)
+
     if len(env.dependencies.items()) == 0:
         installer_type = "conda"
         pkg_specs = []

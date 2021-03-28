@@ -65,6 +65,28 @@ def test_supplement_index_with_system_osx():
       assert osx_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
+@pytest.mark.skipif(not on_linux, reason="linux-only test")
+def test_supplement_index_with_system_linux():
+      index = {}
+      with env_vars({'CONDA_OVERRIDE_LINUX': '4.2.0'}):
+          _supplement_index_with_system(index)
+
+      linux_pkg = next(iter(_ for _ in index if _.name == '__linux'))
+      assert linux_pkg.version == '4.2.0'
+      assert linux_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+
+
+@pytest.mark.skipif(not on_linux, reason="linux-only test")
+def test_supplement_index_with_system_linux_extended():
+      index = {}
+      with env_vars({'CONDA_OVERRIDE_LINUX': '4.2.0-42-generic'}):
+          _supplement_index_with_system(index)
+
+      linux_pkg = next(iter(_ for _ in index if _.name == '__linux'))
+      assert linux_pkg.version == '4.2.0'
+      assert linux_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+
+
 @pytest.mark.skipif(on_win or on_mac, reason="linux-only test")
 def test_supplement_index_with_system_glibc():
     index = {}

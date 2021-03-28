@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [2.7, 3.7]
+        python_version: [3.7, 3.8, 3.9]
         conda_subdir: ['win-64']
         test_type: ['unit', 'integration']
     steps:
@@ -40,7 +40,7 @@ jobs:
         CALL \conda_bin\scripts\activate.bat
         CALL conda create -n ci_base -y python=${{ matrix.python_version }} pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling %SCANDIR%
         CALL conda activate ci_base
-        CALL conda install -yq pip conda-build=3.17 conda-verify
+        CALL conda install -yq pip conda-build conda-verify
         CALL conda update openssl ca-certificates certifi
         pip install codecov
         python -m conda init cmd.exe --dev
@@ -145,6 +145,7 @@ jobs:
           else
             bash <(curl -s https://codecov.io/bash)
           fi
+
   linux-tests-py38:
     runs-on: ubuntu-latest
     strategy:
@@ -175,7 +176,7 @@ jobs:
             bash <(curl -s https://codecov.io/bash)
           fi
 
-  linux-tests-py27:
+  linux-tests-py39:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -185,15 +186,15 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: py27 unit tests
+      - name: py39 unit tests
         if: ${{ matrix.test_type == 'unit' }}
-        uses: docker://continuumio/conda-ci-linux-64-python2.7:latest
+        uses: docker://continuumio/conda-ci-linux-64-python3.9:latest
         with:
           entrypoint: /bin/bash
           args: ./ci/unit_test.sh
-      - name: py27 integration tests
+      - name: py39 integration tests
         if: ${{ matrix.test_type == 'integration' }}
-        uses: docker://continuumio/conda-ci-linux-64-python2.7:latest
+        uses: docker://continuumio/conda-ci-linux-64-python3.9:latest
         with:
           entrypoint: /bin/bash
           args: ./ci/integration_tests.sh
@@ -204,4 +205,3 @@ jobs:
           else
             bash <(curl -s https://codecov.io/bash)
           fi
-      

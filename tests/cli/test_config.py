@@ -7,6 +7,9 @@ import os
 import pytest
 
 from contextlib import contextmanager
+from textwrap import dedent
+import pytest
+
 from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 
 from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
@@ -26,6 +29,7 @@ from conda.gateways.disk.delete import rm_rf
 
 # unset CIO_TEST.  This is a Continuum-internal variable that draws packages from an internal server instead of
 #     repo.anaconda.com
+
 
 @contextmanager
 def make_temp_condarc(value=None):
@@ -47,12 +51,44 @@ def _read_test_condarc(rc):
         return f.read()
 
 
-def test_invalid_config():
-    condarc="""\
-fgddgh
-channels:
-  - test
+def _channels_as_yaml(*channels):
+    return "\n  - ".join(("channels:",) + channels) + "\n"
+
+
+CONDARC_CHANNELS = _channels_as_yaml("test", "defaults")
+
+CONDARC_OTHER = """\
+create_default_packages:
+  - ipython
+  - numpy
+
+changeps1: false
+
+# Here is a comment
+always_yes: true
+
+channel_alias: http://alpha.conda.anaconda.org
 """
+
+CONDARC_MAPS = """\
+proxy_servers:
+  http: 1.2.3.4:5678
+  https: 1.2.3.4:5678
+
+conda_build:
+  cache_dir: /tmp/conda-bld
+  error_overlinking: true
+"""
+
+CONDARC_BASE = CONDARC_CHANNELS + "\n" + CONDARC_OTHER
+
+
+def test_invalid_yaml():
+    condarc = dedent("""\
+        fgddgh
+        channels:
+          - test
+        """)
     try:
         with make_temp_condarc(condarc) as rc:
             rc_path = rc
@@ -60,89 +96,109 @@ channels:
     except ConfigurationLoadError as err:
         assert "reason: invalid yaml at line" in err.message, err.message
 
-# Tests for the conda config command
-# FIXME This shoiuld be multiple individual tests
-def test_config_command_basics():
 
-        # Test that creating the file adds the defaults channel
+def test_channels_add_empty():
     with make_temp_condarc() as rc:
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
                                                   'channels', 'test')
         assert stdout == stderr == ''
-        assert _read_test_condarc(rc) == """\
-channels:
-  - test
-  - defaults
-"""
-        print(_read_test_condarc(rc))
-        print(_read_test_condarc(rc))
-        print(_read_test_condarc(rc))
+        assert _read_test_condarc(rc) == _channels_as_yaml("test", "defaults")
 
+
+def test_channels_add_empty_with_defaults():
+    # When defaults is explicitly given, it should not be added
     with make_temp_condarc() as rc:
-        # When defaults is explicitly given, it should not be added
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
-                                                  'channels', 'test', '--add', 'channels',
-                                                  'defaults', use_exception_handler=True)
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--add', 'channels', 'test',
+                                        '--add', 'channels', 'defaults',
+                                        use_exception_handler=True)
         assert stdout == ''
         assert stderr.strip() == "Warning: 'defaults' already in 'channels' list, moving to the top"
-        assert _read_test_condarc(rc) == """\
-channels:
-  - defaults
-  - test
-"""
-    # Duplicate keys should not be added twice
-    with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
-                                                  'channels', 'test')
-        assert stdout == stderr == ''
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
-                                                  'channels', 'test', use_exception_handler=True)
-        assert stdout == ''
-        assert stderr.strip() == "Warning: 'test' already in 'channels' list, moving to the top"
-        assert _read_test_condarc(rc) == """\
-channels:
-  - test
-  - defaults
-"""
+        assert _read_test_condarc(rc) == _channels_as_yaml("defaults", "test")
 
-    # Test append
-    with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
-                                                  'channels', 'test')
+
+def test_channels_add_duplicate():
+    channels_initial = _channels_as_yaml("test", "defaults", "mychannel")
+    channels_expected = _channels_as_yaml("mychannel", "test", "defaults")
+    with make_temp_condarc(channels_initial) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--add', 'channels', 'mychannel',
+                                        use_exception_handler=True)
+        assert stdout == ''
+        assert stderr.strip() == "Warning: 'mychannel' already in 'channels' list, moving to the top"
+        assert _read_test_condarc(rc) == channels_expected
+
+
+def test_channels_prepend():
+    channels_expected = _channels_as_yaml("mychannel", "test", "defaults")
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--prepend', 'channels', 'mychannel')
         assert stdout == stderr == ''
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--append',
-                                                  'channels', 'test', use_exception_handler=True)
+        assert _read_test_condarc(rc) == channels_expected + "\n" + CONDARC_OTHER
+
+
+def test_channels_prepend_duplicate():
+    channels_expected = _channels_as_yaml("defaults", "test")
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--prepend', 'channels', 'defaults')
+        assert stdout == ''
+        assert stderr.strip() == "Warning: 'defaults' already in 'channels' list, moving to the top"
+        assert _read_test_condarc(rc) == channels_expected + CONDARC_OTHER
+
+
+def test_channels_append():
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--append', 'channels', 'mychannel',
+                                        use_exception_handler=True)
+        assert stdout == stderr == ''
+        assert _read_test_condarc(rc) == \
+            CONDARC_CHANNELS + "\n  - mychannel\n" + CONDARC_OTHER
+
+
+def test_channels_append_duplicate():
+    channels_expected = _channels_as_yaml("defaults", "test")
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--append', 'channels', 'test',
+                                        use_exception_handler=True)
         assert stdout == ''
         assert stderr.strip() == "Warning: 'test' already in 'channels' list, moving to the bottom"
-        assert _read_test_condarc(rc) == """\
-channels:
-  - defaults
-  - test
-"""
+        assert _read_test_condarc(rc) == channels_expected + CONDARC_OTHER
 
-    # Test duoble remove of defaults
-    with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--remove',
-                                                  'channels', 'defaults')
+
+def test_channels_remove():
+    channels_expected = _channels_as_yaml("defaults")
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--remove', 'channels', 'test')
         assert stdout == stderr == ''
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--remove',
-                                                  'channels', 'defaults',
-                                                  use_exception_handler=True)
-        assert stdout == ''
-        assert "CondaKeyError: 'channels': 'defaults' is not in the 'channels' " \
-               "key of the config file" in stderr
+        assert _read_test_condarc(rc) == channels_expected + CONDARC_OTHER
 
-    # Test creating a new file with --set
+
+def test_channels_remove_duplicate():
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--remove', 'channels', 'test')
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--remove', 'channels', 'test',
+                                        use_exception_handler=True)
+        assert stdout == ''
+        assert stderr.strip() == "CondaKeyError: 'channels': 'test' is not "\
+                                 "in the 'channels' key of the config file"
+
+
+def test_create_condarc_on_set():
     with make_temp_condarc() as rc:
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
                                                   '--set', 'always_yes', 'true')
         assert stdout == stderr == ''
-        assert _read_test_condarc(rc) == """\
-always_yes: true
-"""
+        assert _read_test_condarc(rc) == "always_yes: true\n"
 
 
-def test_config_command_show():
+def test_show_sorts_keys():
     # test alphabetical yaml output
     with make_temp_condarc() as rc:
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--show')
@@ -152,313 +208,301 @@ def test_config_command_show():
         assert sorted(output_keys) == [item for item in output_keys]
 
 
-# FIXME Break into multiple tests
-def test_config_command_get():
-    # Test --get
-    condarc = """\
-channels:
-  - test
-  - defaults
-
-create_default_packages:
-  - ipython
-  - numpy
-
-changeps1: false
-
-always_yes: true
-
-invalid_key: true
-
-channel_alias: http://alpha.conda.anaconda.org
-"""
+def test_get_all():
+    condarc = CONDARC_BASE + "\n\ninvalid_key: true\n"
     with make_temp_condarc(condarc) as rc:
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--get', use_exception_handler=True)
-        assert stdout.strip() == """\
---set always_yes True
---set changeps1 False
---set channel_alias http://alpha.conda.anaconda.org
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority
---add create_default_packages 'numpy'
---add create_default_packages 'ipython'\
-"""
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc, '--get', use_exception_handler=True)
+        assert stdout == dedent("""\
+            --set always_yes True
+            --set changeps1 False
+            --set channel_alias http://alpha.conda.anaconda.org
+            --add channels 'defaults'   # lowest priority
+            --add channels 'test'   # highest priority
+            --add create_default_packages 'numpy'
+            --add create_default_packages 'ipython'
+            """)
         assert stderr.strip() == "unknown key invalid_key"
 
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
+
+def test_get_all_inc_maps():
+    condarc = ("invalid_key: true\nchangeps1: false\n" +
+                CONDARC_CHANNELS + CONDARC_MAPS)
+    with make_temp_condarc(condarc) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc, '--get', use_exception_handler=True)
+        assert stdout == dedent("""\
+            --set changeps1 False
+            --add channels 'defaults'   # lowest priority
+            --add channels 'test'   # highest priority
+            --set conda_build.cache_dir /tmp/conda-bld
+            --set conda_build.error_overlinking True
+            --set proxy_servers.http 1.2.3.4:5678
+            --set proxy_servers.https 1.2.3.4:5678
+            """)
+        assert stderr.strip() == "unknown key invalid_key"
+
+
+def test_get_channels_list():
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
                                            '--get', 'channels')
-
-        assert stdout.strip() == """\
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority\
-"""
+        assert stdout == dedent("""\
+            --add channels 'defaults'   # lowest priority
+            --add channels 'test'   # highest priority
+            """)
         assert stderr == ""
 
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--get', 'changeps1')
 
-        assert stdout.strip() == """\
---set changeps1 False\
-"""
+def test_get_boolean_value():
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'changeps1')
+        assert stdout.strip() == "--set changeps1 False"
         assert stderr == ""
 
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--get', 'changeps1', 'channels')
 
-        assert stdout.strip() == """\
---set changeps1 False
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority\
-"""
+def test_get_string_value():
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'channel_alias')
+        assert stdout.strip() == "--set channel_alias http://alpha.conda.anaconda.org"
         assert stderr == ""
 
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--get', 'allow_softlinks')
 
+@pytest.mark.parametrize("key,value", [
+    ("proxy_servers.http", "1.2.3.4:5678"),
+    ("conda_build.cache_dir", "/tmp/conda-bld"),
+    ])
+def test_get_map_subkey(key, value):
+    with make_temp_condarc(CONDARC_MAPS) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', key)
+        assert stdout.strip() == f"--set {key} {value}"
+        assert stderr == ""
+
+
+def test_get_map_full():
+    with make_temp_condarc(CONDARC_MAPS) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'proxy_servers')
+        assert "--set proxy_servers.http 1.2.3.4:5678\n" in stdout
+        assert "--set proxy_servers.https 1.2.3.4:5678\n" in stdout
+        assert stderr == ""
+
+
+def test_get_multiple_keys():
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'changeps1', 'channels')
+        assert stdout == dedent("""\
+            --set changeps1 False
+            --add channels 'defaults'   # lowest priority
+            --add channels 'test'   # highest priority
+            """)
+        assert stderr == ""
+
+
+def test_get_multiple_keys_incl_map_subkey():
+    with make_temp_condarc(CONDARC_BASE + CONDARC_MAPS) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'changeps1', 'proxy_servers.http')
+        assert stdout == dedent("""\
+            --set changeps1 False
+            --set proxy_servers.http 1.2.3.4:5678
+            """)
+        assert stderr == ""
+
+
+def test_get_multiple_keys_incl_map_full():
+    with make_temp_condarc(CONDARC_BASE + CONDARC_MAPS) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'changeps1', 'proxy_servers')
+        assert stdout == dedent("""\
+            --set changeps1 False
+            --set proxy_servers.http 1.2.3.4:5678
+            --set proxy_servers.https 1.2.3.4:5678
+            """)
+        assert stderr == ""
+
+
+def test_get_unconfigured_key():
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'allow_softlinks')
         assert stdout == ""
         assert stderr == ""
 
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--get', 'always_softlink')
 
-        assert stdout == ""
-        assert stderr == ""
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--get', 'track_features')
-
-        assert stdout == ""
-        assert stderr == ""
-
-        # stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--get', 'invalid_key', use_exception_handler=True)
-        #
-        # assert stdout == ""
-        # assert "invalid choice: 'invalid_key'" in stderr
-
-        # stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--get', 'not_valid_key', use_exception_handler=True)
-        #
-        # assert stdout == ""
-        # assert "invalid choice: 'not_valid_key'" in stderr
-
-
-# FIXME Break into multiple tests
-def test_config_command_parser():
-    # Now test the YAML "parser"
-    # Channels is normal content.
-    # create_default_packages has extra spaces in list items
-    condarc = """\
-channels:
-  - test
-  - defaults
-
-create_default_packages :
-  -  ipython
-  -  numpy
-
-changeps1: false
-
-# Here is a comment
-always_yes: true
-"""
-    # First verify that this itself is valid YAML
-    assert yaml_round_trip_load(condarc) == {'channels': ['test', 'defaults'],
-                                  'create_default_packages': ['ipython', 'numpy'],
-                                  'changeps1': False,
-                                  'always_yes': True}
-
+def test_get_invalid_key():
+    condarc = CONDARC_BASE
     with make_temp_condarc(condarc) as rc:
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--get', use_exception_handler=True)
-        print(stdout)
-        assert stdout.strip() == """\
---set always_yes True
---set changeps1 False
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority
---add create_default_packages 'numpy'
---add create_default_packages 'ipython'\
-"""
-        with open(rc, 'r') as fh:
-            print(fh.read())
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', 'invalid_key',
+                                        use_exception_handler=True)
+        assert stdout == ""
+        assert stderr.strip() == "unknown key invalid_key"
 
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--prepend',
-                                                  'channels', 'mychannel')
+
+def test_set_key():
+    key, from_val, to_val = "changeps1", "true", "false"
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _= run_command(Commands.CONFIG, '--file', rc,
+                                       '--set', key, to_val)
         assert stdout == stderr == ''
+        assert _read_test_condarc(rc)== \
+                CONDARC_BASE.replace(f"{key}: {from_val}", f"{key}: {to_val}")
 
-        with open(rc, 'r') as fh:
-            print(fh.read())
 
-        assert _read_test_condarc(rc) == """\
-channels:
-  - mychannel
-  - test
-  - defaults
-
-create_default_packages:
-  - ipython
-  - numpy
-
-changeps1: false
-
-# Here is a comment
-always_yes: true
-"""
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--set', 'changeps1', 'true')
-
+@pytest.mark.parametrize("key,from_val,to_val", [
+    ("proxy_servers.http", "1.2.3.4:5678", "4.3.2.1:9876"),
+    ("conda_build.cache_dir", "/tmp/conda-bld", "/var/tmp/build"),
+    # broken: write process for conda_build section converts bools to strings
+    pytest.param("conda_build.error_overlinking", "true", "false",
+                 marks=pytest.mark.skip("known to be broken")),
+    ])
+def test_set_map_key(key, from_val, to_val):
+    parent_key, sub_key = key.split(".")
+    with make_temp_condarc(CONDARC_MAPS) as rc:
+        stdout, stderr, _= run_command(Commands.CONFIG, '--file', rc,
+                                       '--set', key, to_val)
         assert stdout == stderr == ''
+        assert _read_test_condarc(rc) == \
+                CONDARC_MAPS.replace(f"  {sub_key}: {from_val}",
+                                     f"  {sub_key}: {to_val}")
 
-        assert _read_test_condarc(rc)== """\
-channels:
-  - mychannel
-  - test
-  - defaults
 
-create_default_packages:
-  - ipython
-  - numpy
-
-changeps1: true
-
-# Here is a comment
-always_yes: true
-"""
-
-        # Test adding a new list key. We couldn't test this above because it
-        # doesn't work yet with odd whitespace
-    condarc = """\
-channels:
-  - test
-  - defaults
-
-always_yes: true
-"""
-
-    with make_temp_condarc(condarc) as rc:
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
-                                           'disallowed_packages', 'perl')
+def test_set_unconfigured_key():
+    key, to_val = "restore_free_channel", "true"
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _= run_command(Commands.CONFIG, '--file', rc,
+                                       '--set', key, to_val,
+                                        use_exception_handler=True)
         assert stdout == stderr == ''
-        assert _read_test_condarc(rc) == condarc + """\
-disallowed_packages:
-  - perl
-"""
+        assert _read_test_condarc(rc) == CONDARC_BASE + f"{key}: {to_val}\n"
 
 
-# FIXME Break into multiple tests
-def test_config_command_remove_force():
-    # Finally, test --remove, --remove-key
+def test_set_invalid_key():
+    key, to_val = "invalid_key", "a_bogus_value"
+    error = f"CondaValueError: Key '{key}' is not a known primitive parameter."
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _= run_command(Commands.CONFIG, '--file', rc,
+                                       '--set', key, to_val,
+                                        use_exception_handler=True)
+        assert stdout == ''
+        assert stderr.strip() == error
+        assert _read_test_condarc(rc)== CONDARC_BASE
+
+
+def test_add_key():
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--add', 'disallowed_packages', 'perl')
+        assert stdout == stderr == ''
+        assert _read_test_condarc(rc) == \
+            CONDARC_BASE + "disallowed_packages:\n  - perl\n"
+
+
+def test_add_invalid_key():
+    key, to_val = "invalid_key", "a_bogus_value"
+    error = f"CondaValueError: Key '{key}' is not a known sequence parameter."
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _= run_command(Commands.CONFIG, '--file', rc,
+                                       '--add', key, to_val,
+                                        use_exception_handler=True)
+        assert stdout == ''
+        assert stderr.strip() == error
+        assert _read_test_condarc(rc)== CONDARC_BASE
+
+
+def test_remove_key():
+    key, value = "changeps1", "false"
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--remove-key', key,
+                                        use_exception_handler=True)
+        assert stdout == stderr == ''
+        assert f"{key}: {value}\n" not in _read_test_condarc(rc)
+
+
+def test_remove_key_duplicate():
+    key, value = "changeps1", "false"
+    error = f"CondaKeyError: '{key}': key '{key}' is not in the config file"
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--remove-key', key,
+                                        use_exception_handler=True)
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--remove-key', key,
+                                        use_exception_handler=True)
+        assert stdout == ''
+        assert stderr.strip() == error
+        assert f"{key}: {value}\n" not in _read_test_condarc(rc)
+
+
+def test_remove_unconfigured_key():
+    key = "restore_free_channel"
+    error = f"CondaKeyError: '{key}': key '{key}' is not in the config file"
+    with make_temp_condarc(CONDARC_BASE) as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--remove-key', key,
+                                        use_exception_handler=True)
+        assert stdout == ''
+        assert stderr.strip() == error
+        assert _read_test_condarc(rc) == CONDARC_BASE
+
+
+@pytest.mark.parametrize("key,str_value,py_value", [
+    ("always_yes", "yes", True),
+    ("always_yes", "no", False),
+    ("always_yes", "true", True),
+    ("always_yes", "false", False),
+    ("channel_alias", "https://repo.example.com", "https://repo.example.com"),
+    ("proxy_servers.http", "1.2.3.4:5678", {'http': '1.2.3.4:5678'}),
+    ])
+def test_set_check_types(key, str_value, py_value):
     with make_temp_condarc() as rc:
-        run_command(Commands.CONFIG, '--file', rc, '--add',
-                          'channels', 'test')
-        run_command(Commands.CONFIG, '--file', rc, '--set',
-                          'always_yes', 'true')
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--remove', 'channels', 'test')
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--set', key, str_value,
+                                        use_exception_handler=True)
         assert stdout == stderr == ''
-        assert yaml_round_trip_load(_read_test_condarc(rc)) == {'channels': ['defaults'],
-                                                     'always_yes': True}
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--remove', 'channels', 'test', use_exception_handler=True)
-        assert stdout == ''
-        assert "CondaKeyError: 'channels': 'test' is not in the 'channels' " \
-               "key of the config file" in stderr
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--remove', 'disallow', 'python', use_exception_handler=True)
-        assert stdout == ''
-        assert "CondaKeyError: 'disallow': key 'disallow' " \
-               "is not in the config file" in stderr
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--remove-key', 'always_yes')
-        assert stdout == stderr == ''
-        assert yaml_round_trip_load(_read_test_condarc(rc)) == {'channels': ['defaults']}
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--remove-key', 'always_yes', use_exception_handler=True)
-
-        assert stdout == ''
-        assert "CondaKeyError: 'always_yes': key 'always_yes' " \
-               "is not in the config file" in stderr
-
-
-# FIXME Break into multiple tests
-def test_config_command_bad_args():
-    with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                                  '--add', 'notarealkey', 'test',
-                                                  use_exception_handler=True)
-        assert stdout == ''
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--set',
-                                                  'notarealkey', 'true',
-                                                  use_exception_handler=True)
-        assert stdout == ''
-
-
-
-
-def test_config_set():
-    # Test the config set command
-    # Make sure it accepts only boolean values for boolean keys and any value for string keys
-
-    with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                                  '--set', 'always_yes', 'yes')
-        assert stdout == ''
-        assert stderr == ''
         with open(rc) as fh:
             content = yaml_round_trip_load(fh.read())
-            assert content['always_yes'] is True
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                                  '--set', 'always_yes', 'no')
-        assert stdout == ''
-        assert stderr == ''
-        with open(rc) as fh:
-            content = yaml_round_trip_load(fh.read())
-            assert content['always_yes'] is False
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                                  '--set', 'proxy_servers.http', '1.2.3.4:5678')
-        assert stdout == ''
-        assert stderr == ''
-        with open(rc) as fh:
-            content = yaml_round_trip_load(fh.read())
-            assert content['always_yes'] is False
-            assert content['proxy_servers'] == {'http': '1.2.3.4:5678'}
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                                  '--set', 'ssl_verify', 'false')
-        assert stdout == ''
-        assert stderr == ''
-
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                                  '--get', 'ssl_verify')
-        assert stdout.strip() == '--set ssl_verify False'
-        assert stderr == ''
+            if "." in key: key = key.split(".", 1)[0]
+            assert content[key] == py_value
 
 
-def test_set_rc_string():
-    # Test setting string keys in .condarc
-
-    # We specifically test ssl_verify since it can be either a boolean or a string
+def test_set_and_get_bool():
+    key = 'restore_free_channel'
     with make_temp_condarc() as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--set', key, 'yes')
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--get', key)
+        assert stdout.strip() == f'--set {key} True'
+        assert stderr == ''
+
+
+def test_ssl_verify_default():
+    with make_temp_condarc() as rc:
+        reset_context([rc])
         assert context.ssl_verify is True
-        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                                  '--set', 'ssl_verify', 'no')
-        assert stdout == ''
-        assert stderr == ''
 
+
+def test_ssl_verify_set_bool():
+    with make_temp_condarc() as rc:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--set', 'ssl_verify', 'no')
+        assert stdout == stderr == ''
         reset_context([rc])
         assert context.ssl_verify is False
 
-        with Utf8NamedTemporaryFile() as tf:
-            stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                                      '--set', 'ssl_verify', tf.name)
-            assert stdout == ''
-            assert stderr == ''
 
-            reset_context([rc])
-            assert context.ssl_verify == tf.name
+def test_ssl_verify_set_filename():
+    with make_temp_condarc() as rc, Utf8NamedTemporaryFile() as tf:
+        stdout, stderr, _ = run_command(Commands.CONFIG, '--file', rc,
+                                        '--set', 'ssl_verify', tf.name)
+        assert stdout == stderr == ''
+        reset_context([rc])
+        assert context.ssl_verify == tf.name
 
 
 def test_set_rc_without_user_rc():
