@@ -665,8 +665,8 @@ def fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=
     # this function only have to worry about a ValueError being raised.
     try:
         str_data = json.loads(resp.content)
-    except json.decoder.JSONDecodeError as err:
-        raise ValueError(f"Invalid JSON data returned for {signing_data_url}/{filename}")
+    except json.decoder.JSONDecodeError as err:  # noqa
+        raise ValueError(f"Invalid JSON returned from {signing_data_url}/{filename}") from err
 
     # TODO (AV): additional loading and error handling improvements?
 
