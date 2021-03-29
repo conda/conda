@@ -48,12 +48,19 @@ from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 from ..models.enums import MetadataSignatureStatus
 
-# TODO: May want to regularize these later once CAR code is vendored in.
+# TODO: May want to regularize these later once CCT code is vendored in.
 try:
     import conda_content_trust as cct
-    import conda_content_trust.common
-    import conda_content_trust.authentication
-    import conda_content_trust.signing
+    from conda_content_trust.common import (
+        SignatureError,
+        load_metadata_from_file as load_trust_metadata_from_file,
+        write_metdata_to_file as write_trust_metadata_to_file,
+    )
+    from conda_content_trust.authentication import (
+        verify_root as verify_trust_root,
+        verify_delegation as verify_trust_delegation,
+    )
+    from conda_content_trust.signing import wrap_as_signable
 except ImportError:
     cct = None
 
@@ -248,7 +255,7 @@ class SubdirData(object):
                      "Falling back to built-in default.")
         else:
             log.info(f"Loading root metadata from {latest_root_path}.")
-            self._trusted_root = cct.common.load_metadata_from_file(latest_root_path)
+            self._trusted_root = load_trust_metadata_from_file(latest_root_path)
 
         # Refresh trust root metadata
         attempt_refresh = True
@@ -256,6 +263,7 @@ class SubdirData(object):
             # TODO (AV): caching mechanism to reduce number of refresh requests
             next_version_of_root = 1 + self._trusted_root['signed']['version']
             next_root_fname = str(next_version_of_root) + '.root.json'
+            next_root_path = join(context.av_data_dir, next_root_fname)
             try:
                 update_url = f"{self.channel.base_url}/{next_root_fname}"
                 log.info(f"Attempting to fetch updated trust root {update_url}")
@@ -265,11 +273,11 @@ class SubdirData(object):
                         context.signing_metadata_url_base,
                         next_root_fname)
 
-                cct.authentication.verify_root(self._trusted_root, untrusted_root)
+                verify_trust_root(self._trusted_root, untrusted_root)
 
                 # New trust root metadata checks out
                 self._trusted_root = untrusted_root
-                cct.common.write_metadata_to_file(self._trusted_root, join(context.av_data_dir, next_root_fname))
+                write_trust_metadata_to_file(self._trusted_root, next_root_path)
 
             # TODO (AV): more error handling improvements (?)
             except (HTTPError,) as err:
@@ -292,9 +300,9 @@ class SubdirData(object):
             untrusted_key_mgr = fetch_channel_signing_data(
                     context.signing_metadata_url_base,
                     self._key_mgr_filename)
-            cct.authentication.verify_delegation("key_mgr", untrusted_key_mgr, self._trusted_root)
+            verify_trust_delegation("key_mgr", untrusted_key_mgr, self._trusted_root)
             self._key_mgr = untrusted_key_mgr
-            cct.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
+            write_trust_metadata_to_file(self._key_mgr, key_mgr_path)
         except (ConnectionError, HTTPError,) as err:
             log.warn(f"Could not retrieve {self.channel.base_url}/{self._key_mgr_filename}: {err}")
         # TODO (AV): much more sensible error handling here
@@ -303,7 +311,7 @@ class SubdirData(object):
 
         # If key_mgr is unavailable from server, fall back to copy on disk
         if self._key_mgr is None and exists(key_mgr_path):
-            self._key_mgr = cct.common.load_metadata_from_file(key_mgr_path)
+            self._key_mgr = load_trust_metadata_from_file(key_mgr_path)
 
     def _load(self):
         try:
@@ -548,13 +556,13 @@ class SubdirData(object):
                 # invalidate the signatures provided in metadata.json.
                 if verify_metadata_signatures:
                     if fn in signatures:
-                        signable = cct.signing.wrap_as_signable(info)
+                        signable = wrap_as_signable(info)
                         signable['signatures'].update(signatures[fn])
                         try:
-                            cct.authentication.verify_delegation('pkg_mgr', signable, self._key_mgr)
+                            verify_trust_delegation('pkg_mgr', signable, self._key_mgr)
                             info['metadata_signature_status'] = MetadataSignatureStatus.verified
                         # TODO (AV): more granular signature errors (?)
-                        except cct.common.SignatureError:
+                        except SignatureError:
                             log.warn(f"invalid signature for {fn}")
                             info['metadata_signature_status'] = MetadataSignatureStatus.error
                     else:
