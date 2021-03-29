@@ -3,16 +3,19 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+import os
+import pytest
+
 from contextlib import contextmanager
 from textwrap import dedent
 import pytest
 
 from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
 
-from conda.base.context import context, reset_context
+from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
 from conda.cli.python_api import Commands, run_command
 from conda.common.configuration import ConfigurationLoadError
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.serialize import yaml_round_trip_load, yaml_round_trip_dump
 from conda.gateways.disk.delete import rm_rf
 
 
@@ -500,3 +503,47 @@ def test_ssl_verify_set_filename():
         assert stdout == stderr == ''
         reset_context([rc])
         assert context.ssl_verify == tf.name
+
+
+def test_set_rc_without_user_rc():
+
+    if os.path.exists(sys_rc_path):
+        # Backup system rc_config
+        with open(sys_rc_path, 'r') as fh:
+            sys_rc_config_backup = yaml_round_trip_load(fh)
+        restore_sys_rc_config_backup = True
+    else:
+        restore_sys_rc_config_backup = False
+
+    if os.path.exists(user_rc_path):
+        # Backup user rc_config
+        with open(user_rc_path, 'r') as fh:
+            user_rc_config_backup = yaml_round_trip_load(fh)
+        # Remove user rc_path
+        os.remove(user_rc_path)
+        restore_user_rc_config_backup = True
+    else:
+        restore_user_rc_config_backup = False
+
+    try:
+        # Write custom system sys_rc_config
+        with open(sys_rc_path, 'w') as rc:
+            rc.write(yaml_round_trip_dump({'channels':['conda-forge']}))
+    except (OSError, IOError):
+        # In case, we don't have writing right to the system rc config file
+        pytest.skip("No writing right to root prefix.")
+
+    # This would create a user rc_config
+    stdout, stderr, return_code = run_command(Commands.CONFIG,
+                                              '--add', 'channels', 'test')
+    assert stdout == stderr == ''
+    assert yaml_round_trip_load(_read_test_condarc(user_rc_path)) == {'channels': ['test', 'conda-forge']}
+
+    if restore_user_rc_config_backup:
+        # Restore previous user rc_config
+        with open(user_rc_path, 'w') as rc:
+            rc.write(yaml_round_trip_dump(user_rc_config_backup))
+    if restore_sys_rc_config_backup:
+        # Restore previous system rc_config
+        with open(sys_rc_path, 'w') as rc:
+            rc.write(yaml_round_trip_dump(sys_rc_config_backup))

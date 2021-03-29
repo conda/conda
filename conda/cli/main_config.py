@@ -247,6 +247,10 @@ def execute_config(args, parser):
         with open(rc_path, 'r') as fh:
             # round trip load required because... we need to round trip
             rc_config = yaml_round_trip_load(fh) or {}
+    elif os.path.exists(sys_rc_path):
+        # In case the considered rc file doesn't exist, fall back to the system rc
+        with open(sys_rc_path, 'r') as fh:
+            rc_config = yaml_round_trip_load(fh) or {}
     else:
         rc_config = {}
 
