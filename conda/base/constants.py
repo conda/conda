@@ -151,14 +151,8 @@ UNKNOWN_CHANNEL = "<unknown>"
 REPODATA_FN = 'repodata.json'
 
 
-# THIS ROOT METADATA USES TWO TEST GPG KEYS THAT ARE NOT SECURE -- THEY ARE
-# FREELY AVAILABLE FOR TEST PURPOSES, IN THE tests/testdata/ directory.
-#
-# TODO: ✅💣⚠️ OBVIOUSLY, switch to the production root data here after dev.
-#
-# TODO: Also, conda.base is probably not the right place for this data.
-#       It should indeed be a constant, probably, but conda.base may not be
-#       appropriate.
+# TODO: Determine whether conda.base is the right place for this data; it
+# should be a constant, but another module may be more appropriate.
 #
 # You could argue that the signatures being here is not necessary; indeed, we
 # are not necessarily going to be able to check them *properly* (based on some
@@ -173,36 +167,38 @@ REPODATA_FN = 'repodata.json'
 #
 INITIAL_TRUST_ROOT = {
   "signatures": {
-    "a59cea0987ee9046d68d2d011e919eb9278e3f478cca77f5204d65191ff8d7a5": {
-      "other_headers": "04001608001d1621040a14b126c986f276831c7b04134f35b47db4364305025fac507e",
-      "signature": "6585e1667673a72b2cea980b9ca28c0e956051dffc16c064482d65c1744d121f32caf8ff37fa8e8cd77514eff9d8c94f5723b551dac13e1fc5bf2021925bda05"
+    "6d4d5888398ad77465e9fd53996309187723e16509144aa6733015c960378e7a": {
+      "other_headers": "04001608001d162104d2ca1d4bf5d77e7c312534284dd9c45328b685ec0502605dbb03",
+      "signature": "b71c9b3aa60e77258c402e574397127bcb4bc15ef3055ada8539b0d1e355bf1415a135fb7cecc9244f839a929f6b1f82844a5b3df8d6225ec9a50b181692490f"
     },
-    "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c": {
-      "other_headers": "04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025fac507e",
-      "signature": "6e7ad181d4dff9ea462fc076041e19f90a765cba6d6c9c9bad28a8b5094145ea7372c5aca74911daf75e2e5efc8dc9b745bd286c6d9787198659f89bfdb7fd01"
+    "508debb915ede0b16dc0cff63f250bde73c5923317b44719fcfc25cc95560c44": {
+      "other_headers": "04001608001d162104e6dffee4638f24cfa60a08ba03afe1314a3a38fc050260621281",
+      "signature": "29d53d4e7dbea0a3efb07266d22e57cf4df7abe004453981c631245716e1b737c7a6b4ab95f42592af70be67abf56e97020e1aa1f52b49ef39b37481f05d5701"
     }
   },
   "signed": {
     "delegations": {
       "key_mgr": {
         "pubkeys": [
-          "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+          "f24c813d23a9b26be665eee5c54680c35321061b337f862385ed6d783b0bedb0"
         ],
         "threshold": 1
       },
       "root": {
         "pubkeys": [
-          "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c",
-          "a59cea0987ee9046d68d2d011e919eb9278e3f478cca77f5204d65191ff8d7a5"
+          "668a3217d72d4064edb16648435dc4a3e09a172ecee45dcab1464dcd2f402ec6",
+          "508debb915ede0b16dc0cff63f250bde73c5923317b44719fcfc25cc95560c44",
+          "6d4d5888398ad77465e9fd53996309187723e16509144aa6733015c960378e7a",
+          "e0c88b4c0721bd451b7e720dfb0d0bb6b3853f0cbcf5570edd73367d0841be51"
         ],
         "threshold": 2
       }
     },
-    "expiration": "2021-11-11T20:58:37Z",
+    "expiration": "2022-10-31T18:00:00Z",
     "metadata_spec_version": "0.6.0",
-    "timestamp": "2020-11-11T20:58:37Z",
+    "timestamp": "2021-03-26T00:00:00Z",
     "type": "root",
-    "version": 2
+    "version": 1
   }
 }
 
