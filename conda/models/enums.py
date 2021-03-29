@@ -186,7 +186,7 @@ class NoarchType(Enum):
 
 
 class MetadataSignatureStatus(Enum):
-    ## TODO (AV): more detailed error states?
+    # TODO (AV): more detailed error states?
     unsigned = -1
     verified = 0
     error = 1

@@ -230,7 +230,7 @@ class SubdirData(object):
         self._refresh_signing_keymgr()
 
     def _refresh_signing_root(self):
-        ## TODO (AV): formalize paths for `*.root.json` and `key_mgr.json` on server-side
+        # TODO (AV): formalize paths for `*.root.json` and `key_mgr.json` on server-side
         self._trusted_root = INITIAL_TRUST_ROOT
 
         # Load current trust root metadata from filesystem
@@ -245,7 +245,7 @@ class SubdirData(object):
 
         if latest_root_path is None:
             log.warn(f"Could not find root metadata in {context.av_data_dir}. "
-                      "Falling back to built-in default.")
+                     "Falling back to built-in default.")
         else:
             log.info(f"Loading root metadata from {latest_root_path}.")
             self._trusted_root = cct.common.load_metadata_from_file(latest_root_path)
@@ -253,14 +253,14 @@ class SubdirData(object):
         # Refresh trust root metadata
         attempt_refresh = True
         while attempt_refresh:
-            ## TODO (AV): caching mechanism to reduce number of refresh requests
+            # TODO (AV): caching mechanism to reduce number of refresh requests
             next_version_of_root = 1 + self._trusted_root['signed']['version']
             next_root_fname = str(next_version_of_root) + '.root.json'
             try:
                 update_url = f"{self.channel.base_url}/{next_root_fname}"
                 log.info(f"Attempting to fetch updated trust root {update_url}")
 
-                ## TODO (AV): support fetching root data with credentials
+                # TODO (AV): support fetching root data with credentials
                 untrusted_root = fetch_channel_signing_data(
                         context.signing_metadata_url_base,
                         next_root_fname)
@@ -271,7 +271,7 @@ class SubdirData(object):
                 self._trusted_root = untrusted_root
                 cct.common.write_metadata_to_file(self._trusted_root, join(context.av_data_dir, next_root_fname))
 
-            ## TODO (AV): more error handling improvements (?)
+            # TODO (AV): more error handling improvements (?)
             except (HTTPError,) as err:
                 # HTTP 404 implies no updated root.json is available, which is
                 # not really an "error" and does not need to be logged.
@@ -284,7 +284,7 @@ class SubdirData(object):
 
     def _refresh_signing_keymgr(self):
         # Refresh key manager metadata
-        self._key_mgr_filename = "key_mgr.json"     ## TODO (AV): make this a constant or config value
+        self._key_mgr_filename = "key_mgr.json"  # TODO (AV): make this a constant or config value
         self._key_mgr = None
 
         key_mgr_path = join(context.av_data_dir, self._key_mgr_filename)
@@ -297,7 +297,7 @@ class SubdirData(object):
             cct.common.write_metadata_to_file(self._key_mgr, key_mgr_path)
         except (ConnectionError, HTTPError,) as err:
             log.warn(f"Could not retrieve {self.channel.base_url}/{self._key_mgr_filename}: {err}")
-        ## TODO (AV): much more sensible error handling here
+        # TODO (AV): much more sensible error handling here
         except Exception as err:
             log.error(err)
 
@@ -351,8 +351,7 @@ class SubdirData(object):
             log.debug("Local cache timed out for %s at %s",
                       self.url_w_repodata_fn, self.cache_path_json)
 
-
-        ## TODO (AV): Pull contents of this conditional into a separate module/function
+        # TODO (AV): Pull contents of this conditional into a separate module/function
         if context.extra_safety_checks:
             if cct is None:
                 log.warn("metadata signature verification requested, "
@@ -554,7 +553,7 @@ class SubdirData(object):
                         try:
                             cct.authentication.verify_delegation('pkg_mgr', signable, self._key_mgr)
                             info['metadata_signature_status'] = MetadataSignatureStatus.verified
-                        ## TODO (AV): more granular signature errors (?)
+                        # TODO (AV): more granular signature errors (?)
                         except cct.common.SignatureError:
                             log.warn(f"invalid signature for {fn}")
                             info['metadata_signature_status'] = MetadataSignatureStatus.error
@@ -616,7 +615,7 @@ class Response304ContentUnchanged(Exception):
     pass
 
 
-## TODO (AV): move this to a more appropriate place
+# TODO (AV): move this to a more appropriate place
 def fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=None):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
@@ -648,7 +647,7 @@ def fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=
 
         resp.raise_for_status()
     except:
-        ## TODO (AV): more sensible error handling
+        # TODO (AV): more sensible error handling
         raise
 
     # In certain cases (e.g., using `-c` access anaconda.org channels), the
@@ -661,7 +660,7 @@ def fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=
     except json.decoder.JSONDecodeError as err:
         raise ValueError(f"Invalid JSON data returned for {signing_data_url}/{filename}")
 
-    ## TODO (AV): additional loading and error handling improvements?
+    # TODO (AV): additional loading and error handling improvements?
 
     return str_data
 
