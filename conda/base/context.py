@@ -893,6 +893,7 @@ class Context(Configuration):
                 'rollback_enabled',
                 'safety_checks',
                 'extra_safety_checks',
+                'signing_metadata_url_base',
                 'shortcuts',
                 'non_admin_enabled',
                 'separate_format_cache',
@@ -1257,6 +1258,10 @@ class Context(Configuration):
             'extra_safety_checks': dals("""
                 Spend extra time validating package contents.  Currently, runs sha256 verification
                 on every file within each package during installation.
+                """),
+            'signing_metadata_url_base': dals("""
+                Base URL for obtaining trust metadata updates (i.e., the `*.root.json` and
+                `key_mgr.json` files) used to verify metadata and (eventually) package signatures.
                 """),
             'shortcuts': dals("""
                 Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
