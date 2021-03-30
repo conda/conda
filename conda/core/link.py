@@ -39,6 +39,7 @@ from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, is_conda_environment, softlink_supported
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
+from ..models.enums import MetadataSignatureStatus
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import ensure_comspec_set, human_bytes, wrap_subprocess_call
@@ -907,6 +908,9 @@ class UnlinkLinkTransaction(object):
             for prec in setup.unlink_precs:
                 actions['UNLINK'].append(prec)
             for prec in setup.link_precs:
+                # TODO (AV): maybe add warnings about unverified packages here;
+                # be warned that doing so may break compatibility with other
+                # applications.
                 actions['LINK'].append(prec)
 
             legacy_action_groups.append(actions)
@@ -928,6 +932,7 @@ class UnlinkLinkTransaction(object):
         return legacy_action_groups
 
     def _change_report_str(self, change_report):
+        # TODO (AV): add warnings about unverified packages in this function
         builder = ['', '## Package Plan ##\n']
         builder.append('  environment location: %s' % change_report.prefix)
         builder.append('')
@@ -1021,12 +1026,30 @@ class UnlinkLinkTransaction(object):
                 left_str = left_str[:37] + "~"
             builder.append("  %-18s %38s --> %s" % (display_key, left_str, right_str))
 
+        def fmt_sig_status(prec):
+            if not context.extra_safety_checks:
+                return ""
+
+            status = getattr(prec, "metadata_signature_status", None)
+            if not context.extra_safety_checks or status is None:
+                # TODO (AV): deal with virtual packages more sensibly
+                status_str = ""
+            elif status == MetadataSignatureStatus.verified:
+                # TODO (AV): replaced hard-coded signer name with data from key
+                status_str = " (INFO: package metadata is signed by Anaconda and trusted)"
+            elif status == MetadataSignatureStatus.unsigned:
+                status_str = ""
+            else:
+                status_str = " (WARNING: metadata signature verification failed)"
+            return status_str
+
         if change_report.new_precs:
             builder.append("\nThe following NEW packages will be INSTALLED:\n")
             for namekey in sorted(change_report.new_precs, key=convert_namekey):
                 link_prec = change_report.new_precs[namekey]
                 display_key = strip_global(namekey)
-                add_single(display_key, link_prec.record_id())
+                display_str = link_prec.record_id() + fmt_sig_status(link_prec)
+                add_single(display_key, display_str)
 
         if change_report.removed_precs:
             builder.append("\nThe following packages will be REMOVED:\n")
@@ -1042,6 +1065,7 @@ class UnlinkLinkTransaction(object):
                 unlink_prec, link_prec = change_report.updated_precs[namekey]
                 display_key = strip_global(namekey)
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
+                right_str += fmt_sig_status(link_prec)
                 add_double(display_key, left_str, right_str)
 
         if change_report.superseded_precs:
@@ -1051,6 +1075,7 @@ class UnlinkLinkTransaction(object):
                 unlink_prec, link_prec = change_report.superseded_precs[namekey]
                 display_key = strip_global(namekey)
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
+                right_str += fmt_sig_status(link_prec)
                 add_double(display_key, left_str, right_str)
 
         if change_report.downgraded_precs:
@@ -1059,6 +1084,7 @@ class UnlinkLinkTransaction(object):
                 unlink_prec, link_prec = change_report.downgraded_precs[namekey]
                 display_key = strip_global(namekey)
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
+                right_str += fmt_sig_status(link_prec)
                 add_double(display_key, left_str, right_str)
         builder.append('')
         builder.append('')

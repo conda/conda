@@ -17,6 +17,7 @@ from os.path import basename, join
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
+from .enums import MetadataSignatureStatus
 from .match_spec import MatchSpec
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
@@ -249,6 +250,8 @@ class PackageRecord(DictSafeMixin, Entity):
     legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+
+    metadata_signature_status = EnumField(MetadataSignatureStatus, required=False)
 
     @property
     def schannel(self):
