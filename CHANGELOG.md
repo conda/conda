@@ -1,6 +1,6 @@
 ## 4.10.0 (2021-03-30)
 
-**NOTE**: This release formally drops support for Python 2.7 and Python < 3.5.
+**NOTE**: This release formally drops support for Python 2.7 and Python < 3.6.
 
 ### Enhancements
 
