@@ -54,7 +54,7 @@ try:
     from conda_content_trust.common import (
         SignatureError,
         load_metadata_from_file as load_trust_metadata_from_file,
-        write_metdata_to_file as write_trust_metadata_to_file,
+        write_metadata_to_file as write_trust_metadata_to_file,
     )
     from conda_content_trust.authentication import (
         verify_root as verify_trust_root,
