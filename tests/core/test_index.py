@@ -66,25 +66,25 @@ def test_supplement_index_with_system_osx():
 
 
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_supplement_index_with_system_linux():
-      index = {}
-      with env_vars({'CONDA_OVERRIDE_LINUX': '4.2.0'}):
-          _supplement_index_with_system(index)
+@pytest.mark.parametrize("release_str,version", [
+        ("1.2.3.4", "1.2.3.4"), # old numbering system
+        ("4.2", "4.2"),
+        ("4.2.1", "4.2.1"),
+        ("4.2.0-42-generic", "4.2.0"),
+        ("5.4.89+", "5.4.89"),
+        ("5.5-rc1", "5.5"),
+        ("9.1.a", "9.1"),       # should probably be "0"
+        ("9.1.a.2", "9.1"),     # should probably be "0"
+        ("9.a.1", "0"),
+    ])
+def test_supplement_index_with_system_linux(release_str, version):
+    index = {}
+    with env_vars({'CONDA_OVERRIDE_LINUX': release_str}):
+        _supplement_index_with_system(index)
 
-      linux_pkg = next(iter(_ for _ in index if _.name == '__linux'))
-      assert linux_pkg.version == '4.2.0'
-      assert linux_pkg.package_type == PackageType.VIRTUAL_SYSTEM
-
-
-@pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_supplement_index_with_system_linux_extended():
-      index = {}
-      with env_vars({'CONDA_OVERRIDE_LINUX': '4.2.0-42-generic'}):
-          _supplement_index_with_system(index)
-
-      linux_pkg = next(iter(_ for _ in index if _.name == '__linux'))
-      assert linux_pkg.version == '4.2.0'
-      assert linux_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+    linux_pkg = next(iter(_ for _ in index if _.name == '__linux'))
+    assert linux_pkg.version == version
+    assert linux_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
 @pytest.mark.skipif(on_win or on_mac, reason="linux-only test")
