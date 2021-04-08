@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+import re
 from itertools import chain
 from logging import getLogger
 import platform
@@ -172,11 +173,17 @@ def _supplement_index_with_system(index):
     libc_family, libc_version = context.libc_family_version
     is_linux = context.subdir.startswith("linux-")
     if is_linux:
+        # By convention, the kernel release string should be three or four
+        # numeric components, separated by dots, followed by vendor-specific
+        # bits.  For the purposes of versioning the `__linux` virtual package,
+        # discard everything after the last digit of the third or fourth
+        # numeric component; note that this breaks version ordering for
+        # development (`-rcN`) kernels, but we'll deal with that later.
         dist_version = os.environ.get('CONDA_OVERRIDE_LINUX', context.platform_system_release[1])
-        if '-' in dist_version:
-            dist_version = dist_version.split('-')[0]
-        rec = _make_virtual_package('__linux', dist_version)
+        m = re.match(r'\d+\.\d+(\.\d+)?(\.\d+)?', dist_version)
+        rec = _make_virtual_package('__linux', m.group() if m else "0")
         index[rec] = rec
+
         if not (libc_family and libc_version):
             # Default to glibc when using CONDA_SUBDIR var
             libc_family = "glibc"
