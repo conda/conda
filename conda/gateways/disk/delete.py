@@ -93,10 +93,10 @@ def rmtree(path, *args, **kwargs):
                 try:
                     out = check_output(
                         [rsync, '-a', '--force', '--delete', join(getcwd(), '.empty') + "/",
-                        path + "/"],
+                         path + "/"],
                         stderr=STDOUT)
                 except CalledProcessError:
-                    log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
+                    log.debug(f"removing dir contents the fast way failed.  Output was: {out}")
 
             shutil.rmtree('.empty')
     shutil.rmtree(path)
