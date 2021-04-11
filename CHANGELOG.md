@@ -1,3 +1,20 @@
+## 4.10.1 (2021-04-12)
+
+### Bug fixes
+
+* Fix version detection for `__linux` virtual package (#10599)
+* Fix import from `conda_content_trust` (#10589)
+* Partially fix profile `$PATH` setup on MSYS2 (#10459)
+* Remove `.empty` directory even when `rsync` is not installed (#10331)
+
+### Contributors
+
+* @awwad
+* @chenghlee
+* @codepage949
+* @niklasholm
+
+
 ## 4.10.0 (2021-03-30)
 
 **NOTE**: This release formally drops support for Python 2.7 and Python < 3.6.
