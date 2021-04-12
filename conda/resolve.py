@@ -4,7 +4,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict, OrderedDict, deque
-import copy
 from logging import DEBUG, getLogger
 
 from ._vendor.auxlib.collection import frozendict
@@ -747,9 +746,9 @@ class Resolve(object):
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
                                 if ('track_features' not in new_ms and not self._broader(
-                                        new_ms, tuple(specs_by_name.get(new_ms.name, 
+                                        new_ms, tuple(specs_by_name.get(new_ms.name,
                                                       specs_by_name_seed.get(new_ms.name,
-                                                      tuple()))))):
+                                                                             tuple()))))):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
                                     #     specs_added.append(new_ms)
