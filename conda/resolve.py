@@ -709,11 +709,11 @@ class Resolve(object):
                 #    broadening check to apply across packages at the explicit level; only
                 #    at the level of deps below that explicit package.
                 seen_specs = set()
-                specs_by_name = copy.deepcopy(specs_by_name_seed)
+                specs_by_name = dict()
 
                 dep_specs = set(self.ms_depends(pkg))
                 for dep in dep_specs:
-                    specs = specs_by_name.get(dep.name, list())
+                    specs = specs_by_name_seed.get(dep.name, list())
                     if dep not in specs and (not specs or dep.strictness >= specs[0].strictness):
                         specs.insert(0, dep)
                     specs_by_name[dep.name] = specs
@@ -747,7 +747,9 @@ class Resolve(object):
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
                                 if ('track_features' not in new_ms and not self._broader(
-                                        new_ms, tuple(specs_by_name.get(new_ms.name, tuple())))):
+                                        new_ms, tuple(specs_by_name.get(new_ms.name, 
+                                                      specs_by_name_seed.get(new_ms.name,
+                                                      tuple()))))):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
                                     #     specs_added.append(new_ms)
