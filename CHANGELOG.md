@@ -4,6 +4,7 @@
 
 * Fix version detection for `__linux` virtual package (#10599)
 * Fix import from `conda_content_trust` (#10589)
+* Fix how URL for verification metadata files are constructed (#10617)
 * Partially fix profile `$PATH` setup on MSYS2 (#10459)
 * Remove `.empty` directory even when `rsync` is not installed (#10331)
 
