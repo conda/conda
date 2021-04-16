@@ -251,8 +251,8 @@ class SubdirData(object):
                     latest_root_id, latest_root_path = cur_id, cur_path
 
         if latest_root_path is None:
-            log.warn(f"Could not find root metadata in {context.av_data_dir}. "
-                     "Falling back to built-in default.")
+            log.debug(f"No root metadata in {context.av_data_dir}. "
+                      "Using built-in root metadata.")
         else:
             log.info(f"Loading root metadata from {latest_root_path}.")
             self._trusted_root = load_trust_metadata_from_file(latest_root_path)
@@ -266,7 +266,7 @@ class SubdirData(object):
             next_root_path = join(context.av_data_dir, next_root_fname)
             try:
                 update_url = f"{self.channel.base_url}/{next_root_fname}"
-                log.info(f"Attempting to fetch updated trust root {update_url}")
+                log.info(f"Fetching updated trust root if it exists: {update_url}")
 
                 # TODO (AV): support fetching root data with credentials
                 untrusted_root = fetch_channel_signing_data(
