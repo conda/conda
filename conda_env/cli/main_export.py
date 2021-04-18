@@ -95,14 +95,13 @@ def execute(args, parser):
                 * Re-run this command inside an activated conda environment.""").lstrip()
             # TODO Add json support
             raise CondaEnvException(msg)
-        if name:
-            if os.sep in name:
-                # assume "names" with a path seperator are actually paths
-                args.prefix = name
-            else:
-                args.name = name
-        else:
+        if prefix:
             args.prefix = prefix
+        elif os.sep in name:
+            # assume "names" with a path seperator are actually paths
+            args.prefix = name
+        if name:
+            args.name = name
     else:
         name = args.name
     prefix = get_prefix(args)
