@@ -1,3 +1,9 @@
+param([parameter(Position=0,Mandatory=$false)] [Hashtable] $CondaModuleArgs=@{})
+
+# Defaults from before we had arguments.
+if (-not $CondaModuleArgs.ContainsKey('ChangePs1')) {
+    $CondaModuleArgs.ChangePs1 = $True
+}
 
 ## ENVIRONMENT MANAGEMENT ######################################################
 
@@ -263,18 +269,17 @@ function TabExpansion($line, $lastWord) {
         Causes the current session's prompt to display the currently activated
         conda environment.
 #>
-
-# We use the same procedure to nest prompts as we did for nested tab completion.
-if (Test-Path Function:\prompt) {
-    Rename-Item Function:\prompt CondaPromptBackup
-} else {
-    function CondaPromptBackup() {
-        # Restore a basic prompt if the definition is missing.
-        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
+if ($CondaModuleArgs.ChangePs1) {
+    # We use the same procedure to nest prompts as we did for nested tab completion.
+    if (Test-Path Function:\prompt) {
+        Rename-Item Function:\prompt CondaPromptBackup
+    } else {
+        function CondaPromptBackup() {
+            # Restore a basic prompt if the definition is missing.
+            "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
+        }
     }
-}
 
-function Add-CondaEnvironmentToPrompt() {
     function global:prompt() {
         if ($Env:CONDA_PROMPT_MODIFIER) {
             $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
@@ -296,6 +301,6 @@ Export-ModuleMember `
     -Alias * `
     -Function `
         Invoke-Conda, `
-        Get-CondaEnvironment, Add-CondaEnvironmentToPrompt, `
+        Get-CondaEnvironment, `
         Enter-CondaEnvironment, Exit-CondaEnvironment, `
         TabExpansion, prompt
