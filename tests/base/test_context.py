@@ -100,11 +100,11 @@ class ContextCustomRcTests(TestCase):
         string = dals("""
         default_channels: []
         """)
+        reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         assert len(context.default_channels) is 0
         assert context.signing_metadata_url_base is None
-        reset_context(())
 
 
     def test_client_ssl_cert(self):
