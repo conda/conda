@@ -60,29 +60,19 @@ __conda_reactivate() {
 }
 
 conda() {
-    if [ "$#" -lt 1 ]; then
-        "$CONDA_EXE" $_CE_M $_CE_CONDA
-    else
-        \local cmd="$1"
-        shift
-        case "$cmd" in
-            activate|deactivate)
-                __conda_activate "$cmd" "$@"
-                ;;
-            install|update|upgrade|remove|uninstall)
-                __conda_exe "$cmd" "$@"
-                \local t1=$?
-                if [ $t1 = 0 ]; then
-                    __conda_reactivate
-                else
-                    return $t1
-                fi
-                ;;
-            *)
-                __conda_exe "$cmd" "$@"
-                ;;
-        esac
-    fi
+    \local cmd="${1-__missing__}"
+    case "$cmd" in
+        activate|deactivate)
+            __conda_activate "$@"
+            ;;
+        install|update|upgrade|remove|uninstall)
+            __conda_exe "$@" || \return
+            __conda_reactivate
+            ;;
+        *)
+            __conda_exe "$@"
+            ;;
+    esac
 }
 
 if [ -z "${CONDA_SHLVL+x}" ]; then
