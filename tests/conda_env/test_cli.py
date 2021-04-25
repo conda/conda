@@ -1,5 +1,6 @@
 import json
 import os
+import yaml
 
 import pytest
 import unittest
@@ -252,6 +253,24 @@ class IntegrationTests(unittest.TestCase):
         self.assertNotEqual(
             len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]), 0
         )
+
+    def test_create_dry_run_yaml(self):
+        create_env(environment_1)
+        o, e = run_env_command(Commands.ENV_CREATE, None, '--dry-run')
+        self.assertFalse(env_is_created(test_env_name_1))
+
+        output = yaml.safe_load('\n'.join(o.splitlines()[2:]))
+        assert output['name'] == 'env-1'
+        assert len(output['dependencies']) > 0
+
+    def test_create_dry_run_json(self):
+        create_env(environment_1)
+        o, e = run_env_command(Commands.ENV_CREATE, None, '--dry-run', '--json')
+        self.assertFalse(env_is_created(test_env_name_1))
+
+        output = json.loads(o)
+        assert output.get('name') == 'env-1'
+        assert len(output['dependencies'])
 
     def test_create_valid_env_with_variables(self):
         '''
