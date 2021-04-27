@@ -1,0 +1,6 @@
+name: pip
+dependencies:
+  - car
+  - pip:
+    - foo
+    - baz
