@@ -63,6 +63,7 @@ def validate_keys(data, kwargs):
                   "in the wrong place.  Please add an explicit pip dependency.  I'm adding one"
                   " for you, but still nagging you.")
             new_data['dependencies'].insert(0, 'pip')
+            break
     return new_data
 
 
