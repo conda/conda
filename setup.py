@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function
 
 import os
 import sys
 
 from setuptools import setup
 
-if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
-    sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
+if not sys.version_info[:2] >= (3, 6):
+    sys.exit("conda is only meant for Python 3.6 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
 
 
@@ -35,8 +33,6 @@ source.
 install_requires = [
     "pycosat >=0.6.3",
     "requests >=2.12.4",
-    "enum34 ; python_version<'3.4'",
-    "futures ; python_version<'3.4'",
     "menuinst ; platform_system=='Windows'",
 ]
 
@@ -68,13 +64,11 @@ setup(
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
     packages=conda._vendor.auxlib.packaging.find_packages(exclude=(
         "tests",
@@ -96,5 +90,6 @@ setup(
         ],
     },
     install_requires=install_requires,
+    python_requires=">=3.6",
     zip_safe=False,
 )
