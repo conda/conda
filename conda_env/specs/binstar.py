@@ -29,10 +29,11 @@ def import_binstar():
         from binstar_client import errors
         import binstar_client.utils
 
-        get_server_api = utils.get_server_api
+        get_server_api = binstar_client.utils.get_server_api
         NotFound = errors.NotFound
     except ImportError:
         pass
+
 
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
