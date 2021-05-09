@@ -7,11 +7,32 @@ from conda.models.version import normalized_version
 from .. import env
 from ..exceptions import EnvironmentFileNotDownloaded
 
-try:
-    from binstar_client import errors
-    from binstar_client.utils import get_server_api
-except ImportError:
-    get_server_api = None
+get_server_api = None
+NotFound = None
+imported_binstar = False
+
+def import_binstar():
+    """
+    Importing binstar_client is quite slow, so we want to make sure we
+    only do so when needed (i.e.: when BinstarSpec is first constructed).
+    """
+    global get_server_api
+    global NotFound
+    global imported_binstar
+
+    if imported_binstar:
+        return
+
+    imported_binstar = True
+
+    try:
+        from binstar_client import errors
+        import binstar_client.utils
+
+        get_server_api = utils.get_server_api
+        NotFound = errors.NotFound
+    except ImportError:
+        pass
 
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
@@ -36,6 +57,7 @@ class BinstarSpec(object):
     def __init__(self, name=None, **kwargs):
         self.name = name
         self.quiet = False
+        import_binstar()
         if get_server_api is not None:
             self.binstar = get_server_api()
         else:
