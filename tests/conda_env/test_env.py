@@ -78,6 +78,15 @@ class from_file_TestCase(unittest.TestCase):
         assert 'foo' in e.dependencies['pip']
         assert 'baz' in e.dependencies['pip']
 
+    @pytest.mark.timeout(20)
+    def test_add_pip(self):
+        e = env.from_file(support_file('add-pip.yml'))
+        expected = OrderedDict([
+            ('conda', ['pip', 'car']),
+            ('pip', ['foo', 'baz'])
+        ])
+        self.assertEqual(e.dependencies, expected)
+
     @pytest.mark.integration
     def test_http(self):
         e = get_simple_environment()
