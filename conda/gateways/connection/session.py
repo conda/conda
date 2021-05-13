@@ -11,6 +11,7 @@ from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
 from .adapters.ftp import FTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
+from .adapters.rsa import SecureIDAdapter
 from ..anaconda_client import read_binstar_tokens
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
@@ -29,6 +30,7 @@ CONDA_SESSION_SCHEMES = frozenset((
     "https",
     "ftp",
     "s3",
+    "rsa",
     "file",
 ))
 
@@ -79,6 +81,7 @@ class CondaSession(Session):
             self.mount("https://", unused_adapter)
             self.mount("ftp://", unused_adapter)
             self.mount("s3://", unused_adapter)
+            self.mount("rsa://", unused_adapter)
 
         else:
             # Configure retries
@@ -91,6 +94,7 @@ class CondaSession(Session):
             self.mount("https://", http_adapter)
             self.mount("ftp://", FTPAdapter())
             self.mount("s3://", S3Adapter())
+            self.mount("rsa://", SecureIDAdapter())
 
         self.mount("file://", LocalFSAdapter())
 
