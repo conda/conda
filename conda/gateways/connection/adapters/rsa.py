@@ -36,8 +36,6 @@ def getCookie(fqdn):
     if os.path.exists(cookie_file):
         with open(cookie_file, 'rb') as f:
             cookie.update(pickle.load(f))
-    else:
-        log.warning('RSA Token not available, please sign in using: `rsasecure_login -s %s`' % (fqdn))
     return cookie
 
 def properResponse(response, request, fqdn):
@@ -48,10 +46,7 @@ def properResponse(response, request, fqdn):
     null_response.request = request
     null_response.status_code = 204
 
-    if len(response.cookies) == 1:
+    if re.search('RSA SECURID', response.text.upper()):
+        log.warning('RSA Token missing or expired. Please sign in using: `rsasecure_login -s %s`' % (fqdn))
         return null_response
-    elif re.search('RSA SECURID', response.text.upper()):
-        log.warning('RSA Token expired. Please sign in using: `rsasecure_login -s %s`' % (fqdn))
-        return null_response
-
     return response
