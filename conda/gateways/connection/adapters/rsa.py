@@ -3,10 +3,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os, pickle, re
+import os
+import re
+import pickle
 from urllib.parse import urlparse
 from logging import LoggerAdapter, getLogger
-from .. import BaseAdapter, Session, Response
+from .. import BaseAdapter, CaseInsensitiveDict, Session, Response
 from ....common.compat import StringIO
 
 log = getLogger(__name__)
@@ -18,11 +20,17 @@ class SecureIDAdapter(BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
         session = Session()
-        request.url = request.url.replace('rsa', 'https')
+        request.url = request.url.replace('rsa://', 'https://')
         fqdn = urlparse(request.url).hostname
         cookie = getCookie(fqdn)
         session.cookies.update(cookie)
-        response = session.get(request.url, verify=False)
+        response = session.get(request.url,
+                               stream=stream,
+                               timeout=1,
+                               verify=verify,
+                               cert=cert,
+                               proxies=proxies)
+        response.request = request
         return properResponse(response, request, fqdn)
 
     def close(self):
@@ -36,17 +44,19 @@ def getCookie(fqdn):
     if os.path.exists(cookie_file):
         with open(cookie_file, 'rb') as f:
             cookie.update(pickle.load(f))
+
     return cookie
 
 def properResponse(response, request, fqdn):
     """ Return non exception causing response when certain conditions arise """
-    null_response = Response()
-    null_response.raw = StringIO()
-    null_response.url = request.url
-    null_response.request = request
-    null_response.status_code = 204
-
-    if re.search('RSA SECURID', response.text.upper()):
-        log.warning('RSA Token missing or expired. Please sign in using: `rsasecure_login -s %s`' % (fqdn))
+    # RSA sites are Text, while Conda is application/*
+    if 'application' not in response.headers['Content-Type']:
+        null_response = Response()
+        null_response.raw = StringIO()
+        null_response.url = request.url
+        null_response.request = request
+        null_response.status_code = 204
+        log.warning('RSA Token expired')
         return null_response
+
     return response
