@@ -365,7 +365,7 @@ def _screen_shape_linux(fp):  # pragma: no cover
             return cols, rows
         except:
             try:
-                return [int(os.environ[i]) - 1 for i in ("COLUMNS", "LINES")]
+                return [int(os.environ.get(i, 1)) - 1 for i in ("COLUMNS", "LINES")]
             except KeyError:
                 return None, None
 
