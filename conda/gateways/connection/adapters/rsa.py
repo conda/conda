@@ -4,11 +4,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-import re
 import pickle
 from urllib.parse import urlparse
 from logging import LoggerAdapter, getLogger
-from .. import BaseAdapter, CaseInsensitiveDict, Session, Response
+from .. import BaseAdapter, Session, Response
 from ....common.compat import StringIO
 
 log = getLogger(__name__)
