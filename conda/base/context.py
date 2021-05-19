@@ -602,8 +602,7 @@ class Context(Configuration):
         if self._signing_metadata_url_base:
             return self._signing_metadata_url_base
         else:
-            # TODO (AV): Find a more reasonable default
-            return self.default_channels[0].base_url
+            return None
 
     @property
     def conda_exe_vars_dict(self):
