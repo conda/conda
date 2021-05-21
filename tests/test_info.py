@@ -21,6 +21,7 @@ def test_info():
     assert_equals(conda_info_err, '')
     for name in ['platform', 'conda version',
                  'envs directories', 'package cache',
+                 'conda av data dir', 'conda av metadata url',
                  'channel URLs', 'config file', 'offline mode']:
         assert_in(name, conda_info_out)
 
