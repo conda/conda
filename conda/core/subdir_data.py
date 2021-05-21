@@ -181,6 +181,7 @@ class SubdirData(object):
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
         self._loaded = False
+        self._key_mgr = None
 
     def reload(self):
         self._loaded = False
