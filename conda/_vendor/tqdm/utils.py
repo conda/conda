@@ -366,8 +366,10 @@ def _screen_shape_linux(fp):  # pragma: no cover
         except:
             try:
                 return [int(os.environ[i]) - 1 for i in ("COLUMNS", "LINES")]
-            except KeyError, ValueError:
+            except KeyError:
                 return None, None
+            except ValueError:
+                return [0, 0]
 
 
 def _environ_cols_wrapper():  # pragma: no cover
