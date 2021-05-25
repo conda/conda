@@ -63,7 +63,7 @@ function Add-Sys-Prefix-To-Path() {
     } else {
         $Env:PATH = $sysp + '/bin:' + $Env:PATH;
     }
-    return $OldPath;
+    return $OldPath.Replace('"','');
 }
 
 <#
