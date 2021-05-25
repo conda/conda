@@ -22,7 +22,7 @@ from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
-from .exceptions import DisallowedPackageError, DryRunExit, PackagesNotFoundError, ParseError
+from .exceptions import DisallowedPackageError, DryRunExit, PackagesNotFoundError, ParseError, CondaExitZero
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import MatchSpec
@@ -82,6 +82,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
     pfe = ProgressiveFetchExtract(fetch_specs)
     pfe.execute()
+
+    if context.download_only:
+        raise CondaExitZero('Package caches prepared. UnlinkLinkTransaction cancelled with '
+                                '--download-only option.')
 
     # now make an UnlinkLinkTransaction with the PackageCacheRecords as inputs
     # need to add package name to fetch_specs so that history parsing keeps track of them correctly
