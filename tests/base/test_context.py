@@ -97,6 +97,14 @@ class ContextCustomRcTests(TestCase):
         ]
 
     def test_signing_metadata_url_base(self):
+        SIGNING_URL_BASE = "https://conda.example.com/pkgs"
+        string = f"signing_metadata_url_base: {SIGNING_URL_BASE}"
+        reset_context()
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        context._set_raw_data(rd)
+        assert context.signing_metadata_url_base == SIGNING_URL_BASE
+
+    def test_signing_metadata_url_base_empty_default_channels(self):
         string = dals("""
         default_channels: []
         """)
