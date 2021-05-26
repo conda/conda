@@ -181,6 +181,7 @@ class SubdirData(object):
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
         self._loaded = False
+        self._key_mgr = None
 
     def reload(self):
         self._loaded = False
@@ -364,6 +365,9 @@ class SubdirData(object):
             if cct is None:
                 log.warn("metadata signature verification requested, "
                          "but `conda-content-trust` is not installed.")
+            elif not context.signing_metadata_url_base:
+                log.info("metadata signature verification requested, "
+                         "but no metadata URL base has not been specified.")
             else:
                 self._refresh_signing_metadata()
 
@@ -537,6 +541,9 @@ class SubdirData(object):
             if cct is None:
                 log.warn("metadata signature verification requested, "
                          "but `conda-content-trust` is not installed.")
+                verify_metadata_signatures = False
+            elif not context.signing_metadata_url_base:
+                log.info("no metadata URL base has not been specified")
                 verify_metadata_signatures = False
             elif self._key_mgr is None:
                 log.warn("could not find key_mgr data for metadata signature verification")
