@@ -96,6 +96,17 @@ class ContextCustomRcTests(TestCase):
             "ftp://new.url:8082/conda-forge/label/dev/noarch",
         ]
 
+    def test_signing_metadata_url_base(self):
+        string = dals("""
+        default_channels: []
+        """)
+        reset_context()
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        context._set_raw_data(rd)
+        assert len(context.default_channels) is 0
+        assert context.signing_metadata_url_base is None
+
+
     def test_client_ssl_cert(self):
         string = dals("""
         client_ssl_cert_key: /some/key/path
