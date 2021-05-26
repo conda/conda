@@ -1,38 +1,12 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import importlib
 import re
 
 from conda.models.version import normalized_version
 from .. import env
 from ..exceptions import EnvironmentFileNotDownloaded
-
-get_server_api = None
-NotFound = None
-imported_binstar = False
-
-def import_binstar():
-    """
-    Importing binstar_client is quite slow, so we want to make sure we
-    only do so when needed (i.e.: when BinstarSpec is first constructed).
-    """
-    global get_server_api
-    global NotFound
-    global imported_binstar
-
-    if imported_binstar:
-        return
-
-    imported_binstar = True
-
-    try:
-        from binstar_client import errors
-        import binstar_client.utils
-
-        get_server_api = binstar_client.utils.get_server_api
-        NotFound = errors.NotFound
-    except ImportError:
-        pass
 
 
 ENVIRONMENT_TYPE = 'env'
@@ -58,11 +32,14 @@ class BinstarSpec(object):
     def __init__(self, name=None, **kwargs):
         self.name = name
         self.quiet = False
-        import_binstar()
-        if get_server_api is not None:
-            self.binstar = get_server_api()
-        else:
-            self.binstar = None
+
+    @property
+    def binstar(self):
+        try:
+            binstar_utils = importlib.import_module("binstar_client.utils")
+            return getattr(binstar_utils, "get_server_api", None)
+        except ModuleNotFoundError:
+            return None
 
     def can_handle(self):
         result = self._can_handle()
@@ -135,7 +112,7 @@ class BinstarSpec(object):
         if self._package is None:
             try:
                 self._package = self.binstar.package(self.username, self.packagename)
-            except errors.NotFound:
+            except IndexError:
                 self.msg = "{} was not found on anaconda.org.\n"\
                            "You may need to be logged in. Try running:\n"\
                            "    anaconda login".format(self.name)
