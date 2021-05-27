@@ -27,19 +27,12 @@ class BinstarSpec(object):
     _packagename = None
     _package = None
     _file_data = None
+    _binstar = None
     msg = None
 
     def __init__(self, name=None, **kwargs):
         self.name = name
         self.quiet = False
-
-    @property
-    def binstar(self):
-        try:
-            binstar_utils = importlib.import_module("binstar_client.utils")
-            return getattr(binstar_utils, "get_server_api", None)
-        except ModuleNotFoundError:
-            return None
 
     def can_handle(self):
         result = self._can_handle()
@@ -79,6 +72,16 @@ class BinstarSpec(object):
         :return: True or False
         """
         return len(self.file_data) > 0
+
+    @property
+    def binstar(self):
+        if self._binstar is None:
+            try:
+                binstar_utils = importlib.import_module("binstar_client.utils")
+                self._binstar = binstar_utils.get_server_api()
+            except (AttributeError, ModuleNotFoundError):
+                pass
+        return self._binstar
 
     @property
     def file_data(self):
