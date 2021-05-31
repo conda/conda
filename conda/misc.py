@@ -5,16 +5,16 @@
 # this module contains miscellaneous stuff which enventually could be moved
 # into other places
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+ __future__  absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
-import os
-from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
-import re
-import shutil
-import sys
+ collections  defaultdict
+ os
+ os.path  abspath, dirname, exists, isdir, isfile, join, relpath
+ re
+ shutil
+ sys
 
-from .base.context import context
+ .base.context  context
 from .common.compat import itervalues, on_win, open, scandir
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
