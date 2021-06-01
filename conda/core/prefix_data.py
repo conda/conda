@@ -165,7 +165,7 @@ class PrefixData(object):
         return self.__prefix_records or self.load() or self.__prefix_records
 
     def _load_single_record(self, prefix_record_json_path):
-        log.info("loading prefix record %s", prefix_record_json_path)
+        log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
                 json_data = json_load(fh.read())
