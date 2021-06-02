@@ -9,8 +9,7 @@ Downloading conda
 
 You have 3 conda download options:
 
-* `Download Anaconda <https://www.anaconda.com/download/>`_---free for
-  non-commercial use.
+* `Download Anaconda <https://www.anaconda.com/download/>`_---free.
 
 * `Download Miniconda <https://conda.io/miniconda.html>`_---free.
 
