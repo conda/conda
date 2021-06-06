@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function
 
 from logging import Handler, getLogger
+from os import environ
 from os.path import exists, join
 from shutil import rmtree
 from unittest import TestCase
@@ -83,10 +84,21 @@ class IntegrationTests(TestCase):
                 run_command(Commands.CREATE, env_name, support_file('example/environment_pinned.yml'))
                 assert exists(python_path)
                 assert package_is_installed(prefix, 'flask=0.12.2')
+                assert environ['FIXED'] == 'fixed'
+                assert environ['CHANGES'] == 'original_value'
+                assert environ['GETS_DELETED'] == 'not_actually_removed_though'
+                assert environ.get('NEW_VAR') is None
 
                 run_command(Commands.UPDATE, env_name, support_file('example/environment_pinned_updated.yml'))
                 assert package_is_installed(prefix, 'flask=1.0.2')
                 assert not package_is_installed(prefix, 'flask=0.12.2')
+                assert environ['FIXED'] == 'fixed'
+                assert environ['CHANGES'] == 'updated_value'
+                assert environ['NEW_VAR'] == 'new_var'
+                
+                # This ends up sticking around since there is no real way of knowing that an environment
+                # variable _used_ to be in the variables dict, but isn't any more.
+                assert environ['GETS_DELETED'] == 'not_actually_removed_though'
 
     def test_create_update_remote_env_file(self):
         with make_temp_envs_dir() as envs_dir:
@@ -98,10 +110,21 @@ class IntegrationTests(TestCase):
                 run_command(Commands.CREATE, env_name, support_file('example/environment_pinned.yml', remote=True))
                 assert exists(python_path)
                 assert package_is_installed(prefix, 'flask=0.12.2')
+                assert environ['FIXED'] == 'fixed'
+                assert environ['CHANGES'] == 'original_value'
+                assert environ['GETS_DELETED'] == 'not_actually_removed_though'
+                assert environ.get('NEW_VAR') is None
 
                 run_command(Commands.UPDATE, env_name, support_file('example/environment_pinned_updated.yml', remote=True))
                 assert package_is_installed(prefix, 'flask=1.0.2')
                 assert not package_is_installed(prefix, 'flask=0.12.2')
+                assert environ['FIXED'] == 'fixed'
+                assert environ['CHANGES'] == 'updated_value'
+                assert environ['NEW_VAR'] == 'new_var'
+                
+                # This ends up sticking around since there is no real way of knowing that an environment
+                # variable _used_ to be in the variables dict, but isn't any more.
+                assert environ['GETS_DELETED'] == 'not_actually_removed_though'
 
     @pytest.mark.skip(reason="Need to find an appropriate server to test this on.")
     def test_create_host_port(self):
