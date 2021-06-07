@@ -286,10 +286,10 @@ Package match specifications
 
 This match specification is not the same as the syntax used at
 the command line with ``conda install``, such as
-``conda install python=3.4``. Internally, conda translates the
+``conda install python=3.9``. Internally, conda translates the
 command line syntax to the spec defined in this section.
 
-EXAMPLE: python=3.4 is translated to python 3.4*.
+EXAMPLE: python=3.9 is translated to python 3.9*.
 
 Package dependencies are specified using a match specification.
 A match specification is a space-separated string of 1, 2, or 3

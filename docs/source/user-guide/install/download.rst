@@ -23,7 +23,7 @@ installer.
 
 .. tip::
    If you are unsure which option to download, choose the
-   most recent version of Anaconda3, which includes Python 3.7.
+   most recent version of Anaconda3.
    If you are on Windows or macOS, choose the version with the
    GUI installer.
 
@@ -42,6 +42,8 @@ Choose Anaconda if you:
 
 * Do not want to individually install each of the packages you
   want to use.
+
+* Wish to use a curated and vetted set of packages.
 
 Choose Miniconda if you:
 
@@ -86,9 +88,9 @@ Choosing a version of Python
 
 * The last version of Python 2 is 2.7, which is included with
   Anaconda and Miniconda.
-* The newest stable version of Python is 3.7, which is included
+* The newest stable version of Python is quickly included
   with Anaconda3 and Miniconda3.
-* You can easily set up additional versions of Python such as 3.5
+* You can easily set up additional versions of Python such as 3.9
   by downloading any version and creating a new environment with
   just a few clicks. See :doc:`../getting-started`.
 

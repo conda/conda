@@ -50,20 +50,20 @@ Python version into it:
 
 #. Create the new environment:
 
-   * To create the new environment for Python 3.6, in your terminal
+   * To create the new environment for Python 3.9, in your terminal
      window or an Anaconda Prompt, run:
 
      .. code-block:: bash
 
-        conda create -n py36 python=3.6 anaconda
+        conda create -n py39 python=3.9 anaconda
 
      .. note::
         Replace ``py36`` with the name of the environment you
         want to create. ``anaconda`` is the metapackage that
         includes all of the Python packages comprising the Anaconda
-        distribution. ``python=3.6`` is the package and version you
+        distribution. ``python=3.9`` is the package and version you
         want to install in this new environment. This could be any
-        package, such as ``numpy=1.7``, or :ref:`multiple packages
+        package, such as ``numpy=1.19``, or :ref:`multiple packages
         <installing multiple packages>`.
 
    * To create the new environment for Python 2.7, in your terminal window
@@ -84,6 +84,16 @@ Python version into it:
    .. code::
 
       python --version
+
+Installing PyPy
+===============
+
+To use the PyPy builds you can do the following::
+
+    conda config conda config --add channels confa-forge
+    conda config --set channel_priority strict
+    conda create -n pypy pypy
+    conda activate pypy
 
 
 Using a different version of Python
@@ -107,8 +117,11 @@ version in the 3.4 branch:
     conda update python
 
 The following command upgrades Python to another
-branch---3.6---by installing that version of Python:
+branch---3.8---by installing that version of Python. It is not recommended,
+rather it is preferable to create a new environment. The resolver has to work
+very hard to determine exactly which packages to upgrade. But it is possible,
+and the command is::
 
 .. code-block:: bash
 
-    conda install python=3.6
+    conda install python=3.8
