@@ -1,12 +1,14 @@
 """
 Module version for monitoring CLI pipes (`... | python -m tqdm | ...`).
 """
-from .std import tqdm, TqdmTypeError, TqdmKeyError
-from ._version import __version__  # NOQA
-from ast import literal_eval as numeric
 import logging
 import re
 import sys
+from ast import literal_eval as numeric
+
+from .std import TqdmKeyError, TqdmTypeError, tqdm
+from .version import __version__
+
 __all__ = ["main"]
 log = logging.getLogger(__name__)
 
@@ -31,44 +33,33 @@ def cast(val, typ):
             raise TqdmTypeError(val + ' : ' + typ)
     try:
         return eval(typ + '("' + val + '")')
-    except:
+    except Exception:
         if typ == 'chr':
             return chr(ord(eval('"' + val + '"'))).encode()
         else:
             raise TqdmTypeError(val + ' : ' + typ)
 
 
-def isBytes(val):
-    """Equivalent of `isinstance(val, six.binary_type)`."""
-    try:
-        val.index(b'')
-    except TypeError:
-        return False
-    return True
-
-
 def posix_pipe(fin, fout, delim=b'\\n', buf_size=256,
-               callback=lambda float: None,  # pragma: no cover
-               callback_len=True):
+               callback=lambda float: None, callback_len=True):
     """
     Params
     ------
-    fin  : file with `read(buf_size : int)` method
-    fout  : file with `write` (and optionally `flush`) methods.
+    fin  : binary file with `read(buf_size : int)` method
+    fout  : binary file with `write` (and optionally `flush`) methods.
     callback  : function(float), e.g.: `tqdm.update`
     callback_len  : If (default: True) do `callback(len(buffer))`.
       Otherwise, do `callback(data) for data in buffer.split(delim)`.
     """
     fp_write = fout.write
 
-    # tmp = b''
     if not delim:
         while True:
             tmp = fin.read(buf_size)
 
             # flush at EOF
             if not tmp:
-                getattr(fout, 'flush', lambda: None)()  # pragma: no cover
+                getattr(fout, 'flush', lambda: None)()
                 return
 
             fp_write(tmp)
@@ -76,20 +67,9 @@ def posix_pipe(fin, fout, delim=b'\\n', buf_size=256,
         # return
 
     buf = b''
-    check_bytes = True
-    write_bytes = True
     # n = 0
     while True:
         tmp = fin.read(buf_size)
-
-        if check_bytes:  # first time; check encoding
-            check_bytes = False
-            if not isBytes(tmp):
-                # currently only triggered by `tests_main.py`.
-                # TODO: mock stdin/out better so that this isn't needed
-                write_bytes = False
-                delim = delim.decode()
-                buf = buf.decode()
 
         # flush at EOF
         if not tmp:
@@ -101,7 +81,7 @@ def posix_pipe(fin, fout, delim=b'\\n', buf_size=256,
                 else:
                     for i in buf.split(delim):
                         callback(i)
-            getattr(fout, 'flush', lambda: None)()  # pragma: no cover
+            getattr(fout, 'flush', lambda: None)()
             return  # n
 
         while True:
@@ -114,7 +94,7 @@ def posix_pipe(fin, fout, delim=b'\\n', buf_size=256,
                 fp_write(buf + tmp[:i + len(delim)])
                 # n += 1
                 callback(1 if callback_len else (buf + tmp[:i]))
-                buf = b'' if write_bytes else ''
+                buf = b''
                 tmp = tmp[i + len(delim):]
 
 
@@ -145,10 +125,12 @@ CLI_EXTRA_DOC = r"""
             If true, passes `stdin` to both `stderr` and `stdout`.
         update  : bool, optional
             If true, will treat input as newly elapsed iterations,
-            i.e. numbers to pass to `update()`.
+            i.e. numbers to pass to `update()`. Note that this is slow
+            (~2e5 it/s) since every input must be decoded as a number.
         update_to  : bool, optional
             If true, will treat input as total elapsed iterations,
-            i.e. numbers to assign to `self.n`.
+            i.e. numbers to assign to `self.n`. Note that this is slow
+            (~2e5 it/s) since every input must be decoded as a number.
         null  : bool, optional
             If true, will discard input (no stdout).
         manpath  : str, optional
@@ -182,9 +164,8 @@ def main(fp=sys.stderr, argv=None):
         # argv.pop(log_idx)
         # logLevel = argv.pop(log_idx)
         logLevel = argv[log_idx + 1]
-    logging.basicConfig(
-        level=getattr(logging, logLevel),
-        format="%(levelname)s:%(module)s:%(lineno)d:%(message)s")
+    logging.basicConfig(level=getattr(logging, logLevel),
+                        format="%(levelname)s:%(module)s:%(lineno)d:%(message)s")
 
     d = tqdm.__init__.__doc__ + CLI_EXTRA_DOC
 
@@ -240,9 +221,8 @@ Options:
         update = tqdm_args.pop('update', False)
         update_to = tqdm_args.pop('update_to', False)
         if sum((delim_per_char, update, update_to)) > 1:
-            raise TqdmKeyError(
-                "Can only have one of --bytes --update --update_to")
-    except:
+            raise TqdmKeyError("Can only have one of --bytes --update --update_to")
+    except Exception:
         fp.write('\nError:\nUsage:\n  tqdm [--help | options]\n')
         for i in sys.stdin:
             sys.stdout.write(i)
@@ -265,7 +245,8 @@ Options:
         if manpath or comppath:
             from os import path
             from shutil import copyfile
-            from pkg_resources import resource_filename, Requirement
+
+            from pkg_resources import Requirement, resource_filename
 
             def cp(src, dst):
                 """copies from src path to dst"""
@@ -275,15 +256,14 @@ Options:
                 cp(resource_filename(Requirement.parse('tqdm'), 'tqdm/tqdm.1'),
                    path.join(manpath, 'tqdm.1'))
             if comppath is not None:
-                cp(resource_filename(Requirement.parse('tqdm'),
-                                     'tqdm/completion.sh'),
+                cp(resource_filename(Requirement.parse('tqdm'), 'tqdm/completion.sh'),
                    path.join(comppath, 'tqdm_completion.sh'))
             sys.exit(0)
         if tee:
             stdout_write = stdout.write
             fp_write = getattr(fp, 'buffer', fp).write
 
-            class stdout(object):
+            class stdout(object):  # pylint: disable=function-redefined
                 @staticmethod
                 def write(x):
                     with tqdm.external_write_mode(file=fp):
@@ -302,10 +282,10 @@ Options:
                 with tqdm(**tqdm_args) as t:
                     if update:
                         def callback(i):
-                            t.update(numeric(i))
+                            t.update(numeric(i.decode()))
                     else:  # update_to
                         def callback(i):
-                            t.update(numeric(i) - t.n)
+                            t.update(numeric(i.decode()) - t.n)
                     for i in stdin:
                         stdout.write(i)
                         callback(i)
@@ -318,12 +298,11 @@ Options:
                 callback_len = False
                 if update:
                     def callback(i):
-                        t.update(numeric(i))
+                        t.update(numeric(i.decode()))
                 elif update_to:
                     def callback(i):
-                        t.update(numeric(i) - t.n)
+                        t.update(numeric(i.decode()) - t.n)
                 else:
                     callback = t.update
                     callback_len = True
-                posix_pipe(stdin, stdout, delim, buf_size,
-                           callback, callback_len)
+                posix_pipe(stdin, stdout, delim, buf_size, callback, callback_len)
