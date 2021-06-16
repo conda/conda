@@ -58,21 +58,20 @@ class ReplaceShebangTests(TestCase):
         assert data == new_data
 
         # long shebang with truncation
-        #   executable name is 'escaped space'
         shebang = b"#!/" + b"shebang/" * 20 + b"python" + b" --and --flags -x"
         assert len(shebang) > 127
         data = b'\n'.join((shebang, content_line, content_line, content_line))
         new_data = replace_long_shebang(FileMode.text, data)
-        new_shebang = b"#!/usr/bin/env python --and --flags -x"
+        new_shebang = b'#!/usr/bin/env -S "python" --and --flags -x'
         new_expected_data = b'\n'.join((new_shebang, content_line, content_line, content_line))
         assert new_expected_data == new_data
 
         # long shebang with truncation
         #   executable name is 'escaped space'
-        shebang = b"#!/" + b"shebang/" * 20 + b"escaped\\ space" + b" --and --flags -x"
+        shebang = b"#!/" + b"shebang/" * 20 + rb"escaped\ space" + b" --and --flags -x"
         assert len(shebang) > 127
         data = b'\n'.join((shebang, content_line, content_line, content_line))
         new_data = replace_long_shebang(FileMode.text, data)
-        new_shebang = b"#!/usr/bin/env escaped\\ space --and --flags -x"
+        new_shebang = b'#!/usr/bin/env -S "escaped space" --and --flags -x'
         new_expected_data = b'\n'.join((new_shebang, content_line, content_line, content_line))
         assert new_expected_data == new_data

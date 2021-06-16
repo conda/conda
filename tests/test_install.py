@@ -158,7 +158,7 @@ class FileTests(unittest.TestCase):
         update_prefix(self.tmpfname, new_prefix)
         with open(self.tmpfname, 'r') as fi:
             data = fi.read()
-            self.assertEqual(data, '#!/usr/bin/env python -O\n'
+            self.assertEqual(data, '#!/usr/bin/env -S "python" -O\n'
                                    'echo "Hello"\n')
 
     @pytest.mark.skipif(on_win, reason="no binary replacement done on win")
