@@ -179,8 +179,9 @@ def replace_long_shebang(mode, data):
                 # Unescape spaces.
                 executable_name = executable_name.replace(r"\ ", " ")
                 # Note that options contains a leading space.
-                assert (options == b'') or (options.startswith(b' '))
-                new_shebang = '#!/usr/bin/env -S "%s"%s' % (executable_name, options.decode('utf-8'))
+                options = options.decode('utf-8')
+                assert (options == '') or (options.startswith(' '))
+                new_shebang = '#!/usr/bin/env -S "%s"%s' % (executable_name, options)
                 data = data.replace(whole_shebang, new_shebang.encode('utf-8'))
 
     else:
