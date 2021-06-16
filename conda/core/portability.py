@@ -174,7 +174,12 @@ def replace_long_shebang(mode, data):
             whole_shebang, executable, options = shebang_match.groups()
             if len(whole_shebang) > 127:
                 executable_name = executable.decode('utf-8').split('/')[-1]
-                assert '"' not in executable_name
+                # Ensure there's no quote or escaping weirdness.
+                assert ('"' not in executable_name) and (r'\\' not in executable_name)
+                # Unescape spaces.
+                executable_name = executable_name.replace(r"\ ", " ")
+                # Note that options contains a leading space.
+                assert (options == b'') or (options.startswith(b' '))
                 new_shebang = '#!/usr/bin/env -S "%s"%s' % (executable_name, options.decode('utf-8'))
                 data = data.replace(whole_shebang, new_shebang.encode('utf-8'))
 
