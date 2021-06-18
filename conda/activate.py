@@ -1073,6 +1073,40 @@ class PowerShellActivator(_Activator):
         return None
 
 
+class ElvishActivator(_Activator):
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = ':'.join
+        self.sep = '/'
+        self.path_conversion = native_path_to_unix
+        self.script_extension = '.elv'
+        self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+        self.command_join = '\n'
+
+        self.unset_var_tmpl = 'del E:%s'
+        self.export_var_tmpl = 'E:%s = "%s"'
+        self.set_var_tmpl = 'var %s = "%s"'
+        self.run_script_tmpl = 'eval (slurp < "%s")'
+
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.elv')
+
+        super(ElvishActivator, self).__init__(arguments)
+
+    def _hook_preamble(self):
+        if on_win:
+            return ('E:CONDA_EXE = (cygpath "%s")\n'
+                    'var -conda-root = (cygpath "%s")\n'
+                    'var -conda-exe~ = (external (cygpath "%s"))\n'
+                    'E:CONDA_PYTHON_EXE = (cygpath "%s")'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
+        else:
+            return ('E:CONDA_EXE = "%s"\n'
+                    'var -conda-root = "%s"\n'
+                    'var -conda-exe~ = (external "%s")\n'
+                    'E:CONDA_PYTHON_EXE = "%s"'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
+
+
 class JSONFormatMixin(_Activator):
     """Returns the necessary values for activation as JSON, so that tools can use them."""
 
@@ -1166,6 +1200,7 @@ activator_map = {
     'cmd.exe': CmdExeActivator,
     'fish': FishActivator,
     'powershell': PowerShellActivator,
+    'elvish': ElvishActivator,
 }
 
 formatter_map = {

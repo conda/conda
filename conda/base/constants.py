@@ -118,6 +118,7 @@ if on_win:
     COMPATIBLE_SHELLS = (
         'bash',
         'cmd.exe',
+        'elvish',
         'fish',
         'tcsh',
         'xonsh',
@@ -127,6 +128,7 @@ if on_win:
 else:
     COMPATIBLE_SHELLS = (
         'bash',
+        'elvish',
         'fish',
         'tcsh',
         'xonsh',

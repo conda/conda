@@ -51,7 +51,7 @@ except NameError:
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.compat import Utf8NamedTemporaryFile
 from .._vendor.auxlib.ish import dals
-from ..activate import (CshActivator, FishActivator,
+from ..activate import (CshActivator, ElvishActivator, FishActivator,
                         PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
 from ..common.compat import (PY2, ensure_binary, ensure_utf8_encoding,
@@ -391,6 +391,13 @@ def make_install_plan(conda_prefix):
         },
     })
     plan.append({
+        'function': install_conda_elvish.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'shell', 'conda.elv'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
         'function': install_conda_fish.__name__,
         'kwargs': {
             'target_path': join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish'),
@@ -473,6 +480,21 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'reverse': reverse,
                 },
             })
+
+    if 'elvish' in shells:
+        if for_user:
+            config_elvish_path = expand(join('~', '.elvish', 'rc.elv'))
+            plan.append({
+                'function': init_elvish_user.__name__,
+                'kwargs': {
+                    'target_path': config_elvish_path,
+                    'conda_prefix': conda_prefix,
+                    'reverse': reverse,
+                },
+            })
+
+        if for_system:
+            raise CondaError("Elvish does not support system-wide configuration.")
 
     if 'fish' in shells:
         if for_user:
@@ -964,6 +986,12 @@ def install_condabin_hook_bat(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
+def install_conda_elvish(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'shell', 'conda.elv')
+    file_content = ElvishActivator().hook(auto_activate_base=False)
+    return _install_file(target_path, file_content)
+
+
 def install_conda_fish(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish')
     file_content = FishActivator().hook(auto_activate_base=False)
@@ -1094,6 +1122,86 @@ def init_fish_user(target_path, conda_prefix, reverse):
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
+
+
+def _config_elvish_content(conda_prefix):
+    if on_win:
+        from ..activate import native_path_to_unix
+        conda_exe = native_path_to_unix(join(conda_prefix, 'Scripts', 'conda.exe'))
+    else:
+        conda_exe = join(conda_prefix, 'bin', 'conda')
+    conda_initialize_content = dals("""
+    # >>> conda initialize >>>
+    # !! Contents within this block are managed by 'conda init' !!
+    eval (%(conda_exe)s "shell.elvish" "hook" | slurp)
+    # <<< conda initialize <<<
+    """) % {
+        'conda_exe': conda_exe,
+    }
+    return conda_initialize_content
+
+
+def init_elvish_user(target_path, conda_prefix, reverse):
+    # target_path: ~/.elvish/rc.elv
+    user_rc_path = target_path
+
+    try:
+        with open(user_rc_path) as fh:
+            rc_content = fh.read()
+    except FileNotFoundError:
+        rc_content = ''
+    except:
+        raise
+
+    rc_original_content = rc_content
+
+    conda_init_comment = "# commented out by conda initialize"
+    conda_initialize_content = _config_elvish_content(conda_prefix)
+    if reverse:
+        # uncomment any lines that were commented by prior conda init run
+        rc_content = re.sub(
+            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            r"\1",
+            rc_content,
+            flags=re.MULTILINE,
+        )
+
+        # remove any conda init sections added
+        rc_content = re.sub(
+            r"^\s*" + CONDA_INITIALIZE_RE_BLOCK,
+            "",
+            rc_content,
+            flags=re.DOTALL | re.MULTILINE
+        )
+    else:
+        replace_str = "__CONDA_REPLACE_ME_123__"
+        rc_content = re.sub(
+            CONDA_INITIALIZE_RE_BLOCK,
+            replace_str,
+            rc_content,
+            flags=re.MULTILINE,
+        )
+        # TODO: maybe remove all but last of replace_str, if there's more than one occurrence
+        rc_content = rc_content.replace(replace_str, conda_initialize_content)
+
+        if "# >>> conda initialize >>>" not in rc_content:
+            rc_content += '\n%s\n' % conda_initialize_content
+
+    if rc_content != rc_original_content:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(rc_original_content, rc_content))
+        if not context.dry_run:
+            # Make the directory if needed.
+            if not exists(dirname(user_rc_path)):
+                mkdir_p(dirname(user_rc_path))
+            with open(user_rc_path, 'w') as fh:
+                fh.write(rc_content)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
+
 
 
 def _config_xonsh_content(conda_prefix):
