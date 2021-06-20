@@ -141,9 +141,6 @@ def get_info_dict(system=False):
                     for c in channels]
     channels = [mask_anaconda_token(c) for c in channels]
 
-    config_files = tuple(path for path in context.collect_all()
-                         if path not in ('envvars', 'cmd_line'))
-
     netrc_file = os.environ.get('NETRC')
     if not netrc_file:
         user_netrc = expanduser("~/.netrc")
@@ -180,7 +177,7 @@ def get_info_dict(system=False):
         requests_version=requests_version,
         user_agent=context.user_agent,
         conda_location=CONDA_PACKAGE_ROOT,
-        config_files=config_files,
+        config_files=context.config_files,
         netrc_file=netrc_file,
         virtual_pkgs=virtual_pkgs,
     )

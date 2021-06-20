@@ -392,6 +392,7 @@ class ContextCustomRcTests(TestCase):
         # should be used along with the one specified
         # In this test, the given channel in cli is the same as in condarc
         # 'defaults' should not be added
+        # See https://github.com/conda/conda/issues/10732
         reset_context((), argparse_args=AttrDict(channel=['conda-forge']))
         string = dals("""
         channels: ['conda-forge']

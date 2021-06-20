@@ -724,15 +724,18 @@ class Context(Configuration):
             # channel only when no channels are defined in condarc
             # We needs to get the config_files and then check that they
             # don't define channels
-            config_files = tuple(path for path in context.collect_all()
-                                 if path not in ('envvars', 'cmd_line'))
             channel_in_config_files = any('channels' in context.raw_data[rc_file].keys()
-                                          for rc_file in config_files)
+                                          for rc_file in self.config_files)
             if argparse_channels and not channel_in_config_files:
                 return tuple(IndexedSet(concatv(local_add, argparse_channels,
                                                 (DEFAULTS_CHANNEL_NAME,))))
 
         return tuple(IndexedSet(concatv(local_add, self._channels)))
+
+    @property
+    def config_files(self):
+        return tuple(path for path in context.collect_all()
+                     if path not in ('envvars', 'cmd_line'))
 
     @property
     def use_only_tar_bz2(self):
