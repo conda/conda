@@ -1055,6 +1055,7 @@ class PowerShellActivator(_Activator):
                 $Env:_CE_CONDA = "conda"
                 $Env:_CONDA_ROOT = "{python_path}{s}conda"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
+                $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
                 """.format(s=os.sep,
                            python_path=dirname(CONDA_PACKAGE_ROOT),
                            sys_exe=sys.executable, context=context))
@@ -1065,12 +1066,11 @@ class PowerShellActivator(_Activator):
                 $Env:_CE_CONDA = ""
                 $Env:_CONDA_ROOT = "{context.conda_prefix}"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
+                $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
                 """.format(context=context))
 
     def _hook_postamble(self):
-        if context.changeps1:
-            return "Add-CondaEnvironmentToPrompt"
-        return None
+        return "Remove-Variable CondaModuleArgs"
 
 
 class JSONFormatMixin(_Activator):

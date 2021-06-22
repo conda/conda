@@ -199,11 +199,11 @@ used when you downloaded and installed Anaconda. If you want to use a different
 version of Python, for example Python 3.5, simply create a new environment and
 specify the version of Python that you want.
 
-#. Create a new environment named "snakes" that contains Python 3.5:
+#. Create a new environment named "snakes" that contains Python 3.9:
 
    .. code::
 
-      conda create --name snakes python=3.5
+      conda create --name snakes python=3.9
 
    When conda asks if you want to proceed, type "y" and press Enter.
 

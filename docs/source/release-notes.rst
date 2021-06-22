@@ -5,19 +5,100 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.10.1 (2021-04-12)
+===================
+
+Bug fixes
+^^^^^^^^^
+
+* Fix version detection for ``__linux`` virtual package (#10599)
+* Fix import from ``conda_content_trust`` (#10589)
+* Fix how URL for verification metadata files are constructed (#10617)
+* Partially fix profile ``$PATH`` setup on MSYS2 (#10459)
+* Remove ``.empty`` directory even when ``rsync`` is not installed (#10331)
+
+Contributors
+^^^^^^^^^^^^
+
+* @awwad
+* @chenghlee
+* @codepage949
+* @niklasholm
+
+4.10.0 (2021-03-30)
+===================
+
+**NOTE**: This release formally drops support for Python 2.7 and Python < 3.6.
+
+Enhancements
+^^^^^^^^^^^^
+
+* Add pilot support for metadata signatures and verification (#10578)
+* Add ``__linux`` virtual package (#10552, #10561)
+* Support nested keys when using ``conda config --get`` (#10447, #10572)
+* Support installing default packages when using ``conda env create`` (#10530)
+* Support HTTP sources for ``conda env update -f`` (#10536)
+* Make macOS code signing operations less verbose (#10372)
+
+Bug fixes
+^^^^^^^^^
+
+* Fix ``conda search`` crashing on Python 3.9 (#10542)
+* Allow ``{channel}::pip`` to satisfy pip requirements (#10550)
+* Support ``{host}:{port}`` specifications in environment YAML files (#10417)
+* Fall back to system ``.condarc`` if user ``.condarc`` is absent (#10479)
+* Try UTF-16 if UTF-8 fails when reading environment YAML files (#10356)
+* Properly parse Python version >= 3.10 (#10478)
+* Fix zsh initialization when ``$ZDOTDIR`` is defined (#10413)
+* Fix path handling for csh (#10410)
+* Fix ``setup.py`` requirement for vendored ``ruamel_yaml_conda`` (#10441)
+* Fix errors when pickling vendored ``auxlib`` objects (#10386)
+
+Docs
+^^^^
+
+* Document the ``__unix`` and ``__windows`` virtual packages (#10511)
+* Update list of supported and default versions of Python (#10531)
+* Favor using ``pip`` instead of ``setup.py`` when setting up CI (#10308)
+
+Miscellaneous
+^^^^^^^^^^^^^
+
+* CI: drop Python 2.7 and add Python 3.9 (#10548)
+
+Contributors
+^^^^^^^^^^^^
+
+* @awwad
+* @BastianZim
+* @beenje
+* @bgobbi
+* @blubs
+* @chenghlee
+* @cjmartian
+* @ericpre
+* @erykoff
+* @felker
+* @giladmaya
+* @jamesmyatt
+* @mingwandroid
+* @opoplawski
+* @saadparwaiz1
+* @saucoide
+
 4.9.2 (2020-11-10)
 ==================
 
 Enhancements
 ^^^^^^^^^^^^
 
-* Use vendored `tqdm` in `conda.resolve` for better consistency (#10337)
+* Use vendored ``tqdm`` in ``conda.resolve`` for better consistency (#10337)
 
 Bug fixes
 ^^^^^^^^^
 
 * Revert to previous naming scheme for repodata cache files when
-  `use_only_tar_bz2` config option is false (#10350)
+  ``use_only_tar_bz2`` config option is false (#10350)
 
 Docs
 ^^^^
@@ -2023,9 +2104,9 @@ New feature highlights
 
   would ensure that, system-wide, solves on all environments enforce using the latest version of `pyopenssl` from the `defaults` channel.
 
-  ```conda config --add pinned_packages Python=2.7 --env```
+  ``conda config --add pinned_packages Python=2.7 --env``
 
-  would lock all solves for the current active environment to Python versions matching `2.7.*`.
+  would lock all solves for the current active environment to Python versions matching ``2.7.*``.
 
 
 * **other configuration improvements**: In addition to `conda config --describe`, which shows detailed descriptions and default values for all available configuration parameters, we have a new `conda config --write-default` command. This new command simply writes the contents of `conda config --describe` to a condarc file, which is a great starter template. Without additional arguments, the command will write to the `.condarc` file in the user's home directory. The command also works with the `--system`, `--env`, and `--file` flags to write the contents to alternate locations.

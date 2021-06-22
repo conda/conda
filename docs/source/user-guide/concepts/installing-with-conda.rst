@@ -41,9 +41,9 @@ Conda update versus conda install
  
 Example:
 
-* If Python 2.7.0 is currently installed, and the latest version of Python 2 is 2.7.5, then ``conda update python`` installs Python 2.7.5. It does not install Python 3.5.2.
+* If Python 2.7.0 is currently installed, and the latest version of Python 2 is 2.7.5, then ``conda update python`` installs Python 2.7.5. It does not install Python 3.
 
-* If Python 3.4.0 is currently installed, and the latest version of Python is 3.5.2, then ``conda install python=3`` installs Python 3.5.2.
+* If Python 3.7.0 is currently installed, and the latest version of Python is 3.9.0, then ``conda install python=3`` installs Python 3.9.0.
  
 Conda uses the same rules for other packages. ``conda update`` always installs the highest version with the same major version number, whereas ``conda install`` always installs the highest version.
 

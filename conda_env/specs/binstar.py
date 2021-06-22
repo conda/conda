@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import importlib
 import re
 
 from conda.models.version import normalized_version
 from .. import env
 from ..exceptions import EnvironmentFileNotDownloaded
 
-try:
-    from binstar_client import errors
-    from binstar_client.utils import get_server_api
-except ImportError:
-    get_server_api = None
 
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
@@ -31,15 +27,12 @@ class BinstarSpec(object):
     _packagename = None
     _package = None
     _file_data = None
+    _binstar = None
     msg = None
 
     def __init__(self, name=None, **kwargs):
         self.name = name
         self.quiet = False
-        if get_server_api is not None:
-            self.binstar = get_server_api()
-        else:
-            self.binstar = None
 
     def can_handle(self):
         result = self._can_handle()
@@ -81,6 +74,16 @@ class BinstarSpec(object):
         return len(self.file_data) > 0
 
     @property
+    def binstar(self):
+        if self._binstar is None:
+            try:
+                binstar_utils = importlib.import_module("binstar_client.utils")
+                self._binstar = binstar_utils.get_server_api()
+            except (AttributeError, ModuleNotFoundError):
+                pass
+        return self._binstar
+
+    @property
     def file_data(self):
         if self._file_data is None:
             self._file_data = [data
@@ -112,7 +115,7 @@ class BinstarSpec(object):
         if self._package is None:
             try:
                 self._package = self.binstar.package(self.username, self.packagename)
-            except errors.NotFound:
+            except IndexError:
                 self.msg = "{} was not found on anaconda.org.\n"\
                            "You may need to be logged in. Try running:\n"\
                            "    anaconda login".format(self.name)
