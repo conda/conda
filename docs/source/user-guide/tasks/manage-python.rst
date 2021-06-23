@@ -58,7 +58,7 @@ Python version into it:
         conda create -n py39 python=3.9 anaconda
 
      .. note::
-        Replace ``py36`` with the name of the environment you
+        Replace ``py39`` with the name of the environment you
         want to create. ``anaconda`` is the metapackage that
         includes all of the Python packages comprising the Anaconda
         distribution. ``python=3.9`` is the package and version you
