@@ -343,12 +343,16 @@ class ContextCustomRcTests(TestCase):
             assert context.execute_threads == 3
 
     def test_channels_defaults(self):
-        # no channels provided in cli
+        """
+        Test when no channels provided in cli
+        """
         reset_context(())
-        assert context.channels == ('defaults', )
+        assert context.channels == ('defaults',)
 
     def test_channels_defaults_condarc(self):
-        # no channels provided in cli
+        """
+        Test when no channels provided in cli, but some in condarc
+        """
         reset_context(())
         string = dals("""
         channels: ['defaults', 'conda-forge']
@@ -358,14 +362,18 @@ class ContextCustomRcTests(TestCase):
         assert context.channels == ('defaults', 'conda-forge')
 
     def test_specify_channels_cli_adding_defaults_no_condarc(self):
-        # When the channel haven't been specified in condarc, 'defaults'
-        # should be present when specifying channel in the cli
+        """
+        When the channel haven't been specified in condarc, 'defaults'
+        should be present when specifying channel in the cli
+        """
         reset_context((), argparse_args=AttrDict(channel=['conda-forge']))
         assert context.channels == ('conda-forge', 'defaults')
 
     def test_specify_channels_cli_condarc(self):
-        # When the channel have been specified in condarc, these channels
-        # should be used along with the one specified
+        """
+        When the channel have been specified in condarc, these channels
+        should be used along with the one specified
+        """
         reset_context((), argparse_args=AttrDict(channel=['conda-forge']))
         string = dals("""
         channels: ['defaults', 'conda-forge']
@@ -375,10 +383,12 @@ class ContextCustomRcTests(TestCase):
         assert context.channels == ('defaults', 'conda-forge')
 
     def test_specify_different_channels_cli_condarc(self):
-        # When the channel have been specified in condarc, these channels
-        # should be used along with the one specified
-        # In this test, the given channel in cli is different from condarc
-        # 'defaults' should not be added
+        """
+        When the channel have been specified in condarc, these channels
+        should be used along with the one specified
+        In this test, the given channel in cli is different from condarc
+        'defaults' should not be added
+        """
         reset_context((), argparse_args=AttrDict(channel=['other']))
         string = dals("""
         channels: ['conda-forge']
@@ -388,18 +398,21 @@ class ContextCustomRcTests(TestCase):
         assert context.channels == ('conda-forge', 'other')
 
     def test_specify_same_channels_cli_as_in_condarc(self):
-        # When the channel have been specified in condarc, these channels
-        # should be used along with the one specified
-        # In this test, the given channel in cli is the same as in condarc
-        # 'defaults' should not be added
-        # See https://github.com/conda/conda/issues/10732
+        """
+        When the channel have been specified in condarc, these channels
+        should be used along with the one specified
+        
+        In this test, the given channel in cli is the same as in condarc
+        'defaults' should not be added
+        See https://github.com/conda/conda/issues/10732
+        """
         reset_context((), argparse_args=AttrDict(channel=['conda-forge']))
         string = dals("""
         channels: ['conda-forge']
         """)
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
-        assert context.channels == ('conda-forge', )
+        assert context.channels == ('conda-forge',)
 
 
 class ContextDefaultRcTests(TestCase):
