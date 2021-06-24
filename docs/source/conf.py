@@ -78,8 +78,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'conda'
-copyright = '2017, Continuum Analytics'
-author = 'Continuum Analytics'
+copyright = '2017, Anaconda, Inc'
+author = 'Anaconda, Inc'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -176,7 +176,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'conda.tex', 'conda Documentation',
-     'Continuum Analytics', 'manual'),
+     'Anaconda, Inc', 'manual'),
 ]
 
 
