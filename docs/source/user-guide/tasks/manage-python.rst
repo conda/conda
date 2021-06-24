@@ -120,7 +120,7 @@ The following command upgrades Python to another
 branch---3.8---by installing that version of Python. It is not recommended,
 rather it is preferable to create a new environment. The resolver has to work
 very hard to determine exactly which packages to upgrade. But it is possible,
-and the command is::
+and the command is:
 
 .. code-block:: bash
 
