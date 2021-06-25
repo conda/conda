@@ -68,7 +68,8 @@ def run_command(command, *arguments, **kwargs):
 
     Examples::
 
-    >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask", use_exception_handler=True)
+    >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask",
+                    use_exception_handler=True)
     >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")
     >>  run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
 
