@@ -1,3 +1,3 @@
-pip3 install -r utils/requirements-docs.txt
+pip install -r docs/requirements.txt
 cd docs
 make html
