@@ -1,3 +1,55 @@
+## 4.10.2 (2021-04-25)
+
+### Enhancements
+
+* Add `--dry-run` option to `conda env create` (#10635)
+* Print warning about pip-installed dependencies only once (#10638)
+* Explicit install now respects `--download-only` flag (#10688)
+* Bump vendored tqdm version (#10721)
+
+### Bug fixes
+
+* Fix `changeps1` handling for PowerShell (#10624)
+* Handle unbound `$PS1` so sh activation does not fail with `set -u` (#10701)
+* Fix sh activation so `$PATH` is properly restored on errors (#10631)
+* Fix `-c` option handling so defaults channel is not always re-added (#10735)
+* Fix artifact verification-related warnings and errors (#10627, #10677)
+* Fix log level used in `conda/core/prefix_data.py` (#9998)
+* Fix log level used when fetching artifact verification metadata (#10621)
+* Don't create an unused S3 client at import time (#10516)
+* Don't load `binstar_client` until needed (#10692)
+* Reflect dropping of older Python versions in `setup.py` (#10642)
+
+### Docs
+
+* Merge release notes and changelog to reduce maintenance burden (#10745)
+* Add mentions to PyPy, Anaconda terms of service (#10329, #10712)
+* Update Python versions in examples (#10329, #10744)
+* Update install macOS instructions (#10728)
+
+### Contributors
+
+* @AlbertDeFusco
+* @awwad
+* @casperdcl
+* @cgranade
+* @chenghlee
+* @ColemanTom
+* @dan-hook
+* @dbast
+* @ericpre
+* @HedgehogCode
+* @jamesp
+* @jezdez
+* @johnhany97
+* @lightmare
+* @mattip
+* @maxerbubba
+* @mrakitin
+* @stinos
+* @thermokarst
+
+
 ## 4.10.1 (2021-04-12)
 
 ### Bug fixes
