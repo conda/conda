@@ -1,0 +1,17 @@
+menuinst; sys_platform == 'win32'
+pycosat; sys_platform != 'win32'
+requests>=2.14.2
+ruamel.yaml
+sphinx
+sphinx-autobuild
+sphinx-argparse==0.2.5
+sphinx_rtd_theme
+sphinxcontrib-programoutput
+sphinxcontrib-applehelp
+sphinxcontrib-devhelp
+sphinxcontrib-htmlhelp
+sphinxcontrib-jsmath
+sphinxcontrib-qthelp
+sphinxcontrib-serializinghtml
+myst-parser
+linkify-it-py
