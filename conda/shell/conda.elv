@@ -323,74 +323,12 @@ var conda-shells = $nil
 # Cache list of valid config keys
 var conda-config-keys = $nil
 
-# Parse subcommands from the output of `conda [command] --help`
-#
-# Returns a list with the command names found.
-#
-# If the &parse-other-packages option is given, the list of commands will
-# include any commands listed after the "commands available from other
-# packages:" line included in the conda help messages.
-fn conda-subcommands [@args &parse-other-packages=$false]{
-  var last-section = $false
-  var -line = ''
-  # Get the command help output. We swallow the error because some of the
-  # commands (at least conda activate) exit with code 1 after the --help flag.
-  E:COLUMNS=1024 _ = ?(conda $@args --help 2>&1) | ^
-  # Fold continuation lines into one. If a line starts with at least 8 spaces,
-  # it's considered to be a continuation line. Only the first such line is
-  # folded.
-  each [l]{
-    -debugmsg &color=red "Got line: "$l
-    if (re:match '^\s{8,}\w' $l) {
-      -debugmsg &color=red "Folded line: "$-line$l
-      put $-line$l
-      -line = ''
-    } else {
-      put $-line
-      -line = $l
-    }
-  } | ^
-  # Finally, extract subcommand names, producing the results as we go.
-  each [l]{
-    # Unless $parse-other-packages is true, exit as soon as we find that line.
-    if (str:contains $l 'commands available from other packages') {
-      if $parse-other-packages {
-        last-section = $true
-        continue
-      } else {
-        break
-      }
-    }
-    # If in the 'other packages' section, we know each line contains a single
-    # command, so we just capture them.
-    if $last-section {
-      var cmd = (str:trim-space $l)
-      put $cmd
-      continue
-    }
-    # Capture subcommands
-    var m = [(re:find '^    (\S+)\s+(.*)$' $l)]
-    if (not-eq $m []) {
-      set m = $m[0]
-      # Capture the command name and its description, although the description
-      # is not used for now.
-      var cmd = $m[groups][1][text]
-      var desc = (re:replace '\. .*$|\.\s*$' '' $m[groups][2][text])
-      put $cmd
-    }
-  }
-  # Explicitly delete the COLUMNS env var due to
-  # https://github.com/elves/elvish/issues/532, which leaves it set to '' after
-  # a temporary asssignment, breaking some commands.
-  del E:COLUMNS
-}
-
 # Fetch and cache top-level commands
 fn init-conda-commands {
   if (not $conda-commands) {
-    # `activate` and `deactivate` are not in the help output (?!) so we add them
+    # `activate` and `deactivate` are not in the commands output so we add them
     # by hand.
-    conda-commands = [(conda-subcommands &parse-other-packages) activate deactivate]
+    conda-commands = [(conda shell.elvish commands) activate deactivate]
   }
 }
 
