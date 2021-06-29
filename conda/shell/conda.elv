@@ -428,7 +428,7 @@ var conda-opt-completers = [
   &'[SHOW [SHOW ...]]'=           $CONFIG-KEYS~
   &'EXTRA_DEPS [EXTRA_DEPS ...]'= $PACKAGES~
   &PACKAGE=                       $PACKAGES~
-  # This is for an option of ``conda skeleton rpm`
+  # This is for an option of `conda skeleton rpm`
   &DISTRO=                        { put centos5 centos6 centos7 clefos suse_leap_rpi3 raspbian_rpi2 }
 ]
 
@@ -498,6 +498,10 @@ var conda-opt-manual-completions = [
   ]
 ]
 
+# Find an element within nested map structure $obj, following the keys contained
+# in the list $path. If not found, return &default.
+# E.g.:
+#    path-in [&a=[&b=foo]] [a b]   => foo
 fn path-in [obj path &default=$nil]{
   each [k]{
     try {
@@ -520,8 +524,11 @@ fn conda-opts [@cmd]{
   var opts
   var cmd-str = (str:join ' ' $cmd)
   if (has-key $conda-opt-completions-cache $cmd-str) {
+    # If the options are cached already, return them
     opts = $conda-opt-completions-cache[$cmd-str]
   } else {
+    # Otherwise, parse them from the command's --help output.
+
     # UGLY regex to match options and their descriptions, of the form:
     #    -x [ARG], --long [ARG]   Option description
     # Which get captured into the corresponding data structure.
@@ -539,13 +546,16 @@ fn conda-opts [@cmd]{
         opts = [ $@opts $@manual-comps ]
       }
     }
-    # Store in cache
+    # Store in cache for future use
     conda-opt-completions-cache[$cmd-str] = $opts
   }
   -debugmsg "conda-opts "(to-string $cmd)": "(to-string $opts)
   all $opts
 }
 
+# Populate a map of subcommand completions using their definitions from
+# $conda-completers. This is used for the top-level conda commands, and recurses
+# through those that have subcommands of their own.
 fn completion-structure [@c]{
   var completions = [&]
   each [cmd]{
@@ -561,6 +571,7 @@ fn completion-structure [@c]{
   put $completions
 }
 
+# Configure the completer function
 fn init-completions {
   completions = (COMMANDS | completion-structure)
   var conda-completer = (subcommands $completions &opts={ conda-opts })
