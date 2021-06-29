@@ -1,3 +1,11 @@
+## 4.10.3 (2021-06-29)
+
+### Bug fixes
+
+* Reverts "Don't create an unused S3 client at import time (#10516)"
+  in 4.10.2 that introduced a regression for users using S3 based
+  channels. (#10756)
+
 ## 4.10.2 (2021-06-25)
 
 ### Enhancements
