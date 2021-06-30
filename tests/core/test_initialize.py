@@ -19,7 +19,7 @@ from conda.common.compat import on_win, open
 from conda.common.io import captured, env_var, env_vars
 from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
 from conda.core.initialize import Result, _get_python_info, init_sh_system, init_sh_user, \
-    initialize_dev, install, install_conda_csh, install_conda_fish, \
+    initialize_dev, install, install_conda_csh, install_conda_fish, install_conda_elvish, \
     install_conda_sh, install_conda_xsh, make_entry_point, make_entry_point_exe, \
     make_initialize_plan, make_install_plan, install_condabin_conda_bat
 from conda.exceptions import CondaValueError
@@ -443,6 +443,37 @@ class InitializeTests(TestCase):
             assert remainder == original_contents
 
             result = install_conda_fish(target_path, conda_prefix)
+            assert result == Result.NO_CHANGE
+
+    def test_install_conda_elvish(self):
+        with tempdir() as conda_temp_prefix:
+            conda_prefix = abspath(sys.prefix)
+            target_path = join(conda_temp_prefix, 'shell', 'conda.elv')
+            result = install_conda_elvish(target_path, conda_prefix)
+            assert result == Result.MODIFIED
+
+            with open(target_path) as fh:
+                created_file_contents = fh.read()
+
+            first_line, second_line, third_line, fourth_line, remainder = created_file_contents.split('\n', 4)
+            if on_win:
+                win_conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
+                win_py_exe = join(conda_prefix, 'python.exe')
+                assert first_line == 'E:CONDA_EXE = (cygpath "%s")' % win_conda_exe
+                assert second_line == 'var -conda-root = (cygpath "%s")' % conda_prefix
+                assert third_line == 'var -conda-exe~ = (external (cygpath "%s"))' % win_conda_exe
+                assert fourth_line == 'E:CONDA_PYTHON_EXE = (cygpath "%s")' % win_py_exe
+            else:
+                assert first_line == 'E:CONDA_EXE = "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert second_line == 'var -conda-root = "%s"' % conda_prefix
+                assert third_line == 'var -conda-exe~ = (external "%s")' % join(conda_prefix, 'bin', 'conda')
+                assert fourth_line == 'E:CONDA_PYTHON_EXE = "%s"' % join(conda_prefix, 'bin', 'python')
+
+            with open(join(CONDA_PACKAGE_ROOT, 'shell', 'conda.elv')) as fh:
+                original_contents = fh.read()
+            assert remainder == original_contents
+
+            result = install_conda_elvish(target_path, conda_prefix)
             assert result == Result.NO_CHANGE
 
     def test_install_conda_xsh(self):
