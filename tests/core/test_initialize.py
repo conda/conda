@@ -185,6 +185,12 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
+                        "function": "install_conda_elvish",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin\\shell\\conda.elv"
+                        }
+                    },                    {
                         "function": "install_conda_fish",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -268,6 +274,13 @@ class InitializeTests(TestCase):
                         "kwargs": {
                             "conda_prefix": "/darwin",
                             "target_path": "/darwin/etc/profile.d/conda.sh"
+                        }
+                    },
+                    {
+                        "function": "install_conda_elvish",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin/shell/conda.elv"
                         }
                     },
                     {
@@ -537,6 +550,7 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'conda.elv',
                 'Conda.psm1',
                 'conda-hook.ps1',
                 'conda.csh',
@@ -550,6 +564,7 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'conda.elv',
                 'Conda.psm1',
                 'conda-hook.ps1',
                 'conda.csh',
@@ -597,6 +612,7 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'conda.elv',
                 'Conda.psm1',
                 'conda-hook.ps1',
                 'conda.xsh',
@@ -615,6 +631,7 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'conda.elv',
                 'Conda.psm1',
                 'conda-hook.ps1',
                 'conda.xsh',
@@ -665,6 +682,7 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'conda.elv',
                 'Conda.psm1',
                 'conda-hook.ps1',
                 'conda.xsh',
@@ -683,6 +701,7 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'conda.elv',
                 'Conda.psm1',
                 'conda-hook.ps1',
                 'conda.xsh',

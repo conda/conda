@@ -1203,7 +1203,6 @@ def init_elvish_user(target_path, conda_prefix, reverse):
         return Result.NO_CHANGE
 
 
-
 def _config_xonsh_content(conda_prefix):
     if on_win:
         from ..activate import native_path_to_unix
