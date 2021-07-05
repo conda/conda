@@ -10,7 +10,7 @@ from logging import getLogger
 from os import chmod as os_chmod, lstat
 from os.path import abspath, isdir, islink as os_islink, lexists as os_lexists
 
-from ...common.compat import PY2, on_win
+from ...common.compat import PY2, on_win, PYPY
 from ...exceptions import CondaOSError, ParseError
 
 __all__ = ('islink', 'lchmod', 'lexists', 'link', 'readlink', 'stat_nlink', 'symlink')
@@ -74,7 +74,7 @@ else:  # pragma: unix no cover
     symlink = win_soft_link
 
 
-if not (on_win and PY2):
+if not (on_win and (PY2 or PYPY)):
     from os import readlink
     islink = os_islink
     lexists = os_lexists
