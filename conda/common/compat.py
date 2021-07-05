@@ -13,7 +13,6 @@ from operator import methodcaller
 import sys
 from tempfile import mkdtemp
 import warnings as _warnings
-import platform
 
 on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
@@ -21,7 +20,7 @@ on_linux = bool(sys.platform == "linux")
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
-PYPY = platform.python_implementation() == "PyPy"
+PYPY = sys.implementation.name == 'pypy'
 FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
 # Control some tweakables that will be removed finally.
