@@ -20,7 +20,6 @@ on_linux = bool(sys.platform == "linux")
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
-PYPY = sys.implementation.name == 'pypy'
 FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
 # Control some tweakables that will be removed finally.
