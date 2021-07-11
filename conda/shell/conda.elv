@@ -477,6 +477,10 @@ var conda-opt-manual-completions = [
       ]
     ]
   ]
+  &install= [
+    [ &long=freeze-installed &desc='Do not update or change already-installed dependencies' ]
+    [ &long=no-update-deps   &desc='Do not update or change already-installed dependencies' ]
+  ]
   &skeleton= [
     &cran= [
       [
