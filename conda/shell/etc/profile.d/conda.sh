@@ -24,6 +24,11 @@ __add_sys_prefix_to_path() {
     \export PATH
 }
 
+__conda_exe() (
+    __add_sys_prefix_to_path
+    "$CONDA_EXE" $_CE_M $_CE_CONDA "$@"
+)
+
 __conda_hashr() {
     if [ -n "${ZSH_VERSION:+x}" ]; then
         \rehash
@@ -41,64 +46,33 @@ __conda_activate() {
         PS1="$CONDA_PS1_BACKUP"
         \unset CONDA_PS1_BACKUP
     fi
-
-    \local cmd="$1"
-    shift
     \local ask_conda
-    CONDA_INTERNAL_OLDPATH="${PATH}"
-    __add_sys_prefix_to_path
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix "$cmd" "$@")" || \return $?
-    rc=$?
-    PATH="${CONDA_INTERNAL_OLDPATH}"
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix "$@")" || \return
     \eval "$ask_conda"
-    if [ $rc != 0 ]; then
-        \export PATH
-    fi
     __conda_hashr
 }
 
 __conda_reactivate() {
     \local ask_conda
-    CONDA_INTERNAL_OLDPATH="${PATH}"
-    __add_sys_prefix_to_path
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" $_CE_M $_CE_CONDA shell.posix reactivate)" || \return $?
-    PATH="${CONDA_INTERNAL_OLDPATH}"
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix reactivate)" || \return
     \eval "$ask_conda"
     __conda_hashr
 }
 
 conda() {
-    if [ "$#" -lt 1 ]; then
-        "$CONDA_EXE" $_CE_M $_CE_CONDA
-    else
-        \local cmd="$1"
-        shift
-        case "$cmd" in
-            activate|deactivate)
-                __conda_activate "$cmd" "$@"
-                ;;
-            install|update|upgrade|remove|uninstall)
-                CONDA_INTERNAL_OLDPATH="${PATH}"
-                __add_sys_prefix_to_path
-                "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@"
-                \local t1=$?
-                PATH="${CONDA_INTERNAL_OLDPATH}"
-                if [ $t1 = 0 ]; then
-                    __conda_reactivate
-                else
-                    return $t1
-                fi
-                ;;
-            *)
-                CONDA_INTERNAL_OLDPATH="${PATH}"
-                __add_sys_prefix_to_path
-                "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@"
-                \local t1=$?
-                PATH="${CONDA_INTERNAL_OLDPATH}"
-                return $t1
-                ;;
-        esac
-    fi
+    \local cmd="${1-__missing__}"
+    case "$cmd" in
+        activate|deactivate)
+            __conda_activate "$@"
+            ;;
+        install|update|upgrade|remove|uninstall)
+            __conda_exe "$@" || \return
+            __conda_reactivate
+            ;;
+        *)
+            __conda_exe "$@"
+            ;;
+    esac
 }
 
 if [ -z "${CONDA_SHLVL+x}" ]; then

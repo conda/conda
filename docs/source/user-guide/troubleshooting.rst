@@ -964,9 +964,9 @@ Conda upgrade error
 
 Cause
 -----
-Downgrading conda from 4.6.1 to 4.5.x and then trying to ``conda install conda`` or  ``conda upgrade conda`` will produce a solving and upgrade error similar to the following: 
+Downgrading conda from 4.6.1 to 4.5.x and then trying to ``conda install conda`` or  ``conda upgrade conda`` will produce a solving and upgrade error similar to the following:
 
-.. code-block:: Python
+.. code-block:: python
 
    Solving environment: failed
    CondaUpgradeError: This environment has previously been operated on by a conda version that's newer than the conda currently being used. A newer version of conda is required.
@@ -1023,7 +1023,7 @@ Cause
 -----
 You may receive a warning message if you have not activated your environment:
 
-.. code-block:: Python
+.. code-block::
 
    Warning:
    This Python interpreter is in a conda environment, but the environment has
@@ -1064,7 +1064,7 @@ PATH in the system settings.
 For example, a new conda prompt batch file that first strips PATH, then
 calls the correct activation procedure could look like:
 
-.. code-block:: Python
+.. code-block:: console
 
    set
    PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”
@@ -1081,7 +1081,7 @@ be within the value assigned to PATH.
 To make 3rd party software take precedence over the same-named programs
 as supplied by conda, add it to PATH after activating conda:
 
-.. code-block:: Python
+.. code-block:: console
    
    set
    “PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\”
@@ -1093,7 +1093,7 @@ To make conda software take precedence, call the activation script last.
 Because activation prepends the conda environment PATH entries,
 they have priority.
 
-.. code-block:: Python
+.. code-block:: console
 
    set
    PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”

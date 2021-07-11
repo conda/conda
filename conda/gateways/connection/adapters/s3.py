@@ -11,6 +11,7 @@ have_boto3 = have_boto = False
 try:
     import boto3
     have_boto3 = True
+    boto3.client('s3')  # https://github.com/conda/conda/issues/8993
 except ImportError:
     try:
         import boto

@@ -58,7 +58,7 @@ Python version into it:
         conda create -n py39 python=3.9 anaconda
 
      .. note::
-        Replace ``py36`` with the name of the environment you
+        Replace ``py39`` with the name of the environment you
         want to create. ``anaconda`` is the metapackage that
         includes all of the Python packages comprising the Anaconda
         distribution. ``python=3.9`` is the package and version you
@@ -120,7 +120,7 @@ The following command upgrades Python to another
 branch---3.8---by installing that version of Python. It is not recommended,
 rather it is preferable to create a new environment. The resolver has to work
 very hard to determine exactly which packages to upgrade. But it is possible,
-and the command is::
+and the command is:
 
 .. code-block:: bash
 

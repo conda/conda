@@ -65,10 +65,6 @@ pytest-version:
 	$(PYTEST) --version
 
 
-conda-version:
-	$(PYTHON_EXE) utils/setup-testing.py --version
-
-
 smoketest:
 	$(PYTEST) tests/test_create.py -k test_create_install_update_remove
 
