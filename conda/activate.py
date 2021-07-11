@@ -12,6 +12,7 @@ from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, j
 import re
 import sys
 from textwrap import dedent
+import glob
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -61,6 +62,7 @@ class _Activator(object):
     run_script_tmpl = None
 
     hook_source_path = None
+    other_hooks_glob = None
 
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
@@ -165,6 +167,12 @@ class _Activator(object):
         builder.append(self._hook_preamble())
         with open(self.hook_source_path) as fsrc:
             builder.append(fsrc.read())
+        if self.other_hooks_glob:
+            for filename in glob.glob(self.other_hooks_glob):
+                if os.path.basename(filename) == os.path.basename(self.hook_source_path):
+                    continue
+                with open(filename) as fsrc:
+                    builder.append(fsrc.read())
         if auto_activate_base is None and context.auto_activate_base or auto_activate_base:
             builder.append("conda activate base\n")
         postamble = self._hook_postamble()
@@ -845,6 +853,7 @@ class PosixActivator(_Activator):
         self.run_script_tmpl = '. "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')
+        self.other_hooks_glob = join(context.conda_prefix, 'etc', 'profile.d', '*.sh')
 
         super(PosixActivator, self).__init__(arguments)
 
@@ -897,6 +906,7 @@ class CshActivator(_Activator):
         self.run_script_tmpl = 'source "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.csh')
+        self.other_hooks_glob = join(context.conda_prefix, 'etc', 'profile.d', '*.csh')
 
         super(CshActivator, self).__init__(arguments)
 
@@ -959,6 +969,7 @@ class XonshActivator(_Activator):
             self.run_script_tmpl = 'source-bash --suppress-skip-message "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
+        self.other_hooks_glob = join(context.conda_prefix, 'etc', 'profile.d', '*.xsh')
 
         super(XonshActivator, self).__init__(arguments)
 
@@ -984,6 +995,7 @@ class CmdExeActivator(_Activator):
         self.hook_source_path = None
         # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
         #       Like, for cmd.exe only, put a special directory containing only conda.bat on PATH?
+        self.other_hooks_glob = None
 
         super(CmdExeActivator, self).__init__(arguments)
 
@@ -1009,6 +1021,7 @@ class FishActivator(_Activator):
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d',
                                      'conda.fish')
+        self.other_hooks_glob = join(context.conda_prefix, 'etc', 'profile.d', '*.fish')
 
         super(FishActivator, self).__init__(arguments)
 
@@ -1043,6 +1056,7 @@ class PowerShellActivator(_Activator):
         self.run_script_tmpl = '. "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda-hook.ps1')
+        self.other_hooks_glob = join(context.conda_prefix, 'etc', 'profile.d', '*.ps1')
 
         super(PowerShellActivator, self).__init__(arguments)
 
