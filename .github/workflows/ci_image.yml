@@ -21,6 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: lint
+        uses: hadolint/hadolint-action@v1.5.0
+        with:
+          dockerfile: ./ci/Dockerfile
+
       - name: build-push conda-ci-linux-64-python-${{ matrix.python }}
         uses: docker/build-push-action@v2
         with:
