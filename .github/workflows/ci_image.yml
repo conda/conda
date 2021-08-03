@@ -1,4 +1,5 @@
 name: Build and Publish Conda CI Images
+
 on:
   schedule:
     - cron:  '0 0 * * 0'
@@ -15,6 +16,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         python: [3.7, 3.8, 3.9]
@@ -26,6 +30,13 @@ jobs:
         with:
           dockerfile: ./ci/Dockerfile
 
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: build-push conda-ci-linux-64-python-${{ matrix.python }}
         uses: docker/build-push-action@v2
         with:
@@ -34,4 +45,3 @@ jobs:
           build-args: PYTHON_VERSION=${{ matrix.python }}
           tags: conda/conda-ci-linux-64:python${{ matrix.python }}-latest
           push: ${{ github.ref == 'refs/heads/master' }}
-
