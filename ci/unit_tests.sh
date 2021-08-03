@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+
+set -o errtrace -o pipefail -o errexit
+
 if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
     echo "Only docs changed detected, skipping tests"
 else
