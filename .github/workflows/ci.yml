@@ -116,88 +116,22 @@ jobs:
           entrypoint: /bin/bash
           args: -c "/opt/conda/bin/flake8 --statistics"
 
-  linux-tests-py37:
+  linux-tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        python_version: ['3.7', '3.8', '3.9']
         test_type: ['unit', 'integration']
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: py37 unit tests
-        if: ${{ matrix.test_type == 'unit' }}
-        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
+      - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
+        uses: docker://continuumio/conda-ci-linux-64-python${{ matrix.python_version }}:latest
         with:
           entrypoint: /bin/bash
-          args: ./ci/unit_test.sh
-      - name: py37 integration tests
-        if: ${{ matrix.test_type == 'integration' }}
-        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
-        with:
-          entrypoint: /bin/bash
-          args: ./ci/integration_tests.sh
-      - name: upload codecov
-        run: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
-            echo "No codecov report to upload"
-          else
-            bash <(curl -s https://codecov.io/bash)
-          fi
-
-  linux-tests-py38:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        test_type: ['unit', 'integration']
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: py38 unit tests
-        if: ${{ matrix.test_type == 'unit' }}
-        uses: docker://continuumio/conda-ci-linux-64-python3.8:latest
-        with:
-          entrypoint: /bin/bash
-          args: ./ci/unit_test.sh
-      - name: py38 integration tests
-        if: ${{ matrix.test_type == 'integration' }}
-        uses: docker://continuumio/conda-ci-linux-64-python3.8:latest
-        with:
-          entrypoint: /bin/bash
-          args: ./ci/integration_tests.sh
-      - name: upload codecov
-        run: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
-            echo "No codecov report to upload"
-          else
-            bash <(curl -s https://codecov.io/bash)
-          fi
-
-  linux-tests-py39:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        test_type: ['unit', 'integration']
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: py39 unit tests
-        if: ${{ matrix.test_type == 'unit' }}
-        uses: docker://continuumio/conda-ci-linux-64-python3.9:latest
-        with:
-          entrypoint: /bin/bash
-          args: ./ci/unit_test.sh
-      - name: py39 integration tests
-        if: ${{ matrix.test_type == 'integration' }}
-        uses: docker://continuumio/conda-ci-linux-64-python3.9:latest
-        with:
-          entrypoint: /bin/bash
-          args: ./ci/integration_tests.sh
+          args: "./ci/${{ matrix.test_type }}_tests.sh"
       - name: upload codecov
         run: |
           if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
