@@ -1,4 +1,4 @@
-name: CondaCI
+name: CI
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: Build and Publish Conda CI Images
+name: CI images
 
 on:
   schedule:
