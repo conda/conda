@@ -44,7 +44,7 @@ jobs:
         CALL conda update openssl ca-certificates certifi
         pip install codecov
         python -m conda init cmd.exe --dev
-      
+
     - name: Build activate-deactivate package
       shell: cmd
       run: |
@@ -54,7 +54,7 @@ jobs:
         CALL dev-init.bat
         CALL conda info -a
         CALL conda-build tests\test-recipes\activate_deactivate_package
-    
+
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} unit tests
       shell: cmd
       if: ${{ matrix.test_type == 'unit' }}
@@ -64,7 +64,7 @@ jobs:
         cd \conda_src
         CALL dev-init.bat
         CALL py.test -m "not integration and not installed" --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml -v
-    
+
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 1
       shell: cmd
       if: ${{ matrix.test_type == 'integration' }}
@@ -128,7 +128,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
-        run: docker run --rm -v ${PWD}:/conda --workdir=/conda continuumio/conda-ci-linux-64-python${{ matrix.python_version }}:latest /conda/ci/${{ matrix.test_type }}_tests.sh
+        run: docker run --rm -v ${PWD}:/conda --workdir=/conda ghcr.io/conda/conda:master-python${{ matrix.python_version }} /conda/ci/${{ matrix.test_type }}_tests.sh
       - name: upload codecov
         run: |
           if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
