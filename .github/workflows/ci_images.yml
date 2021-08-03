@@ -48,7 +48,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=false
-            suffix=python${{ matrix.python }}
+            suffix=-python${{ matrix.python }}
 
       - name: Build & push Python ${{ matrix.python }}
         uses: docker/build-push-action@v2
