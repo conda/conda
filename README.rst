@@ -7,9 +7,13 @@
 
 ----------------------------------------
 
-.. image:: https://github.com/conda/conda/workflows/CondaCI/badge.svg
-    :target: https://github.com/conda/conda/actions?query=workflow%3ACondaCI+branch%3Amaster
+.. image:: https://github.com/conda/conda/actions/workflows/ci.yml/badge.svg
+    :target: https://github.com/conda/conda/actions/workflows/ci.yml
     :alt: CI Tests (GitHub Actions)
+
+.. image:: https://github.com/conda/conda/actions/workflows/ci_images.yml/badge.svg
+    :target: https://github.com/conda/conda/actions/workflows/ci_images.yml
+    :alt: CI Images (GitHub Actions)
 
 .. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg?label=coverage
    :alt: Codecov Status

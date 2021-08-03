@@ -1,4 +1,4 @@
-name: Build and Publish Conda CI Images
+name: CI images
 
 on:
   schedule:
@@ -6,11 +6,11 @@ on:
   pull_request:
     paths:
       - 'ci/Dockerfile'
-      - '.github/workflows/ci_image.yml'
+      - '.github/workflows/ci_images.yml'
   push:
     paths:
       - 'ci/Dockerfile'
-      - '.github/workflows/ci_image.yml'
+      - '.github/workflows/ci_images.yml'
   workflow_dispatch:
 
 env:
