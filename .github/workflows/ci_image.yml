@@ -1,0 +1,37 @@
+name: Build and Publish Conda CI Images
+on:
+  schedule:
+    - cron:  '0 0 * * 0'
+  pull_request:
+    paths:
+      - 'ci/Dockerfile'
+      - '.github/workflows/ci_image.yml'
+  push:
+    paths:
+      - 'ci/Dockerfile'
+      - '.github/workflows/ci_image.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: lint
+        uses: hadolint/hadolint-action@v1.5.0
+        with:
+          dockerfile: ./ci/Dockerfile
+
+      - name: build-push conda-ci-linux-64-python-${{ matrix.python }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./ci
+          file: ./ci/Dockerfile
+          build-args: PYTHON_VERSION=${{ matrix.python }}
+          tags: conda/conda-ci-linux-64:python${{ matrix.python }}-latest
+          push: ${{ github.ref == 'refs/heads/master' }}
+
