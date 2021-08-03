@@ -128,7 +128,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
-        run: docker run --rm -v ${PWD}:/conda --workdir=/conda ghcr.io/conda/conda:master-python${{ matrix.python_version }} /conda/ci/${{ matrix.test_type }}_tests.sh
+        run: docker run --rm -v ${PWD}:/conda ghcr.io/conda/conda:master-python${{ matrix.python_version }} /conda/ci/${{ matrix.test_type }}_tests.sh
       - name: upload codecov
         run: |
           if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
