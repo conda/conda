@@ -128,7 +128,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
-        uses: docker://continuumio/conda-ci-linux-64-python${{ matrix.python_version }}:latest
+        uses: "docker://continuumio/conda-ci-linux-64-python${{ matrix.python_version }}:latest"
         with:
           entrypoint: /bin/bash
           args: "./ci/${{ matrix.test_type }}_tests.sh"
