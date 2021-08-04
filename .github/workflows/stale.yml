@@ -50,7 +50,7 @@ jobs:
             This issue has been closed since it has not had recent activity.
             Please don't hesitate to leave a comment if that was done prematurely.
 
-            Thank you for your contribution
+            Thank you for your contribution.
           # Comment on the staled PRs
           stale-pr-message: >
             Hi there, thank you for your contribution to Conda!
