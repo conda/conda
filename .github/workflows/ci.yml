@@ -34,7 +34,6 @@ jobs:
       run: |
         @ECHO ON
         set CONDA_SUBDIR=${{ matrix.conda_subdir }}
-        if ${{ matrix.python_version }} == 2.7 set SCANDIR=scandir
         pushd %TEMP%
         cd \conda_src
         CALL \conda_bin\scripts\activate.bat
@@ -42,9 +41,8 @@ jobs:
         CALL conda activate ci_base
         CALL conda install -yq pip conda-build conda-verify
         CALL conda update openssl ca-certificates certifi
-        pip install codecov
         python -m conda init cmd.exe --dev
-      
+
     - name: Build activate-deactivate package
       shell: cmd
       run: |
@@ -54,7 +52,7 @@ jobs:
         CALL dev-init.bat
         CALL conda info -a
         CALL conda-build tests\test-recipes\activate_deactivate_package
-    
+
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} unit tests
       shell: cmd
       if: ${{ matrix.test_type == 'unit' }}
@@ -123,16 +121,18 @@ jobs:
       matrix:
         python_version: ['3.7', '3.8', '3.9']
         test_type: ['unit', 'integration']
+    env:
+      OS: 'linux'
+      PYTHON: ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
       - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
         run: docker run --rm -v ${PWD}:/conda ghcr.io/conda/conda:master-python${{ matrix.python_version }} /conda/ci/${{ matrix.test_type }}_tests.sh
-      - name: upload codecov
-        run: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
-            echo "No codecov report to upload"
-          else
-            bash <(curl -s https://codecov.io/bash)
-          fi
+
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: ${{ matrix.test_type }}
+          env_vars: OS,PYTHON
