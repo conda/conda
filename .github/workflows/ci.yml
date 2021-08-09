@@ -63,8 +63,8 @@ jobs:
         pushd %TEMP%
         cd \conda_src
         CALL dev-init.bat
-        CALL py.test -m "not integration and not installed" --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml -v
-    
+        CALL pytest -m "not integration and not installed" --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml -v
+
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 1
       shell: cmd
       if: ${{ matrix.test_type == 'integration' }}
@@ -73,7 +73,7 @@ jobs:
         pushd %TEMP%
         cd \conda_src
         CALL dev-init.bat
-        CALL py.test -m "integration and not installed" -k "cli" --basetemp=C:\tmp --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml -v
+        CALL pytest -m "integration and not installed" -k "cli" --basetemp=C:\tmp --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml -v
 
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 2
       shell: cmd
@@ -83,7 +83,7 @@ jobs:
         pushd %TEMP%
         cd \conda_src
         CALL dev-init.bat
-        CALL py.test -m "integration and not installed" -k "not cli" --basetemp=C:\tmp  --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml -v --cov-append
+        CALL pytest -m "integration and not installed" -k "not cli" --basetemp=C:\tmp  --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml -v --cov-append
 
     - name: 'Upload to codecov.io'
       shell: cmd

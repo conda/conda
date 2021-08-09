@@ -1,4 +1,4 @@
-PYTEST_EXE ?= $(shell which py.test)
+PYTEST_EXE ?= $(shell which pytest)
 PYTHON_EXE ?= $(shell sed 's/^\#!//' $(PYTEST_EXE) | head -1 | sed "s|$HOME|~|")
 PYTHON_MAJOR_VERSION := $(shell $(PYTHON_EXE) -c "import sys; print(sys.version_info[0])")
 TEST_PLATFORM := $(shell $(PYTHON_EXE) -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
