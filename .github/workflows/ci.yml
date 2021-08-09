@@ -19,6 +19,9 @@ jobs:
         python_version: [3.7, 3.8, 3.9]
         conda_subdir: ['win-64']
         test_type: ['unit', 'integration']
+    env:
+      OS: 'win-64'
+      PYTHON: ${{ matrix.python_version }}
     steps:
     - uses: actions/checkout@v2
       with:
@@ -95,13 +98,11 @@ jobs:
         CALL dev-init.bat
         CALL pytest -m "integration and not installed" -k "not cli" --basetemp=C:\tmp  --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml -v --cov-append
 
-    - name: 'Upload to codecov.io'
-      shell: cmd
-      run: |
-        pushd %TEMP%
-        cd \conda_src
-        curl -s https://codecov.io/bash > codecov_uploader.sh
-        bash -c ". codecov_uploader.sh -C $GITHUB_SHA"
+    - uses: codecov/codecov-action@v2
+      with:
+        flags: ${{ matrix.test_type }}
+        env_vars: OS,PYTHON
+        directory: '%TEMP%\conda_src'
 
   docs:
     runs-on: ubuntu-latest
