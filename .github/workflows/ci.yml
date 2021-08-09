@@ -102,7 +102,7 @@ jobs:
       with:
         flags: ${{ matrix.test_type }}
         env_vars: OS,PYTHON
-        directory: '%TEMP%\conda_src'
+        directory: 'C:\conda_src\junit'
 
   docs:
     runs-on: ubuntu-latest
