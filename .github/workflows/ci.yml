@@ -91,17 +91,18 @@ jobs:
         curl -s https://codecov.io/bash > codecov_uploader.sh
         bash -c ". codecov_uploader.sh -C $GITHUB_SHA"
 
-  build_docs:
+  docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
       - name: build the docs
-        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
+        uses: docker://ghcr.io/conda/conda:master-python3.8
         with:
           entrypoint: /bin/bash
           args: ./ci/build_docs.sh
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -109,7 +110,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: flake8
-        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
+        uses: docker://ghcr.io/conda/conda:master-python3.8
         with:
           entrypoint: /bin/bash
           args: -c "/opt/conda/bin/flake8 --statistics"
