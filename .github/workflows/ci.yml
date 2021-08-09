@@ -81,7 +81,7 @@ jobs:
 
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 1
       shell: cmd
-      if: ${{ matrix.test_type == 'integration' and matrix.test_group == 'group-1' }}
+      if: ${{ matrix.test_type == 'integration' && matrix.test_group == 'group-1' }}
       run: |
         @ECHO ON
         pushd %TEMP%
@@ -91,7 +91,7 @@ jobs:
 
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 2
       shell: cmd
-      if: ${{ matrix.test_type == 'integration' and matrix.test_group == 'group-2' }}
+      if: ${{ matrix.test_type == 'integration' && matrix.test_group == 'group-2' }}
       run: |
         @ECHO ON
         pushd %TEMP%
