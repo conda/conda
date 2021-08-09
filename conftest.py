@@ -58,7 +58,7 @@ def set_tmpdir(tmpdir):
     # print("Setting testing tmpdir (via CONDA_TEST_TMPDIR) to {}".format(td))
     # I do not think setting env. vars so much is sensible, even in tests.
     # .. to make sure this never gets misconstrued for just the dirname. It
-    # is the full path to a tmpdir with additions to it by py.test including
+    # is the full path to a tmpdir with additions to it by pytest including
     # the test name.
     assert os.sep in td
     if sys.platform == 'win32' and sys.version_info.major == 2 and hasattr(td, 'encode'):
