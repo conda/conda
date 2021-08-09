@@ -1,0 +1,115 @@
+name: 'Stale issue handler'
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *'
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v4
+        id: stale
+        with:
+          # Idle number of days before marking issues stale (default: 60)
+          days-before-issue-stale: 365
+          # Idle number of days before closing stale issues/PRs (default: 7)
+          days-before-issue-close: 90
+          # Idle number of days before marking PRs stale (default: 60)
+          days-before-pr-stale: 360
+          # Idle number of days before closing stale PRs (default: 7)
+          days-before-pr-close: 30
+
+          # Comment on the staled issues
+          stale-issue-message: >
+            Hi there, thank you for your contribution to Conda!
+
+            This issue has been automatically marked as "stale" because
+            it has not had recent activity. It will be closed automatically
+            if no further activity occurs.
+
+            If you would like this issue to remain open please:
+
+              1. Verify that you can still reproduce the issue in the latest version of Conda
+              1. Comment that the issue is still reproducible and include:
+                * What version of Conda you reproduced the issue on
+                * What OS and version you reproduced the issue on
+                * What steps you followed to reproduce the issue
+
+            If this issue is closed prematurely, please leave a comment
+            and we will gladly reopen the issue.
+
+            If this issue was originally about a project that is covered
+            by the [Anaconda issue tracker](https://github.com/ContinuumIO/anaconda-issues/issues),
+            please reopen the issue there again.
+
+          # Comment on the staled issues while closed
+          close-issue-message: >
+            Hi again!
+
+            This issue has been closed since it has not had recent activity.
+            Please don't hesitate to leave a comment if that was done prematurely.
+
+            Thank you for your contribution.
+          # Comment on the staled PRs
+          stale-pr-message: >
+            Hi there, thank you for your contribution to Conda!
+
+            This pull request has been automatically marked as "stale" because
+            it has not had recent activity. It will be closed automatically
+            if no further activity occurs.
+
+            If you would like this pull request to remain open please:
+
+              1. Update the pull request with the current master
+              1. Verify that the pull request change is still working and update it if needed
+              1. Leave a comment with your result
+
+            If this pull request is closed prematurely, please leave a comment
+            and we will gladly reopen the pull request.
+
+          # Comment on the staled PRs while closed
+          close-pr-message: >
+            Hi again!
+
+            This pull request has been closed since it has not had recent activity.
+            Please don't hesitate to leave a comment if that was done prematurely.
+
+            Thank you for your contribution.
+          # Label to apply on staled issues
+          stale-issue-label: stale-marked
+          # Label to apply on closed issues
+          close-issue-label: stale-closed
+          # Label to apply on staled PRs
+          stale-pr-label: stale-marked
+          # Label to apply on closed PRs
+          close-pr-label: stale-closed
+
+          # Issues with these labels will never be considered stale
+          exempt-issue-labels: '¡blocking!,priority-high,s-1,source-partner,type-advisory,type-techdebt'
+          # Issues with these labels will never be considered stale
+          exempt-pr-labels: '¡blocking!,priority-high,s-1,source-partner,type-advisory,type-techdebt'
+
+          # Max number of operations per run
+          operations-per-run: 1000
+          # Remove stale label from issues/PRs on updates/comments
+          remove-stale-when-updated: true
+
+          # Add specified labels to issues/PRs when they become unstale
+          labels-to-add-when-unstale: stale-recovered
+
+          # Dry-run (default: false)
+          debug-only: true
+          # Order to get issues/PRs (default: false)
+          ascending: true
+          # Delete branch after closing a stale PR (default: false)
+          delete-branch: false
+
+          # Exempt all issues/PRs with milestones from stale
+          exempt-all-milestones: true
+
+          # Assignees on issues/PRs exempted from stale
+          exempt-assignees: mingwandroid
+
+      - name: Print outputs
+        run: echo ${{ join(steps.stale.outputs.*, ',') }}
