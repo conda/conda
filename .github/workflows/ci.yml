@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  windows-tests:
+  windows:
     runs-on: windows-2019
     strategy:
       fail-fast: false
@@ -129,7 +129,7 @@ jobs:
           entrypoint: /bin/bash
           args: -c "/opt/conda/bin/flake8 --statistics"
 
-  linux-tests:
+  linux:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
