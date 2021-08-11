@@ -11,7 +11,7 @@ from uuid import uuid4
 
 from conda.common.compat import on_win, odict
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from test_data.env_metadata import (
+from tests.data.env_metadata import (
     PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
 )
 from conda.base.constants import PREFIX_STATE_FILE
