@@ -1,0 +1,35 @@
+name: CI groups
+
+on:
+  schedule:
+    - cron:  '0 0 * * 0'
+  pull_request:
+    paths:
+      - 'tests/**'
+      - '.github/workflows/ci_groups.yml'
+  push:
+    paths:
+      - 'tests/**'
+      - '.github/workflows/ci_groups.yml'
+  workflow_dispatch:
+
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.7', '3.8', '3.9']
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Python ${{ matrix.python_version }} test group
+        run: docker run --rm -v ${PWD}:/conda ghcr.io/conda/conda:master-python${{ matrix.python_version }} /conda/ci/full_tests.sh
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update test durations for Python ${{ matrix.python_version }}
+          file_pattern: ci/test_durations/*.json
