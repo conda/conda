@@ -81,7 +81,7 @@ jobs:
         pushd %TEMP%
         cd \conda_src
         CALL dev-init.bat
-        CALL pytest -m "not integration and not installed" --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml -v
+        CALL pytest -m "not integration and not installed" --junitxml=junit/test-results-unit.xml -v
 
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 1
       shell: cmd
@@ -91,7 +91,7 @@ jobs:
         pushd %TEMP%
         cd \conda_src
         CALL dev-init.bat
-        CALL pytest -m "integration and not installed" -k "cli" --basetemp=C:\tmp --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml -v
+        CALL pytest -m "integration and not installed" -k "cli" --basetemp=C:\tmp --junitxml=junit/test-results-integration_g1.xml -v
 
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 2
       shell: cmd
@@ -101,7 +101,7 @@ jobs:
         pushd %TEMP%
         cd \conda_src
         CALL dev-init.bat
-        CALL pytest -m "integration and not installed" -k "not cli" --basetemp=C:\tmp  --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml -v --cov-append
+        CALL pytest -m "integration and not installed" -k "not cli" --basetemp=C:\tmp  --junitxml=junit/test-results-integration_g2.xml -v
 
     - uses: codecov/codecov-action@v2
       with:

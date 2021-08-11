@@ -10,8 +10,6 @@ PYTEST_VARS := PYTHONHASHSEED=$(PYTHONHASHSEED) PYTHON_MAJOR_VERSION=$(PYTHON_MA
 # --basetemp is so that our environments are created via hardlinks, the most common way.
 PYTEST := $(PYTEST_VARS) $(PYTEST_EXE) --basetemp=$(SYS_PREFIX)/../conda.tmp
 
-ADD_COV := --cov-report xml --cov-report term-missing --cov-append --cov conda
-
 
 clean:
 	@find . -name \*.py[cod] -delete
