@@ -11,7 +11,7 @@ from conda.common.path import get_python_site_packages_short_path
 from conda.common.serialize import json_dump, json_load
 from conda.gateways.disk.read import read_python_record
 import pytest
-from test_data.env_metadata import (
+from tests.data.env_metadata import (
     METADATA_VERSION_PATHS, PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
     __file__ as env_metadata_file,
 )
