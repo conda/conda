@@ -4,7 +4,11 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
 
 concurrency:
   group: ${{ github.head_ref }}
@@ -104,18 +108,6 @@ jobs:
         flags: ${{ matrix.test_type }}
         env_vars: OS,PYTHON
         directory: 'C:\conda_src\junit'
-
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: build the docs
-        uses: docker://ghcr.io/conda/conda:master-python3.8
-        with:
-          entrypoint: /bin/bash
-          args: ./ci/build_docs.sh
 
   lint:
     runs-on: ubuntu-latest

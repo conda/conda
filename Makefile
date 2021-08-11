@@ -60,6 +60,9 @@ toolz:
 	    && rm -rf toolz
 	rm -rf conda/_vendor/toolz/curried conda/_vendor/toolz/sandbox conda/_vendor/toolz/tests
 
+env-docs:
+	conda create --name conda-docs --channel defaults python=3.8 --yes
+	conda run --name conda-docs pip install -r ./docs/requirements.txt
 
 pytest-version:
 	$(PYTEST) --version
@@ -86,4 +89,4 @@ html:
 
 
 .PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib boltons toolz \
-         pytest-version smoketest unit integration test-installed html
+         env-docs pytest-version smoketest unit integration test-installed html

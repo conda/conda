@@ -1,0 +1,26 @@
+name: CI docs
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+     - 'docs/**'
+  pull_request:
+    paths:
+     - 'docs/**'
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: build the docs
+        run : |
+          source "${CONDA}/etc/profile.d/conda.sh"
+          make env-docs
+          conda activate conda-docs
+          cd docs
+          make html
