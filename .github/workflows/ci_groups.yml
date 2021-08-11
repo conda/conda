@@ -7,10 +7,12 @@ on:
     paths:
       - 'tests/**'
       - '.github/workflows/ci_groups.yml'
+      - 'ci/full_tests.sh'
   push:
     paths:
       - 'tests/**'
       - '.github/workflows/ci_groups.yml'
+      - 'ci/full_tests.sh'
   workflow_dispatch:
 
 
