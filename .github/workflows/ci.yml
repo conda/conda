@@ -163,6 +163,7 @@ jobs:
         run : |
           conda info -a
           sudo mkdir /opt/conda.tmp
+          sudo chown test_user /opt/conda.tmp
           pytest -v --splits 4 --group ${{ matrix.test_group }} --store-durations --basetemp=/opt/conda.tmp
           python -m conda.common.io
 
