@@ -164,7 +164,7 @@ jobs:
       - name: Python ${{ matrix.python_version }} tests
         run : |
           conda info -a
-          sudo pytest -v --splits 4 --group ${{ matrix.test_group }} --store-durations --basetemp=tests/out
+          sudo /opt/conda/bin/python -m pytest -v --splits 4 --group ${{ matrix.test_group }} --store-durations --basetemp=tests/out
           python -m conda.common.io
 
       - name: Upload partial durations
