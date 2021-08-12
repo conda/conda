@@ -48,7 +48,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=false
-            suffix=-python${{ matrix.python }}
+            suffix=-linux-python${{ matrix.python }}
 
       - name: Build & push Python ${{ matrix.python }}
         uses: docker/build-push-action@v2
@@ -59,4 +59,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           # push: ${{ github.ref == 'refs/heads/master' }}
+          push: true
 
