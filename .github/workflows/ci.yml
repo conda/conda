@@ -133,11 +133,6 @@ jobs:
     env:
       OS: 'linux'
       PYTHON: ${{ matrix.python_version }}
-    container:
-      image: ghcr.io/conda/conda-ci:pr-10854-linux-python${{ matrix.python_version }}
-      env:
-        TEST_GROUP: ${{ matrix.test_group }}
-      options: -v ${{ github.workspace }}:/conda
     steps:
       - uses: actions/checkout@v2
         with:
@@ -155,17 +150,14 @@ jobs:
             test-durations-combined-${{ github.sha }}
             test-durations-combined
 
-      - name: Build activate_deactivate_package package
-        run : |
-          /opt/conda/bin/python -m conda install -yq conda-forge::pytest-split
-          eval "$(/opt/conda/bin/python -m conda init --dev bash)"
-          conda-build tests/test-recipes/activate_deactivate_package
-
-      - name: Python ${{ matrix.python_version }} tests
-        run : |
-          conda info -a
-          pytest -v --splits 4 --group ${{ matrix.test_group }} --store-durations --basetemp=tests/out
-          python -m conda.common.io
+      - name: Python ${{ matrix.python_version }} group ${{ matrix.test_group }} tests
+        run: |
+          docker run
+            --rm \
+            -e TEST_GROUP=${{ matrix.test_group }} \
+            -v ${{ github.workspace }}:/conda \
+            ghcr.io/conda/conda-ci:pr-10854-linux-python${{ matrix.python_version }} \
+            /conda/ci/linux_tests.sh
 
       - name: Upload partial durations
         uses: actions/upload-artifact@v2
