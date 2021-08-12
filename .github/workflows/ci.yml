@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   windows:
+    needs: lint
     runs-on: windows-2019
     strategy:
       fail-fast: false
@@ -122,6 +123,7 @@ jobs:
           args: -c "/opt/conda/bin/flake8 --statistics"
 
   linux:
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -162,10 +164,7 @@ jobs:
       - name: Python ${{ matrix.python_version }} tests
         run : |
           conda info -a
-          sudo mkdir -p /opt/conda/tmp
-          sudo chmod 777 /opt/conda/tmp
-          sudo chown test_user /opt/conda/tmp
-          pytest -v --splits 4 --group ${{ matrix.test_group }} --store-durations --basetemp=/opt/conda/tmp
+          pytest -v --splits 4 --group ${{ matrix.test_group }} --store-durations --basetemp=/tmp
           python -m conda.common.io
 
       - name: Upload partial durations
