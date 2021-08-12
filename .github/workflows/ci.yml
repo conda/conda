@@ -136,7 +136,7 @@ jobs:
       env:
         TEST_GROUP: ${{ matrix.test_group }}
       volumes:
-        - ${PWD}:/conda
+        - .:/conda
     steps:
       - uses: actions/checkout@v2
         with:
