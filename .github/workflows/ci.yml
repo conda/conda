@@ -134,7 +134,7 @@ jobs:
       OS: 'linux'
       PYTHON: ${{ matrix.python_version }}
     container:
-      image: ghcr.io/conda/conda:master-python${{ matrix.python_version }}
+      image: ghcr.io/conda/conda-ci:pr-10854-linux-python${{ matrix.python_version }}
       env:
         TEST_GROUP: ${{ matrix.test_group }}
       options: -v ${{ github.workspace }}:/conda
@@ -157,14 +157,14 @@ jobs:
 
       - name: Build activate_deactivate_package package
         run : |
-          sudo /opt/conda/bin/python -m conda install -yq conda-forge::pytest-split
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          /opt/conda/bin/python -m conda install -yq conda-forge::pytest-split
+          eval "$(/opt/conda/bin/python -m conda init --dev bash)"
           conda-build tests/test-recipes/activate_deactivate_package
 
       - name: Python ${{ matrix.python_version }} tests
         run : |
           conda info -a
-          sudo /opt/conda/bin/python -m pytest -v --splits 4 --group ${{ matrix.test_group }} --store-durations --basetemp=tests/out
+          pytest -v --splits 4 --group ${{ matrix.test_group }} --store-durations --basetemp=tests/out
           python -m conda.common.io
 
       - name: Upload partial durations
