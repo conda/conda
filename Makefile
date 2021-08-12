@@ -62,6 +62,12 @@ env-docs:
 	conda create --name conda-docs --channel defaults python=3.8 --yes
 	conda run --name conda-docs pip install -r ./docs/requirements.txt
 
+env-lint:
+	conda create --name env-lint --channel defaults python=3.8 flake8 --yes
+
+lint:
+	flake8 --statistics
+
 pytest-version:
 	$(PYTEST) --version
 
