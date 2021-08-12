@@ -157,10 +157,10 @@ jobs:
         run : |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda-build tests/test-recipes/activate_deactivate_package
+          conda install conda-forge::pytest-split
 
       - name: Python ${{ matrix.python_version }} tests
         run : |
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda info -a
           pytest -v --splits 4 --group ${{ matrix.test_group }} --store-durations
           python -m conda.common.io
