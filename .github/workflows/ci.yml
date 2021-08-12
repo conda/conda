@@ -155,9 +155,9 @@ jobs:
 
       - name: Build activate_deactivate_package package
         run : |
+          sudo /opt/conda/bin/python -m conda install -yq conda-forge::pytest-split
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda-build tests/test-recipes/activate_deactivate_package
-          conda install conda-forge::pytest-split
 
       - name: Python ${{ matrix.python_version }} tests
         run : |
