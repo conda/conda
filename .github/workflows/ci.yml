@@ -135,8 +135,7 @@ jobs:
       image: ghcr.io/conda/conda:master-python${{ matrix.python_version }}
       env:
         TEST_GROUP: ${{ matrix.test_group }}
-      volumes:
-        - .:/conda
+      options: -v ${{ github.workspace }}:/conda
     steps:
       - uses: actions/checkout@v2
         with:
