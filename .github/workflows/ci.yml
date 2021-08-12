@@ -152,7 +152,7 @@ jobs:
 
       - name: Python ${{ matrix.python_version }} group ${{ matrix.test_group }} tests
         run: |
-          docker run
+          docker run \
             --rm \
             -e TEST_GROUP=${{ matrix.test_group }} \
             -v ${{ github.workspace }}:/conda \
