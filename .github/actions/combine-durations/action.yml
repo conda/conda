@@ -1,0 +1,19 @@
+name: Combine durations
+description: Combine pytest-split durations from multiple groups
+
+inputs:
+  durations-path:
+    description: The path to the durations file (must match `--durations-path` arg to pytest)
+    required: false
+    default: .test_durations
+  split-prefix:
+    description: The path to the split durations (must match the artifacts name)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Combine durations
+      shell: bash
+      run: >
+        python3 $GITHUB_ACTION_PATH/combine_durations.py ${{ inputs.split-prefix }} ${{ inputs.durations-path }}
