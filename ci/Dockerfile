@@ -8,10 +8,6 @@ RUN apt-get update --fix-missing && \
     apt-get install -y --no-install-recommends tini wget build-essential bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 git mercurial subversion sudo && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    useradd -m -s /bin/bash test_user && \
-    usermod -u 1001 test_user && \
-    groupmod -g 1001 test_user && \
-    echo "test_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
     rm ~/miniconda.sh && \
@@ -36,8 +32,6 @@ RUN /opt/conda/bin/conda install --update-all -y -c defaults \
         filelock jinja2 conda-verify pkginfo \
         glob2 beautifulsoup4 chardet pycrypto \
     && /opt/conda/bin/conda clean --all --yes
-
-USER test_user
 
 WORKDIR /conda
 
