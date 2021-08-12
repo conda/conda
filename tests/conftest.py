@@ -27,7 +27,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("shell", metafunc.config.option.shell)
 
 
-@pytest.fixture()
+@pytest.fixture(autouse=True)
 def suppress_resource_warning():
     '''
 Suppress `Unclosed Socket Warning`

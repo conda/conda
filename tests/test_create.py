@@ -131,8 +131,8 @@ def running_a_python_capable_of_unicode_subprocessing():
 
 
 def _get_temp_prefix(name=None, use_restricted_unicode=False):
-    import conftest
-    tmpdir = conftest.get_tmpdir() or gettempdir()
+    from .conftest import get_tmpdir
+    tmpdir = get_tmpdir() or gettempdir()
     capable = running_a_python_capable_of_unicode_subprocessing()
 
     if not capable or use_restricted_unicode:
@@ -474,7 +474,7 @@ def get_shortcut_dir():
         except ImportError:
             raise
 
-from conftest import auto_inject_fixtures
+from .conftest import auto_inject_fixtures
 
 @pytest.mark.integration
 @auto_inject_fixtures('tmpdir')
