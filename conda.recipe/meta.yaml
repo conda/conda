@@ -55,7 +55,6 @@ requirements:
 
 test:
   source_files:
-    - conftest.py
     - tests
     - setup.cfg
   requires:
