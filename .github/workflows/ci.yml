@@ -113,13 +113,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
       - name: flake8
-        uses: docker://ghcr.io/conda/conda:master-python3.8
-        with:
-          entrypoint: /bin/bash
-          args: -c "/opt/conda/bin/flake8 --statistics"
+        run : |
+          source "${CONDA}/etc/profile.d/conda.sh"
+          make env-lint
+          conda activate env-lint
+          make lint
 
   linux:
     runs-on: ubuntu-latest
