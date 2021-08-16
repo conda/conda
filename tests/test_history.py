@@ -48,7 +48,6 @@ class HistoryTestCase(BaseTestCase):
         assert not h.file_is_empty()
 
     @skip_if_no_mock
-    @auto_inject_fixtures('tmpdir')
     def test_parse_on_empty_env(self):
         with mock.patch.object(History, 'parse') as mock_parse:
             with History(make_temp_prefix(name=text_type(self.tmpdir))) as h:
