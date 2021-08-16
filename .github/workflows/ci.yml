@@ -107,7 +107,7 @@ jobs:
       with:
         flags: ${{ matrix.test_type }}
         env_vars: OS,PYTHON
-        directory: 'C:\conda_src\junit'
+        directory: 'junit'
 
   lint:
     runs-on: ubuntu-latest
