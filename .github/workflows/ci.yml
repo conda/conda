@@ -113,13 +113,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
       - name: flake8
-        uses: docker://ghcr.io/conda/conda:master-python3.8
-        with:
-          entrypoint: /bin/bash
-          args: -c "/opt/conda/bin/flake8 --statistics"
+        run : |
+          source "${CONDA}/etc/profile.d/conda.sh"
+          make env-lint
+          conda activate env-lint
+          make lint
 
   linux:
     runs-on: ubuntu-latest
@@ -128,6 +127,7 @@ jobs:
       matrix:
         python_version: ['3.7', '3.8', '3.9']
         test_type: ['unit', 'integration']
+        test_group: ['1', '2', '3', '4']
     env:
       OS: 'linux'
       PYTHON: ${{ matrix.python_version }}
@@ -137,7 +137,10 @@ jobs:
           fetch-depth: 0
 
       - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
-        run: docker run --rm -v ${PWD}:/conda ghcr.io/conda/conda:master-python${{ matrix.python_version }} /conda/ci/${{ matrix.test_type }}_tests.sh
+        run: docker run --rm -v ${PWD}:/conda -e GROUP_COUNT -e TEST_GROUP ghcr.io/conda/conda:master-python${{ matrix.python_version }} /conda/ci/${{ matrix.test_type }}_tests.sh
+        env:
+          GROUP_COUNT: 4
+          TEST_GROUP: ${{ matrix.test_group }}
 
       - uses: codecov/codecov-action@v2
         with:
