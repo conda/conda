@@ -5,11 +5,11 @@ on:
     - cron:  '0 0 * * 0'
   pull_request:
     paths:
-      - 'ci/Dockerfile'
+      - 'tests/Dockerfile'
       - '.github/workflows/ci-images.yml'
   push:
     paths:
-      - 'ci/Dockerfile'
+      - 'tests/Dockerfile'
       - '.github/workflows/ci-images.yml'
   workflow_dispatch:
 
@@ -32,7 +32,7 @@ jobs:
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v1.5.0
         with:
-          dockerfile: ./ci/Dockerfile
+          dockerfile: ./tests/Dockerfile
 
       - name: Log in to the Container registry
         uses: docker/login-action@v1
@@ -53,8 +53,8 @@ jobs:
       - name: Build & push Python ${{ matrix.python }}
         uses: docker/build-push-action@v2
         with:
-          context: ./ci
-          file: ./ci/Dockerfile
+          context: ./tests
+          file: ./tests/Dockerfile
           build-args: PYTHON_VERSION=${{ matrix.python }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
