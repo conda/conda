@@ -1,23 +1,31 @@
-# run as 'conda install --file tests/requirements.txt -c defaults'
 # conda
-conda-package-handling
-flake8
-mock
-pexpect
-pytest!=3.7.3
-pytest-cov
-pytest-timeout
-radon
-responses
-git
-
-conda-build
+# run as 'conda install --file tests/requirements.txt -c defaults'
 anaconda-client
 beautifulsoup4
 chardet
+conda
+conda-build
+conda-package-handling
 conda-verify
-contextlib2
+cytoolz
 filelock
+flake8
+git
+mock
+nbformat
+patch
+perl
+pexpect
+pip
+pkginfo
+pycosat
 pycrypto
 pyflakes
+pytest-cov
 pytest-mock
+pytest-timeout
+pytest-xdist
+pytest
+requests
+responses
+ruamel_yaml
