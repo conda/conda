@@ -63,7 +63,7 @@ env-docs:
 	conda run --name conda-docs pip install -r ./docs/requirements.txt
 
 env-lint:
-	conda create --name env-lint --channel defaults python=3.8 flake8 --yes
+	conda create --name conda-lint --channel defaults python=3.8 flake8 --yes
 
 lint:
 	flake8 --statistics
