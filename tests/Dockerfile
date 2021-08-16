@@ -1,10 +1,12 @@
 FROM debian:buster-slim AS buildbase
 
+ARG MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+
 WORKDIR /tmp
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends wget && \
-    wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+RUN apt-get update && apt-get install -y wget
+
+RUN wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
     rm ~/miniconda.sh && \
     /opt/conda/bin/conda clean --all --yes
