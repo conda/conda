@@ -1,24 +1,17 @@
-from os.path import dirname, isfile, join
+from os.path import dirname
 from pprint import pprint
-from shutil import copy2
 import unittest
 
-import pytest
-
-from conda.exceptions import CondaUpgradeError
-from conda.gateways.disk import mkdir_p
+from .cases import BaseTestCase
 from .decorators import skip_if_no_mock
-from .helpers import mock, tempdir
+from .helpers import mock
 from .test_create import make_temp_prefix
 
 from conda.history import History
-from conda.resolve import MatchSpec
 from conda.common.compat import text_type
 
-from .conftest import auto_inject_fixtures
 
-@auto_inject_fixtures('tmpdir')
-class HistoryTestCase(unittest.TestCase):
+class HistoryTestCase(BaseTestCase):
     def test_works_as_context_manager(self):
         h = History("/path/to/prefix")
         self.assertTrue(getattr(h, '__enter__'))

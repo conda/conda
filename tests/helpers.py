@@ -4,6 +4,7 @@ Helpers for the tests
 from __future__ import absolute_import, division, print_function
 
 from contextlib import contextmanager
+from functools import partial
 import json
 import os
 from os.path import dirname, join, abspath
@@ -12,6 +13,8 @@ from shlex import split
 from conda._vendor.auxlib.compat import shlex_split_unicode
 import sys
 from tempfile import gettempdir
+from unittest import mock
+from unittest.mock import patch
 from uuid import uuid4
 
 from conda import cli
@@ -27,7 +30,6 @@ from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.resolve import Resolve
 
-from functools import partial
 import pytest
 
 try:
