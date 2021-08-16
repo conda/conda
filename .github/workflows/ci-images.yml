@@ -29,11 +29,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v1.5.0
-        with:
-          dockerfile: ./tests/Dockerfile
-
       - name: Log in to the Container registry
         uses: docker/login-action@v1
         with:
