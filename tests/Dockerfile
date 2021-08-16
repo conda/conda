@@ -38,7 +38,7 @@ RUN /opt/conda/bin/conda install --update-all -y -c defaults \
 
 USER test_user
 
-WORKDIR /conda
+WORKDIR /opt/conda-src
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/bin/bash"]
