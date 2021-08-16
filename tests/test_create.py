@@ -25,6 +25,7 @@ import sys
 from tempfile import gettempdir
 from textwrap import dedent
 from unittest import TestCase
+from unittest.mock import Mock, patch, ANY
 from uuid import uuid4
 
 import pytest
@@ -67,10 +68,7 @@ from conda.models.version import VersionOrder
 from conda.resolve import exactness_and_number_of_deps
 from conda.utils import massage_arguments, on_win
 
-try:
-    from unittest.mock import Mock, patch, ANY
-except ImportError:
-    from mock import Mock, patch, ANY
+from .cases import BaseTestCase
 
 
 log = getLogger(__name__)
@@ -130,9 +128,20 @@ def running_a_python_capable_of_unicode_subprocessing():
     return False
 
 
+tmpdir_in_use = None
+
+@pytest.fixture(autouse=True)
+def set_tmpdir(tmpdir):
+    global tmpdir_in_use
+    if not tmpdir:
+        return tmpdir_in_use
+    td = tmpdir.strpath
+    assert os.sep in td
+    tmpdir_in_use = td
+
+
 def _get_temp_prefix(name=None, use_restricted_unicode=False):
-    from .conftest import get_tmpdir
-    tmpdir = get_tmpdir() or gettempdir()
+    tmpdir = tmpdir_in_use or gettempdir()
     capable = running_a_python_capable_of_unicode_subprocessing()
 
     if not capable or use_restricted_unicode:
@@ -474,11 +483,8 @@ def get_shortcut_dir():
         except ImportError:
             raise
 
-from .conftest import auto_inject_fixtures
-
 @pytest.mark.integration
-@auto_inject_fixtures('tmpdir')
-class IntegrationTests(TestCase):
+class IntegrationTests(BaseTestCase):
 
     def setUp(self):
         PackageCacheData.clear()
