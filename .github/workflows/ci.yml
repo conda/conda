@@ -113,12 +113,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Setup
+        run : |
+          make env-lint
       - name: flake8
         run : |
-          source "${CONDA}/etc/profile.d/conda.sh"
-          make env-lint
-          conda activate env-lint
-          make lint
+          conda run --name conda-lint make lint
 
   linux:
     runs-on: ubuntu-latest
