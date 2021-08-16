@@ -8,7 +8,7 @@ import pytest
 from pytest import raises
 
 from conda._vendor.auxlib.collection import AttrDict
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.common import check_non_admin, confirm, confirm_yn
 from conda.common.compat import on_win, StringIO
 from conda.common.io import captured, env_var
@@ -40,13 +40,16 @@ def test_check_non_admin_enabled_true():
 
 def test_confirm_yn_yes(monkeypatch):
     monkeypatch.setattr('sys.stdin', StringIO('blah\ny\n'))
-    args = AttrDict({
-        'dry_run': False,
-    })
-    with captured() as c:
-        choice = confirm_yn()
-    assert choice is True
-    assert "Invalid choice" in c.stdout
+    with env_var('CONDA_ALWAYS_YES', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_DRY_RUN', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            assert not context.always_yes
+            args = AttrDict({
+                'dry_run': False,
+            })
+            with captured() as cap:
+                choice = confirm_yn(args)
+            assert choice is True
+            assert "Invalid choice" in cap.stdout
 
 
 def test_confirm_yn_no(monkeypatch):
