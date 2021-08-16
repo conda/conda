@@ -28,7 +28,7 @@ ARG PYTHON_VERSION=3.8
 
 # conda and test dependencies
 RUN /opt/conda/bin/conda install --update-all -y -c defaults \
-    python=$PYTHON_VERSION
+    python=$PYTHON_VERSION \
     --file tests/requirements.txt && \
     /opt/conda/bin/conda clean --all --yes
 
