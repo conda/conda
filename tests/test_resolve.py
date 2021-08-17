@@ -376,6 +376,21 @@ def test_unsat_simple_dont_find_conflicts():
         assert "b -> c[version='>=2,<3']" not in str(excinfo.value)
 
 
+@pytest.mark.parametrize("hints", ("True", "False"))
+def test_unsat_simple_should_not_find_conflicts(hints):
+    # a and b depend on compatible versions of c
+    index = (
+        simple_rec(name='a', depends=['c >=1,<2']),
+        simple_rec(name='b', depends=['c']),
+        simple_rec(name='c', version='1.0'),
+        simple_rec(name='c', version='2.0'),
+    )
+
+    with env_var("CONDA_UNSATISFIABLE_HINTS", hints, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        r = Resolve(OrderedDict((prec, prec) for prec in index))
+        r.install(['a', 'b '])
+
+
 def test_unsat_shortest_chain_1():
     index = (
         simple_rec(name='a', depends=['d', 'c <1.3.0']),
