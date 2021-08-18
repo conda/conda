@@ -93,14 +93,14 @@ jobs:
           fetch-depth: 0
 
       - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
-        run: |
-          docker run \
+        run: >
+          docker run
           -it
-          --rm -v ${PWD}:/opt/conda-src \
-          -e GROUP_COUNT \
-          -e TEST_GROUP \
-          ghcr.io/conda/conda-ci:pr-10864-linux-python${{ matrix.python_version }} \
-          /opt/conda-src/tests/scripts/${{ matrix.test_type }}_tests.sh
+          --rm -v ${PWD}:/opt/conda-src
+          -e GROUP_COUNT
+          -e TEST_GROUP
+          ghcr.io/conda/conda-ci:pr-10864-linux-python${{ matrix.python_version }}
+          /opt/conda-src/tests/scripts/linux/${{ matrix.test_type }}.sh
         env:
           TEST_GROUP: ${{ matrix.test_group }}
 
