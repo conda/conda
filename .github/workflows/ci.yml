@@ -22,13 +22,14 @@ jobs:
       matrix:
         python_version: [3.7, 3.8, 3.9]
         conda_subdir: ['win-64']
-        test_type: ['unit', 'integration']
-        test_group: ['1', '2', '3', '4']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3', '4']
     env:
       OS: 'win-64'
       PYTHON: ${{ matrix.python_version }}
       CONDA_SUBDIR: ${{ matrix.conda_subdir }}
-      GROUP_COUNT: 4
+      TEST_SPLITS: 4
+      TEST_GROUP: ${{ matrix.test-group }}
     steps:
     - uses: actions/checkout@v2
       with:
@@ -47,16 +48,14 @@ jobs:
       run: |
         call ./tests/scripts/windows/setup.bat
 
-    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} ${{ matrix.test_type }} tests
+    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} ${{ matrix.test-type }} tests
       shell: cmd
       run: |
-        call ./tests/scripts/windows/${{ matrix.test_type }}.bat
-      env:
-        TEST_GROUP: ${{ matrix.test_group }}
+        call ./tests/scripts/windows/${{ matrix.test-type }}.bat
 
     - uses: codecov/codecov-action@v2
       with:
-        flags: ${{ matrix.test_type }}
+        flags: ${{ matrix.test-type }}
         env_vars: OS,PYTHON
 
   lint:
@@ -81,12 +80,13 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ['3.7', '3.8', '3.9']
-        test_type: ['unit', 'integration']
-        test_group: ['1', '2', '3', '4']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3', '4']
     env:
       OS: 'linux'
       PYTHON: ${{ matrix.python_version }}
-      GROUP_COUNT: 4
+      TEST_SPLITS: 4
+      TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -96,14 +96,12 @@ jobs:
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
-          -e GROUP_COUNT
+          -e TEST_SPLITS
           -e TEST_GROUP
           ghcr.io/conda/conda-ci:pr-10864-linux-python${{ matrix.python_version }}
-          /opt/conda-src/tests/scripts/linux/${{ matrix.test_type }}.sh
-        env:
-          TEST_GROUP: ${{ matrix.test_group }}
+          /opt/conda-src/tests/scripts/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
-          flags: ${{ matrix.test_type }}
+          flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
