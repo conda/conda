@@ -99,7 +99,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           environment-file: tests/environment.yml
-          activate-environment: conda-tests
+          auto-activate-base: true
+          activate-environment: ""
 
       - name: Python ${{ matrix.python_version }} ${{ matrix.test-type }} tests
         run: |
