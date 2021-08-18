@@ -136,6 +136,6 @@ def conda_check_versions_aligned():
             fh.write(version_from_git)
 
 
-conda_ensure_sys_python_is_base_env_python()
+# conda_ensure_sys_python_is_base_env_python()
 conda_move_to_front_of_PATH()
 conda_check_versions_aligned()

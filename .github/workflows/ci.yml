@@ -98,15 +98,10 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
-          auto-activate-base: true
-          activate-environment: ""
-          miniconda-version: "latest"
+          environment-file: tests/environment.yml
 
       - name: Python ${{ matrix.python_version }} ${{ matrix.test-type }} tests
         run: |
-          conda info
-          conda list
-          conda install --update-all -y -c defaults python=${{ matrix.python-version }} --file tests/requirements.txt
           conda info
           conda list
           bash tests/scripts/linux/${{ matrix.test-type }}.sh
