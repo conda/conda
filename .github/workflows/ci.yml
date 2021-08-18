@@ -100,7 +100,7 @@ jobs:
       - name: Python ${{ matrix.python_version }} ${{ matrix.test-type }} tests
         run: |
           conda create --name conda-tests --channel defaults python=${{ matrix.python_version }} --file=tests/requirements.txt --yes
-          conda run --name conda-docs bash tests/scripts/linux/${{ matrix.test-type }}.sh
+          conda run --name conda-tests bash tests/scripts/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
