@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   windows:
-    name: Windows (Python ${{ matrix.python_version }}, ${{ matrix.test_type }} tests, group ${{ matrix.test_group }}/{{ env.GROUP_COUNT }})
+    name: Windows (py${{ matrix.python_version }}, ${{ matrix.test_type }} tests, group ${{ matrix.test_group }}/${{ env.GROUP_COUNT }})
     runs-on: windows-2019
     strategy:
       fail-fast: false
@@ -72,7 +72,7 @@ jobs:
           conda run --name conda-lint make lint
 
   linux:
-    name: Linux (Python ${{ matrix.python_version }}, ${{ matrix.test_type }} tests, group ${{ matrix.test_group }}/{{ env.GROUP_COUNT }})
+    name: Linux (py${{ matrix.python_version }}, ${{ matrix.test_type }} tests, group ${{ matrix.test_group }}/${{ env.GROUP_COUNT }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
