@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   windows:
+    name: Windows (Python ${{ matrix.python_version }}, ${{ matrix.test_type }} tests, group ${{ matrix.test_group }}/{{ env.GROUP_COUNT }})
     runs-on: windows-2019
     strategy:
       fail-fast: false
@@ -23,14 +24,16 @@ jobs:
         python_version: [3.7, 3.8, 3.9]
         conda_subdir: ['win-64']
         test_type: ['unit', 'integration']
-        test_group: ['group-1', 'group-2']
+        test_group: ['1', '2', '3', '4']
     env:
       OS: 'win-64'
       PYTHON: ${{ matrix.python_version }}
+      CONDA_SUBDIR: ${{ matrix.conda_subdir }}
+      GROUP_COUNT: 4
     steps:
     - uses: actions/checkout@v2
       with:
-        fetch-depth: 0
+        fetch-depth: 1
 
     - name: Set temp dirs correctly
       shell: bash -l {0}
@@ -40,74 +43,22 @@ jobs:
         echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
         echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
 
-    - name: Link conda and source folders on temp drive
+    - name: Setup environment
       shell: cmd
       run: |
-        @ECHO ON
-        pushd %TEMP%
-        set CONDA=C:\Miniconda
-        mklink /J \conda_bin %CONDA%
-        mklink /J \conda_src %GITHUB_WORKSPACE%
+        call ./tests/scripts/setup.bat
 
-    - name: Initialize test environment
+    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} ${{ matrix.test_type }} tests
       shell: cmd
       run: |
-        @ECHO ON
-        set CONDA_SUBDIR=${{ matrix.conda_subdir }}
-        pushd %TEMP%
-        cd \conda_src
-        CALL \conda_bin\scripts\activate.bat
-        CALL conda create -n ci_base -y python=${{ matrix.python_version }} pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling %SCANDIR%
-        CALL conda activate ci_base
-        CALL conda install -yq pip conda-build conda-verify
-        CALL conda update openssl ca-certificates certifi
-        python -m conda init cmd.exe --dev
-
-    - name: Build activate-deactivate package
-      shell: cmd
-      run: |
-        @ECHO ON
-        pushd %TEMP%
-        cd \conda_src
-        CALL dev-init.bat
-        CALL conda info -a
-        CALL conda-build tests\test-recipes\activate_deactivate_package
-
-    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} unit tests
-      shell: cmd
-      if: ${{ matrix.test_type == 'unit' }}
-      run: |
-        @ECHO ON
-        pushd %TEMP%
-        cd \conda_src
-        CALL dev-init.bat
-        CALL pytest -m "not integration and not installed" --junitxml=junit/test-results-unit.xml -v
-
-    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 1
-      shell: cmd
-      if: ${{ matrix.test_type == 'integration' && matrix.test_group == 'group-1' }}
-      run: |
-        @ECHO ON
-        pushd %TEMP%
-        cd \conda_src
-        CALL dev-init.bat
-        CALL pytest -m "integration and not installed" -k "cli" --basetemp=C:\tmp --junitxml=junit/test-results-integration_g1.xml -v
-
-    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 2
-      shell: cmd
-      if: ${{ matrix.test_type == 'integration' && matrix.test_group == 'group-2' }}
-      run: |
-        @ECHO ON
-        pushd %TEMP%
-        cd \conda_src
-        CALL dev-init.bat
-        CALL pytest -m "integration and not installed" -k "not cli" --basetemp=C:\tmp  --junitxml=junit/test-results-integration_g2.xml -v
+        call ./tests/scripts/${{ matrix.test_type }}_tests.bat
+      env:
+        TEST_GROUP: ${{ matrix.test_group }}
 
     - uses: codecov/codecov-action@v2
       with:
         flags: ${{ matrix.test_type }}
         env_vars: OS,PYTHON
-        directory: 'junit'
 
   lint:
     runs-on: ubuntu-latest
@@ -121,6 +72,7 @@ jobs:
           conda run --name conda-lint make lint
 
   linux:
+    name: Linux (Python ${{ matrix.python_version }}, ${{ matrix.test_type }} tests, group ${{ matrix.test_group }}/{{ env.GROUP_COUNT }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -131,15 +83,15 @@ jobs:
     env:
       OS: 'linux'
       PYTHON: ${{ matrix.python_version }}
+      GROUP_COUNT: 4
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
         run: docker run --rm -v ${PWD}:/opt/conda-src -e GROUP_COUNT -e TEST_GROUP ghcr.io/conda/conda-ci:test-improvements-linux-python${{ matrix.python_version }} /opt/conda-src/tests/${{ matrix.test_type }}_tests.sh
         env:
-          GROUP_COUNT: 4
           TEST_GROUP: ${{ matrix.test_group }}
 
       - uses: codecov/codecov-action@v2

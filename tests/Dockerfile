@@ -16,15 +16,8 @@ FROM debian:buster-slim
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
-# hadolint ignore=DL3008
-RUN apt-get update --fix-missing && \
-    apt-get install -y --no-install-recommends tini wget build-essential bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 git mercurial subversion sudo && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    useradd -m -s /bin/bash test_user && \
-    usermod -u 1001 test_user && \
-    groupmod -g 1001 test_user && \
-    echo "test_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+COPY tests/scripts/setup.sh /tmp
+RUN bash /tmp/setup.sh
 
 COPY --from=buildbase /opt/conda /opt/conda
 
