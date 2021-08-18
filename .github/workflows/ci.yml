@@ -92,14 +92,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
-        run: >
-          docker run
-          --rm -v ${PWD}:/opt/conda-src
-          -e TEST_SPLITS
-          -e TEST_GROUP
-          ghcr.io/conda/conda-ci:pr-10864-linux-python${{ matrix.python_version }}
-          /opt/conda-src/tests/scripts/linux/${{ matrix.test-type }}.sh
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          environment-file: tests/environment.yml
+
+      - name: Python ${{ matrix.python_version }} ${{ matrix.test-type }} tests
+        run: |
+          conda info
+          conda list
+          bash tests/scripts/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
