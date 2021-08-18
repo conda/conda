@@ -33,7 +33,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        fetch-depth: 1
+        fetch-depth: 0
 
     - name: Set temp dirs correctly
       shell: bash -l {0}
@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
         run: docker run --rm -v ${PWD}:/opt/conda-src -e GROUP_COUNT -e TEST_GROUP ghcr.io/conda/conda-ci:test-improvements-linux-python${{ matrix.python_version }} /opt/conda-src/tests/scripts/${{ matrix.test_type }}_tests.sh
