@@ -6,4 +6,4 @@ TEST_SPLITS="${TEST_SPLITS:-1}"
 TEST_GROUP="${TEST_GROUP:-1}"
 
 conda info
-conda run --name conda-tests pytest -m "not integration and not installed" -vv --splits ${TEST_SPLITS} --group=${TEST_GROUP}
+pytest -m "not integration and not installed" -vv --splits ${TEST_SPLITS} --group=${TEST_GROUP}

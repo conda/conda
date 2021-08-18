@@ -82,6 +82,9 @@ jobs:
         python_version: ['3.7', '3.8', '3.9']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3', '4']
+    defaults:
+      run:
+        shell: bash -l {0}
     env:
       OS: 'linux'
       PYTHON: ${{ matrix.python_version }}
