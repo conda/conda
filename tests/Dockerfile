@@ -16,7 +16,7 @@ FROM debian:buster-slim
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
-COPY tests/scripts/setup.sh /tmp
+COPY tests/scripts/linux/setup.sh /tmp
 RUN bash /tmp/setup.sh
 
 COPY --from=buildbase /opt/conda /opt/conda

@@ -45,12 +45,12 @@ jobs:
     - name: Setup environment
       shell: cmd
       run: |
-        call ./tests/scripts/setup.bat
+        call ./tests/scripts/windows/setup.bat
 
     - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} ${{ matrix.test_type }} tests
       shell: cmd
       run: |
-        call ./tests/scripts/${{ matrix.test_type }}_tests.bat
+        call ./tests/scripts/windows/${{ matrix.test_type }}.bat
       env:
         TEST_GROUP: ${{ matrix.test_group }}
 
