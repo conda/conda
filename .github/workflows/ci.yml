@@ -95,7 +95,6 @@ jobs:
       - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
         run: >
           docker run
-          -it
           --rm -v ${PWD}:/opt/conda-src
           -e GROUP_COUNT
           -e TEST_GROUP
