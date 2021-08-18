@@ -1260,8 +1260,7 @@ class Resolve(object):
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
 
-        reduced_index = self.get_reduced_index(
-            specs, exit_on_conflict=not context.unsatisfiable_hints)
+        reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             # something is intrinsically unsatisfiable - either not found or
             # not the right version
