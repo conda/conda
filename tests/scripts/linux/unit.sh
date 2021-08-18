@@ -2,11 +2,11 @@
 
 set -o errtrace -o pipefail -o errexit
 
-GROUP_COUNT="${GROUP_COUNT:-1}"
+TEST_SPLITS="${TEST_SPLITS:-1}"
 TEST_GROUP="${TEST_GROUP:-1}"
 
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 conda info
 # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
 sudo rm -rf /opt/conda/pkgs/*-*-*
-pytest -m "not integration and not installed" -vv --splits ${GROUP_COUNT} --group=${TEST_GROUP}
+pytest -m "not integration and not installed" -vv --splits ${TEST_SPLITS} --group=${TEST_GROUP}
