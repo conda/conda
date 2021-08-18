@@ -100,6 +100,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           auto-activate-base: true
           activate-environment: ""
+          miniconda-version: "latest"
 
       - name: Python ${{ matrix.python_version }} ${{ matrix.test-type }} tests
         run: |
