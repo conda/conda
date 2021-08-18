@@ -13,7 +13,7 @@ import pytest
 
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems, itervalues
-from conda.common.io import env_var
+from conda.common.io import env_var, env_vars
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.read import read_python_record
 from conda.models.channel import Channel
@@ -374,21 +374,6 @@ def test_unsat_simple_dont_find_conflicts():
             r.install(['a', 'b '])
         assert "a -> c[version='>=1,<2']" not in str(excinfo.value)
         assert "b -> c[version='>=2,<3']" not in str(excinfo.value)
-
-
-@pytest.mark.parametrize("hints", ("True", "False"))
-def test_unsat_simple_should_not_find_conflicts(hints):
-    # a and b depend on compatible versions of c
-    index = (
-        simple_rec(name='a', depends=['c >=1,<2']),
-        simple_rec(name='b', depends=['c']),
-        simple_rec(name='c', version='1.0'),
-        simple_rec(name='c', version='2.0'),
-    )
-
-    with env_var("CONDA_UNSATISFIABLE_HINTS", hints, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        r = Resolve(OrderedDict((prec, prec) for prec in index))
-        r.install(['a', 'b '])
 
 
 def test_unsat_shortest_chain_1():
@@ -1946,6 +1931,19 @@ def test_fast_error_on_unsat():
     with env_var("CONDA_UNSATISFIABLE_HINTS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with pytest.raises(UnsatisfiableError):
             _installed = r.install(["python 2.7*"], installed=installed)
+
+
+@pytest.mark.parametrize("hints", ("True", "False"))
+def test_no_error_on_unsat_populated_cache(hints):
+    with env_var("CONDA_UNSATISFIABLE_HINTS", hints, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        r.install(['python', 'pytest'])
+
+
+@pytest.mark.parametrize("hints", ("True", "False"))
+def test_no_error_on_unsat_fresh_cache(hints):
+    r._reduced_index_cache.clear()
+    with env_var("CONDA_UNSATISFIABLE_HINTS", hints, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        r.install(['python', 'pytest'])
 
 
 def test_surplus_features_1():
