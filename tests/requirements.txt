@@ -14,7 +14,6 @@ flake8
 git
 mock
 nbformat
-patch
 perl
 pexpect
 pip
