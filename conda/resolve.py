@@ -565,7 +565,7 @@ class Resolve(object):
 
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
-        cache_key = strict_channel_priority, tuple(explicit_specs)
+        cache_key = strict_channel_priority, tuple(sorted(explicit_specs, key=str))
         if cache_key in self._reduced_index_cache:
             return self._reduced_index_cache[cache_key]
 
