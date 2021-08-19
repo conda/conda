@@ -96,7 +96,8 @@ jobs:
           remove-stale-when-updated: true
 
           # Add specified labels to issues/PRs when they become unstale
-          labels-to-add-when-unstale: stale-recovered
+          # disabled due to https://github.com/actions/stale/issues/551
+          # labels-to-add-when-unstale: stale-recovered
 
           # Dry-run (default: false)
           debug-only: true
