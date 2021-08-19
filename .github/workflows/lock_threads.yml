@@ -22,7 +22,7 @@ jobs:
           # Do not lock issues with these labels, value must be a comma separated list of labels or ''
           issue-exclude-labels: ''
           # Labels to add before locking an issue, value must be a comma separated list of labels or ''
-          issue-lock-labels: ''
+          issue-lock-labels: 'locked'
           # Comment to post before locking an issue
           issue-lock-comment: >
             Hi there, thank you for your contribution to Conda!
@@ -41,7 +41,7 @@ jobs:
           # Do not lock pull requests with these labels, value must be a comma separated list of labels or ''
           pr-exclude-labels: ''
           # Labels to add before locking a pull request, value must be a comma separated list of labels or ''
-          pr-lock-labels: ''
+          pr-lock-labels: 'locked'
           # Comment to post before locking a pull request
           pr-lock-comment: >
             Hi there, thank you for your contribution to Conda!
