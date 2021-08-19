@@ -1,4 +1,4 @@
-name: 'Stale issue handler'
+name: 'Stale'
 on:
   workflow_dispatch:
   schedule:
@@ -24,25 +24,28 @@ jobs:
           stale-issue-message: >
             Hi there, thank you for your contribution to Conda!
 
-            This issue has been automatically marked as "stale" because
-            it has not had recent activity. It will be closed automatically
-            if no further activity occurs.
+            This issue has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
 
             If you would like this issue to remain open please:
 
-              1. Verify that you can still reproduce the issue in the latest version of Conda
-              1. Comment that the issue is still reproducible and include:
-                * What version of Conda you reproduced the issue on
-                * What OS and version you reproduced the issue on
-                * What steps you followed to reproduce the issue
+            1. Verify that you can still reproduce the issue in the latest version of Conda
+            2. Comment that the issue is still reproducible and include:
 
-            If this issue is closed prematurely, please leave a comment
-            and we will gladly reopen the issue.
+              - What version of Conda you reproduced the issue on
+              - What OS and version you reproduced the issue on
+              - What steps you followed to reproduce the issue
 
-            If this issue was originally about a project that is covered
-            by the [Anaconda issue tracker](https://github.com/ContinuumIO/anaconda-issues/issues),
-            please reopen the issue there again.
+            3. It would also be helpful to have the output of the following commands available:
 
+              - `conda info`
+              - `conda config --show-sources`
+              - `conda list --show-channel-urls`
+
+            **NOTE:** If this issue was closed prematurely, please leave a comment and we will gladly reopen the issue.
+
+            In case this issue was originally about a project that is covered by the [Anaconda issue tracker](https://github.com/ContinuumIO/anaconda-issues/issues) (e.g. Anaconda, Miniconda, packages built by Anaconda, Inc. like Anaconda Navigator etc), please reopen the issue there again.
+
+            Thanks!
           # Comment on the staled issues while closed
           close-issue-message: >
             Hi again!
@@ -55,19 +58,17 @@ jobs:
           stale-pr-message: >
             Hi there, thank you for your contribution to Conda!
 
-            This pull request has been automatically marked as "stale" because
-            it has not had recent activity. It will be closed automatically
-            if no further activity occurs.
+            This pull request has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
 
             If you would like this pull request to remain open please:
 
-              1. Update the pull request with the current master
-              1. Verify that the pull request change is still working and update it if needed
-              1. Leave a comment with your result
+              1. Update the pull request with the latest code in the main branch
+              2. Verify that the pull request change is still working and update it if needed
+              3. Leave a comment with the current status of the pull request
 
-            If this pull request is closed prematurely, please leave a comment
-            and we will gladly reopen the pull request.
+            **NOTE:** If this pull request was closed prematurely, please leave a comment.
 
+            Thanks!
           # Comment on the staled PRs while closed
           close-pr-message: >
             Hi again!
@@ -86,9 +87,9 @@ jobs:
           close-pr-label: stale-closed
 
           # Issues with these labels will never be considered stale
-          exempt-issue-labels: '¡blocking!,priority-high,s-1,source-partner,type-advisory,type-techdebt'
+          exempt-issue-labels: 'good-first-issue,help-wanted,Epic,priority-high,s-1,source-partner,type-advisory,type-techdebt'
           # Issues with these labels will never be considered stale
-          exempt-pr-labels: '¡blocking!,priority-high,s-1,source-partner,type-advisory,type-techdebt'
+          exempt-pr-labels: 'good-first-issue,help-wanted,Epic,priority-high,s-1,source-partner,type-advisory,type-techdebt'
 
           # Max number of operations per run
           operations-per-run: 1000
