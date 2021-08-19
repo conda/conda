@@ -6,12 +6,16 @@ on:
   pull_request:
     paths:
       - 'ci/Dockerfile'
-      - '.github/workflows/ci_images.yml'
+      - '.github/workflows/ci-images.yml'
   push:
     paths:
       - 'ci/Dockerfile'
-      - '.github/workflows/ci_images.yml'
+      - '.github/workflows/ci-images.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io

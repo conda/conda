@@ -11,8 +11,8 @@
     :target: https://github.com/conda/conda/actions/workflows/ci.yml
     :alt: CI Tests (GitHub Actions)
 
-.. image:: https://github.com/conda/conda/actions/workflows/ci_images.yml/badge.svg
-    :target: https://github.com/conda/conda/actions/workflows/ci_images.yml
+.. image:: https://github.com/conda/conda/actions/workflows/ci-images.yml/badge.svg
+    :target: https://github.com/conda/conda/actions/workflows/ci-images.yml
     :alt: CI Images (GitHub Actions)
 
 .. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg?label=coverage
