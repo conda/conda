@@ -21,7 +21,7 @@ jobs:
           days-before-pr-close: 30
 
           # Comment on the staled issues
-          stale-issue-message: >
+          stale-issue-message: |
             Hi there, thank you for your contribution to Conda!
 
             This issue has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
@@ -29,6 +29,7 @@ jobs:
             If you would like this issue to remain open please:
 
             1. Verify that you can still reproduce the issue in the latest version of Conda
+
             2. Comment that the issue is still reproducible and include:
 
               - What version of Conda you reproduced the issue on
@@ -47,7 +48,7 @@ jobs:
 
             Thanks!
           # Comment on the staled issues while closed
-          close-issue-message: >
+          close-issue-message: |
             Hi again!
 
             This issue has been closed since it has not had recent activity.
@@ -55,7 +56,7 @@ jobs:
 
             Thank you for your contribution.
           # Comment on the staled PRs
-          stale-pr-message: >
+          stale-pr-message: |
             Hi there, thank you for your contribution to Conda!
 
             This pull request has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
@@ -92,7 +93,7 @@ jobs:
           exempt-pr-labels: 'good-first-issue,help-wanted,Epic,priority-high,s-1,source-partner,type-advisory,type-techdebt'
 
           # Max number of operations per run
-          operations-per-run: 1000
+          operations-per-run: 10
           # Remove stale label from issues/PRs on updates/comments
           remove-stale-when-updated: true
 
