@@ -23,6 +23,7 @@ pycrypto
 pyflakes
 pytest-cov
 pytest-mock
+pytest-rerunfailures
 pytest-timeout
 pytest-xdist
 pytest
