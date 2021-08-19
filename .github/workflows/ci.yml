@@ -23,12 +23,12 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3', '4']
+        test-group: ['1', '2']
     env:
       OS: 'win-64'
       PYTHON: ${{ matrix.python-version }}
       CONDA_SUBDIR: ${{ matrix.conda-subdir }}
-      TEST_SPLITS: 4
+      TEST_SPLITS: 2
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
     - uses: actions/checkout@v2
@@ -81,11 +81,11 @@ jobs:
       matrix:
         python-version: ['3.7', '3.8', '3.9']
         test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3', '4']
+        test-group: ['1', '2']
     env:
       OS: 'linux'
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 4
+      TEST_SPLITS: 2
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v2
