@@ -3,4 +3,4 @@
 set -o errtrace -o pipefail -o errexit
 
 conda info
-pytest -m "not integration" -vv
+pytest -m "not integration" -v

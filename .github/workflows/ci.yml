@@ -121,11 +121,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup
-        run: source ./dev/start
-
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests
-        run: bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
+        run: |
+          source ./dev/start
+          conda activate base
+          bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
