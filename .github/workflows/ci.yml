@@ -20,14 +20,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.7, 3.8, 3.9]
-        conda_subdir: ['win-64']
+        python-version: [3.7, 3.8, 3.9]
+        conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3', '4']
     env:
       OS: 'win-64'
-      PYTHON: ${{ matrix.python_version }}
-      CONDA_SUBDIR: ${{ matrix.conda_subdir }}
+      PYTHON: ${{ matrix.python-version }}
+      CONDA_SUBDIR: ${{ matrix.conda-subdir }}
       TEST_SPLITS: 4
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
@@ -48,7 +48,7 @@ jobs:
       run: |
         call ./tests/scripts/windows/setup.bat
 
-    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} ${{ matrix.test-type }} tests
+    - name: py${{ matrix.python-version }} ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests
       shell: cmd
       run: |
         call ./tests/scripts/windows/${{ matrix.test-type }}.bat
@@ -79,12 +79,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.7', '3.8', '3.9']
+        python-version: ['3.7', '3.8', '3.9']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3', '4']
     env:
       OS: 'linux'
-      PYTHON: ${{ matrix.python_version }}
+      PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 4
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
@@ -92,13 +92,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
+      - name: Python ${{ matrix.python-version }} ${{ matrix.test_type }} tests
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
           -e TEST_SPLITS
           -e TEST_GROUP
-          ghcr.io/conda/conda-ci:pr-10864-linux-python${{ matrix.python_version }}
+          ghcr.io/conda/conda-ci:pr-10864-linux-python${{ matrix.python-version }}
           /opt/conda-src/tests/scripts/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
