@@ -49,7 +49,7 @@ To set up an environment to start developing on conda code, we recommend the fol
 
    or alternately with pytest
 
-       pytest -m "not integration and not installed" conda tests
+       pytest -m "not integration" conda tests
 
    or you can use pytest to focus on one specific test
 
