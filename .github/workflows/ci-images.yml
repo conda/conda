@@ -13,10 +13,6 @@ on:
       - '.github/workflows/ci-images.yml'
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.head_ref }}
-  cancel-in-progress: true
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
