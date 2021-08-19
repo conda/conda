@@ -124,9 +124,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup environment
+      - name: Setup
         run: |
-          bash ./tests/scripts/macos/setup.sh
+          source ./dev/start
 
       - name: py${{ matrix.python-version }} ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests
         run: |
