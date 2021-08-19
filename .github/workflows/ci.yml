@@ -48,7 +48,7 @@ jobs:
       run: |
         call ./tests/scripts/windows/setup.bat
 
-    - name: py${{ matrix.python-version }} ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests
+    - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
       shell: cmd
       run: |
         call ./tests/scripts/windows/${{ matrix.test-type }}.bat
@@ -92,7 +92,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} ${{ matrix.test_type }} tests
+      - name: Python ${{ matrix.python-version }} ${{ matrix.test_type }} tests, group ${{ matrix.test-group }}
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
@@ -113,24 +113,19 @@ jobs:
       matrix:
         python-version: ['3.7', '3.8', '3.9']
         test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3', '4']
     env:
       OS: 'macos'
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 4
-      TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
       - name: Setup
-        run: |
-          source ./dev/start
+        run: source ./dev/start
 
-      - name: py${{ matrix.python-version }} ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests
-        run: |
-          bash ./tests/scripts/macos/${{ matrix.test-type }}.sh
+      - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests
+        run: bash ./tests/scripts/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
