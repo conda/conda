@@ -1,11 +1,10 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # NOTE: This script should be sourced! The shebang is only here to help syntax highlighters.
-
-set -o errtrace -o pipefail -o errexit
 
 DEVENV="${1:-./devenv}"
 PYTHON="${PYTHON:-3.8}"
-CONDA="${CONDA:-$DEVENV/bin/conda}"
+CONDAENV="${CONDA:-$DEVENV}"
+CONDACLI="${CONDAENV}/bin/conda"
 
 if ! [ -f "$DEVENV/conda-meta/history" ]; then
     if [ "$(uname)" = Darwin ]; then
@@ -14,21 +13,21 @@ if ! [ -f "$DEVENV/conda-meta/history" ]; then
         fi
         bash miniconda3.sh -bfp "$DEVENV"
         rm miniconda3.sh
-        "${CONDA}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
+        "${CONDACLI}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
     elif [ "$(uname)" = Linux ]; then
         if [ ! -f miniconda3.sh ]; then
             curl "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -o miniconda3.sh
         fi
         bash miniconda3.sh -bfp "$DEVENV"
         rm miniconda3.sh
-        "${CONDA}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
-        "${CONDA}" install -yq -p "$DEVENV" patchelf  # for conda-build
+        "${CONDACLI}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
+        "${CONDACLI}" install -yq -p "$DEVENV" patchelf  # for conda-build
     else
         if [ ! -f "miniconda3.exe" ]; then
             powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe','miniconda3.exe')"
         fi
         cmd.exe /c "start /wait \"\" miniconda3.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $DEVENV)"
-        CONDA="$DEVENV/Scripts/conda"
+        CONDACLI="$DEVENV/Scripts/conda"
         "$DEVENV/Scripts/conda" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
         rm miniconda3.exe
     fi
@@ -36,7 +35,7 @@ fi
 
 
 if ! [ -f "$DEVENV/.dev-start-ed" ]; then
-  "${CONDA}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
+  "${CONDACLI}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
   touch "$DEVENV/.dev-start-ed"
 fi
 
