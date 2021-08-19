@@ -23,12 +23,12 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
-        test-group: ['1', '2']
+        test-group: ['1', '2', '3', '4']
     env:
       OS: 'win-64'
       PYTHON: ${{ matrix.python-version }}
       CONDA_SUBDIR: ${{ matrix.conda-subdir }}
-      TEST_SPLITS: 2
+      TEST_SPLITS: 4
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
     - uses: actions/checkout@v2
@@ -46,12 +46,12 @@ jobs:
     - name: Setup environment
       shell: cmd
       run: |
-        call ./tests/scripts/windows/setup.bat
+        call .\ci\scripts\windows\setup.bat
 
     - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
       shell: cmd
       run: |
-        call ./tests/scripts/windows/${{ matrix.test-type }}.bat
+        call .\ci\scripts\windows\${{ matrix.test-type }}.bat
 
     - uses: codecov/codecov-action@v2
       with:
@@ -81,11 +81,11 @@ jobs:
       matrix:
         python-version: ['3.7', '3.8', '3.9']
         test-type: ['unit', 'integration']
-        test-group: ['1', '2']
+        test-group: ['1', '2', '3', '4']
     env:
       OS: 'linux'
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 2
+      TEST_SPLITS: 4
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v2
@@ -99,7 +99,7 @@ jobs:
           -e TEST_SPLITS
           -e TEST_GROUP
           ghcr.io/conda/conda-ci:pr-10864-linux-python${{ matrix.python-version }}
-          /opt/conda-src/tests/scripts/linux/${{ matrix.test-type }}.sh
+          /opt/conda-src/ci/scripts/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
@@ -125,7 +125,7 @@ jobs:
         run: source ./dev/start
 
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests
-        run: bash ./tests/scripts/macos/${{ matrix.test-type }}.sh
+        run: bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
