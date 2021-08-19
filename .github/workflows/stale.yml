@@ -101,7 +101,7 @@ jobs:
           # labels-to-add-when-unstale: stale-recovered
 
           # Dry-run (default: false)
-          debug-only: true
+          debug-only: false
           # Order to get issues/PRs (default: false)
           ascending: true
           # Delete branch after closing a stale PR (default: false)
