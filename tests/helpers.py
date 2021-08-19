@@ -37,7 +37,7 @@ except ImportError:
     import mock
     from mock import patch
 
-TEST_DATA_DIR = abspath(join(dirname(__file__), "..", "test_data"))
+TEST_DATA_DIR = abspath(join(dirname(__file__), "data"))
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
 def strip_expected(stderr):
