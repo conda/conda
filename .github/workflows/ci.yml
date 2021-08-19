@@ -124,7 +124,6 @@ jobs:
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests
         run: |
           source ./dev/start
-          conda activate base
           bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
