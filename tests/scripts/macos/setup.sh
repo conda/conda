@@ -2,7 +2,7 @@
 
 set -o errtrace -o pipefail -o errexit
 
-PYTHON="${PYTHON:3.8}"
+PYTHON="${PYTHON:-3.8}"
 
 conda activate base
 conda create -n conda-test-env -y --channel defaults python=${PYTHON} --file=tests/requirements.txt
