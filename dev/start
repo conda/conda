@@ -4,28 +4,29 @@
 set -o errtrace -o pipefail -o errexit
 
 DEVENV="${1:-./devenv}"
-PYTHON="${PYTHON:-3}"
+MINICONDA="${2:-3}"
+PYTHON="${PYTHON:-3.8}"
 CONDA="${CONDA:-$DEVENV/bin/conda}"
 
 if ! [ -f "$DEVENV/conda-meta/history" ]; then
     if [ "$(uname)" = Darwin ]; then
         if [ ! -f "miniconda${PYTHON}.sh" ]; then
-            curl https://repo.anaconda.com/miniconda/Miniconda${PYTHON}-latest-MacOSX-x86_64.sh -o "miniconda${PYTHON}.sh"
+            curl "https://repo.anaconda.com/miniconda/Miniconda${MINICONDA}-latest-MacOSX-x86_64.sh" -o "miniconda${MINICONDA}.sh"
         fi
-        bash "miniconda${PYTHON}.sh" -bfp "$DEVENV"
+        bash "miniconda${MINICONDA}.sh" -bfp "$DEVENV"
         "${CONDA}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
     elif [ "$(uname)" = Linux ]; then
-        if [ ! -f miniconda${PYTHON}.sh ]; then
-            curl "https://repo.anaconda.com/miniconda/Miniconda${PYTHON}-latest-Linux-x86_64.sh" -o "miniconda${PYTHON}.sh"
+        if [ ! -f miniconda${MINICONDA}.sh ]; then
+            curl "https://repo.anaconda.com/miniconda/Miniconda${MINICONDA}-latest-Linux-x86_64.sh" -o "miniconda${MINICONDA}.sh"
         fi
-        bash "miniconda${PYTHON}.sh" -bfp "$DEVENV"
+        bash "miniconda${MINICONDA}.sh" -bfp "$DEVENV"
         "${CONDA}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
         "${CONDA}" install -yq -p "$DEVENV" patchelf  # for conda-build
     else
-        if [ ! -f "miniconda${PYTHON}.exe" ]; then
-            powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('https://repo.anaconda.com/miniconda/Miniconda$PYTHON-latest-Windows-x86_64.exe','miniconda${PYTHON}.exe')"
+        if [ ! -f "miniconda${MINICONDA}.exe" ]; then
+            powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('https://repo.anaconda.com/miniconda/Miniconda$MINICONDA-latest-Windows-x86_64.exe','miniconda${MINICONDA}.exe')"
         fi
-        cmd.exe /c "start /wait \"\" miniconda${PYTHON}.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $DEVENV)"
+        cmd.exe /c "start /wait \"\" miniconda${MINICONDA}.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $DEVENV)"
         CONDA="$DEVENV/Scripts/conda"
         "$DEVENV/Scripts/conda" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults -c conda-forge
     fi
