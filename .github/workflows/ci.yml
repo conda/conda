@@ -85,3 +85,42 @@ jobs:
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.7', '3.8', '3.9']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2']
+
+    env:
+      OS: 'macos'
+      PYTHON: ${{ matrix.python-version }}
+      TEST_SPLITS: 2
+      TEST_GROUP: ${{ matrix.test-group }}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: conda-incubator/setup-miniconda@v2
+
+      - name: Fix Conda permissions on macOS
+        run: sudo chown -R $UID $CONDA
+
+      - name: Setup environment
+        run : |
+          make env-tests
+          conda run --name conda-tests bash ./ci/scripts/macos/setup.sh
+
+      - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+        run: |
+          conda run --name conda-tests bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
+
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: ${{ matrix.test-type }}
+          env_vars: OS,PYTHON
