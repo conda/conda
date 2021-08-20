@@ -58,10 +58,6 @@ env-lint:
 	conda create --name conda-lint --channel defaults python=$(PYTHON) flake8 --yes
 
 
-env-tests:
-	conda create --name conda-tests --channel defaults python=$(PYTHON) --file=tests/requirements.txt --yes
-
-
 lint:
 	flake8 --statistics
 
