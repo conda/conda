@@ -1,5 +1,9 @@
 name: Lint
 
+defaults:
+  run:
+    shell: bash -l {0}
+
 on:
   push:
     branches:
@@ -21,9 +25,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Fix Conda permissions on macOS
+        if: runner.os == 'macOS'
+        run: sudo chown -R $UID $CONDA
+
       - name: Setup
         run : |
-          $CONDA/bin/conda install flake8
+          conda install flake8
+
       - name: flake8
         run : |
-          $CONDA/bin/flake8 --statistics
+          flake8 --statistics
