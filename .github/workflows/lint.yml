@@ -1,9 +1,5 @@
 name: Lint
 
-defaults:
-  run:
-    shell: bash -l {0}
-
 on:
   push:
     branches:
@@ -31,9 +27,8 @@ jobs:
 
       - name: Setup
         run : |
-          conda install flake8
-          conda activate base
+          $CONDA/bin/conda install flake8
 
       - name: flake8
         run : |
-          flake8 --statistics
+          $CONDA/bin/flake8 --statistics
