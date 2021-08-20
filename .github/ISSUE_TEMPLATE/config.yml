@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Conda Build Issues
+    url: https://github.com/conda/conda-build/issues
+    about: Anything that starts with 'Conda build' should go here
+  - name: Package Request
+    url: https://github.com/ContinuumIO/anaconda-issues/
+    about: A specific conda package from Anaconda ('defaults' channel)
