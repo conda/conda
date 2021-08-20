@@ -113,9 +113,12 @@ jobs:
       matrix:
         python-version: ['3.7', '3.8', '3.9']
         test-type: ['unit', 'integration']
+        test-group: ['1', '2']
     env:
       OS: 'macos'
       PYTHON: ${{ matrix.python-version }}
+      TEST_SPLITS: 2
+      TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v2
         with:
