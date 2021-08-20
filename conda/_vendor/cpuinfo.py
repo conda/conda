@@ -591,6 +591,13 @@ def parse_arch(raw_arch_string):
     elif re.match('^sparc64$|^sun4u$|^sun4v$', raw_arch_string):
         arch = 'SPARC_64'
         bits = 64
+    # MIPS
+    elif re.match('^mips$', raw_arch_string):
+        arch = 'MIPS_32'
+        bits = 32
+    elif re.match('^mips64$', raw_arch_string):
+        arch = 'MIPS_64'
+        bits = 64
     # LOONG
     elif re.match('^loongarch32$', raw_arch_string):
         arch = 'LOONG_32'
@@ -2175,8 +2182,8 @@ def get_cpu_info():
 # Make sure we are running on a supported system
 def _check_arch():
     arch, bits = parse_arch(DataSource.raw_arch_string)
-    if not arch in ['X86_32', 'X86_64', 'ARM_7', 'ARM_8', 'PPC_64', 'S390X', 'LOONG_32', 'LOONG_64']:
-        raise Exception("py-cpuinfo currently only works on X86 and some PPC, S390X, LOONG and ARM CPUs.")
+    if not arch in ['X86_32', 'X86_64', 'ARM_7', 'ARM_8', 'PPC_64', 'S390X', 'MIPS_32', 'MIPS_64', 'LOONG_32', 'LOONG_64']:
+        raise Exception("py-cpuinfo currently only works on X86 and some PPC, S390X, MIPS, LOONG and ARM CPUs.")
 
 def main():
     try:
