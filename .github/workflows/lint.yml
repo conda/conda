@@ -32,6 +32,7 @@ jobs:
       - name: Setup
         run : |
           conda install flake8
+          conda activate base
 
       - name: flake8
         run : |
