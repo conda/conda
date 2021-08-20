@@ -124,18 +124,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache devenv
-        uses: actions/cache@v2
-        with:
-          path: ./devenv
-          key: ${{ runner.os }}-conda-${{ hashFiles('**/tests/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-conda-
-
-      - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests
+      - name: Setup environment
         run: |
-          source ./dev/start
-          bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
+          bash ./ci/scripts/macos/setup.sh
+
+      - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+        run: bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
