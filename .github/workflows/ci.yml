@@ -125,11 +125,13 @@ jobs:
           fetch-depth: 0
 
       - name: Setup environment
-        run: |
-          bash ./ci/scripts/macos/setup.sh
+        run : |
+          make env-tests
+          conda run --name conda-tests bash ./ci/scripts/macos/setup.sh
 
       - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        run: bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
+        run: |
+          conda run --name conda-tests bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
