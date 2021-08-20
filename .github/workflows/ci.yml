@@ -126,7 +126,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - name: Fix Conda permissions on macOS
+        run: sudo chown -R $UID $CONDA
 
       - name: Setup environment
         run : |
