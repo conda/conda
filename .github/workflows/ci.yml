@@ -124,6 +124,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache devenv
+        uses: actions/cache@v2
+        with:
+          path: ./devenv
+          key: ${{ runner.os }}-conda-${{ hashFiles('**/tests/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-conda-
+
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests
         run: |
           source ./dev/start
