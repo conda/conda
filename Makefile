@@ -1,5 +1,4 @@
 SHELL := /bin/bash -o pipefail -o errexit
-PYTHON := "3.8"
 
 clean:
 	find . -name \*.py[cod] -delete
@@ -50,16 +49,8 @@ toolz:
 
 
 env-docs:
-	conda create --name conda-docs --channel defaults python=$(PYTHON) --yes
+	conda create --name conda-docs --channel defaults python=3.8 --yes
 	conda run --name conda-docs pip install -r ./docs/requirements.txt
-
-
-env-lint:
-	conda create --name conda-lint --channel defaults python=$(PYTHON) flake8 --yes
-
-
-lint:
-	flake8 --statistics
 
 
 pytest-version:
