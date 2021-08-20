@@ -3,7 +3,7 @@ name: 'Lock Threads'
 on:
   workflow_dispatch:
   schedule:
-    - cron: '15 4 * * *'
+    - cron: '0 6 * * *'
 
 permissions:
   issues: write
@@ -54,6 +54,3 @@ jobs:
 
           # Limit locking to only issues or pull requests, value must be one of issues, prs or ''
           process-only: ''
-
-      - name: Print outputs
-        run: echo ${{ join(steps.lock-threads.outputs.*, ',') }}
