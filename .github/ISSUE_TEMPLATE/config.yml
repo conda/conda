@@ -1,6 +1,6 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Conda Build Issues
+  - name: Conda Build Issues/Features
     url: https://github.com/conda/conda-build/issues
     about: Anything that starts with 'Conda build' should go here
   - name: Package Request
