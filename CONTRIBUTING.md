@@ -49,11 +49,11 @@ To set up an environment to start developing on conda code, we recommend the fol
 
    or alternately with pytest
 
-       py.test -m "not integration and not installed" conda tests
+       pytest -m "not integration" conda tests
 
    or you can use pytest to focus on one specific test
 
-       py.test tests/test_create.py -k create_install_update_remove_smoketest
+       pytest tests/test_create.py -k create_install_update_remove_smoketest
 
 3.1  Test-suite issues
 

@@ -46,7 +46,6 @@ requirements:
 
 test:
   source_files:
-    - conftest.py
     - tests
     - setup.cfg
   requires:
@@ -74,7 +73,7 @@ test:
 #    - echo %CONDA_PREFIX%
 #    - IF NOT "%CONDA_PREFIX%"=="%CD%\built-conda-test-env" EXIT /B 1
 #    - CALL conda.bat deactivate
-#    - py.test tests -m "not integration and not installed" -vv
+#    - pytest tests -m "not integration and not installed" -vv
 {% else %}
     - unset CONDA_SHLVL
     - eval "$(python -m conda shell.bash hook)"
@@ -89,7 +88,7 @@ test:
     - echo $CONDA_PREFIX
     - '[ "$CONDA_PREFIX" = "$PWD/built-conda-test-env" ] || exit 1'
     - conda deactivate
-    - py.test tests -m "not integration and not installed" -vv
+    - pytest tests -m "not integration and not installed" -vv
 {% endif %}
 
 about:
