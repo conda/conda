@@ -82,7 +82,7 @@ jobs:
           --rm -v ${PWD}:/opt/conda-src
           -e TEST_SPLITS
           -e TEST_GROUP
-          ghcr.io/conda/conda-ci:pr-10864-linux-python${{ matrix.python-version }}
+          ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}
           /opt/conda-src/ci/scripts/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
