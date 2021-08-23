@@ -10,10 +10,6 @@ on:
     paths-ignore:
       - 'docs/**'
 
-concurrency:
-  group: ${{ github.head_ref }}
-  cancel-in-progress: true
-
 jobs:
   windows:
     runs-on: windows-2019
