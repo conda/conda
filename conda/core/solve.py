@@ -42,8 +42,7 @@ def _get_solver_logic(key=None):
     return {
         "legacy": Solver,
         "libsolv": LibSolvSolver,
-        }[key]
-
+    }[key]
 
 
 class Solver(object):
@@ -1055,10 +1054,11 @@ class LibSolvSolver(Solver):
 
     def solve_final_state(self, update_modifier, deps_modifier, prune,
                           ignore_pinned, force_remove, should_retry_solve):
-        return super().solve_final_state(update_modifier=update_modifier, deps_modifier=deps_modifier,
-                                         prune=prune, ignore_pinned=ignore_pinned, force_remove=force_remove,
+        return super().solve_final_state(update_modifier=update_modifier,
+                                         deps_modifier=deps_modifier,
+                                         prune=prune, ignore_pinned=ignore_pinned,
+                                         force_remove=force_remove,
                                          should_retry_solve=should_retry_solve)
-
 
 
 class SolverStateContainer(object):

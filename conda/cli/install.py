@@ -251,7 +251,7 @@ def install(args, parser, command='install'):
             else:
                 solver_cls = _get_solver_logic()
                 solver = solver_cls(prefix, context.channels, context.subdirs, specs_to_add=specs,
-                                repodata_fn=repodata_fn, command=args.cmd)
+                                    repodata_fn=repodata_fn, command=args.cmd)
                 update_modifier = context.update_modifier
                 if (isinstall or isremove) and args.update_modifier == NULL:
                     update_modifier = UpdateModifier.FREEZE_INSTALLED

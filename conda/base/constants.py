@@ -287,6 +287,7 @@ class SolverLogicChoice(Enum):
     def __str__(self):
         return self.value
 
+
 # Magic files for permissions determination
 PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
 PREFIX_MAGIC_FILE = join('conda-meta', 'history')
