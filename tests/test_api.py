@@ -8,7 +8,7 @@ except ImportError:
 
 import pytest
 
-from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData, \
+from conda.api import DepsModifier, PackageCacheData, PrefixData, _get_solver_logic, SubdirData, \
     UpdateModifier
 from conda.base.context import context
 from conda.common.compat import isiterable, odict
@@ -50,6 +50,7 @@ def test_UpdateModifier_contract():
 
 
 def test_Solver_inputs_contract():
+    Solver = _get_solver_logic()
     init_args = odict((
         ('self', PositionalArgument),
         ('prefix', PositionalArgument),
@@ -95,7 +96,7 @@ def test_Solver_inputs_contract():
 
 @pytest.mark.integration
 def test_Solver_return_value_contract():
-    solver = Solver('/', (Channel('pkgs/main'),), specs_to_add=('openssl',))
+    solver = _get_solver_logic()('/', (Channel('pkgs/main'),), specs_to_add=('openssl',))
     solve_final_state_rv = solver.solve_final_state()
     assert isiterable(solve_final_state_rv)
     assert all(isinstance(pref, PackageRecord) for pref in solve_final_state_rv)

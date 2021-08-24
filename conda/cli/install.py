@@ -18,7 +18,7 @@ from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
-from ..core.solve import DepsModifier, Solver
+from ..core.solve import DepsModifier, _get_solver_logic
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotACondaEnvironmentError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
@@ -249,7 +249,8 @@ def install(args, parser, command='install'):
                 unlink_link_transaction = revert_actions(prefix, get_revision(args.revision),
                                                          index)
             else:
-                solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
+                solver_cls = _get_solver_logic()
+                solver = solver_cls(prefix, context.channels, context.subdirs, specs_to_add=specs,
                                 repodata_fn=repodata_fn, command=args.cmd)
                 update_modifier = context.update_modifier
                 if (isinstall or isremove) and args.update_modifier == NULL:

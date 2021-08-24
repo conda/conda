@@ -37,6 +37,15 @@ from ..resolve import Resolve
 log = getLogger(__name__)
 
 
+def _get_solver_logic(key=None):
+    key = key or context.solver_logic
+    return {
+        "legacy": Solver,
+        "libsolv": LibSolvSolver,
+        }[key]
+
+
+
 class Solver(object):
     """
     A high-level API to conda's solving logic. Three public methods are provided to access a
@@ -1027,6 +1036,29 @@ class Solver(object):
 
         self._prepared = True
         return self._index, self._r
+
+
+class LibSolvSolver(Solver):
+    """
+    This alternative Solver logic wraps ``libsolv`` through their Python bindings.
+
+    We mainly replace ``Solver.solve_final_state``, quite high in the abstraction
+    tree, which means that ``conda.resolve`` and ``conda.common.logic`` are no longer
+    used here. All those bits are replaced by the logic implemented in ``libsolv`` itself.
+
+    This means that ``libsolv`` governs processes like:
+
+    - Building the SAT clauses
+    - Pruning the repodata (?) - JRG: Not sure if this happens internally or at all.
+    - Prioritizing different aspects of the solver (version, build strings, track_features...)
+    """
+
+    def solve_final_state(self, update_modifier, deps_modifier, prune,
+                          ignore_pinned, force_remove, should_retry_solve):
+        return super().solve_final_state(update_modifier=update_modifier, deps_modifier=deps_modifier,
+                                         prune=prune, ignore_pinned=ignore_pinned, force_remove=force_remove,
+                                         should_retry_solve=should_retry_solve)
+
 
 
 class SolverStateContainer(object):

@@ -17,7 +17,8 @@ from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODA
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
                         ERROR_UPLOAD_URL, KNOWN_SUBDIRS, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, UpdateModifier)
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice,
+                        SolverLogicChoice, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
@@ -298,7 +299,12 @@ class Context(Configuration):
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
 
     # ######################################################
-    # ##               Solver Configuration               ##
+    # ##              Solver Logic Configuration          ##
+    # ######################################################
+    solver_logic = ParameterLoader(PrimitiveParameter(SolverLogicChoice.LEGACY))
+
+    # ######################################################
+    # ##             Legacy Solver Configuration          ##
     # ######################################################
     deps_modifier = ParameterLoader(PrimitiveParameter(DepsModifier.NOT_SET))
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
