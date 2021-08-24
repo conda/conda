@@ -38,7 +38,7 @@ log = getLogger(__name__)
 
 
 def _get_solver_logic(key=None):
-    key = key or context.solver_logic
+    key = key or str(context.solver_logic)
     return {
         "legacy": Solver,
         "libsolv": LibSolvSolver,
