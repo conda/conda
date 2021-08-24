@@ -901,6 +901,7 @@ class Context(Configuration):
                 'pinned_packages',
                 'pip_interop_enabled',
                 'track_features',
+                'solver_logic',
             )),
             ('Package Linking and Install-time Configuration', (
                 'allow_softlinks',
@@ -1338,7 +1339,12 @@ class Context(Configuration):
                 fastest (but perhaps not the most complete). The higher this number, the
                 longer the generation of the unsat hint will take. Defaults to 3.
                 """),
-
+            'solver_logic': dals("""
+                A string to choose between the different solver logics implemented in conda.
+                A solver logic takes care of turning your requested packages into a list of
+                specs to add and/or remove from a given environment, based on their dependencies
+                and specified constraints.
+                """)
         })
 
 
