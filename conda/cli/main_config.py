@@ -14,8 +14,8 @@ from textwrap import wrap
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.toolz import concat, groupby
-from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks, SolverLogicChoice,
-                              UpdateModifier, SatSolverChoice)
+from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
+                              SolverLogicChoice, UpdateModifier, SatSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalues, string_types,
                              text_type)
