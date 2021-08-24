@@ -19,7 +19,7 @@ from conda.base.context import context, Context, reset_context, conda_tests_ctxt
 from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
-from conda.core.solve import DepsModifier, Solver, UpdateModifier, Resolve
+from conda.core.solve import DepsModifier, _get_solver_logic, UpdateModifier, Resolve
 from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
 from conda.gateways.disk.create import TemporaryDirectory
 from conda.history import History
@@ -48,7 +48,7 @@ def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), h
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_1(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -61,7 +61,7 @@ def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_2(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-2'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel('channel-2'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -74,7 +74,7 @@ def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-4'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel('channel-4'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -87,7 +87,7 @@ def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_5(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-5'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel('channel-5'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -101,7 +101,7 @@ def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     get_index_r_2(context.subdir)
     get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-2'), Channel('channel-4'), ),
+        solver = _get_solver_logic()(tmpdir, (Channel('channel-2'), Channel('channel-4'), ),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -115,7 +115,7 @@ def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     get_index_r_2(context.subdir)
     get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-4'), Channel('channel-2')),
+        solver = _get_solver_logic()(tmpdir, (Channel('channel-4'), Channel('channel-2')),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -128,7 +128,7 @@ def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_must_unfreeze(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-freeze'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel('channel-freeze'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -141,7 +141,7 @@ def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_cuda(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -2340,7 +2340,7 @@ def test_freeze_deps_1(tmpdir):
 def test_current_repodata_usage(tmpdir):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        solver = Solver(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
+        solver = _get_solver_logic()(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
                         specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
         final_state = solver.solve_final_state()
         # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
@@ -2356,7 +2356,7 @@ def test_current_repodata_usage(tmpdir):
 
 
 def test_current_repodata_fallback(tmpdir):
-    solver = Solver(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
+    solver = _get_solver_logic()(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
                     specs_to_add=[MatchSpec('zlib=1.2.8')])
     final_state = solver.solve_final_state()
     # zlib 1.2.11, zlib 1.2.8, vc 14.1, vs2015_runtime, virtual package for vc track_feature
@@ -2430,7 +2430,7 @@ def test_packages_in_solution_change_already_newest(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
@@ -2440,7 +2440,7 @@ def test_packages_in_solution_change_needs_update(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
@@ -2450,7 +2450,7 @@ def test_packages_in_solution_change_constrained(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 1
@@ -2470,7 +2470,7 @@ def test_determine_constricting_specs_conflicts(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -2490,7 +2490,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -2515,7 +2515,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -2536,7 +2536,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -2556,7 +2556,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -2571,7 +2571,7 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -2591,7 +2591,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
