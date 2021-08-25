@@ -6,15 +6,15 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking an interest in helping Conda get better! 🐍
+        Thanks for helping Conda! 🐍
 
-        Going through bugs and issues takes up a lot of time, so be kind to your fellow developer by taking a few minutes to fill out all the areas to the best of your ability.
+        Going through bugs and issues takes up a lot of time, so please be so kind and take a few minutes to fill out all the areas to the best of your ability.
          
-        There will always be more items than there is time to do them, and so we will need to selectly close bugs that don't have enough info, so we can focus our time on helping people like you who follow the process! By asking questions in a structured way (using this format) it will be much easier to help you.
+        There will always be more issues than there is time to do them, and so we will need to selectively close issues that don't provide enough information, so we can focus our time on helping people like you who fill out the issue form completely. Thank you for your collaboration!
         
         There are also already a lot of open issues, so please take 2 minutes and search through existing ones to see if what you are experiencing already exists
 
-        Thanks for helping Conda be amazing. We are nothing without people like you helping build a better community 🍻
+        Thanks for helping Conda be amazing. We are nothing without people like you helping build a better community 💐!
   - type: checkboxes
     id: checks
     attributes:
@@ -33,7 +33,7 @@ body:
     id: what-happened
     attributes:
       label: What happened?
-      description: Also what did you expect to happen? This really helps us triage quicker and greatly increases the chance that we can get around to correcting things
+      description: And what should have happened instead? This really helps us triage quicker and greatly increases the chance that we can get around to solve your issue
       placeholder: Tell us what you see!
       value: "A wild Caterpie appeared!"
     validations:
@@ -43,7 +43,7 @@ body:
     attributes:
       label: Conda info
       description: |
-        Lets get the info on your conda setup. Run the following from your command line and paste the output
+        Let's get the info on your Conda setup. Run the following command from your command line and paste the output
 
         ```bash
         conda info
@@ -54,7 +54,7 @@ body:
     attributes:
       label: Conda config
       description: |
-        Lets see what you conda config lools like. Run the following from your command line and paste the output
+        Let's see what your Conda config looks like. Run the following command from your command line and paste the output
 
         ```bash
         conda config --show-sources
@@ -65,7 +65,7 @@ body:
     attributes:
       label: Conda list
       description: |
-        Your packages installed in an env and the channels which tells us where you are pulling packages from. Make sure you are in the environment where \n you are seeing the issues Run the following from your command line and paste the output
+        These are the packages installed in your Conda environment and the Conda channels used. They tell us where you are pulling packages from. Make sure you are in the environment where \n you are seeing the issues. Run the following command from your command line and paste the output
 
         ```bash
         conda list --show-channel-urls
