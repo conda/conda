@@ -12,6 +12,7 @@ from textwrap import dedent
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
+from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
@@ -19,7 +20,7 @@ from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN
+from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN, ChannelPriority
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
@@ -1052,13 +1053,232 @@ class LibSolvSolver(Solver):
     - Prioritizing different aspects of the solver (version, build strings, track_features...)
     """
 
-    def solve_final_state(self, update_modifier, deps_modifier, prune,
-                          ignore_pinned, force_remove, should_retry_solve):
-        return super().solve_final_state(update_modifier=update_modifier,
-                                         deps_modifier=deps_modifier,
-                                         prune=prune, ignore_pinned=ignore_pinned,
-                                         force_remove=force_remove,
-                                         should_retry_solve=should_retry_solve)
+    def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=(),
+                 repodata_fn=REPODATA_FN, command=NULL):
+        super().__init__(prefix, channels, subdirs=subdirs, specs_to_add=specs_to_add,
+                         specs_to_remove=specs_to_remove, repodata_fn=repodata_fn,
+                         command=command)
+        self._state = {}
+
+    def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
+                              should_retry_solve=False):
+        # Logic heavily based on Mamba's implementation:
+        # https://github.com/mamba-org/mamba/blob/master/mamba/mamba.py#L289 (solver parts)
+
+        print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
+
+        try:
+            # 1. Populate repos with installed packages
+            self._setup_state()
+            # 2. Create solver and needed flags, tasks and jobs
+            self._configure_solver()
+            # 3. Run the SAT solver
+            self._run_solver()
+            # 5. Export back to conda
+            return self._build_transaction()
+        finally:
+            # 6. Clean
+            self._state.clear()
+
+    def _setup_state(self):
+        from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
+        from mamba.mamba_api import Pool, Repo, PrefixData
+
+        init_api_context()
+
+        pool = Pool()
+
+        # TODO: Check if this update-related logic is needed here too
+        # Maybe conda already handles that beforehand
+        # https://github.com/mamba-org/mamba/blob/master/mamba/mamba.py#L426-L485
+
+        prefix_data = PrefixData(self.prefix)
+        prefix_data.load()
+        installed_json_f, installed_pkgs = get_installed_jsonfile(self.prefix)
+
+        repos = []
+        installed = Repo(pool, "installed", installed_json_f.name, "")
+        installed.set_installed()
+        repos.append(installed)
+
+        # This function will populate the pool/repos with
+        # the current state of the given channels
+        channels = [c.canonical_name for c in self.channels]
+        index = load_channels(pool, channels, repos)
+
+        self._state.update({
+            "pool": pool,
+            "prefix_data": prefix_data,
+            "repos": repos,
+            "index": index,
+            "installed_pkgs": installed_pkgs,
+        })
+
+        return self._state
+
+    def _configure_solver(self):
+        if self.specs_to_add or context.update_modifier == UpdateModifier.UPDATE_ALL:
+            return self._configure_solver_for_install()
+        elif self.specs_to_remove:
+            return self._configure_solver_for_remove()
+        else:
+            raise CondaError("No specs were passed. What should we do?", caused_by=self.__class__.__name__)
+
+    def _configure_solver_for_install(self):
+        from mamba import mamba_api as api
+
+        prefix_data = self._state["prefix_data"]
+        pool = self._state["pool"]
+
+        # Set different solver options
+        solver_args = (prefix_data,) if context.force_reinstall else ()
+        solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
+        if context.channel_priority is ChannelPriority.STRICT:
+            solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
+        solver_postsolve_flags = [
+            (api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS),
+            (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS),
+            (api.MAMBA_FORCE_REINSTALL, context.force_reinstall),
+        ]
+
+        solver = api.Solver(pool, solver_options, *solver_args)
+        solver.set_postsolve_flags(solver_postsolve_flags)
+
+        ### Configure jobs
+
+        # 1. Lock currently installed ones, if requested
+        if context.update_modifier is UpdateModifier.FREEZE_INSTALLED:
+            solver.add_jobs([p for p in prefix_data.package_records], api.SOLVER_LOCK)
+
+        # 2. Install/update user requested packages
+        specs_to_add = self._collect_specs_to_add()
+        solver_task = api.SOLVER_UPDATE if self._command == "update" else api.SOLVER_INSTALL
+        solver.add_jobs(specs_to_add, solver_task)
+
+        # 3. Special cases
+        # 3a. Handle aggressive updates
+        if not context.force_reinstall:
+            installed_names = [rec.name for rec in self._state["installed_pkgs"]]
+            always_update = [pkg.name for pkg in context.aggressive_update_packages
+                             if pkg.name in installed_names]
+            solver.add_jobs(always_update, api.SOLVER_UPDATE)
+        # 3b. Pin constrained packages in env
+        python_pin = self._pin_python()
+        if python_pin:
+            solver.add_pin(python_pin)
+        for pin in self._pinned_specs():
+            solver.add_pin(pin)
+
+        self._state["solver"] = solver
+        return solver
+
+    def _configure_solver_for_remove(self):
+        from mamba import mamba_api as api
+
+        solver_options = [
+            (api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1),
+            (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1)
+        ]
+        if context.channel_priority is ChannelPriority.STRICT:
+            solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
+        solver = api.Solver(self._state["pool"], solver_options)
+
+        history = api.History(self.prefix)
+        history_map = history.get_requested_specs_map()
+        solver.add_jobs(
+            [s.conda_build_form() for s in history_map.values()],
+            api.SOLVER_USERINSTALLED,
+        )
+        specs = [s.conda_build_form() for s in self.specs_to_remove]
+        solver.add_jobs(specs, api.SOLVER_ERASE | api.SOLVER_CLEANDEPS)
+
+        self._state["solver"] = solver
+        return solver
+
+    def _collect_specs_to_add(self):
+        """
+        Reimplement the logic found in super()._add_specs(), but simplified.
+        """
+        # A. Explicitly requested packages via CLI (either update or install)
+        specs_to_add = list(self.specs_to_add)
+        # B. Implicitly requested via `update --all`: add everything in prefix
+        if self._command == 'update' and context.update_modifier == UpdateModifier.UPDATE_ALL:
+            for pkg in self._state["installed_pkgs"]:
+                if not pkg.name.startswith("__"):  # skip virtual packages
+                    specs_to_add.append(MatchSpec(pkg.name))
+        # C. Implicitly requested via `install|update --update-deps`
+        elif context.update_modifier == UpdateModifier.UPDATE_DEPS:
+            final_specs = specs_to_add
+            for spec in specs_to_add:
+                prec = next(p for p in self._state["installed_pkgs"] if p.name == spec.name)
+                for dep in prec.depends:
+                    ms = MatchSpec(dep)
+                    if ms.name != "python":
+                        final_specs.append(MatchSpec(ms.name))
+            specs_to_add = list(set(final_specs))
+        return [s.conda_build_form() for s in specs_to_add]
+
+    def _pin_python(self):
+        """
+        If Python is already present in the environment and the user didn't
+        include it in the requested packages, make sure it remains pinned to
+        the minor version.
+        """
+        installed_names = [rec.name for rec in self._state["installed_pkgs"]]
+        is_installed = "python" in installed_names
+        is_explicitly_requested = any(s == "python" for s in self.specs_to_add_names)
+        is_requested_in_update_all = context.update_modifier == UpdateModifier.UPDATE_ALL
+        if is_installed and (is_requested_in_update_all or not is_explicitly_requested):
+            version = self._state["installed_pkgs"][installed_names.index("python")].version
+            major_minor_version = ".".join(version.split(".")[:2])
+            return f"python {major_minor_version}.*"
+
+    def _pinned_specs(self):
+        pinned_specs = get_pinned_specs(context.target_prefix)
+        if pinned_specs:
+            conda_prefix_data = PrefixData(context.target_prefix)
+        pin_these_specs = []
+        for s in pinned_specs:
+            x = conda_prefix_data.query(s.name)
+            if x:
+                for el in x:
+                    if not s.match(el):
+                        raise SpecsConfigurationConflictError([x], [el], self.prefix)
+            pin_these_specs.append(s.conda_build_form())
+        return pin_these_specs
+
+    def _run_solver(self):
+        solver = self._state["solver"]
+        solved = solver.solve()
+        # 4. Report problems if any
+        if not solved:
+            # it would be better if we could pass a graph object or something
+            # that the exception can actually format if needed
+            raise CondaError(solver.problems_to_str(), caused_by=self.__class__.__name__)
+
+    def _build_transaction(self):
+        from mamba import mamba_api as api
+        from mamba.utils import to_txn
+
+        transaction = api.Transaction(
+            self._state["solver"],
+            api.MultiPackageCache(context.pkgs_dirs),
+            PackageCacheData.first_writable().pkgs_dir,
+        )
+        (names_to_add, names_to_remove), to_link, to_unlink = transaction.to_conda()
+        specs_to_add = [MatchSpec(m) for m in names_to_add]
+        specs_to_remove = [MatchSpec(m) for m in names_to_remove]
+
+        return to_txn(
+            specs_to_add,
+            specs_to_remove,
+            self.prefix,
+            to_link,
+            to_unlink,
+            self._state["installed_pkgs"],
+            self._state["index"],
+        )
 
 
 class SolverStateContainer(object):
