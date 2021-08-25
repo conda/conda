@@ -20,7 +20,8 @@ from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN, ChannelPriority
+from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
+                              ChannelPriority)
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
@@ -1071,7 +1072,7 @@ class LibSolvSolver(Solver):
         try:
             # 1. Populate repos with installed packages
             self._setup_state()
-            # 2. Create solver and needed flags, tasks and jobs
+            # 2. Create solver and needed flags, tasks and jobs
             self._configure_solver()
             # 3. Run the SAT solver
             self._run_solver()
@@ -1090,8 +1091,8 @@ class LibSolvSolver(Solver):
         pool = Pool()
 
         # TODO: Check if this update-related logic is needed here too
-        # Maybe conda already handles that beforehand
-        # https://github.com/mamba-org/mamba/blob/master/mamba/mamba.py#L426-L485
+        # Maybe conda already handles that beforehand
+        # https://github.com/mamba-org/mamba/blob/master/mamba/mamba.py#L426-L485
 
         prefix_data = PrefixData(self.prefix)
         prefix_data.load()
@@ -1123,7 +1124,8 @@ class LibSolvSolver(Solver):
         elif self.specs_to_remove:
             return self._configure_solver_for_remove()
         else:
-            raise CondaError("No specs were passed. What should we do?", caused_by=self.__class__.__name__)
+            raise CondaError("No specs were passed. What should we do?",
+                             caused_by=self.__class__.__name__)
 
     def _configure_solver_for_install(self):
         from mamba import mamba_api as api
@@ -1145,7 +1147,7 @@ class LibSolvSolver(Solver):
         solver = api.Solver(pool, solver_options, *solver_args)
         solver.set_postsolve_flags(solver_postsolve_flags)
 
-        ### Configure jobs
+        # Configure jobs
 
         # 1. Lock currently installed ones, if requested
         if context.update_modifier is UpdateModifier.FREEZE_INSTALLED:
