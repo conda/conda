@@ -150,6 +150,11 @@ def convert_to_dist_str(solution):
     return tuple(prec.dist_str() for prec in solution)
 
 
+@pytest.fixture()
+def solver_logic():
+    return _get_solver_logic()
+
+
 def test_solve_1(tmpdir):
     specs = MatchSpec("numpy"),
 
@@ -2337,10 +2342,10 @@ def test_freeze_deps_1(tmpdir):
     #         assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
 
 
-def test_current_repodata_usage(tmpdir):
+def test_current_repodata_usage(tmpdir, solver_logic):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        solver = _get_solver_logic()(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
+        solver = solver_logic(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
                         specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
         final_state = solver.solve_final_state()
         # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
@@ -2355,8 +2360,8 @@ def test_current_repodata_usage(tmpdir):
             raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
-def test_current_repodata_fallback(tmpdir):
-    solver = _get_solver_logic()(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
+def test_current_repodata_fallback(tmpdir, solver_logic):
+    solver = solver_logic(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
                     specs_to_add=[MatchSpec('zlib=1.2.8')])
     final_state = solver.solve_final_state()
     # zlib 1.2.11, zlib 1.2.8, vc 14.1, vs2015_runtime, virtual package for vc track_feature
@@ -2426,37 +2431,37 @@ fake_index = [
 ]
 
 
-def test_packages_in_solution_change_already_newest(tmpdir):
+def test_packages_in_solution_change_already_newest(tmpdir, solver_logic):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
 
 
-def test_packages_in_solution_change_needs_update(tmpdir):
+def test_packages_in_solution_change_needs_update(tmpdir, solver_logic):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
 
 
-def test_packages_in_solution_change_constrained(tmpdir):
+def test_packages_in_solution_change_constrained(tmpdir, solver_logic):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 1
 
 
-def test_determine_constricting_specs_conflicts(tmpdir):
+def test_determine_constricting_specs_conflicts(tmpdir, solver_logic):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.0", channel="test", subdir="conda-test",
@@ -2470,13 +2475,13 @@ def test_determine_constricting_specs_conflicts(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
 
 
-def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
+def test_determine_constricting_specs_conflicts_upperbound(tmpdir, solver_logic):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2490,13 +2495,13 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
 
 
-def test_determine_constricting_specs_multi_conflicts(tmpdir):
+def test_determine_constricting_specs_multi_conflicts(tmpdir, solver_logic):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2515,14 +2520,14 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
     assert any(i for i in constricting if i[0] == "notmypkg")
 
 
-def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(tmpdir):
+def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(tmpdir, solver_logic):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2536,13 +2541,13 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
 
-def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
+def test_determine_constricting_specs_no_conflicts_version_star(tmpdir, solver_logic):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2556,13 +2561,13 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
 
-def test_determine_constricting_specs_no_conflicts_free(tmpdir):
+def test_determine_constricting_specs_no_conflicts_free(tmpdir, solver_logic):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2571,13 +2576,13 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
 
-def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
+def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir, solver_logic):
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC, name="mypkg", version="0.1.1", channel="test", subdir="conda-test",
@@ -2591,7 +2596,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_logic()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = solver_logic(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                     specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
