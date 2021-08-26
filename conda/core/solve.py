@@ -1064,8 +1064,8 @@ class LibSolvSolver(Solver):
     def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
                               ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
                               should_retry_solve=False):
-        # Logic heavily based on Mamba's implementation:
-        # https://github.com/mamba-org/mamba/blob/master/mamba/mamba.py#L289 (solver parts)
+        # Logic heavily based on Mamba's implementation (solver parts):
+        # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L289
 
         print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
 
@@ -1092,7 +1092,7 @@ class LibSolvSolver(Solver):
 
         # TODO: Check if this update-related logic is needed here too
         # Maybe conda already handles that beforehand
-        # https://github.com/mamba-org/mamba/blob/master/mamba/mamba.py#L426-L485
+        # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L426-L485
 
         prefix_data = PrefixData(self.prefix)
         prefix_data.load()
