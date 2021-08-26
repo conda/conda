@@ -1115,7 +1115,11 @@ class LibSolvSolver(Solver):
         return state
 
     def _configure_solver(self, state):
-        if self.specs_to_add or context.update_modifier == UpdateModifier.UPDATE_ALL:
+        solve_for_install = self.specs_to_add or context.update_modifier == UpdateModifier.UPDATE_ALL
+        if solve_for_install and self.specs_to_remove:
+            raise CondaError("Simultaneous install and remove operations "
+                             "are not supported by the libsolv solver.")
+        elif solve_for_install:
             return self._configure_solver_for_install(state)
         elif self.specs_to_remove:
             return self._configure_solver_for_remove(state)
