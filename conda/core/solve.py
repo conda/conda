@@ -1071,7 +1071,7 @@ class LibSolvSolver(Solver):
         # 1. Populate repos with installed packages
         state = self._setup_state()
         # 2. Create solver and needed flags, tasks and jobs
-        self._configure_solver()
+        self._configure_solver(state)
         # 3. Run the SAT solver
         self._run_solver(state)
         # 5. Export back to conda
