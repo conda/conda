@@ -86,6 +86,11 @@ class SolverTests:
         self.assert_record_in('channel-1::numpy-1.7.1-py27_p0', records)
         self.assert_record_in('channel-1::scipy-0.12.0-np17py27_p0', records)
 
+    def test_anaconda_nomkl(self):
+        records = self.install('anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*')
+        assert len(records) == 107
+        self.assert_record_in('channel-1::scipy-0.12.0-np17py27_0', records)
+
 
 class TestLegacySolver(SolverTests):
     @property
