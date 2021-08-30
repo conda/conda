@@ -66,6 +66,11 @@ class SolverTests:
             'mkl 11*', MatchSpec(track_features='mkl')
         )
 
+    def test_accelerate(self):
+        assert self.install('accelerate') == self.install(
+            'accelerate', MatchSpec(track_features='mkl')
+        )
+
 
 class TestLegacySolver(SolverTests):
     @property
