@@ -9,6 +9,7 @@ import conda.core.solve
 
 from conda.base.context import context
 from conda.models.channel import Channel
+from conda.resolve import MatchSpec
 
 from . import helpers
 
@@ -58,6 +59,11 @@ class SolverTests:
                 'channel-1::unixodbc-2.3.1-0',
                 'channel-1::zlib-1.2.7-0',
             ],
+        )
+
+    def test_mkl(self):
+        assert self.install('mkl') == self.install(
+            'mkl 11*', MatchSpec(track_features='mkl')
         )
 
 
