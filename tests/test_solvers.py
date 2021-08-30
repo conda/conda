@@ -42,6 +42,11 @@ class SolverTests:
             record.dist_str() for record in self.install(*specs)
          ) == sorted(helpers.add_subdir_to_iter(expecting))
 
+    def assert_record_in(self, record_str, records):
+        assert helpers.add_subdir(record_str) in [
+            record.dist_str() for record in records
+        ]
+
     def test_empty(self):
         assert self.install() == []
 
@@ -70,6 +75,16 @@ class SolverTests:
         assert self.install('accelerate') == self.install(
             'accelerate', MatchSpec(track_features='mkl')
         )
+
+    def test_scipy_mkl(self):
+        records = self.install('scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl'))
+
+        for record in records:
+            if record.name in ('numpy', 'scipy'):
+                assert 'mkl' in record.features
+
+        self.assert_record_in('channel-1::numpy-1.7.1-py27_p0', records)
+        self.assert_record_in('channel-1::scipy-0.12.0-np17py27_p0', records)
 
 
 class TestLegacySolver(SolverTests):
