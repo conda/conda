@@ -5,10 +5,10 @@ on:
     branches:
       - master
     paths-ignore:
-      - 'docs/**'
+      - "docs/**"
   pull_request:
     paths-ignore:
-      - 'docs/**'
+      - "docs/**"
 
 jobs:
   windows:
@@ -17,74 +17,74 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.7, 3.8, 3.9]
-        conda-subdir: ['win-64']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
+        conda-subdir: ["win-64"]
+        test-type: ["unit", "integration"]
+        test-group: ["1", "2", "3"]
     env:
-      OS: 'win-64'
+      OS: "win-64"
       PYTHON: ${{ matrix.python-version }}
       CONDA_SUBDIR: ${{ matrix.conda-subdir }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
-    - name: Set temp dirs correctly
-      shell: bash -l {0}
-      # https://github.com/actions/virtual-environments/issues/712
-      run: |
-        echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-        echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-        echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+      - name: Set temp dirs correctly
+        shell: bash -l {0}
+        # https://github.com/actions/virtual-environments/issues/712
+        run: |
+          echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+          echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+          echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
 
-    - name: Setup environment
-      shell: cmd
-      run: |
-        call .\ci\scripts\windows\setup.bat
+      - name: Setup environment
+        shell: cmd
+        run: |
+          call .\ci\scripts\windows\setup.bat
 
-    - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-      shell: cmd
-      run: |
-        call .\ci\scripts\windows\${{ matrix.test-type }}.bat
+      - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+        shell: cmd
+        run: |
+          call .\ci\scripts\windows\${{ matrix.test-type }}.bat
 
-    - uses: codecov/codecov-action@v2
-      with:
-        flags: ${{ matrix.test-type }}
-        env_vars: OS,PYTHON
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: ${{ matrix.test-type }}
+          env_vars: OS,PYTHON
 
   linux:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        test-splits: ['3']
-        conda-solver-logic: ['legacy']
+        python-version: ["3.7", "3.8", "3.9"]
+        test-type: ["unit", "integration"]
+        test-group: ["1", "2", "3"]
+        test-splits: ["3"]
+        conda-solver-logic: ["legacy"]
         include:
-          - python-version: '3.9'
-            test-type: 'integration'
-            conda-solver-logic: 'libsolv'
-            test-splits: '3'
-            test-group: '1'
-          - python-version: '3.9'
-            test-type: 'integration'
-            conda-solver-logic: 'libsolv'
-            test-splits: '3'
-            test-group: '2'
-          - python-version: '3.9'
-            test-type: 'integration'
-            conda-solver-logic: 'libsolv'
-            test-splits: '3'
-            test-group: '3'
-          - python-version: '3.9'
-            test-type: 'experimental-resolver'
-            conda-solver-logic: 'libsolv'
+          - python-version: "3.9"
+            test-type: "integration"
+            conda-solver-logic: "libsolv"
+            test-splits: "3"
+            test-group: "1"
+          - python-version: "3.9"
+            test-type: "integration"
+            conda-solver-logic: "libsolv"
+            test-splits: "3"
+            test-group: "2"
+          - python-version: "3.9"
+            test-type: "integration"
+            conda-solver-logic: "libsolv"
+            test-splits: "3"
+            test-group: "3"
+          - python-version: "3.9"
+            test-type: "experimental-resolver"
+            conda-solver-logic: "libsolv"
     env:
-      OS: 'linux'
+      OS: "linux"
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
@@ -101,7 +101,7 @@ jobs:
           -e TEST_SPLITS
           -e TEST_GROUP
           -e CONDA_SOLVER_LOGIC
-          ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}-mamba
+          ghcr.io/conda/conda-ci:poc-libsolv-linux-python${{ matrix.python-version }}-mamba
           /opt/conda-src/ci/scripts/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
