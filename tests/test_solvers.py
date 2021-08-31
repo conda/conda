@@ -1,13 +1,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import contextlib
+import re
 import tempfile
+import textwrap
 
 from typing import Type
+
+import pytest
 
 import conda.core.solve
 
 from conda.base.context import context
+from conda.exceptions import ResolvePackageNotFound, UnsatisfiableError
 from conda.models.channel import Channel
 from conda.resolve import MatchSpec
 
@@ -46,6 +51,13 @@ class SolverTests:
         assert helpers.add_subdir(record_str) in [
             record.dist_str() for record in records
         ]
+
+    def assert_unsatisfiable(self, exc_info, entries):
+        assert exc_info.type is UnsatisfiableError
+        assert sorted(
+            tuple(map(str, entries))
+            for entries in exc_info.value.unsatisfiable
+        ) == entries
 
     def test_empty(self):
         assert self.install() == []
@@ -122,6 +134,28 @@ class SolverTests:
                 'channel-1::zlib-1.2.7-0',
             ],
         )
+
+    def test_unsat_from_r1(self):
+        with pytest.raises(UnsatisfiableError) as exc_info:
+            self.install('numpy 1.5*', 'scipy 0.12.0b1')
+        self.assert_unsatisfiable(exc_info, [
+            ('numpy=1.5',),
+            ('scipy==0.12.0b1', "numpy[version='1.6.*|1.7.*']"),
+        ])
+
+        with pytest.raises(UnsatisfiableError) as exc_info:
+            self.install('numpy 1.5*', 'python 3*')
+        self.assert_unsatisfiable(exc_info, [
+            ('numpy=1.5', 'nose', 'python=3.3'),
+            ('numpy=1.5', "python[version='2.6.*|2.7.*']"),
+            ('python=3',),
+        ])
+
+        with pytest.raises(ResolvePackageNotFound) as exc_info:
+            self.install('numpy 1.5*', 'numpy 1.6*')
+        assert sorted(map(str, exc_info.value.bad_deps)) == [
+            "numpy[version='1.5.*,1.6.*']",
+        ]
 
 
 
