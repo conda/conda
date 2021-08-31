@@ -91,6 +91,39 @@ class SolverTests:
         assert len(records) == 107
         self.assert_record_in('channel-1::scipy-0.12.0-np17py27_0', records)
 
+    def test_pseudo_boolean(self):
+        # The latest version of iopro, 1.5.0, was not built against numpy 1.5
+        self.assert_installed(
+            ['iopro', 'python 2.7*', 'numpy 1.5*'], [
+                'channel-1::iopro-1.4.3-np15py27_p0',
+                'channel-1::numpy-1.5.1-py27_4',
+                'channel-1::openssl-1.0.1c-0',
+                'channel-1::python-2.7.5-0',
+                'channel-1::readline-6.2-0',
+                'channel-1::sqlite-3.7.13-0',
+                'channel-1::system-5.8-1',
+                'channel-1::tk-8.5.13-0',
+                'channel-1::unixodbc-2.3.1-0',
+                'channel-1::zlib-1.2.7-0',
+            ],
+        )
+        self.assert_installed(
+            ['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], [
+                'channel-1::iopro-1.4.3-np15py27_p0',
+                'channel-1::mkl-rt-11.0-p0',
+                'channel-1::numpy-1.5.1-py27_p4',
+                'channel-1::openssl-1.0.1c-0',
+                'channel-1::python-2.7.5-0',
+                'channel-1::readline-6.2-0',
+                'channel-1::sqlite-3.7.13-0',
+                'channel-1::system-5.8-1',
+                'channel-1::tk-8.5.13-0',
+                'channel-1::unixodbc-2.3.1-0',
+                'channel-1::zlib-1.2.7-0',
+            ],
+        )
+
+
 
 class TestLegacySolver(SolverTests):
     @property
