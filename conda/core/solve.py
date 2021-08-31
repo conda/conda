@@ -1077,6 +1077,16 @@ class LibSolvSolver(Solver):
         # 5. Export back to conda
         return self._build_transaction(state)
 
+    def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
+                       should_retry_solve=False):
+        raise NotImplementedError("WIP")
+
+    def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
+                       should_retry_solve=False):
+        raise NotImplementedError("WIP")
+
     def _setup_state(self):
         from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
         from mamba.mamba_api import Pool, Repo, PrefixData
