@@ -101,7 +101,7 @@ jobs:
           -e TEST_SPLITS
           -e TEST_GROUP
           -e CONDA_SOLVER_LOGIC
-          ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}
+          ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}-mamba
           /opt/conda-src/ci/scripts/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
