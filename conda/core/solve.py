@@ -1083,8 +1083,8 @@ class LibSolvSolver(Solver):
         raise NotImplementedError("WIP")
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
-                       should_retry_solve=False):
+                          ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
+                          should_retry_solve=False):
         raise NotImplementedError("WIP")
 
     def _setup_state(self):
