@@ -63,6 +63,7 @@ jobs:
         test-type: ['unit', 'integration', 'experimental-resolver']
         test-group: ['1', '2', '3']
         test-splits: ['3']
+        conda-solver-logic: ['legacy']
         include:
           - python-version: '3.9'
             test-type: 'integration'
