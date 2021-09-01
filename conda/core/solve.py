@@ -1061,9 +1061,9 @@ class LibSolvSolver(Solver):
                          specs_to_remove=specs_to_remove, repodata_fn=repodata_fn,
                          command=command)
 
-    def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
-                              should_retry_solve=False):
+    def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                          ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
+                          should_retry_solve=False):
         # Logic heavily based on Mamba's implementation (solver parts):
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L289
 
@@ -1075,18 +1075,8 @@ class LibSolvSolver(Solver):
         self._configure_solver(state)
         # 3. Run the SAT solver
         self._run_solver(state)
-        # 5. Export back to conda
-        return self._build_transaction(state)
-
-    def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
-                       should_retry_solve=False):
-        raise NotImplementedError("WIP")
-
-    def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                          ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
-                          should_retry_solve=False):
-        raise NotImplementedError("WIP")
+        # 4. Export back to conda
+        return self._export_final_state(state)
 
     def _setup_state(self):
         from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
@@ -1271,7 +1261,7 @@ class LibSolvSolver(Solver):
             # that the exception can actually format if needed
             raise CondaError(solver.problems_to_str(), caused_by=self.__class__.__name__)
 
-    def _build_transaction(self, state):
+    def _export_final_state(self, state):
         from mamba import mamba_api as api
         from mamba.utils import to_package_record_from_subjson
 
@@ -1285,14 +1275,15 @@ class LibSolvSolver(Solver):
             PackageCacheData.first_writable().pkgs_dir,
         )
         (names_to_add, names_to_remove), to_link, to_unlink = transaction.to_conda()
-        specs_to_add = [MatchSpec(m) for m in names_to_add]
-        specs_to_remove = [MatchSpec(m) for m in names_to_remove]
+
+        # NOTE: We are exporting state back to the class! These are expected by
+        # super().solve_for_diff() and super().solve_for_transaction() :/
+        self.specs_to_add = [MatchSpec(m) for m in names_to_add]
+        self.specs_to_remove = [MatchSpec(m) for m in names_to_remove]
 
         to_link_records, to_unlink_records = [], []
 
-        # What follows below is mainly mamba.utils.to_txn with some patches
-        # We will simplify this to save some transaction conversions
-        # whenever possible - TODO
+        # What follows below is taken from mamba.utils.to_txn with some patches
         conda_prefix_data = PrefixData(self.prefix)
         final_precs = IndexedSet(conda_prefix_data.iter_records())
 
@@ -1326,29 +1317,7 @@ class LibSolvSolver(Solver):
             final_precs.add(rec)
             to_link_records.append(rec)
 
-        unlink_precs, link_precs = diff_for_unlink_link_precs(
-            self.prefix,
-            final_precs=IndexedSet(PrefixGraph(final_precs).graph),
-            specs_to_add=specs_to_add,
-            force_reinstall=context.force_reinstall,
-        )
-
-        pref_setup = PrefixSetup(
-            target_prefix=self.prefix,
-            unlink_precs=unlink_precs,
-            link_precs=link_precs,
-            remove_specs=specs_to_remove,
-            update_specs=specs_to_add,
-            neutered_specs=(),
-        )
-
-        # TODO:
-        # At this point we can provide the different levels of the API!
-        # solve_final_state -> pass final_precs
-        # solve_for_diff -> unlink_precs, link_precs
-        # solve_for_transaction -> returned object below
-
-        return UnlinkLinkTransaction(pref_setup)
+        return IndexedSet(PrefixGraph(final_precs).graph)
 
 
 class SolverStateContainer(object):
