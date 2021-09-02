@@ -216,23 +216,29 @@ def _export_subdir_data_to_repodata(subdir_data, index):
             "packages": packages,
         }
 
+
 def _sync_channel_to_disk(channel, subdir_data, index):
     base = Path(EXPORTED_CHANNELS_DIR) / channel.name
     subdir = base / channel.platform
     subdir.mkdir(parents=True, exist_ok=True)
     with open(subdir / "repodata.json", "w") as f:
         json.dump(_export_subdir_data_to_repodata(subdir_data, index), f)
+        f.flush()
+        os.fsync(f.fileno())
 
     noarch = base / "noarch"
     noarch.mkdir(parents=True, exist_ok=True)
     with open(noarch / "repodata.json", "w") as f:
         json.dump({}, f)
+        f.flush()
+        os.fsync(f.fileno())
 
 
 def _patch_for_local_exports(name, subdir_data, channel, index):
+    # export repodata state to disk for other solvers to test
     local_proxy_channel = Channel(f'{EXPORTED_CHANNELS_DIR}/{name}')
     SubdirData._cache_[(local_proxy_channel.url(with_credentials=True), "repodata.json")] = subdir_data
-    # export repodata state to disk for other solvers to test
+
     # we need to override the modification time here so the
     # cache hits this subdir_data object from the local copy too
     # - without this, the legacy solver will use the local dump too
@@ -240,9 +246,10 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
     # (check conda.core.subdir_data.SubdirDataType.__call__ for
     # details)
     _sync_channel_to_disk(channel, subdir_data, index)
-    subdir_data._mtime = time()
+    subdir_data._mtime = float("inf")
 
-@memoize
+
+# @memoize
 def get_index_r_1(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index.json')) as fi:
         packages = json.load(fi)
@@ -270,7 +277,7 @@ def get_index_r_1(subdir=context.subdir):
     return index, r
 
 
-@memoize
+# @memoize
 def get_index_r_2(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index2.json')) as fi:
         packages = json.load(fi)
@@ -297,7 +304,7 @@ def get_index_r_2(subdir=context.subdir):
     return index, r
 
 
-@memoize
+# @memoize
 def get_index_r_4(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index4.json')) as fi:
         packages = json.load(fi)
@@ -324,7 +331,7 @@ def get_index_r_4(subdir=context.subdir):
     return index, r
 
 
-@memoize
+# @memoize
 def get_index_r_5(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index5.json')) as fi:
         packages = json.load(fi)
@@ -351,7 +358,7 @@ def get_index_r_5(subdir=context.subdir):
     return index, r
 
 
-@memoize
+# @memoize
 def get_index_must_unfreeze(subdir=context.subdir):
     repodata = {
         "info": {
