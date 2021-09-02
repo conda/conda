@@ -4,135 +4,84 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
 
 jobs:
-  windows-tests:
+  windows:
     runs-on: windows-2019
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.7, 3.8, 3.9]
-        conda_subdir: ['win-64']
-        test_type: ['unit', 'integration']
+        python-version: [3.7, 3.8, 3.9]
+        conda-subdir: ['win-64']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3']
+    env:
+      OS: 'win-64'
+      PYTHON: ${{ matrix.python-version }}
+      CONDA_SUBDIR: ${{ matrix.conda-subdir }}
+      TEST_SPLITS: 3
+      TEST_GROUP: ${{ matrix.test-group }}
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
 
-    - name: Link conda and source folders on temp drive
-      shell: cmd
+    - name: Set temp dirs correctly
+      shell: bash -l {0}
+      # https://github.com/actions/virtual-environments/issues/712
       run: |
-        @ECHO ON
-        pushd %TEMP%
-        set CONDA=C:\Miniconda
-        mklink /J \conda_bin %CONDA%
-        mklink /J \conda_src %GITHUB_WORKSPACE%
+        echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+        echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+        echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
 
-    - name: Initialize test environment
+    - name: Setup environment
       shell: cmd
       run: |
-        @ECHO ON
-        set CONDA_SUBDIR=${{ matrix.conda_subdir }}
-        if ${{ matrix.python_version }} == 2.7 set SCANDIR=scandir
-        pushd %TEMP%
-        cd \conda_src
-        CALL \conda_bin\scripts\activate.bat
-        CALL conda create -n ci_base -y python=${{ matrix.python_version }} pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses urllib3 pexpect pywin32 anaconda-client conda-package-handling %SCANDIR%
-        CALL conda activate ci_base
-        CALL conda install -yq pip conda-build conda-verify
-        CALL conda update openssl ca-certificates certifi
-        pip install codecov
-        python -m conda init cmd.exe --dev
-      
-    - name: Build activate-deactivate package
-      shell: cmd
-      run: |
-        @ECHO ON
-        pushd %TEMP%
-        cd \conda_src
-        CALL dev-init.bat
-        CALL conda info -a
-        CALL conda-build tests\test-recipes\activate_deactivate_package
-    
-    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} unit tests
-      shell: cmd
-      if: ${{ matrix.test_type == 'unit' }}
-      run: |
-        @ECHO ON
-        pushd %TEMP%
-        cd \conda_src
-        CALL dev-init.bat
-        CALL py.test -m "not integration and not installed" --junitxml=junit/test-results-unit.xml --cov=conda --cov-report=xml -v
-    
-    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 1
-      shell: cmd
-      if: ${{ matrix.test_type == 'integration' }}
-      run: |
-        @ECHO ON
-        pushd %TEMP%
-        cd \conda_src
-        CALL dev-init.bat
-        CALL py.test -m "integration and not installed" -k "cli" --basetemp=C:\tmp --junitxml=junit/test-results-integration_g1.xml --cov=conda --cov-report=xml -v
+        call .\ci\scripts\windows\setup.bat
 
-    - name: py${{ matrix.python_version }} ${{ matrix.conda_subdir }} integration test group 2
-      shell: cmd
-      if: ${{ matrix.test_type == 'integration' }}
-      run: |
-        @ECHO ON
-        pushd %TEMP%
-        cd \conda_src
-        CALL dev-init.bat
-        CALL py.test -m "integration and not installed" -k "not cli" --basetemp=C:\tmp  --junitxml=junit/test-results-integration_g2.xml --cov=conda --cov-report=xml -v --cov-append
-
-    - name: 'Upload to codecov.io'
+    - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
       shell: cmd
       run: |
-        pushd %TEMP%
-        cd \conda_src
-        curl -s https://codecov.io/bash > codecov_uploader.sh
-        bash -c ". codecov_uploader.sh -C $GITHUB_SHA"
+        call .\ci\scripts\windows\${{ matrix.test-type }}.bat
 
-  build_docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: build the docs
-        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
-        with:
-          entrypoint: /bin/bash
-          args: ./ci/build_docs.sh
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: flake8
-        uses: docker://continuumio/conda-ci-linux-64-python3.7:latest
-        with:
-          entrypoint: /bin/bash
-          args: -c "/opt/conda/bin/flake8 --statistics"
+    - uses: codecov/codecov-action@v2
+      with:
+        flags: ${{ matrix.test-type }}
+        env_vars: OS,PYTHON
 
-  linux-tests:
+  linux:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.7', '3.8', '3.9']
-        test_type: ['unit', 'integration']
+        python-version: ['3.7', '3.8', '3.9']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3']
+    env:
+      OS: 'linux'
+      PYTHON: ${{ matrix.python-version }}
+      TEST_SPLITS: 3
+      TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Python ${{ matrix.python_version }} ${{ matrix.test_type }} tests
-        run: docker run --rm -v ${PWD}:/conda ghcr.io/conda/conda:master-python${{ matrix.python_version }} /conda/ci/${{ matrix.test_type }}_tests.sh
-      - name: upload codecov
-        run: |
-          if [[ $(git diff origin/master --name-only | wc -l) == $(git diff origin/master --name-only | grep docs | wc -l) && $(git diff origin/master --name-only | grep docs) ]]; then
-            echo "No codecov report to upload"
-          else
-            bash <(curl -s https://codecov.io/bash)
-          fi
+
+      - name: Python ${{ matrix.python-version }} ${{ matrix.test_type }} tests, group ${{ matrix.test-group }}
+        run: >
+          docker run
+          --rm -v ${PWD}:/opt/conda-src
+          -e TEST_SPLITS
+          -e TEST_GROUP
+          ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}
+          /opt/conda-src/ci/scripts/linux/${{ matrix.test-type }}.sh
+
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: ${{ matrix.test-type }}
+          env_vars: OS,PYTHON

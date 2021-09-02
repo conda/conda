@@ -21,7 +21,7 @@ from conda.common.pkg_formats.python import (
 )
 from conda.common.url import join_url
 import pytest
-from test_data.env_metadata import METADATA_VERSION_PATHS
+from tests.data.env_metadata import METADATA_VERSION_PATHS
 
 
 # Helpers

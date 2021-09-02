@@ -19,4 +19,4 @@ echo $CONDA_PREFIX
 [ $(python -c "import sys; print(sys.version_info[1])") = 9 ] || exit 1
 python -c '__requires__ = ["ruamel_yaml_conda >= 0.11.14"]; import pkg_resources' || exit 1
 conda deactivate
-py.test tests -m "not integration and not installed" -vv
+pytest tests -m "not integration and not installed" -vv

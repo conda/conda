@@ -1,0 +1,32 @@
+# conda
+# run as 'conda install --file tests/requirements.txt -c defaults'
+anaconda-client
+beautifulsoup4
+chardet
+conda
+conda-build
+conda-package-handling
+conda-verify
+conda-forge::pytest-split
+cytoolz
+filelock
+flake8
+git
+mock
+nbformat
+perl
+pexpect
+pip
+pkginfo
+pycosat
+pycrypto
+pyflakes
+pytest-cov
+pytest-mock
+pytest-rerunfailures
+pytest-timeout
+pytest-xdist
+pytest
+requests
+responses
+ruamel_yaml

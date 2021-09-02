@@ -1045,6 +1045,7 @@ def test_irrational_version():
     ])
 
 
+@pytest.mark.flaky(reruns=5, reruns_delay=2)
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
     result = r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'], returnall=True)

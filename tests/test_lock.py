@@ -94,7 +94,7 @@ def test_lock_retries(tmpdir):
     def lock_thread_retries(tmpdir, file_path):
         with pytest.raises(LockError) as execinfo:
             with FileLock(file_path, retries=0):
-                assert False  # should never enter here, since max_tires is 0
+                assert False  # should never enter here, since max_tries is 0
             assert "LOCKERROR" in str(execinfo.value)
 
     from threading import Thread

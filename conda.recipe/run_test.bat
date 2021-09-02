@@ -30,4 +30,4 @@ SET MSYS2_PATH_TYPE=inherit
 SET CHERE_INVOKING=1
 FOR /F "delims=" %%i IN ('cygpath.exe -u "%PREFIX%"') DO set "PREFIXP=%%i"
 bash -lc "source %PREFIXP%/Scripts/activate"
-py.test tests -m "not integration and not installed" -vv
+pytest tests -m "not integration and not installed" -vv

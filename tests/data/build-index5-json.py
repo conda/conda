@@ -4,7 +4,7 @@ from pprint import pprint
 
 from conda.core.subdir_data import fetch_repodata_remote_request
 
-DATA_DIR = abspath(join(dirname(__file__), "..", "..", "test-data", "repodata"))
+DATA_DIR = abspath(join(dirname(__file__), "repodata"))
 
 def save_data_source(url, name):
     raw_repodata_str = fetch_repodata_remote_request(url, None, None)
