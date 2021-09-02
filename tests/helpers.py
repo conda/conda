@@ -229,6 +229,19 @@ def _sync_channel_to_disk(channel, subdir_data, index):
         json.dump({}, f)
 
 
+def _patch_for_local_exports(name, subdir_data, channel, index):
+    local_proxy_channel = Channel(f'{EXPORTED_CHANNELS_DIR}/{name}')
+    SubdirData._cache_[(local_proxy_channel.url(with_credentials=True), "repodata.json")] = subdir_data
+    # export repodata state to disk for other solvers to test
+    # we need to override the modification time here so the
+    # cache hits this subdir_data object from the local copy too
+    # - without this, the legacy solver will use the local dump too
+    # and there's no need for that extra work
+    # (check conda.core.subdir_data.SubdirDataType.__call__ for
+    # details)
+    _sync_channel_to_disk(channel, subdir_data, index)
+    subdir_data._mtime = time()
+
 @memoize
 def get_index_r_1(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index.json')) as fi:
@@ -243,27 +256,17 @@ def get_index_r_1(subdir=context.subdir):
         }
 
     channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
-    local_proxy_channel = Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1')
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
-    SubdirData._cache_[(local_proxy_channel.url(with_credentials=True), "repodata.json")] = sd
 
     index = {prec: prec for prec in sd._package_records}
     add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
 
-    # export repodata state to disk for other solvers to test
-    # we need to override the modification time here so the
-    # cache hits this subdir_data object from the local copy too
-    # - without this, the legacy solver will use the local dump too
-    # and there's no need for that extra work
-    # (check conda.core.subdir_data.SubdirDataType.__call__ for
-    # details)
-    _sync_channel_to_disk(channel, sd, index)
-    sd._mtime = time()
+    _patch_for_local_exports("channel-1", sd, channel, index)
     return index, r
 
 
@@ -289,6 +292,8 @@ def get_index_r_2(subdir=context.subdir):
 
     index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
+
+    _patch_for_local_exports("channel-2", sd, channel, index)
     return index, r
 
 
@@ -315,6 +320,7 @@ def get_index_r_4(subdir=context.subdir):
     index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
 
+    _patch_for_local_exports("channel-4", sd, channel, index)
     return index, r
 
 
@@ -341,6 +347,7 @@ def get_index_r_5(subdir=context.subdir):
     index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
 
+    _patch_for_local_exports("channel-5", sd, channel, index)
     return index, r
 
 
@@ -451,6 +458,7 @@ def get_index_must_unfreeze(subdir=context.subdir):
     index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
 
+    _patch_for_local_exports("channel-freeze", sd, channel, index)
     return index, r
 
 
@@ -478,4 +486,6 @@ def get_index_cuda(subdir=context.subdir):
 
     add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
+
+    _patch_for_local_exports("channel-1", sd, channel, index)
     return index, r
