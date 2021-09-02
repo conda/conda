@@ -28,7 +28,7 @@ from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
 from conda.resolve import MatchSpec
 from ..helpers import add_subdir_to_iter, get_index_r_1, get_index_r_2, get_index_r_4, \
-    get_index_r_5, get_index_cuda, get_index_must_unfreeze
+    get_index_r_5, get_index_cuda, get_index_must_unfreeze, EXPORTED_CHANNELS_DIR
 
 from conda.common.compat import iteritems, on_win
 
@@ -48,7 +48,7 @@ def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), h
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_1(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-1'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -61,7 +61,7 @@ def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_2(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-2'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -74,7 +74,7 @@ def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-4'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -87,7 +87,7 @@ def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_5(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-5'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-5'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -101,7 +101,7 @@ def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     get_index_r_2(context.subdir)
     get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-2'), Channel('channel-4'), ),
+        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2'), Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'), ),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -115,7 +115,7 @@ def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     get_index_r_2(context.subdir)
     get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-4'), Channel('channel-2')),
+        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'), Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2')),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -128,7 +128,7 @@ def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_must_unfreeze(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-freeze'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-freeze'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -141,13 +141,19 @@ def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_cuda(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-1'),), (context.subdir,),
+        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
 def convert_to_dist_str(solution):
-    return tuple(prec.dist_str() for prec in solution)
+    dist_str = []
+    for prec in solution:
+        # This is needed to remove the local path prefix in the
+        # dist_str() calls, otherwise we cannot compare them
+        prec.channel._Channel__canonical_name = prec.channel.name
+        dist_str.append(prec.dist_str())
+    return tuple(dist_str)
 
 
 @pytest.fixture()

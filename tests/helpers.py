@@ -12,10 +12,12 @@ import re
 from shlex import split
 from conda._vendor.auxlib.compat import shlex_split_unicode
 import sys
-from tempfile import gettempdir
+from tempfile import gettempdir, mkdtemp
 from unittest import mock
 from unittest.mock import patch
 from uuid import uuid4
+from pathlib import Path
+from time import time
 
 from conda import cli
 from conda._vendor.auxlib.decorators import memoize
@@ -40,6 +42,8 @@ except ImportError:
     from mock import patch
 
 TEST_DATA_DIR = abspath(join(dirname(__file__), "data"))
+EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
+
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
 def strip_expected(stderr):
@@ -177,6 +181,54 @@ def add_feature_records_legacy(index):
         rec = make_feature_record(feature_name)
         index[rec] = rec
 
+
+def _package_record_to_repodata_dict(prec):
+    return {
+            prec.fn: {
+                "build": prec.build,
+                "build_number": prec.build_number,
+                "depends": prec.depends,
+                "license": prec.license,
+                "md5": prec.md5,
+                "name": prec.name,
+                "sha256": prec.sha256,
+                "size": getattr(prec, "size", 0),
+                "subdir": prec.subdir,
+                "timestamp": prec.timestamp,
+                "version": prec.version,
+            }
+        }
+
+def _export_subdir_data_to_repodata(subdir_data, index):
+    state = subdir_data._internal_state
+    packages = {}
+    for pkg in index:
+        packages.update(_package_record_to_repodata_dict(pkg))
+    return {
+            "_cache_control": state["_cache_control"],
+            "_etag": state["_etag"],
+            "_mod": state["_mod"],
+            "_url": state["_url"],
+            "_add_pip": state["_add_pip"],
+            "info": {
+                "subdir": context.subdir,
+            },
+            "packages": packages,
+        }
+
+def _sync_channel_to_disk(channel, subdir_data, index):
+    base = Path(EXPORTED_CHANNELS_DIR) / channel.name
+    subdir = base / channel.platform
+    subdir.mkdir(parents=True, exist_ok=True)
+    with open(subdir / "repodata.json", "w") as f:
+        json.dump(_export_subdir_data_to_repodata(subdir_data, index), f)
+
+    noarch = base / "noarch"
+    noarch.mkdir(parents=True, exist_ok=True)
+    with open(noarch / "repodata.json", "w") as f:
+        json.dump({}, f)
+
+
 @memoize
 def get_index_r_1(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index.json')) as fi:
@@ -191,15 +243,27 @@ def get_index_r_1(subdir=context.subdir):
         }
 
     channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
+    local_proxy_channel = Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1')
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
+    SubdirData._cache_[(local_proxy_channel.url(with_credentials=True), "repodata.json")] = sd
 
     index = {prec: prec for prec in sd._package_records}
     add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
+
+    # export repodata state to disk for other solvers to test
+    # we need to override the modification time here so the
+    # cache hits this subdir_data object from the local copy too
+    # - without this, the legacy solver will use the local dump too
+    # and there's no need for that extra work
+    # (check conda.core.subdir_data.SubdirDataType.__call__ for
+    # details)
+    _sync_channel_to_disk(channel, sd, index)
+    sd._mtime = time()
     return index, r
 
 
