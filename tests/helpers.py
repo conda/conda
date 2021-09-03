@@ -18,9 +18,11 @@ from unittest.mock import patch
 from uuid import uuid4
 from pathlib import Path
 from time import time
+import collections
 
 from conda import cli
 from conda._vendor.auxlib.decorators import memoize
+from conda.base.constants import REPODATA_FN
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems, itervalues, encode_arguments
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
@@ -531,3 +533,37 @@ class SimpleRecord(PackageRecord):
             build_number=build_number,
             channel=channel,
         )
+
+
+class TestSubdirData(SubdirData):
+    def __init__(self, channel, repodata_fn=REPODATA_FN, *, packages=None):
+        # repodata_fn is ignored, it is only present because of the custom handling in SubdirDataType
+        super().__init__(channel, repodata_fn)
+        self._packages = packages or []
+
+    def _load(self):
+        names_index = collections.defaultdict(list)
+        track_features_index = collections.defaultdict(list)
+        for package in self._packages:
+            names_index[package.name].append(package)
+            for feature in package.track_features:
+                track_features_index[feature].append(package)
+
+        return {
+           'channel': self.channel,
+           'url_w_subdir': self.url_w_subdir,
+           'url_w_credentials': self.url_w_credentials,
+           'cache_path_base': None,
+           'fn': self.repodata_fn,
+           '_package_records': self._packages,
+           '_names_index': names_index,
+           '_track_features_index': track_features_index,
+           '_etag': None,
+           '_mod': None,
+           '_cache_control': None,
+           '_url': None,
+           '_add_pip': True,
+           '_pickle_version': None,
+           '_schannel': self.channel.name,
+           'repodata_version': 0,
+        }

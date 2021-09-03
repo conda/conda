@@ -79,11 +79,12 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]' 
 
 class SubdirDataType(type):
 
-    def __call__(cls, channel, repodata_fn=REPODATA_FN):
+    def __call__(cls, channel, repodata_fn=REPODATA_FN, **kwargs):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
         now = time()
+        repodata_fn = repodata_fn or REPODATA_FN
         cache_key = channel.url(with_credentials=True), repodata_fn
         if cache_key in SubdirData._cache_:
             cache_entry = SubdirData._cache_[cache_key]
@@ -94,7 +95,7 @@ class SubdirDataType(type):
                         return cache_entry
             else:
                 return cache_entry
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, repodata_fn)
+        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, repodata_fn, **kwargs)
         subdir_data_instance._mtime = now
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance

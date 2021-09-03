@@ -27,13 +27,44 @@ class SolverTests:
         raise NotImplementedError
 
     @contextlib.contextmanager
+    def _cache_channel_packages(self, channel, packages):
+        # instantiating the data should cache it
+        sd = helpers.TestSubdirData(channel, packages=list(packages))
+        key = (channel.url(with_credentials=True), REPODATA_FN)
+        assert key in SubdirData._cache_
+        yield
+        del SubdirData._cache_[key]
+
+    @contextlib.contextmanager
     def simple_solver(self, *, add=(), remove=()):
         with tempfile.TemporaryDirectory(prefix='conda-solver-test-') as tmpdir:
             helpers.get_index_r_1(context.subdir)
+            # TODO: replace get_index_r_1 with _cache_channel_packages, and
+            #       merge simple_solver with custom_solver, making the r1
+            #       contents the default
             yield self.solver(
                 prefix=tmpdir,
                 subdirs=(context.subdir,),
                 channels=(Channel('channel-1'),),
+                specs_to_add=add,
+                specs_to_remove=remove,
+            )
+
+    @contextlib.contextmanager
+    def custom_solver(self, *, add=(), remove=(), packages=()):
+        channel = Channel('https://conda.anaconda.org/channel-custom/%s' % context.subdir)
+        with contextlib.ExitStack() as stack:
+            # cache the packages for all subdirs as the resolver might want to access them
+            for subdir in context.subdirs:
+                stack.enter_context(self._cache_channel_packages(
+                    Channel('https://conda.anaconda.org/channel-custom/%s' % subdir),
+                    list(packages),
+                ))
+            # yield the solver
+            yield self.solver(
+                prefix='dummy - does not exist',
+                subdirs=(context.subdir,),
+                channels=(channel,),
                 specs_to_add=add,
                 specs_to_remove=remove,
             )
