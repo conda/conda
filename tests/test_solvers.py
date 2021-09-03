@@ -32,8 +32,10 @@ class SolverTests:
         sd = helpers.TestSubdirData(channel, packages=list(packages))
         key = (channel.url(with_credentials=True), REPODATA_FN)
         assert key in SubdirData._cache_
-        yield
-        del SubdirData._cache_[key]
+        try:
+            yield
+        finally:
+            del SubdirData._cache_[key]
 
     @contextlib.contextmanager
     def simple_solver(self, *, add=(), remove=()):
