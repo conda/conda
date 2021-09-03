@@ -50,9 +50,12 @@ def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), h
     get_index_r_1(context.subdir)
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -64,9 +67,12 @@ def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     get_index_r_2(context.subdir)
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -78,9 +84,12 @@ def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     get_index_r_4(context.subdir)
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -92,9 +101,12 @@ def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     get_index_r_5(context.subdir)
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-5")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-5'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-5'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -108,9 +120,12 @@ def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2'), Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'), ),
-                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2'), Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'), ),
+                            (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -124,9 +139,12 @@ def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'), Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2')),
-                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'), Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2')),
+                            (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -138,9 +156,12 @@ def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix
     get_index_must_unfreeze(context.subdir)
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-freeze")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-freeze'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-freeze'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -152,9 +173,12 @@ def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=
     get_index_cuda(context.subdir)
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 def convert_to_dist_str(solution):
