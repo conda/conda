@@ -24,10 +24,17 @@ class SolverTests:
 
     @property
     def solver_class(self) -> Type[conda.core.solve.Solver]:
+        """Class under test."""
         raise NotImplementedError
 
     @contextlib.contextmanager
     def _cache_channel_packages(self, channel, packages):
+        """Set the channel cache to a set of packages.
+
+        If something tries to access the index data for this channel, it should
+        get the set cache instead. This is used to set the index data when
+        testing the resolver.
+        """
         # instantiating the data should cache it
         sd = helpers.TestSubdirData(channel, packages=list(packages))
         key = (channel.url(with_credentials=True), REPODATA_FN)
@@ -39,6 +46,11 @@ class SolverTests:
 
     @contextlib.contextmanager
     def solver(self, *, add=(), remove=(), packages=()):
+        """Create a new solver.
+
+        Roughly equivalent to ``Solver(specs_to_add=..., specs_to_remove=...)``
+        with a custom channel containing the data specified in `packages`.
+        """
         channel = Channel('https://conda.anaconda.org/channel-custom/%s' % context.subdir)
         with contextlib.ExitStack() as stack:
             # cache the packages for all subdirs as the resolver might want to access them
@@ -57,28 +69,36 @@ class SolverTests:
             )
 
     def install(self, *specs, packages=None):
+        """Try a install transaction in channel with a set of specified packages."""
         if not packages:
             packages = self.index(1)
         with self.solver(add=specs, packages=packages) as solver:
             return solver.solve_final_state()
 
     def index(self, num):
+        """Get the index data of the ``helpers.get_index_r_*`` helpers."""
         # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
         get_index = getattr(helpers, f'get_index_r_{num}')
         index, _ = get_index(context.subdir)
         return index.values()
 
     def assert_installed(self, specs, expecting):
+        """Helper to assert that a transaction result contains the packages
+        specified by the set of specification string."""
         assert sorted(
             record.dist_str() for record in self.install(*specs)
          ) == sorted(helpers.add_subdir_to_iter(expecting))
 
     def assert_record_in(self, record_str, records):
+        """Helper to assert that a record list contains a record matching the
+        provided record string."""
         assert helpers.add_subdir(record_str) in [
             record.dist_str() for record in records
         ]
 
     def assert_unsatisfiable(self, exc_info, entries):
+        """Helper to assert that a :py:class:`conda.exceptions.UnsatisfiableError`
+        instance as a the specified set of unsatisfiable specifications."""
         assert exc_info.type is UnsatisfiableError
         assert sorted(
             tuple(map(str, entries))
