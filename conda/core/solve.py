@@ -28,7 +28,8 @@ from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..common.url import split_anaconda_token, remove_auth
-from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError, RawStrUnsatisfiableError
+from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError,
+                          RawStrUnsatisfiableError)
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -1220,7 +1221,7 @@ class LibSolvSolver(Solver):
                     ms = MatchSpec(dep)
                     if ms.name != "python":
                         final_specs.append(MatchSpec(ms.name))
-            specs_to_add = list(set(final_specs))
+            specs_to_add += list(set(final_specs))
         return [s.conda_build_form() for s in specs_to_add]
 
     def _pin_python(self, state):
