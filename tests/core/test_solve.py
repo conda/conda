@@ -373,12 +373,19 @@ def test_cuda_fail_1(tmpdir):
     else:
         plat = "linux-64"
 
-    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
+    possible_messages = [
+        # 1. Given by conda
+        dals("""The following specifications were found to be incompatible with your system:
 
   - feature:/{}::__cuda==8.0=0
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed version is: 8.0""".format(plat))
+Your installed version is: 8.0""".format(plat)),
+        # 2. Given by mamba
+        dals("""Encountered problems while solving:
+  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0""")
+    ]
+    assert any(str(exc.value).strip() == msg for msg in possible_messages)
 
 
 def test_cuda_fail_2(tmpdir):
@@ -390,11 +397,18 @@ def test_cuda_fail_2(tmpdir):
             with pytest.raises(RawStrUnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
-    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
+    possible_messages = [
+        # 1. Conda says
+        dals("""The following specifications were found to be incompatible with your system:
 
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed version is: not available""")
+Your installed version is: not available"""),
+        # 2. Mamba says
+        dals("""Encountered problems while solving:
+  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0""")
+    ]
+    assert any(str(exc.value).strip() == msg for msg in possible_messages)
 
 
 def test_cuda_constrain_absent(tmpdir):
@@ -2452,9 +2466,15 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             solver.solve_final_state()
 
         error_msg = str(exc.value).strip()
-        assert "incompatible with the existing python installation in your environment:" in error_msg
-        assert "- scikit-learn==0.13 -> python=2.7" in error_msg
-        assert "Your python: python=2.6" in error_msg
+        if context.solver_logic.value == "legacy":
+            assert "incompatible with the existing python installation in your environment:" in error_msg
+            assert "- scikit-learn==0.13 -> python=2.7" in error_msg
+            assert "Your python: python=2.6" in error_msg
+        elif context.solver_logic.value == "libsolv":
+            assert "Encountered problems while solving" in error_msg
+            assert "package scikit-learn-0.13-np16py27_1 requires python 2.7*" in error_msg
+        else:
+            raise ValueError(f"Unrecognized solver logic which cannot be tested: {context.solver_logic}")
 
     specs_to_add = MatchSpec("unsatisfiable-with-py26"),
     with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
@@ -2462,9 +2482,17 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
         with pytest.raises(RawStrUnsatisfiableError) as exc:
             solver.solve_final_state()
         error_msg = str(exc.value).strip()
-        assert "incompatible with the existing python installation in your environment:" in error_msg
-        assert "- unsatisfiable-with-py26 -> python=2.7" in error_msg
-        assert "Your python: python=2.6"
+        if context.solver_logic.value == "legacy":
+            assert "incompatible with the existing python installation in your environment:" in error_msg
+            assert "- unsatisfiable-with-py26 -> python=2.7" in error_msg
+            assert "Your python: python=2.6" in error_msg
+        elif context.solver_logic.value == "libsolv":
+            assert "Encountered problems while solving" in error_msg
+            assert "package unsatisfiable-with-py26-1.0-0 requires scikit-learn 0.13" in error_msg
+            raise ValueError("This message is not as informative as Conda's. "
+                             f"It doesn't mention Python 2.7, but scikit-learn. Message:\n {error_msg}")
+        else:
+            raise ValueError(f"Unrecognized solver logic which cannot be tested: {context.solver_logic}")
 
 fake_index = [
     PrefixRecord(
