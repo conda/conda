@@ -28,7 +28,7 @@ from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..common.url import split_anaconda_token, remove_auth
-from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError
+from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError, RawStrUnsatisfiableError
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -1259,7 +1259,7 @@ class LibSolvSolver(Solver):
         if not solved:
             # it would be better if we could pass a graph object or something
             # that the exception can actually format if needed
-            raise CondaError(solver.problems_to_str(), caused_by=self.__class__.__name__)
+            raise RawStrUnsatisfiableError(solver.problems_to_str())
 
     def _export_final_state(self, state):
         from mamba import mamba_api as api
