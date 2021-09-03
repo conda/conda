@@ -58,6 +58,7 @@ class Solver(object):
       * :meth:`solve_for_transaction`
 
     """
+    _uses_ssc = True  # used in tests
 
     def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=(),
                  repodata_fn=REPODATA_FN, command=NULL):
@@ -1054,12 +1055,7 @@ class LibSolvSolver(Solver):
     - Pruning the repodata (?) - JRG: Not sure if this happens internally or at all.
     - Prioritizing different aspects of the solver (version, build strings, track_features...)
     """
-
-    def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=(),
-                 repodata_fn=REPODATA_FN, command=NULL):
-        super().__init__(prefix, channels, subdirs=subdirs, specs_to_add=specs_to_add,
-                         specs_to_remove=specs_to_remove, repodata_fn=repodata_fn,
-                         command=command)
+    _uses_ssc = False
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
                           ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,

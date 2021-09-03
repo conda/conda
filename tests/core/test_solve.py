@@ -234,6 +234,10 @@ def test_solve_1(tmpdir):
         assert convert_to_dist_str(final_state) == order
 
 
+@pytest.mark.skipif(
+    not getattr(_get_solver_logic(), "_uses_ssc", True),
+    reason="This Solver implementation does not use SolverStateContainer"
+)
 def test_solve_2(tmpdir):
     specs = MatchSpec("numpy"),
 
@@ -285,6 +289,10 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
+@pytest.mark.skipif(
+    not getattr(_get_solver_logic(), "_uses_ssc", True),
+    reason="This Solver implementation does not use SolverStateContainer"
+)
 def test_virtual_package_solver(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
