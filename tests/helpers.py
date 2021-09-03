@@ -185,6 +185,18 @@ def add_feature_records_legacy(index):
 
 def _export_subdir_data_to_repodata(subdir_data, index):
     state = subdir_data._internal_state
+    packages = {}
+    for pkg in index:
+        data = pkg.dump()
+        if "features" in data:
+            # Features are deprecated, so they are not implemented
+            # in modern solvers like mamba. Mamba does implement
+            # track_features minimization, so we are exposing the
+            # features as track_features, which seems to make the
+            # tests pass
+            data["track_features"] = data["features"]
+            del data["features"]
+        packages[pkg.fn] = data
     return {
             "_cache_control": state["_cache_control"],
             "_etag": state["_etag"],
@@ -194,7 +206,7 @@ def _export_subdir_data_to_repodata(subdir_data, index):
             "info": {
                 "subdir": context.subdir,
             },
-            "packages": {p.fn: p.dump() for p in index}
+            "packages": packages
         }
 
 
