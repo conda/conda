@@ -188,6 +188,22 @@ class SolverTests:
             "numpy[version='1.5.*,1.6.*']",
         ]
 
+    def test_unsat_simple(self):
+        with self.custom_solver(
+            add=('a', 'b'),
+            packages=(
+                helpers.SimpleRecord(name='a', depends=['c >=1,<2']),
+                helpers.SimpleRecord(name='b', depends=['c >=2,<3']),
+                helpers.SimpleRecord(name='c', version='1.0'),
+                helpers.SimpleRecord(name='c', version='2.0'),
+            ),
+        ) as solver:
+            with pytest.raises(UnsatisfiableError) as exc_info:
+                solver.solve_final_state()
+            self.assert_unsatisfiable(exc_info, [
+                ('a', "c[version='>=1,<2']"),
+                ('b', "c[version='>=2,<3']"),
+            ])
 
 
 class TestLegacySolver(SolverTests):
