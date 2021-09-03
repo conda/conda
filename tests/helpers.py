@@ -42,8 +42,7 @@ except ImportError:
     from mock import patch
 
 TEST_DATA_DIR = abspath(join(dirname(__file__), "data"))
-EXPORTED_CHANNELS_DIR = "/opt/conda-src/tmp/conda-channels"
-# EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
+EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
