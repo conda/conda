@@ -1103,7 +1103,11 @@ class LibSolvSolver(Solver):
         # This function will populate the pool/repos with
         # the current state of the given channels
         channels_urls = [c.base_url for c in self.channels]
-        index = load_channels(pool, channels_urls, repos)
+        index = load_channels(pool, channels_urls, repos,
+                              prepend=False,
+                              repodata_fn=self._repodata_fn,
+                              use_local=context.use_local,
+                              platform=context.subdir)
 
         state.update({
             "pool": pool,
