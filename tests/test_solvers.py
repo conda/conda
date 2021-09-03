@@ -23,7 +23,7 @@ class SolverTests:
     """Tests for :py:class:`conda.core.solve.Solver` implementations."""
 
     @property
-    def solver(self) -> Type[conda.core.solve.Solver]:
+    def solver_class(self) -> Type[conda.core.solve.Solver]:
         raise NotImplementedError
 
     @contextlib.contextmanager
@@ -38,22 +38,7 @@ class SolverTests:
             del SubdirData._cache_[key]
 
     @contextlib.contextmanager
-    def simple_solver(self, *, add=(), remove=()):
-        with tempfile.TemporaryDirectory(prefix='conda-solver-test-') as tmpdir:
-            helpers.get_index_r_1(context.subdir)
-            # TODO: replace get_index_r_1 with _cache_channel_packages, and
-            #       merge simple_solver with custom_solver, making the r1
-            #       contents the default
-            yield self.solver(
-                prefix=tmpdir,
-                subdirs=(context.subdir,),
-                channels=(Channel('channel-1'),),
-                specs_to_add=add,
-                specs_to_remove=remove,
-            )
-
-    @contextlib.contextmanager
-    def custom_solver(self, *, add=(), remove=(), packages=()):
+    def solver(self, *, add=(), remove=(), packages=()):
         channel = Channel('https://conda.anaconda.org/channel-custom/%s' % context.subdir)
         with contextlib.ExitStack() as stack:
             # cache the packages for all subdirs as the resolver might want to access them
@@ -63,7 +48,7 @@ class SolverTests:
                     list(packages),
                 ))
             # yield the solver
-            yield self.solver(
+            yield self.solver_class(
                 prefix='dummy - does not exist',
                 subdirs=(context.subdir,),
                 channels=(channel,),
@@ -71,9 +56,17 @@ class SolverTests:
                 specs_to_remove=remove,
             )
 
-    def install(self, *specs):
-        with self.simple_solver(add=specs) as solver:
+    def install(self, *specs, packages=None):
+        if not packages:
+            packages = self.index(1)
+        with self.solver(add=specs, packages=packages) as solver:
             return solver.solve_final_state()
+
+    def index(self, num):
+        # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
+        get_index = getattr(helpers, f'get_index_r_{num}')
+        index, _ = get_index(context.subdir)
+        return index.values()
 
     def assert_installed(self, specs, expecting):
         assert sorted(
@@ -191,30 +184,29 @@ class SolverTests:
         ]
 
     def test_unsat_simple(self):
-        with self.custom_solver(
-            add=('a', 'b'),
-            packages=(
-                helpers.SimpleRecord(name='a', depends=['c >=1,<2']),
-                helpers.SimpleRecord(name='b', depends=['c >=2,<3']),
-                helpers.SimpleRecord(name='c', version='1.0'),
-                helpers.SimpleRecord(name='c', version='2.0'),
-            ),
-        ) as solver:
-            with pytest.raises(UnsatisfiableError) as exc_info:
-                solver.solve_final_state()
-            self.assert_unsatisfiable(exc_info, [
-                ('a', "c[version='>=1,<2']"),
-                ('b', "c[version='>=2,<3']"),
-            ])
+        with pytest.raises(UnsatisfiableError) as exc_info:
+            self.install(
+                'a', 'b',
+                packages=(
+                    helpers.SimpleRecord(name='a', depends=['c >=1,<2']),
+                    helpers.SimpleRecord(name='b', depends=['c >=2,<3']),
+                    helpers.SimpleRecord(name='c', version='1.0'),
+                    helpers.SimpleRecord(name='c', version='2.0'),
+                )
+            )
+        self.assert_unsatisfiable(exc_info, [
+            ('a', "c[version='>=1,<2']"),
+            ('b', "c[version='>=2,<3']"),
+        ])
 
 
 class TestLegacySolver(SolverTests):
     @property
-    def solver(self):
+    def solver_class(self):
         return conda.core.solve.Solver
 
 
 class TestLibSolvSolver(SolverTests):
     @property
-    def solver(self):
+    def solver_class(self):
         return conda.core.solve.LibSolvSolver
