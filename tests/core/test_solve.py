@@ -373,6 +373,7 @@ def test_cuda_fail_1(tmpdir):
     else:
         plat = "linux-64"
 
+    error_msg = str(exc.value).strip()
     possible_messages = [
         # 1. Given by conda
         dals("""The following specifications were found to be incompatible with your system:
@@ -381,11 +382,13 @@ def test_cuda_fail_1(tmpdir):
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
 Your installed version is: 8.0""".format(plat)),
-        # 2. Given by mamba
+        # 2. Mamba can say
         dals("""Encountered problems while solving:
-  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0""")
+  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0"""),
+        dals("""Encountered problems while solving:
+  - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""),
     ]
-    assert any(str(exc.value).strip() == msg for msg in possible_messages)
+    assert any(error_msg == msg for msg in possible_messages)
 
 
 def test_cuda_fail_2(tmpdir):
@@ -397,6 +400,7 @@ def test_cuda_fail_2(tmpdir):
             with pytest.raises(RawStrUnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
+    error_msg = str(exc.value).strip()
     possible_messages = [
         # 1. Conda says
         dals("""The following specifications were found to be incompatible with your system:
@@ -404,11 +408,13 @@ def test_cuda_fail_2(tmpdir):
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
 Your installed version is: not available"""),
-        # 2. Mamba says
+        # 2. Mamba can say
         dals("""Encountered problems while solving:
-  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0""")
+  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0"""),
+        dals("""Encountered problems while solving:
+  - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""),
     ]
-    assert any(str(exc.value).strip() == msg for msg in possible_messages)
+    assert any(error_msg == msg for msg in possible_messages)
 
 
 def test_cuda_constrain_absent(tmpdir):
