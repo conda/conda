@@ -249,7 +249,7 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
     subdir_data._mtime = float("inf")
 
 
-# @memoize
+@memoize
 def get_index_r_1(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index.json')) as fi:
         packages = json.load(fi)
@@ -277,7 +277,7 @@ def get_index_r_1(subdir=context.subdir):
     return index, r
 
 
-# @memoize
+@memoize
 def get_index_r_2(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index2.json')) as fi:
         packages = json.load(fi)
@@ -304,7 +304,7 @@ def get_index_r_2(subdir=context.subdir):
     return index, r
 
 
-# @memoize
+@memoize
 def get_index_r_4(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index4.json')) as fi:
         packages = json.load(fi)
@@ -331,7 +331,7 @@ def get_index_r_4(subdir=context.subdir):
     return index, r
 
 
-# @memoize
+@memoize
 def get_index_r_5(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index5.json')) as fi:
         packages = json.load(fi)
@@ -358,7 +358,7 @@ def get_index_r_5(subdir=context.subdir):
     return index, r
 
 
-# @memoize
+@memoize
 def get_index_must_unfreeze(subdir=context.subdir):
     repodata = {
         "info": {
