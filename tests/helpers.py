@@ -42,7 +42,8 @@ except ImportError:
     from mock import patch
 
 TEST_DATA_DIR = abspath(join(dirname(__file__), "data"))
-EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
+EXPORTED_CHANNELS_DIR = "/opt/conda-src/tmp/conda-channels"
+# EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
@@ -222,7 +223,7 @@ def _sync_channel_to_disk(channel, subdir_data, index):
     subdir = base / channel.platform
     subdir.mkdir(parents=True, exist_ok=True)
     with open(subdir / "repodata.json", "w") as f:
-        json.dump(_export_subdir_data_to_repodata(subdir_data, index), f)
+        json.dump(_export_subdir_data_to_repodata(subdir_data, index), f, indent=2)
         f.flush()
         os.fsync(f.fileno())
 
