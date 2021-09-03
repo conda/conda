@@ -234,10 +234,18 @@ def _sync_channel_to_disk(channel, subdir_data, index):
         os.fsync(f.fileno())
 
 
-def _patch_for_local_exports(name, subdir_data, channel, index):
+def _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data=None):
     # export repodata state to disk for other solvers to test
-    local_proxy_channel = Channel(f'{EXPORTED_CHANNELS_DIR}/{name}')
-    SubdirData._cache_[(local_proxy_channel.url(with_credentials=True), "repodata.json")] = subdir_data
+    if subdir_data is None:
+        cache_key = Channel(name).url(with_credentials=True), "repodata.json"
+        subdir_data = SubdirData._cache_.get(cache_key)
+    if subdir_data:
+        local_proxy_channel = Channel(f'{EXPORTED_CHANNELS_DIR}/{name}')
+        SubdirData._cache_[(local_proxy_channel.url(with_credentials=True), "repodata.json")] = subdir_data
+
+
+def _patch_for_local_exports(name, subdir_data, channel, index):
+    _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data)
 
     # we need to override the modification time here so the
     # cache hits this subdir_data object from the local copy too
