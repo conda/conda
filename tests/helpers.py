@@ -183,28 +183,8 @@ def add_feature_records_legacy(index):
         index[rec] = rec
 
 
-def _package_record_to_repodata_dict(prec):
-    return {
-            prec.fn: {
-                "build": prec.build,
-                "build_number": prec.build_number,
-                "depends": prec.depends,
-                "license": prec.license,
-                "md5": prec.md5,
-                "name": prec.name,
-                "sha256": prec.sha256,
-                "size": getattr(prec, "size", 0),
-                "subdir": prec.subdir,
-                "timestamp": prec.timestamp,
-                "version": prec.version,
-            }
-        }
-
 def _export_subdir_data_to_repodata(subdir_data, index):
     state = subdir_data._internal_state
-    packages = {}
-    for pkg in index:
-        packages.update(_package_record_to_repodata_dict(pkg))
     return {
             "_cache_control": state["_cache_control"],
             "_etag": state["_etag"],
@@ -214,7 +194,7 @@ def _export_subdir_data_to_repodata(subdir_data, index):
             "info": {
                 "subdir": context.subdir,
             },
-            "packages": packages,
+            "packages": {p.fn: p.dump() for p in index}
         }
 
 
