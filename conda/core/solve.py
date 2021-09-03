@@ -28,8 +28,8 @@ from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..common.url import split_anaconda_token, remove_auth
-from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError,
-                          RawStrUnsatisfiableError)
+from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
+                          UnsatisfiableError, RawStrUnsatisfiableError)
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
