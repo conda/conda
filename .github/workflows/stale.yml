@@ -93,7 +93,7 @@ jobs:
           exempt-pr-labels: 'good-first-issue,help-wanted,Epic,priority-high,s-1,source-partner,type-advisory,type-techdebt'
 
           # Max number of operations per run
-          operations-per-run: 10
+          operations-per-run: 100
           # Remove stale label from issues/PRs on updates/comments
           remove-stale-when-updated: true
 
