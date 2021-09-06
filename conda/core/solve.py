@@ -1101,6 +1101,8 @@ class LibSolvSolver(Solver):
         # Maybe conda already handles that beforehand
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L426-L485
 
+        # See https://github.com/mamba-org/mamba/blob/89174c0dc06398c995895649f83862d9c8021acf/src/core/prefix_data.cpp#L13
+        # for the C++ implementation of PrefixData
         mamba_prefix_data = MambaPrefixData(self.prefix)
         mamba_prefix_data.load()
         installed_json_f, installed_pkgs = get_installed_jsonfile(self.prefix)
