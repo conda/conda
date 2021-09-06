@@ -1312,17 +1312,17 @@ class LibSolvSolver(Solver):
             else:
                 print("No package record found!")
 
-        for c, pkg, jsn_s in to_link:
-            if c.startswith("file://"):
+        for channel, pkg, json_string in to_link:
+            if channel.startswith("file://"):
                 # The conda functions (specifically remove_auth) assume the input
                 # is a url; a file uri on windows with a drive letter messes them up.
-                key = c
+                key = channel
             else:
-                key = split_anaconda_token(remove_auth(c))[0]
+                key = split_anaconda_token(remove_auth(channel))[0]
             if key not in lookup_dict:
                 raise ValueError("missing key {} in channels: {}".format(key, lookup_dict))
             sdir = lookup_dict[key]
-            rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
+            rec = to_package_record_from_subjson(sdir, pkg, json_string)
             final_precs.add(rec)
             to_link_records.append(rec)
 
