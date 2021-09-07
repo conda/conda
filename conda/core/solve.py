@@ -1067,6 +1067,7 @@ class LibSolvSolver(Solver):
 
         print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
 
+        # 0. Identify strategies
         kwargs = self._merge_signature_flags_with_context(
             update_modifier=update_modifier,
             deps_modifier=deps_modifier,
@@ -1077,6 +1078,14 @@ class LibSolvSolver(Solver):
             should_retry_solve=should_retry_solve
         )
 
+        # Tasks that do not require a solver can be tackled right away
+        # This returns either None (did nothing) or a final state
+        none_or_final_state = self._early_exit_tasks(**kwargs)
+        if none_or_final_state is not None:
+            print(none_or_final_state)
+            return none_or_final_state
+
+        # These tasks DO need a solver
         # 1. Populate repos with installed packages
         state = self._setup_state(**kwargs)
         # 2. Create solver and needed flags, tasks and jobs
@@ -1105,6 +1114,33 @@ class LibSolvSolver(Solver):
             # "prune": prune,
             # "should_retry_solve": should_retry_solve,
         }
+
+    def _early_exit_tasks(self, **kwargs):
+        """
+        This reimplements a chunk of code found in the Legacy implementation.
+
+        See https://github.com/conda/conda/blob/9e9461760bbd71a17822/conda/core/solve.py#L239-L256
+        """
+        # force_remove is a special case where we return early
+        if self.specs_to_remove and kwargs["force_remove"]:
+            if self.specs_to_add:
+                # This is not reachable from the CLI, but it is from the Python API
+                raise NotImplementedError("Cannot add and remove packages simultaneously.")
+            pkg_records = PrefixData(self.prefix).iter_records()
+            solution = tuple(pkg_record for pkg_record in pkg_records
+                             if not any(spec.match(pkg_record) for spec in self.specs_to_remove))
+            return IndexedSet(PrefixGraph(solution).graph)
+
+        # Check if specs are satisfied by current environment. If they are, exit early.
+        if (kwargs["update_modifier"] == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE and not self.specs_to_remove):
+            prefix_data = PrefixData(self.prefix)
+            for spec in self.specs_to_add:
+                if not next(prefix_data.query(spec), None):
+                    break
+            else:
+                # All specs match a package in the current environment.
+                # Return early, with a solution that should just be PrefixData().iter_records()
+                return IndexedSet(PrefixGraph(prefix_data.iter_records()).graph)
 
     def _setup_state(self, **kwargs):
         from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
