@@ -568,7 +568,7 @@ def test_prune_1(tmpdir):
 
 
 def test_force_remove_1(tmpdir):
-    specs = MatchSpec("numpy[build=*py27*]"),
+    specs = MatchSpec("numpy[version=*,build=*py27*]"),
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
@@ -694,7 +694,7 @@ def test_no_deps_1(tmpdir):
 
 
 def test_only_deps_1(tmpdir):
-    specs = MatchSpec("numba[build=*py27*]"),
+    specs = MatchSpec("numba[version=*,build=*py27*]"),
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_1, specs).open_url()
