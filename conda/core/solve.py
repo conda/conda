@@ -9,6 +9,7 @@ from logging import DEBUG, getLogger
 from os.path import join
 import sys
 from textwrap import dedent
+from itertools import chain
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -1219,10 +1220,15 @@ class LibSolvSolver(Solver):
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver = api.Solver(state["pool"], solver_options)
 
-        history = api.History(self.prefix)
-        history_map = history.get_requested_specs_map()
+        history = api.History(self.prefix).get_requested_specs_map().values()
+        installed_names = [rec.name for rec in state["installed_pkgs"]]
+        # pkgs in aggresive_update_packages should be protected too (even if not
+        # requested explicitly by the user)
+        # see https://github.com/conda/conda/blob/9e9461760bb/tests/core/test_solve.py#L520-L521
+        aggresive_update_pkgs = [pkg for pkg in context.aggressive_update_packages
+                                 if pkg.name in installed_names]
         solver.add_jobs(
-            [s.conda_build_form() for s in history_map.values()],
+            [s.conda_build_form() for s in set(chain(history, aggresive_update_pkgs))],
             api.SOLVER_USERINSTALLED,
         )
         specs = [s.conda_build_form() for s in self.specs_to_remove]
