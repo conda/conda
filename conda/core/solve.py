@@ -1184,18 +1184,16 @@ class LibSolvSolver(Solver):
         return state
 
     def _configure_solver(self, state, **kwargs):
-        solve_for_install = (self.specs_to_add
-                             or kwargs["update_modifier"] == UpdateModifier.UPDATE_ALL)
-        if solve_for_install and self.specs_to_remove:
-            raise CondaError("Simultaneous install and remove operations "
-                             "are not supported by the libsolv solver.")
-        elif solve_for_install:
-            return self._configure_solver_for_install(state, **kwargs)
-        elif self.specs_to_remove:
+        if self.specs_to_remove:
             return self._configure_solver_for_remove(state, **kwargs)
-        else:
-            raise CondaError("No specs were passed. What should we do?",
-                             caused_by=self.__class__.__name__)
+        # ALl other operations are handled as an install operation
+        # Namely:
+        # - Explicit specs added by user in CLI / API
+        # - conda update --all
+        # - conda create -n empty
+        # Take into account that early exit tasks (force remove, etc)
+        # have been handled beforehand if needed
+        return self._configure_solver_for_install(state, **kwargs)
 
     def _configure_solver_for_install(self, state, **kwargs):
         from mamba import mamba_api as api
