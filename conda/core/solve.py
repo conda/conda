@@ -1082,7 +1082,6 @@ class LibSolvSolver(Solver):
         # This returns either None (did nothing) or a final state
         none_or_final_state = self._early_exit_tasks(**kwargs)
         if none_or_final_state is not None:
-            print(none_or_final_state)
             return none_or_final_state
 
         # These tasks DO need a solver
@@ -1167,9 +1166,12 @@ class LibSolvSolver(Solver):
         # This function will populate the pool/repos with
         # the current state of the given channels
         channels_urls = [(c.base_url or c.canonical_name) for c in self.channels]
+        # Note load_channels has a `repodata_fn` arg we are NOT using
+        # because `current_repodata.json` is not guaranteed to exist in
+        # our current implementation; we bypass that and always use the
+        # default value: repodata.json
         index = load_channels(pool, channels_urls, repos,
                               prepend=False,
-                              repodata_fn=self._repodata_fn,
                               use_local=context.use_local,
                               platform=context.subdir)
 
