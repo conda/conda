@@ -10,6 +10,7 @@ from os.path import join
 import sys
 from textwrap import dedent
 from itertools import chain
+from urllib.parse import quote, urlparse, urlunparse
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -80,7 +81,8 @@ class Solver(object):
 
         """
         self.prefix = prefix
-        self.channels = IndexedSet(Channel(c) for c in channels or context.channels)
+        self._channels = channels or context.channels
+        self.channels = IndexedSet(Channel(c) for c in self._channels)
         self.subdirs = tuple(s for s in subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
@@ -1165,12 +1167,11 @@ class LibSolvSolver(Solver):
 
         # This function will populate the pool/repos with
         # the current state of the given channels
-        channels_urls = [(c.base_url or c.canonical_name) for c in self.channels]
         # Note load_channels has a `repodata_fn` arg we are NOT using
         # because `current_repodata.json` is not guaranteed to exist in
         # our current implementation; we bypass that and always use the
         # default value: repodata.json
-        index = load_channels(pool, channels_urls, repos,
+        index = load_channels(pool, self._channel_urls(), repos,
                               prepend=False,
                               use_local=context.use_local,
                               platform=context.subdir)
@@ -1184,6 +1185,16 @@ class LibSolvSolver(Solver):
         })
 
         return state
+
+    def _channel_urls(self):
+        urls = []
+        for channel in self._channels:
+            parts = urlparse(channel)
+            if parts.scheme:
+                parts = parts._replace(path=quote(parts.path))
+            urls.append(urlunparse(parts))
+        return urls
+
 
     def _configure_solver(self, state, **kwargs):
         if self.specs_to_remove:
