@@ -17,10 +17,10 @@ from .._vendor.urllib3.util.url import Url, parse_url
 
 try:  # pragma: py2 no cover
     # Python 3
-    from urllib.parse import (quote, quote_plus, unquote, unquote_plus)
+    from urllib.parse import (quote, quote_plus, unquote, unquote_plus, urlparse)
 except ImportError:  # pragma: py3 no cover
     # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus)  # NOQA
+    from urllib import (quote, quote_plus, unquote, unquote_plus, urlparse)  # NOQA
 
 
 def hex_octal_to_int(ho):
@@ -378,6 +378,14 @@ def remove_auth(url):
     if url_parts['auth']:
         del url_parts['auth']
     return Url(**url_parts).url
+
+
+def escape_channel_url(channel):
+    parts = urlparse(channel)
+    if parts.scheme:
+        parts = parts._replace(path=quote(parts.path))
+        return str(parts)
+    return channel
 
 
 if __name__ == "__main__":

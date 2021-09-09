@@ -47,7 +47,7 @@ from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
 from conda.common.serialize import yaml_round_trip_load, json_dump
-from conda.common.url import path_to_url
+from conda.common.url import path_to_url, escape_channel_url
 from conda.core.index import get_reduced_index, get_index
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
@@ -454,6 +454,21 @@ def reload_config(prefix):
 
 
 def package_is_installed(prefix, spec):
+    is_installed = _package_is_installed(prefix, spec)
+
+    # Mamba needs to escape the URL (e.g. space -> %20)
+    # Which end up rendered in the package spec
+    # Let's try query with a escaped spec in case we are
+    # testing for Mamba or other implementations that need this
+    if not is_installed and "::" in spec:
+        channel, pkg = spec.split("::", 1)
+        channel = escape_channel_url(channel)
+        escaped_spec = channel + "::" + pkg
+        is_installed = _package_is_installed(prefix, escaped_spec)
+    return is_installed
+
+
+def _package_is_installed(prefix, spec):
     spec = MatchSpec(spec)
     prefix_recs = tuple(PrefixData(prefix).query(spec))
     if len(prefix_recs) > 1:
@@ -973,8 +988,8 @@ dependencies:
         assert type(path) == type(path2)
         # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
         '''
-        with make_temp_env() as prefix, make_temp_channel(["flask-0.12.2"]) as channel:
-            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.12.2', '--json')
+        with make_temp_env(no_capture=True) as prefix, make_temp_channel(["flask-0.12.2"]) as channel:
+            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.12.2', '--json', no_capture=True)
             assert package_is_installed(prefix, channel + '::' + 'flask')
             flask_fname = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]['fn']
 

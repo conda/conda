@@ -10,7 +10,6 @@ from os.path import join
 import sys
 from textwrap import dedent
 from itertools import chain
-from urllib.parse import quote, urlparse, urlunparse
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -29,7 +28,7 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..common.url import split_anaconda_token, remove_auth
+from ..common.url import escape_channel_url, split_anaconda_token, remove_auth
 from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
                           UnsatisfiableError, RawStrUnsatisfiableError)
 from ..history import History
@@ -1187,14 +1186,7 @@ class LibSolvSolver(Solver):
         return state
 
     def _channel_urls(self):
-        urls = []
-        for channel in self._channels:
-            parts = urlparse(channel)
-            if parts.scheme:
-                parts = parts._replace(path=quote(parts.path))
-            urls.append(urlunparse(parts))
-        return urls
-
+        return [escape_channel_url(c) for c in self._channels]
 
     def _configure_solver(self, state, **kwargs):
         if self.specs_to_remove:
