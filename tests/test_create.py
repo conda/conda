@@ -988,8 +988,8 @@ dependencies:
         assert type(path) == type(path2)
         # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
         '''
-        with make_temp_env(no_capture=True) as prefix, make_temp_channel(["flask-0.12.2"]) as channel:
-            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.12.2', '--json', no_capture=True)
+        with make_temp_env() as prefix, make_temp_channel(["flask-0.12.2"]) as channel:
+            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.12.2', '--json')
             assert package_is_installed(prefix, channel + '::' + 'flask')
             flask_fname = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]['fn']
 
