@@ -1196,7 +1196,13 @@ class LibSolvSolver(Solver):
         return state
 
     def _channel_urls(self):
-        return [escape_channel_url(c) for c in self._channels]
+        channels = []
+        for channel in self._channels:
+            if isinstance(channel, Channel):
+                channel = channel.base_url or channel.name
+            channel = escape_channel_url(channel)
+            channels.append(channel)
+        return channels
 
     def _configure_solver(self, state, **kwargs):
         if self.specs_to_remove:
