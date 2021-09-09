@@ -1095,21 +1095,31 @@ class LibSolvSolver(Solver):
         # 4. Export back to conda
         return self._export_final_state(state)
 
-    def _merge_signature_flags_with_context(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                                            ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
-                                            should_retry_solve=False):
+    def _merge_signature_flags_with_context(
+            self,
+            update_modifier=NULL,
+            deps_modifier=NULL,
+            prune=NULL,
+            ignore_pinned=NULL,
+            force_remove=NULL,
+            force_reinstall=NULL,
+            should_retry_solve=False,
+        ):
         """
         Context options can be overriden with the signature flags.
 
         We need this, at least, for some unit tests that change this behaviour through
         the function signature instead of the context / env vars.
         """
+        def context_if_null(var, varname):
+            return getattr(context, varname) if var is NULL else var
+
         return {
-            "update_modifier": update_modifier if update_modifier is not NULL else context.update_modifier,
-            "deps_modifier": deps_modifier if deps_modifier is not NULL else context.deps_modifier,
-            "ignore_pinned": ignore_pinned if ignore_pinned is not NULL else context.ignore_pinned,
-            "force_remove": force_remove if force_remove is not NULL else context.force_remove,
-            "force_reinstall": force_reinstall if force_reinstall is not NULL else context.force_reinstall,
+            "update_modifier": context_if_null(update_modifier, "update_modifier"),
+            "deps_modifier": context_if_null(deps_modifier, "deps_modifier"),
+            "ignore_pinned": context_if_null(ignore_pinned, "ignore_pinned"),
+            "force_remove": context_if_null(force_remove, "force_remove"),
+            "force_reinstall": context_if_null(force_reinstall, "force_reinstall"),
             # We don't use these flags in mamba
             # "prune": prune,
             # "should_retry_solve": should_retry_solve,
