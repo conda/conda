@@ -1103,8 +1103,7 @@ class LibSolvSolver(Solver):
             ignore_pinned=NULL,
             force_remove=NULL,
             force_reinstall=NULL,
-            should_retry_solve=False,
-        ):
+            should_retry_solve=False):
         """
         Context options can be overriden with the signature flags.
 
@@ -1142,7 +1141,8 @@ class LibSolvSolver(Solver):
             return IndexedSet(PrefixGraph(solution).graph)
 
         # Check if specs are satisfied by current environment. If they are, exit early.
-        if (kwargs["update_modifier"] == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE and not self.specs_to_remove):
+        if (kwargs["update_modifier"] == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
+                and not self.specs_to_remove):
             prefix_data = PrefixData(self.prefix)
             for spec in self.specs_to_add:
                 if not next(prefix_data.query(spec), None):
@@ -1179,7 +1179,7 @@ class LibSolvSolver(Solver):
         # Note load_channels has a `repodata_fn` arg we are NOT using
         # because `current_repodata.json` is not guaranteed to exist in
         # our current implementation; we bypass that and always use the
-        # default value: repodata.json
+        # default value: repodata.json
         index = load_channels(pool, self._channel_urls(), repos,
                               prepend=False,
                               use_local=context.use_local,
