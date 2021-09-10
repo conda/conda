@@ -1394,7 +1394,7 @@ class LibSolvSolver(Solver):
                     to_unlink_records.append(i_rec)
                     break
             else:
-                log.warn("Tried to unlink %s but it is not listed as installed or manageable?", pkg)
+                log.warn("Tried to unlink %s but it is not installed or manageable?", pkg)
 
         for c, pkg, jsn_s in to_link:
             if c.startswith("file://"):
