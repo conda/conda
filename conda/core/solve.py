@@ -1066,7 +1066,8 @@ class LibSolvSolver(Solver):
         # Logic heavily based on Mamba's implementation (solver parts):
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L289
 
-        print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
+        if not context.json:
+            print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
 
         # 0. Identify strategies
         kwargs = self._merge_signature_flags_with_context(
