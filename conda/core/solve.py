@@ -27,6 +27,7 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
+from ..common.url import split_anaconda_token, remove_auth
 from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError
 from ..history import History
 from ..models.channel import Channel
@@ -1089,7 +1090,7 @@ class LibSolvSolver(Solver):
 
     def _setup_state(self):
         from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
-        from mamba.mamba_api import Pool, Repo, PrefixData
+        from mamba.mamba_api import Pool, Repo, PrefixData as MambaPrefixData
 
         init_api_context()
 
@@ -1100,8 +1101,10 @@ class LibSolvSolver(Solver):
         # Maybe conda already handles that beforehand
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L426-L485
 
-        prefix_data = PrefixData(self.prefix)
-        prefix_data.load()
+        # See https://github.com/mamba-org/mamba/blob/89174c0dc06398c99589/src/core/prefix_data.cpp#L13
+        # for the C++ implementation of PrefixData
+        mamba_prefix_data = MambaPrefixData(self.prefix)
+        mamba_prefix_data.load()
         installed_json_f, installed_pkgs = get_installed_jsonfile(self.prefix)
 
         repos = []
@@ -1116,7 +1119,7 @@ class LibSolvSolver(Solver):
 
         state.update({
             "pool": pool,
-            "prefix_data": prefix_data,
+            "mamba_prefix_data": mamba_prefix_data,
             "repos": repos,
             "index": index,
             "installed_pkgs": installed_pkgs,
@@ -1141,7 +1144,7 @@ class LibSolvSolver(Solver):
     def _configure_solver_for_install(self, state):
         from mamba import mamba_api as api
 
-        prefix_data = state["prefix_data"]
+        prefix_data = state["mamba_prefix_data"]
         pool = state["pool"]
 
         # Set different solver options
@@ -1218,7 +1221,7 @@ class LibSolvSolver(Solver):
         # B. Implicitly requested via `update --all`: add everything in prefix
         if self._command == 'update' and context.update_modifier == UpdateModifier.UPDATE_ALL:
             for pkg in state["installed_pkgs"]:
-                if not pkg.name.startswith("__"):  # skip virtual packages
+                if not pkg.is_unmanageable:  # skip virtual packages
                     specs_to_add.append(MatchSpec(pkg.name))
         # C. Implicitly requested via `install|update --update-deps`
         elif context.update_modifier == UpdateModifier.UPDATE_DEPS:
@@ -1272,10 +1275,14 @@ class LibSolvSolver(Solver):
 
     def _build_transaction(self, state):
         from mamba import mamba_api as api
-        from mamba.utils import to_txn
+        from mamba.utils import to_package_record_from_subjson
+
+        solver = state["solver"]
+        index = state["index"]
+        installed_pkgs = state["installed_pkgs"]
 
         transaction = api.Transaction(
-            state["solver"],
+            solver,
             api.MultiPackageCache(context.pkgs_dirs),
             PackageCacheData.first_writable().pkgs_dir,
         )
@@ -1283,15 +1290,67 @@ class LibSolvSolver(Solver):
         specs_to_add = [MatchSpec(m) for m in names_to_add]
         specs_to_remove = [MatchSpec(m) for m in names_to_remove]
 
-        return to_txn(
-            specs_to_add,
-            specs_to_remove,
+        to_link_records, to_unlink_records = [], []
+
+        # What follows below is mainly mamba.utils.to_txn with some patches
+        # We will simplify this to save some transaction conversions
+        # whenever possible - TODO
+        conda_prefix_data = PrefixData(self.prefix)
+        final_precs = IndexedSet(conda_prefix_data.iter_records())
+
+        lookup_dict = {}
+        for _, entry in index:
+            lookup_dict[
+                entry["channel"].platform_url(entry["platform"], with_credentials=False)
+            ] = entry
+
+        for _, pkg in to_unlink:
+            for i_rec in installed_pkgs:
+                # Do not try to unlink virtual pkgs
+                if not i_rec.is_unmanageable and i_rec.fn == pkg:
+                    final_precs.remove(i_rec)
+                    to_unlink_records.append(i_rec)
+                    break
+            else:
+                print("No package record found!")
+
+        for channel, pkg, json_string in to_link:
+            if channel.startswith("file://"):
+                # The conda functions (specifically remove_auth) assume the input
+                # is a url; a file uri on windows with a drive letter messes them up.
+                key = channel
+            else:
+                key = split_anaconda_token(remove_auth(channel))[0]
+            if key not in lookup_dict:
+                raise ValueError("missing key {} in channels: {}".format(key, lookup_dict))
+            sdir = lookup_dict[key]
+            rec = to_package_record_from_subjson(sdir, pkg, json_string)
+            final_precs.add(rec)
+            to_link_records.append(rec)
+
+        unlink_precs, link_precs = diff_for_unlink_link_precs(
             self.prefix,
-            to_link,
-            to_unlink,
-            state["installed_pkgs"],
-            state["index"],
+            final_precs=IndexedSet(PrefixGraph(final_precs).graph),
+            specs_to_add=specs_to_add,
+            force_reinstall=context.force_reinstall,
         )
+
+        pref_setup = PrefixSetup(
+            target_prefix=self.prefix,
+            unlink_precs=unlink_precs,
+            link_precs=link_precs,
+            remove_specs=specs_to_remove,
+            update_specs=specs_to_add,
+            neutered_specs=(),
+        )
+
+        # TODO:
+        # At this point we can provide the different levels of the API!
+        # solve_final_state -> pass final_precs
+        # solve_for_diff -> unlink_precs, link_precs
+        # solve_for_transaction -> returned object below
+
+        return UnlinkLinkTransaction(pref_setup)
 
 
 class SolverStateContainer(object):
