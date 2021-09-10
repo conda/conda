@@ -11,6 +11,3 @@ useradd -m -s /bin/bash test_user
 usermod -u 1001 test_user
 groupmod -g 1001 test_user
 echo "test_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Make /opt/conda world-writable to allow hardlinks
-chmod -R o+w /opt/conda

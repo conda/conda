@@ -20,7 +20,6 @@ COPY ci/scripts/linux/setup.sh /tmp
 RUN bash /tmp/setup.sh
 
 COPY --from=buildbase /opt/conda /opt/conda
-
 ARG PYTHON_VERSION=3.8
 
 COPY tests/requirements.txt /tmp
@@ -30,6 +29,9 @@ RUN /opt/conda/bin/conda install --update-all -y -c defaults \
     python=$PYTHON_VERSION \
     --file /tmp/requirements.txt && \
     /opt/conda/bin/conda clean --all --yes
+
+# Make /opt/conda world-writable to allow hardlinks during tests
+RUN chmod -R o+w /opt/conda
 
 USER test_user
 
