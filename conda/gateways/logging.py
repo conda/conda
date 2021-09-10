@@ -19,15 +19,6 @@ log = getLogger(__name__)
 TRACE = 5  # TRACE LOG LEVEL
 VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
 
-if sys.version_info[0] == 2:
-    def another_to_unicode(val):
-        # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
-        if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
-            return unicode(val, encoding='utf-8')  # NOQA
-        return val
-else:
-    def another_to_unicode(val):
-        return val
 
 class TokenURLFilter(Filter):
     TOKEN_URL_PATTERN = re.compile(
@@ -53,9 +44,9 @@ class TokenURLFilter(Filter):
         not happening until now.
         '''
 
-        record.msg = another_to_unicode(self.TOKEN_REPLACE(record.msg))
+        record.msg = self.TOKEN_REPLACE(record.msg)
         if record.args:
-            new_args = tuple(self.TOKEN_REPLACE(another_to_unicode(arg))
+            new_args = tuple(self.TOKEN_REPLACE(arg)
                              if isinstance(arg, string_types) else arg
                              for arg in record.args)
             record.msg = record.msg % new_args

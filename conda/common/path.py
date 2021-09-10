@@ -9,6 +9,7 @@ import os
 from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
+from urllib.parse import urlsplit
 
 from .compat import on_win, string_types
 from .. import CondaError
@@ -16,13 +17,6 @@ from ..auxlib.decorators import memoize
 from .._vendor.toolz import accumulate, concat
 from distutils.spawn import find_executable
 
-try:
-    # Python 3
-    from urllib.parse import unquote, urlsplit
-except ImportError:  # pragma: no cover
-    # Python 2
-    from urllib import unquote  # NOQA
-    from urlparse import urlsplit  # NOQA
 
 log = getLogger(__name__)
 
@@ -44,8 +38,6 @@ def is_path(value):
 
 
 def expand(path):
-    # if on_win and PY2:
-    #     path = ensure_fs_path_encoding(path)
     return abspath(expanduser(expandvars(path)))
 
 

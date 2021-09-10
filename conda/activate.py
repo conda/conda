@@ -20,7 +20,8 @@ from ._vendor.toolz import concatv, drop
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, scandir, string_types
+from .common.compat import (FILESYSTEM_ENCODING, iteritems, on_win,
+                            scandir, string_types)
 from .common.path import paths_equal
 
 
@@ -63,12 +64,7 @@ class _Activator(object):
 
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
-
-        if PY2:
-            self.environ = {ensure_fs_path_encoding(k): ensure_fs_path_encoding(v)
-                            for k, v in iteritems(os.environ)}
-        else:
-            self.environ = os.environ.copy()
+        self.environ = os.environ.copy()
 
     # Once Python2 dies odargs can become kwargs again since dicts are ordered since 3.6.
     def get_export_unset_vars(self, odargs):

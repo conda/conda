@@ -38,6 +38,8 @@ install_requires = [
     "requests >=2.12.4",
     "ruamel_yaml_conda >=0.11.14",
     "menuinst ; platform_system=='Windows'",
+    "pluggy >= 0.13.1,1.0.0",
+    "importlib_metadata",
 ]
 
 def package_files(*root_directories):

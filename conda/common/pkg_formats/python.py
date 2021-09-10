@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
+from configparser import ConfigParser
 from csv import reader as csv_reader
 from email.parser import HeaderParser
 from errno import ENOENT
@@ -17,18 +18,13 @@ import sys
 import warnings
 
 from ... import CondaError
-from ..compat import PY2, StringIO, itervalues, odict, open, scandir, string_types
+from ..compat import StringIO, itervalues, odict, open, scandir, string_types
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )
 from ...auxlib.decorators import memoizedproperty
 from ..._vendor.frozendict import frozendict
 from ..._vendor.toolz import concat, concatv, groupby
-
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
 
 log = getLogger(__name__)
 
@@ -264,8 +260,6 @@ class PythonDistribution(object):
                 return tuple(records)
 
             csv_delimiter = ','
-            if PY2:
-                csv_delimiter = csv_delimiter.encode('utf-8')
             with open(manifest_full_path) as csvfile:
                 record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                 # format of each record is (path, checksum, size)

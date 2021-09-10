@@ -12,7 +12,7 @@ import uuid
 
 import pytest
 
-from conda.common.compat import on_win, PY2
+from conda.common.compat import on_win
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import link, islink, readlink, symlink
@@ -83,12 +83,8 @@ class LinkSymlinkUnlinkIslinkReadlinkTests(TestCase):
         assert not isfile(path1_real_file)
         assert not lexists(path1_real_file)
         assert not exists(path1_real_file)
-
         assert lexists(path2_symlink)
-        if not (on_win and PY2):
-            # I guess I'm not surprised this exist vs lexist is different for win py2
-            #   consider adding a fix in the future
-            assert not exists(path2_symlink)
+        assert not exists(path2_symlink)
 
         os.unlink(path2_symlink)
         assert not lexists(path2_symlink)

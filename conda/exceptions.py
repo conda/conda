@@ -25,7 +25,7 @@ from .auxlib.logz import stringify
 from .auxlib.type_coercion import boolify
 from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
-from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win
+from .common.compat import ensure_text_type, input, iteritems, iterkeys, on_win
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
 
@@ -1147,8 +1147,6 @@ class ExceptionHandler(object):
                 return self.handle_reportable_application_exception(exc_val, exc_tb)
             else:
                 return self.handle_application_exception(exc_val, exc_tb)
-        if isinstance(exc_val, UnicodeError) and PY2:
-            return self.handle_application_exception(EncodingError(exc_val), exc_tb)
         if isinstance(exc_val, EnvironmentError):
             if getattr(exc_val, 'errno', None) == ENOSPC:
                 return self.handle_application_exception(NoSpaceLeftError(exc_val), exc_tb)

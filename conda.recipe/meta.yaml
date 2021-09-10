@@ -32,7 +32,9 @@ requirements:
     - pip
     - ruamel_yaml >=0.11.14,<0.17
     - setuptools >=31.0.1
-  run:
+    - pluggy >= 0.13.1,1.0.0
+    - importlib_metadata
+    run:
     - python
     - conda-package-handling >=1.3.0
     - menuinst >=1.4.11,<2         # [win]
@@ -41,6 +43,8 @@ requirements:
     - requests >=2.18.4,<3
     - ruamel_yaml >=0.11.14,<0.17
     - setuptools >=31.0.1
+    - pluggy >= 0.13.1,1.0.0
+    - importlib_metadata
   run_constrained:
     - conda-build >=3
     - conda-env >=2.6

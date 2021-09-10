@@ -10,17 +10,7 @@ import sys
 
 from json import JSONEncoder
 
-# This hack is from http://kmike.ru/python-with-strings-attached/
-# It is needed ro prevent str() conversion of %r. Against general
-# advice, we return `unicode` from various things on Python 2,
-# in particular the `__repr__` and `__str__` of our exceptions.
-if sys.version_info[0] == 2:
-    # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
-    reload(sys)  # NOQA
-    sys.setdefaultencoding('utf-8')
-
-from .auxlib.packaging import get_version
-from .common.compat import text_type, iteritems
+from ._vendor.auxlib.packaging import get_version
 
 
 __all__ = (
@@ -65,39 +55,19 @@ class CondaError(Exception):
         self._caused_by = caused_by
         super(CondaError, self).__init__(message)
 
-# If we add __unicode__ to CondaError then we must also add it to all classes that
-# inherit from it if they have their own __repr__ (and maybe __str__) function.
-    if sys.version_info[0] > 2:
-        def __repr__(self):
-            return '%s: %s' % (self.__class__.__name__, text_type(self))
-    else:
-
-        # We must return unicode here.
-        def __unicode__(self):
-            new_kwargs = dict()
-            for k, v in iteritems(self._kwargs):
-                new_kwargs[another_to_unicode(k)] = another_to_unicode(v)
-            new_message = another_to_unicode(self.message)
-            res = '%s' % (new_message % new_kwargs)
-            return res
-
-        def __repr__(self):
-            return '%s: %s' % (self.__class__.__name__, self.__unicode__())
+    def __repr__(self):
+        return '%s: %s' % (self.__class__.__name__, str(self))
 
     def __str__(self):
-
         try:
-            if sys.version_info[0] > 2:
-                return text_type(self.message % self._kwargs)
-            else:
-                return self.__unicode__().encode('utf-8')
+            return str(self.message % self._kwargs)
         except Exception:
             debug_message = "\n".join((
                 "class: " + self.__class__.__name__,
                 "message:",
                 self.message,
                 "kwargs:",
-                text_type(self._kwargs),
+                str(self._kwargs),
                 "",
             ))
             print(debug_message, file=sys.stderr)
@@ -105,9 +75,9 @@ class CondaError(Exception):
 
     def dump_map(self):
         result = dict((k, v) for k, v in vars(self).items() if not k.startswith('_'))
-        result.update(exception_type=text_type(type(self)),
+        result.update(exception_type=str(type(self)),
                       exception_name=self.__class__.__name__,
-                      message=text_type(self),
+                      message=str(self),
                       error=repr(self),
                       caused_by=repr(self._caused_by),
                       **self._kwargs)
@@ -120,42 +90,24 @@ class CondaMultiError(CondaError):
         self.errors = errors
         super(CondaMultiError, self).__init__(None)
 
-    if sys.version_info[0] > 2:
-        def __repr__(self):
-            errs = []
-            for e in self.errors:
-                if isinstance(e, EnvironmentError) and not isinstance(e, CondaError):
-                    errs.append(text_type(e))
-                else:
-                    # We avoid Python casting this back to a str()
-                    # by using e.__repr__() instead of repr(e)
-                    # https://github.com/scrapy/cssselect/issues/34
-                    errs.append(e.__repr__())
-            res = '\n'.join(errs)
-            return res
-    else:
-        # We must return unicode here.
-        def __unicode__(self):
-            errs = []
-            for e in self.errors:
-                if isinstance(e, EnvironmentError) and not isinstance(e, CondaError):
-                    errs.append(text_type(e))
-                else:
-                    # We avoid Python casting this back to a str()
-                    # by using e.__repr__() instead of repr(e)
-                    # https://github.com/scrapy/cssselect/issues/34
-                    errs.append(e.__repr__())
-            res = '\n'.join(errs)
-            return res
-
-        def __repr__(self):
-            return '%s: %s' % (self.__class__.__name__, self.__unicode__())
+    def __repr__(self):
+        errs = []
+        for e in self.errors:
+            if isinstance(e, EnvironmentError) and not isinstance(e, CondaError):
+                errs.append(str(e))
+            else:
+                # We avoid Python casting this back to a str()
+                # by using e.__repr__() instead of repr(e)
+                # https://github.com/scrapy/cssselect/issues/34
+                errs.append(e.__repr__())
+        res = '\n'.join(errs)
+        return res
 
     def __str__(self):
         return str('\n').join(str(e) for e in self.errors) + str('\n')
 
     def dump_map(self):
-        return dict(exception_type=text_type(type(self)),
+        return dict(exception_type=str(type(self)),
                     exception_name=self.__class__.__name__,
                     errors=tuple(error.dump_map() for error in self.errors),
                     error="Multiple Errors Encountered.",

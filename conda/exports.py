@@ -3,12 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# Do not use python stdlib imports from this module in other projects. You may be broken
-# without warning.
-try:
-    from collections.abc import Hashable as _Hashable
-except ImportError:
-    from collections import Hashable as _Hashable
+from collections.abc import Hashable as _Hashable
 import errno
 import functools
 import os
@@ -39,8 +34,7 @@ ArgumentParser = ArgumentParser
 
 from .common import compat as _compat  # NOQA
 compat = _compat
-from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, itervalues # NOQA
-PY3, StringIO,  input, iteritems, string_types, text_type, = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
+from .common.compat import StringIO, input, iteritems, on_win, string_types, text_type, itervalues # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
 CondaSession = CondaSession
 from .gateways.disk.create import TemporaryDirectory  # NOQA

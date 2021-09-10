@@ -1,9 +1,5 @@
 from collections.abc import Mapping
-
-try:
-    from collections import OrderedDict
-except ImportError:  # python < 2.7
-    OrderedDict = NotImplemented
+from collections import OrderedDict
 
 
 iteritems = getattr(dict, 'iteritems', dict.items) # py2-3 compatibility
