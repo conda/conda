@@ -1388,13 +1388,13 @@ class LibSolvSolver(Solver):
 
         for _, pkg in to_unlink:
             for i_rec in installed_pkgs:
-                # Do not try to unlink virtual pkgs
+                # Do not try to unlink virtual pkgs, virtual eggs, etc
                 if not i_rec.is_unmanageable and i_rec.fn == pkg:
                     final_precs.remove(i_rec)
                     to_unlink_records.append(i_rec)
                     break
             else:
-                print("No package record found!")
+                log.warn("Tried to unlink %s but it is not listed as installed or manageable?", pkg)
 
         for c, pkg, jsn_s in to_link:
             if c.startswith("file://"):
