@@ -17,12 +17,12 @@ from .._vendor.urllib3.util.url import Url, parse_url
 
 try:  # pragma: py2 no cover
     # Python 3
-    from urllib.parse import (quote, quote_plus, unquote, unquote_plus,
+    from urllib.parse import (quote, quote_plus, unquote, unquote_plus,  # NOQA
                               urlparse as _urlparse, urlunparse as _urlunparse)
 except ImportError:  # pragma: py3 no cover
     # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus,
-                              urlparse as _urlparse, urlunparse as _urlunparse)  # NOQA
+    from urllib import (quote, quote_plus, unquote, unquote_plus,  # NOQA
+                        urlparse as _urlparse, urlunparse as _urlunparse)
 
 
 def hex_octal_to_int(ho):
