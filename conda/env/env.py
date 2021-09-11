@@ -186,17 +186,28 @@ class Dependencies(dict):
         if not self.raw:
             return
 
-        self.update({"conda": []})
+        self.setdefault("conda", [])
 
         for line in self.raw:
             if isinstance(line, dict):
-                self.update(line)
+                for key, value in line.items():
+                    if isinstance(value, list):  # merge with existing items
+                        self.setdefault(key, [])
+                        self[key].extend(value)
+                    else:
+                        self[key] = value
             else:
                 self["conda"].append(common.arg2spec(line))
 
+        for key in tuple(self):
+            if isinstance(self[key], list):
+                self[key] = list(unique(self[key]))
+            if not self[key]:  # remove empty entries
+                del self[key]
+
+        self.setdefault("conda", [])  # always set 'conda' key
+
         if "pip" in self:
-            if not self["pip"]:
-                del self["pip"]
             if not any(MatchSpec(s).name == "pip" for s in self["conda"]):
                 self["conda"].append("pip")
 
