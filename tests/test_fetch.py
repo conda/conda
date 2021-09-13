@@ -3,6 +3,7 @@ from unittest import TestCase
 
 import pytest
 import responses
+from mock import patch
 from os.path import exists, isfile
 from tempfile import mktemp
 
@@ -72,10 +73,76 @@ class TestDownload(TestCase):
 
     @responses.activate
     def test_download_httperror(self):
-        with pytest.raises(CondaHTTPError) as execinfo:
+        with pytest.raises(CondaHTTPError):
             url = DEFAULT_CHANNEL_ALIAS
-            msg = "HTTPError:"
             responses.add(responses.GET, url, body='{"error": "not found"}', status=404,
                           content_type='application/json')
             download(url, mktemp())
-            assert msg in str(execinfo)
+
+    @responses.activate
+    def test_resume_download(self):
+        output_path = mktemp()
+        url = DEFAULT_CHANNEL_ALIAS
+        responses.add(responses.GET, url, stream=True,
+                      content_type='application/json', headers={'Accept-Ranges': 'bytes'})
+        # Download gets interrupted by an exception
+        with pytest.raises(ConnectionAbortedError):
+            def iter_content_interrupted(*args, **kwargs):
+                yield b'first:'
+                yield b'second:'
+                raise ConnectionAbortedError('aborted')
+
+            with patch('requests.Response.iter_content', side_effect=iter_content_interrupted):
+                download(url, output_path)
+
+        # Check that only the .part file is present
+        assert not os.path.exists(output_path)
+        assert os.path.exists(output_path + '.part')
+
+        # Download is resumed
+        def iter_content_resumed(*args, **kwargs):
+            yield b'last'
+
+        with patch('requests.Response.iter_content', side_effect=iter_content_resumed):
+            download(url, output_path)
+
+        assert os.path.exists(output_path)
+        assert not os.path.exists(output_path + '.part')
+
+        with open(output_path, 'rb') as fh:
+            assert fh.read() == b'first:second:last'
+
+    @responses.activate
+    def test_download_when_ranges_not_supported(self):
+        output_path = mktemp()
+        with pytest.raises(ConnectionAbortedError):
+            url = DEFAULT_CHANNEL_ALIAS
+            responses.add(responses.GET, url, stream=True,
+                          content_type='application/json', headers={'Accept-Ranges': 'none'})
+            with patch('requests.Response.iter_content') as iter_content_mock:
+                def iter_content_interrupted(*args, **kwargs):
+                    yield b'first:'
+                    yield b'second:'
+                    raise ConnectionAbortedError('aborted')
+
+                iter_content_mock.side_effect = iter_content_interrupted
+                download(url, output_path)
+
+        assert not os.path.exists(output_path)
+        assert os.path.exists(output_path + '.part')
+
+        # Accept-Ranges is not supported, send full content
+        with patch('requests.Response.iter_content') as iter_content_mock:
+            def iter_content_resumed(*args, **kwargs):
+                yield b'first:second:last'
+
+            iter_content_mock.side_effect = iter_content_resumed
+            download(url, output_path)
+
+        assert os.path.exists(output_path)
+        assert not os.path.exists(output_path + '.part')
+
+        with open(output_path, 'rb') as fh:
+            assert fh.read() == b'first:second:last'
+
+

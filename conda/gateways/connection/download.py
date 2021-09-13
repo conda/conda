@@ -5,7 +5,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import hashlib
 from logging import DEBUG, getLogger
-from os.path import basename, exists, join
+from os import rename
+from os.path import basename, exists, join, getsize
 import tempfile
 import warnings
 
@@ -28,7 +29,6 @@ log = getLogger(__name__)
 def disable_ssl_verify_warning():
     warnings.simplefilter('ignore', InsecureRequestWarning)
 
-
 @time_recorder("download")
 def download(
         url, target_full_path, md5=None, sha256=None, size=None, progress_update_callback=None
@@ -38,15 +38,81 @@ def download(
     if not context.ssl_verify:
         disable_ssl_verify_warning()
 
+    # Use a .part file to be able to resume downloading in case of failures.
+    target_part_path = target_full_path + '.part'
+    target_part_size = 0
+    if exists(target_part_path):
+        target_part_size = getsize(target_part_path)
+
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
         session = CondaSession()
-        resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
+        headers = {'Range': 'bytes=%s-' % target_part_size}  # Attempt to resume downloading.
+        resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout,
+                           headers=headers)
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
 
         content_length = int(resp.headers.get('Content-Length', 0))
+        # Check whether 'Range' is supported by the server.
+        resume_download = resp.headers.get('Accept-Ranges', 'none') == 'bytes' or resp.headers.get(
+            'Content-Range', 'none').startswith('bytes %s' % target_part_size)
+
+        total_target_size = None
+        if content_length:
+            total_target_size = content_length + target_part_size
+            if size is not None and size == content_length:
+                # The server is responding with full-sized file, no need to resume the download.
+                resume_download = False
+
+        file_open_flags = 'ab'
+        if not resume_download:
+            # Pretend that the .part file is empty and needs to be overwritten.
+            target_part_size = 0
+            file_open_flags = 'wb'
+
+        try:
+            with open(target_part_path, file_open_flags) as fh:
+                for chunk in resp.iter_content(2 ** 14):
+                    try:
+                        fh.write(chunk)
+                    except IOError as e:
+                        message = "Failed to write to %(target_path)s\n  errno: %(errno)d"
+                        # TODO: make this CondaIOError
+                        raise CondaError(message, target_path=target_part_path, errno=e.errno)
+
+                    target_part_size += len(chunk)
+
+                    if total_target_size is not None and target_part_size <= total_target_size:
+                        if progress_update_callback:
+                            progress_update_callback(target_part_size / total_target_size)
+
+            if total_target_size and total_target_size != target_part_size:
+                # TODO: needs to be a more-specific error type
+                message = dals("""
+                Downloaded bytes did not match Content-Length
+                  url: %(url)s
+                  target_path: %(target_path)s
+                  total Content-Length: %(content_length)d
+                  total downloaded bytes: %(downloaded_bytes)d
+                """)
+                original_target_part_size = total_target_size - content_length
+                raise CondaError(message, url=url, target_path=target_part_path,
+                                 content_length=content_length,
+                                 downloaded_bytes=target_part_size - original_target_part_size)
+
+        except (IOError, OSError) as e:
+            if e.errno == 104:
+                # Connection reset by peer
+                log.debug("%s, trying again" % e)
+            raise
+
+        if size is not None:
+            actual_size = total_target_size
+            if actual_size != size:
+                log.debug("size mismatch for download: %s (%s != %s)", url, actual_size, size)
+                raise ChecksumMismatchError(url, target_part_path, "size", size, actual_size)
 
         # prefer sha256 over md5 when both are available
         checksum_builder = checksum_type = checksum = None
@@ -59,60 +125,23 @@ def download(
             checksum_type = "md5"
             checksum = md5
 
-        size_builder = 0
-        try:
-            with open(target_full_path, 'wb') as fh:
-                streamed_bytes = 0
-                for chunk in resp.iter_content(2 ** 14):
-                    # chunk could be the decompressed form of the real data
-                    # but we want the exact number of bytes read till now
-                    streamed_bytes = resp.raw.tell()
-                    try:
-                        fh.write(chunk)
-                    except IOError as e:
-                        message = "Failed to write to %(target_path)s\n  errno: %(errno)d"
-                        # TODO: make this CondaIOError
-                        raise CondaError(message, target_path=target_full_path, errno=e.errno)
+        if checksum_builder:
+            with open(target_part_path, 'rb') as fh:
+                chunk = fh.read(2 ** 14)
+                while len(chunk):
+                    checksum_builder.update(chunk)
+                    chunk = fh.read(2 ** 14)
 
-                    checksum_builder and checksum_builder.update(chunk)
-                    size_builder += len(chunk)
-
-                    if content_length and 0 <= streamed_bytes <= content_length:
-                        if progress_update_callback:
-                            progress_update_callback(streamed_bytes / content_length)
-
-            if content_length and streamed_bytes != content_length:
-                # TODO: needs to be a more-specific error type
-                message = dals("""
-                Downloaded bytes did not match Content-Length
-                  url: %(url)s
-                  target_path: %(target_path)s
-                  Content-Length: %(content_length)d
-                  downloaded bytes: %(downloaded_bytes)d
-                """)
-                raise CondaError(message, url=url, target_path=target_full_path,
-                                 content_length=content_length,
-                                 downloaded_bytes=streamed_bytes)
-
-        except (IOError, OSError) as e:
-            if e.errno == 104:
-                # Connection reset by peer
-                log.debug("%s, trying again" % e)
-            raise
-
-        if checksum:
             actual_checksum = checksum_builder.hexdigest()
             if actual_checksum != checksum:
                 log.debug("%s mismatch for download: %s (%s != %s)",
                           checksum_type, url, actual_checksum, checksum)
                 raise ChecksumMismatchError(
-                    url, target_full_path, checksum_type, checksum, actual_checksum
+                    url, target_part_path, checksum_type, checksum, actual_checksum
                 )
-        if size is not None:
-            actual_size = size_builder
-            if actual_size != size:
-                log.debug("size mismatch for download: %s (%s != %s)", url, actual_size, size)
-                raise ChecksumMismatchError(url, target_full_path, "size", size, actual_size)
+
+        # Finally, rename the .part file to complete the successful download.
+        rename(target_part_path, target_full_path)
 
     except RequestsProxyError:
         raise ProxyError()  # see #3962
