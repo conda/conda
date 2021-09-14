@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
+import collections
 import contextlib
+import json
+import os
+import pathlib
 import re
 import tempfile
 import textwrap
@@ -27,22 +31,39 @@ class SolverTests:
         """Class under test."""
         raise NotImplementedError
 
-    @contextlib.contextmanager
-    def _cache_channel_packages(self, channel, packages):
-        """Set the channel cache to a set of packages.
-
-        If something tries to access the index data for this channel, it should
-        get the set cache instead. This is used to set the index data when
-        testing the resolver.
-        """
-        # instantiating the data should cache it
-        sd = helpers.TestSubdirData(channel, packages=list(packages))
-        key = (channel.url(with_credentials=True), REPODATA_FN)
-        assert key in SubdirData._cache_
-        try:
-            yield
-        finally:
-            del SubdirData._cache_[key]
+    def _write_channel_packages(self, channel_path: pathlib.Path, subdirs, packages):
+        """Create a channel containing a set of packages."""
+        # build package data
+        package_data = collections.defaultdict(dict)
+        for record in packages:
+            package_data[record.subdir][record.fn] = {
+                key: value
+                for key, value in vars(record).items()
+                if key in (
+                    'build',
+                    'build_number',
+                    'depends',
+                    'license',
+                    'md5',
+                    'name',
+                    'sha256',
+                    'size',
+                    'subdir',
+                    'timestamp',
+                    'version',
+                    'track_features',
+                )
+            }
+        # write repodata
+        for subdir in subdirs:
+            subdir_path = channel_path / subdir
+            subdir_path.mkdir(parents=True, exist_ok=True)
+            subdir_path.joinpath('repodata.json').write_text(json.dumps({
+                'info': {
+                    'subdir': subdir,
+                },
+                'packages': package_data.get(subdir, {}),
+            }))
 
     @contextlib.contextmanager
     def solver(self, *, add=(), remove=(), packages=()):
@@ -51,19 +72,17 @@ class SolverTests:
         Roughly equivalent to ``Solver(specs_to_add=..., specs_to_remove=...)``
         with a custom channel containing the data specified in `packages`.
         """
-        channel = Channel('https://conda.anaconda.org/channel-custom/%s' % context.subdir)
-        with contextlib.ExitStack() as stack:
-            # cache the packages for all subdirs as the resolver might want to access them
-            for subdir in context.subdirs:
-                stack.enter_context(self._cache_channel_packages(
-                    Channel('https://conda.anaconda.org/channel-custom/%s' % subdir),
-                    list(packages),
-                ))
-            # yield the solver
+        with tempfile.TemporaryDirectory(prefix='conda-test-repo-') as tmpdir_path:
+            tmpdir = pathlib.Path(tmpdir_path)
+            channels = tuple(
+                Channel(f'file://{tmpdir / subdir}')
+                for subdir in context.subdirs
+            )
+            self._write_channel_packages(tmpdir, context.subdirs, list(packages))
             yield self.solver_class(
                 prefix='dummy - does not exist',
-                subdirs=(context.subdir,),
-                channels=(channel,),
+                subdirs=context.subdirs,
+                channels=channels,
                 specs_to_add=add,
                 specs_to_remove=remove,
             )
@@ -85,15 +104,16 @@ class SolverTests:
     def assert_installed(self, specs, expecting):
         """Helper to assert that a transaction result contains the packages
         specified by the set of specification string."""
-        assert sorted(
-            record.dist_str() for record in self.install(*specs)
-         ) == sorted(helpers.add_subdir_to_iter(expecting))
+        assert {
+            f'{record.name}-{record.version}-{record.build}'
+            for record in self.install(*specs)
+        } == set(expecting)
 
     def assert_record_in(self, record_str, records):
         """Helper to assert that a record list contains a record matching the
         provided record string."""
-        assert helpers.add_subdir(record_str) in [
-            record.dist_str() for record in records
+        assert record_str in [
+            f'{record.name}-{record.version}-{record.build}' for record in records
         ]
 
     def assert_unsatisfiable(self, exc_info, entries):
@@ -111,16 +131,16 @@ class SolverTests:
     def test_iopro_nomkl(self):
         self.assert_installed(
             ['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], [
-                'channel-1::iopro-1.4.3-np17py27_p0',
-                'channel-1::numpy-1.7.1-py27_0',
-                'channel-1::openssl-1.0.1c-0',
-                'channel-1::python-2.7.5-0',
-                'channel-1::readline-6.2-0',
-                'channel-1::sqlite-3.7.13-0',
-                'channel-1::system-5.8-1',
-                'channel-1::tk-8.5.13-0',
-                'channel-1::unixodbc-2.3.1-0',
-                'channel-1::zlib-1.2.7-0',
+                'iopro-1.4.3-np17py27_p0',
+                'numpy-1.7.1-py27_0',
+                'openssl-1.0.1c-0',
+                'python-2.7.5-0',
+                'readline-6.2-0',
+                'sqlite-3.7.13-0',
+                'system-5.8-1',
+                'tk-8.5.13-0',
+                'unixodbc-2.3.1-0',
+                'zlib-1.2.7-0',
             ],
         )
 
@@ -141,43 +161,43 @@ class SolverTests:
             if record.name in ('numpy', 'scipy'):
                 assert 'mkl' in record.features
 
-        self.assert_record_in('channel-1::numpy-1.7.1-py27_p0', records)
-        self.assert_record_in('channel-1::scipy-0.12.0-np17py27_p0', records)
+        self.assert_record_in('numpy-1.7.1-py27_p0', records)
+        self.assert_record_in('scipy-0.12.0-np17py27_p0', records)
 
     def test_anaconda_nomkl(self):
         records = self.install('anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*')
         assert len(records) == 107
-        self.assert_record_in('channel-1::scipy-0.12.0-np17py27_0', records)
+        self.assert_record_in('scipy-0.12.0-np17py27_0', records)
 
     def test_pseudo_boolean(self):
         # The latest version of iopro, 1.5.0, was not built against numpy 1.5
         self.assert_installed(
             ['iopro', 'python 2.7*', 'numpy 1.5*'], [
-                'channel-1::iopro-1.4.3-np15py27_p0',
-                'channel-1::numpy-1.5.1-py27_4',
-                'channel-1::openssl-1.0.1c-0',
-                'channel-1::python-2.7.5-0',
-                'channel-1::readline-6.2-0',
-                'channel-1::sqlite-3.7.13-0',
-                'channel-1::system-5.8-1',
-                'channel-1::tk-8.5.13-0',
-                'channel-1::unixodbc-2.3.1-0',
-                'channel-1::zlib-1.2.7-0',
+                'iopro-1.4.3-np15py27_p0',
+                'numpy-1.5.1-py27_4',
+                'openssl-1.0.1c-0',
+                'python-2.7.5-0',
+                'readline-6.2-0',
+                'sqlite-3.7.13-0',
+                'system-5.8-1',
+                'tk-8.5.13-0',
+                'unixodbc-2.3.1-0',
+                'zlib-1.2.7-0',
             ],
         )
         self.assert_installed(
             ['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], [
-                'channel-1::iopro-1.4.3-np15py27_p0',
-                'channel-1::mkl-rt-11.0-p0',
-                'channel-1::numpy-1.5.1-py27_p4',
-                'channel-1::openssl-1.0.1c-0',
-                'channel-1::python-2.7.5-0',
-                'channel-1::readline-6.2-0',
-                'channel-1::sqlite-3.7.13-0',
-                'channel-1::system-5.8-1',
-                'channel-1::tk-8.5.13-0',
-                'channel-1::unixodbc-2.3.1-0',
-                'channel-1::zlib-1.2.7-0',
+                'iopro-1.4.3-np15py27_p0',
+                'mkl-rt-11.0-p0',
+                'numpy-1.5.1-py27_p4',
+                'openssl-1.0.1c-0',
+                'python-2.7.5-0',
+                'readline-6.2-0',
+                'sqlite-3.7.13-0',
+                'system-5.8-1',
+                'tk-8.5.13-0',
+                'unixodbc-2.3.1-0',
+                'zlib-1.2.7-0',
             ],
         )
 
