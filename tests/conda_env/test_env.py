@@ -71,16 +71,47 @@ class from_file_TestCase(unittest.TestCase):
 
     def test_with_pip(self):
         e = env.from_file(support_file('with-pip.yml'))
-        assert 'pip' in e.dependencies
-        assert 'foo' in e.dependencies['pip']
-        assert 'baz' in e.dependencies['pip']
+        expected = OrderedDict([
+            ('conda', ['pip']),
+            ('pip', ['foo', 'baz'])
+        ])
+        self.assertEqual(e.dependencies, expected)
 
-    @pytest.mark.timeout(20)
+    def test_with_pip_multiple(self):
+        e = env.from_file(support_file('with-pip-multiple.yml'))
+        expected = OrderedDict([
+            ('conda', ['pip']),
+            ('pip', ['foo', 'baz'])
+        ])
+        self.assertEqual(e.dependencies, expected)
+
+    def test_with_pip_empty(self):
+        e = env.from_file(support_file('with-pip-empty.yml'))
+        expected = OrderedDict([
+            ('conda', ['pip'])
+        ])
+        self.assertEqual(e.dependencies, expected)
+
     def test_add_pip(self):
         e = env.from_file(support_file('add-pip.yml'))
         expected = OrderedDict([
             ('conda', ['pip', 'car']),
             ('pip', ['foo', 'baz'])
+        ])
+        self.assertEqual(e.dependencies, expected)
+
+    def test_add_pip_multiple(self):
+        e = env.from_file(support_file('add-pip-multiple.yml'))
+        expected = OrderedDict([
+            ('conda', ['pip', 'car']),
+            ('pip', ['foo', 'baz'])
+        ])
+        self.assertEqual(e.dependencies, expected)
+
+    def test_add_pip_empty(self):
+        e = env.from_file(support_file('add-pip-empty.yml'))
+        expected = OrderedDict([
+            ('conda', ['pip', 'car'])
         ])
         self.assertEqual(e.dependencies, expected)
 
