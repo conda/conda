@@ -104,9 +104,11 @@ class SolverTests:
     def assert_installed(self, specs, expecting):
         """Helper to assert that a transaction result contains the packages
         specified by the set of specification string."""
+        installed = self.install(*specs)
+        assert installed, f'no installed specs ({installed})'
         assert {
             f'{record.name}-{record.version}-{record.build}'
-            for record in self.install(*specs)
+            for record in installed
         } == set(expecting)
 
     def assert_record_in(self, record_str, records):
