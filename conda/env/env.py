@@ -191,9 +191,10 @@ class Dependencies(dict):
         for line in self.raw:
             if isinstance(line, dict):
                 for key, value in line.items():
-                    if isinstance(value, list):  # merge with existing items
-                        self.setdefault(key, [])
-                        self[key].extend(value)
+                    if isinstance(value, list) and isinstance(
+                        self.setdefault(key, []), list
+                    ):
+                        self[key].extend(value)  # merge with existing items
                     else:
                         self[key] = value
             else:
