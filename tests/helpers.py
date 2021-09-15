@@ -522,17 +522,15 @@ def get_index_cuda(subdir=context.subdir):
     return index, r
 
 
-class SimpleRecord(PackageRecord):
-    def __init__(self, name='a', version='1.0', depends=None, build='0',
-                 build_number=0, channel='channel-1'):
-        super().__init__(
-            name=name,
-            version=version,
-            depends=depends or [],
-            build=build,
-            build_number=build_number,
-            channel=channel,
-        )
+def record(name='a', version='1.0', depends=None, build='0', build_number=0, channel=None):
+    return PackageRecord(
+        name=name,
+        version=version,
+        depends=depends or [],
+        build=build,
+        build_number=build_number,
+        channel=channel,
+    )
 
 
 class TestSubdirData(SubdirData):

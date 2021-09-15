@@ -246,10 +246,10 @@ class SolverTests:
             self.install(
                 'a', 'b',
                 packages=(
-                    helpers.SimpleRecord(name='a', depends=['c >=1,<2']),
-                    helpers.SimpleRecord(name='b', depends=['c >=2,<3']),
-                    helpers.SimpleRecord(name='c', version='1.0'),
-                    helpers.SimpleRecord(name='c', version='2.0'),
+                    helpers.record(name='a', depends=['c >=1,<2']),
+                    helpers.record(name='b', depends=['c >=2,<3']),
+                    helpers.record(name='c', version='1.0'),
+                    helpers.record(name='c', version='2.0'),
                 )
             )
         self.assert_unsatisfiable(exc_info, [
