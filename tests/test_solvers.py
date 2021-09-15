@@ -52,6 +52,7 @@ class SolverTests:
                     'timestamp',
                     'version',
                     'track_features',
+                    'features',
                 )
             }
         # write repodata
@@ -101,15 +102,30 @@ class SolverTests:
         index, _ = get_index(context.subdir)
         return index.values()
 
+    def package_string_set(self, packages):
+        """Transforms package container in package string set."""
+        return {
+            f'{record.name}-{record.version}-{record.build}'
+            for record in packages
+        }
+
     def assert_installed(self, specs, expecting):
         """Helper to assert that a transaction result contains the packages
         specified by the set of specification string."""
         installed = self.install(*specs)
         assert installed, f'no installed specs ({installed})'
-        assert {
-            f'{record.name}-{record.version}-{record.build}'
-            for record in installed
-        } == set(expecting)
+        assert self.package_string_set(installed) == set(expecting) | {
+            # XXX: injected
+            'distribute-0.6.36-py27_1',
+            'pip-1.3.1-py27_1',
+        }
+
+    def assert_same_installed(self, specs1, specs2):
+        assert self.package_string_set(
+            self.install(*specs1),
+        ) == self.package_string_set(
+            self.install(*specs2),
+        )
 
     def assert_record_in(self, record_str, records):
         """Helper to assert that a record list contains a record matching the
@@ -147,14 +163,14 @@ class SolverTests:
         )
 
     def test_mkl(self):
-        assert self.install('mkl') == self.install(
+        self.assert_same_installed(['mkl'], [
             'mkl 11*', MatchSpec(track_features='mkl')
-        )
+        ])
 
     def test_accelerate(self):
-        assert self.install('accelerate') == self.install(
+        self.assert_same_installed(['accelerate'], [
             'accelerate', MatchSpec(track_features='mkl')
-        )
+        ])
 
     def test_scipy_mkl(self):
         records = self.install('scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl'))
