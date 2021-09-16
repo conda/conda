@@ -28,7 +28,7 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..common.url import split_anaconda_token, remove_auth
+from ..common.url import escape_channel_url, split_anaconda_token, remove_auth
 from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
                           UnsatisfiableError, RawStrUnsatisfiableError)
 from ..history import History
@@ -80,7 +80,8 @@ class Solver(object):
 
         """
         self.prefix = prefix
-        self.channels = IndexedSet(Channel(c) for c in channels or context.channels)
+        self._channels = channels or context.channels
+        self.channels = IndexedSet(Channel(c) for c in self._channels)
         self.subdirs = tuple(s for s in subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
@@ -1065,7 +1066,8 @@ class LibSolvSolver(Solver):
         # Logic heavily based on Mamba's implementation (solver parts):
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L289
 
-        print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
+        if not context.json:
+            print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
 
         # 0. Identify strategies
         kwargs = self._merge_signature_flags_with_context(
@@ -1082,7 +1084,6 @@ class LibSolvSolver(Solver):
         # This returns either None (did nothing) or a final state
         none_or_final_state = self._early_exit_tasks(**kwargs)
         if none_or_final_state is not None:
-            print(none_or_final_state)
             return none_or_final_state
 
         # These tasks DO need a solver
@@ -1103,8 +1104,7 @@ class LibSolvSolver(Solver):
             ignore_pinned=NULL,
             force_remove=NULL,
             force_reinstall=NULL,
-            should_retry_solve=False,
-        ):
+            should_retry_solve=False):
         """
         Context options can be overriden with the signature flags.
 
@@ -1142,7 +1142,8 @@ class LibSolvSolver(Solver):
             return IndexedSet(PrefixGraph(solution).graph)
 
         # Check if specs are satisfied by current environment. If they are, exit early.
-        if (kwargs["update_modifier"] == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE and not self.specs_to_remove):
+        if (kwargs["update_modifier"] == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
+                and not self.specs_to_remove):
             prefix_data = PrefixData(self.prefix)
             for spec in self.specs_to_add:
                 if not next(prefix_data.query(spec), None):
@@ -1176,10 +1177,12 @@ class LibSolvSolver(Solver):
 
         # This function will populate the pool/repos with
         # the current state of the given channels
-        channels_urls = [(c.base_url or c.canonical_name) for c in self.channels]
-        index = load_channels(pool, channels_urls, repos,
+        # Note load_channels has a `repodata_fn` arg we are NOT using
+        # because `current_repodata.json` is not guaranteed to exist in
+        # our current implementation; we bypass that and always use the
+        # default value: repodata.json
+        index = load_channels(pool, self._channel_urls(), repos,
                               prepend=False,
-                              repodata_fn=self._repodata_fn,
                               use_local=context.use_local,
                               platform=context.subdir)
 
@@ -1193,19 +1196,40 @@ class LibSolvSolver(Solver):
 
         return state
 
+    def _channel_urls(self):
+        """
+        TODO: This collection of workarounds should be, ideally,
+        handled in libmamba:
+
+        - Escape URLs
+        - Handle `local` correctly
+        """
+        channels = []
+        for channel in self._channels:
+            if channel == "local":
+                # This fixes test_activate_deactivate_modify_path_bash
+                # TODO: This can be improved earlier in the call stack
+                # Mamba should be able to handle this on its own too,
+                # but it fails (at least in the CI docker image).
+                subdir_url = Channel("local").urls()[0]
+                channel = subdir_url.rstrip("/").rsplit("/", 1)[0]
+            if isinstance(channel, Channel):
+                channel = channel.base_url or channel.name
+            channel = escape_channel_url(channel)
+            channels.append(channel)
+        return channels
+
     def _configure_solver(self, state, **kwargs):
-        solve_for_install = (self.specs_to_add
-                             or kwargs["update_modifier"] == UpdateModifier.UPDATE_ALL)
-        if solve_for_install and self.specs_to_remove:
-            raise CondaError("Simultaneous install and remove operations "
-                             "are not supported by the libsolv solver.")
-        elif solve_for_install:
-            return self._configure_solver_for_install(state, **kwargs)
-        elif self.specs_to_remove:
+        if self.specs_to_remove:
             return self._configure_solver_for_remove(state, **kwargs)
-        else:
-            raise CondaError("No specs were passed. What should we do?",
-                             caused_by=self.__class__.__name__)
+        # ALl other operations are handled as an install operation
+        # Namely:
+        # - Explicit specs added by user in CLI / API
+        # - conda update --all
+        # - conda create -n empty
+        # Take into account that early exit tasks (force remove, etc)
+        # have been handled beforehand if needed
+        return self._configure_solver_for_install(state, **kwargs)
 
     def _configure_solver_for_install(self, state, **kwargs):
         from mamba import mamba_api as api
@@ -1378,13 +1402,13 @@ class LibSolvSolver(Solver):
 
         for _, pkg in to_unlink:
             for i_rec in installed_pkgs:
-                # Do not try to unlink virtual pkgs
+                # Do not try to unlink virtual pkgs, virtual eggs, etc
                 if not i_rec.is_unmanageable and i_rec.fn == pkg:
                     final_precs.remove(i_rec)
                     to_unlink_records.append(i_rec)
                     break
             else:
-                print("No package record found!")
+                log.warn("Tried to unlink %s but it is not installed or manageable?", pkg)
 
         for c, pkg, jsn_s in to_link:
             if c.startswith("file://"):
