@@ -1199,6 +1199,13 @@ class LibSolvSolver(Solver):
     def _channel_urls(self):
         channels = []
         for channel in self._channels:
+            if channel == "local":
+                # This fixes test_activate_deactivate_modify_path_bash
+                # TODO: This can be improved earlier in the call stack
+                # Mamba should be able to handle this on its own too,
+                # but it fails (at least in the CI docker image).
+                subdir_url = Channel("local").urls()[0]
+                channel = subdir_url.rstrip("/").rsplit("/", 1)[0]
             if isinstance(channel, Channel):
                 channel = channel.base_url or channel.name
             channel = escape_channel_url(channel)
