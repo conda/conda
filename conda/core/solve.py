@@ -9,6 +9,7 @@ from logging import DEBUG, getLogger
 from os.path import join
 import sys
 from textwrap import dedent
+from itertools import chain
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -27,7 +28,7 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..common.url import split_anaconda_token, remove_auth
+from ..common.url import escape_channel_url, split_anaconda_token, remove_auth
 from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
                           UnsatisfiableError, RawStrUnsatisfiableError)
 from ..history import History
@@ -79,7 +80,8 @@ class Solver(object):
 
         """
         self.prefix = prefix
-        self.channels = IndexedSet(Channel(c) for c in channels or context.channels)
+        self._channels = channels or context.channels
+        self.channels = IndexedSet(Channel(c) for c in self._channels)
         self.subdirs = tuple(s for s in subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
@@ -1064,16 +1066,100 @@ class LibSolvSolver(Solver):
         # Logic heavily based on Mamba's implementation (solver parts):
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L289
 
-        print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
+        if not context.json:
+            print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
 
+        # 0. Identify strategies
+        kwargs = self._merge_signature_flags_with_context(
+            update_modifier=update_modifier,
+            deps_modifier=deps_modifier,
+            prune=prune,
+            ignore_pinned=ignore_pinned,
+            force_remove=force_remove,
+            force_reinstall=force_reinstall,
+            should_retry_solve=should_retry_solve
+        )
+
+        # Tasks that do not require a solver can be tackled right away
+        # This returns either None (did nothing) or a final state
+        none_or_final_state = self._early_exit_tasks(
+            update_modifier=kwargs["update_modifier"],
+            force_remove=kwargs["force_remove"],
+        )
+        if none_or_final_state is not None:
+            return none_or_final_state
+
+        # These tasks DO need a solver
         # 1. Populate repos with installed packages
         state = self._setup_state()
         # 2. Create solver and needed flags, tasks and jobs
-        self._configure_solver(state)
+        self._configure_solver(
+            state,
+            force_reinstall=kwargs["force_reinstall"],
+            deps_modifier=kwargs["deps_modifier"],
+            update_modifier=kwargs["update_modifier"],
+        )
         # 3. Run the SAT solver
         self._run_solver(state)
         # 4. Export back to conda
         return self._export_final_state(state)
+
+    def _merge_signature_flags_with_context(
+            self,
+            update_modifier=NULL,
+            deps_modifier=NULL,
+            prune=NULL,
+            ignore_pinned=NULL,
+            force_remove=NULL,
+            force_reinstall=NULL,
+            should_retry_solve=False):
+        """
+        Context options can be overriden with the signature flags.
+
+        We need this, at least, for some unit tests that change this behaviour through
+        the function signature instead of the context / env vars.
+        """
+        def context_if_null(var, varname):
+            return getattr(context, varname) if var is NULL else var
+
+        return {
+            "update_modifier": context_if_null(update_modifier, "update_modifier"),
+            "deps_modifier": context_if_null(deps_modifier, "deps_modifier"),
+            "ignore_pinned": context_if_null(ignore_pinned, "ignore_pinned"),
+            "force_remove": context_if_null(force_remove, "force_remove"),
+            "force_reinstall": context_if_null(force_reinstall, "force_reinstall"),
+            # We don't use these flags in mamba
+            # "prune": prune,
+            # "should_retry_solve": should_retry_solve,
+        }
+
+    def _early_exit_tasks(self, update_modifier=NULL, force_remove=NULL):
+        """
+        This reimplements a chunk of code found in the Legacy implementation.
+
+        See https://github.com/conda/conda/blob/9e9461760bbd71a17822/conda/core/solve.py#L239-L256
+        """
+        # force_remove is a special case where we return early
+        if self.specs_to_remove and force_remove:
+            if self.specs_to_add:
+                # This is not reachable from the CLI, but it is from the Python API
+                raise NotImplementedError("Cannot add and remove packages simultaneously.")
+            pkg_records = PrefixData(self.prefix).iter_records()
+            solution = tuple(pkg_record for pkg_record in pkg_records
+                             if not any(spec.match(pkg_record) for spec in self.specs_to_remove))
+            return IndexedSet(PrefixGraph(solution).graph)
+
+        # Check if specs are satisfied by current environment. If they are, exit early.
+        if (update_modifier == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
+                and not self.specs_to_remove):
+            prefix_data = PrefixData(self.prefix)
+            for spec in self.specs_to_add:
+                if not next(prefix_data.query(spec), None):
+                    break
+            else:
+                # All specs match a package in the current environment.
+                # Return early, with a solution that should just be PrefixData().iter_records()
+                return IndexedSet(PrefixGraph(prefix_data.iter_records()).graph)
 
     def _setup_state(self):
         from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
@@ -1099,10 +1185,12 @@ class LibSolvSolver(Solver):
 
         # This function will populate the pool/repos with
         # the current state of the given channels
-        channels_urls = [(c.base_url or c.canonical_name) for c in self.channels]
-        index = load_channels(pool, channels_urls, repos,
+        # Note load_channels has a `repodata_fn` arg we are NOT using
+        # because `current_repodata.json` is not guaranteed to exist in
+        # our current implementation; we bypass that and always use the
+        # default value: repodata.json
+        index = load_channels(pool, self._channel_urls(), repos,
                               prepend=False,
-                              repodata_fn=self._repodata_fn,
                               use_local=context.use_local,
                               platform=context.subdir)
 
@@ -1116,35 +1204,64 @@ class LibSolvSolver(Solver):
 
         return state
 
-    def _configure_solver(self, state):
-        solve_for_install = (self.specs_to_add
-                             or context.update_modifier == UpdateModifier.UPDATE_ALL)
-        if solve_for_install and self.specs_to_remove:
-            raise CondaError("Simultaneous install and remove operations "
-                             "are not supported by the libsolv solver.")
-        elif solve_for_install:
-            return self._configure_solver_for_install(state)
-        elif self.specs_to_remove:
-            return self._configure_solver_for_remove(state)
-        else:
-            raise CondaError("No specs were passed. What should we do?",
-                             caused_by=self.__class__.__name__)
+    def _channel_urls(self):
+        """
+        TODO: This collection of workarounds should be, ideally,
+        handled in libmamba:
 
-    def _configure_solver_for_install(self, state):
+        - Escape URLs
+        - Handle `local` correctly
+        """
+        channels = []
+        for channel in self._channels:
+            if channel == "local":
+                # This fixes test_activate_deactivate_modify_path_bash
+                # TODO: This can be improved earlier in the call stack
+                # Mamba should be able to handle this on its own too,
+                # but it fails (at least in the CI docker image).
+                subdir_url = Channel("local").urls()[0]
+                channel = subdir_url.rstrip("/").rsplit("/", 1)[0]
+            if isinstance(channel, Channel):
+                channel = channel.base_url or channel.name
+            channel = escape_channel_url(channel)
+            channels.append(channel)
+        return channels
+
+    def _configure_solver(self, state, force_reinstall=NULL, deps_modifier=NULL,
+                          update_modifier=NULL):
+        if self.specs_to_remove:
+            return self._configure_solver_for_remove(
+            )
+        # ALl other operations are handled as an install operation
+        # Namely:
+        # - Explicit specs added by user in CLI / API
+        # - conda update --all
+        # - conda create -n empty
+        # Take into account that early exit tasks (force remove, etc)
+        # have been handled beforehand if needed
+        return self._configure_solver_for_install(
+            state,
+            force_reinstall=force_reinstall,
+            deps_modifier=deps_modifier,
+            update_modifier=update_modifier,
+        )
+
+    def _configure_solver_for_install(self, state, force_reinstall=NULL, deps_modifier=NULL,
+                                      update_modifier=NULL):
         from mamba import mamba_api as api
 
         prefix_data = state["mamba_prefix_data"]
         pool = state["pool"]
 
         # Set different solver options
-        solver_args = (prefix_data,) if context.force_reinstall else ()
+        solver_args = (prefix_data,) if force_reinstall else ()
         solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
         if context.channel_priority is ChannelPriority.STRICT:
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver_postsolve_flags = [
-            (api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS),
-            (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS),
-            (api.MAMBA_FORCE_REINSTALL, context.force_reinstall),
+            (api.MAMBA_NO_DEPS, deps_modifier == DepsModifier.NO_DEPS),
+            (api.MAMBA_ONLY_DEPS, deps_modifier == DepsModifier.ONLY_DEPS),
+            (api.MAMBA_FORCE_REINSTALL, force_reinstall),
         ]
 
         solver = api.Solver(pool, solver_options, *solver_args)
@@ -1153,23 +1270,23 @@ class LibSolvSolver(Solver):
         # Configure jobs
 
         # 1. Lock currently installed ones, if requested
-        if context.update_modifier is UpdateModifier.FREEZE_INSTALLED:
+        if update_modifier is UpdateModifier.FREEZE_INSTALLED:
             solver.add_jobs([p for p in prefix_data.package_records], api.SOLVER_LOCK)
 
         # 2. Install/update user requested packages
-        specs_to_add = self._collect_specs_to_add(state)
+        specs_to_add = self._collect_specs_to_add(state, update_modifier=update_modifier)
         solver_task = api.SOLVER_UPDATE if self._command == "update" else api.SOLVER_INSTALL
         solver.add_jobs(specs_to_add, solver_task)
 
         # 3. Special cases
         # 3a. Handle aggressive updates
-        if not context.force_reinstall:
+        if not force_reinstall:
             installed_names = [rec.name for rec in state["installed_pkgs"]]
             always_update = [pkg.name for pkg in context.aggressive_update_packages
                              if pkg.name in installed_names]
             solver.add_jobs(always_update, api.SOLVER_UPDATE)
         # 3b. Pin constrained packages in env
-        python_pin = self._pin_python(state)
+        python_pin = self._pin_python(state, update_modifier=update_modifier)
         if python_pin:
             solver.add_pin(python_pin)
         for pin in self._pinned_specs():
@@ -1189,10 +1306,15 @@ class LibSolvSolver(Solver):
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver = api.Solver(state["pool"], solver_options)
 
-        history = api.History(self.prefix)
-        history_map = history.get_requested_specs_map()
+        history = api.History(self.prefix).get_requested_specs_map().values()
+        installed_names = [rec.name for rec in state["installed_pkgs"]]
+        # pkgs in aggresive_update_packages should be protected too (even if not
+        # requested explicitly by the user)
+        # see https://github.com/conda/conda/blob/9e9461760bb/tests/core/test_solve.py#L520-L521
+        aggresive_update_pkgs = [pkg for pkg in context.aggressive_update_packages
+                                 if pkg.name in installed_names]
         solver.add_jobs(
-            [s.conda_build_form() for s in history_map.values()],
+            [s.conda_build_form() for s in set(chain(history, aggresive_update_pkgs))],
             api.SOLVER_USERINSTALLED,
         )
         specs = [s.conda_build_form() for s in self.specs_to_remove]
@@ -1201,19 +1323,19 @@ class LibSolvSolver(Solver):
         state["solver"] = solver
         return solver
 
-    def _collect_specs_to_add(self, state):
+    def _collect_specs_to_add(self, state, update_modifier=NULL):
         """
         Reimplement the logic found in super()._add_specs(), but simplified.
         """
         # A. Explicitly requested packages via CLI (either update or install)
         specs_to_add = list(self.specs_to_add)
         # B. Implicitly requested via `update --all`: add everything in prefix
-        if self._command == 'update' and context.update_modifier == UpdateModifier.UPDATE_ALL:
+        if self._command == "update" and update_modifier == UpdateModifier.UPDATE_ALL:
             for pkg in state["installed_pkgs"]:
                 if not pkg.is_unmanageable:  # skip virtual packages
                     specs_to_add.append(MatchSpec(pkg.name))
         # C. Implicitly requested via `install|update --update-deps`
-        elif context.update_modifier == UpdateModifier.UPDATE_DEPS:
+        elif update_modifier == UpdateModifier.UPDATE_DEPS:
             final_specs = specs_to_add
             for spec in specs_to_add:
                 prec = next(p for p in state["installed_pkgs"] if p.name == spec.name)
@@ -1224,7 +1346,7 @@ class LibSolvSolver(Solver):
             specs_to_add += list(set(final_specs))
         return [s.conda_build_form() for s in specs_to_add]
 
-    def _pin_python(self, state):
+    def _pin_python(self, state, update_modifier=NULL):
         """
         If Python is already present in the environment and the user didn't
         include it in the requested packages, make sure it remains pinned to
@@ -1233,7 +1355,7 @@ class LibSolvSolver(Solver):
         installed_names = [rec.name for rec in state["installed_pkgs"]]
         is_installed = "python" in installed_names
         is_explicitly_requested = any(s == "python" for s in self.specs_to_add_names)
-        is_requested_in_update_all = context.update_modifier == UpdateModifier.UPDATE_ALL
+        is_requested_in_update_all = update_modifier == UpdateModifier.UPDATE_ALL
         if is_installed and (is_requested_in_update_all or not is_explicitly_requested):
             version = state["installed_pkgs"][installed_names.index("python")].version
             major_minor_version = ".".join(version.split(".")[:2])
@@ -1296,13 +1418,13 @@ class LibSolvSolver(Solver):
 
         for _, pkg in to_unlink:
             for i_rec in installed_pkgs:
-                # Do not try to unlink virtual pkgs
+                # Do not try to unlink virtual pkgs, virtual eggs, etc
                 if not i_rec.is_unmanageable and i_rec.fn == pkg:
                     final_precs.remove(i_rec)
                     to_unlink_records.append(i_rec)
                     break
             else:
-                print("No package record found!")
+                log.warn("Tried to unlink %s but it is not installed or manageable?", pkg)
 
         for c, pkg, jsn_s in to_link:
             if c.startswith("file://"):
