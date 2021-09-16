@@ -183,6 +183,11 @@ def add_feature_records_legacy(index):
 
 
 def _export_subdir_data_to_repodata(subdir_data, index):
+    """
+    This function is only temporary and meant to patch wrong / undesirable
+    testing behaviour. It should end up being replaced with the new class-based,
+    backend-agnostic solver tests.
+    """
     state = subdir_data._internal_state
     packages = {}
     for pkg in index:
@@ -210,6 +215,11 @@ def _export_subdir_data_to_repodata(subdir_data, index):
 
 
 def _sync_channel_to_disk(channel, subdir_data, index):
+    """
+    This function is only temporary and meant to patch wrong / undesirable
+    testing behaviour. It should end up being replaced with the new class-based,
+    backend-agnostic solver tests.
+    """
     base = Path(EXPORTED_CHANNELS_DIR) / channel.name
     subdir = base / channel.platform
     subdir.mkdir(parents=True, exist_ok=True)
@@ -227,6 +237,11 @@ def _sync_channel_to_disk(channel, subdir_data, index):
 
 
 def _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data=None):
+    """
+    This function is only temporary and meant to patch wrong / undesirable
+    testing behaviour. It should end up being replaced with the new class-based,
+    backend-agnostic solver tests.
+    """
     # export repodata state to disk for other solvers to test
     if subdir_data is None:
         cache_key = Channel(name).url(with_credentials=True), "repodata.json"
@@ -237,6 +252,11 @@ def _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data=None)
 
 
 def _patch_for_local_exports(name, subdir_data, channel, index):
+    """
+    This function is only temporary and meant to patch wrong / undesirable
+    testing behaviour. It should end up being replaced with the new class-based,
+    backend-agnostic solver tests.
+    """
     _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data)
 
     # we need to override the modification time here so the

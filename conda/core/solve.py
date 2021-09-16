@@ -1440,6 +1440,7 @@ class LibSolvSolver(Solver):
             final_precs.add(rec)
             to_link_records.append(rec)
 
+        # TODO: Review performance here just in case
         return IndexedSet(PrefixGraph(final_precs).graph)
 
 
