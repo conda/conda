@@ -17,21 +17,21 @@ body:
 
         ### Lets make sure you are in the right place. If you have an idea/request for:
 
-        - ####  A specific conda package from Anaconda ('defaults' channel), or  [repo.anaconda.com](repo.anaconda.com) access and service::
+        - ####  A specific conda package maintained by Anaconda, Inc ('defaults' channel), or the [repo.anaconda.com](repo.anaconda.com) access and service::
 
-          &rarr; file it at [anaconda issues](https://github.com/ContinuumIO/anaconda-issues)
+          &rarr; file a new issue in the [anaconda issue tracker](https://github.com/ContinuumIO/anaconda-issues/issues/new/choose)
 
         - #### A specific conda package from conda-forge:
 
-          &rarr; file at the corresponding feedstock under [conda-forge](https://github.com/conda-forge)
+          &rarr; file a new issue in the corresponding feedstock repo in the [conda-forge](https://github.com/conda-forge) organization
           
         - #### anaconda.org access and service:
 
-          &rarr; file it [here](https://anaconda.org/contact/report)
+          &rarr; file a new issue on the [anaconda.org contact page](https://anaconda.org/contact/report)
 
         - #### Commands under 'conda build':
 
-          &rarr; file it at [conda-build](https://github.com/conda/conda-build)
+          &rarr; file a new issue in the [conda-build](https://github.com/conda/conda-build) repository
 
   - type: checkboxes
     id: checks
@@ -41,9 +41,9 @@ body:
       options:
         - label: I added a descriptive title
           required: true
-        - label: I searched for other feature request and couldn't find a duplication (including also the ``type-feature`` tag)
+        - label: I searched for other feature requests and couldn't find a duplicate (including also the ``type-feature`` tag)
           required: true
-        - label: I confirmed that its not related to another project (see the above section)
+        - label: I confirmed that it's not related to another project (see the above section)
           required: true
   - type: textarea
     id: request-idea
@@ -59,14 +59,14 @@ body:
       label: Why is this needed
       description: |
         Who would benefit from this and why would this add value to them? What problem does this solve?
-      placeholder: This would benefit a user that would like to see what licenses they are using. This solves the problem where someone needs to know that they don't have any restrictive licenses in their codebase
+      placeholder: This would benefit users who would like to see what licenses they are using. This solves the problem where someone needs to know that they don't have any restrictive licenses in their codebase
   - type: textarea
     id: what
     attributes:
       label: What should happen?
       description: |
          What should be the user experience with the feature? Describe from a user perpective what they would do and see 
-      placeholder: A user would type in ``conda env list -license`` and see a list of packages in their current environment with an extra column showing what license is associated with each
+      placeholder: A user would type in ``conda env list --license`` and see a list of packages in their current environment with an extra column showing what license is associated with each
   - type: textarea
     id: context
     attributes:
