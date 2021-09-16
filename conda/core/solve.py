@@ -1197,6 +1197,13 @@ class LibSolvSolver(Solver):
         return state
 
     def _channel_urls(self):
+        """
+        TODO: This collection of workarounds should be, ideally,
+        handled in libmamba:
+
+        - Escape URLs
+        - Handle `local` correctly
+        """
         channels = []
         for channel in self._channels:
             if channel == "local":
