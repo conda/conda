@@ -20,7 +20,7 @@ from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, _get_solver_logic, UpdateModifier, Resolve
-from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
+from conda.exceptions import RawStrUnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
 from conda.gateways.disk.create import TemporaryDirectory
 from conda.history import History
 from conda.models.channel import Channel
@@ -28,7 +28,8 @@ from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
 from conda.resolve import MatchSpec
 from ..helpers import add_subdir_to_iter, get_index_r_1, get_index_r_2, get_index_r_4, \
-    get_index_r_5, get_index_cuda, get_index_must_unfreeze
+    get_index_r_5, get_index_cuda, get_index_must_unfreeze, EXPORTED_CHANNELS_DIR, \
+    _alias_canonical_channel_name_cache_to_file_prefixed
 
 from conda.common.compat import iteritems, on_win
 
@@ -47,10 +48,14 @@ def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), h
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_1(context.subdir)
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-1'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -60,10 +65,14 @@ def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_2(context.subdir)
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-2'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -73,10 +82,14 @@ def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_4(context.subdir)
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-4'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -86,10 +99,14 @@ def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_5(context.subdir)
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-5")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-5'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-5'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -100,10 +117,15 @@ def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_2(context.subdir)
     get_index_r_4(context.subdir)
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-2'), Channel('channel-4'), ),
-                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2'), Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'), ),
+                            (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -114,10 +136,15 @@ def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_r
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_r_2(context.subdir)
     get_index_r_4(context.subdir)
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-4'), Channel('channel-2')),
-                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-4'), Channel(f'{EXPORTED_CHANNELS_DIR}/channel-2')),
+                            (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -127,10 +154,14 @@ def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_must_unfreeze(context.subdir)
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-freeze")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-freeze'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-freeze'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 @contextmanager
@@ -140,14 +171,26 @@ def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     get_index_cuda(context.subdir)
+    _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = _get_solver_logic()(tmpdir, (Channel('channel-1'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
+        with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in get_index_r_*) to cover
+            # solver logics that need to load from disk instead of hitting the SubdirData cache
+            solver = _get_solver_logic()(tmpdir, (Channel(f'{EXPORTED_CHANNELS_DIR}/channel-1'),), (context.subdir,),
+                            specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+            yield solver
 
 
 def convert_to_dist_str(solution):
-    return tuple(prec.dist_str() for prec in solution)
+    dist_str = []
+    for prec in solution:
+        # This is needed to remove the local path prefix in the
+        # dist_str() calls, otherwise we cannot compare them
+        canonical_name = prec.channel._Channel__canonical_name
+        prec.channel._Channel__canonical_name = prec.channel.name
+        dist_str.append(prec.dist_str())
+        prec.channel._Channel__canonical_name = canonical_name
+    return tuple(dist_str)
 
 
 @pytest.fixture()
@@ -191,6 +234,10 @@ def test_solve_1(tmpdir):
         assert convert_to_dist_str(final_state) == order
 
 
+@pytest.mark.skipif(
+    not getattr(_get_solver_logic(), "_uses_ssc", True),
+    reason="This Solver implementation does not use SolverStateContainer"
+)
 def test_solve_2(tmpdir):
     specs = MatchSpec("numpy"),
 
@@ -242,6 +289,10 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
+@pytest.mark.skipif(
+    not getattr(_get_solver_logic(), "_uses_ssc", True),
+    reason="This Solver implementation does not use SolverStateContainer"
+)
 def test_virtual_package_solver(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
@@ -269,7 +320,7 @@ def test_solve_msgs_exclude_vp(tmpdir):
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
+            with pytest.raises(RawStrUnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
     assert "__cuda==10.0" not in str(exc.value).strip()
@@ -307,7 +358,7 @@ def test_cuda_fail_1(tmpdir):
     # No cudatoolkit in index for CUDA 8.0
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
+            with pytest.raises(RawStrUnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
     if sys.platform == "darwin":
@@ -322,12 +373,22 @@ def test_cuda_fail_1(tmpdir):
     else:
         plat = "linux-64"
 
-    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
+    error_msg = str(exc.value).strip()
+    possible_messages = [
+        # 1. Given by conda
+        dals("""The following specifications were found to be incompatible with your system:
 
   - feature:/{}::__cuda==8.0=0
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed version is: 8.0""".format(plat))
+Your installed version is: 8.0""".format(plat)),
+        # 2. Mamba can say
+        dals("""Encountered problems while solving:
+  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0"""),
+        dals("""Encountered problems while solving:
+  - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""),
+    ]
+    assert any(error_msg == msg for msg in possible_messages)
 
 
 def test_cuda_fail_2(tmpdir):
@@ -336,14 +397,24 @@ def test_cuda_fail_2(tmpdir):
     # No CUDA on system
     with env_var('CONDA_OVERRIDE_CUDA', ''):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
+            with pytest.raises(RawStrUnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
-    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
+    error_msg = str(exc.value).strip()
+    possible_messages = [
+        # 1. Conda says
+        dals("""The following specifications were found to be incompatible with your system:
 
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed version is: not available""")
+Your installed version is: not available"""),
+        # 2. Mamba can say
+        dals("""Encountered problems while solving:
+  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0"""),
+        dals("""Encountered problems while solving:
+  - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""),
+    ]
+    assert any(error_msg == msg for msg in possible_messages)
 
 
 def test_cuda_constrain_absent(tmpdir):
@@ -380,7 +451,7 @@ def test_cuda_constrain_unsat(tmpdir):
     # No cudatoolkit in index for CUDA 8.0
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
+            with pytest.raises(RawStrUnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
@@ -412,7 +483,7 @@ def test_cuda_glibc_unsat_depend(tmpdir):
 
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
+            with pytest.raises(RawStrUnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
@@ -430,7 +501,7 @@ def test_cuda_glibc_unsat_constrain(tmpdir):
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.12'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
+            with pytest.raises(RawStrUnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
 
@@ -497,7 +568,7 @@ def test_prune_1(tmpdir):
 
 
 def test_force_remove_1(tmpdir):
-    specs = MatchSpec("numpy[build=*py27*]"),
+    specs = MatchSpec("numpy[version=*,build=*py27*]"),
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
@@ -623,7 +694,7 @@ def test_no_deps_1(tmpdir):
 
 
 def test_only_deps_1(tmpdir):
-    specs = MatchSpec("numba[build=*py27*]"),
+    specs = MatchSpec("numba[version=*,build=*py27*]"),
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_1, specs).open_url()
@@ -687,7 +758,7 @@ def test_only_deps_2(tmpdir):
     # fails because numpy=1.5 is in our history as an explicit spec
     specs_to_add = MatchSpec("numba=0.5"),
     with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-        with pytest.raises(UnsatisfiableError):
+        with pytest.raises(RawStrUnsatisfiableError):
             final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
 
     specs_to_add = MatchSpec("numba=0.5"), MatchSpec("numpy")
@@ -1070,7 +1141,7 @@ def test_unfreeze_when_required(tmpdir):
     #    this section of the test broke when we improved the detection of conflicting specs.
     # specs_to_add = MatchSpec("qux"),
     # with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-    #     with pytest.raises(UnsatisfiableError):
+    #     with pytest.raises(RawStrUnsatisfiableError):
     #         solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
     specs_to_add = MatchSpec("qux"),
@@ -1850,7 +1921,7 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
 
     specs_to_add = MatchSpec("zope.interface>4.1"),
     with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-        with pytest.raises(UnsatisfiableError):
+        with pytest.raises(RawStrUnsatisfiableError):
             final_state_2 = solver.solve_final_state()
 
     # allow python to float
@@ -2218,7 +2289,7 @@ def test_freeze_deps_1(tmpdir):
         assert convert_to_dist_str(link_precs) == link_order
 
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
-    with pytest.raises(UnsatisfiableError):
+    with pytest.raises(RawStrUnsatisfiableError):
         specs_to_add = MatchSpec("bokeh=0.12.5"),
         with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1,
                         history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
@@ -2267,7 +2338,7 @@ def test_freeze_deps_1(tmpdir):
     specs_to_add = MatchSpec("bokeh=0.12.5"),
     with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
-        with pytest.raises(UnsatisfiableError):
+        with pytest.raises(RawStrUnsatisfiableError):
             solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
 
@@ -2397,23 +2468,37 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
     specs_to_add = MatchSpec("scikit-learn==0.13"),
     with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                     history_specs=specs) as solver:
-        with pytest.raises(UnsatisfiableError) as exc:
+        with pytest.raises(RawStrUnsatisfiableError) as exc:
             solver.solve_final_state()
 
         error_msg = str(exc.value).strip()
-        assert "incompatible with the existing python installation in your environment:" in error_msg
-        assert "- scikit-learn==0.13 -> python=2.7" in error_msg
-        assert "Your python: python=2.6" in error_msg
+        if context.solver_logic.value == "legacy":
+            assert "incompatible with the existing python installation in your environment:" in error_msg
+            assert "- scikit-learn==0.13 -> python=2.7" in error_msg
+            assert "Your python: python=2.6" in error_msg
+        elif context.solver_logic.value == "libsolv":
+            assert "Encountered problems while solving" in error_msg
+            assert "package scikit-learn-0.13-np16py27_1 requires python 2.7*" in error_msg
+        else:
+            raise ValueError(f"Unrecognized solver logic which cannot be tested: {context.solver_logic}")
 
     specs_to_add = MatchSpec("unsatisfiable-with-py26"),
     with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                     history_specs=specs) as solver:
-        with pytest.raises(UnsatisfiableError) as exc:
+        with pytest.raises(RawStrUnsatisfiableError) as exc:
             solver.solve_final_state()
         error_msg = str(exc.value).strip()
-        assert "incompatible with the existing python installation in your environment:" in error_msg
-        assert "- unsatisfiable-with-py26 -> python=2.7" in error_msg
-        assert "Your python: python=2.6"
+        if context.solver_logic.value == "legacy":
+            assert "incompatible with the existing python installation in your environment:" in error_msg
+            assert "- unsatisfiable-with-py26 -> python=2.7" in error_msg
+            assert "Your python: python=2.6" in error_msg
+        elif context.solver_logic.value == "libsolv":
+            assert "Encountered problems while solving" in error_msg
+            assert "package unsatisfiable-with-py26-1.0-0 requires scikit-learn 0.13" in error_msg
+            raise ValueError("This message is not as informative as Conda's. "
+                             f"It doesn't mention Python 2.7, but scikit-learn. Message:\n {error_msg}")
+        else:
+            raise ValueError(f"Unrecognized solver logic which cannot be tested: {context.solver_logic}")
 
 fake_index = [
     PrefixRecord(

@@ -12,10 +12,12 @@ import re
 from shlex import split
 from conda._vendor.auxlib.compat import shlex_split_unicode
 import sys
-from tempfile import gettempdir
+from tempfile import gettempdir, mkdtemp
 from unittest import mock
 from unittest.mock import patch
 from uuid import uuid4
+from pathlib import Path
+from time import time
 
 from conda import cli
 from conda._vendor.auxlib.decorators import memoize
@@ -40,6 +42,8 @@ except ImportError:
     from mock import patch
 
 TEST_DATA_DIR = abspath(join(dirname(__file__), "data"))
+EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
+
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
 def strip_expected(stderr):
@@ -177,6 +181,94 @@ def add_feature_records_legacy(index):
         rec = make_feature_record(feature_name)
         index[rec] = rec
 
+
+def _export_subdir_data_to_repodata(subdir_data, index):
+    """
+    This function is only temporary and meant to patch wrong / undesirable
+    testing behaviour. It should end up being replaced with the new class-based,
+    backend-agnostic solver tests.
+    """
+    state = subdir_data._internal_state
+    packages = {}
+    for pkg in index:
+        data = pkg.dump()
+        if "features" in data:
+            # Features are deprecated, so they are not implemented
+            # in modern solvers like mamba. Mamba does implement
+            # track_features minimization, so we are exposing the
+            # features as track_features, which seems to make the
+            # tests pass
+            data["track_features"] = data["features"]
+            del data["features"]
+        packages[pkg.fn] = data
+    return {
+            "_cache_control": state["_cache_control"],
+            "_etag": state["_etag"],
+            "_mod": state["_mod"],
+            "_url": state["_url"],
+            "_add_pip": state["_add_pip"],
+            "info": {
+                "subdir": context.subdir,
+            },
+            "packages": packages
+        }
+
+
+def _sync_channel_to_disk(channel, subdir_data, index):
+    """
+    This function is only temporary and meant to patch wrong / undesirable
+    testing behaviour. It should end up being replaced with the new class-based,
+    backend-agnostic solver tests.
+    """
+    base = Path(EXPORTED_CHANNELS_DIR) / channel.name
+    subdir = base / channel.platform
+    subdir.mkdir(parents=True, exist_ok=True)
+    with open(subdir / "repodata.json", "w") as f:
+        json.dump(_export_subdir_data_to_repodata(subdir_data, index), f, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+
+    noarch = base / "noarch"
+    noarch.mkdir(parents=True, exist_ok=True)
+    with open(noarch / "repodata.json", "w") as f:
+        json.dump({}, f)
+        f.flush()
+        os.fsync(f.fileno())
+
+
+def _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data=None):
+    """
+    This function is only temporary and meant to patch wrong / undesirable
+    testing behaviour. It should end up being replaced with the new class-based,
+    backend-agnostic solver tests.
+    """
+    # export repodata state to disk for other solvers to test
+    if subdir_data is None:
+        cache_key = Channel(name).url(with_credentials=True), "repodata.json"
+        subdir_data = SubdirData._cache_.get(cache_key)
+    if subdir_data:
+        local_proxy_channel = Channel(f'{EXPORTED_CHANNELS_DIR}/{name}')
+        SubdirData._cache_[(local_proxy_channel.url(with_credentials=True), "repodata.json")] = subdir_data
+
+
+def _patch_for_local_exports(name, subdir_data, channel, index):
+    """
+    This function is only temporary and meant to patch wrong / undesirable
+    testing behaviour. It should end up being replaced with the new class-based,
+    backend-agnostic solver tests.
+    """
+    _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data)
+
+    # we need to override the modification time here so the
+    # cache hits this subdir_data object from the local copy too
+    # - without this, the legacy solver will use the local dump too
+    # and there's no need for that extra work
+    # (check conda.core.subdir_data.SubdirDataType.__call__ for
+    # details)
+    _sync_channel_to_disk(channel, subdir_data, index)
+    subdir_data._mtime = float("inf")
+
+
 @memoize
 def get_index_r_1(subdir=context.subdir):
     with open(join(dirname(__file__), 'data', 'index.json')) as fi:
@@ -200,6 +292,8 @@ def get_index_r_1(subdir=context.subdir):
     index = {prec: prec for prec in sd._package_records}
     add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
+
+    _patch_for_local_exports("channel-1", sd, channel, index)
     return index, r
 
 
@@ -225,6 +319,8 @@ def get_index_r_2(subdir=context.subdir):
 
     index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
+
+    _patch_for_local_exports("channel-2", sd, channel, index)
     return index, r
 
 
@@ -251,6 +347,7 @@ def get_index_r_4(subdir=context.subdir):
     index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
 
+    _patch_for_local_exports("channel-4", sd, channel, index)
     return index, r
 
 
@@ -277,6 +374,7 @@ def get_index_r_5(subdir=context.subdir):
     index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
 
+    _patch_for_local_exports("channel-5", sd, channel, index)
     return index, r
 
 
@@ -387,6 +485,7 @@ def get_index_must_unfreeze(subdir=context.subdir):
     index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
 
+    _patch_for_local_exports("channel-freeze", sd, channel, index)
     return index, r
 
 
@@ -414,4 +513,6 @@ def get_index_cuda(subdir=context.subdir):
 
     add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
+
+    _patch_for_local_exports("channel-1", sd, channel, index)
     return index, r

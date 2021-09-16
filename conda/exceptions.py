@@ -605,8 +605,14 @@ class PackagesNotFoundError(CondaError):
             channel_urls=channel_urls, channels_formatted=channels_formatted
         )
 
+class RawStrUnsatisfiableError(CondaError):
+    """An exception to report unsatisfiable dependencies.
 
-class UnsatisfiableError(CondaError):
+    The error message is passed directly as a str.
+    """
+
+
+class UnsatisfiableError(RawStrUnsatisfiableError):
     """An exception to report unsatisfiable dependencies.
 
     Args:
