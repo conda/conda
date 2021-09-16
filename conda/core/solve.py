@@ -1082,15 +1082,23 @@ class LibSolvSolver(Solver):
 
         # Tasks that do not require a solver can be tackled right away
         # This returns either None (did nothing) or a final state
-        none_or_final_state = self._early_exit_tasks(**kwargs)
+        none_or_final_state = self._early_exit_tasks(
+            update_modifier=kwargs["update_modifier"],
+            force_remove=kwargs["force_remove"],
+        )
         if none_or_final_state is not None:
             return none_or_final_state
 
         # These tasks DO need a solver
         # 1. Populate repos with installed packages
-        state = self._setup_state(**kwargs)
+        state = self._setup_state()
         # 2. Create solver and needed flags, tasks and jobs
-        self._configure_solver(state, **kwargs)
+        self._configure_solver(
+            state,
+            force_reinstall=kwargs["force_reinstall"],
+            deps_modifier=kwargs["deps_modifier"],
+            update_modifier=kwargs["update_modifier"],
+        )
         # 3. Run the SAT solver
         self._run_solver(state)
         # 4. Export back to conda
@@ -1125,14 +1133,14 @@ class LibSolvSolver(Solver):
             # "should_retry_solve": should_retry_solve,
         }
 
-    def _early_exit_tasks(self, **kwargs):
+    def _early_exit_tasks(self, update_modifier=NULL, force_remove=NULL):
         """
         This reimplements a chunk of code found in the Legacy implementation.
 
         See https://github.com/conda/conda/blob/9e9461760bbd71a17822/conda/core/solve.py#L239-L256
         """
         # force_remove is a special case where we return early
-        if self.specs_to_remove and kwargs["force_remove"]:
+        if self.specs_to_remove and force_remove:
             if self.specs_to_add:
                 # This is not reachable from the CLI, but it is from the Python API
                 raise NotImplementedError("Cannot add and remove packages simultaneously.")
@@ -1142,7 +1150,7 @@ class LibSolvSolver(Solver):
             return IndexedSet(PrefixGraph(solution).graph)
 
         # Check if specs are satisfied by current environment. If they are, exit early.
-        if (kwargs["update_modifier"] == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
+        if (update_modifier == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
                 and not self.specs_to_remove):
             prefix_data = PrefixData(self.prefix)
             for spec in self.specs_to_add:
@@ -1153,7 +1161,7 @@ class LibSolvSolver(Solver):
                 # Return early, with a solution that should just be PrefixData().iter_records()
                 return IndexedSet(PrefixGraph(prefix_data.iter_records()).graph)
 
-    def _setup_state(self, **kwargs):
+    def _setup_state(self):
         from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
         from mamba.mamba_api import Pool, Repo, PrefixData as MambaPrefixData
 
@@ -1219,9 +1227,11 @@ class LibSolvSolver(Solver):
             channels.append(channel)
         return channels
 
-    def _configure_solver(self, state, **kwargs):
+    def _configure_solver(self, state, force_reinstall=NULL, deps_modifier=NULL,
+                          update_modifier=NULL):
         if self.specs_to_remove:
-            return self._configure_solver_for_remove(state, **kwargs)
+            return self._configure_solver_for_remove(
+            )
         # ALl other operations are handled as an install operation
         # Namely:
         # - Explicit specs added by user in CLI / API
@@ -1229,23 +1239,29 @@ class LibSolvSolver(Solver):
         # - conda create -n empty
         # Take into account that early exit tasks (force remove, etc)
         # have been handled beforehand if needed
-        return self._configure_solver_for_install(state, **kwargs)
+        return self._configure_solver_for_install(
+            state,
+            force_reinstall=force_reinstall,
+            deps_modifier=deps_modifier,
+            update_modifier=update_modifier,
+        )
 
-    def _configure_solver_for_install(self, state, **kwargs):
+    def _configure_solver_for_install(self, state, force_reinstall=NULL, deps_modifier=NULL,
+                                      update_modifier=NULL):
         from mamba import mamba_api as api
 
         prefix_data = state["mamba_prefix_data"]
         pool = state["pool"]
 
         # Set different solver options
-        solver_args = (prefix_data,) if kwargs["force_reinstall"] else ()
+        solver_args = (prefix_data,) if force_reinstall else ()
         solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
         if context.channel_priority is ChannelPriority.STRICT:
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver_postsolve_flags = [
-            (api.MAMBA_NO_DEPS, kwargs["deps_modifier"] == DepsModifier.NO_DEPS),
-            (api.MAMBA_ONLY_DEPS, kwargs["deps_modifier"] == DepsModifier.ONLY_DEPS),
-            (api.MAMBA_FORCE_REINSTALL, kwargs["force_reinstall"]),
+            (api.MAMBA_NO_DEPS, deps_modifier == DepsModifier.NO_DEPS),
+            (api.MAMBA_ONLY_DEPS, deps_modifier == DepsModifier.ONLY_DEPS),
+            (api.MAMBA_FORCE_REINSTALL, force_reinstall),
         ]
 
         solver = api.Solver(pool, solver_options, *solver_args)
@@ -1254,23 +1270,23 @@ class LibSolvSolver(Solver):
         # Configure jobs
 
         # 1. Lock currently installed ones, if requested
-        if kwargs["update_modifier"] is UpdateModifier.FREEZE_INSTALLED:
+        if update_modifier is UpdateModifier.FREEZE_INSTALLED:
             solver.add_jobs([p for p in prefix_data.package_records], api.SOLVER_LOCK)
 
         # 2. Install/update user requested packages
-        specs_to_add = self._collect_specs_to_add(state, **kwargs)
+        specs_to_add = self._collect_specs_to_add(state, update_modifier=update_modifier)
         solver_task = api.SOLVER_UPDATE if self._command == "update" else api.SOLVER_INSTALL
         solver.add_jobs(specs_to_add, solver_task)
 
         # 3. Special cases
         # 3a. Handle aggressive updates
-        if not kwargs["force_reinstall"]:
+        if not force_reinstall:
             installed_names = [rec.name for rec in state["installed_pkgs"]]
             always_update = [pkg.name for pkg in context.aggressive_update_packages
                              if pkg.name in installed_names]
             solver.add_jobs(always_update, api.SOLVER_UPDATE)
         # 3b. Pin constrained packages in env
-        python_pin = self._pin_python(state, **kwargs)
+        python_pin = self._pin_python(state, update_modifier=update_modifier)
         if python_pin:
             solver.add_pin(python_pin)
         for pin in self._pinned_specs():
@@ -1279,7 +1295,7 @@ class LibSolvSolver(Solver):
         state["solver"] = solver
         return solver
 
-    def _configure_solver_for_remove(self, state, **kwargs):
+    def _configure_solver_for_remove(self, state):
         from mamba import mamba_api as api
 
         solver_options = [
@@ -1307,19 +1323,19 @@ class LibSolvSolver(Solver):
         state["solver"] = solver
         return solver
 
-    def _collect_specs_to_add(self, state, **kwargs):
+    def _collect_specs_to_add(self, state, update_modifier=NULL):
         """
         Reimplement the logic found in super()._add_specs(), but simplified.
         """
         # A. Explicitly requested packages via CLI (either update or install)
         specs_to_add = list(self.specs_to_add)
         # B. Implicitly requested via `update --all`: add everything in prefix
-        if self._command == 'update' and kwargs["update_modifier"] == UpdateModifier.UPDATE_ALL:
+        if self._command == "update" and update_modifier == UpdateModifier.UPDATE_ALL:
             for pkg in state["installed_pkgs"]:
                 if not pkg.is_unmanageable:  # skip virtual packages
                     specs_to_add.append(MatchSpec(pkg.name))
         # C. Implicitly requested via `install|update --update-deps`
-        elif kwargs["update_modifier"] == UpdateModifier.UPDATE_DEPS:
+        elif update_modifier == UpdateModifier.UPDATE_DEPS:
             final_specs = specs_to_add
             for spec in specs_to_add:
                 prec = next(p for p in state["installed_pkgs"] if p.name == spec.name)
@@ -1330,7 +1346,7 @@ class LibSolvSolver(Solver):
             specs_to_add += list(set(final_specs))
         return [s.conda_build_form() for s in specs_to_add]
 
-    def _pin_python(self, state, **kwargs):
+    def _pin_python(self, state, update_modifier=NULL):
         """
         If Python is already present in the environment and the user didn't
         include it in the requested packages, make sure it remains pinned to
@@ -1339,7 +1355,7 @@ class LibSolvSolver(Solver):
         installed_names = [rec.name for rec in state["installed_pkgs"]]
         is_installed = "python" in installed_names
         is_explicitly_requested = any(s == "python" for s in self.specs_to_add_names)
-        is_requested_in_update_all = kwargs["update_modifier"] == UpdateModifier.UPDATE_ALL
+        is_requested_in_update_all = update_modifier == UpdateModifier.UPDATE_ALL
         if is_installed and (is_requested_in_update_all or not is_explicitly_requested):
             version = state["installed_pkgs"][installed_names.index("python")].version
             major_minor_version = ".".join(version.split(".")[:2])
