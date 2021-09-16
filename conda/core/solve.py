@@ -1066,7 +1066,8 @@ class LibSolvSolver(Solver):
         # Logic heavily based on Mamba's implementation (solver parts):
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L289
 
-        print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
+        if not context.json:
+            print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
 
         # 0. Identify strategies
         kwargs = self._merge_signature_flags_with_context(
@@ -1198,6 +1199,13 @@ class LibSolvSolver(Solver):
     def _channel_urls(self):
         channels = []
         for channel in self._channels:
+            if channel == "local":
+                # This fixes test_activate_deactivate_modify_path_bash
+                # TODO: This can be improved earlier in the call stack
+                # Mamba should be able to handle this on its own too,
+                # but it fails (at least in the CI docker image).
+                subdir_url = Channel("local").urls()[0]
+                channel = subdir_url.rstrip("/").rsplit("/", 1)[0]
             if isinstance(channel, Channel):
                 channel = channel.base_url or channel.name
             channel = escape_channel_url(channel)
@@ -1387,13 +1395,13 @@ class LibSolvSolver(Solver):
 
         for _, pkg in to_unlink:
             for i_rec in installed_pkgs:
-                # Do not try to unlink virtual pkgs
+                # Do not try to unlink virtual pkgs, virtual eggs, etc
                 if not i_rec.is_unmanageable and i_rec.fn == pkg:
                     final_precs.remove(i_rec)
                     to_unlink_records.append(i_rec)
                     break
             else:
-                print("No package record found!")
+                log.warn("Tried to unlink %s but it is not installed or manageable?", pkg)
 
         for c, pkg, jsn_s in to_link:
             if c.startswith("file://"):
