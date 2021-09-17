@@ -37,6 +37,8 @@ channels:
 variables:
   DUDE: woah
   SWEET: yaaa
+  API_KEY: AaBbCcDd===EeFf
+
 '''
 
 environment_2 = '''
@@ -284,7 +286,7 @@ class IntegrationTests(unittest.TestCase):
 
         o, e = run_env_command(Commands.ENV_CONFIG, test_env_name_1, "vars", "list", "--json", '-n', test_env_name_1)
         output_env_vars = json.loads(o)
-        assert output_env_vars == {'DUDE': 'woah', "SWEET": "yaaa"}
+        assert output_env_vars == {'DUDE': 'woah', "SWEET": "yaaa", "API_KEY": "AaBbCcDd===EeFf"}
 
         o, e = run_conda_command(Commands.INFO, None, "--json")
         parsed = json.loads(o)
@@ -423,12 +425,12 @@ class IntegrationTests(unittest.TestCase):
         create_env(environment_1)
         run_env_command(Commands.ENV_CREATE, None)
         env_name = 'env-1'
-        run_env_command(Commands.ENV_CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa", "-n", env_name)
+        run_env_command(Commands.ENV_CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa", "API_KEY=AaBbCcDd===EeFf", "-n", env_name)
         o, e = run_env_command(Commands.ENV_CONFIG, env_name, "vars", "list", "--json", '-n', env_name)
         output_env_vars = json.loads(o)
-        assert output_env_vars == {'DUDE': 'woah', "SWEET": "yaaa"}
+        assert output_env_vars == {'DUDE': 'woah', "SWEET": "yaaa", "API_KEY": "AaBbCcDd===EeFf"}
 
-        run_env_command(Commands.ENV_CONFIG, env_name, "vars", "unset", "DUDE", "SWEET", '-n', env_name)
+        run_env_command(Commands.ENV_CONFIG, env_name, "vars", "unset", "DUDE", "SWEET", "API_KEY", '-n', env_name)
         o, e = run_env_command(Commands.ENV_CONFIG, env_name, "vars", "list", "--json", '-n', env_name)
         output_env_vars = json.loads(o)
         assert output_env_vars == {}
@@ -438,7 +440,7 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_CREATE, None)
         env_name = 'env-11'
         try:
-            run_env_command(Commands.ENV_CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa", "-n", env_name)
+            run_env_command(Commands.ENV_CONFIG, env_name, "vars", "set", "DUDE=woah", "SWEET=yaaa", "API_KEY=AaBbCcDd===EeFf", "-n", env_name)
         except Exception as e:
             self.assertIsInstance(e, EnvironmentLocationNotFound)
 
