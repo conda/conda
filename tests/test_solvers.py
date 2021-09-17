@@ -147,6 +147,8 @@ class SolverTests:
         assert self.install() == []
 
     def test_iopro_nomkl(self):
+        if self.solver_class is conda.core.solve.LibSolvSolver:
+            pytest.xfail('LibSolvSolver does not support track-features/features')
         self.assert_installed(
             ['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], [
                 'iopro-1.4.3-np17py27_p0',
@@ -163,16 +165,22 @@ class SolverTests:
         )
 
     def test_mkl(self):
+        if self.solver_class is conda.core.solve.LibSolvSolver:
+            pytest.xfail('LibSolvSolver does not support track-features/features')
         self.assert_same_installed(['mkl'], [
             'mkl 11*', MatchSpec(track_features='mkl')
         ])
 
     def test_accelerate(self):
+        if self.solver_class is conda.core.solve.LibSolvSolver:
+            pytest.xfail('LibSolvSolver does not support track-features/features')
         self.assert_same_installed(['accelerate'], [
             'accelerate', MatchSpec(track_features='mkl')
         ])
 
     def test_scipy_mkl(self):
+        if self.solver_class is conda.core.solve.LibSolvSolver:
+            pytest.xfail('LibSolvSolver does not support track-features/features')
         records = self.install('scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl'))
 
         for record in records:
@@ -188,6 +196,8 @@ class SolverTests:
         self.assert_record_in('scipy-0.12.0-np17py27_0', records)
 
     def test_pseudo_boolean(self):
+        if self.solver_class is conda.core.solve.LibSolvSolver:
+            pytest.xfail('LibSolvSolver does not support track-features/features')
         # The latest version of iopro, 1.5.0, was not built against numpy 1.5
         self.assert_installed(
             ['iopro', 'python 2.7*', 'numpy 1.5*'], [
