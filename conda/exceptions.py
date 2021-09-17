@@ -605,14 +605,8 @@ class PackagesNotFoundError(CondaError):
             channel_urls=channel_urls, channels_formatted=channels_formatted
         )
 
-class RawStrUnsatisfiableError(CondaError):
-    """An exception to report unsatisfiable dependencies.
 
-    The error message is passed directly as a str.
-    """
-
-
-class UnsatisfiableError(RawStrUnsatisfiableError):
+class UnsatisfiableError(CondaError):
     """An exception to report unsatisfiable dependencies.
 
     Args:
@@ -737,6 +731,16 @@ conda config --set unsatisfiable_hints True
                     'packages required for satisfiability.')
 
         super(UnsatisfiableError, self).__init__(msg)
+
+
+class RawStrUnsatisfiableError(UnsatisfiableError):
+    """An exception to report unsatisfiable dependencies.
+
+    The error message is passed directly as a str.
+    """
+
+    def __init__(self, message):
+        super(CondaError, self).__init__(str(message))
 
 
 class InstallError(CondaError):
