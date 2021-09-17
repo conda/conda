@@ -575,7 +575,7 @@ class Solver(object):
                 if len(matches_for_spec) != 1:
                     raise CondaError(dals("""
                     Conda encountered an error with your environment.  Please report an issue
-                    at https://github.com/conda/conda/issues/new.  In your report, please include
+                    at https://github.com/conda/conda/issues.  In your report, please include
                     the output of 'conda info' and 'conda list' for the active environment, along
                     with the command you invoked that resulted in this error.
                       pkg_name: %s
