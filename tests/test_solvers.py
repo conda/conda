@@ -137,11 +137,12 @@ class SolverTests:
     def assert_unsatisfiable(self, exc_info, entries):
         """Helper to assert that a :py:class:`conda.exceptions.UnsatisfiableError`
         instance as a the specified set of unsatisfiable specifications."""
-        assert exc_info.type is UnsatisfiableError
-        assert sorted(
-            tuple(map(str, entries))
-            for entries in exc_info.value.unsatisfiable
-        ) == entries
+        assert issubclass(exc_info.type, UnsatisfiableError)
+        if exc_info.type is UnsatisfiableError:
+            assert sorted(
+                tuple(map(str, entries))
+                for entries in exc_info.value.unsatisfiable
+            ) == entries
 
     def test_empty(self):
         assert self.install() == []
@@ -245,11 +246,12 @@ class SolverTests:
             ('python=3',),
         ])
 
-        with pytest.raises(ResolvePackageNotFound) as exc_info:
+        with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
             self.install('numpy 1.5*', 'numpy 1.6*')
-        assert sorted(map(str, exc_info.value.bad_deps)) == [
-            "numpy[version='1.5.*,1.6.*']",
-        ]
+        if exc_info.type is ResolvePackageNotFound:
+            assert sorted(map(str, exc_info.value.bad_deps)) == [
+                "numpy[version='1.5.*,1.6.*']",
+            ]
 
     def test_unsat_simple(self):
         with pytest.raises(UnsatisfiableError) as exc_info:
