@@ -45,8 +45,9 @@ jobs:
       OS: "win-64"
       PYTHON: ${{ matrix.python-version }}
       CONDA_SUBDIR: ${{ matrix.conda-subdir }}
-      TEST_SPLITS: 3
+      TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
+      CONDA_SOLVER_LOGIC: ${{ matrix.conda-solver-logic }}
     steps:
       - uses: actions/checkout@v2
         with:
