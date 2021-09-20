@@ -111,6 +111,16 @@ class SolverTests:
         """Class under test."""
         raise NotImplementedError
 
+    @property
+    def tests_to_skip(self):
+        return {}  # skip reason -> list of tests to skip
+
+    @pytest.fixture(autouse=True)
+    def skip_tests(self, request):
+        for reason, skip_list in self.tests_to_skip.items():
+            if request.node.name in skip_list:
+                pytest.skip(reason)
+
     @pytest.fixture()
     def env(self):
         with tempfile.TemporaryDirectory(prefix='conda-test-repo-') as tmpdir:
@@ -159,8 +169,6 @@ class SolverTests:
         assert env.install() == []
 
     def test_iopro_nomkl(self, env):
-        if self.solver_class is conda.core.solve.LibSolvSolver:
-            pytest.xfail('LibSolvSolver does not support track-features/features')
         env.repo_packages = index_packages(1)
         self.assert_installs_expected(
             env,
@@ -180,8 +188,6 @@ class SolverTests:
         )
 
     def test_mkl(self, env):
-        if self.solver_class is conda.core.solve.LibSolvSolver:
-            pytest.xfail('LibSolvSolver does not support track-features/features')
         env.repo_packages = index_packages(1)
         self.assert_same_packages(
             env.install('mkl'),
@@ -189,8 +195,6 @@ class SolverTests:
         )
 
     def test_accelerate(self, env):
-        if self.solver_class is conda.core.solve.LibSolvSolver:
-            pytest.xfail('LibSolvSolver does not support track-features/features')
         env.repo_packages = index_packages(1)
         self.assert_same_packages(
             env.install('accelerate'),
@@ -198,9 +202,6 @@ class SolverTests:
         )
 
     def test_scipy_mkl(self, env):
-        if self.solver_class is conda.core.solve.LibSolvSolver:
-            pytest.xfail('LibSolvSolver does not support track-features/features')
-
         env.repo_packages = index_packages(1)
         records = env.install('scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl'))
 
@@ -218,9 +219,6 @@ class SolverTests:
         self.assert_record_in('scipy-0.12.0-np17py27_0', records)
 
     def test_pseudo_boolean(self, env):
-        if self.solver_class is conda.core.solve.LibSolvSolver:
-            pytest.xfail('LibSolvSolver does not support track-features/features')
-
         env.repo_packages = index_packages(1)
         # The latest version of iopro, 1.5.0, was not built against numpy 1.5
         self.assert_installs_expected(
@@ -307,3 +305,15 @@ class TestLibSolvSolver(SolverTests):
     @property
     def solver_class(self):
         return conda.core.solve.LibSolvSolver
+
+    @property
+    def tests_to_skip(self):
+        return {
+            'LibSolvSolver does not support track-features/features': [
+                'test_iopro_nomkl',
+                'test_mkl',
+                'test_accelerate',
+                'test_scipy_mkl',
+                'test_pseudo_boolean',
+            ]
+        }
