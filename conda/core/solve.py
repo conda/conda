@@ -1232,8 +1232,7 @@ class LibSolvSolver(Solver):
     def _configure_solver(self, state, force_reinstall=NULL, deps_modifier=NULL,
                           update_modifier=NULL):
         if self.specs_to_remove:
-            return self._configure_solver_for_remove(
-            )
+            return self._configure_solver_for_remove(state)
         # ALl other operations are handled as an install operation
         # Namely:
         # - Explicit specs added by user in CLI / API
