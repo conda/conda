@@ -58,6 +58,7 @@ that approach may not be as up to date.
    api/index
    release-notes
    commands
+   architecture
    glossary
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN

@@ -1,0 +1,37 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(user, "User", "Person using conda and conda-wrapping tools")
+Person_Ext(developer, "Developer", "Person developing conda and related software")
+Person_Ext(packager, "Packager", "Person maintaining conda packages")
+
+System(conda, "conda")
+System(conda_build, "conda-build")
+System(conda_env, "conda environments", "Local environments")
+System(miniconda, "Miniconda", "Cross-platform bootstrapper")
+
+System_Boundary(channels, "Channels") {
+System_Boundary(community, "Community") {
+  SystemDb_Ext(bioconda, "bioconda", "bioinformatics software")
+  SystemDb_Ext(conda_forge, "conda-forge", "general purpose")
+  SystemDb_Ext(other_channels, "other")
+}
+  SystemDb_Ext(defaults, "defaults", "Includes packages maintained by Anaconda Inc.")
+}
+
+
+Rel(user, conda, "uses", "CLI", "")
+Rel(user, miniconda, "uses", "CLI", "")
+Rel_L(miniconda, conda, "installs", "shell", "")
+Rel_R(developer, conda, "maintains", "source code", "")
+Rel_R(packager, conda_build, "uses", "feedstock", "")
+Rel_R(conda_build, channels, "publishes", "HTTPS", "")
+
+BiRel(developer, packager, "collaborates", "CEPs")
+
+BiRel_Up(conda, conda_env, "CRUD", "CLI", "installs packages")
+
+BiRel(conda, channels, "request/respond", "HTTPS", "metadata, packages")
+
+SHOW_LEGEND()
+@enduml
