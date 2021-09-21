@@ -5,7 +5,7 @@ User guide
 .. toctree::
    :maxdepth: 1
    :hidden:
-    
+
    concepts/index
    getting-started
    install/index
