@@ -782,19 +782,19 @@ def configure_parser_list(sub_parsers):
     examples = dedent("""
     Examples:
 
-    List all packages in the current environment:
+    List all packages in the current environment::
 
         conda list
 
-    List all packages installed into the environment 'myenv':
+    List all packages installed into the environment 'myenv'::
 
         conda list -n myenv
 
-    Save packages for future use:
+    Save packages for future use::
 
         conda list --export > package-list.txt
 
-    Reinstall packages from an export file:
+    Reinstall packages from an export file::
 
         conda create -n myenv --file package-list.txt
 
@@ -857,6 +857,7 @@ def configure_parser_list(sub_parsers):
     )
     p.set_defaults(func='.main_list.execute')
 
+
 def configure_parser_compare(sub_parsers):
     descr = "Compare packages between conda environments."
 
@@ -890,6 +891,7 @@ def configure_parser_compare(sub_parsers):
         help="Path to the environment file that is to be compared against",
     )
     p.set_defaults(func='.main_compare.execute')
+
 
 def configure_parser_package(sub_parsers):
     descr = "Low-level conda package utility. (EXPERIMENTAL)"
