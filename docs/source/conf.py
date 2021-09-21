@@ -43,7 +43,8 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.graphviz',
     'sphinx.ext.ifconfig',
-    'sphinx.ext.inheritance_diagram'
+    'sphinx.ext.inheritance_diagram',
+    'sphinxcontrib.plantuml',
 ]
 
 myst_heading_anchors = 3
@@ -200,3 +201,6 @@ texinfo_documents = [
      author, 'conda', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+
+plantuml_output_format = "svg"

@@ -4,7 +4,7 @@ requests>=2.14.2
 ruamel.yaml
 sphinx
 sphinx-autobuild
-sphinx-argparse==0.2.5
+sphinx-argparse
 sphinx_rtd_theme
 sphinxcontrib-programoutput
 sphinxcontrib-applehelp
@@ -13,5 +13,6 @@ sphinxcontrib-htmlhelp
 sphinxcontrib-jsmath
 sphinxcontrib-qthelp
 sphinxcontrib-serializinghtml
+sphinxcontrib-plantuml
 myst-parser
 linkify-it-py
