@@ -19,6 +19,7 @@ how conda in the center of the diagram interacts with other
 systems and how users relate to it.
 
 .. uml:: umls/context.puml
+   :width: 80%
 
 Level 2: Container
 ------------------
