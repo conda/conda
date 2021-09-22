@@ -1,5 +1,5 @@
 @startuml
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!include <C4/C4_Context>
 
 Person(user, "User", "Person using conda and conda-wrapping tools")
 Person_Ext(developer, "Developer", "Person developing conda and related software")
