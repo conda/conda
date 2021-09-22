@@ -203,4 +203,4 @@ texinfo_documents = [
 ]
 
 
-plantuml_output_format = "svg"
+plantuml_output_format = 'png'
