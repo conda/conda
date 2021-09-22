@@ -1,6 +1,13 @@
 @startuml
 !include <C4/C4_Context>
 
+!$light_green = "#43B02A"
+!$dark_green = "#047704"
+
+UpdateElementStyle("person", $bgColor=$dark_green)
+UpdateElementStyle("system", $bgColor=$light_green)
+
+
 Person(user, "User", "Person using conda and conda-wrapping tools")
 Person_Ext(developer, "Developer", "Person developing conda and related software")
 Person_Ext(packager, "Packager", "Person maintaining conda packages")
