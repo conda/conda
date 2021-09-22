@@ -18,10 +18,14 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import pathlib
 import sys
 
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../..'))
+
+ON_RTD = os.environ.get('READTHEDOCS') == 'True'
+
 
 import conda
 
@@ -204,3 +208,10 @@ texinfo_documents = [
 
 
 plantuml_output_format = 'png'
+
+if ON_RTD:
+    plantuml = 'java -Djava.awt.headless=true -jar /usr/share/plantuml/plantuml.jar'
+else:
+    path = pathlib.Path(__file__).resolve().parent.joinpath("umls", "plantuml.jar")
+    plantuml = 'java -jar %s' % path
+    pathlib.Path(__file__).resolve().parent.parent
