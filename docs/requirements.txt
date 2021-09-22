@@ -1,7 +1,5 @@
 linkify-it-py
-menuinst; sys_platform == 'win32'
 myst-parser
-pycosat; sys_platform != 'win32'
 requests>=2.14.2
 ruamel.yaml
 sphinx
