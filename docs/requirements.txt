@@ -1,18 +1,18 @@
+linkify-it-py
 menuinst; sys_platform == 'win32'
+myst-parser
 pycosat; sys_platform != 'win32'
 requests>=2.14.2
 ruamel.yaml
 sphinx
-sphinx-autobuild
-sphinx-argparse
 sphinx_rtd_theme
-sphinxcontrib-programoutput
+sphinx-argparse
+sphinx-autobuild
 sphinxcontrib-applehelp
 sphinxcontrib-devhelp
 sphinxcontrib-htmlhelp
 sphinxcontrib-jsmath
+sphinxcontrib-plantuml
+sphinxcontrib-programoutput
 sphinxcontrib-qthelp
 sphinxcontrib-serializinghtml
-sphinxcontrib-plantuml
-myst-parser
-linkify-it-py
