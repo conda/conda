@@ -208,9 +208,5 @@ texinfo_documents = [
 
 plantuml_output_format = 'png'
 
-if ON_RTD:
-    plantuml = 'java -Djava.awt.headless=true -jar /usr/share/plantuml/plantuml.jar'
-else:
-    path = pathlib.Path(__file__).resolve().parent.joinpath("umls", "plantuml.jar")
-    plantuml = 'java -Djava.awt.headless=true -jar %s' % path
-    pathlib.Path(__file__).resolve().parent.parent
+path = pathlib.Path(__file__).resolve().parent.joinpath("umls", "plantuml.jar")
+plantuml = 'java -Djava.awt.headless=true -jar %s' % path
