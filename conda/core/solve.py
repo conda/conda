@@ -1276,7 +1276,10 @@ class LibSolvSolver(Solver):
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver_postsolve_flags = [
             (api.MAMBA_NO_DEPS, deps_modifier == DepsModifier.NO_DEPS),
-            (api.MAMBA_ONLY_DEPS, deps_modifier == DepsModifier.ONLY_DEPS),
+            # We need to handle the special cases ourselves if ONLY_DEPS and UPDATE_DEPS
+            # are simultaneously used. See ._collect_specs_to_add()
+            (api.MAMBA_ONLY_DEPS, deps_modifier == DepsModifier.ONLY_DEPS and
+                                  update_modifier != UpdateModifier.UPDATE_DEPS),
             (api.MAMBA_FORCE_REINSTALL, force_reinstall),
         ]
 
@@ -1298,7 +1301,7 @@ class LibSolvSolver(Solver):
             force_remove=force_remove,
             force_reinstall=force_reinstall)
         for task, specs in tasks_and_specs.items():
-            solver.add_jobs(list(specs), task)
+            solver.add_jobs(list(specs.values()), getattr(api, task))
 
         # 3. Special cases
         # 3a. Handle aggressive updates
@@ -1328,15 +1331,14 @@ class LibSolvSolver(Solver):
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver = api.Solver(state["pool"], solver_options)
 
-        history = api.History(self.prefix).get_requested_specs_map().values()
         installed_names = [rec.name for rec in state["installed_pkgs"]]
         # pkgs in aggresive_update_packages should be protected too (even if not
         # requested explicitly by the user)
         # see https://github.com/conda/conda/blob/9e9461760bb/tests/core/test_solve.py#L520-L521
-        aggresive_update_pkgs = [pkg for pkg in context.aggressive_update_packages
-                                 if pkg.name in installed_names]
+        aggresive_updates = [p.conda_build_form() for p in context.aggressive_update_packages
+                             if p.name in installed_names]
         solver.add_jobs(
-            [s.conda_build_form() for s in set(chain(history, aggresive_update_pkgs))],
+            list(set(chain(self._history_specs(), aggresive_updates))),
             api.SOLVER_USERINSTALLED,
         )
         specs = [s.conda_build_form() for s in self.specs_to_remove]
@@ -1355,20 +1357,21 @@ class LibSolvSolver(Solver):
         """
         Reimplement the logic found in super()._add_specs(), but simplified.
         """
-        from mamba import mamba_api as api
-        task_and_specs = defaultdict(set)
+        is_update = self._command == "update"
+        tasks = defaultdict(dict)
+
         # A. Explicitly requested packages via CLI (either update or install)
-        task = (api.SOLVER_UPDATE if self._command == "update" else api.SOLVER_INSTALL)
-        task_and_specs[task].update([s.conda_build_form() for s in self.specs_to_add])
+        task = "SOLVER_UPDATE" if self._command == "update" else "SOLVER_INSTALL"
+        tasks[task].update({s.name: s.conda_build_form() for s in self.specs_to_add})
 
         # B. Implicitly requested via `update --all`: add everything in prefix
-        if self._command == "update" and update_modifier == UpdateModifier.UPDATE_ALL:
-            task_and_specs[api.SOLVER_UPDATE].update(
-                [
-                    MatchSpec(pkg.name).conda_build_form()
+        if is_update and update_modifier == UpdateModifier.UPDATE_ALL:
+            tasks["SOLVER_UPDATE"].update(
+                {
+                    pkg.name: MatchSpec(pkg.name).conda_build_form()
                     for pkg in state["installed_pkgs"]
                     if not pkg.is_unmanageable
-                ]
+                }
             )
 
         # C. Implicitly requested via `install --update-deps`
@@ -1377,37 +1380,60 @@ class LibSolvSolver(Solver):
             # found in Solver._post_sat_handling()
 
             # We need a pre-solve to find the full chain of dependencies
-            # for the requested specs
+            # for the requested specs (1) This first pre-solve will give us
+            # the packages that would be installed normally. We take
+            # that list and process their dependencies too so we can add
+            # those explicitly to the list of packages to be updated.
+            # If additionally DEPS_ONLY is set, we need to remove the
+            # originally requested specs from the final list of explicit
+            # packages.
 
+            originally_requested_specs = self.specs_to_add
             with context.override("quiet", True):
+                # (1) Presolve to find the dependencies for `specs_to_add` (CLI)
                 solved_pkgs = self.solve_final_state(
                     update_modifier=UpdateModifier.UPDATE_SPECS,
                     deps_modifier=deps_modifier,
                     ignore_pinned=ignore_pinned,
                     force_remove=force_remove,
                     force_reinstall=force_reinstall)
+            specs_to_add_plus_deps = self.specs_to_add
 
 
+            # (2) Get the dependency tree for each dependency
             graph = PrefixGraph(solved_pkgs)
             update_names = set()
-            for spec in self.specs_to_add:
+            for spec in specs_to_add_plus_deps:
                 node = graph.get_node_by_name(spec.name)
                 update_names.update(ancest_rec.name for ancest_rec in graph.all_ancestors(node))
             specs_map = {name: MatchSpec(name) for name in update_names}
 
             # Remove pinned_specs and any python spec (due to major-minor pinning business rule).
-            # Add in the original specs_to_add on top.
             for spec in self._pinned_specs():
                 specs_map.pop(spec.name, None)
             if "python" in specs_map:
-                python_rec = next((p for p in state["installed_pkgs"] if p.name == "python"), None)
-                if python_rec is not None:
-                    py_ver = ".".join(python_rec.version.split(".")[:2]) + ".*"
+                python = next((p for p in state["installed_pkgs"] if p.name == "python"), None)
+                if python is not None:
+                    py_ver = ".".join(python.version.split(".")[:2]) + ".*"
                     specs_map["python"] = MatchSpec(name="python", version=py_ver)
-            specs_map.update({spec.name: spec for spec in self.specs_to_add})
-            task_and_specs[api.SOLVER_UPDATE].update([s.conda_build_form() for s in specs_map.values()])
 
-        return task_and_specs
+            # Add in the original specs_to_add on top.
+            specs_map.update({spec.name: spec for spec in specs_to_add_plus_deps})
+
+            # Create the UPDATE task
+            tasks["SOLVER_UPDATE"].update(
+                {s.name: s.conda_build_form() for s in specs_map.values()}
+            )
+
+            # If ONLY_DEPS is set too (along with UPDATE_DEPS), we need to make sure
+            # the originally requested specs are not contained in the final result
+            # This makes `tests/core/tests_solve.py::test_update_deps_1` pass.
+            if deps_modifier == DepsModifier.ONLY_DEPS:
+                for task, contents in tasks.items():
+                    for spec in originally_requested_specs:
+                        contents.pop(spec.name, None)
+
+        return tasks
 
     def _pin_python(self, state, update_modifier=NULL):
         """
@@ -1438,6 +1464,10 @@ class LibSolvSolver(Solver):
             pin_these_specs.append(s.conda_build_form())
         return pin_these_specs
 
+    def _history_specs(self):
+        return [s.conda_build_form()
+                for s in History(self.prefix).get_requested_specs_map().values()]
+
     def _run_solver(self, state):
         solver = state["solver"]
         solved = solver.solve()
@@ -1447,7 +1477,7 @@ class LibSolvSolver(Solver):
             # that the exception can actually format if needed
             raise RawStrUnsatisfiableError(solver.problems_to_str())
 
-    def _export_final_state(self, state):
+    def _export_final_state(self, state, update_modifier=NULL, deps_modifier=NULL):
         from mamba import mamba_api as api
         from mamba.utils import to_package_record_from_subjson
 
