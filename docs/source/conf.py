@@ -208,5 +208,4 @@ texinfo_documents = [
 
 plantuml_output_format = 'png'
 
-path = pathlib.Path(__file__).resolve().parent.joinpath("umls", "plantuml.jar")
-plantuml = 'java -Djava.awt.headless=true -jar %s' % path
+plantuml = [os.path.dirname(os.path.abspath(__file__)) + '/../coursier', 'launch', 'net.sourceforge.plantuml:plantuml:1.2021.10', '--']
