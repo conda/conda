@@ -27,7 +27,7 @@ from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REP
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
-from ..common.io import Spinner, dashlist, time_recorder
+from ..common.io import Spinner, dashlist, time_recorder, env_var
 from ..common.path import get_major_minor_version, paths_equal
 from ..common.url import escape_channel_url, split_anaconda_token, remove_auth
 from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
@@ -1067,7 +1067,7 @@ class LibSolvSolver(Solver):
         # Logic heavily based on Mamba's implementation (solver parts):
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L289
 
-        if not context.json:
+        if not context.json and not context.quiet:
             print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
 
         # 0. Identify strategies
@@ -1378,12 +1378,16 @@ class LibSolvSolver(Solver):
 
             # We need a pre-solve to find the full chain of dependencies
             # for the requested specs
-            solved_pkgs = self.solve_final_state(
-                update_modifier=UpdateModifier.UPDATE_SPECS,
-                deps_modifier=deps_modifier,
-                ignore_pinned=ignore_pinned,
-                force_remove=force_remove,
-                force_reinstall=force_reinstall)
+
+            with context.override("quiet", True):
+                solved_pkgs = self.solve_final_state(
+                    update_modifier=UpdateModifier.UPDATE_SPECS,
+                    deps_modifier=deps_modifier,
+                    ignore_pinned=ignore_pinned,
+                    force_remove=force_remove,
+                    force_reinstall=force_reinstall)
+
+
             graph = PrefixGraph(solved_pkgs)
             update_names = set()
             for spec in self.specs_to_add:
