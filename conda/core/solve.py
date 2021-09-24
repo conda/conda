@@ -1411,6 +1411,8 @@ class LibSolvSolver(Solver):
             # Remove pinned_specs and any python spec (due to major-minor pinning business rule).
             for spec in self._pinned_specs():
                 specs_map.pop(spec.name, None)
+            # TODO: This kind of version constrain patching is done several times in different
+            # parts of the code, so it might be a good candidate for a dedicate utility function
             if "python" in specs_map:
                 python = next((p for p in state["installed_pkgs"] if p.name == "python"), None)
                 if python is not None:
