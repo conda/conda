@@ -27,7 +27,7 @@ from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REP
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
-from ..common.io import Spinner, dashlist, time_recorder, env_var
+from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..common.url import escape_channel_url, split_anaconda_token, remove_auth
 from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
@@ -1233,12 +1233,12 @@ class LibSolvSolver(Solver):
         return channels
 
     def _configure_solver(self,
-            state,
-            update_modifier=NULL,
-            deps_modifier=NULL,
-            ignore_pinned=NULL,
-            force_remove=NULL,
-            force_reinstall=NULL):
+                          state,
+                          update_modifier=NULL,
+                          deps_modifier=NULL,
+                          ignore_pinned=NULL,
+                          force_remove=NULL,
+                          force_reinstall=NULL):
         if self.specs_to_remove:
             return self._configure_solver_for_remove(state)
         # ALl other operations are handled as an install operation
@@ -1248,22 +1248,20 @@ class LibSolvSolver(Solver):
         # - conda create -n empty
         # Take into account that early exit tasks (force remove, etc)
         # have been handled beforehand if needed
-        return self._configure_solver_for_install(
-            state,
-            update_modifier=update_modifier,
-            deps_modifier=deps_modifier,
-            ignore_pinned=ignore_pinned,
-            force_remove=force_remove,
-            force_reinstall=force_reinstall
-        )
+        return self._configure_solver_for_install(state,
+                                                  update_modifier=update_modifier,
+                                                  deps_modifier=deps_modifier,
+                                                  ignore_pinned=ignore_pinned,
+                                                  force_remove=force_remove,
+                                                  force_reinstall=force_reinstall)
 
     def _configure_solver_for_install(self,
-            state,
-            update_modifier=NULL,
-            deps_modifier=NULL,
-            ignore_pinned=NULL,
-            force_remove=NULL,
-            force_reinstall=NULL):
+                                      state,
+                                      update_modifier=NULL,
+                                      deps_modifier=NULL,
+                                      ignore_pinned=NULL,
+                                      force_remove=NULL,
+                                      force_reinstall=NULL):
         from mamba import mamba_api as api
 
         prefix_data = state["mamba_prefix_data"]
@@ -1277,7 +1275,7 @@ class LibSolvSolver(Solver):
         solver_postsolve_flags = [
             (api.MAMBA_NO_DEPS, deps_modifier == DepsModifier.NO_DEPS),
             # We need to handle the special cases ourselves if ONLY_DEPS and UPDATE_DEPS
-            # are simultaneously used. See ._collect_specs_to_add()
+            # are simultaneously used. See ._collect_specs_to_add()
             (api.MAMBA_ONLY_DEPS, deps_modifier == DepsModifier.ONLY_DEPS and
                                   update_modifier != UpdateModifier.UPDATE_DEPS),
             (api.MAMBA_FORCE_REINSTALL, force_reinstall),
@@ -1293,13 +1291,12 @@ class LibSolvSolver(Solver):
             solver.add_jobs([p for p in prefix_data.package_records], api.SOLVER_LOCK)
 
         # 2. Install/update user requested packages
-        tasks_and_specs = self._collect_specs_to_add(
-            state,
-            update_modifier=update_modifier,
-            deps_modifier=deps_modifier,
-            ignore_pinned=ignore_pinned,
-            force_remove=force_remove,
-            force_reinstall=force_reinstall)
+        tasks_and_specs = self._collect_specs_to_add(state,
+                                                     update_modifier=update_modifier,
+                                                     deps_modifier=deps_modifier,
+                                                     ignore_pinned=ignore_pinned,
+                                                     force_remove=force_remove,
+                                                     force_reinstall=force_reinstall)
         for task, specs in tasks_and_specs.items():
             solver.add_jobs(list(specs.values()), getattr(api, task))
 
@@ -1348,12 +1345,12 @@ class LibSolvSolver(Solver):
         return solver
 
     def _collect_specs_to_add(self,
-            state,
-            update_modifier=NULL,
-            deps_modifier=NULL,
-            ignore_pinned=NULL,
-            force_remove=NULL,
-            force_reinstall=NULL):
+                              state,
+                              update_modifier=NULL,
+                              deps_modifier=NULL,
+                              ignore_pinned=NULL,
+                              force_remove=NULL,
+                              force_reinstall=NULL):
         """
         Reimplement the logic found in super()._add_specs(), but simplified.
         """
@@ -1382,9 +1379,9 @@ class LibSolvSolver(Solver):
             # We need a pre-solve to find the full chain of dependencies
             # for the requested specs (1) This first pre-solve will give us
             # the packages that would be installed normally. We take
-            # that list and process their dependencies too so we can add
+            # that list and process their dependencies too so we can add
             # those explicitly to the list of packages to be updated.
-            # If additionally DEPS_ONLY is set, we need to remove the
+            # If additionally DEPS_ONLY is set, we need to remove the
             # originally requested specs from the final list of explicit
             # packages.
 
@@ -1398,7 +1395,6 @@ class LibSolvSolver(Solver):
                     force_remove=force_remove,
                     force_reinstall=force_reinstall)
             specs_to_add_plus_deps = self.specs_to_add
-
 
             # (2) Get the dependency tree for each dependency
             graph = PrefixGraph(solved_pkgs)
