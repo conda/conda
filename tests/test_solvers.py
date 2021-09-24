@@ -60,7 +60,8 @@ class TestEnvironment:
     def solver(self, add, remove):
         self._write_packages()
         channels = tuple(
-            Channel(f'file://{self._path / subdir}')
+            # We use the ``test`` directory here to set the name of the channel.
+            Channel('file://{}'.format(self._path / 'test' / subdir))
             for subdir in self.subdirs
         )
         return self._solver_class(
@@ -93,7 +94,7 @@ class TestEnvironment:
         # write repodata
         assert set(self.subdirs).issuperset(set(package_data.keys()))
         for subdir in self.subdirs:
-            subdir_path = self._path / subdir
+            subdir_path = self._path / 'test' / subdir
             subdir_path.mkdir(parents=True, exist_ok=True)
             subdir_path.joinpath('repodata.json').write_text(json.dumps({
                 'info': {
@@ -129,7 +130,7 @@ class SolverTests:
     def package_string_set(self, packages):
         """Transforms package container in package string set."""
         return {
-            f'{record.name}-{record.version}-{record.build}'
+            f'{record.channel.name}::{record.name}-{record.version}-{record.build}'
             for record in packages
         }
 
@@ -140,8 +141,8 @@ class SolverTests:
         assert installed, f'no installed specs ({installed})'
         assert self.package_string_set(installed) == set(expecting) | {
             # XXX: injected
-            'distribute-0.6.36-py27_1',
-            'pip-1.3.1-py27_1',
+            'test::distribute-0.6.36-py27_1',
+            'test::pip-1.3.1-py27_1',
         }
 
     def assert_same_packages(self, packages1, packages2):
@@ -150,9 +151,7 @@ class SolverTests:
     def assert_record_in(self, record_str, records):
         """Helper to assert that a record list contains a record matching the
         provided record string."""
-        assert record_str in [
-            f'{record.name}-{record.version}-{record.build}' for record in records
-        ]
+        assert record_str in self.package_string_set(records)
 
     def assert_unsatisfiable(self, exc_info, entries):
         """Helper to assert that a :py:class:`conda.exceptions.UnsatisfiableError`
@@ -174,16 +173,16 @@ class SolverTests:
             env,
             ['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
             [
-                'iopro-1.4.3-np17py27_p0',
-                'numpy-1.7.1-py27_0',
-                'openssl-1.0.1c-0',
-                'python-2.7.5-0',
-                'readline-6.2-0',
-                'sqlite-3.7.13-0',
-                'system-5.8-1',
-                'tk-8.5.13-0',
-                'unixodbc-2.3.1-0',
-                'zlib-1.2.7-0',
+                'test::iopro-1.4.3-np17py27_p0',
+                'test::numpy-1.7.1-py27_0',
+                'test::openssl-1.0.1c-0',
+                'test::python-2.7.5-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::unixodbc-2.3.1-0',
+                'test::zlib-1.2.7-0',
             ],
         )
 
@@ -209,14 +208,14 @@ class SolverTests:
             if record.name in ('numpy', 'scipy'):
                 assert 'mkl' in record.features
 
-        self.assert_record_in('numpy-1.7.1-py27_p0', records)
-        self.assert_record_in('scipy-0.12.0-np17py27_p0', records)
+        self.assert_record_in('test::numpy-1.7.1-py27_p0', records)
+        self.assert_record_in('test::scipy-0.12.0-np17py27_p0', records)
 
     def test_anaconda_nomkl(self, env):
         env.repo_packages = index_packages(1)
         records = env.install('anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*')
         assert len(records) == 107
-        self.assert_record_in('scipy-0.12.0-np17py27_0', records)
+        self.assert_record_in('test::scipy-0.12.0-np17py27_0', records)
 
     def test_pseudo_boolean(self, env):
         env.repo_packages = index_packages(1)
@@ -225,33 +224,33 @@ class SolverTests:
             env,
             ['iopro', 'python 2.7*', 'numpy 1.5*'],
             [
-                'iopro-1.4.3-np15py27_p0',
-                'numpy-1.5.1-py27_4',
-                'openssl-1.0.1c-0',
-                'python-2.7.5-0',
-                'readline-6.2-0',
-                'sqlite-3.7.13-0',
-                'system-5.8-1',
-                'tk-8.5.13-0',
-                'unixodbc-2.3.1-0',
-                'zlib-1.2.7-0',
+                'test::iopro-1.4.3-np15py27_p0',
+                'test::numpy-1.5.1-py27_4',
+                'test::openssl-1.0.1c-0',
+                'test::python-2.7.5-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::unixodbc-2.3.1-0',
+                'test::zlib-1.2.7-0',
             ],
         )
         self.assert_installs_expected(
             env,
             ['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')],
             [
-                'iopro-1.4.3-np15py27_p0',
-                'mkl-rt-11.0-p0',
-                'numpy-1.5.1-py27_p4',
-                'openssl-1.0.1c-0',
-                'python-2.7.5-0',
-                'readline-6.2-0',
-                'sqlite-3.7.13-0',
-                'system-5.8-1',
-                'tk-8.5.13-0',
-                'unixodbc-2.3.1-0',
-                'zlib-1.2.7-0',
+                'test::iopro-1.4.3-np15py27_p0',
+                'test::mkl-rt-11.0-p0',
+                'test::numpy-1.5.1-py27_p4',
+                'test::openssl-1.0.1c-0',
+                'test::python-2.7.5-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::unixodbc-2.3.1-0',
+                'test::zlib-1.2.7-0',
             ],
         )
 
