@@ -167,7 +167,7 @@ class SolverTests:
         env.repo_packages = index_packages(1)
         assert env.install() == []
 
-    def test_iopro_nomkl(self, env):
+    def test_iopro_mkl(self, env):
         env.repo_packages = index_packages(1)
         self.assert_installs_expected(
             env,
@@ -175,6 +175,26 @@ class SolverTests:
             [
                 'test::iopro-1.4.3-np17py27_p0',
                 'test::numpy-1.7.1-py27_0',
+                'test::openssl-1.0.1c-0',
+                'test::python-2.7.5-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::unixodbc-2.3.1-0',
+                'test::zlib-1.2.7-0',
+            ],
+        )
+
+    def test_iopro_nomkl(self, env):
+        env.repo_packages = index_packages(1)
+        self.assert_installs_expected(
+            env,
+            ['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')],
+            [
+                'test::iopro-1.4.3-np17py27_p0',
+                'test::mkl-rt-11.0-p0',
+                'test::numpy-1.7.1-py27_p0',
                 'test::openssl-1.0.1c-0',
                 'test::python-2.7.5-0',
                 'test::readline-6.2-0',
@@ -309,6 +329,7 @@ class TestLibSolvSolver(SolverTests):
     def tests_to_skip(self):
         return {
             'LibSolvSolver does not support track-features/features': [
+                'test_iopro_mkl',
                 'test_iopro_nomkl',
                 'test_mkl',
                 'test_accelerate',
