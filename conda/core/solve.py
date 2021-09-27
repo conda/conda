@@ -1268,21 +1268,10 @@ class LibSolvSolver(Solver):
         pool = state["pool"]
 
         # Set different solver options
-        solver_args = (prefix_data,) if force_reinstall else ()
         solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
         if context.channel_priority is ChannelPriority.STRICT:
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
-        solver_postsolve_flags = [
-            (api.MAMBA_NO_DEPS, deps_modifier == DepsModifier.NO_DEPS),
-            # We need to handle the special cases ourselves if ONLY_DEPS and UPDATE_DEPS
-            # are simultaneously used. See ._collect_specs_to_add()
-            (api.MAMBA_ONLY_DEPS, deps_modifier == DepsModifier.ONLY_DEPS and
-                update_modifier != UpdateModifier.UPDATE_DEPS),
-            (api.MAMBA_FORCE_REINSTALL, force_reinstall),
-        ]
-
-        solver = api.Solver(pool, solver_options, *solver_args)
-        solver.set_postsolve_flags(solver_postsolve_flags)
+        solver = api.Solver(pool, solver_options)
 
         # Configure jobs
 
