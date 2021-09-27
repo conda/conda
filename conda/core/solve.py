@@ -1175,7 +1175,7 @@ class LibSolvSolver(Solver):
 
         # TODO: Check if this update-related logic is needed here too
         # Maybe conda already handles that beforehand
-        # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L426-L485
+        # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7/mamba/mamba.py#L426-L485
 
         # https://github.com/mamba-org/mamba/blob/89174c0dc06398c99589/src/core/prefix_data.cpp#L13
         # for the C++ implementation of PrefixData
