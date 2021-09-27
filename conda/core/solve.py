@@ -1289,14 +1289,7 @@ class LibSolvSolver(Solver):
         for task, specs in tasks_and_specs.items():
             solver.add_jobs(list(specs.values()), getattr(api, task))
 
-        # 3. Special cases
-        # 3a. Handle aggressive updates
-        if not force_reinstall:
-            installed_names = [rec.name for rec in state["installed_pkgs"]]
-            always_update = [pkg.name for pkg in context.aggressive_update_packages
-                             if pkg.name in installed_names]
-            solver.add_jobs(always_update, api.SOLVER_UPDATE)
-        # 3b. Pin constrained packages in env
+        # 3. Pin constrained packages in env
         python_pin = self._pin_python(state, update_modifier=update_modifier)
         if python_pin:
             solver.add_pin(python_pin)
@@ -1346,11 +1339,24 @@ class LibSolvSolver(Solver):
         is_update = self._command == "update"
         tasks = defaultdict(dict)
 
+        originally_requested_specs = self.specs_to_add
+
         # A. Explicitly requested packages via CLI (either update or install)
         task = "SOLVER_UPDATE" if self._command == "update" else "SOLVER_INSTALL"
-        tasks[task].update({s.name: s.conda_build_form() for s in self.specs_to_add})
+        tasks[task].update({s.name: s.conda_build_form() for s in originally_requested_specs})
 
-        # B. Implicitly requested via `update --all`: add everything in prefix
+        # B. Configured in condarc as "always update"
+        if not force_reinstall:
+            installed_names = set(rec.name for rec in state["installed_pkgs"])
+            tasks["SOLVER_UPDATE"].update(
+                {
+                    pkg.name: MatchSpec(pkg.name)
+                    for pkg in context.aggressive_update_packages
+                    if pkg.name in installed_names
+                }
+            )
+
+        # C. Implicitly requested via `update --all`: add everything in prefix
         if is_update and update_modifier == UpdateModifier.UPDATE_ALL:
             tasks["SOLVER_UPDATE"].update(
                 {
@@ -1360,7 +1366,7 @@ class LibSolvSolver(Solver):
                 }
             )
 
-        # C. Implicitly requested via `install --update-deps`
+        # D. Implicitly requested via `install --update-deps`
         elif update_modifier == UpdateModifier.UPDATE_DEPS:
             # This code below is adapted from the legacy solver logic
             # found in Solver._post_sat_handling()
@@ -1374,7 +1380,6 @@ class LibSolvSolver(Solver):
             # originally requested specs from the final list of explicit
             # packages.
 
-            originally_requested_specs = self.specs_to_add
             with context.override("quiet", True):
                 # (1) Presolve to find the dependencies for `specs_to_add` (CLI)
                 solved_pkgs = self.solve_final_state(
