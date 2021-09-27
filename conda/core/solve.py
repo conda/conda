@@ -1177,7 +1177,7 @@ class LibSolvSolver(Solver):
         # Maybe conda already handles that beforehand
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L426-L485
 
-        # See https://github.com/mamba-org/mamba/blob/89174c0dc06398c99589/src/core/prefix_data.cpp#L13
+        # https://github.com/mamba-org/mamba/blob/89174c0dc06398c99589/src/core/prefix_data.cpp#L13
         # for the C++ implementation of PrefixData
         mamba_prefix_data = MambaPrefixData(self.prefix)
         mamba_prefix_data.load()
@@ -1277,7 +1277,7 @@ class LibSolvSolver(Solver):
             # We need to handle the special cases ourselves if ONLY_DEPS and UPDATE_DEPS
             # are simultaneously used. See ._collect_specs_to_add()
             (api.MAMBA_ONLY_DEPS, deps_modifier == DepsModifier.ONLY_DEPS and
-                                  update_modifier != UpdateModifier.UPDATE_DEPS),
+                update_modifier != UpdateModifier.UPDATE_DEPS),
             (api.MAMBA_FORCE_REINSTALL, force_reinstall),
         ]
 
