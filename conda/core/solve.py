@@ -1105,7 +1105,17 @@ class LibSolvSolver(Solver):
         # 3. Run the SAT solver
         self._run_solver(state)
         # 4. Export back to conda
-        return self._export_final_state(state)
+        pkg_records = self._export_final_state(state)
+        # 5. Refine solutions depending on the value of some modifier flags
+        return self._post_solve_tasks(
+            state,
+            pkg_records,
+            update_modifier=kwargs["update_modifier"],
+            deps_modifier=kwargs["deps_modifier"],
+            ignore_pinned=kwargs["ignore_pinned"],
+            force_remove=kwargs["force_remove"],
+            force_reinstall=kwargs["force_reinstall"]
+        )
 
     def _merge_signature_flags_with_context(
             self,
@@ -1202,6 +1212,7 @@ class LibSolvSolver(Solver):
         state.update({
             "pool": pool,
             "mamba_prefix_data": mamba_prefix_data,
+            "conda_prefix_data": PrefixData(self.prefix),
             "repos": repos,
             "index": index,
             "installed_pkgs": installed_pkgs,
@@ -1469,7 +1480,7 @@ class LibSolvSolver(Solver):
             # that the exception can actually format if needed
             raise RawStrUnsatisfiableError(solver.problems_to_str())
 
-    def _export_final_state(self, state, update_modifier=NULL, deps_modifier=NULL):
+    def _export_final_state(self, state):
         from mamba import mamba_api as api
         from mamba.utils import to_package_record_from_subjson
 
@@ -1483,13 +1494,6 @@ class LibSolvSolver(Solver):
             PackageCacheData.first_writable().pkgs_dir,
         )
         (names_to_add, names_to_remove), to_link, to_unlink = transaction.to_conda()
-
-        # NOTE: We are exporting state back to the class! These are expected by
-        # super().solve_for_diff() and super().solve_for_transaction() :/
-        self.specs_to_add = [MatchSpec(m) for m in names_to_add]
-        self.specs_to_remove = [MatchSpec(m) for m in names_to_remove]
-
-        to_link_records, to_unlink_records = [], []
 
         # What follows below is taken from mamba.utils.to_txn with some patches
         conda_prefix_data = PrefixData(self.prefix)
@@ -1506,7 +1510,6 @@ class LibSolvSolver(Solver):
                 # Do not try to unlink virtual pkgs, virtual eggs, etc
                 if not i_rec.is_unmanageable and i_rec.fn == pkg:
                     final_precs.remove(i_rec)
-                    to_unlink_records.append(i_rec)
                     break
             else:
                 log.warn("Tried to unlink %s but it is not installed or manageable?", pkg)
@@ -1523,11 +1526,40 @@ class LibSolvSolver(Solver):
             sdir = lookup_dict[key]
             rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
             final_precs.add(rec)
-            to_link_records.append(rec)
+
+
+        # NOTE: We are exporting state back to the class! These are expected by
+        # super().solve_for_diff() and super().solve_for_transaction() :/
+        self.specs_to_add = [MatchSpec(m) for m in names_to_add]
+        self.specs_to_remove = [MatchSpec(m) for m in names_to_remove]
+
+        return final_precs
+
+    def _post_solve_tasks(self,
+                          state,
+                          final_prefix_state,
+                          deps_modifier=NULL,
+                          update_modifier=NULL,
+                          force_reinstall=NULL,
+                          ignore_pinned=NULL,
+                          force_remove=NULL):
+
+        original_prefix_map = {pkg.name: pkg for pkg in state["conda_prefix_data"].iter_records()}
+        final_prefix_map = {pkg.name: pkg for pkg in final_prefix_state}
+
+        # If ONLY_DEPS is set, we need to make sure the originally requested specs
+        # are not part of the result
+        if deps_modifier == DepsModifier.ONLY_DEPS:
+            for spec in self.specs_to_add:
+                # Case A: spec was already present beforehand; do not modify it!
+                if spec.name in original_prefix_map:
+                    final_prefix_map[spec.name] = original_prefix_map[spec.name]
+                # Case B: it was never installed, make sure we don't add it.
+                else:
+                    final_prefix_map.pop(spec.name)
 
         # TODO: Review performance here just in case
-        return IndexedSet(PrefixGraph(final_precs).graph)
-
+        return IndexedSet(PrefixGraph(final_prefix_map.values()).graph)
 
 class SolverStateContainer(object):
     # A mutable container with defined attributes to help keep method signatures clean
