@@ -210,4 +210,7 @@ texinfo_documents = [
 plantuml_output_format = "svg_img"
 
 coursier_path = pathlib.Path(__file__).resolve().parent.parent / "coursier"
-plantuml = f"{coursier_path} launch --java-opt -Djava.awt.headless=true net.sourceforge.plantuml:plantuml:1.2021.10 --"
+plantuml = (
+    f"{coursier_path} launch --java-opt -Djava.awt.headless=true "
+    "net.sourceforge.plantuml:plantuml:1.2021.10 --"
+)
