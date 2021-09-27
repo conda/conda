@@ -7,7 +7,6 @@ import copy
 from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
-from collections import defaultdict
 import sys
 from textwrap import dedent
 from itertools import chain
@@ -1536,7 +1535,6 @@ class LibSolvSolver(Solver):
             rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
             final_precs.add(rec)
 
-
         # NOTE: We are exporting state back to the class! These are expected by
         # super().solve_for_diff() and super().solve_for_transaction() :/
         self.specs_to_add = [MatchSpec(m) for m in names_to_add]
@@ -1552,7 +1550,6 @@ class LibSolvSolver(Solver):
                           force_reinstall=NULL,
                           ignore_pinned=NULL,
                           force_remove=NULL):
-
         original_prefix_map = {pkg.name: pkg for pkg in state["conda_prefix_data"].iter_records()}
         final_prefix_map = {pkg.name: pkg for pkg in final_prefix_state}
 
