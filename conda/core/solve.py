@@ -1361,7 +1361,7 @@ class LibSolvSolver(Solver):
             installed_names = set(rec.name for rec in state["installed_pkgs"])
             tasks["SOLVER_UPDATE"].update(
                 {
-                    pkg.name: MatchSpec(pkg.name)
+                    pkg.name: MatchSpec(pkg.name).conda_build_form()
                     for pkg in context.aggressive_update_packages
                     if pkg.name in installed_names
                 }
