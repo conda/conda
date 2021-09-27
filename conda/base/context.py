@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
-
+from contextlib import contextmanager
 from errno import ENOENT
 from logging import getLogger
 import os
@@ -772,6 +772,15 @@ class Context(Configuration):
     @property
     def verbosity(self):
         return 2 if self.debug else self._verbosity
+
+    @contextmanager
+    def override(self, key, value):
+        old = getattr(self, key)
+        setattr(self, key, value)
+        try:
+            yield
+        finally:
+            setattr(self, key, old)
 
     @memoizedproperty
     def user_agent(self):

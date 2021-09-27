@@ -7,6 +7,7 @@ import copy
 from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
+from collections import defaultdict
 import sys
 from textwrap import dedent
 from itertools import chain
@@ -1066,7 +1067,7 @@ class LibSolvSolver(Solver):
         # Logic heavily based on Mamba's implementation (solver parts):
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L289
 
-        if not context.json:
+        if not context.json and not context.quiet:
             print("------ USING EXPERIMENTAL MAMBA INTEGRATIONS ------")
 
         # 0. Identify strategies
@@ -1095,9 +1096,11 @@ class LibSolvSolver(Solver):
         # 2. Create solver and needed flags, tasks and jobs
         self._configure_solver(
             state,
-            force_reinstall=kwargs["force_reinstall"],
-            deps_modifier=kwargs["deps_modifier"],
             update_modifier=kwargs["update_modifier"],
+            deps_modifier=kwargs["deps_modifier"],
+            ignore_pinned=kwargs["ignore_pinned"],
+            force_remove=kwargs["force_remove"],
+            force_reinstall=kwargs["force_reinstall"],
         )
         # 3. Run the SAT solver
         self._run_solver(state)
@@ -1108,10 +1111,10 @@ class LibSolvSolver(Solver):
             self,
             update_modifier=NULL,
             deps_modifier=NULL,
-            prune=NULL,
             ignore_pinned=NULL,
             force_remove=NULL,
             force_reinstall=NULL,
+            prune=NULL,
             should_retry_solve=False):
         """
         Context options can be overriden with the signature flags.
@@ -1174,7 +1177,7 @@ class LibSolvSolver(Solver):
         # Maybe conda already handles that beforehand
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7/mamba/mamba.py#L426-L485
 
-        # See https://github.com/mamba-org/mamba/blob/89174c0dc06398/src/core/prefix_data.cpp#L13
+        # https://github.com/mamba-org/mamba/blob/89174c0dc06398c99589/src/core/prefix_data.cpp#L13
         # for the C++ implementation of PrefixData
         mamba_prefix_data = MambaPrefixData(self.prefix)
         mamba_prefix_data.load()
@@ -1229,8 +1232,13 @@ class LibSolvSolver(Solver):
             channels.append(channel)
         return channels
 
-    def _configure_solver(self, state, force_reinstall=NULL, deps_modifier=NULL,
-                          update_modifier=NULL):
+    def _configure_solver(self,
+                          state,
+                          update_modifier=NULL,
+                          deps_modifier=NULL,
+                          ignore_pinned=NULL,
+                          force_remove=NULL,
+                          force_reinstall=NULL):
         if self.specs_to_remove:
             return self._configure_solver_for_remove(state)
         # ALl other operations are handled as an install operation
@@ -1240,15 +1248,20 @@ class LibSolvSolver(Solver):
         # - conda create -n empty
         # Take into account that early exit tasks (force remove, etc)
         # have been handled beforehand if needed
-        return self._configure_solver_for_install(
-            state,
-            force_reinstall=force_reinstall,
-            deps_modifier=deps_modifier,
-            update_modifier=update_modifier,
-        )
+        return self._configure_solver_for_install(state,
+                                                  update_modifier=update_modifier,
+                                                  deps_modifier=deps_modifier,
+                                                  ignore_pinned=ignore_pinned,
+                                                  force_remove=force_remove,
+                                                  force_reinstall=force_reinstall)
 
-    def _configure_solver_for_install(self, state, force_reinstall=NULL, deps_modifier=NULL,
-                                      update_modifier=NULL):
+    def _configure_solver_for_install(self,
+                                      state,
+                                      update_modifier=NULL,
+                                      deps_modifier=NULL,
+                                      ignore_pinned=NULL,
+                                      force_remove=NULL,
+                                      force_reinstall=NULL):
         from mamba import mamba_api as api
 
         prefix_data = state["mamba_prefix_data"]
@@ -1261,7 +1274,10 @@ class LibSolvSolver(Solver):
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver_postsolve_flags = [
             (api.MAMBA_NO_DEPS, deps_modifier == DepsModifier.NO_DEPS),
-            (api.MAMBA_ONLY_DEPS, deps_modifier == DepsModifier.ONLY_DEPS),
+            # We need to handle the special cases ourselves if ONLY_DEPS and UPDATE_DEPS
+            # are simultaneously used. See ._collect_specs_to_add()
+            (api.MAMBA_ONLY_DEPS, deps_modifier == DepsModifier.ONLY_DEPS and
+                update_modifier != UpdateModifier.UPDATE_DEPS),
             (api.MAMBA_FORCE_REINSTALL, force_reinstall),
         ]
 
@@ -1275,9 +1291,14 @@ class LibSolvSolver(Solver):
             solver.add_jobs([p for p in prefix_data.package_records], api.SOLVER_LOCK)
 
         # 2. Install/update user requested packages
-        specs_to_add = self._collect_specs_to_add(state, update_modifier=update_modifier)
-        solver_task = api.SOLVER_UPDATE if self._command == "update" else api.SOLVER_INSTALL
-        solver.add_jobs(specs_to_add, solver_task)
+        tasks_and_specs = self._collect_specs_to_add(state,
+                                                     update_modifier=update_modifier,
+                                                     deps_modifier=deps_modifier,
+                                                     ignore_pinned=ignore_pinned,
+                                                     force_remove=force_remove,
+                                                     force_reinstall=force_reinstall)
+        for task, specs in tasks_and_specs.items():
+            solver.add_jobs(list(specs.values()), getattr(api, task))
 
         # 3. Special cases
         # 3a. Handle aggressive updates
@@ -1307,15 +1328,14 @@ class LibSolvSolver(Solver):
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver = api.Solver(state["pool"], solver_options)
 
-        history = api.History(self.prefix).get_requested_specs_map().values()
         installed_names = [rec.name for rec in state["installed_pkgs"]]
         # pkgs in aggresive_update_packages should be protected too (even if not
         # requested explicitly by the user)
         # see https://github.com/conda/conda/blob/9e9461760bb/tests/core/test_solve.py#L520-L521
-        aggresive_update_pkgs = [pkg for pkg in context.aggressive_update_packages
-                                 if pkg.name in installed_names]
+        aggresive_updates = [p.conda_build_form() for p in context.aggressive_update_packages
+                             if p.name in installed_names]
         solver.add_jobs(
-            [s.conda_build_form() for s in set(chain(history, aggresive_update_pkgs))],
+            list(set(chain(self._history_specs(), aggresive_updates))),
             api.SOLVER_USERINSTALLED,
         )
         specs = [s.conda_build_form() for s in self.specs_to_remove]
@@ -1324,28 +1344,94 @@ class LibSolvSolver(Solver):
         state["solver"] = solver
         return solver
 
-    def _collect_specs_to_add(self, state, update_modifier=NULL):
+    def _collect_specs_to_add(self,
+                              state,
+                              update_modifier=NULL,
+                              deps_modifier=NULL,
+                              ignore_pinned=NULL,
+                              force_remove=NULL,
+                              force_reinstall=NULL):
         """
         Reimplement the logic found in super()._add_specs(), but simplified.
         """
+        is_update = self._command == "update"
+        tasks = defaultdict(dict)
+
         # A. Explicitly requested packages via CLI (either update or install)
-        specs_to_add = list(self.specs_to_add)
+        task = "SOLVER_UPDATE" if self._command == "update" else "SOLVER_INSTALL"
+        tasks[task].update({s.name: s.conda_build_form() for s in self.specs_to_add})
+
         # B. Implicitly requested via `update --all`: add everything in prefix
-        if self._command == "update" and update_modifier == UpdateModifier.UPDATE_ALL:
-            for pkg in state["installed_pkgs"]:
-                if not pkg.is_unmanageable:  # skip virtual packages
-                    specs_to_add.append(MatchSpec(pkg.name))
-        # C. Implicitly requested via `install|update --update-deps`
+        if is_update and update_modifier == UpdateModifier.UPDATE_ALL:
+            tasks["SOLVER_UPDATE"].update(
+                {
+                    pkg.name: MatchSpec(pkg.name).conda_build_form()
+                    for pkg in state["installed_pkgs"]
+                    if not pkg.is_unmanageable
+                }
+            )
+
+        # C. Implicitly requested via `install --update-deps`
         elif update_modifier == UpdateModifier.UPDATE_DEPS:
-            final_specs = specs_to_add
-            for spec in specs_to_add:
-                prec = next(p for p in state["installed_pkgs"] if p.name == spec.name)
-                for dep in prec.depends:
-                    ms = MatchSpec(dep)
-                    if ms.name != "python":
-                        final_specs.append(MatchSpec(ms.name))
-            specs_to_add += list(set(final_specs))
-        return [s.conda_build_form() for s in specs_to_add]
+            # This code below is adapted from the legacy solver logic
+            # found in Solver._post_sat_handling()
+
+            # We need a pre-solve to find the full chain of dependencies
+            # for the requested specs (1) This first pre-solve will give us
+            # the packages that would be installed normally. We take
+            # that list and process their dependencies too so we can add
+            # those explicitly to the list of packages to be updated.
+            # If additionally DEPS_ONLY is set, we need to remove the
+            # originally requested specs from the final list of explicit
+            # packages.
+
+            originally_requested_specs = self.specs_to_add
+            with context.override("quiet", True):
+                # (1) Presolve to find the dependencies for `specs_to_add` (CLI)
+                solved_pkgs = self.solve_final_state(
+                    update_modifier=UpdateModifier.UPDATE_SPECS,
+                    deps_modifier=deps_modifier,
+                    ignore_pinned=ignore_pinned,
+                    force_remove=force_remove,
+                    force_reinstall=force_reinstall)
+            specs_to_add_plus_deps = self.specs_to_add
+
+            # (2) Get the dependency tree for each dependency
+            graph = PrefixGraph(solved_pkgs)
+            update_names = set()
+            for spec in specs_to_add_plus_deps:
+                node = graph.get_node_by_name(spec.name)
+                update_names.update(ancest_rec.name for ancest_rec in graph.all_ancestors(node))
+            specs_map = {name: MatchSpec(name) for name in update_names}
+
+            # Remove pinned_specs and any python spec (due to major-minor pinning business rule).
+            for spec in self._pinned_specs():
+                specs_map.pop(spec.name, None)
+            # TODO: This kind of version constrain patching is done several times in different
+            # parts of the code, so it might be a good candidate for a dedicate utility function
+            if "python" in specs_map:
+                python = next((p for p in state["installed_pkgs"] if p.name == "python"), None)
+                if python is not None:
+                    py_ver = ".".join(python.version.split(".")[:2]) + ".*"
+                    specs_map["python"] = MatchSpec(name="python", version=py_ver)
+
+            # Add in the original specs_to_add on top.
+            specs_map.update({spec.name: spec for spec in specs_to_add_plus_deps})
+
+            # Create the UPDATE task
+            tasks["SOLVER_UPDATE"].update(
+                {s.name: s.conda_build_form() for s in specs_map.values()}
+            )
+
+            # If ONLY_DEPS is set too (along with UPDATE_DEPS), we need to make sure
+            # the originally requested specs are not contained in the final result
+            # This makes `tests/core/tests_solve.py::test_update_deps_1` pass.
+            if deps_modifier == DepsModifier.ONLY_DEPS:
+                for task, contents in tasks.items():
+                    for spec in originally_requested_specs:
+                        contents.pop(spec.name, None)
+
+        return tasks
 
     def _pin_python(self, state, update_modifier=NULL):
         """
@@ -1363,9 +1449,9 @@ class LibSolvSolver(Solver):
             return f"python {major_minor_version}.*"
 
     def _pinned_specs(self):
-        pinned_specs = get_pinned_specs(context.target_prefix)
+        pinned_specs = get_pinned_specs(self.prefix)
         if pinned_specs:
-            conda_prefix_data = PrefixData(context.target_prefix)
+            conda_prefix_data = PrefixData(self.prefix)
         pin_these_specs = []
         for s in pinned_specs:
             x = conda_prefix_data.query(s.name)
@@ -1376,6 +1462,10 @@ class LibSolvSolver(Solver):
             pin_these_specs.append(s.conda_build_form())
         return pin_these_specs
 
+    def _history_specs(self):
+        return [s.conda_build_form()
+                for s in History(self.prefix).get_requested_specs_map().values()]
+
     def _run_solver(self, state):
         solver = state["solver"]
         solved = solver.solve()
@@ -1385,7 +1475,7 @@ class LibSolvSolver(Solver):
             # that the exception can actually format if needed
             raise RawStrUnsatisfiableError(solver.problems_to_str())
 
-    def _export_final_state(self, state):
+    def _export_final_state(self, state, update_modifier=NULL, deps_modifier=NULL):
         from mamba import mamba_api as api
         from mamba.utils import to_package_record_from_subjson
 
