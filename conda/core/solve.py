@@ -1291,14 +1291,15 @@ class LibSolvSolver(Solver):
             solver.add_jobs([p for p in prefix_data.package_records], api.SOLVER_LOCK)
 
         # 2. Install/update user requested packages
-        tasks_and_specs = self._collect_specs_to_add(state,
-                                                     update_modifier=update_modifier,
-                                                     deps_modifier=deps_modifier,
-                                                     ignore_pinned=ignore_pinned,
-                                                     force_remove=force_remove,
-                                                     force_reinstall=force_reinstall)
-        for task, specs in tasks_and_specs.items():
-            solver.add_jobs(list(specs.values()), getattr(api, task))
+        tasks = self._collect_specs_to_add(state,
+                                           update_modifier=update_modifier,
+                                           deps_modifier=deps_modifier,
+                                           ignore_pinned=ignore_pinned,
+                                           force_remove=force_remove,
+                                           force_reinstall=force_reinstall)
+        for task in tasks:
+            for task_type, specs in task.items():
+                solver.add_jobs(list(specs.values()), getattr(api, task_type))
 
         # 3. Pin constrained packages in env
         python_pin = self._pin_python(state, update_modifier=update_modifier)
@@ -1348,32 +1349,36 @@ class LibSolvSolver(Solver):
         Reimplement the logic found in super()._add_specs(), but simplified.
         """
         is_update = self._command == "update"
-        tasks = defaultdict(dict)
-
         originally_requested_specs = self.specs_to_add
 
         # A. Explicitly requested packages via CLI (either update or install)
         task = "SOLVER_UPDATE" if self._command == "update" else "SOLVER_INSTALL"
-        tasks[task].update({s.name: s.conda_build_form() for s in originally_requested_specs})
+        tasks = [{task: {s.name: s.conda_build_form() for s in originally_requested_specs}}]
 
         # B. Configured in condarc as "always update"
         if not force_reinstall:
             installed_names = set(rec.name for rec in state["installed_pkgs"])
-            tasks["SOLVER_UPDATE"].update(
+            tasks.append(
                 {
-                    pkg.name: MatchSpec(pkg.name).conda_build_form()
-                    for pkg in context.aggressive_update_packages
-                    if pkg.name in installed_names
+                    "SOLVER_UPDATE":
+                    {
+                        pkg.name: MatchSpec(pkg.name).conda_build_form()
+                        for pkg in context.aggressive_update_packages
+                        if pkg.name in installed_names
+                    }
                 }
             )
 
         # C. Implicitly requested via `update --all`: add everything in prefix
         if is_update and update_modifier == UpdateModifier.UPDATE_ALL:
-            tasks["SOLVER_UPDATE"].update(
+            tasks.append(
                 {
-                    pkg.name: MatchSpec(pkg.name).conda_build_form()
-                    for pkg in state["installed_pkgs"]
-                    if not pkg.is_unmanageable
+                    "SOLVER_UPDATE":
+                    {
+                        pkg.name: MatchSpec(pkg.name).conda_build_form()
+                        for pkg in state["installed_pkgs"]
+                        if not pkg.is_unmanageable
+                    }
                 }
             )
 
@@ -1424,17 +1429,21 @@ class LibSolvSolver(Solver):
             specs_map.update({spec.name: spec for spec in specs_to_add_plus_deps})
 
             # Create the UPDATE task
-            tasks["SOLVER_UPDATE"].update(
-                {s.name: s.conda_build_form() for s in specs_map.values()}
+            tasks.append(
+                {
+                    "SOLVER_UPDATE":
+                    {s.name: s.conda_build_form() for s in specs_map.values()}
+                }
             )
 
             # If ONLY_DEPS is set too (along with UPDATE_DEPS), we need to make sure
             # the originally requested specs are not contained in the final result
             # This makes `tests/core/tests_solve.py::test_update_deps_1` pass.
             if deps_modifier == DepsModifier.ONLY_DEPS:
-                for task, contents in tasks.items():
-                    for spec in originally_requested_specs:
-                        contents.pop(spec.name, None)
+                for task in tasks:
+                    for contents in task.values():
+                        for spec in originally_requested_specs:
+                            contents.pop(spec.name, None)
 
         return tasks
 
