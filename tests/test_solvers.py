@@ -313,6 +313,12 @@ class SolverTests:
             ('b', "c[version='>=2,<3']"),
         ])
 
+    def test_get_dists(self, env):
+        env.repo_packages = index_packages(1)
+        records = env.install('anaconda 1.4.0')
+        assert 'test::anaconda-1.4.0-np17py27_0' in self.package_string_set(records)
+        assert 'test::freetype-2.4.10-0' in self.package_string_set(records)
+
 
 class TestLegacySolver(SolverTests):
     @property
