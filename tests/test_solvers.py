@@ -386,6 +386,26 @@ class SolverTests:
             ('py=3.6.1',),
         ])
 
+    def test_unsat_chain(self, env):
+        # a -> b -> c=1.x -> d=1.x
+        # e      -> c=2.x -> d=2.x
+        env.repo_packages = [
+            helpers.record(name='a', depends=['b']),
+            helpers.record(name='b', depends=['c >=1,<2']),
+            helpers.record(name='c', version='1.0', depends=['d >=1,<2']),
+            helpers.record(name='d', version='1.0'),
+
+            helpers.record(name='e', depends=['c >=2,<3']),
+            helpers.record(name='c', version='2.0', depends=['d >=2,<3']),
+            helpers.record(name='d', version='2.0'),
+        ]
+        with pytest.raises(UnsatisfiableError) as exc_info:
+            env.install('a', 'e')
+        self.assert_unsatisfiable(exc_info, [
+            ('a', 'b', "c[version='>=1,<2']"),
+            ('e', "c[version='>=2,<3']"),
+        ])
+
 
 class TestLegacySolver(SolverTests):
     @property
