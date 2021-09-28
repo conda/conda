@@ -371,6 +371,21 @@ class SolverTests:
             ('c=1.3.6',),
         ])
 
+    def test_unsat_shortest_chain_4(self, env):
+        env.repo_packages = [
+            helpers.record(name='a', depends=['py =3.7.1']),
+            helpers.record(name="py_req_1"),
+            helpers.record(name="py_req_2"),
+            helpers.record(name='py', version='3.7.1', depends=['py_req_1', 'py_req_2']),
+            helpers.record(name='py', version='3.6.1', depends=['py_req_1', 'py_req_2']),
+        ]
+        with pytest.raises(UnsatisfiableError) as exc_info:
+            env.install('a', 'py=3.6.1')
+        self.assert_unsatisfiable(exc_info, [
+            ('a', 'py=3.7.1'),
+            ('py=3.6.1',),
+        ])
+
 
 class TestLegacySolver(SolverTests):
     @property
