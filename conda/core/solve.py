@@ -1284,20 +1284,24 @@ class LibSolvSolver(Solver):
 
         # Configure jobs
 
-        # 1. Lock currently installed ones, if requested
-        if update_modifier is UpdateModifier.FREEZE_INSTALLED:
-            solver.add_jobs([p for p in prefix_data.package_records], api.SOLVER_LOCK)
-
-        # 2. Install/update user requested packages
+        # 1. Install/update user requested packages
         tasks = self._collect_specs_to_add(state,
                                            update_modifier=update_modifier,
                                            deps_modifier=deps_modifier,
                                            ignore_pinned=ignore_pinned,
                                            force_remove=force_remove,
                                            force_reinstall=force_reinstall)
+        explicitly_or_implicitly_requested_names = set()
         for task in tasks:
             for task_type, specs in task.items():
+                explicitly_or_implicitly_requested_names.update(specs.keys())
                 solver.add_jobs(list(specs.values()), getattr(api, task_type))
+
+        # 2. Freeze if requested, but only those not mentioned in (1)
+        if update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            freeze_these = [name for name in prefix_data.package_records.keys()
+                            if name not in explicitly_or_implicitly_requested_names]
+            solver.add_jobs(freeze_these, api.SOLVER_LOCK)
 
         # 3. Pin constrained packages in env
         python_pin = self._pin_python(state, update_modifier=update_modifier)
