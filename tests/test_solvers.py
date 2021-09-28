@@ -406,6 +406,43 @@ class SolverTests:
             ('e', "c[version='>=2,<3']"),
         ])
 
+    def test_unsat_any_two_not_three(self, env):
+        # can install any two of a, b and c but not all three
+        env.repo_packages = [
+            helpers.record(name='a', version='1.0', depends=['d >=1,<2']),
+            helpers.record(name='a', version='2.0', depends=['d >=2,<3']),
+
+            helpers.record(name='b', version='1.0', depends=['d >=1,<2']),
+            helpers.record(name='b', version='2.0', depends=['d >=3,<4']),
+
+            helpers.record(name='c', version='1.0', depends=['d >=2,<3']),
+            helpers.record(name='c', version='2.0', depends=['d >=3,<4']),
+
+            helpers.record(name='d', version='1.0'),
+            helpers.record(name='d', version='2.0'),
+            helpers.record(name='d', version='3.0'),
+        ]
+        # a and b can be installed
+        installed = env.install('a', 'b')
+        assert any(k.name == 'a' and k.version == '1.0' for k in installed)
+        assert any(k.name == 'b' and k.version == '1.0' for k in installed)
+        # a and c can be installed
+        installed = env.install('a', 'c')
+        assert any(k.name == 'a' and k.version == '2.0' for k in installed)
+        assert any(k.name == 'c' and k.version == '1.0' for k in installed)
+        # b and c can be installed
+        installed = env.install('b', 'c')
+        assert any(k.name == 'b' and k.version == '2.0' for k in installed)
+        assert any(k.name == 'c' and k.version == '2.0' for k in installed)
+        # a, b and c cannot be installed
+        with pytest.raises(UnsatisfiableError) as exc_info:
+            env.install('a', 'b', 'c')
+        self.assert_unsatisfiable(exc_info, [
+            ('a', "d[version='>=1,<2|>=2,<3']"),
+            ('b', "d[version='>=1,<2|>=3,<4']"),
+            ('c', "d[version='>=2,<3|>=3,<4']"),
+        ])
+
 
 class TestLegacySolver(SolverTests):
     @property
