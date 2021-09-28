@@ -38,6 +38,7 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..resolve import Resolve
+import conda
 
 log = getLogger(__name__)
 
@@ -1323,6 +1324,11 @@ class LibSolvSolver(Solver):
             solver.add_pin(python_pin)
         for pin in self._pinned_specs():
             solver.add_pin(pin)
+        # Pin historically requested packages if a version was ever specified
+        for spec in self._history_specs(conda_build_form=False):
+            if spec.version:
+                pin = MatchSpec(name=spec.name, version=spec.version).conda_build_form()
+                solver.add_pin(pin)
 
         state["solver"] = solver
         return solver
@@ -1480,9 +1486,11 @@ class LibSolvSolver(Solver):
             pin_these_specs.append(s.conda_build_form())
         return pin_these_specs
 
-    def _history_specs(self):
-        return [s.conda_build_form()
-                for s in History(self.prefix).get_requested_specs_map().values()]
+    def _history_specs(self, conda_build_form=True):
+        specs = History(self.prefix).get_requested_specs_map().values()
+        if conda_build_form:
+            return [s.conda_build_form() for s in specs]
+        return specs
 
     def _run_solver(self, state):
         solver = state["solver"]
