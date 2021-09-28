@@ -1219,10 +1219,13 @@ dependencies:
             assert package_is_installed(prefix, 'python')
 
     def test_install_force_reinstall_flag(self):
-        with make_temp_env("python") as prefix:
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix,
-                                         "--json", "--dry-run", "--force-reinstall", "python",
-                                         use_exception_handler=True)
+        with env_var("CONDA_VERBOSITY", "0"):
+            # Some solvers print to stdout with VERBOSITY>=1
+            # and this pollutes the JSON output
+            with make_temp_env("python") as prefix:
+                stdout, stderr, _ = run_command(Commands.INSTALL, prefix,
+                                            "--json", "--dry-run", "--force-reinstall", "python",
+                                            use_exception_handler=True)
             output_obj = json.loads(stdout.strip())
             unlink_actions = output_obj['actions']['UNLINK']
             link_actions = output_obj['actions']['LINK']
@@ -1278,7 +1281,7 @@ dependencies:
             assert package_is_installed(prefix, "flask=0.12.2")
             assert package_is_installed(prefix, "jinja2=2.9")
 
-            run_command(Commands.INSTALL, prefix, "flask", "--only-deps")
+            run_command(Commands.INSTALL, prefix, "flask", "--only-deps", no_capture=True)
             assert package_is_installed(prefix, "python=3.6")
             assert package_is_installed(prefix, "flask=0.12.2")
             assert package_is_installed(prefix, "jinja2=2.9")
