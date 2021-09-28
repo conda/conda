@@ -1104,11 +1104,10 @@ class LibSolvSolver(Solver):
         # 3. Run the SAT solver
         self._run_solver(state)
         # 4. Export back to conda
-        pkg_records = self._export_final_state(state)
+        self._export_final_state(state)
         # 5. Refine solutions depending on the value of some modifier flags
         return self._post_solve_tasks(
             state,
-            pkg_records,
             update_modifier=kwargs["update_modifier"],
             deps_modifier=kwargs["deps_modifier"],
             ignore_pinned=kwargs["ignore_pinned"],
@@ -1399,7 +1398,7 @@ class LibSolvSolver(Solver):
                 # (1) Presolve to find the dependencies for `specs_to_add` (CLI)
                 solved_pkgs = self.solve_final_state(
                     update_modifier=UpdateModifier.UPDATE_SPECS,
-                    deps_modifier=deps_modifier,
+                    deps_modifier=DepsModifier.NOT_SET,
                     ignore_pinned=ignore_pinned,
                     force_remove=force_remove,
                     force_reinstall=force_reinstall)
@@ -1434,15 +1433,6 @@ class LibSolvSolver(Solver):
                     {s.name: s.conda_build_form() for s in specs_map.values()}
                 }
             )
-
-            # If ONLY_DEPS is set too (along with UPDATE_DEPS), we need to make sure
-            # the originally requested specs are not contained in the final result
-            # This makes `tests/core/tests_solve.py::test_update_deps_1` pass.
-            if deps_modifier == DepsModifier.ONLY_DEPS:
-                for task in tasks:
-                    for contents in task.values():
-                        for spec in originally_requested_specs:
-                            contents.pop(spec.name, None)
 
         return tasks
 
@@ -1535,34 +1525,46 @@ class LibSolvSolver(Solver):
             rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
             final_precs.add(rec)
 
+        state["old_specs_to_add"] = self.specs_to_add
+        state["old_specs_to_remove"] = self.specs_to_remove
+        state["final_prefix_state"] = final_precs
+
         # NOTE: We are exporting state back to the class! These are expected by
         # super().solve_for_diff() and super().solve_for_transaction() :/
         self.specs_to_add = [MatchSpec(m) for m in names_to_add]
         self.specs_to_remove = [MatchSpec(m) for m in names_to_remove]
 
-        return final_precs
+        return state
 
     def _post_solve_tasks(self,
                           state,
-                          final_prefix_state,
                           deps_modifier=NULL,
                           update_modifier=NULL,
                           force_reinstall=NULL,
                           ignore_pinned=NULL,
                           force_remove=NULL):
         original_prefix_map = {pkg.name: pkg for pkg in state["conda_prefix_data"].iter_records()}
-        final_prefix_map = {pkg.name: pkg for pkg in final_prefix_state}
+        final_prefix_map = {pkg.name: pkg for pkg in state["final_prefix_state"]}
 
         # If ONLY_DEPS is set, we need to make sure the originally requested specs
         # are not part of the result
         if deps_modifier == DepsModifier.ONLY_DEPS:
-            for spec in self.specs_to_add:
+            if update_modifier == UpdateModifier.UPDATE_DEPS:
+                # UPDATE_DEPS involves two solves, which means that
+                # self.specs_to_add gets overwritten after the first solve,
+                # and no longer represents the user intent. Combined with
+                # ONLY_DEPS, we need the originally requested specs, not
+                # the combination of those _and_ their dependencies.
+                specs_to_add = state["old_specs_to_add"]
+            else:
+                specs_to_add = self.specs_to_add
+            for spec in specs_to_add:
                 # Case A: spec was already present beforehand; do not modify it!
                 if spec.name in original_prefix_map:
                     final_prefix_map[spec.name] = original_prefix_map[spec.name]
                 # Case B: it was never installed, make sure we don't add it.
                 else:
-                    final_prefix_map.pop(spec.name)
+                    final_prefix_map.pop(spec.name, None)
 
         # TODO: Review performance here just in case
         return IndexedSet(PrefixGraph(final_prefix_map.values()).graph)
