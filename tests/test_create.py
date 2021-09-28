@@ -1281,7 +1281,7 @@ dependencies:
             assert package_is_installed(prefix, "flask=0.12.2")
             assert package_is_installed(prefix, "jinja2=2.9")
 
-            run_command(Commands.INSTALL, prefix, "flask", "--only-deps", no_capture=True)
+            run_command(Commands.INSTALL, prefix, "flask", "--only-deps")
             assert package_is_installed(prefix, "python=3.6")
             assert package_is_installed(prefix, "flask=0.12.2")
             assert package_is_installed(prefix, "jinja2=2.9")
