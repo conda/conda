@@ -443,6 +443,21 @@ class SolverTests:
             ('c', "d[version='>=2,<3|>=3,<4']"),
         ])
 
+    def test_unsat_expand_single(self, env):
+        env.repo_packages = [
+            helpers.record(name='a', depends=['b', 'c']),
+            helpers.record(name='b', depends=['d >=1,<2']),
+            helpers.record(name='c', depends=['d >=2,<3']),
+            helpers.record(name='d', version='1.0'),
+            helpers.record(name='d', version='2.0'),
+        ]
+        with pytest.raises(UnsatisfiableError) as exc_info:
+            env.install('a')
+        self.assert_unsatisfiable(exc_info, [
+            ('b', "d[version='>=1,<2']"),
+            ('c', "d[version='>=2,<3']"),
+        ])
+
 
 class TestLegacySolver(SolverTests):
     @property
