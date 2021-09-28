@@ -11,14 +11,14 @@ if ! [ -f "$DEVENV/conda-meta/history" ]; then
             curl "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh" -o miniconda3.sh
         fi
         bash miniconda3.sh -bfp "$DEVENV"
-        rm miniconda3.sh
+        rm -f miniconda3.sh
         "${_CONDA}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
     elif [ "$(uname)" = Linux ]; then
         if [ ! -f miniconda3.sh ]; then
             curl "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -o miniconda3.sh
         fi
         bash miniconda3.sh -bfp "$DEVENV"
-        rm miniconda3.sh
+        rm -f miniconda3.sh
         "${_CONDA}" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
         "${_CONDA}" install -yq -p "$DEVENV" patchelf  # for conda-build
     else
@@ -28,7 +28,7 @@ if ! [ -f "$DEVENV/conda-meta/history" ]; then
         cmd.exe /c "start /wait \"\" miniconda3.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $DEVENV)"
         _CONDA="$DEVENV/Scripts/conda"
         "$DEVENV/Scripts/conda" install -yq -p "$DEVENV" python="$PYTHON" --file tests/requirements.txt -c defaults
-        rm miniconda3.exe
+        rm -f miniconda3.exe
     fi
 fi
 
