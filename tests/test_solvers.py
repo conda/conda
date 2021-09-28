@@ -471,6 +471,11 @@ class SolverTests:
             ('b',),
         ])
 
+    def test_nonexistent(self, env):
+        with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
+            env.install('notarealpackage 2.0*')
+        with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
+            env.install('numpy 1.5')
 
 class TestLegacySolver(SolverTests):
     @property
