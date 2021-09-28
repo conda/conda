@@ -1089,31 +1089,43 @@ class LibSolvSolver(Solver):
         if none_or_final_state is not None:
             return none_or_final_state
 
+        # By default, conda tries to freeze everything not in the specs
+        # to minimize the amount of packages needed; however sometimes
+        # that's too strict and we need to relax:
+
         # These tasks DO need a solver
         # 1. Populate repos with installed packages
         state = self._setup_state()
-        # 2. Create solver and needed flags, tasks and jobs
-        self._configure_solver(
-            state,
-            update_modifier=kwargs["update_modifier"],
-            deps_modifier=kwargs["deps_modifier"],
-            ignore_pinned=kwargs["ignore_pinned"],
-            force_remove=kwargs["force_remove"],
-            force_reinstall=kwargs["force_reinstall"],
-        )
-        # 3. Run the SAT solver
-        self._run_solver(state)
-        # 4. Export back to conda
-        self._export_final_state(state)
-        # 5. Refine solutions depending on the value of some modifier flags
-        return self._post_solve_tasks(
-            state,
-            update_modifier=kwargs["update_modifier"],
-            deps_modifier=kwargs["deps_modifier"],
-            ignore_pinned=kwargs["ignore_pinned"],
-            force_remove=kwargs["force_remove"],
-            force_reinstall=kwargs["force_reinstall"]
-        )
+        while True:
+            try:
+                # 2. Create solver and needed flags, tasks and jobs
+                self._configure_solver(
+                    state,
+                    update_modifier=kwargs["update_modifier"],
+                    deps_modifier=kwargs["deps_modifier"],
+                    ignore_pinned=kwargs["ignore_pinned"],
+                    force_remove=kwargs["force_remove"],
+                    force_reinstall=kwargs["force_reinstall"],
+                )
+                # 3. Run the SAT solver
+                self._run_solver(state)
+                # 4. Export back to conda
+                self._export_final_state(state)
+                # 5. Refine solutions depending on the value of some modifier flags
+                return self._post_solve_tasks(
+                    state,
+                    update_modifier=kwargs["update_modifier"],
+                    deps_modifier=kwargs["deps_modifier"],
+                    ignore_pinned=kwargs["ignore_pinned"],
+                    force_remove=kwargs["force_remove"],
+                    force_reinstall=kwargs["force_reinstall"]
+                )
+            except RawStrUnsatisfiableError as exc:
+                if kwargs["update_modifier"] == UpdateModifier.FREEZE_INSTALLED:
+                    kwargs["update_modifier"] = UpdateModifier.UPDATE_SPECS
+                    log.info("Unfreezing installed...")
+                else:
+                    raise exc
 
     def _merge_signature_flags_with_context(
             self,
