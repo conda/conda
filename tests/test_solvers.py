@@ -458,6 +458,19 @@ class SolverTests:
             ('c', "d[version='>=2,<3']"),
         ])
 
+    def test_unsat_missing_dep(self, env):
+        env.repo_packages = [
+            helpers.record(name='a', depends=['b', 'c']),
+            helpers.record(name='b', depends=['c >=2,<3']),
+            helpers.record(name='c', version='1.0'),
+        ]
+        with pytest.raises(UnsatisfiableError) as exc_info:
+            env.install('a', 'b')
+        self.assert_unsatisfiable(exc_info, [
+            ('a', 'b'),
+            ('b',),
+        ])
+
 
 class TestLegacySolver(SolverTests):
     @property
