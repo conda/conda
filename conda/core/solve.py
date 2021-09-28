@@ -1191,10 +1191,9 @@ class LibSolvSolver(Solver):
         mamba_prefix_data.load()
         installed_json_f, installed_pkgs = get_installed_jsonfile(self.prefix)
 
-        repos = []
         installed = Repo(pool, "installed", installed_json_f.name, "")
         installed.set_installed()
-        repos.append(installed)
+        repos = [installed]
 
         # This function will populate the pool/repos with
         # the current state of the given channels
@@ -1304,7 +1303,10 @@ class LibSolvSolver(Solver):
             solver.add_jobs(freeze_these, api.SOLVER_LOCK)
 
         # 3. Pin constrained packages in env
-        python_pin = self._pin_python(state, update_modifier=update_modifier)
+        python_pin = self._pin_python(
+            state,
+            explicitly_or_implicitly_requested_names
+        )
         if python_pin:
             solver.add_pin(python_pin)
         for pin in self._pinned_specs():
@@ -1440,17 +1442,14 @@ class LibSolvSolver(Solver):
 
         return tasks
 
-    def _pin_python(self, state, update_modifier=NULL):
+    def _pin_python(self, state, requested_names):
         """
         If Python is already present in the environment and the user didn't
         include it in the requested packages, make sure it remains pinned to
         the minor version.
         """
         installed_names = [rec.name for rec in state["installed_pkgs"]]
-        is_installed = "python" in installed_names
-        is_explicitly_requested = any(s == "python" for s in self.specs_to_add_names)
-        is_requested_in_update_all = update_modifier == UpdateModifier.UPDATE_ALL
-        if is_installed and (is_requested_in_update_all or not is_explicitly_requested):
+        if "python" in installed_names and "python" not in requested_names:
             version = state["installed_pkgs"][installed_names.index("python")].version
             major_minor_version = ".".join(version.split(".")[:2])
             return f"python {major_minor_version}.*"
