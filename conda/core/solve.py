@@ -1324,11 +1324,11 @@ class LibSolvSolver(Solver):
             solver.add_pin(python_pin)
         for pin in self._pinned_specs():
             solver.add_pin(pin)
-        # Pin historically requested packages if a version was ever specified
-        for spec in self._history_specs(conda_build_form=False):
-            if spec.version:
-                pin = MatchSpec(name=spec.name, version=spec.version).conda_build_form()
-                solver.add_pin(pin)
+        # # Pin historically requested packages if a version was ever specified
+        # for spec in self._history_specs(conda_build_form=False):
+        #     if spec.version:
+        #         pin = MatchSpec(name=spec.name, version=spec.version).conda_build_form()
+        #         solver.add_pin(pin)
 
         state["solver"] = solver
         return solver
@@ -1372,10 +1372,22 @@ class LibSolvSolver(Solver):
         """
         is_update = self._command == "update"
         originally_requested_specs = self.specs_to_add
+        tasks = []
+
+        # Start with the history, if available
+        history_specs = self._history_specs(conda_build_form=False)
+        if history_specs:
+            tasks.append(
+                {
+                    "SOLVER_UPDATE":
+                    {s.name: MatchSpec(name=s.name, version=s.version).conda_build_form()
+                     for s in history_specs}
+                }
+            )
 
         # A. Explicitly requested packages via CLI (either update or install)
         task = "SOLVER_UPDATE" if self._command == "update" else "SOLVER_INSTALL"
-        tasks = [{task: {s.name: s.conda_build_form() for s in originally_requested_specs}}]
+        tasks.append({task: {s.name: s.conda_build_form() for s in originally_requested_specs}})
 
         # B. Configured in condarc as "always update"
         if not force_reinstall:
