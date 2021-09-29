@@ -309,22 +309,26 @@ def execute_config(args, parser):
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
         for key, item in arg:
+            key, subkey = key.split('.', 1) if '.' in key else (key, None)
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
-            if key not in sequence_parameters:
+            if key in sequence_parameters:
+                arglist = rc_config.setdefault(key, [])
+            elif key in map_parameters:
+                arglist = rc_config.setdefault(key, {}).setdefault(subkey, [])
+            else:
                 from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
-            if not (isinstance(rc_config.get(key, []), Sequence) and not
-                    isinstance(rc_config.get(key, []), string_types)):
+            if not (isinstance(arglist, Sequence) and not
+                    isinstance(arglist, string_types)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
-            arglist = rc_config.setdefault(key, [])
             if item in arglist:
                 # Right now, all list keys should not contain duplicates
                 message = "Warning: '%s' already in '%s' list, moving to the %s" % (
                     item, key, "top" if prepend else "bottom")
-                arglist = rc_config[key] = [p for p in arglist if p != item]
+                arglist.pop(arglist.index(item))
                 if not context.json:
                     stderr_write(message)
                 else:
