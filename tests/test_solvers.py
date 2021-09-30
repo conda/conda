@@ -477,6 +477,39 @@ class SolverTests:
         with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
             env.install('numpy 1.5')
 
+    def test_timestamps_and_deps(self, env):
+        env.repo_packages = index_packages(1) + [
+            helpers.record(
+                name='mypackage',
+                version='1.0',
+                build='hash12_0',
+                timestamp=1,
+                depends=['libpng 1.2.*'],
+            ),
+            helpers.record(
+                name='mypackage',
+                version='1.0',
+                build='hash15_0',
+                timestamp=0,
+                depends=['libpng 1.5.*'],
+            ),
+        ]
+        # libpng 1.2
+        records_12 = env.install('libpng 1.2.*', 'mypackage')
+        assert 'test::libpng-1.2.50-0' in self.package_string_set(records_12)
+        assert 'test::mypackage-1.0-hash12_0' in self.package_string_set(records_12)
+        # libpng 1.5
+        records_15 = env.install('libpng 1.5.*', 'mypackage')
+        assert 'test::libpng-1.5.13-1' in self.package_string_set(records_15)
+        assert 'test::mypackage-1.0-hash15_0' in self.package_string_set(records_15)
+        # this is testing that previously installed reqs are not disrupted by newer timestamps.
+        #   regression test of sorts for https://github.com/conda/conda/issues/6271
+        assert env.install('mypackage', *env.install('libpng 1.2.*')) == records_12
+        assert env.install('mypackage', *env.install('libpng 1.5.*')) == records_15
+        # unspecified python version should maximize libpng (v1.5), even though it has a lower timestamp
+        assert env.install('mypackage') == records_15
+
+
 class TestLegacySolver(SolverTests):
     @property
     def solver_class(self):
