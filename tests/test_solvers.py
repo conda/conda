@@ -139,11 +139,7 @@ class SolverTests:
         specified by the set of specification string."""
         installed = environment.install(*specs)
         assert installed, f'no installed specs ({installed})'
-        assert self.package_string_set(installed) == set(expecting) | {
-            # XXX: injected
-            'test::distribute-0.6.36-py27_1',
-            'test::pip-1.3.1-py27_1',
-        }
+        assert self.package_string_set(installed) == set(expecting)
 
     def assert_same_packages(self, packages1, packages2):
         assert self.package_string_set(packages1) == self.package_string_set(packages2)
@@ -183,6 +179,8 @@ class SolverTests:
                 'test::tk-8.5.13-0',
                 'test::unixodbc-2.3.1-0',
                 'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py27_1',
+                'test::pip-1.3.1-py27_1',
             ],
         )
 
@@ -203,6 +201,8 @@ class SolverTests:
                 'test::tk-8.5.13-0',
                 'test::unixodbc-2.3.1-0',
                 'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py27_1',
+                'test::pip-1.3.1-py27_1',
             ],
         )
 
@@ -254,6 +254,8 @@ class SolverTests:
                 'test::tk-8.5.13-0',
                 'test::unixodbc-2.3.1-0',
                 'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py27_1',
+                'test::pip-1.3.1-py27_1',
             ],
         )
         self.assert_installs_expected(
@@ -271,6 +273,8 @@ class SolverTests:
                 'test::tk-8.5.13-0',
                 'test::unixodbc-2.3.1-0',
                 'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py27_1',
+                'test::pip-1.3.1-py27_1',
             ],
         )
 
