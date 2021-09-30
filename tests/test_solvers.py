@@ -31,7 +31,7 @@ def index_packages(num):
     # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
     get_index = getattr(helpers, f'get_index_r_{num}')
     index, _ = get_index(context.subdir)
-    return index.values()
+    return list(index.values())
 
 
 class TestEnvironment:
