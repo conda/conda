@@ -513,6 +513,167 @@ class SolverTests:
         # unspecified python version should maximize libpng (v1.5), even though it has a lower timestamp
         assert env.install('mypackage') == records_15
 
+    def test_nonexistent_deps(self, env):
+        env.repo_packages = index_packages(1) + [
+            helpers.record(
+                name='mypackage',
+                version='1.0',
+                depends=['nose', 'python 3.3*', 'notarealpackage 2.0*'],
+            ),
+            helpers.record(
+                name='mypackage',
+                version='1.1',
+                depends=['nose', 'python 3.3*'],
+            ),
+            helpers.record(
+                name='anotherpackage',
+                version='1.0',
+                depends=['nose', 'mypackage 1.1'],
+            ),
+            helpers.record(
+                name='anotherpackage',
+                version='2.0',
+                depends=['nose', 'mypackage'],
+            ),
+        ]
+        # XXX: missing find_matches and reduced_index
+        self.assert_installs_expected(
+            env,
+            ['mypackage'],
+            [
+                'test::mypackage-1.1-0',
+                'test::nose-1.3.0-py33_0',
+                'test::openssl-1.0.1c-0',
+                'test::python-3.3.2-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py33_1',
+                'test::pip-1.3.1-py33_1',
+            ]
+        )
+        self.assert_installs_expected(
+            env,
+            ['anotherpackage 1.0'],
+            [
+                'test::anotherpackage-1.0-0',
+                'test::mypackage-1.1-0',
+                'test::nose-1.3.0-py33_0',
+                'test::openssl-1.0.1c-0',
+                'test::python-3.3.2-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py33_1',
+                'test::pip-1.3.1-py33_1',
+            ]
+        )
+        self.assert_installs_expected(
+            env,
+            ['anotherpackage'],
+            [
+                'test::anotherpackage-2.0-0',
+                'test::mypackage-1.1-0',
+                'test::nose-1.3.0-py33_0',
+                'test::openssl-1.0.1c-0',
+                'test::python-3.3.2-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py33_1',
+                'test::pip-1.3.1-py33_1',
+            ]
+        )
+
+        # This time, the latest version is messed up
+        env.repo_packages = index_packages(1) + [
+            helpers.record(
+                name='mypackage',
+                version='1.0',
+                depends=['nose', 'python 3.3*'],
+            ),
+            helpers.record(
+                name='mypackage',
+                version='1.1',
+                depends=['nose', 'python 3.3*', 'notarealpackage 2.0*'],
+            ),
+            helpers.record(
+                name='anotherpackage',
+                version='1.0',
+                depends=['nose', 'mypackage 1.0'],
+            ),
+            helpers.record(
+                name='anotherpackage',
+                version='2.0',
+                depends=['nose', 'mypackage'],
+            ),
+        ]
+        # XXX: missing find_matches and reduced_index
+        self.assert_installs_expected(
+            env,
+            ['mypackage'],
+            [
+                'test::mypackage-1.0-0',
+                'test::nose-1.3.0-py33_0',
+                'test::openssl-1.0.1c-0',
+                'test::python-3.3.2-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py33_1',
+                'test::pip-1.3.1-py33_1',
+            ]
+        )
+        with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
+            env.install('mypackage 1.1')
+        self.assert_installs_expected(
+            env,
+            ['anotherpackage 1.0'],
+            [
+                'test::anotherpackage-1.0-0',
+                'test::mypackage-1.0-0',
+                'test::nose-1.3.0-py33_0',
+                'test::openssl-1.0.1c-0',
+                'test::python-3.3.2-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py33_1',
+                'test::pip-1.3.1-py33_1',
+            ]
+        )
+
+        # If recursive checking is working correctly, this will give
+        # anotherpackage 2.0, not anotherpackage 1.0
+        self.assert_installs_expected(
+            env,
+            ['anotherpackage'],
+            [
+                'test::anotherpackage-2.0-0',
+                'test::mypackage-1.0-0',
+                'test::nose-1.3.0-py33_0',
+                'test::openssl-1.0.1c-0',
+                'test::python-3.3.2-0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+                'test::distribute-0.6.36-py33_1',
+                'test::pip-1.3.1-py33_1',
+            ]
+        )
+
 
 class TestLegacySolver(SolverTests):
     @property
