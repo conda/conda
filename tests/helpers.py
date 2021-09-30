@@ -522,12 +522,13 @@ def get_index_cuda(subdir=context.subdir):
     return index, r
 
 
-def record(name='a', version='1.0', depends=None, build='0', build_number=0, channel=None):
+def record(name='a', version='1.0', depends=None, build='0', build_number=0, timestamp=0, channel=None):
     return PackageRecord(
         name=name,
         version=version,
         depends=depends or [],
         build=build,
         build_number=build_number,
+        timestamp=timestamp,
         channel=channel,
     )
