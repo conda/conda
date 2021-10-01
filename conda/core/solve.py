@@ -1578,7 +1578,9 @@ class LibSolvSolver(Solver):
                 if spec.name in original_prefix_map:
                     final_prefix_map[spec.name] = original_prefix_map[spec.name]
                 # Case B: it was never installed, make sure we don't add it.
-                else:
+                # Note that we special-case python, otherwise there's no path
+                # we can still packages to. This makes `test_create_only_deps_flag` pass.
+                elif spec.name != "python":
                     final_prefix_map.pop(spec.name, None)
 
         # TODO: Review performance here just in case
