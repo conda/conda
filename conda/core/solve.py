@@ -1338,7 +1338,7 @@ class LibSolvSolver(Solver):
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver = api.Solver(state["pool"], solver_options)
 
-        installed_names = [rec.name for rec in state["installed_pkgs"]]
+        installed_names = set(rec.name for rec in state["installed_pkgs"])
         # pkgs in aggresive_update_packages should be protected too (even if not
         # requested explicitly by the user)
         # see https://github.com/conda/conda/blob/9e9461760bb/tests/core/test_solve.py#L520-L521
@@ -1348,6 +1348,10 @@ class LibSolvSolver(Solver):
             list(set(chain(self._history_specs(), aggresive_updates))),
             api.SOLVER_USERINSTALLED,
         )
+        not_installed = [s.name for s in self.specs_to_remove if s.name not in installed_names]
+        if not_installed:
+            raise PackagesNotFoundError(not_installed)
+
         specs = [s.conda_build_form() for s in self.specs_to_remove]
         solver.add_jobs(specs, api.SOLVER_ERASE | api.SOLVER_CLEANDEPS)
 
