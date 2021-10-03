@@ -1372,6 +1372,7 @@ class LibSolvSolver(Solver):
         """
         is_update = self._command == "update"
         originally_requested_specs = self.specs_to_add
+        originally_requested_names = set(s.name for s in self.specs_to_add)
         tasks = []
 
         # Start with the history, if available
@@ -1381,7 +1382,7 @@ class LibSolvSolver(Solver):
                 {
                     "SOLVER_UPDATE":
                     {s.name: MatchSpec(name=s.name, version=s.version).conda_build_form()
-                     for s in history_specs}
+                     for s in history_specs if s.name not in originally_requested_names}
                 }
             )
 
@@ -1581,6 +1582,10 @@ class LibSolvSolver(Solver):
         original_prefix_map = {pkg.name: pkg for pkg in state["conda_prefix_data"].iter_records()}
         final_prefix_map = {pkg.name: pkg for pkg in state["final_prefix_state"]}
 
+        specs_deps_map = {pkg.name: set(dep.split()[0] for dep in pkg.depends)
+                          for pkg in state["final_prefix_state"]}
+        print("JAIME", specs_deps_map)
+
         # If ONLY_DEPS is set, we need to make sure the originally requested specs
         # are not part of the result
         if deps_modifier == DepsModifier.ONLY_DEPS:
@@ -1594,15 +1599,20 @@ class LibSolvSolver(Solver):
             else:
                 specs_to_add = self.specs_to_add
             for spec in specs_to_add:
-                # Case A: spec was already present beforehand; do not modify it!
+                # Case A: spec is also a direct dependency of another requested spec
+                # In this case we just let the update/install happen.
+                if any(spec.name in deps for deps in specs_deps_map.values()):
+                    continue
+                # Case B: spec was already present beforehand; do not modify it!
                 if spec.name in original_prefix_map:
                     final_prefix_map[spec.name] = original_prefix_map[spec.name]
-                # Case B: it was never installed, make sure we don't add it.
+                # Case C: it was never installed, make sure we don't add it.
                 else:
                     final_prefix_map.pop(spec.name, None)
 
         # TODO: Review performance here just in case
         return IndexedSet(PrefixGraph(final_prefix_map.values()).graph)
+
 
 class SolverStateContainer(object):
     # A mutable container with defined attributes to help keep method signatures clean
