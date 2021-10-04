@@ -1219,10 +1219,13 @@ dependencies:
             assert package_is_installed(prefix, 'python')
 
     def test_install_force_reinstall_flag(self):
-        with make_temp_env("python") as prefix:
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix,
-                                         "--json", "--dry-run", "--force-reinstall", "python",
-                                         use_exception_handler=True)
+        with env_var("CONDA_VERBOSITY", "0"):
+            # Some solvers print to stdout with VERBOSITY>=1
+            # and this pollutes the JSON output
+            with make_temp_env("python") as prefix:
+                stdout, stderr, _ = run_command(Commands.INSTALL, prefix,
+                                            "--json", "--dry-run", "--force-reinstall", "python",
+                                            use_exception_handler=True)
             output_obj = json.loads(stdout.strip())
             unlink_actions = output_obj['actions']['UNLINK']
             link_actions = output_obj['actions']['LINK']
