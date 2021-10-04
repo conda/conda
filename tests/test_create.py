@@ -55,7 +55,7 @@ from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
     DisallowedPackageError, DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound, \
-    CondaValueError
+    CondaValueError, RawStrUnsatisfiableError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p, extract_tarball
 from conda.gateways.disk.delete import rm_rf, path_is_clean
@@ -1791,7 +1791,11 @@ dependencies:
     def test_packages_not_found(self):
         with make_temp_env() as prefix:
             with pytest.raises(PackagesNotFoundError) as exc:
-                run_command(Commands.INSTALL, prefix, "not-a-real-package")
+                try:
+                    run_command(Commands.INSTALL, prefix, "not-a-real-package")
+                except RawStrUnsatisfiableError as exc2:
+                    if "nothing provides" in str(exc2):
+                        raise PackagesNotFoundError([str(exc2)])
             assert "not-a-real-package" in text_type(exc.value)
 
             _, error, _ = run_command(Commands.INSTALL, prefix, "not-a-real-package",
