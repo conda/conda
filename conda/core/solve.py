@@ -1341,7 +1341,7 @@ class LibSolvSolver(Solver):
         # 3. Pin constrained packages in env
         python_pin = self._pin_python(
             state,
-            explicitly_or_implicitly_requested_names
+            requested_names
         )
         if python_pin:
             solver.add_pin(python_pin)
