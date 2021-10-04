@@ -1324,16 +1324,18 @@ class LibSolvSolver(Solver):
                                            ignore_pinned=ignore_pinned,
                                            force_remove=force_remove,
                                            force_reinstall=force_reinstall)
-        explicitly_or_implicitly_requested_names = set()
+        # requested_names stores all the pkg names requested by the user in the CLI
+        # as well as the implicit dependencies (via flags, history, pins, etc...)
+        requested_names = set()
         for task in tasks:
             for task_type, specs in task.items():
-                explicitly_or_implicitly_requested_names.update(specs.keys())
+                requested_names.update(specs.keys())
                 solver.add_jobs(list(specs.values()), getattr(api, task_type))
 
         # 2. Freeze if requested, but only those not mentioned in (1)
         if update_modifier == UpdateModifier.FREEZE_INSTALLED:
             freeze_these = [name for name in prefix_data.package_records.keys()
-                            if name not in explicitly_or_implicitly_requested_names]
+                            if name not in requested_names]
             solver.add_jobs(freeze_these, api.SOLVER_LOCK)
 
         # 3. Pin constrained packages in env
