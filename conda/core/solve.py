@@ -1348,7 +1348,10 @@ class LibSolvSolver(Solver):
             list(set(chain(self._history_specs(), aggresive_updates))),
             api.SOLVER_USERINSTALLED,
         )
-        not_installed = [spec.name for spec in self.specs_to_remove if spec.name not in installed_names]
+        # This fixes test_create.py::test_remove_all, which tests #2154.
+        # TODO: Raise issue on mamba-org/mamba too
+        not_installed = [spec.name for spec in self.specs_to_remove
+                         if spec.name not in installed_names]
         if not_installed:
             raise PackagesNotFoundError(not_installed)
 
