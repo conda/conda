@@ -1096,7 +1096,28 @@ class LibSolvSolver(Solver):
         # These tasks DO need a solver
         # 1. Populate repos with installed packages
         state = self._setup_state()
-        while True:
+
+        # The following loop will try different fallback strategies
+        # A) Try freezing all the installed packaged to minimize changes
+        # B) Do not freeze installed
+
+        strategies = []
+        if kwargs["update_modifier"] == UpdateModifier.FREEZE_INSTALLED:
+            def _strategy_for_freeze_installed(state, kwargs, exc):
+                if not isinstance(exc, RawStrUnsatisfiableError):
+                    raise exc
+                kwargs["update_modifier"] = UpdateModifier.UPDATE_SPECS
+                log.info("Unfreezing installed...")
+
+            strategies.append(_strategy_for_freeze_installed)
+
+        def _strategy_for_default(state, kwargs, exception):
+            raise exception
+
+        strategies.append(_strategy_for_default)
+
+        # _now_ we get to actually try all the strategies
+        for strategy_callable in strategies:
             try:
                 # 2. Create solver and needed flags, tasks and jobs
                 self._configure_solver(
@@ -1120,12 +1141,13 @@ class LibSolvSolver(Solver):
                     force_remove=kwargs["force_remove"],
                     force_reinstall=kwargs["force_reinstall"]
                 )
-            except RawStrUnsatisfiableError as exc:
-                if kwargs["update_modifier"] == UpdateModifier.FREEZE_INSTALLED:
-                    kwargs["update_modifier"] = UpdateModifier.UPDATE_SPECS
-                    log.info("Unfreezing installed...")
-                else:
-                    raise exc
+            except Exception as exception:
+                # This will modify some flags and or state to retry
+                strategy_callable(state, kwargs, exception)
+
+        # This will raise the last exception if we didn't return in the loop
+        # We shouldn't reach here ever but better than a silent return None?
+        raise exception
 
     def _merge_signature_flags_with_context(
             self,
