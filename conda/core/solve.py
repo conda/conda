@@ -1348,7 +1348,7 @@ class LibSolvSolver(Solver):
             list(set(chain(self._history_specs(), aggresive_updates))),
             api.SOLVER_USERINSTALLED,
         )
-        not_installed = [s.name for s in self.specs_to_remove if s.name not in installed_names]
+        not_installed = [spec.name for spec in self.specs_to_remove if spec.name not in installed_names]
         if not_installed:
             raise PackagesNotFoundError(not_installed)
 
