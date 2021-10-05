@@ -1058,7 +1058,43 @@ class LibSolvSolver(Solver):
     - Pruning the repodata (?) - JRG: Not sure if this happens internally or at all.
     - Prioritizing different aspects of the solver (version, build strings, track_features...)
     """
+
     _uses_ssc = False
+
+    def _run_solve(
+        self,
+        state,
+        update_modifier,
+        deps_modifier,
+        ignore_pinned,
+        force_remove,
+        force_reinstall,
+    ):
+        """
+        Creates, configures and runs the solver. Returns the solver result.
+        """
+        # Create solver and needed flags, tasks and jobs
+        solver = self._configure_solver(
+            state,
+            update_modifier=update_modifier,
+            deps_modifier=deps_modifier,
+            ignore_pinned=ignore_pinned,
+            force_remove=force_remove,
+            force_reinstall=force_reinstall,
+        )
+        # Run the SAT solver
+        self._run_solver(solver)
+        # Export back to conda
+        state = self._export_final_state(state)
+        # Refine solutions depending on the value of some modifier flags
+        return self._post_solve_tasks(
+            state,
+            update_modifier=update_modifier,
+            deps_modifier=deps_modifier,
+            ignore_pinned=ignore_pinned,
+            force_remove=force_remove,
+            force_reinstall=force_reinstall,
+        )
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
                           ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
@@ -1077,7 +1113,7 @@ class LibSolvSolver(Solver):
             ignore_pinned=ignore_pinned,
             force_remove=force_remove,
             force_reinstall=force_reinstall,
-            should_retry_solve=should_retry_solve
+            should_retry_solve=should_retry_solve,
         )
 
         # Tasks that do not require a solver can be tackled right away
@@ -1094,60 +1130,23 @@ class LibSolvSolver(Solver):
         # that's too strict and we need to relax:
 
         # These tasks DO need a solver
-        # 1. Populate repos with installed packages
+        # Populate repos with installed packages
         state = self._setup_state()
 
-        # The following loop will try different fallback strategies
+        # The following setup will try different fallback strategies
         # A) Try freezing all the installed packaged to minimize changes
         # B) Do not freeze installed
-
-        strategies = []
-        if kwargs["update_modifier"] == UpdateModifier.FREEZE_INSTALLED:
-            def _strategy_for_freeze_installed(state, kwargs, exc):
-                if not isinstance(exc, RawStrUnsatisfiableError):
-                    raise exc
+        try:
+            return self._run_solve(state, **kwargs)
+        except Exception as exception:
+            if kwargs["update_modifier"] == UpdateModifier.FREEZE_INSTALLED:
+                if not isinstance(exception, RawStrUnsatisfiableError):
+                    raise exception
                 kwargs["update_modifier"] = UpdateModifier.UPDATE_SPECS
                 log.info("Unfreezing installed...")
-
-            strategies.append(_strategy_for_freeze_installed)
-
-        def _strategy_for_default(state, kwargs, exception):
-            raise exception
-
-        strategies.append(_strategy_for_default)
-
-        # _now_ we get to actually try all the strategies
-        for strategy_callable in strategies:
-            try:
-                # 2. Create solver and needed flags, tasks and jobs
-                self._configure_solver(
-                    state,
-                    update_modifier=kwargs["update_modifier"],
-                    deps_modifier=kwargs["deps_modifier"],
-                    ignore_pinned=kwargs["ignore_pinned"],
-                    force_remove=kwargs["force_remove"],
-                    force_reinstall=kwargs["force_reinstall"],
-                )
-                # 3. Run the SAT solver
-                self._run_solver(state)
-                # 4. Export back to conda
-                self._export_final_state(state)
-                # 5. Refine solutions depending on the value of some modifier flags
-                return self._post_solve_tasks(
-                    state,
-                    update_modifier=kwargs["update_modifier"],
-                    deps_modifier=kwargs["deps_modifier"],
-                    ignore_pinned=kwargs["ignore_pinned"],
-                    force_remove=kwargs["force_remove"],
-                    force_reinstall=kwargs["force_reinstall"]
-                )
-            except Exception as exception:
-                # This will modify some flags and or state to retry
-                strategy_callable(state, kwargs, exception)
-
-        # This will raise the last exception if we didn't return in the loop
-        # We shouldn't reach here ever but better than a silent return None?
-        raise exception
+                return self._run_solve(state, **kwargs)
+            else:
+                raise
 
     def _merge_signature_flags_with_context(
             self,
