@@ -674,6 +674,23 @@ class SolverTests:
             ]
         )
 
+    def test_install_package_with_feature(self, env):
+        env.repo_packages = index_packages(1) + [
+            helpers.record(
+                name='mypackage',
+                version='1.0',
+                depends=['python 3.3*'],
+                features='feature',
+            ),
+            helpers.record(
+                name='feature',
+                version='1.0',
+                depends=['python 3.3*'],
+                track_features='feature',
+            ),
+        ]
+        # should not raise
+        env.install('mypackage', 'feature 1.0')
 
 class TestLegacySolver(SolverTests):
     @property
