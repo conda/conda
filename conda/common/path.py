@@ -13,7 +13,7 @@ import subprocess
 from .compat import on_win, string_types
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
-from .._vendor.toolz import accumulate, concat, take
+from .._vendor.toolz import accumulate, concat
 from distutils.spawn import find_executable
 
 try:
