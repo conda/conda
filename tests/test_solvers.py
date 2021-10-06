@@ -738,6 +738,25 @@ class SolverTests:
             == env.install('package2')
         )
 
+    def test_irrational_version(self, env):
+        env.repo_packages = index_packages(1)
+        self.assert_installs_expected(
+            env,
+            ['pytz 2012d', 'python 3*'],
+            [
+                'test::distribute-0.6.36-py33_1',
+                'test::openssl-1.0.1c-0',
+                'test::pip-1.3.1-py33_1',
+                'test::python-3.3.2-0',
+                'test::pytz-2012d-py33_0',
+                'test::readline-6.2-0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+            ]
+        )
+
 
 class TestLegacySolver(SolverTests):
     @property
