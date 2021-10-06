@@ -137,6 +137,13 @@ class SolverTests:
             for record in packages
         }
 
+    def package_dict(self, packages):
+        """Transforms package container into a disctionary."""
+        return {
+            record.name: record
+            for record in packages
+        }
+
     def assert_installs_expected(self, environment, specs, expecting):
         """Helper to assert that a transaction result contains the packages
         specified by the set of specification string."""
