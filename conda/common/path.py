@@ -178,7 +178,7 @@ def get_python_site_packages_short_path(python_version):
         return 'lib/python%s/site-packages' % py_ver
 
 
-_VERSION_REGEX = re.compile("[0-9]*\.[0-9]*")
+_VERSION_REGEX = re.compile(r"[0-9]*\.[0-9]*")
 
 def get_major_minor_version(string, with_dot=True):
     # returns None if not found, otherwise two digits as a string
