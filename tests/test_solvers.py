@@ -34,6 +34,26 @@ def index_packages(num):
     return list(index.values())
 
 
+def package_string(record):
+    return f'{record.channel.name}::{record.name}-{record.version}-{record.build}'
+
+
+def package_string_set(packages):
+    """Transforms package container in package string set."""
+    return {
+        package_string(record)
+        for record in packages
+    }
+
+
+def package_dict(packages):
+    """Transforms package container into a dictionary."""
+    return {
+        record.name: record
+        for record in packages
+    }
+
+
 class TestEnvironment:
     REPO_DATA_KEYS = (
         'build',
@@ -75,11 +95,21 @@ class TestEnvironment:
     def solver_transaction(self, add=(), remove=()):
         return self.solver(add=add, remove=remove).solve_final_state()
 
-    def install(self, *specs):
-        return self.solver_transaction(add=specs)
+    def install(self, *specs, container='string-set'):
+        packages = self.solver_transaction(add=specs)
+        if container == 'original':
+            return packages
+        elif container == 'string-set':
+            return package_string_set(packages)
+        raise ValueError(f'Invalid container: {container}')
 
-    def remove(self, *specs):
-        return self.solver_transaction(remove=specs)
+    def remove(self, *specs, container='string-set'):
+        packages = self.solver_transaction(remove=specs)
+        if container == 'original':
+            return packages
+        elif container == 'string-set':
+            return package_string_set(packages)
+        raise ValueError(f'Invalid container: {container}')
 
     def _write_packages(self):
         """Write packages to the channel path."""
@@ -127,23 +157,6 @@ class SolverTests:
         with tempfile.TemporaryDirectory(prefix='conda-test-repo-') as tmpdir:
             yield TestEnvironment(tmpdir, self.solver_class)
 
-    def package_string(self, record):
-        return f'{record.channel.name}::{record.name}-{record.version}-{record.build}'
-
-    def package_string_set(self, packages):
-        """Transforms package container in package string set."""
-        return {
-            self.package_string(record)
-            for record in packages
-        }
-
-    def package_dict(self, packages):
-        """Transforms package container into a disctionary."""
-        return {
-            record.name: record
-            for record in packages
-        }
-
     def find_package(self, env, **kwargs):
         for record in env.repo_packages:
             if all(
@@ -151,21 +164,6 @@ class SolverTests:
                 for key, value in kwargs.items()
             ):
                 return record
-
-    def assert_installs_expected(self, environment, specs, expecting):
-        """Helper to assert that a transaction result contains the packages
-        specified by the set of specification string."""
-        installed = environment.install(*specs)
-        assert installed, f'no installed specs ({installed})'
-        assert self.package_string_set(installed) == set(expecting)
-
-    def assert_same_packages(self, packages1, packages2):
-        assert self.package_string_set(packages1) == self.package_string_set(packages2)
-
-    def assert_record_in(self, record_str, records):
-        """Helper to assert that a record list contains a record matching the
-        provided record string."""
-        assert record_str in self.package_string_set(records)
 
     def assert_unsatisfiable(self, exc_info, entries):
         """Helper to assert that a :py:class:`conda.exceptions.UnsatisfiableError`
@@ -179,122 +177,103 @@ class SolverTests:
 
     def test_empty(self, env):
         env.repo_packages = index_packages(1)
-        assert env.install() == []
+        assert env.install() == set()
 
     def test_iopro_mkl(self, env):
         env.repo_packages = index_packages(1)
-        self.assert_installs_expected(
-            env,
-            ['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
-            [
-                'test::iopro-1.4.3-np17py27_p0',
-                'test::numpy-1.7.1-py27_0',
-                'test::openssl-1.0.1c-0',
-                'test::python-2.7.5-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::unixodbc-2.3.1-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py27_1',
-                'test::pip-1.3.1-py27_1',
-            ],
-        )
+        assert env.install('iopro 1.4*', 'python 2.7*', 'numpy 1.7*') == {
+            'test::iopro-1.4.3-np17py27_p0',
+            'test::numpy-1.7.1-py27_0',
+            'test::openssl-1.0.1c-0',
+            'test::python-2.7.5-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::unixodbc-2.3.1-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py27_1',
+            'test::pip-1.3.1-py27_1',
+        }
 
     def test_iopro_nomkl(self, env):
         env.repo_packages = index_packages(1)
-        self.assert_installs_expected(
-            env,
-            ['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')],
-            [
-                'test::iopro-1.4.3-np17py27_p0',
-                'test::mkl-rt-11.0-p0',
-                'test::numpy-1.7.1-py27_p0',
-                'test::openssl-1.0.1c-0',
-                'test::python-2.7.5-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::unixodbc-2.3.1-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py27_1',
-                'test::pip-1.3.1-py27_1',
-            ],
-        )
+        assert env.install('iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')) == {
+            'test::iopro-1.4.3-np17py27_p0',
+            'test::mkl-rt-11.0-p0',
+            'test::numpy-1.7.1-py27_p0',
+            'test::openssl-1.0.1c-0',
+            'test::python-2.7.5-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::unixodbc-2.3.1-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py27_1',
+            'test::pip-1.3.1-py27_1',
+        }
 
     def test_mkl(self, env):
         env.repo_packages = index_packages(1)
-        self.assert_same_packages(
-            env.install('mkl'),
-            env.install('mkl 11*', MatchSpec(track_features='mkl')),
-        )
+        assert env.install('mkl') == env.install('mkl 11*', MatchSpec(track_features='mkl'))
 
     def test_accelerate(self, env):
         env.repo_packages = index_packages(1)
-        self.assert_same_packages(
-            env.install('accelerate'),
-            env.install('accelerate', MatchSpec(track_features='mkl')),
-        )
+        assert env.install('accelerate') == env.install('accelerate', MatchSpec(track_features='mkl'))
 
     def test_scipy_mkl(self, env):
         env.repo_packages = index_packages(1)
-        records = env.install('scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl'))
+        records = env.install(
+            'scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl'),
+            container='original',
+        )
 
         for record in records:
             if record.name in ('numpy', 'scipy'):
                 assert 'mkl' in record.features
 
-        self.assert_record_in('test::numpy-1.7.1-py27_p0', records)
-        self.assert_record_in('test::scipy-0.12.0-np17py27_p0', records)
+        assert 'test::numpy-1.7.1-py27_p0' in package_string_set(records)
+        assert 'test::scipy-0.12.0-np17py27_p0' in package_string_set(records)
 
     def test_anaconda_nomkl(self, env):
         env.repo_packages = index_packages(1)
         records = env.install('anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*')
         assert len(records) == 107
-        self.assert_record_in('test::scipy-0.12.0-np17py27_0', records)
+        assert 'test::scipy-0.12.0-np17py27_0' in records
 
     def test_pseudo_boolean(self, env):
         env.repo_packages = index_packages(1)
         # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-        self.assert_installs_expected(
-            env,
-            ['iopro', 'python 2.7*', 'numpy 1.5*'],
-            [
-                'test::iopro-1.4.3-np15py27_p0',
-                'test::numpy-1.5.1-py27_4',
-                'test::openssl-1.0.1c-0',
-                'test::python-2.7.5-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::unixodbc-2.3.1-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py27_1',
-                'test::pip-1.3.1-py27_1',
-            ],
-        )
-        self.assert_installs_expected(
-            env,
-            ['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')],
-            [
-                'test::iopro-1.4.3-np15py27_p0',
-                'test::mkl-rt-11.0-p0',
-                'test::numpy-1.5.1-py27_p4',
-                'test::openssl-1.0.1c-0',
-                'test::python-2.7.5-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::unixodbc-2.3.1-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py27_1',
-                'test::pip-1.3.1-py27_1',
-            ],
-        )
+        assert env.install('iopro', 'python 2.7*', 'numpy 1.5*') == {
+            'test::iopro-1.4.3-np15py27_p0',
+            'test::numpy-1.5.1-py27_4',
+            'test::openssl-1.0.1c-0',
+            'test::python-2.7.5-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::unixodbc-2.3.1-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py27_1',
+            'test::pip-1.3.1-py27_1',
+        }
+        assert env.install('iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')) == {
+            'test::iopro-1.4.3-np15py27_p0',
+            'test::mkl-rt-11.0-p0',
+            'test::numpy-1.5.1-py27_p4',
+            'test::openssl-1.0.1c-0',
+            'test::python-2.7.5-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::unixodbc-2.3.1-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py27_1',
+            'test::pip-1.3.1-py27_1',
+        }
 
     def test_unsat_from_r1(self, env):
         env.repo_packages = index_packages(1)
@@ -338,8 +317,8 @@ class SolverTests:
     def test_get_dists(self, env):
         env.repo_packages = index_packages(1)
         records = env.install('anaconda 1.4.0')
-        assert 'test::anaconda-1.4.0-np17py27_0' in self.package_string_set(records)
-        assert 'test::freetype-2.4.10-0' in self.package_string_set(records)
+        assert 'test::anaconda-1.4.0-np17py33_0' in records
+        assert 'test::freetype-2.4.10-0' in records
 
     def test_unsat_shortest_chain_1(self, env):
         env.repo_packages = [
@@ -445,15 +424,15 @@ class SolverTests:
             helpers.record(name='d', version='3.0'),
         ]
         # a and b can be installed
-        installed = env.install('a', 'b')
+        installed = env.install('a', 'b', container='original')
         assert any(k.name == 'a' and k.version == '1.0' for k in installed)
         assert any(k.name == 'b' and k.version == '1.0' for k in installed)
         # a and c can be installed
-        installed = env.install('a', 'c')
+        installed = env.install('a', 'c', container='original')
         assert any(k.name == 'a' and k.version == '2.0' for k in installed)
         assert any(k.name == 'c' and k.version == '1.0' for k in installed)
         # b and c can be installed
-        installed = env.install('b', 'c')
+        installed = env.install('b', 'c', container='original')
         assert any(k.name == 'b' and k.version == '2.0' for k in installed)
         assert any(k.name == 'c' and k.version == '2.0' for k in installed)
         # a, b and c cannot be installed
@@ -518,16 +497,16 @@ class SolverTests:
         ]
         # libpng 1.2
         records_12 = env.install('libpng 1.2.*', 'mypackage')
-        assert 'test::libpng-1.2.50-0' in self.package_string_set(records_12)
-        assert 'test::mypackage-1.0-hash12_0' in self.package_string_set(records_12)
+        assert 'test::libpng-1.2.50-0' in records_12
+        assert 'test::mypackage-1.0-hash12_0' in records_12
         # libpng 1.5
         records_15 = env.install('libpng 1.5.*', 'mypackage')
-        assert 'test::libpng-1.5.13-1' in self.package_string_set(records_15)
-        assert 'test::mypackage-1.0-hash15_0' in self.package_string_set(records_15)
+        assert 'test::libpng-1.5.13-1' in records_15
+        assert 'test::mypackage-1.0-hash15_0' in records_15
         # this is testing that previously installed reqs are not disrupted by newer timestamps.
         #   regression test of sorts for https://github.com/conda/conda/issues/6271
-        assert env.install('mypackage', *env.install('libpng 1.2.*')) == records_12
-        assert env.install('mypackage', *env.install('libpng 1.5.*')) == records_15
+        assert env.install('mypackage', *env.install('libpng 1.2.*', container='original')) == records_12
+        assert env.install('mypackage', *env.install('libpng 1.5.*', container='original')) == records_15
         # unspecified python version should maximize libpng (v1.5), even though it has a lower timestamp
         assert env.install('mypackage') == records_15
 
@@ -555,59 +534,47 @@ class SolverTests:
             ),
         ]
         # XXX: missing find_matches and reduced_index
-        self.assert_installs_expected(
-            env,
-            ['mypackage'],
-            [
-                'test::mypackage-1.1-0',
-                'test::nose-1.3.0-py33_0',
-                'test::openssl-1.0.1c-0',
-                'test::python-3.3.2-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py33_1',
-                'test::pip-1.3.1-py33_1',
-            ]
-        )
-        self.assert_installs_expected(
-            env,
-            ['anotherpackage 1.0'],
-            [
-                'test::anotherpackage-1.0-0',
-                'test::mypackage-1.1-0',
-                'test::nose-1.3.0-py33_0',
-                'test::openssl-1.0.1c-0',
-                'test::python-3.3.2-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py33_1',
-                'test::pip-1.3.1-py33_1',
-            ]
-        )
-        self.assert_installs_expected(
-            env,
-            ['anotherpackage'],
-            [
-                'test::anotherpackage-2.0-0',
-                'test::mypackage-1.1-0',
-                'test::nose-1.3.0-py33_0',
-                'test::openssl-1.0.1c-0',
-                'test::python-3.3.2-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py33_1',
-                'test::pip-1.3.1-py33_1',
-            ]
-        )
+        assert env.install('mypackage') == {
+            'test::mypackage-1.1-0',
+            'test::nose-1.3.0-py33_0',
+            'test::openssl-1.0.1c-0',
+            'test::python-3.3.2-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py33_1',
+            'test::pip-1.3.1-py33_1',
+        }
+        assert env.install('anotherpackage 1.0') == {
+            'test::anotherpackage-1.0-0',
+            'test::mypackage-1.1-0',
+            'test::nose-1.3.0-py33_0',
+            'test::openssl-1.0.1c-0',
+            'test::python-3.3.2-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py33_1',
+            'test::pip-1.3.1-py33_1',
+        }
+        assert env.install('anotherpackage') == {
+            'test::anotherpackage-2.0-0',
+            'test::mypackage-1.1-0',
+            'test::nose-1.3.0-py33_0',
+            'test::openssl-1.0.1c-0',
+            'test::python-3.3.2-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py33_1',
+            'test::pip-1.3.1-py33_1',
+        }
 
         # This time, the latest version is messed up
         env.repo_packages = index_packages(1) + [
@@ -633,64 +600,52 @@ class SolverTests:
             ),
         ]
         # XXX: missing find_matches and reduced_index
-        self.assert_installs_expected(
-            env,
-            ['mypackage'],
-            [
-                'test::mypackage-1.0-0',
-                'test::nose-1.3.0-py33_0',
-                'test::openssl-1.0.1c-0',
-                'test::python-3.3.2-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py33_1',
-                'test::pip-1.3.1-py33_1',
-            ]
-        )
+        assert env.install('mypackage') == {
+            'test::mypackage-1.0-0',
+            'test::nose-1.3.0-py33_0',
+            'test::openssl-1.0.1c-0',
+            'test::python-3.3.2-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py33_1',
+            'test::pip-1.3.1-py33_1',
+        }
         with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
             env.install('mypackage 1.1')
-        self.assert_installs_expected(
-            env,
-            ['anotherpackage 1.0'],
-            [
-                'test::anotherpackage-1.0-0',
-                'test::mypackage-1.0-0',
-                'test::nose-1.3.0-py33_0',
-                'test::openssl-1.0.1c-0',
-                'test::python-3.3.2-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py33_1',
-                'test::pip-1.3.1-py33_1',
-            ]
-        )
+        assert env.install('anotherpackage 1.0') == {
+            'test::anotherpackage-1.0-0',
+            'test::mypackage-1.0-0',
+            'test::nose-1.3.0-py33_0',
+            'test::openssl-1.0.1c-0',
+            'test::python-3.3.2-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py33_1',
+            'test::pip-1.3.1-py33_1',
+        }
 
         # If recursive checking is working correctly, this will give
         # anotherpackage 2.0, not anotherpackage 1.0
-        self.assert_installs_expected(
-            env,
-            ['anotherpackage'],
-            [
-                'test::anotherpackage-2.0-0',
-                'test::mypackage-1.0-0',
-                'test::nose-1.3.0-py33_0',
-                'test::openssl-1.0.1c-0',
-                'test::python-3.3.2-0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-                'test::distribute-0.6.36-py33_1',
-                'test::pip-1.3.1-py33_1',
-            ]
-        )
+        assert env.install('anotherpackage') == {
+            'test::anotherpackage-2.0-0',
+            'test::mypackage-1.0-0',
+            'test::nose-1.3.0-py33_0',
+            'test::openssl-1.0.1c-0',
+            'test::python-3.3.2-0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+            'test::distribute-0.6.36-py33_1',
+            'test::pip-1.3.1-py33_1',
+        }
 
     def test_install_package_with_feature(self, env):
         env.repo_packages = index_packages(1) + [
@@ -736,8 +691,8 @@ class SolverTests:
 
         env.repo_packages = index_packages(1) + [bad_rec]
         records = env.install('scipy 0.11.0')
-        assert 'test::scipy-0.11.0-np17py33_x0' not in self.package_string_set(records)
-        assert 'test::scipy-0.11.0-np17py33_3' in self.package_string_set(records)
+        assert 'test::scipy-0.11.0-np17py33_x0' not in records
+        assert 'test::scipy-0.11.0-np17py33_3' in records
 
     def test_circular_dependencies(self, env):
         env.repo_packages = index_packages(1) + [
@@ -758,61 +713,49 @@ class SolverTests:
 
     def test_irrational_version(self, env):
         env.repo_packages = index_packages(1)
-        self.assert_installs_expected(
-            env,
-            ['pytz 2012d', 'python 3*'],
-            [
-                'test::distribute-0.6.36-py33_1',
-                'test::openssl-1.0.1c-0',
-                'test::pip-1.3.1-py33_1',
-                'test::python-3.3.2-0',
-                'test::pytz-2012d-py33_0',
-                'test::readline-6.2-0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-            ]
-        )
+        assert env.install('pytz 2012d', 'python 3*') == {
+            'test::distribute-0.6.36-py33_1',
+            'test::openssl-1.0.1c-0',
+            'test::pip-1.3.1-py33_1',
+            'test::python-3.3.2-0',
+            'test::pytz-2012d-py33_0',
+            'test::readline-6.2-0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+        }
 
     def test_no_features(self, env):
         env.repo_packages = index_packages(1)
 
-        self.assert_installs_expected(
-            env,
-            ['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'],
-            [
-                'test::distribute-0.6.36-py26_1',
-                'test::numpy-1.6.2-py26_4',
-                'test::openssl-1.0.1c-0',
-                'test::pip-1.3.1-py26_1',
-                'test::python-2.6.8-6',
-                'test::readline-6.2-0',
-                'test::scipy-0.11.0-np16py26_3',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-            ],
-        )
-        self.assert_installs_expected(
-            env,
-            ['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')],
-            [
-                'test::distribute-0.6.36-py26_1',
-                'test::mkl-rt-11.0-p0',
-                'test::numpy-1.6.2-py26_p4',
-                'test::openssl-1.0.1c-0',
-                'test::pip-1.3.1-py26_1',
-                'test::python-2.6.8-6',
-                'test::readline-6.2-0',
-                'test::scipy-0.11.0-np16py26_p3',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-            ],
-        )
+        assert env.install('python 2.6*', 'numpy 1.6*', 'scipy 0.11*') == {
+            'test::distribute-0.6.36-py26_1',
+            'test::numpy-1.6.2-py26_4',
+            'test::openssl-1.0.1c-0',
+            'test::pip-1.3.1-py26_1',
+            'test::python-2.6.8-6',
+            'test::readline-6.2-0',
+            'test::scipy-0.11.0-np16py26_3',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+        }
+        assert env.install('python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')) == {
+            'test::distribute-0.6.36-py26_1',
+            'test::mkl-rt-11.0-p0',
+            'test::numpy-1.6.2-py26_p4',
+            'test::openssl-1.0.1c-0',
+            'test::pip-1.3.1-py26_1',
+            'test::python-2.6.8-6',
+            'test::readline-6.2-0',
+            'test::scipy-0.11.0-np16py26_p3',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+        }
 
         env.repo_packages += [
             helpers.record(
@@ -838,47 +781,39 @@ class SolverTests:
                 features='mkl',
             ),
         ]
-        self.assert_installs_expected(
-            env,
-            ['pandas 0.12.0 np16py27_0', 'python 2.7*'],
-            [
-                'test::dateutil-2.1-py27_1',
-                'test::distribute-0.6.36-py27_1',
-                'test::numpy-1.6.2-py27_4',
-                'test::openssl-1.0.1c-0',
-                'test::pandas-0.12.0-np16py27_0',
-                'test::pip-1.3.1-py27_1',
-                'test::python-2.7.5-0',
-                'test::pytz-2013b-py27_0',
-                'test::readline-6.2-0',
-                'test::six-1.3.0-py27_0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-            ],
-        )
-        self.assert_installs_expected(
-            env,
-            ['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')],
-            [
-                'test::dateutil-2.1-py27_1',
-                'test::distribute-0.6.36-py27_1',
-                'test::mkl-rt-11.0-p0',
-                'test::numpy-1.6.2-py27_p4',
-                'test::openssl-1.0.1c-0',
-                'test::pandas-0.12.0-np16py27_0',
-                'test::pip-1.3.1-py27_1',
-                'test::python-2.7.5-0',
-                'test::pytz-2013b-py27_0',
-                'test::readline-6.2-0',
-                'test::six-1.3.0-py27_0',
-                'test::sqlite-3.7.13-0',
-                'test::system-5.8-1',
-                'test::tk-8.5.13-0',
-                'test::zlib-1.2.7-0',
-            ],
-        )
+        assert env.install('pandas 0.12.0 np16py27_0', 'python 2.7*') == {
+            'test::dateutil-2.1-py27_1',
+            'test::distribute-0.6.36-py27_1',
+            'test::numpy-1.6.2-py27_4',
+            'test::openssl-1.0.1c-0',
+            'test::pandas-0.12.0-np16py27_0',
+            'test::pip-1.3.1-py27_1',
+            'test::python-2.7.5-0',
+            'test::pytz-2013b-py27_0',
+            'test::readline-6.2-0',
+            'test::six-1.3.0-py27_0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+        }
+        assert env.install('pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')) == {
+            'test::dateutil-2.1-py27_1',
+            'test::distribute-0.6.36-py27_1',
+            'test::mkl-rt-11.0-p0',
+            'test::numpy-1.6.2-py27_p4',
+            'test::openssl-1.0.1c-0',
+            'test::pandas-0.12.0-np16py27_0',
+            'test::pip-1.3.1-py27_1',
+            'test::python-2.7.5-0',
+            'test::pytz-2013b-py27_0',
+            'test::readline-6.2-0',
+            'test::six-1.3.0-py27_0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+        }
 
 
 class TestLegacySolver(SolverTests):
