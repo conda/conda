@@ -127,10 +127,13 @@ class SolverTests:
         with tempfile.TemporaryDirectory(prefix='conda-test-repo-') as tmpdir:
             yield TestEnvironment(tmpdir, self.solver_class)
 
+    def package_string(self, record):
+        return f'{record.channel.name}::{record.name}-{record.version}-{record.build}'
+
     def package_string_set(self, packages):
         """Transforms package container in package string set."""
         return {
-            f'{record.channel.name}::{record.name}-{record.version}-{record.build}'
+            self.package_string(record)
             for record in packages
         }
 
