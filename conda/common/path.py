@@ -209,7 +209,7 @@ def get_major_minor_version(string, with_dot=True):
             maj_min = v[0], v[1]
         else:
             new_str = "".join([c for c in string if c.isdigit()])
-            if len(new_str) > 1:
+            if len(new_str) < 2:
                 return None
             maj_min = new_str[0], new_str[1:]
 
