@@ -721,6 +721,23 @@ class SolverTests:
         assert 'test::scipy-0.11.0-np17py33_x0' not in self.package_string_set(records)
         assert 'test::scipy-0.11.0-np17py33_3' in self.package_string_set(records)
 
+    def test_circular_dependencies(self, env):
+        env.repo_packages = index_packages(1) + [
+            helpers.record(
+                name='package1',
+                depends=['package2'],
+            ),
+            helpers.record(
+                name='package2',
+                depends=['package1'],
+            ),
+        ]
+        assert (
+            env.install('package1', 'package2')
+            == env.install('package1')
+            == env.install('package2')
+        )
+
 
 class TestLegacySolver(SolverTests):
     @property
