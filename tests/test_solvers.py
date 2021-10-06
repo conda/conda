@@ -692,6 +692,36 @@ class SolverTests:
         # should not raise
         env.install('mypackage', 'feature 1.0')
 
+    def test_unintentional_feature_downgrade(self, env):
+        # See https://github.com/conda/conda/issues/6765
+        # With the bug in place, this bad build of scipy
+        # will be selected for install instead of a later
+        # build of scipy 0.11.0.
+        good_rec_match = MatchSpec("channel-1::scipy==0.11.0=np17py33_3")
+        good_rec = next(
+            prec for prec in index_packages(1)
+            if good_rec_match.match(prec)
+        )
+        bad_deps = tuple(
+            d for d in good_rec.depends
+            if not d.startswith('numpy')
+        )
+        bad_rec = PackageRecord.from_objects(
+            good_rec,
+            channel='test',
+            build=good_rec.build.replace('_3','_x0'),
+            build_number=0,
+            depends=bad_deps,
+            fn=good_rec.fn.replace('_3','_x0'),
+            url=good_rec.url.replace('_3','_x0'),
+        )
+
+        env.repo_packages = index_packages(1) + [bad_rec]
+        records = env.install('scipy 0.11.0')
+        assert 'test::scipy-0.11.0-np17py33_x0' not in self.package_string_set(records)
+        assert 'test::scipy-0.11.0-np17py33_3' in self.package_string_set(records)
+
+
 class TestLegacySolver(SolverTests):
     @property
     def solver_class(self):
