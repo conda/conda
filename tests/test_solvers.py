@@ -757,6 +757,111 @@ class SolverTests:
             ]
         )
 
+    def test_no_features(self, env):
+        env.repo_packages = index_packages(1)
+
+        self.assert_installs_expected(
+            env,
+            ['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'],
+            [
+                'test::distribute-0.6.36-py26_1',
+                'test::numpy-1.6.2-py26_4',
+                'test::openssl-1.0.1c-0',
+                'test::pip-1.3.1-py26_1',
+                'test::python-2.6.8-6',
+                'test::readline-6.2-0',
+                'test::scipy-0.11.0-np16py26_3',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+            ],
+        )
+        self.assert_installs_expected(
+            env,
+            ['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')],
+            [
+                'test::distribute-0.6.36-py26_1',
+                'test::mkl-rt-11.0-p0',
+                'test::numpy-1.6.2-py26_p4',
+                'test::openssl-1.0.1c-0',
+                'test::pip-1.3.1-py26_1',
+                'test::python-2.6.8-6',
+                'test::readline-6.2-0',
+                'test::scipy-0.11.0-np16py26_p3',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+            ],
+        )
+
+        env.repo_packages += [
+            helpers.record(
+                name='pandas',
+                version='0.12.0',
+                build='np16py27_0',
+                depends=[
+                    'dateutil',
+                    'numpy 1.6*',
+                    'python 2.7*',
+                    'pytz',
+                ],
+            ),
+            helpers.record(
+                name='numpy',
+                version='1.6.2',
+                build='py27_p5',
+                build_number=0,
+                depends=[
+                    'mkl-rt 11.0',
+                    'python 2.7',
+                ],
+                features='mkl',
+            ),
+        ]
+        self.assert_installs_expected(
+            env,
+            ['pandas 0.12.0 np16py27_0', 'python 2.7*'],
+            [
+                'test::dateutil-2.1-py27_1',
+                'test::distribute-0.6.36-py27_1',
+                'test::numpy-1.6.2-py27_4',
+                'test::openssl-1.0.1c-0',
+                'test::pandas-0.12.0-np16py27_0',
+                'test::pip-1.3.1-py27_1',
+                'test::python-2.7.5-0',
+                'test::pytz-2013b-py27_0',
+                'test::readline-6.2-0',
+                'test::six-1.3.0-py27_0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+            ],
+        )
+        self.assert_installs_expected(
+            env,
+            ['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')],
+            [
+                'test::dateutil-2.1-py27_1',
+                'test::distribute-0.6.36-py27_1',
+                'test::mkl-rt-11.0-p0',
+                'test::numpy-1.6.2-py27_p4',
+                'test::openssl-1.0.1c-0',
+                'test::pandas-0.12.0-np16py27_0',
+                'test::pip-1.3.1-py27_1',
+                'test::python-2.7.5-0',
+                'test::pytz-2013b-py27_0',
+                'test::readline-6.2-0',
+                'test::six-1.3.0-py27_0',
+                'test::sqlite-3.7.13-0',
+                'test::system-5.8-1',
+                'test::tk-8.5.13-0',
+                'test::zlib-1.2.7-0',
+            ],
+        )
+
 
 class TestLegacySolver(SolverTests):
     @property
@@ -779,5 +884,6 @@ class TestLibSolvSolver(SolverTests):
                 'test_accelerate',
                 'test_scipy_mkl',
                 'test_pseudo_boolean',
+                'test_no_features',
             ]
         }
