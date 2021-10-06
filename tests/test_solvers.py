@@ -144,6 +144,14 @@ class SolverTests:
             for record in packages
         }
 
+    def find_package(self, env, **kwargs):
+        for record in env.repo_packages:
+            if all(
+                getattr(record, key) == value
+                for key, value in kwargs.items()
+            ):
+                return record
+
     def assert_installs_expected(self, environment, specs, expecting):
         """Helper to assert that a transaction result contains the packages
         specified by the set of specification string."""
