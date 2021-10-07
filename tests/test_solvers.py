@@ -841,6 +841,36 @@ class SolverTests:
             'test::zlib-1.2.7-0',
         }
 
+    @pytest.mark.skip(reason='CONDA_CHANNEL_PRIORITY does not seem to have any effect')
+    def test_channel_priority_1(self, monkeypatch, env):
+        # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
+        #      have any effect. I have also tried conda.common.io.env_var like
+        #      the other tests but no luck.
+        env.repo_packages = collections.OrderedDict()
+        env.repo_packages['channel-A'] = []
+        env.repo_packages['channel-1'] = index_packages(1)
+
+        pandas_0 = self.find_package(
+            channel='channel-1',
+            name='pandas',
+            version='0.10.1',
+            build='np17py27_0',
+        )
+        env.repo_packages['channel-A'].append(pandas_0)
+
+        # channel-1 has pandas np17py27_1, channel-A only has np17py27_0
+        # when priority is set, it channel-A should take precedence and
+        # np17py27_0 be installed, otherwise np17py27_1 should be installed as
+        # it has a higher build version
+        monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'True')
+        assert 'channel-A::pandas-0.11.0-np16py27_0' in env.install('pandas','python 2.7*','numpy 1.6*')
+        monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'False')
+        assert 'channel-1::pandas-0.11.0-np16py27_1' in env.install('pandas','python 2.7*','numpy 1.6*')
+        # now lets revert the channels
+        env.repo_packages = collections.OrderedDict(reversed(env.repo_packages.items()))
+        monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'True')
+        assert 'channel-1::pandas-0.11.0-np16py27_1' in env.install('pandas','python 2.7*','numpy 1.6*')
+
 
 class TestLegacySolver(SolverTests):
     @property
