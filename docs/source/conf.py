@@ -212,5 +212,5 @@ plantuml_output_format = "png"
 coursier_path = pathlib.Path(__file__).resolve().parent.parent / "coursier"
 plantuml = (
     f"{coursier_path} launch --java-opt -Djava.awt.headless=true "
-    "net.sourceforge.plantuml:plantuml:1.2021.10 --"
+    "net.sourceforge.plantuml:plantuml:1.2021.12 --"
 )
