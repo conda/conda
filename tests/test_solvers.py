@@ -172,6 +172,14 @@ class SolverTests:
             self.env = None
 
     def find_package(self, **kwargs):
+        # get package list
+        if isinstance(self.env.repo_packages, dict):
+            if 'channel' not in kwargs:
+                raise ValueError('Repo has multiple channels, the `channel` argument must be specified')
+            packages = self.env.repo_packages[kwargs['channel']]
+        else:
+            package = self.env.repo_packages
+        # find
         for record in self.env.repo_packages:
             if all(
                 getattr(record, key) == value
