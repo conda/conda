@@ -18,7 +18,7 @@ This is the overview, 30,000 feet view on conda, to better understand
 how conda in the center of the diagram interacts with other
 systems and how users relate to it.
 
-.. uml:: umls/context.puml
+.. uml:: umls/Context.puml
    :width: 80%
 
 Level 2: Container
@@ -29,6 +29,18 @@ in the center of the Level 1 diagram, to show the high-level shape
 of the software architecture of and the various responsibilities
 in conda, including major technology choices and communication
 patterns between the various containers.
+
+Channels
+^^^^^^^^
+
+.. uml:: umls/container_channels.puml
+   :width: 80%
+
+Conda
+^^^^^
+
+.. uml:: umls/container_conda.puml
+   :width: 80%
 
 Level 3: Component
 ------------------
