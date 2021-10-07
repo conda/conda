@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 import collections
 import contextlib
 import functools
@@ -55,6 +57,8 @@ def package_dict(packages):
 
 
 class TestEnvironment:
+    """Helper environment object."""
+
     REPO_DATA_KEYS = (
         'build',
         'build_number',
@@ -75,15 +79,19 @@ class TestEnvironment:
         self._path = pathlib.Path(path)
         self._solver_class = solver_class
         self.subdirs = subdirs
-        self.repo_packages = []
+        # if repo_packages is a list, the packages will be put in a `test` channel
+        # if it is a dictionary, it the keys are the channel name and the value the channel packages
+        self.repo_packages: list[str] | dict[str, list[str]] = []
 
     def solver(self, add, remove):
-        self._write_packages()
-        channels = tuple(
-            # We use the ``test`` directory here to set the name of the channel.
-            Channel('file://{}'.format(self._path / 'test' / subdir))
-            for subdir in self.subdirs
-        )
+        """Writes ``repo_packages`` to the disk and creates a solver instance."""
+        channels = []
+        for channel_name, packages in self._channel_packages.items():
+            self._write_packages(channel_name, packages)
+            channels += [
+                Channel('file://{}'.format(self._path / channel_name / subdir))
+                for subdir in self.subdirs
+            ]
         return self._solver_class(
             prefix='dummy - does not exist',
             subdirs=self.subdirs,
@@ -106,11 +114,20 @@ class TestEnvironment:
     def remove(self, *specs, container='string-set'):
         return self.solver_transaction(remove=specs, container=container)
 
-    def _write_packages(self):
+    @property
+    def _channel_packages(self):
+        """Helper that unfolds the ``repo_packages`` into a dictionary."""
+        if isinstance(self.repo_packages, dict):
+            return self.repo_packages
+        return {
+            'test': self.repo_packages
+        }
+
+    def _write_packages(self, channel_name, packages):
         """Write packages to the channel path."""
         # build package data
         package_data = collections.defaultdict(dict)
-        for record in self.repo_packages:
+        for record in packages:
             package_data[record.subdir][record.fn] = {
                 key: value
                 for key, value in vars(record).items()
@@ -119,7 +136,7 @@ class TestEnvironment:
         # write repodata
         assert set(self.subdirs).issuperset(set(package_data.keys()))
         for subdir in self.subdirs:
-            subdir_path = self._path / 'test' / subdir
+            subdir_path = self._path / channel_name / subdir
             subdir_path.mkdir(parents=True, exist_ok=True)
             subdir_path.joinpath('repodata.json').write_text(json.dumps({
                 'info': {
