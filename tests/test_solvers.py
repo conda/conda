@@ -293,6 +293,7 @@ class SolverTests:
             ('python=3',),
         ])
 
+        # XXX: We need UnsatisfiableError here because mamba does not have more granular exceptions yet.
         with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
             env.install('numpy 1.5*', 'numpy 1.6*')
         if exc_info.type is ResolvePackageNotFound:
@@ -473,6 +474,7 @@ class SolverTests:
         ])
 
     def test_nonexistent(self, env):
+        # XXX: We need UnsatisfiableError here because mamba does not have more granular exceptions yet.
         with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
             env.install('notarealpackage 2.0*')
         with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
@@ -613,6 +615,7 @@ class SolverTests:
             'test::distribute-0.6.36-py33_1',
             'test::pip-1.3.1-py33_1',
         }
+        # XXX: We need UnsatisfiableError here because mamba does not have more granular exceptions yet.
         with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
             env.install('mypackage 1.1')
         assert env.install('anotherpackage 1.0') == {
