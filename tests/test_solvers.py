@@ -167,10 +167,12 @@ class SolverTests:
     @pytest.fixture()
     def env(self):
         with tempfile.TemporaryDirectory(prefix='conda-test-repo-') as tmpdir:
-            yield TestEnvironment(tmpdir, self.solver_class)
+            self.env = TestEnvironment(tmpdir, self.solver_class)
+            yield self.env
+            self.env = None
 
-    def find_package(self, env, **kwargs):
-        for record in env.repo_packages:
+    def find_package(self, **kwargs):
+        for record in self.env.repo_packages:
             if all(
                 getattr(record, key) == value
                 for key, value in kwargs.items()
