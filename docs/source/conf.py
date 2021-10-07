@@ -207,7 +207,7 @@ texinfo_documents = [
 ]
 
 
-plantuml_output_format = "svg_img"
+plantuml_output_format = "png"
 
 coursier_path = pathlib.Path(__file__).resolve().parent.parent / "coursier"
 plantuml = (
