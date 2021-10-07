@@ -92,24 +92,19 @@ class TestEnvironment:
             specs_to_remove=remove,
         )
 
-    def solver_transaction(self, add=(), remove=()):
-        return self.solver(add=add, remove=remove).solve_final_state()
+    def solver_transaction(self, add=(), remove=(), container='string-set'):
+        packages = self.solver(add=add, remove=remove).solve_final_state()
+        if container == 'original':
+            return packages
+        elif container == 'string-set':
+            return package_string_set(packages)
+        raise ValueError(f'Invalid container: {container}')
 
     def install(self, *specs, container='string-set'):
-        packages = self.solver_transaction(add=specs)
-        if container == 'original':
-            return packages
-        elif container == 'string-set':
-            return package_string_set(packages)
-        raise ValueError(f'Invalid container: {container}')
+        return self.solver_transaction(add=specs, container=container)
 
     def remove(self, *specs, container='string-set'):
-        packages = self.solver_transaction(remove=specs)
-        if container == 'original':
-            return packages
-        elif container == 'string-set':
-            return package_string_set(packages)
-        raise ValueError(f'Invalid container: {container}')
+        return self.solver_transaction(remove=specs, container=container)
 
     def _write_packages(self):
         """Write packages to the channel path."""
