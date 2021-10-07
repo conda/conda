@@ -171,21 +171,22 @@ class SolverTests:
             yield self.env
             self.env = None
 
+    def find_package_in_list(self, packages, **kwargs):
+        for record in packages:
+            if all(
+                getattr(record, key) == value
+                for key, value in kwargs.items()
+            ):
+                return record
+
     def find_package(self, **kwargs):
-        # get package list
         if isinstance(self.env.repo_packages, dict):
             if 'channel' not in kwargs:
                 raise ValueError('Repo has multiple channels, the `channel` argument must be specified')
             packages = self.env.repo_packages[kwargs['channel']]
         else:
             package = self.env.repo_packages
-        # find
-        for record in self.env.repo_packages:
-            if all(
-                getattr(record, key) == value
-                for key, value in kwargs.items()
-            ):
-                return record
+        return self.find_package_in_list(packages, **kwargs)
 
     def assert_unsatisfiable(self, exc_info, entries):
         """Helper to assert that a :py:class:`conda.exceptions.UnsatisfiableError`
