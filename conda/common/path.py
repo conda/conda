@@ -190,30 +190,30 @@ def get_major_minor_version(string, with_dot=True):
     # the last two are dangers because windows doesn't have version information there
     assert isinstance(string, string_types)
     if string.startswith("lib/python"):
-        m = string.split('/')[1]
+        pythonstr = string.split("/")[1]
         start = len("python")
-        if len(m) < start + 2:
+        if len(pythonstr) < start + 2:
             return None
-        maj_min = m[start], m[start+1:]
+        maj_min = pythonstr[start], pythonstr[start+1:]
     elif string.startswith("bin/python"):
-        m = string.split('/')[1]
+        pythonstr = string.split("/")[1]
         start = len("python")
-        if len(m) < start + 3:
+        if len(pythonstr) < start + 3:
             return None
-        assert m[start+1] == "."
-        maj_min = m[start], m[start+2:]
+        assert pythonstr[start+1] == "."
+        maj_min = pythonstr[start], pythonstr[start+2:]
     else:
-        m = _VERSION_REGEX.match(string)
-        if m:
-            v = m.group(0).split('.')
-            maj_min = v[0], v[1]
+        match = _VERSION_REGEX.match(string)
+        if match:
+            version = match.group(0).split(".")
+            maj_min = version[0], version[1]
         else:
-            new_str = "".join([c for c in string if c.isdigit()])
-            if len(new_str) < 2:
+            digits = "".join([c for c in string if c.isdigit()])
+            if len(digits) < 2:
                 return None
-            maj_min = new_str[0], new_str[1:]
+            maj_min = digits[0], digits[1:]
 
-    return '.'.join(maj_min) if with_dot else ''.join(maj_min)
+    return ".".join(maj_min) if with_dot else "".join(maj_min)
 
 
 def get_bin_directory_short_path():
