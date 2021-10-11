@@ -19,7 +19,11 @@
 #
 import os
 import pathlib
+import shutil
 import sys
+import tempfile
+
+import requests
 
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../..'))
@@ -207,10 +211,34 @@ texinfo_documents = [
 ]
 
 
-plantuml_output_format = "png"
+plantuml_output_format = "svg_img"
 
-coursier_path = pathlib.Path(__file__).resolve().parent.parent / "coursier"
-plantuml = (
-    f"{coursier_path} launch --java-opt -Djava.awt.headless=true "
-    "net.sourceforge.plantuml:plantuml:1.2021.12 --"
-)
+def download_plantuml():
+    plantuml_jarfile_url = "https://sourceforge.net/projects/plantuml/files/plantuml.jar/download"
+    with requests.get(plantuml_jarfile_url, stream=True) as response:
+        sys.stdout.write("Downloading PlantUML jar file.....")
+        sys.stdout.flush()
+        response.raise_for_status()
+        response.raw.decode_content = True
+        with tempfile.NamedTemporaryFile(suffix=".jar", delete=False) as temp_jarfile:
+            shutil.copyfileobj(response.raw, temp_jarfile)
+            sys.stdout.write("done.\n")
+            return temp_jarfile.name
+
+
+plantuml_jarfile = download_plantuml()
+plantuml = f"java -Djava.awt.headless=true -jar {plantuml_jarfile}"
+
+
+def delete_plantuml_jar(*args, **kwargs):
+    try:
+        sys.stdout.write(f"Trying to delete {plantuml_jarfile}...")
+        sys.stdout.flush()
+        os.remove(plantuml_jarfile)
+        sys.stdout.write("done.\n")
+    except OSError:
+        pass
+
+
+def setup(app):
+    app.connect('build-finished', delete_plantuml_jar)
