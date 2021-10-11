@@ -844,7 +844,10 @@ def test_update_all_1(tmpdir):
         ))
         assert convert_to_dist_str(final_state_2) == order
 
-
+@pytest.mark.skipif(
+    not getattr(_get_solver_logic(), "_uses_ssc", True),
+    reason="This Solver implementation does not use SolverStateContainer"
+)
 def test_broken_install(tmpdir):
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
     with get_solver(tmpdir, specs) as solver:
