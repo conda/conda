@@ -1,6 +1,6 @@
 @startuml
 !include <C4/C4_Container.puml>
-!include Style.puml
+!include ../includes/style.puml
 
 SHOW_PERSON_OUTLINE()
 LAYOUT_TOP_DOWN()

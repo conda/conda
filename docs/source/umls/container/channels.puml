@@ -1,6 +1,6 @@
 @startuml
 !include <C4/C4_Container.puml>
-!include Base.puml
+!include ../includes/base.puml
 
 ' Define the items different to the base diagram
 Container(conda, "conda", "Software package and environment management system")
@@ -19,6 +19,6 @@ Container_Boundary(channels, "Channels") {
 }
 
 ' Include relationships here once we've set the differences.
-!include Rels.puml
+!include ../includes/rels.puml
 
 @enduml
