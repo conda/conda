@@ -192,6 +192,8 @@ def _export_subdir_data_to_repodata(subdir_data, index):
     packages = {}
     for pkg in index:
         data = pkg.dump()
+        if pkg.timestamp:
+            data["timestamp"] = pkg.timestamp
         if "features" in data:
             # Features are deprecated, so they are not implemented
             # in modern solvers like mamba. Mamba does implement
