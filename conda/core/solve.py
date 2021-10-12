@@ -1247,7 +1247,6 @@ class LibSolvSolver(Solver):
             "installed_pkgs": installed_pkgs,
             "history": History(self.prefix),
             "conflicting": set(),
-            "query": Query(pool),
             "specs_map": {},
         })
 
@@ -1402,7 +1401,7 @@ class LibSolvSolver(Solver):
         specs_map = {}
         history = state["history"].get_requested_specs_map()
         installed = {p.name: p for p in state["conda_prefix_data"].iter_records()}
-        pinned = {p.name: p for p in self._pinned_specs(ignore_pinned)}
+        pinned = {p.name: p for p in self._pinned_specs(state, ignore_pinned)}
         conflicting = {p.name: p for p in state["conflicting"]}
 
         # 1.1. Add everything found in history
@@ -1466,18 +1465,35 @@ class LibSolvSolver(Solver):
                 specs_map[pkg_name] = MatchSpec(pkg_name, target=spec_in_prefix.dist_str())
 
         # Section 4: Check pinned packages
+        from mamba.repoquery import depends as mamba_depends
+
         pin_overrides = set()
-        for name, spec in pinned.items():
-            if name in installed:
-                if name not in self.specs_to_add_names and not ignore_pinned:
-                    specs_map[name] = MatchSpec(spec, optional=False)
+        explicit_pool = set()
+        for spec in self.specs_to_add:
+            result = mamba_depends(spec.dist_str(), pool=state["pool"])
+            explicit_pool.update([p["name"] for p in result["result"]["pkgs"]])
+
+        specs_to_add_map = {s.name: s for s in self.specs_to_add}
+        for name, pin in pinned.items():
+            is_installed = name in installed
+            is_requested = name in specs_to_add_map
+            if is_installed and not is_requested:
+                specs_map[name] = MatchSpec(pin, optional=False)
+            elif is_requested:
+                if specs_to_add_map[name].match(pin):
+                    log.debug("pinned spec `%s` despite user-requested spec `%s` being present "
+                              "because pin is stricter", pin, specs_to_add_map[name])
+                    specs_map[name] = MatchSpec(pin, optional=False)
+                    pin_overrides.add(name)
                 else:
-                    log.warn("pinned spec %s conflicts with explicit specs.  "
-                             "Overriding pinned spec.", spec)
-                # TODO: Not sure what this does
-                # elif installed[spec.name] & r._get_package_pool([spec]).get(spec.name, set()):
-                #     specs_map[spec.name] = MatchSpec(spec, optional=False)
-                #     pin_overrides.add(spec.name)
+                    log.warn("pinned spec %s conflicts with explicit specs (%s).  "
+                             "Overriding pinned spec.", pin, specs_to_add_map[name])
+            elif name in explicit_pool:
+                specs_map[name] = MatchSpec(pin, optional=False)
+            # TODO: Not sure what this does
+            # elif installed[pin.name] & r._get_package_pool([pin]).get(pin.name, set()):
+            #     specs_map[pin.name] = MatchSpec(pin, optional=False)
+            #     pin_overrides.add(pin.name)
 
         # Section 5: freeze everything that is not currently in conflict
         if update_modifier == UpdateModifier.FREEZE_INSTALLED:
@@ -1519,11 +1535,7 @@ class LibSolvSolver(Solver):
             from mamba.repoquery import search as mamba_search
             potential_conflicts = []
             for spec in self.specs_to_add:  # requested by the user
-                in_pins = (
-                    spec.name not in pin_overrides
-                    and spec.name in pinned
-                    and not ignore_pinned
-                )
+                in_pins = spec.name not in pin_overrides and spec.name in pinned
                 in_history = spec.name in history
                 if in_pins or in_history:  # skip these
                     continue
@@ -1555,6 +1567,8 @@ class LibSolvSolver(Solver):
                     )
                 else:
                     potential_conflicts.append(spec)
+
+            # TODO: What shall we do with `potential_conflicts`??
 
             for pkg in conflicting.values():
                 # neuter the spec due to a conflict
@@ -1603,31 +1617,31 @@ class LibSolvSolver(Solver):
         return specs_map
 
     def _neuter_conflicts(self, state, ignore_pinned=False):
-        # Are all conflicting specs in specs_map? If not, that means they're in
-        # track_features_specs or pinned_specs, which we should raise an error on.
         conflicting_specs = state["conflicting"]
         specs_map = state["specs_map"]
 
-        # specs_set = set(specs_map.values())
-        # grouped_specs = groupby(lambda s: s in specs_set, conflicting_specs)
+        # Are all conflicting specs in specs_map? If not, that means they're in
+        # track_features_specs or pinned_specs, which we should raise an error on.
+        # JRG: This won't probably work because Mamba reports conflicts one at a time...
+        specs_set = set(specs_map.values())
+        grouped_specs = groupby(lambda s: s in specs_set, conflicting_specs)
         # force optional to true. This is what it is originally in
-        # pinned_specs, but we override that in _add_specs to make it
-        # non-optional when there's a name match in the explicit package
-        # pool
-        # conflicting_pinned_specs = groupby(lambda s: MatchSpec(s, optional=True)
-        #                                     in self._pinned_specs(ignore_pinned), conflicting_specs)
+        # pinned_specs, but we override that in _compute_specs_map to make it
+        # non-optional when there's a name match in the explicit package pool
+        conflicting_pinned_specs = groupby(lambda s: MatchSpec(s, optional=True)
+                                           in self._pinned_specs(state, ignore_pinned), conflicting_specs)
 
-        # if conflicting_pinned_specs.get(True):
-        #     in_specs_map = grouped_specs.get(True, ())
-        #     pinned_conflicts = conflicting_pinned_specs.get(True, ())
-        #     in_specs_map_or_specs_to_add = ((set(in_specs_map) | set(self.specs_to_add))
-        #                                     - set(pinned_conflicts))
+        if conflicting_pinned_specs.get(True):
+            in_specs_map = grouped_specs.get(True, ())
+            pinned_conflicts = conflicting_pinned_specs.get(True, ())
+            in_specs_map_or_specs_to_add = ((set(in_specs_map) | set(self.specs_to_add))
+                                            - set(pinned_conflicts))
 
-        #     raise SpecsConfigurationConflictError(
-        #         sorted(s.__str__() for s in in_specs_map_or_specs_to_add),
-        #         sorted(s.__str__() for s in {s for s in pinned_conflicts}),
-        #         self.prefix
-        #     )
+            raise SpecsConfigurationConflictError(
+                sorted(s.__str__() for s in in_specs_map_or_specs_to_add),
+                sorted(s.__str__() for s in {s for s in pinned_conflicts}),
+                self.prefix
+            )
 
 
         for spec in conflicting_specs:
@@ -1659,20 +1673,17 @@ class LibSolvSolver(Solver):
             major_minor_version = ".".join(version.split(".")[:2])
             return f"python {major_minor_version}.*"
 
-    def _pinned_specs(self, ignore_pinned=False):
+    def _pinned_specs(self, state, ignore_pinned=False):
         if ignore_pinned:
             return ()
         pinned_specs = get_pinned_specs(self.prefix)
-        if pinned_specs:
-            conda_prefix_data = PrefixData(self.prefix)
         pin_these_specs = []
-        for s in pinned_specs:
-            x = conda_prefix_data.query(s.name)
-            if x:
-                for el in x:
-                    if not s.match(el):
-                        raise SpecsConfigurationConflictError([x], [el], self.prefix)
-            pin_these_specs.append(s)
+        for pin in pinned_specs:
+            installed_pins = state["conda_prefix_data"].query(pin.name) or ()
+            for installed in installed_pins:
+                if not pin.match(installed):
+                    raise SpecsConfigurationConflictError([pin], [installed], self.prefix)
+            pin_these_specs.append(pin)
         return tuple(pin_these_specs)
 
     def _history_specs(self):
@@ -1773,6 +1784,8 @@ class LibSolvSolver(Solver):
                 assert words[1] == "package"
                 assert words[3] == "requires"
                 dashed_specs.append(words[2])
+                # end = words.index("but")
+                # conda_build_specs.append(words[4:end])
             elif "- nothing provides" in line and "needed by" in line:
                 dashed_specs.append(words[-1])
             elif "- nothing provides" in line:
@@ -1787,9 +1800,9 @@ class LibSolvSolver(Solver):
             name, version, build = conflict.rsplit("-", 2)
             conflicts.append(MatchSpec(name=name, version=version, build=build))
         for conflict in conda_build_specs:
-            kwargs = {"name": conflict[0], "version": conflict[1]}
+            kwargs = {"name": conflict[0], "version": conflict[1].rstrip(",")}
             if len(conflict) == 3:
-                kwargs["build"] = conflict[2]
+                kwargs["build"] = conflict[2].rstrip(",")
             conflicts.append(MatchSpec(**kwargs))
 
         return set(conflicts)
@@ -1873,7 +1886,7 @@ class LibSolvSolver(Solver):
             specs_map = {name: MatchSpec(name) for name in update_names}
 
             # Remove pinned_specs and any python spec (due to major-minor pinning business rule).
-            for spec in self._pinned_specs(ignore_pinned):
+            for spec in self._pinned_specs(state, ignore_pinned):
                 specs_map.pop(spec.name, None)
             # TODO: This kind of version constrain patching is done several times in different
             # parts of the code, so it might be a good candidate for a dedicate utility function
@@ -2005,10 +2018,6 @@ def get_pinned_specs(prefix):
 
 
 def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reinstall=NULL):
-    # print("prefix:", prefix)
-    # print("final_precs:", *sorted([p.name for p in final_precs]))
-    # print("specs_to_add:", *sorted([s.name for s in specs_to_add]))
-    # print("force_reinstall:", force_reinstall)
     assert isinstance(final_precs, IndexedSet)
     final_precs = final_precs
     previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
