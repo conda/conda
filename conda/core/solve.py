@@ -1093,10 +1093,15 @@ class LibSolvSolver(Solver):
         # 1. Populate repos with installed packages
         state = self._setup_state()
 
-        attempts = 10
+        # This might be too many attempts in large environments
+        # We are technically allowing as many conflicts as packages
+        # Mamba will only report one problem at a time for now, so
+        # this is a limitation
+        n_installed_pkgs = len(state["installed_pkgs"])
+        attempts = n_installed_pkgs
         while attempts:
             attempts -=1
-            log.debug(f"Attempt number {10-attempts}. Current conflicts: {state['conflicting']}")
+            log.debug(f"Attempt number {n_installed_pkgs-attempts}. Current conflicts (including learnt ones): {state['conflicting']}")
             # 2. Create solver and needed flags, tasks and jobs
             self._configure_solver(
                 state,
@@ -1337,6 +1342,8 @@ class LibSolvSolver(Solver):
             key = "SOLVER_UPDATE" if name in installed_names else "SOLVER_INSTALL"
             tasks[key].append(spec.conda_build_form())
 
+        log.debug(f"Invoking libsolv with tasks {tasks}")
+
         for task_type, specs in tasks.items():
             solver.add_jobs(specs, getattr(api, task_type))
 
@@ -1421,7 +1428,7 @@ class LibSolvSolver(Solver):
                 specs_map[pkg_name] = name_spec
 
         # Section 2 - Here we technically consider the packages that need to be removed
-        # but we are handling that as a separate action right now
+        # but we are handling that as a separate action right now - TODO?
 
 
         # Section 3 - Refine specs implicitly by the prefix state
@@ -1444,9 +1451,7 @@ class LibSolvSolver(Solver):
             if MatchSpec(pkg_name) in context.aggressive_update_packages:
                 specs_map[pkg_name] = MatchSpec(pkg_name)
             # 3.1.2: freeze
-            elif (spec_in_prefix.is_unmanageable or
-                  not history or
-                  spec_in_prefix not in conflicting):
+            elif spec_in_prefix.is_unmanageable or not history or pkg_name not in conflicting:
                 # TODO: This is not the complete _should_freeze logic
                 specs_map[pkg_name] = spec_in_prefix.to_match_spec()
             # 3.1.3: soft-constrain via `target`
@@ -1472,7 +1477,7 @@ class LibSolvSolver(Solver):
         # Section 5: freeze everything that is not currently in conflict
         if update_modifier == UpdateModifier.FREEZE_INSTALLED:
             for pkg_name, pkg_record in installed.items():
-                if pkg_name not in "conflict_specs":  # TODO
+                if pkg_name not in conflicting:  # TODO
                     specs_map[pkg_name] = pkg_record.to_match_spec()
                 else:
                     specs_map[pkg_name] = MatchSpec(
@@ -1619,9 +1624,10 @@ class LibSolvSolver(Solver):
         #         self.prefix
         #     )
 
+
         for spec in conflicting_specs:
-            if spec.name == "python":
-                continue
+            # if spec.name == "python":
+            #     continue
             if spec.target and not spec.optional:
                 specs_map.pop(spec.name)
                 if spec.get('version'):
@@ -1679,12 +1685,20 @@ class LibSolvSolver(Solver):
             # it would be better if we could pass a graph object or something
             # that the exception can actually format if needed
             problems = solver.problems_to_str()
-            print(problems)
             previous = state["conflicting"].copy()
-            state["conflicting"] = new = self._parse_problems(problems)
+            new = self._parse_problems(problems)
             if previous and (previous == new or previous.issubset(new)):
                 # We have same or more conflicts now! Abort to avoid recursion.
                 raise RawStrUnsatisfiableError(problems)
+            # Preserve old conflicts (now neutered as name-only spes) in the
+            # new list of conflicts (unless a different variant is now present)
+            # This allows us to have a conflict memory for next attempts.
+            new_names = {spec.name for spec in new}
+            for spec in previous:
+                if spec.name not in new_names:
+                    new.add(MatchSpec(name=spec.name))
+            state["conflicting"] = new
+
         return solved
 
     def _export_final_state(self, state):
@@ -1754,9 +1768,9 @@ class LibSolvSolver(Solver):
                 assert words[1] == "package"
                 assert words[3] == "requires"
                 dashed_specs.append(words[2])
-            if "- nothing provides" in line and "needed by" in line:
+            elif "- nothing provides" in line and "needed by" in line:
                 dashed_specs.append(words[-1])
-            if "- nothing provides":
+            elif "- nothing provides" in line:
                 if words[-3] == "requested":  # two fields only
                     conda_build_specs.append(words[-2:])
                 else:  # we assume three fields
