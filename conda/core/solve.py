@@ -1372,7 +1372,6 @@ class LibSolvSolver(Solver):
 
         # 1.1. Add everything found in history
         specs_map.update(history)
-
         # 1.2. Protect some critical packages from being removed accidentally
         for pkg_name in ('anaconda', 'conda', 'conda-build', 'python.app',
                          'console_shortcut', 'powershell_shortcut'):
@@ -1422,12 +1421,11 @@ class LibSolvSolver(Solver):
             if MatchSpec(pkg_name) in context.aggressive_update_packages:
                 specs_map[pkg_name] = MatchSpec(pkg_name)
             # 3.1.2: freeze
-            elif spec_in_prefix.is_unmanageable:
+            elif (spec_in_prefix.is_unmanageable or
+                  not history or
+                  spec_in_prefix not in conflicting):
+                # TODO: This is not the complete _should_freeze logic
                 specs_map[pkg_name] = spec_in_prefix.to_match_spec()
-            # TODO: Implement should_freeze
-            # elif self._should_freeze( spec_in_prefix, conflict_specs, explicit_pool,
-            #                             installed_pool):
-            #     specs_map[pkg_name] = spec_in_prefix.to_match_spec()
             # 3.1.3: soft-constrain via `target`
             elif pkg_name in history:
                 specs_map[pkg_name] = MatchSpec(history[pkg_name], target=spec_in_prefix.dist_str())
@@ -1686,6 +1684,9 @@ class LibSolvSolver(Solver):
                           force_remove=NULL):
         specs_map = state["specs_map"]
         final_prefix_map = {pkg.name: pkg for pkg in state["final_prefix_state"]}
+
+        # TODO: We are currently not handling dependencies orphaned after identifying
+        # conflicts (stored in `ssc.add_back_map`).
 
         if deps_modifier == DepsModifier.NO_DEPS:
             # In the NO_DEPS case, we need to start with the original list of packages in the
