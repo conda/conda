@@ -1900,9 +1900,10 @@ class LibSolvSolver(Solver):
                     force_reinstall=force_reinstall,
                     prune=prune)
                 final_prefix_map = {p.name: p for p in solved_pkgs}
-                # Bring in names from their state so we can expose it in our instance
-                state["names_to_add"] = [spec.name for spec in solver2.specs_to_add]
-                state["names_to_remove"] = [spec.name for spec in solver2.specs_to_remove]
+                # NOTE: We are exporting state back to the class! These are expected by
+                # super().solve_for_diff() and super().solve_for_transaction() :/
+                self.specs_to_add = solver2.specs_to_add.copy()
+                self.specs_to_remove = solver2.specs_to_remove.copy()
 
             prune = False
 
@@ -1916,10 +1917,10 @@ class LibSolvSolver(Solver):
 
         # NOTE: We are exporting state back to the class! These are expected by
         # super().solve_for_diff() and super().solve_for_transaction() :/
-        self.specs_to_add = {MatchSpec(name) for name in state["names_to_add"]
-                             if not name.startswith("__")}
-        self.specs_to_remove = {MatchSpec(name) for name in state["names_to_remove"]
-                                if not name.startswith("__")}
+        # self.specs_to_add = {MatchSpec(name) for name in state["names_to_add"]
+        #                      if not name.startswith("__")}
+        # self.specs_to_remove = {MatchSpec(name) for name in state["names_to_remove"]
+        #                         if not name.startswith("__")}
 
         # TODO: Review performance here just in case
         return IndexedSet(PrefixGraph(final_prefix_map.values()).graph)
@@ -2004,6 +2005,10 @@ def get_pinned_specs(prefix):
 
 
 def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reinstall=NULL):
+    # print("prefix:", prefix)
+    # print("final_precs:", *sorted([p.name for p in final_precs]))
+    # print("specs_to_add:", *sorted([s.name for s in specs_to_add]))
+    # print("force_reinstall:", force_reinstall)
     assert isinstance(final_precs, IndexedSet)
     final_precs = final_precs
     previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
