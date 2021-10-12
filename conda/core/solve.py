@@ -1350,6 +1350,12 @@ class LibSolvSolver(Solver):
         return solver
 
     def _configure_solver_for_remove(self, state):
+        # First check we are not trying to remove things that are not installed
+        installed_names = set(rec.name for rec in state["conda_prefix_data"].iter_records())
+        not_installed = set(s for s in self.specs_to_remove if s.name not in installed_names)
+        if not_installed:
+            raise PackagesNotFoundError(not_installed)
+
         from mamba import mamba_api as api
 
         solver_options = [
@@ -1360,7 +1366,6 @@ class LibSolvSolver(Solver):
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         solver = api.Solver(state["pool"], solver_options)
 
-        installed_names = [rec.name for rec in state["installed_pkgs"]]
         # pkgs in aggresive_update_packages should be protected too (even if not
         # requested explicitly by the user)
         # see https://github.com/conda/conda/blob/9e9461760bb/tests/core/test_solve.py#L520-L521
