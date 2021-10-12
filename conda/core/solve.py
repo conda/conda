@@ -1130,15 +1130,27 @@ class LibSolvSolver(Solver):
         We need this, at least, for some unit tests that change this behaviour through
         the function signature instead of the context / env vars.
         """
-        def context_if_null(var, varname):
-            return getattr(context, varname) if var is NULL else var
+        # Sometimes a str is passed instead of the Enum item
+        str_to_enum = {
+            "NOT_SET": DepsModifier.NOT_SET,
+            "NO_DEPS": DepsModifier.NO_DEPS,
+            "ONLY_DEPS": DepsModifier.ONLY_DEPS,
+            "SPECS_SATISFIED_SKIP_SOLVE": UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE,
+            "FREEZE_INSTALLED": UpdateModifier.FREEZE_INSTALLED,
+            "UPDATE_DEPS": UpdateModifier.UPDATE_DEPS,
+            "UPDATE_SPECS": UpdateModifier.UPDATE_SPECS,
+            "UPDATE_ALL": UpdateModifier.UPDATE_ALL,
+        }
+
+        def context_if_null(name, value):
+            return getattr(context, name) if value is NULL else str_to_enum.get(value, value)
 
         return {
-            "update_modifier": context_if_null(update_modifier, "update_modifier"),
-            "deps_modifier": context_if_null(deps_modifier, "deps_modifier"),
-            "ignore_pinned": context_if_null(ignore_pinned, "ignore_pinned"),
-            "force_remove": context_if_null(force_remove, "force_remove"),
-            "force_reinstall": context_if_null(force_reinstall, "force_reinstall"),
+            "update_modifier": context_if_null("update_modifier", update_modifier),
+            "deps_modifier": context_if_null("deps_modifier", deps_modifier),
+            "ignore_pinned": context_if_null("ignore_pinned", ignore_pinned),
+            "force_remove": context_if_null("force_remove", force_remove),
+            "force_reinstall": context_if_null("force_reinstall", force_reinstall),
             # We don't use these flags in mamba
             # "prune": prune,
             # "should_retry_solve": should_retry_solve,
