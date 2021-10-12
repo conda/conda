@@ -1673,7 +1673,6 @@ class LibSolvSolver(Solver):
                           ignore_pinned=NULL,
                           force_remove=NULL):
         specs_map = state["specs_map"]
-        original_prefix_map = {pkg.name: pkg for pkg in state["conda_prefix_data"].iter_records()}
         final_prefix_map = {pkg.name: pkg for pkg in state["final_prefix_state"]}
 
         if deps_modifier == DepsModifier.NO_DEPS:
@@ -1685,20 +1684,21 @@ class LibSolvSolver(Solver):
             # environments.
             _no_deps_solution = IndexedSet(state["conda_prefix_data"].iter_records())
             only_remove_these = set(prec
-                                    for spec in self.specs_to_remove
+                                    for name in state["names_to_remove"]
                                     for prec in _no_deps_solution
-                                    if spec.match(prec))
+                                    if MatchSpec(name).match(prec))
             _no_deps_solution -= only_remove_these
 
             only_add_these = set(prec
-                                 for spec in self.specs_to_add
+                                 for name in state["names_to_add"]
                                  for prec in state["final_prefix_state"]
-                                 if spec.match(prec))
+                                 if MatchSpec(name).match(prec))
             remove_before_adding_back = set(prec.name for prec in only_add_these)
             _no_deps_solution = IndexedSet(prec for prec in _no_deps_solution
                                            if prec.name not in remove_before_adding_back)
             _no_deps_solution |= only_add_these
             final_prefix_map = {p.name: p for p in _no_deps_solution}
+
         # If ONLY_DEPS is set, we need to make sure the originally requested specs
         # are not part of the result
         elif deps_modifier == DepsModifier.ONLY_DEPS and update_modifier != UpdateModifier.UPDATE_DEPS:
