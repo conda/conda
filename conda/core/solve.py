@@ -1669,8 +1669,8 @@ class LibSolvSolver(Solver):
         # state["old_specs_to_add"] = self.specs_to_add
         # state["old_specs_to_remove"] = self.specs_to_remove
         state["final_prefix_state"] = final_precs
-        state["names_to_add"] = names_to_add
-        state["names_to_remove"] = names_to_remove
+        state["names_to_add"] = [name for name in names_to_add if not name.startswith("__")]
+        state["names_to_remove"] = [name for name in names_to_remove if not name.startswith("__")]
 
         return state
 
@@ -1716,22 +1716,20 @@ class LibSolvSolver(Solver):
         elif deps_modifier == DepsModifier.ONLY_DEPS and update_modifier != UpdateModifier.UPDATE_DEPS:
             graph = PrefixGraph(state["final_prefix_state"], self.specs_to_add)
             removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
-            self.specs_to_add = set(self.specs_to_add)
-            for prec in removed_nodes:
-                for dep in prec.depends:
-                    dep = MatchSpec(dep)
-                    if dep.name not in specs_map:
-                        self.specs_to_add.add(dep)
-            # unfreeze
-            self.specs_to_add = frozenset(self.specs_to_add)
+            specs_to_add = set(MatchSpec(name) for name in state["names_to_add"])
+            for pkg_record in removed_nodes:
+                for dependency in pkg_record.depends:
+                    dependency = MatchSpec(dependency)
+                    if dependency.name not in specs_map:
+                        specs_to_add.add(dependency)
+            state["names_to_add"] = set(spec.name for spec in specs_to_add)
 
             # Add back packages that are already in the prefix.
-            specs_to_remove_names = set(spec.name for spec in self.specs_to_remove)
-            add_back = tuple(state["conda_prefix_data"].get(node.name, None) for node in removed_nodes
-                             if node.name not in specs_to_remove_names)
+            specs_to_remove_names = set(name for name in state["names_to_remove"])
+            add_back = [state["conda_prefix_data"].get(node.name, None) for node in removed_nodes
+                        if node.name not in specs_to_remove_names]
             final_prefix_map = {p.name: p for p in concatv(graph.graph, filter(None, add_back))}
 
-        # Section 11 - Handle UPDATE_DEPS
         elif update_modifier == UpdateModifier.UPDATE_DEPS:
             # This code below is adapted from the legacy solver logic
             # found in Solver._post_sat_handling()
@@ -1766,24 +1764,32 @@ class LibSolvSolver(Solver):
             # Add in the original specs_to_add on top.
             specs_map.update({spec.name: spec for spec in self.specs_to_add})
 
-            # Pass the new specs map as it was user-requested
-            self.specs_to_add = list(specs_map.values())
             with context.override("quiet", True):
-                # (1) Presolve to find the dependencies for `specs_to_add` (CLI)
-                solved_pkgs = self.solve_final_state(
-                    update_modifier=UpdateModifier.UPDATE_SPECS,
+                # Create a new solver instance to perform a 2nd solve with deps added
+                # We do it like this to avoid overwriting state accidentally. Instead,
+                # we will import the needed state bits manually.
+                solver2 = self.__class__(self.prefix, self.channels, self.subdirs,
+                                         list(specs_map.values()), self.specs_to_remove,
+                                         self._repodata_fn, self._command)
+                solved_pkgs = solver2.solve_final_state(
+                    update_modifier=UpdateModifier.UPDATE_SPECS,  # avoid recursion!
                     deps_modifier=deps_modifier,
                     ignore_pinned=ignore_pinned,
                     force_remove=force_remove,
                     force_reinstall=force_reinstall)
                 final_prefix_map = {p.name: p for p in solved_pkgs}
+                # Bring in names from their state so we can expose it in our instance
+                state["names_to_add"] = [spec.name for spec in solver2.specs_to_add]
+                state["names_to_remove"] = [spec.name for spec in solver2.specs_to_remove]
+
+        # Wrap up and return the final state
 
         # NOTE: We are exporting state back to the class! These are expected by
         # super().solve_for_diff() and super().solve_for_transaction() :/
-        self.specs_to_add = [MatchSpec(name) for name in state["names_to_add"]
-                             if not name.startswith("__")]
-        self.specs_to_remove = [MatchSpec(name) for name in state["names_to_remove"]
-                                if not name.startswith("__")]
+        self.specs_to_add = {MatchSpec(name) for name in state["names_to_add"]
+                             if not name.startswith("__")}
+        self.specs_to_remove = {MatchSpec(name) for name in state["names_to_remove"]
+                                if not name.startswith("__")}
 
         # TODO: Review performance here just in case
         return IndexedSet(PrefixGraph(final_prefix_map.values()).graph)
