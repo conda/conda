@@ -1092,28 +1092,42 @@ class LibSolvSolver(Solver):
         # These tasks DO need a solver
         # 1. Populate repos with installed packages
         state = self._setup_state()
-        # 2. Create solver and needed flags, tasks and jobs
-        self._configure_solver(
-            state,
-            update_modifier=kwargs["update_modifier"],
-            deps_modifier=kwargs["deps_modifier"],
-            ignore_pinned=kwargs["ignore_pinned"],
-            force_remove=kwargs["force_remove"],
-            force_reinstall=kwargs["force_reinstall"],
-        )
-        # 3. Run the SAT solver
-        self._run_solver(state)
-        # 4. Export back to conda
-        self._export_final_state(state)
-        # 5. Refine solutions depending on the value of some modifier flags
-        return self._post_solve_tasks(
-            state,
-            update_modifier=kwargs["update_modifier"],
-            deps_modifier=kwargs["deps_modifier"],
-            ignore_pinned=kwargs["ignore_pinned"],
-            force_remove=kwargs["force_remove"],
-            force_reinstall=kwargs["force_reinstall"]
-        )
+
+        attempts = 10
+        while attempts:
+            attempts -=1
+            log.debug(f"Attempt number {10-attempts}. Current conflicts: {state['conflicting']}")
+            # 2. Create solver and needed flags, tasks and jobs
+            self._configure_solver(
+                state,
+                update_modifier=kwargs["update_modifier"],
+                deps_modifier=kwargs["deps_modifier"],
+                ignore_pinned=kwargs["ignore_pinned"],
+                force_remove=kwargs["force_remove"],
+                force_reinstall=kwargs["force_reinstall"],
+                prune=kwargs["prune"],
+            )
+            # 3. Run the SAT solver
+            success = self._run_solver(state)
+            if not success:
+                # conflicts were reported, try again
+                # an exception will be raised from _run_solver
+                # if we end up in a conflict loop
+                continue
+            # 4. Export back to conda
+            self._export_final_state(state)
+            # 5. Refine solutions depending on the value of some modifier flags
+            return self._post_solve_tasks(
+                state,
+                update_modifier=kwargs["update_modifier"],
+                deps_modifier=kwargs["deps_modifier"],
+                ignore_pinned=kwargs["ignore_pinned"],
+                force_remove=kwargs["force_remove"],
+                force_reinstall=kwargs["force_reinstall"],
+                prune=kwargs["prune"],
+            )
+        # If we didn't return already, raise last known issue.
+        raise RawStrUnsatisfiableError(state["solver"].problems_to_str())
 
     def _merge_signature_flags_with_context(
             self,
@@ -1151,8 +1165,8 @@ class LibSolvSolver(Solver):
             "ignore_pinned": context_if_null("ignore_pinned", ignore_pinned),
             "force_remove": context_if_null("force_remove", force_remove),
             "force_reinstall": context_if_null("force_reinstall", force_reinstall),
+            "prune": prune,
             # We don't use these flags in mamba
-            # "prune": prune,
             # "should_retry_solve": should_retry_solve,
         }
 
@@ -1227,9 +1241,9 @@ class LibSolvSolver(Solver):
             "index": index,
             "installed_pkgs": installed_pkgs,
             "history": History(self.prefix),
-            "conflicting": [],
+            "conflicting": set(),
             "query": Query(pool),
-            "specs_map": [],
+            "specs_map": {},
         })
 
         return state
@@ -1263,7 +1277,8 @@ class LibSolvSolver(Solver):
                           deps_modifier=NULL,
                           ignore_pinned=NULL,
                           force_remove=NULL,
-                          force_reinstall=NULL):
+                          force_reinstall=NULL,
+                          prune=NULL):
         if self.specs_to_remove:
             return self._configure_solver_for_remove(state)
         # ALl other operations are handled as an install operation
@@ -1278,7 +1293,8 @@ class LibSolvSolver(Solver):
                                                   deps_modifier=deps_modifier,
                                                   ignore_pinned=ignore_pinned,
                                                   force_remove=force_remove,
-                                                  force_reinstall=force_reinstall)
+                                                  force_reinstall=force_reinstall,
+                                                  prune=prune)
 
     def _configure_solver_for_install(self,
                                       state,
@@ -1286,23 +1302,29 @@ class LibSolvSolver(Solver):
                                       deps_modifier=NULL,
                                       ignore_pinned=NULL,
                                       force_remove=NULL,
-                                      force_reinstall=NULL):
+                                      force_reinstall=NULL,
+                                      prune=NULL):
         from mamba import mamba_api as api
 
         # Set different solver options
-        solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
+        solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1),
+                        #   (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1)
+                          ]
         if context.channel_priority is ChannelPriority.STRICT:
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         state["solver"] = solver = api.Solver(state["pool"], solver_options)
 
         # Configure jobs
-        specs_map = self._compute_specs_map(state,
-                                            update_modifier=update_modifier,
-                                            deps_modifier=deps_modifier,
-                                            ignore_pinned=ignore_pinned,
-                                            force_remove=force_remove,
-                                            force_reinstall=force_reinstall)
-        state["specs_map"] = specs_map
+        state["specs_map"] = self._compute_specs_map(state,
+                                                     update_modifier=update_modifier,
+                                                     deps_modifier=deps_modifier,
+                                                     ignore_pinned=ignore_pinned,
+                                                     force_remove=force_remove,
+                                                     force_reinstall=force_reinstall,
+                                                     prune=prune)
+
+        # Neuter conflicts if any (modifies specs_map in place)
+        specs_map = self._neuter_conflicts(state, ignore_pinned=ignore_pinned)
 
         # Wrap up and create tasks for the solver
         tasks = {
@@ -1353,7 +1375,8 @@ class LibSolvSolver(Solver):
                            deps_modifier=NULL,
                            ignore_pinned=NULL,
                            force_remove=NULL,
-                           force_reinstall=NULL):
+                           force_reinstall=NULL,
+                           prune=NULL):
         """
         Reimplement the logic found in super()._collect_all_metadata()
         and super()._add_specs(), but simplified.
@@ -1367,7 +1390,7 @@ class LibSolvSolver(Solver):
         specs_map = {}
         history = state["history"].get_requested_specs_map()
         installed = {p.name: p for p in state["conda_prefix_data"].iter_records()}
-        pinned = {p.name: p for p in self._pinned_specs()}
+        pinned = {p.name: p for p in self._pinned_specs(ignore_pinned)}
         conflicting = {p.name: p for p in state["conflicting"]}
 
         # 1.1. Add everything found in history
@@ -1434,10 +1457,10 @@ class LibSolvSolver(Solver):
 
         # Section 4: Check pinned packages
         pin_overrides = set()
-        for spec in self._pinned_specs():
-            if spec.name in installed:
-                if spec.name not in self.specs_to_add_names and not ignore_pinned:
-                    specs_map[spec.name] = MatchSpec(spec, optional=False)
+        for name, spec in pinned.items():
+            if name in installed:
+                if name not in self.specs_to_add_names and not ignore_pinned:
+                    specs_map[name] = MatchSpec(spec, optional=False)
                 else:
                     log.warn("pinned spec %s conflicts with explicit specs.  "
                              "Overriding pinned spec.", spec)
@@ -1523,14 +1546,10 @@ class LibSolvSolver(Solver):
                 else:
                     potential_conflicts.append(spec)
 
-            for conflict in conflicting or ():
+            for pkg in conflicting.values():
                 # neuter the spec due to a conflict
-                if (conflict.name in specs_map and (
-                        # add optional because any pinned specs will include it
-                        conflict.name not in pinned or
-                        ignore_pinned) and
-                        conflict.name not in history):
-                    specs_map[conflict.name] = MatchSpec(conflict.name)
+                if pkg.name in specs_map and pkg.name not in pinned:
+                    specs_map[pkg.name] = history.get(pkg.name, MatchSpec(pkg.name))
 
         # Section 7 - Pin Python
         py_in_prefix = any(name == "python" for name in installed)
@@ -1573,6 +1592,47 @@ class LibSolvSolver(Solver):
 
         return specs_map
 
+    def _neuter_conflicts(self, state, ignore_pinned=False):
+        # Are all conflicting specs in specs_map? If not, that means they're in
+        # track_features_specs or pinned_specs, which we should raise an error on.
+        conflicting_specs = state["conflicting"]
+        specs_map = state["specs_map"]
+
+        # specs_set = set(specs_map.values())
+        # grouped_specs = groupby(lambda s: s in specs_set, conflicting_specs)
+        # force optional to true. This is what it is originally in
+        # pinned_specs, but we override that in _add_specs to make it
+        # non-optional when there's a name match in the explicit package
+        # pool
+        # conflicting_pinned_specs = groupby(lambda s: MatchSpec(s, optional=True)
+        #                                     in self._pinned_specs(ignore_pinned), conflicting_specs)
+
+        # if conflicting_pinned_specs.get(True):
+        #     in_specs_map = grouped_specs.get(True, ())
+        #     pinned_conflicts = conflicting_pinned_specs.get(True, ())
+        #     in_specs_map_or_specs_to_add = ((set(in_specs_map) | set(self.specs_to_add))
+        #                                     - set(pinned_conflicts))
+
+        #     raise SpecsConfigurationConflictError(
+        #         sorted(s.__str__() for s in in_specs_map_or_specs_to_add),
+        #         sorted(s.__str__() for s in {s for s in pinned_conflicts}),
+        #         self.prefix
+        #     )
+
+        for spec in conflicting_specs:
+            if spec.name == "python":
+                continue
+            if spec.target and not spec.optional:
+                specs_map.pop(spec.name)
+                if spec.get('version'):
+                    neutered_spec = MatchSpec(spec.name, version=spec.version)
+                else:
+                    neutered_spec = MatchSpec(spec.name)
+                specs_map[spec.name] = neutered_spec
+
+        return specs_map
+
+
     def _pin_python(self, state, update_modifier=NULL):
         """
         If Python is already present in the environment and the user didn't
@@ -1588,7 +1648,9 @@ class LibSolvSolver(Solver):
             major_minor_version = ".".join(version.split(".")[:2])
             return f"python {major_minor_version}.*"
 
-    def _pinned_specs(self):
+    def _pinned_specs(self, ignore_pinned=False):
+        if ignore_pinned:
+            return ()
         pinned_specs = get_pinned_specs(self.prefix)
         if pinned_specs:
             conda_prefix_data = PrefixData(self.prefix)
@@ -1600,7 +1662,7 @@ class LibSolvSolver(Solver):
                     if not s.match(el):
                         raise SpecsConfigurationConflictError([x], [el], self.prefix)
             pin_these_specs.append(s)
-        return pin_these_specs
+        return tuple(pin_these_specs)
 
     def _history_specs(self):
         return [s.conda_build_form()
@@ -1609,13 +1671,21 @@ class LibSolvSolver(Solver):
     def _run_solver(self, state):
         solver = state["solver"]
         solved = solver.solve()
-        # 4. Report problems if any
-        if not solved:
+        if solved:
+            # Clear potential conflicts we used to have
+            state["conflicting"].clear()
+        else:
+            # Report problems if any
             # it would be better if we could pass a graph object or something
             # that the exception can actually format if needed
             problems = solver.problems_to_str()
-            state["conflicting"] = self._parse_problems(problems)
-            raise RawStrUnsatisfiableError(problems)
+            print(problems)
+            previous = state["conflicting"].copy()
+            state["conflicting"] = new = self._parse_problems(problems)
+            if previous and (previous == new or previous.issubset(new)):
+                # We have same or more conflicts now! Abort to avoid recursion.
+                raise RawStrUnsatisfiableError(problems)
+        return solved
 
     def _export_final_state(self, state):
         from mamba import mamba_api as api
@@ -1673,7 +1743,37 @@ class LibSolvSolver(Solver):
         return state
 
     def _parse_problems(self, problems):
-        return problems.splitlines()
+        dashed_specs = []       # e.g. package-1.2.3-h5487548_0
+        conda_build_specs = []  # e.g. package 1.2.8.*
+        for line in problems.splitlines():
+            line = line.strip()
+            words = line.split()
+            if not line.startswith("- "):
+                continue
+            if "none of the providers can be installed" in line:
+                assert words[1] == "package"
+                assert words[3] == "requires"
+                dashed_specs.append(words[2])
+            if "- nothing provides" in line and "needed by" in line:
+                dashed_specs.append(words[-1])
+            if "- nothing provides":
+                if words[-3] == "requested":  # two fields only
+                    conda_build_specs.append(words[-2:])
+                else:  # we assume three fields
+                    conda_build_specs.append(words[-3:])
+
+
+        conflicts = []
+        for conflict in dashed_specs:
+            name, version, build = conflict.rsplit("-", 2)
+            conflicts.append(MatchSpec(name=name, version=version, build=build))
+        for conflict in conda_build_specs:
+            kwargs = {"name": conflict[0], "version": conflict[1]}
+            if len(conflict) == 3:
+                kwargs["build"] = conflict[2]
+            conflicts.append(MatchSpec(**kwargs))
+
+        return set(conflicts)
 
     def _post_solve_tasks(self,
                           state,
@@ -1681,7 +1781,8 @@ class LibSolvSolver(Solver):
                           update_modifier=NULL,
                           force_reinstall=NULL,
                           ignore_pinned=NULL,
-                          force_remove=NULL):
+                          force_remove=NULL,
+                          prune=NULL):
         specs_map = state["specs_map"]
         final_prefix_map = {pkg.name: pkg for pkg in state["final_prefix_state"]}
 
@@ -1753,7 +1854,7 @@ class LibSolvSolver(Solver):
             specs_map = {name: MatchSpec(name) for name in update_names}
 
             # Remove pinned_specs and any python spec (due to major-minor pinning business rule).
-            for spec in self._pinned_specs():
+            for spec in self._pinned_specs(ignore_pinned):
                 specs_map.pop(spec.name, None)
             # TODO: This kind of version constrain patching is done several times in different
             # parts of the code, so it might be a good candidate for a dedicate utility function
@@ -1777,11 +1878,20 @@ class LibSolvSolver(Solver):
                     deps_modifier=deps_modifier,
                     ignore_pinned=ignore_pinned,
                     force_remove=force_remove,
-                    force_reinstall=force_reinstall)
+                    force_reinstall=force_reinstall,
+                    prune=prune)
                 final_prefix_map = {p.name: p for p in solved_pkgs}
                 # Bring in names from their state so we can expose it in our instance
                 state["names_to_add"] = [spec.name for spec in solver2.specs_to_add]
                 state["names_to_remove"] = [spec.name for spec in solver2.specs_to_remove]
+
+            prune = False
+
+        # Prune leftovers
+        if prune:
+            graph = PrefixGraph(final_prefix_map.values(), specs_map.values())
+            graph.prune()
+            final_prefix_map = {p.name: p for p in graph.graph}
 
         # Wrap up and return the final state
 
