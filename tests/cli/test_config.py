@@ -579,7 +579,7 @@ def test_custom_multichannels_append_duplicate():
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--append',
                                                   'custom_multichannels.foo', 'bar')
         assert stdout == ''
-        assert stderr.strip() == "Warning: 'bar' already in 'custom_multichannels' list, moving to the bottom"
+        assert stderr.strip() == "Warning: 'bar' already in 'custom_multichannels.foo' list, moving to the bottom"
         assert _read_test_condarc(rc) == custom_multichannels_expected
 
 
@@ -589,7 +589,7 @@ def test_custom_multichannels_add_duplicate():
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
                                                   'custom_multichannels.foo', 'bar')
         assert stdout == ''
-        assert stderr.strip() == "Warning: 'bar' already in 'custom_multichannels' list, moving to the top"
+        assert stderr.strip() == "Warning: 'bar' already in 'custom_multichannels.foo' list, moving to the top"
         assert _read_test_condarc(rc) == custom_multichannels_expected
 
 
@@ -599,5 +599,5 @@ def test_custom_multichannels_prepend_duplicate():
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--prepend',
                                                   'custom_multichannels.foo', 'bar')
         assert stdout == ''
-        assert stderr.strip() == "Warning: 'bar' already in 'custom_multichannels' list, moving to the top"
+        assert stderr.strip() == "Warning: 'bar' already in 'custom_multichannels.foo' list, moving to the top"
         assert _read_test_condarc(rc) == custom_multichannels_expected

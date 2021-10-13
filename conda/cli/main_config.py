@@ -325,9 +325,10 @@ def execute_config(args, parser):
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
             if item in arglist:
+                message_key = key + "." + subkey if subkey is not None else key
                 # Right now, all list keys should not contain duplicates
                 message = "Warning: '%s' already in '%s' list, moving to the %s" % (
-                    item, key, "top" if prepend else "bottom")
+                    item, message_key, "top" if prepend else "bottom")
                 arglist.pop(arglist.index(item))
                 if not context.json:
                     stderr_write(message)
