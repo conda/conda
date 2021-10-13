@@ -329,7 +329,10 @@ def execute_config(args, parser):
                 # Right now, all list keys should not contain duplicates
                 message = "Warning: '%s' already in '%s' list, moving to the %s" % (
                     item, message_key, "top" if prepend else "bottom")
-                arglist.pop(arglist.index(item))
+                if subkey is None:
+                    arglist = rc_config[key] = [p for p in arglist if p != item]
+                else:
+                    arglist = rc_config[key][subkey] = [p for p in arglist if p != item]
                 if not context.json:
                     stderr_write(message)
                 else:
