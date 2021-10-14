@@ -135,10 +135,16 @@ html_style = 'css/custom.css'
 html_favicon = 'conda-logo.png'
 
 html_js_files = [
+    "https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.js",
+    "https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/modal/jspanel.modal.js",
     "https://unpkg.com/@panzoom/panzoom@4.4.1/dist/panzoom.min.js",
     "js/panzoom.js",
 ]
 
+
+html_css_files = [
+    "https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.css"
+]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

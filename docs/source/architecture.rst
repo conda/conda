@@ -11,13 +11,6 @@ to different types of audience.
 
 C4 stands for the for levels: Context, Container, Component, Code.
 
-.. note::
-
-   For the diagrams below, please double-click/:kbd:`shift` + double-click
-   or use the mouse wheel to zoom in and out on desktop computers.
-   On devices with a touch screen you can use the native pinch-to-zoom
-   functionality.
-
 Level 1: System Context
 -----------------------
 
