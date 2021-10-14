@@ -37,7 +37,6 @@ The following diagram focuses on the channels container from the level 1
 diagram.
 
 .. uml:: umls/container/channels.puml
-   :width: 80%
 
 Conda
 ^^^^^
@@ -45,7 +44,6 @@ Conda
 The following diagram focuses on the conda container from the level 1 diagram.
 
 .. uml:: umls/container/conda.puml
-   :width: 80%
 
 Level 3: Component
 ------------------
@@ -56,19 +54,19 @@ interactions. Those building blocks are called components in
 the sense that they each have a higher function and relate to
 an identifiable responsibility and implementation details.
 
-Please use double clicks to zoom in, and :kbd:`shift` + double click to zoom out.
+Please double-click to zoom in, and :kbd:`shift` + double-click to zoom out
+on desktop computers and the regular pinch-to-zoom on mobile devices.
 
 .. uml:: umls/packages_conda.puml
-
 
 Level 4: Code
 -------------
 
 This part is auto-generated based on the current code and shows
 how the code is structured and how it interacts. For brevity this
-covers only a number of key components of conda, the CLI, solver
-and test suite.
+covers only a number of key components of conda, the CLI, solver etc.
 
-Please use double clicks to zoom in, and :kbd:`shift` + double click to zoom out.
+Please double-click to zoom in, and :kbd:`shift` + double-click to zoom out
+on desktop computers and the regular pinch-to-zoom on mobile devices.
 
 .. uml:: umls/classes_conda.puml
