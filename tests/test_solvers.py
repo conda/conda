@@ -1006,6 +1006,40 @@ class SolverTests:
             'test::feature-1.0-0',
         }
 
+    def test_get_reduced_index_broadening_with_unsatisfiable_early_dep(self, env):
+        # Test that spec broadening reduction doesn't kill valid solutions
+        #    In other words, the order of packages in the index should not affect the
+        #    overall result of the reduced index.
+        # see discussion at https://github.com/conda/conda/pull/8117#discussion_r249249815
+        env.repo_packages += [
+            helpers.record(
+                name='a',
+                version='1.0',
+                # not satisfiable. This record should come first, so that its c==2
+                # constraint tries to mess up the inclusion of the c record below,
+                # which should be included as part of b's deps, but which is
+                # broader than this dep.
+                depends=['b', 'c==2'],
+            ),
+            helpers.record(
+                name='a',
+                version='2.0',
+                depends=['b'],
+            ),
+            helpers.record(
+                name='b',
+                depends=['c'],
+            ),
+            helpers.record(
+                name='c',
+            ),
+        ]
+        assert env.install('a') == {
+            'test::a-2.0-0',
+            'test::b-1.0-0',
+            'test::c-1.0-0',
+        }
+
 
 class TestLegacySolver(SolverTests):
     @property
