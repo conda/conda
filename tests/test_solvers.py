@@ -1079,6 +1079,20 @@ class SolverTests:
             elif record.name == 'bottom':
                 assert record.version == '2.5', f'bottom version should be 2.5, but is {record.version}'
 
+    def test_arch_preferred_over_noarch_when_otherwise_equal(self, env):
+        env.repo_packages += [
+            helpers.record(
+                name='package1',
+                subdir='noarch',
+            ),
+            helpers.record(
+                name='package1',
+            ),
+        ]
+        records = env.install('package1', container='original')
+        assert len(records) == 1
+        assert records[0].subdir == context.subdir
+
 
 class TestLegacySolver(SolverTests):
     @property
