@@ -77,8 +77,11 @@ class TestEnvironment:
 
     def __init__(self, path, solver_class, subdirs=context.subdirs):
         self._path = pathlib.Path(path)
+        self._prefix_path = self._path / 'prefix'
+        self._channels_path = self._path / 'channels'
         self._solver_class = solver_class
         self.subdirs = subdirs
+        self.installed_packages = []
         # if repo_packages is a list, the packages will be put in a `test` channel
         # if it is a dictionary, it the keys are the channel name and the value the channel packages
         self.repo_packages: list[str] | dict[str, list[str]] = []
@@ -86,14 +89,15 @@ class TestEnvironment:
     def solver(self, add, remove):
         """Writes ``repo_packages`` to the disk and creates a solver instance."""
         channels = []
+        self._write_installed_packages()
         for channel_name, packages in self._channel_packages.items():
-            self._write_packages(channel_name, packages)
+            self._write_repo_packages(channel_name, packages)
             channels += [
-                Channel('file://{}'.format(self._path / channel_name / subdir))
+                Channel('file://{}'.format(self._channels_path / channel_name / subdir))
                 for subdir in self.subdirs
             ]
         return self._solver_class(
-            prefix='dummy - does not exist',
+            prefix=self._prefix_path,
             subdirs=self.subdirs,
             channels=channels,
             specs_to_add=add,
@@ -123,20 +127,42 @@ class TestEnvironment:
             'test': self.repo_packages
         }
 
-    def _write_packages(self, channel_name, packages):
+    def _package_data(self, record):
+        """Turn record into data, to be written in the JSON environment/repo files."""
+        return {
+            key: value
+            for key, value in vars(record).items()
+            if key in self.REPO_DATA_KEYS
+        }
+
+    def _write_installed_packages(self):
+        if not self.installed_packages:
+            return
+        conda_meta = self._prefix_path / 'conda-meta'
+        conda_meta.mkdir(exist_ok=True, parents=True)
+        # write record files
+        for record in self.installed_packages:
+            record_path = conda_meta / f'{record.name}-{record.version}-{record.build}.json'
+            record_data = self._package_data(record)
+            record_data['channel'] = record.channel.name
+            record_path.write_text(json.dumps(record_data))
+        # write history file
+        history_path = conda_meta / 'history'
+        history_path.write_text('\n'.join((
+            '==> 2000-01-01 00:00:00 <==',
+            *map(package_string, self.installed_packages),
+        )))
+
+    def _write_repo_packages(self, channel_name, packages):
         """Write packages to the channel path."""
         # build package data
         package_data = collections.defaultdict(dict)
         for record in packages:
-            package_data[record.subdir][record.fn] = {
-                key: value
-                for key, value in vars(record).items()
-                if key in self.REPO_DATA_KEYS
-            }
+            package_data[record.subdir][record.fn] = self._package_data(record)
         # write repodata
         assert set(self.subdirs).issuperset(set(package_data.keys()))
         for subdir in self.subdirs:
-            subdir_path = self._path / channel_name / subdir
+            subdir_path = self._channels_path / channel_name / subdir
             subdir_path.mkdir(parents=True, exist_ok=True)
             subdir_path.joinpath('repodata.json').write_text(json.dumps({
                 'info': {
