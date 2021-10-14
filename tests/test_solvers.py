@@ -897,6 +897,59 @@ class SolverTests:
         monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'True')
         assert 'channel-1::pandas-0.11.0-np16py27_1' in env.install('pandas','python 2.7*','numpy 1.6*')
 
+    def test_remove(self, env):
+        env.repo_packages = index_packages(1)
+        records = env.install('pandas', 'python 2.7*', container='original')
+        assert package_string_set(records) == {
+            'test::dateutil-2.1-py27_1',
+            'test::distribute-0.6.36-py27_1',
+            'test::numpy-1.7.1-py27_0',
+            'test::openssl-1.0.1c-0',
+            'test::pandas-0.11.0-np17py27_1',
+            'test::pip-1.3.1-py27_1',
+            'test::python-2.7.5-0',
+            'test::pytz-2013b-py27_0',
+            'test::readline-6.2-0',
+            'test::scipy-0.12.0-np17py27_0',
+            'test::six-1.3.0-py27_0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+        }
+
+        env.installed_packages = records
+        assert env.remove('pandas') == {
+            'test::dateutil-2.1-py27_1',
+            'test::distribute-0.6.36-py27_1',
+            'test::numpy-1.7.1-py27_0',
+            'test::openssl-1.0.1c-0',
+            'test::pip-1.3.1-py27_1',
+            'test::python-2.7.5-0',
+            'test::pytz-2013b-py27_0',
+            'test::readline-6.2-0',
+            'test::scipy-0.12.0-np17py27_0',
+            'test::six-1.3.0-py27_0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+        }
+        assert env.remove('numpy') == {
+            'test::dateutil-2.1-py27_1',
+            'test::distribute-0.6.36-py27_1',
+            'test::openssl-1.0.1c-0',
+            'test::pip-1.3.1-py27_1',
+            'test::python-2.7.5-0',
+            'test::pytz-2013b-py27_0',
+            'test::readline-6.2-0',
+            'test::six-1.3.0-py27_0',
+            'test::sqlite-3.7.13-0',
+            'test::system-5.8-1',
+            'test::tk-8.5.13-0',
+            'test::zlib-1.2.7-0',
+        }
+
 
 class TestLegacySolver(SolverTests):
     @property
@@ -920,5 +973,8 @@ class TestLibSolvSolver(SolverTests):
                 'test_scipy_mkl',
                 'test_pseudo_boolean',
                 'test_no_features',
+            ],
+            'LibSolvSolver installs numpy with mkl while we were expecting no-mkl numpy': [
+                'test_remove',
             ]
         }
