@@ -1040,6 +1040,42 @@ class SolverTests:
             'test::c-1.0-0',
         }
 
+    def test_get_reduced_index_broadening_preferred_solution(self, env):
+        # test that order of index reduction does not eliminate what should be a preferred solution
+        #    https://github.com/conda/conda/pull/8117#discussion_r249216068
+        env.repo_packages += [
+            helpers.record(
+                name='top',
+                version='1.0',
+                # this is the first processed record, and imposes a broadening constraint on bottom
+                #    if things are overly restricted, we'll end up with bottom 1.5 in our solution
+                #    instead of the preferred (latest) 2.5
+                depends=['middle', 'bottom==1.5'],
+            ),
+            helpers.record(
+                name='top',
+                version='2.0',
+                depends=['middle'],
+            ),
+            helpers.record(
+                name='middle',
+                depends=['bottom'],
+            ),
+            helpers.record(
+                name='bottom',
+                version='1.5',
+            ),
+            helpers.record(
+                name='bottom',
+                version='2.5',
+            ),
+        ]
+        for record in env.install('top', container='original'):
+            if record.name == 'top':
+                assert record.version == '2.0', f'top version should be 2.0, but is {record.version}'
+            elif record.name == 'bottom':
+                assert record.version == '2.5', f'bottom version should be 2.5, but is {record.version}'
+
 
 class TestLegacySolver(SolverTests):
     @property
