@@ -11,6 +11,13 @@ to different types of audience.
 
 C4 stands for the for levels: Context, Container, Component, Code.
 
+.. note::
+
+   For the diagrams below, please double-click/:kbd:`shift` + double-click
+   or use the mouse wheel to zoom in and out on desktop computers.
+   On devices with a touch screen you can use the native pinch-to-zoom
+   functionality.
+
 Level 1: System Context
 -----------------------
 
@@ -54,9 +61,6 @@ interactions. Those building blocks are called components in
 the sense that they each have a higher function and relate to
 an identifiable responsibility and implementation details.
 
-Please double-click to zoom in, and :kbd:`shift` + double-click to zoom out
-on desktop computers and the regular pinch-to-zoom on mobile devices.
-
 .. uml:: umls/packages_conda.puml
 
 Level 4: Code
@@ -65,8 +69,5 @@ Level 4: Code
 This part is auto-generated based on the current code and shows
 how the code is structured and how it interacts. For brevity this
 covers only a number of key components of conda, the CLI, solver etc.
-
-Please double-click to zoom in, and :kbd:`shift` + double-click to zoom out
-on desktop computers and the regular pinch-to-zoom on mobile devices.
 
 .. uml:: umls/classes_conda.puml
