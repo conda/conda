@@ -18,13 +18,9 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-import pathlib
-import shutil
 import sys
-import tempfile
 
-import requests
-
+sys.path.insert(0, os.path.abspath('_ext'))
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../..'))
 
@@ -52,7 +48,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.inheritance_diagram',
     'sphinxcontrib.plantuml',
-    'sphinxcontrib.runcmd',
+    'conda_umls',
 ]
 
 myst_heading_anchors = 3
@@ -138,6 +134,12 @@ html_static_path = ['_static']
 html_style = 'css/custom.css'
 html_favicon = 'conda-logo.png'
 
+html_js_files = [
+    "https://unpkg.com/@panzoom/panzoom@4.4.1/dist/panzoom.min.js",
+    "js/panzoom.js",
+]
+
+
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #
@@ -210,35 +212,10 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-
 plantuml_output_format = "svg_img"
-
-def download_plantuml():
-    plantuml_jarfile_url = "https://sourceforge.net/projects/plantuml/files/plantuml.jar/download"
-    with requests.get(plantuml_jarfile_url, stream=True) as response:
-        sys.stdout.write("Downloading PlantUML jar file.....")
-        sys.stdout.flush()
-        response.raise_for_status()
-        response.raw.decode_content = True
-        with tempfile.NamedTemporaryFile(suffix=".jar", delete=False) as temp_jarfile:
-            shutil.copyfileobj(response.raw, temp_jarfile)
-            sys.stdout.write("done.\n")
-            return temp_jarfile.name
-
-
-plantuml_jarfile = download_plantuml()
-plantuml = f"java -Djava.awt.headless=true -jar {plantuml_jarfile}"
-
-
-def delete_plantuml_jar(*args, **kwargs):
-    try:
-        sys.stdout.write(f"Trying to delete {plantuml_jarfile}...")
-        sys.stdout.flush()
-        os.remove(plantuml_jarfile)
-        sys.stdout.write("done.\n")
-    except OSError:
-        pass
-
-
-def setup(app):
-    app.connect('build-finished', delete_plantuml_jar)
+plantuml_jarfile_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "_build", "plantuml.jar")
+)
+plantuml = (
+    f"java -Djava.awt.headless=true -jar {plantuml_jarfile_path}"
+)

@@ -56,6 +56,11 @@ interactions. Those building blocks are called components in
 the sense that they each have a higher function and relate to
 an identifiable responsibility and implementation details.
 
+Please use double clicks to zoom in, and :kbd:`shift` + double click to zoom out.
+
+.. uml:: umls/packages_conda.puml
+
+
 Level 4: Code
 -------------
 
@@ -63,3 +68,7 @@ This part is auto-generated based on the current code and shows
 how the code is structured and how it interacts. For brevity this
 covers only a number of key components of conda, the CLI, solver
 and test suite.
+
+Please use double clicks to zoom in, and :kbd:`shift` + double click to zoom out.
+
+.. uml:: umls/classes_conda.puml
