@@ -109,6 +109,9 @@ def download_plantuml(app, config):
             f"PlantUML jar file already downloaded. To update run `make clean` or manually delete {config.plantuml_jarfile_path}.\n"
         )
     else:
+        parent = os.path.dirname(config.plantuml_jarfile_path)
+        if not os.path.isdir(parent):
+            os.makedirs(parent, exist_ok=True)
         with requests.get(plantuml_jarfile_url, stream=True) as response:
             sys.stdout.write(
                 f"Downloading PlantUML jar file to {config.plantuml_jarfile_path}..."
