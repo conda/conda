@@ -129,11 +129,14 @@ class TestEnvironment:
 
     def _package_data(self, record):
         """Turn record into data, to be written in the JSON environment/repo files."""
-        return {
+        data = {
             key: value
             for key, value in vars(record).items()
             if key in self.REPO_DATA_KEYS
         }
+        if 'subdir' not in data:
+            data['subdir'] = context.subdir
+        return data
 
     def _write_installed_packages(self):
         if not self.installed_packages:
