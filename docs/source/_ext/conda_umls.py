@@ -125,9 +125,10 @@ def download_plantuml(app, config):
 
 
 def setup(app):
-    app.add_config_value("plantuml_jarfile_path", None, rebuild="")
-    app.connect("config-inited", download_plantuml)
-    app.connect("config-inited", generate_pumls)
+    if "AUTOBUILD" not in os.environ:
+        app.add_config_value("plantuml_jarfile_path", None, rebuild="")
+        app.connect("config-inited", download_plantuml)
+        app.connect("config-inited", generate_pumls)
 
     return {
         "version": "0.1",
