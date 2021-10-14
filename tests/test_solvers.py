@@ -950,6 +950,33 @@ class SolverTests:
             'test::zlib-1.2.7-0',
         }
 
+    def test_surplus_features_1(self, env):
+        env.repo_packages += [
+            helpers.record(
+                name='feature',
+                track_features='feature',
+            ),
+            helpers.record(
+                name='package1',
+                features='feature',
+            ),
+            helpers.record(
+                name='package2',
+                version='1.0',
+                features='feature',
+                depends=['package1'],
+            ),
+            helpers.record(
+                name='package2',
+                version='2.0',
+                features='feature',
+            ),
+        ]
+        assert env.install('package2', 'feature') == {
+            'test::package2-2.0-0',
+            'test::feature-1.0-0',
+        }
+
 
 class TestLegacySolver(SolverTests):
     @property
@@ -973,6 +1000,7 @@ class TestLibSolvSolver(SolverTests):
                 'test_scipy_mkl',
                 'test_pseudo_boolean',
                 'test_no_features',
+                'test_surplus_features_1',
             ],
             'LibSolvSolver installs numpy with mkl while we were expecting no-mkl numpy': [
                 'test_remove',
