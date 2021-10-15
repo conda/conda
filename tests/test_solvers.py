@@ -1109,6 +1109,22 @@ class SolverTests:
         assert len(records) == 1
         assert records[0].subdir == 'noarch'
 
+    def test_noarch_preferred_over_arch_when_build_greater(self, env):
+        env.repo_packages += [
+            helpers.record(
+                name='package1',
+                build_number=0,
+            ),
+            helpers.record(
+                name='package1',
+                build_number=1,
+                subdir='noarch',
+            ),
+        ]
+        records = env.install('package1', container='original')
+        assert len(records) == 1
+        assert records[0].subdir == 'noarch'
+
     def test_noarch_preferred_over_arch_when_build_greater_dep(self, env):
         env.repo_packages += [
             helpers.record(
