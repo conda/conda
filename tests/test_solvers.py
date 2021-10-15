@@ -56,7 +56,7 @@ def package_dict(packages):
     }
 
 
-class TestEnvironment:
+class SimpleEnvironment:
     """Helper environment object."""
 
     REPO_DATA_KEYS = (
@@ -196,7 +196,7 @@ class SolverTests:
     @pytest.fixture()
     def env(self):
         with tempfile.TemporaryDirectory(prefix='conda-test-repo-') as tmpdir:
-            self.env = TestEnvironment(tmpdir, self.solver_class)
+            self.env = SimpleEnvironment(tmpdir, self.solver_class)
             yield self.env
             self.env = None
 
