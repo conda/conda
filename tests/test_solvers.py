@@ -1109,6 +1109,26 @@ class SolverTests:
         assert len(records) == 1
         assert records[0].subdir == 'noarch'
 
+    def test_noarch_preferred_over_arch_when_build_greater_dep(self, env):
+        env.repo_packages += [
+            helpers.record(
+                name='package1',
+                build_number=0,
+            ),
+            helpers.record(
+                name='package1',
+                build_number=1,
+                subdir='noarch',
+            ),
+            helpers.record(
+                name='package2',
+                depends=['package1'],
+            ),
+        ]
+        records = env.install('package2', container='original')
+        package1 = self.find_package_in_list(records, name='package1')
+        assert package1.subdir == 'noarch'
+
 
 class TestLegacySolver(SolverTests):
     @property
