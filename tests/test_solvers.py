@@ -868,7 +868,7 @@ class SolverTests:
             'test::zlib-1.2.7-0',
         }
 
-    @pytest.mark.skip(reason='CONDA_CHANNEL_PRIORITY does not seem to have any effect')
+    @pytest.mark.xfail(reason='CONDA_CHANNEL_PRIORITY does not seem to have any effect')
     def test_channel_priority_1(self, monkeypatch, env):
         # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
         #      have any effect. I have also tried conda.common.io.env_var like
@@ -898,7 +898,7 @@ class SolverTests:
         monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'True')
         assert 'channel-1::pandas-0.11.0-np16py27_1' in env.install('pandas','python 2.7*','numpy 1.6*')
 
-    @pytest.mark.skip(reason='CONDA_CHANNEL_PRIORITY does not seem to have any effect')
+    @pytest.mark.xfail(reason='CONDA_CHANNEL_PRIORITY does not seem to have any effect')
     def test_unsat_channel_priority(self, monkeypatch, env):
         # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
         #      have any effect. I have also tried conda.common.io.env_var like
