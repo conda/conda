@@ -87,7 +87,7 @@ def list_all_known_prefixes():
                 # not be readable (if on network file system for example)
                 all_env_paths.update(_clean_environments_txt(environments_txt_file))
             except PermissionError:
-                continue
+                log.warning(f"Unable to access {environments_txt_file}")
 
     # in case environments.txt files aren't complete, also add all known conda environments in
     # all envs_dirs
