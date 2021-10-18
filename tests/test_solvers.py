@@ -900,6 +900,70 @@ class SolverTests:
         monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'True')
         assert 'channel-1::pandas-0.11.0-np16py27_1' in env.install('pandas','python 2.7*','numpy 1.6*')
 
+    @pytest.mark.skip(reason='CONDA_CHANNEL_PRIORITY does not seem to have any effect')
+    def test_unsat_channel_priority(self, monkeypatch, env):
+        # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
+        #      have any effect. I have also tried conda.common.io.env_var like
+        #      the other tests but no luck.
+        env.repo_packages = collections.OrderedDict()
+        # higher priority
+        env.repo_packages['channel-1'] = [
+            helpers.record(
+                name='a',
+                version='1.0',
+                depends=['c'],
+            ),
+            helpers.record(
+                name='b',
+                version='1.0',
+                depends=['c >=2,<3'],
+            ),
+            helpers.record(
+                name='c',
+                version='1.0',
+            ),
+        ]
+        # lower priority, missing c 2.0
+        env.repo_packages['channel-2'] = [
+            helpers.record(
+                name='a',
+                version='2.0',
+                depends=['c'],
+            ),
+            helpers.record(
+                name='b',
+                version='2.0',
+                depends=['c >=2,<3'],
+            ),
+            helpers.record(
+                name='c',
+                version='1.0',
+            ),
+            helpers.record(
+                name='c',
+                version='2.0',
+            ),
+        ]
+
+        monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'True')
+        records = env.install('a', 'b', container='original')
+        # channel-1 a and b packages (1.0) installed
+        assert any(k.name == 'a' and k.version == '1.0' for k in records)
+        assert any(k.name == 'b' and k.version == '1.0' for k in records)
+
+        monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'False')
+        records = env.install('a', 'b', container='original')
+        # no channel priority, largest version of a and b (2.0) installed
+        assert any(k.name == 'a' and k.version == '2.0' for k in records)
+        assert any(k.name == 'b' and k.version == '2.0' for k in records)
+
+        monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'True')
+        with pytest.raises(UnsatisfiableError) as exc_info:
+            env.install('a', 'b')
+        self.assert_unsatisfiable(exc_info, [
+            ('b', "c[version='>=2,<3']"),
+        ])
+
     def test_remove(self, env):
         env.repo_packages = index_packages(1)
         records = env.install('pandas', 'python 2.7*', container='original')
