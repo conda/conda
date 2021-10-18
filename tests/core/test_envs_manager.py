@@ -109,4 +109,6 @@ def test_list_all_known_prefixes_with_permission_error(mock_clean_env, mock_get_
     mock_get_user_env.return_value = env_txt_file
     # Mock _clean_environments_txt to raise PermissionError
     mock_clean_env.side_effect = PermissionError()
-    assert list_all_known_prefixes() == ["root_prefix"]
+    all_env_paths = list_all_known_prefixes()
+    # On Windows, all_env_paths can contain more paths (like '\\Miniconda')
+    assert "root_prefix" in all_env_paths
