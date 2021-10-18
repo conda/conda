@@ -104,19 +104,17 @@ class SimpleEnvironment:
             specs_to_remove=remove,
         )
 
-    def solver_transaction(self, add=(), remove=(), container='string-set'):
+    def solver_transaction(self, add=(), remove=(), as_specs=False):
         packages = self.solver(add=add, remove=remove).solve_final_state()
-        if container == 'original':
+        if as_specs:
             return packages
-        elif container == 'string-set':
-            return package_string_set(packages)
-        raise ValueError(f'Invalid container: {container}')
+        return package_string_set(packages)
 
-    def install(self, *specs, container='string-set'):
-        return self.solver_transaction(add=specs, container=container)
+    def install(self, *specs, as_specs=False):
+        return self.solver_transaction(add=specs, as_specs=as_specs)
 
-    def remove(self, *specs, container='string-set'):
-        return self.solver_transaction(remove=specs, container=container)
+    def remove(self, *specs, as_specs=False):
+        return self.solver_transaction(remove=specs, as_specs=as_specs)
 
     @property
     def _channel_packages(self):
@@ -278,7 +276,7 @@ class SolverTests:
         env.repo_packages = index_packages(1)
         records = env.install(
             'scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl'),
-            container='original',
+            as_specs=True,
         )
 
         for record in records:
@@ -477,15 +475,15 @@ class SolverTests:
             helpers.record(name='d', version='3.0'),
         ]
         # a and b can be installed
-        installed = env.install('a', 'b', container='original')
+        installed = env.install('a', 'b', as_specs=True)
         assert any(k.name == 'a' and k.version == '1.0' for k in installed)
         assert any(k.name == 'b' and k.version == '1.0' for k in installed)
         # a and c can be installed
-        installed = env.install('a', 'c', container='original')
+        installed = env.install('a', 'c', as_specs=True)
         assert any(k.name == 'a' and k.version == '2.0' for k in installed)
         assert any(k.name == 'c' and k.version == '1.0' for k in installed)
         # b and c can be installed
-        installed = env.install('b', 'c', container='original')
+        installed = env.install('b', 'c', as_specs=True)
         assert any(k.name == 'b' and k.version == '2.0' for k in installed)
         assert any(k.name == 'c' and k.version == '2.0' for k in installed)
         # a, b and c cannot be installed
@@ -559,8 +557,8 @@ class SolverTests:
         assert 'test::mypackage-1.0-hash15_0' in records_15
         # this is testing that previously installed reqs are not disrupted by newer timestamps.
         #   regression test of sorts for https://github.com/conda/conda/issues/6271
-        assert env.install('mypackage', *env.install('libpng 1.2.*', container='original')) == records_12
-        assert env.install('mypackage', *env.install('libpng 1.5.*', container='original')) == records_15
+        assert env.install('mypackage', *env.install('libpng 1.2.*', as_specs=True)) == records_12
+        assert env.install('mypackage', *env.install('libpng 1.5.*', as_specs=True)) == records_15
         # unspecified python version should maximize libpng (v1.5), even though it has a lower timestamp
         assert env.install('mypackage') == records_15
 
@@ -946,13 +944,13 @@ class SolverTests:
         ]
 
         monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'True')
-        records = env.install('a', 'b', container='original')
+        records = env.install('a', 'b', as_specs=True)
         # channel-1 a and b packages (1.0) installed
         assert any(k.name == 'a' and k.version == '1.0' for k in records)
         assert any(k.name == 'b' and k.version == '1.0' for k in records)
 
         monkeypatch.setenv('CONDA_CHANNEL_PRIORITY', 'False')
-        records = env.install('a', 'b', container='original')
+        records = env.install('a', 'b', as_specs=True)
         # no channel priority, largest version of a and b (2.0) installed
         assert any(k.name == 'a' and k.version == '2.0' for k in records)
         assert any(k.name == 'b' and k.version == '2.0' for k in records)
@@ -967,7 +965,7 @@ class SolverTests:
     @pytest.mark.xfail(reason='There is some weird global state making this test fail when the whole test suite is run')
     def test_remove(self, env):
         env.repo_packages = index_packages(1)
-        records = env.install('pandas', 'python 2.7*', container='original')
+        records = env.install('pandas', 'python 2.7*', as_specs=True)
         assert package_string_set(records) == {
             'test::dateutil-2.1-py27_1',
             'test::distribute-0.6.36-py27_1',
@@ -1138,7 +1136,7 @@ class SolverTests:
                 version='2.5',
             ),
         ]
-        for record in env.install('top', container='original'):
+        for record in env.install('top', as_specs=True):
             if record.name == 'top':
                 assert record.version == '2.0', f'top version should be 2.0, but is {record.version}'
             elif record.name == 'bottom':
@@ -1154,7 +1152,7 @@ class SolverTests:
                 name='package1',
             ),
         ]
-        records = env.install('package1', container='original')
+        records = env.install('package1', as_specs=True)
         assert len(records) == 1
         assert records[0].subdir == context.subdir
 
@@ -1170,7 +1168,7 @@ class SolverTests:
                 version='1.0',
             ),
         ]
-        records = env.install('package1', container='original')
+        records = env.install('package1', as_specs=True)
         assert len(records) == 1
         assert records[0].subdir == 'noarch'
 
@@ -1190,7 +1188,7 @@ class SolverTests:
                 depends=['package1'],
             ),
         ]
-        records = env.install('package2', container='original')
+        records = env.install('package2', as_specs=True)
         package1 = self.find_package_in_list(records, name='package1')
         assert package1.subdir == 'noarch'
 
@@ -1206,7 +1204,7 @@ class SolverTests:
                 subdir='noarch',
             ),
         ]
-        records = env.install('package1', container='original')
+        records = env.install('package1', as_specs=True)
         assert len(records) == 1
         assert records[0].subdir == 'noarch'
 
@@ -1226,7 +1224,7 @@ class SolverTests:
                 depends=['package1'],
             ),
         ]
-        records = env.install('package2', container='original')
+        records = env.install('package2', as_specs=True)
         package1 = self.find_package_in_list(records, name='package1')
         assert package1.subdir == 'noarch'
 
