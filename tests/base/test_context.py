@@ -5,7 +5,7 @@ from itertools import chain
 import os
 from os.path import join, abspath
 from tempfile import gettempdir
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import pytest
 
@@ -413,6 +413,57 @@ class ContextCustomRcTests(TestCase):
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         assert context.channels == ('conda-forge',)
+
+    def test_expandvars(self):
+        """
+        Environment variables should be expanded in settings that have expandvars=True.
+        """
+        def _get_expandvars_context(attr, config_expr, env_value):
+            with mock.patch.dict(os.environ, {"TEST_VAR": env_value}):
+                reset_context(())
+                string = f"{attr}: {config_expr}"
+                rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+                context._set_raw_data(rd)
+                return getattr(context, attr)
+
+        ssl_verify = _get_expandvars_context("ssl_verify", "${TEST_VAR}", "yes")
+        assert ssl_verify
+
+        for attr, env_value in [
+            ("client_ssl_cert", "foo"),
+            ("client_ssl_cert_key", "foo"),
+            ("channel_alias", "http://foo"),
+        ]:
+            value = _get_expandvars_context(attr, "${TEST_VAR}", env_value)
+            assert value == env_value
+
+        for attr in [
+            "migrated_custom_channels",
+            "proxy_servers",
+        ]:
+            value = _get_expandvars_context("proxy_servers", "{'x': '${TEST_VAR}'}", "foo")
+            assert value == {"x": "foo"}
+
+        for attr in [
+            "channels",
+            "default_channels",
+            "whitelist_channels",
+        ]:
+            value = _get_expandvars_context(attr, "['${TEST_VAR}']", "foo")
+            assert value == ("foo",)
+
+        custom_channels = _get_expandvars_context("custom_channels", "{'x': '${TEST_VAR}'}", "http://foo")
+        assert custom_channels["x"].location == "foo"
+
+        custom_multichannels = _get_expandvars_context("custom_multichannels", "{'x': ['${TEST_VAR}']}", "http://foo")
+        assert len(custom_multichannels["x"]) == 1
+        assert custom_multichannels["x"][0].location == "foo"
+
+        envs_dirs = _get_expandvars_context("envs_dirs", "['${TEST_VAR}']", "/foo")
+        assert "/foo" in envs_dirs
+
+        pkgs_dirs = _get_expandvars_context("pkgs_dirs", "['${TEST_VAR}']", "/foo")
+        assert pkgs_dirs == ("/foo",)
 
 
 class ContextDefaultRcTests(TestCase):
