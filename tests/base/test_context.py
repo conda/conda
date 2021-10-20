@@ -463,7 +463,7 @@ class ContextCustomRcTests(TestCase):
         assert any("foo" in d for d in envs_dirs)
 
         pkgs_dirs = _get_expandvars_context("pkgs_dirs", "['${TEST_VAR}']", "/foo")
-        assert pkgs_dirs == ("/foo",)
+        assert any("foo" in d for d in pkgs_dirs)
 
 
 class ContextDefaultRcTests(TestCase):
