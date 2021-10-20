@@ -240,7 +240,8 @@ class Context(Configuration):
     _channel_alias = ParameterLoader(
         PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                            validation=channel_alias_validation),
-        aliases=('channel_alias',))
+        aliases=('channel_alias',),
+        expandvars=True)
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter(
