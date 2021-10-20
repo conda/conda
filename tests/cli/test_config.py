@@ -547,3 +547,57 @@ def test_set_rc_without_user_rc():
         # Restore previous system rc_config
         with open(sys_rc_path, 'w') as rc:
             rc.write(yaml_round_trip_dump(sys_rc_config_backup))
+
+
+def test_custom_multichannels_append():
+    with make_temp_condarc() as rc:
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--append',
+                                                  'custom_multichannels.foo', 'bar')
+        assert stdout == stderr == ''
+        assert _read_test_condarc(rc) == yaml_round_trip_dump({"custom_multichannels": {"foo": ["bar"]}})
+
+
+def test_custom_multichannels_add():
+    with make_temp_condarc() as rc:
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
+                                                  'custom_multichannels.foo', 'bar')
+        assert stdout == stderr == ''
+        assert _read_test_condarc(rc) == yaml_round_trip_dump({"custom_multichannels": {"foo": ["bar"]}})
+
+
+def test_custom_multichannels_prepend():
+    with make_temp_condarc() as rc:
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--prepend',
+                                                  'custom_multichannels.foo', 'bar')
+        assert stdout == stderr == ''
+        assert _read_test_condarc(rc) == yaml_round_trip_dump({"custom_multichannels": {"foo": ["bar"]}})
+
+
+def test_custom_multichannels_append_duplicate():
+    custom_multichannels_expected = yaml_round_trip_dump({"custom_multichannels": {"foo": ["bar"]}})
+    with make_temp_condarc(custom_multichannels_expected) as rc:
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--append',
+                                                  'custom_multichannels.foo', 'bar')
+        assert stdout == ''
+        assert stderr.strip() == "Warning: 'bar' already in 'custom_multichannels.foo' list, moving to the bottom"
+        assert _read_test_condarc(rc) == custom_multichannels_expected
+
+
+def test_custom_multichannels_add_duplicate():
+    custom_multichannels_expected = yaml_round_trip_dump({"custom_multichannels": {"foo": ["bar"]}})
+    with make_temp_condarc(custom_multichannels_expected) as rc:
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
+                                                  'custom_multichannels.foo', 'bar')
+        assert stdout == ''
+        assert stderr.strip() == "Warning: 'bar' already in 'custom_multichannels.foo' list, moving to the top"
+        assert _read_test_condarc(rc) == custom_multichannels_expected
+
+
+def test_custom_multichannels_prepend_duplicate():
+    custom_multichannels_expected = yaml_round_trip_dump({"custom_multichannels": {"foo": ["bar"]}})
+    with make_temp_condarc(custom_multichannels_expected) as rc:
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--prepend',
+                                                  'custom_multichannels.foo', 'bar')
+        assert stdout == ''
+        assert stderr.strip() == "Warning: 'bar' already in 'custom_multichannels.foo' list, moving to the top"
+        assert _read_test_condarc(rc) == custom_multichannels_expected
