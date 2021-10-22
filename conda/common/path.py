@@ -13,7 +13,7 @@ import subprocess
 from .compat import on_win, string_types
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
-from .._vendor.toolz import accumulate, concat, take
+from .._vendor.toolz import accumulate, concat
 from distutils.spawn import find_executable
 
 try:
@@ -178,6 +178,8 @@ def get_python_site_packages_short_path(python_version):
         return 'lib/python%s/site-packages' % py_ver
 
 
+_VERSION_REGEX = re.compile(r"[0-9]+\.[0-9]+")
+
 def get_major_minor_version(string, with_dot=True):
     # returns None if not found, otherwise two digits as a string
     # should work for
@@ -187,10 +189,31 @@ def get_major_minor_version(string, with_dot=True):
     #   - lib/python34/site-packages/
     # the last two are dangers because windows doesn't have version information there
     assert isinstance(string, string_types)
-    digits = tuple(take(2, (c for c in string if c.isdigit())))
-    if len(digits) == 2:
-        return '.'.join(digits) if with_dot else ''.join(digits)
-    return None
+    if string.startswith("lib/python"):
+        pythonstr = string.split("/")[1]
+        start = len("python")
+        if len(pythonstr) < start + 2:
+            return None
+        maj_min = pythonstr[start], pythonstr[start+1:]
+    elif string.startswith("bin/python"):
+        pythonstr = string.split("/")[1]
+        start = len("python")
+        if len(pythonstr) < start + 3:
+            return None
+        assert pythonstr[start+1] == "."
+        maj_min = pythonstr[start], pythonstr[start+2:]
+    else:
+        match = _VERSION_REGEX.match(string)
+        if match:
+            version = match.group(0).split(".")
+            maj_min = version[0], version[1]
+        else:
+            digits = "".join([c for c in string if c.isdigit()])
+            if len(digits) < 2:
+                return None
+            maj_min = digits[0], digits[1:]
+
+    return ".".join(maj_min) if with_dot else "".join(maj_min)
 
 
 def get_bin_directory_short_path():
