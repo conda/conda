@@ -1154,6 +1154,7 @@ dependencies:
         hardlink_supported_mock._result_cache.clear()
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
+    @pytest.mark.skipif(context.solver_logic.value == "libsolv", reason="features not supported")
     def test_remove_features(self):
         with make_temp_env("python=2", "numpy=1.13", "nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
