@@ -1137,7 +1137,7 @@ class LibSolvSolver(Solver):
                 prune=kwargs["prune"],
             )
         # If we didn't return already, raise last known issue.
-        raise RawStrUnsatisfiableError(state["solver"].problems_to_str())
+        raise self.raise_for_problems(state["solver"].problems_to_str())
 
     def _merge_signature_flags_with_context(
             self,
@@ -1833,11 +1833,7 @@ class LibSolvSolver(Solver):
             elif "- nothing provides" in line and "needed by" in line:
                 dashed_specs.append(words[-1])
             elif "- nothing provides" in line:
-                if words[-3] == "requested":  # two fields only
-                    conda_build_specs.append(words[-2:])
-                else:  # we assume three fields
-                    conda_build_specs.append(words[-3:])
-
+                conda_build_specs.append(words[4:])
 
         conflicts = {}
         for conflict in dashed_specs:
@@ -1863,7 +1859,7 @@ class LibSolvSolver(Solver):
         current_set = set(conflicts.values())
         if (previous and (previous_set == current_set)) or len(diff) >= 10: # or previous_set.issubset(current_set)):
             # We have same or more (up to 10) conflicts now! Abort to avoid recursion.
-            raise RawStrUnsatisfiableError(problems)
+            self.raise_for_problems(problems)
 
         # Preserve old conflicts (now neutered as name-only spes) in the
         # new list of conflicts (unless a different variant is now present)
@@ -2006,6 +2002,13 @@ class LibSolvSolver(Solver):
         # TODO: Review performance here just in case
         return IndexedSet(PrefixGraph(final_prefix_map.values()).graph)
 
+    def raise_for_problems(self, problems):
+        for line in problems.splitlines():
+            line = line.strip()
+            if line.startswith("- nothing provides requested"):
+                packages = line.split()[4:]
+                raise PackagesNotFoundError(packages)
+        raise RawStrUnsatisfiableError(problems)
 
 class SolverStateContainer(object):
     # A mutable container with defined attributes to help keep method signatures clean
