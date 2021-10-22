@@ -2195,7 +2195,7 @@ def test_priority_1(tmpdir):
             assert 'pandas' not in convert_to_dist_str(final_state_4)
 
 
-@pytest.mark.skipif(context.solver_logic.value, reason="libsolv does not support features")
+@pytest.mark.skipif(context.solver_logic.value == "libsolv", reason="libsolv does not support features")
 def test_features_solve_1(tmpdir):
     # in this test, channel-2 is a view of pkgs/free/linux-64
     #   and channel-4 is a view of the newer pkgs/main/linux-64
