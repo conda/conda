@@ -1237,10 +1237,13 @@ class LibSolvSolver(Solver):
         # because `current_repodata.json` is not guaranteed to exist in
         # our current implementation; we bypass that and always use the
         # default value: repodata.json
+        subdirs = self.subdirs
+        if subdirs is NULL or not subdirs:
+            subdirs = context.subdirs
         index = load_channels(pool, self._channel_urls(), repos,
                               prepend=False,
                               use_local=context.use_local,
-                              platform=context.subdir)
+                              platform=subdirs)
 
         state.update({
             "pool": pool,
@@ -2007,7 +2010,7 @@ class LibSolvSolver(Solver):
             line = line.strip()
             if line.startswith("- nothing provides requested"):
                 packages = line.split()[4:]
-                raise PackagesNotFoundError(packages)
+                raise PackagesNotFoundError([" ".join(packages)])
         raise RawStrUnsatisfiableError(problems)
 
 class SolverStateContainer(object):
