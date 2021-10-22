@@ -1635,12 +1635,12 @@ class LibSolvSolver(Solver):
                     conda_spec = MatchSpec(conda_spec, version=version_req)
                 if context.auto_update_conda and not conda_requested_explicitly:
                     conda_spec = MatchSpec("conda", version=version_req, target=None)
-                print("Adjust conda spec")
+                log.debug("Adjust conda spec")
                 specs_map["conda"] = conda_spec
 
         # Section 11 - If Python is installed and has been requested with no constrains,
         # we assume the user wants an update, so we add >{current_version}
-        print("Make sure python is upgraded if requested explicitly and not in conflict")
+        log.debug("Make sure python is upgraded if requested explicitly and not in conflict")
         if (installed_python and py_requested_explicitly
                 and not specs_map["python"].version and "python" not in conflicting):
             specs_map["python"] = MatchSpec(name="python", version=f">{installed_python.version}")
