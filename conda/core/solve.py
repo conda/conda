@@ -10,6 +10,7 @@ from os.path import join
 import sys
 from textwrap import dedent
 from itertools import chain
+from collections import defaultdict
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -1205,7 +1206,7 @@ class LibSolvSolver(Solver):
 
     def _setup_state(self):
         from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
-        from mamba.mamba_api import Pool, Repo, PrefixData as MambaPrefixData, Query
+        from mamba.mamba_api import Pool, Repo, PrefixData as MambaPrefixData
 
         init_api_context()
 
@@ -1221,7 +1222,6 @@ class LibSolvSolver(Solver):
         mamba_prefix_data = MambaPrefixData(self.prefix)
         mamba_prefix_data.load()
         installed_json_f, installed_pkgs = get_installed_jsonfile(self.prefix)
-
         repos = []
         installed = Repo(pool, "installed", installed_json_f.name, "")
         installed.set_installed()
@@ -1246,8 +1246,8 @@ class LibSolvSolver(Solver):
             "index": index,
             "installed_pkgs": installed_pkgs,
             "history": History(self.prefix),
-            "conflicting": set(),
-            "specs_map": {},
+            "conflicting": TrackedDict(),
+            "specs_map": TrackedDict(),
         })
 
         return state
@@ -1311,9 +1311,7 @@ class LibSolvSolver(Solver):
         from mamba import mamba_api as api
 
         # Set different solver options
-        solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1),
-                        #   (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1)
-                          ]
+        solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
         if context.channel_priority is ChannelPriority.STRICT:
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
         state["solver"] = solver = api.Solver(state["pool"], solver_options)
@@ -1330,21 +1328,15 @@ class LibSolvSolver(Solver):
         # Neuter conflicts if any (modifies specs_map in place)
         specs_map = self._neuter_conflicts(state, ignore_pinned=ignore_pinned)
 
-        # Wrap up and create tasks for the solver
-        tasks = {
-            "SOLVER_INSTALL": [],
-            "SOLVER_UPDATE": [],
-            # "SOLVER_LOCK": [],
-        }
-        installed_names = set(rec.name for rec in state["installed_pkgs"])
-        for name, spec in specs_map.items():
-            key = "SOLVER_UPDATE" if name in installed_names else "SOLVER_INSTALL"
-            tasks[key].append(spec.conda_build_form())
+        tasks = self._specs_map_to_tasks(state, specs_map)
 
-        log.debug(f"Invoking libsolv with tasks {tasks}")
+        log.debug(
+            "Invoking libsolv with tasks: %s",
+            "\n".join([f"{task_str}: {', '.join(specs)}" for (task_str, _), specs in tasks.items()])
+        )
 
-        for task_type, specs in tasks.items():
-            solver.add_jobs(specs, getattr(api, task_type))
+        for (_, task_type), specs in tasks.items():
+            solver.add_jobs(specs, task_type)
 
         return solver
 
@@ -1398,13 +1390,14 @@ class LibSolvSolver(Solver):
         # will contain the specs passed to the solver (eventually). Mamba
         # expects a MatchSpec.conda_build_form(), but internally we will use
         # the full object to handle things like optionality and targets.
-        specs_map = {}
+        specs_map = TrackedDict()
         history = state["history"].get_requested_specs_map()
         installed = {p.name: p for p in state["conda_prefix_data"].iter_records()}
         pinned = {p.name: p for p in self._pinned_specs(state, ignore_pinned)}
-        conflicting = {p.name: p for p in state["conflicting"]}
+        conflicting = state["conflicting"]
 
         # 1.1. Add everything found in history
+        log.debug("Adding history pins")
         specs_map.update(history)
         # 1.2. Protect some critical packages from being removed accidentally
         for pkg_name in ('anaconda', 'conda', 'conda-build', 'python.app',
@@ -1413,6 +1406,7 @@ class LibSolvSolver(Solver):
                 specs_map[pkg_name] = MatchSpec(pkg_name)
 
         # 1.3. Add virtual packages so they are taken into account by the solver
+        log.debug("Adding virtual packages")
         virtual_pkg_index = {}
         _supplement_index_with_system(virtual_pkg_index)
         for virtual_pkg in virtual_pkg_index.keys():
@@ -1420,6 +1414,7 @@ class LibSolvSolver(Solver):
                 specs_map[virtual_pkg.name] = MatchSpec(virtual_pkg.name)
 
         # 1.4. Go through the installed packages and...
+        log.debug("Relaxing some installed specs")
         for pkg_name, pkg_record in installed.items():
             name_spec = MatchSpec(pkg_name)
             if (    # 1.4.1. History is empty. Add everything (happens with update --all)
@@ -1439,6 +1434,7 @@ class LibSolvSolver(Solver):
 
         # 3.1. If the prefix already contain matching specs for what we have added so far,
         # constrain these whenever possible to reduce the amount of changes
+        log.debug("Refining some installed packages...")
         for pkg_name, pkg_spec in specs_map.items():
             matches_for_spec = tuple(prec for prec in installed.values() if pkg_spec.match(prec))
             if not matches_for_spec:
@@ -1453,15 +1449,27 @@ class LibSolvSolver(Solver):
             spec_in_prefix = matches_for_spec[0]
             # 3.1.1: always update
             if MatchSpec(pkg_name) in context.aggressive_update_packages:
+                log.debug("Relax due to aggressive_update_packages")
                 specs_map[pkg_name] = MatchSpec(pkg_name)
             # 3.1.2: freeze
-            elif spec_in_prefix.is_unmanageable or not history or pkg_name not in conflicting:
+            elif spec_in_prefix.is_unmanageable:
+                log.debug("Freeze because unmanageable")
+                # TODO: This is not the complete _should_freeze logic
+                specs_map[pkg_name] = spec_in_prefix.to_match_spec()
+            elif not history:
+                log.debug("Freeze because no history")
+                # TODO: This is not the complete _should_freeze logic
+                specs_map[pkg_name] = spec_in_prefix.to_match_spec()
+            elif pkg_name not in conflicting:
+                log.debug("Freeze because not conflicting")
                 # TODO: This is not the complete _should_freeze logic
                 specs_map[pkg_name] = spec_in_prefix.to_match_spec()
             # 3.1.3: soft-constrain via `target`
             elif pkg_name in history:
+                log.debug("Soft-freezing because historic")
                 specs_map[pkg_name] = MatchSpec(history[pkg_name], target=spec_in_prefix.dist_str())
             else:
+                log.debug("Soft-freezing because it is requested and already installed as a 2nd order dependency")
                 specs_map[pkg_name] = MatchSpec(pkg_name, target=spec_in_prefix.dist_str())
 
         # Section 4: Check pinned packages
@@ -1478,8 +1486,10 @@ class LibSolvSolver(Solver):
             is_installed = name in installed
             is_requested = name in specs_to_add_map
             if is_installed and not is_requested:
+                log.debug("Pinning because installed and not requested")
                 specs_map[name] = MatchSpec(pin, optional=False)
             elif is_requested:
+                log.debug("Pin overrides user-requesred spec")
                 if specs_to_add_map[name].match(pin):
                     log.debug("pinned spec `%s` despite user-requested spec `%s` being present "
                               "because pin is stricter", pin, specs_to_add_map[name])
@@ -1489,6 +1499,7 @@ class LibSolvSolver(Solver):
                     log.warn("pinned spec %s conflicts with explicit specs (%s).  "
                              "Overriding pinned spec.", pin, specs_to_add_map[name])
             elif name in explicit_pool:
+                log.debug("Pinning because this spec is part of the explicit pool")
                 specs_map[name] = MatchSpec(pin, optional=False)
             # TODO: Not sure what this does
             # elif installed[pin.name] & r._get_package_pool([pin]).get(pin.name, set()):
@@ -1499,31 +1510,40 @@ class LibSolvSolver(Solver):
         if update_modifier == UpdateModifier.FREEZE_INSTALLED:
             for pkg_name, pkg_record in installed.items():
                 if pkg_name not in conflicting:  # TODO
+                    log.debug("Freezing because installed and not conflicting")
                     specs_map[pkg_name] = pkg_record.to_match_spec()
                 else:
+                    log.debug("Unfreezing because conflicting...")
                     specs_map[pkg_name] = MatchSpec(
                         pkg_name, target=pkg_record.to_match_spec(), optional=True)
             log.debug("specs_map with targets: %s", specs_map)
 
         # Section 6: Handle UPDATE_ALL
         elif update_modifier == UpdateModifier.UPDATE_ALL:
-            new_specs_map = {}
+            new_specs_map = TrackedDict()
             if history:
                 for spec in history:
                     matchspec = MatchSpec(spec)
                     if matchspec.name not in pinned:
+                        log.debug("Update all: spec is in history but not pinnned")
                         new_specs_map[spec] = matchspec
                     else:
+                        log.debug("Update all: spec is in history and pinnned")
                         new_specs_map[matchspec.name] = specs_map[matchspec.name]
                 for pkg_name, pkg_record in installed.items():
                     # treat pip-installed stuff as explicitly installed, too.
                     if pkg_record.subdir == 'pypi':
+                        log.debug("Update all: spec is pip-installed")
+                        new_specs_map[pkg_name] = MatchSpec(pkg_name)
+                    elif pkg_name not in new_specs_map:
                         new_specs_map[pkg_name] = MatchSpec(pkg_name)
             else:
                 for pkg_name, pkg_record in installed.items():
                     if pkg_name not in pinned:
+                        log.debug("Update all: spec is installed but not pinned")
                         new_specs_map[pkg_name] = MatchSpec(pkg_name)
                     else:
+                        log.debug("Update all: spec is installed and pinned")
                         new_specs_map[pkg_name] = specs_map[pkg_name]
             # We overwrite the specs map so far!
             specs_map = new_specs_map
@@ -1570,34 +1590,37 @@ class LibSolvSolver(Solver):
 
             # TODO: What shall we do with `potential_conflicts`??
 
+            log.debug("Relax constrains because it caused a conflict")
             for pkg in conflicting.values():
                 # neuter the spec due to a conflict
                 if pkg.name in specs_map and pkg.name not in pinned:
                     specs_map[pkg.name] = history.get(pkg.name, MatchSpec(pkg.name))
 
         # Section 7 - Pin Python
-        py_in_prefix = any(name == "python" for name in installed)
+        log.debug("Adjust python pinning")
         py_requested_explicitly = any(s.name == "python" for s in self.specs_to_add)
-        if py_in_prefix and not py_requested_explicitly:
-            python_prefix_rec = state["conda_prefix_data"].get("python")
+        installed_python = installed.get("python")
+        if installed_python and not py_requested_explicitly:
             freeze_installed = update_modifier == UpdateModifier.FREEZE_INSTALLED
             if "python" not in conflicting and freeze_installed:
-                specs_map["python"] = python_prefix_rec.to_match_spec()
+                specs_map["python"] = installed_python.to_match_spec()
             else:
                 # will our prefix record conflict with any explict spec?  If so, don't add
                 #     anything here - let python float when it hasn't been explicitly specified
                 python_spec = specs_map.get("python", MatchSpec("python"))
                 if not python_spec.get('version'):
-                    pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
+                    pinned_version = get_major_minor_version(installed_python.version) + '.*'
                     python_spec = MatchSpec(python_spec, version=pinned_version)
                 specs_map["python"] = python_spec
 
         # Section 8 - Make sure aggressive updates are not constrained now
         if not context.offline:
+            log.debug("Make sure aggressive updates did not end up pinned again")
             specs_map.update({s.name: s for s in context.aggressive_update_packages
                               if s.name in specs_map})
 
         # Section 9 - FINALLY we add the explicitly requested specs
+        log.debug("Add user specs")
         specs_map.update({s.name: s for s in self.specs_to_add if s.name not in pin_overrides})
 
         # Section 10 - Make sure `conda` is not downgraded
@@ -1612,12 +1635,20 @@ class LibSolvSolver(Solver):
                     conda_spec = MatchSpec(conda_spec, version=version_req)
                 if context.auto_update_conda and not conda_requested_explicitly:
                     conda_spec = MatchSpec("conda", version=version_req, target=None)
+                print("Adjust conda spec")
                 specs_map["conda"] = conda_spec
+
+        # Section 11 - If Python is installed and has been requested with no constrains,
+        # we assume the user wants an update, so we add >{current_version}
+        print("Make sure python is upgraded if requested explicitly and not in conflict")
+        if (installed_python and py_requested_explicitly
+                and not specs_map["python"].version and "python" not in conflicting):
+            specs_map["python"] = MatchSpec(name="python", version=f">{installed_python.version}")
 
         return specs_map
 
     def _neuter_conflicts(self, state, ignore_pinned=False):
-        conflicting_specs = state["conflicting"]
+        conflicting_specs = state["conflicting"].values()
         specs_map = state["specs_map"]
 
         # Are all conflicting specs in specs_map? If not, that means they're in
@@ -1643,12 +1674,11 @@ class LibSolvSolver(Solver):
                 self.prefix
             )
 
-
+        log.debug("Neutering specs...")
         for spec in conflicting_specs:
             # if spec.name == "python":
             #     continue
             if spec.target and not spec.optional:
-                specs_map.pop(spec.name)
                 if spec.get('version'):
                     neutered_spec = MatchSpec(spec.name, version=spec.version)
                 else:
@@ -1657,21 +1687,43 @@ class LibSolvSolver(Solver):
 
         return specs_map
 
+    def _specs_map_to_tasks(self, state, specs_map):
+        from mamba import mamba_api as api
+        tasks = defaultdict(list)
+        history = state["history"].get_requested_specs_map()
 
-    def _pin_python(self, state, update_modifier=NULL):
-        """
-        If Python is already present in the environment and the user didn't
-        include it in the requested packages, make sure it remains pinned to
-        the minor version.
-        """
-        installed_names = [rec.name for rec in state["installed_pkgs"]]
-        is_installed = "python" in installed_names
-        is_explicitly_requested = any(s == "python" for s in self.specs_to_add_names)
-        is_requested_in_update_all = update_modifier == UpdateModifier.UPDATE_ALL
-        if is_installed and (is_requested_in_update_all or not is_explicitly_requested):
-            version = state["installed_pkgs"][installed_names.index("python")].version
-            major_minor_version = ".".join(version.split(".")[:2])
-            return f"python {major_minor_version}.*"
+        # Section 11 - deprioritize installed stuff that wasn't requested
+        # These packages might not be available in future Python versions, but we don't
+        # want them to block a requested Python update
+        log.debug("Deprioritizing conflicts:")
+        explicitly_requested_names = set(s.name for s in self.specs_to_add)
+        for conflict in state["conflicting"]:
+            if conflict in specs_map and not conflict.startswith("__") and conflict not in explicitly_requested_names:
+                spec = specs_map.pop(conflict)
+                log.debug("  MOV:", conflict, "from specs_map to SOLVER_DISFAVOR")
+                tasks[("api.SOLVER_DISFAVOR", api.SOLVER_DISFAVOR)].append(spec.conda_build_form())
+                tasks[("api.SOLVER_ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec.conda_build_form())
+
+        # Wrap up and create tasks for the solver
+        installed = {rec.name: rec for rec in state["installed_pkgs"]}
+        for name, spec in specs_map.items():
+            if name in installed:
+                if name == "python":
+                    key = "api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL
+                else:
+                    key = "api.SOLVER_UPDATE", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL
+
+                history_spec = history.get(name)
+                if history_spec:
+                    installed_rec = installed[name]
+                    ms = MatchSpec(name=installed_rec.name, version=installed_rec.version, build=installed_rec.build)
+                    tasks[("api.SOLVER_USERINSTALLED", api.SOLVER_USERINSTALLED)].append(ms.conda_build_form())
+            else:
+                key = "api.SOLVER_INSTALL", api.SOLVER_INSTALL
+            tasks[key].append(spec.conda_build_form())
+
+
+        return tasks
 
     def _pinned_specs(self, state, ignore_pinned=False):
         if ignore_pinned:
@@ -1702,18 +1754,7 @@ class LibSolvSolver(Solver):
             # that the exception can actually format if needed
             problems = solver.problems_to_str()
             previous = state["conflicting"].copy()
-            new = self._parse_problems(problems)
-            if previous and (previous == new or previous.issubset(new)):
-                # We have same or more conflicts now! Abort to avoid recursion.
-                raise RawStrUnsatisfiableError(problems)
-            # Preserve old conflicts (now neutered as name-only spes) in the
-            # new list of conflicts (unless a different variant is now present)
-            # This allows us to have a conflict memory for next attempts.
-            new_names = {spec.name for spec in new}
-            for spec in previous:
-                if spec.name not in new_names:
-                    new.add(MatchSpec(name=spec.name))
-            state["conflicting"] = new
+            state["conflicting"] = self._parse_problems(problems, previous)
 
         return solved
 
@@ -1772,7 +1813,7 @@ class LibSolvSolver(Solver):
 
         return state
 
-    def _parse_problems(self, problems):
+    def _parse_problems(self, problems, previous):
         dashed_specs = []       # e.g. package-1.2.3-h5487548_0
         conda_build_specs = []  # e.g. package 1.2.8.*
         for line in problems.splitlines():
@@ -1784,8 +1825,7 @@ class LibSolvSolver(Solver):
                 assert words[1] == "package"
                 assert words[3] == "requires"
                 dashed_specs.append(words[2])
-                # end = words.index("but")
-                # conda_build_specs.append(words[4:end])
+                conda_build_specs.append(words[4:5])
             elif "- nothing provides" in line and "needed by" in line:
                 dashed_specs.append(words[-1])
             elif "- nothing provides" in line:
@@ -1795,17 +1835,41 @@ class LibSolvSolver(Solver):
                     conda_build_specs.append(words[-3:])
 
 
-        conflicts = []
+        conflicts = {}
         for conflict in dashed_specs:
             name, version, build = conflict.rsplit("-", 2)
-            conflicts.append(MatchSpec(name=name, version=version, build=build))
+            conflicts[name] = MatchSpec(name=name, version=version, build=build)
         for conflict in conda_build_specs:
-            kwargs = {"name": conflict[0], "version": conflict[1].rstrip(",")}
+            kwargs = {"name": conflict[0]}
+            if len(conflict) >= 2:
+                kwargs["version"] = conflict[1].rstrip(",")
             if len(conflict) == 3:
                 kwargs["build"] = conflict[2].rstrip(",")
-            conflicts.append(MatchSpec(**kwargs))
+            conflicts[kwargs["name"]] = MatchSpec(**kwargs)
 
-        return set(conflicts)
+        previous_set = set(previous.values())
+        current_set = set(conflicts.values())
+
+        diff = current_set.difference(previous_set)
+        if len(diff) > 1 and "python" in conflicts:
+            # Only report python as conflict if it's the only conflict reported
+            # This helps us prioritize neutering for other dependencies first
+            conflicts.pop("python")
+
+        current_set = set(conflicts.values())
+        if (previous and (previous_set == current_set)) or len(diff) >= 10: # or previous_set.issubset(current_set)):
+            # We have same or more (up to 10) conflicts now! Abort to avoid recursion.
+            raise RawStrUnsatisfiableError(problems)
+
+        # Preserve old conflicts (now neutered as name-only spes) in the
+        # new list of conflicts (unless a different variant is now present)
+        # This allows us to have a conflict memory for next attempts.
+        for spec in previous:
+            if spec not in conflicts:
+                conflicts[spec] = MatchSpec(name=spec)
+
+
+        return conflicts
 
     def _post_solve_tasks(self,
                           state,
@@ -1816,7 +1880,7 @@ class LibSolvSolver(Solver):
                           force_remove=NULL,
                           prune=NULL):
         specs_map = state["specs_map"]
-        final_prefix_map = {pkg.name: pkg for pkg in state["final_prefix_state"]}
+        final_prefix_map = TrackedDict({pkg.name: pkg for pkg in state["final_prefix_state"]})
 
         # TODO: We are currently not handling dependencies orphaned after identifying
         # conflicts (stored in `ssc.add_back_map`).
@@ -1883,7 +1947,7 @@ class LibSolvSolver(Solver):
             for spec in self.specs_to_add:
                 node = graph.get_node_by_name(spec.name)
                 update_names.update(ancest_rec.name for ancest_rec in graph.all_ancestors(node))
-            specs_map = {name: MatchSpec(name) for name in update_names}
+            specs_map = TrackedDict({name: MatchSpec(name) for name in update_names})
 
             # Remove pinned_specs and any python spec (due to major-minor pinning business rule).
             for spec in self._pinned_specs(state, ignore_pinned):
@@ -2286,3 +2350,31 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #         return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
 #                                               always_copy, pinned, update_deps,
 #                                               prune, channel_priority_map, is_update)
+
+
+class TrackedDict(dict):
+    def __setitem__(self, k, v) -> None:
+        if k in self:
+            oldv = self[k]
+            if v == oldv:
+                log.debug("  EQU:", k, "=", v)
+            else:
+                log.debug("  UPD:", k, "from", self[k], "to", v)
+        else:
+            log.debug("  NEW:", k, "=", v)
+        return super().__setitem__(k, v)
+
+    def __delitem__(self, v) -> None:
+        log.debug("  DEL:", v)
+        return super().__delitem__(v)
+
+    def update(self, *args, **kwargs):
+        old = self.copy()
+        super().update(*args, **kwargs)
+        for k, v in self.items():
+            if k in old:
+                oldv = old[k]
+                if v != oldv:
+                    log.debug("  UPD:", k, "from", old[k], "to", v)
+            else:
+                log.debug("  NEW:", k, "=", v)

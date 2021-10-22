@@ -1786,11 +1786,14 @@ def test_pinned_1(tmpdir):
         specs_to_add = MatchSpec("scikit-learn==0.13"),
         with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
-            with pytest.raises(SpecsConfigurationConflictError) as exc:
+            with pytest.raises((SpecsConfigurationConflictError, RawStrUnsatisfiableError)) as exc:
                 solver.solve_final_state(ignore_pinned=False)
-            kwargs = exc.value._kwargs
-            assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
-            assert kwargs["pinned_specs"] == ["python=2.6"]
+            if isinstance(exc, SpecsConfigurationConflictError):
+                kwargs = exc.value._kwargs
+                assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
+                assert kwargs["pinned_specs"] == ["python=2.6"]
+            elif isinstance(exc, RawStrUnsatisfiableError):
+                assert "package scikit-learn-0.13-np17py27_1 requires python 2.7*" in str(exc)
 
         specs_to_add = MatchSpec("numba"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"),
@@ -2306,7 +2309,8 @@ def test_freeze_deps_1(tmpdir):
     specs_to_add = MatchSpec("bokeh=0.12.5"), MatchSpec("python")
     with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
-        unlink_precs, link_precs = solver.solve_for_diff()
+        # conda prunes but mamba doesn't if this not explicitly asked :/
+        unlink_precs, link_precs = solver.solve_for_diff(prune=True)
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
         unlink_order = add_subdir_to_iter((
