@@ -1102,7 +1102,11 @@ class LibSolvSolver(Solver):
         attempts = n_installed_pkgs
         while attempts:
             attempts -=1
-            log.debug(f"Attempt number {n_installed_pkgs-attempts}. Current conflicts (including learnt ones): {state['conflicting']}")
+            log.debug(
+                "Attempt number %s. Current conflicts (including learnt ones): %s",
+                n_installed_pkgs-attempts,
+                state['conflicting'],
+            )
             # 2. Create solver and needed flags, tasks and jobs
             self._configure_solver(
                 state,
@@ -1700,7 +1704,7 @@ class LibSolvSolver(Solver):
         for conflict in state["conflicting"]:
             if conflict in specs_map and not conflict.startswith("__") and conflict not in explicitly_requested_names:
                 spec = specs_map.pop(conflict)
-                log.debug("  MOV:", conflict, "from specs_map to SOLVER_DISFAVOR")
+                log.debug("  MOV: %s from specs_map to SOLVER_DISFAVOR", conflict)
                 tasks[("api.SOLVER_DISFAVOR", api.SOLVER_DISFAVOR)].append(spec.conda_build_form())
                 tasks[("api.SOLVER_ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec.conda_build_form())
 
@@ -2357,15 +2361,15 @@ class TrackedDict(dict):
         if k in self:
             oldv = self[k]
             if v == oldv:
-                log.debug("  EQU:", k, "=", v)
+                log.debug("  EQU: %s = %s", k, v)
             else:
-                log.debug("  UPD:", k, "from", self[k], "to", v)
+                log.debug("  UPD: %s from %s to %s", k, self[k], v)
         else:
-            log.debug("  NEW:", k, "=", v)
+            log.debug("  NEW: %s = %s", k, v)
         return super().__setitem__(k, v)
 
     def __delitem__(self, v) -> None:
-        log.debug("  DEL:", v)
+        log.debug("  DEL: %s", v)
         return super().__delitem__(v)
 
     def update(self, *args, **kwargs):
@@ -2375,6 +2379,6 @@ class TrackedDict(dict):
             if k in old:
                 oldv = old[k]
                 if v != oldv:
-                    log.debug("  UPD:", k, "from", old[k], "to", v)
+                    log.debug("  UPD: %s from %s to %s", k, old[k], v)
             else:
-                log.debug("  NEW:", k, "=", v)
+                log.debug("  NEW: %s = %s", k, v)
