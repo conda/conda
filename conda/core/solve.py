@@ -1691,6 +1691,8 @@ class LibSolvSolver(Solver):
                 else:
                     neutered_spec = MatchSpec(spec.name)
                 specs_map[spec.name] = neutered_spec
+            if spec.name not in specs_map:  # side-effect conflict; add to specs with less restrains
+                specs_map[spec.name] = MatchSpec(name=spec.name, target=spec.dist_str())
 
         return specs_map
 
@@ -1703,9 +1705,10 @@ class LibSolvSolver(Solver):
         # These packages might not be available in future Python versions, but we don't
         # want them to block a requested Python update
         log.debug("Deprioritizing conflicts:")
-        explicitly_requested_names = set(s.name for s in self.specs_to_add)
+        protect_these = set(s.name for s in self.specs_to_add)  # explicitly requested
+        protect_these.update(("python", "conda"))
         for conflict in state["conflicting"]:
-            if conflict in specs_map and not conflict.startswith("__") and conflict not in explicitly_requested_names:
+            if conflict in specs_map and conflict not in protect_these:
                 spec = specs_map.pop(conflict)
                 log.debug("  MOV: %s from specs_map to SOLVER_DISFAVOR", conflict)
                 tasks[("api.SOLVER_DISFAVOR", api.SOLVER_DISFAVOR)].append(spec.conda_build_form())

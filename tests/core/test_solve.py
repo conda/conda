@@ -1453,7 +1453,6 @@ def test_python2_update(tmpdir):
     specs_to_add = MatchSpec("python=3"),
     with get_solver_4(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        pprint(convert_to_dist_str(final_state_2))
         order = add_subdir_to_iter((
             'channel-4::ca-certificates-2018.03.07-0',
             'channel-4::conda-env-2.6.0-1',
@@ -1486,7 +1485,24 @@ def test_python2_update(tmpdir):
             'channel-4::requests-2.19.1-py37_0',
             'channel-4::conda-4.5.10-py37_0',
         ))
-        assert convert_to_dist_str(final_state_2) == order
+        obtained_solution = convert_to_dist_str(final_state_2)
+        pprint(obtained_solution)
+        if context.solver_logic.value == "libsolv":
+            # libsolv has a different solution here (cryptography 2.3 instead of 2.2.2)
+            # and cryptography-vectors (not present in regular conda)
+            # they are essentially the same functional solution; the important part here
+            # is that the env migrated to Python 3.7, so we only check some packages
+            assert set(
+                add_subdir_to_iter(
+                    (
+                        'channel-4::python-3.7.0-hc3d631a_0',
+                        'channel-4::conda-4.5.10-py37_0',
+                        'channel-4::pycosat-0.6.3-py37h14c3975_0',
+                    )
+                )
+            ).issubset(set(obtained_solution))
+        else:
+            assert obtained_solution == order
 
 
 def test_update_deps_1(tmpdir):
@@ -2179,6 +2195,7 @@ def test_priority_1(tmpdir):
             assert 'pandas' not in convert_to_dist_str(final_state_4)
 
 
+@pytest.mark.skipif(context.solver_logic.value, reason="libsolv does not support features")
 def test_features_solve_1(tmpdir):
     # in this test, channel-2 is a view of pkgs/free/linux-64
     #   and channel-4 is a view of the newer pkgs/main/linux-64
