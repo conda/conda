@@ -53,7 +53,7 @@ from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
-    PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
+    PackagesNotFoundError, RawStrUnsatisfiableError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
     DisallowedPackageError, DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound, \
     CondaValueError
 from conda.gateways.anaconda_client import read_binstar_tokens
@@ -2057,11 +2057,13 @@ dependencies:
                 assert "All requested packages already installed." in stdout
 
                 # should raise an error
-                with pytest.raises(PackagesNotFoundError):
+                with pytest.raises((PackagesNotFoundError, RawStrUnsatisfiableError)) as exc:
                     # TODO: This raises PackagesNotFoundError, but the error should really explain
                     #       that we can't install urllib3 because it's already installed and
                     #       unmanageable. The error should suggest trying to use pip to uninstall it.
                     stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "urllib3=1.20", "--dry-run")
+                    if isinstance(exc, RawStrUnsatisfiableError):
+                        assert "nothing provides requested urllib3 1.20.*" in exc.value
 
                 # Now install a manageable urllib3.
                 output = check_output(PYTHON_BINARY + " -m pip install -U urllib3==1.20",
