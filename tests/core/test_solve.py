@@ -505,7 +505,8 @@ def test_cuda_glibc_unsat_constrain(tmpdir):
             with pytest.raises(RawStrUnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
-
+@pytest.mark.skipif(context.solver_logic.value == "libsolv",
+                    reason="Features / nomkl involved. Not supported.")
 def test_prune_1(tmpdir):
     specs = MatchSpec("numpy=1.6"), MatchSpec("python=2.7.3"), MatchSpec("accelerate"),
 

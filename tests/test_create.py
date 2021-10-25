@@ -2362,6 +2362,7 @@ dependencies:
                 mock_method.side_effect = side_effect
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
+    @pytest.mark.skipif(context.solver_logic.value == "libsolv", reason="Known broken; bug in libmamba")
     def test_offline_with_empty_index_cache(self):
         from conda.core.subdir_data import SubdirData
         SubdirData._cache_.clear()
