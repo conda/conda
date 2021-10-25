@@ -2,6 +2,6 @@
 
 set -o errtrace -o pipefail -o errexit
 
-conda install -yq pip conda-build conda-verify
+conda install -yq pip conda-build conda-verify pytest
 conda update openssl ca-certificates certifi
 python -m conda init bash --dev
