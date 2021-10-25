@@ -2132,7 +2132,7 @@ def test_remove_with_constrained_dependencies(tmpdir):
 def test_priority_1(tmpdir):
     with env_var("CONDA_SUBDIR", "linux-64", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         specs = MatchSpec("pandas"), MatchSpec("python=2.7"),
-        with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var("CONDA_CHANNEL_PRIORITY", "strict", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with get_solver_aggregate_1(tmpdir, specs) as solver:
                 final_state_1 = solver.solve_final_state()
                 pprint(convert_to_dist_str(final_state_1))
@@ -2152,7 +2152,7 @@ def test_priority_1(tmpdir):
                 ))
                 assert convert_to_dist_str(final_state_1) == order
 
-        with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var("CONDA_CHANNEL_PRIORITY", "disabled", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with get_solver_aggregate_1(tmpdir, specs, prefix_records=final_state_1,
                                         history_specs=specs) as solver:
                 final_state_2 = solver.solve_final_state()
@@ -2169,30 +2169,32 @@ def test_priority_1(tmpdir):
         # channel priority taking effect here.  channel-2 should be the channel to draw from.  Downgrades expected.
         # python and pandas will be updated as they are explicit specs.  Other stuff may or may not,
         #     as required to satisfy python and pandas
-        with get_solver_aggregate_1(tmpdir, specs, prefix_records=final_state_2,
-                                    history_specs=specs) as solver:
-            final_state_3 = solver.solve_final_state()
-            pprint(convert_to_dist_str(final_state_3))
-            order = add_subdir_to_iter((
-                'channel-2::python-2.7.13-0',
-                'channel-2::pandas-0.20.3-py27_0',
-            ))
-            for spec in order:
-                assert spec in convert_to_dist_str(final_state_3)
+        priority = "strict" if context.solver_logic.value == "libsolv" else "flexible"
+        with env_var("CONDA_CHANNEL_PRIORITY", priority, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with get_solver_aggregate_1(tmpdir, specs, prefix_records=final_state_2,
+                                        history_specs=specs) as solver:
+                final_state_3 = solver.solve_final_state()
+                pprint(convert_to_dist_str(final_state_3))
+                order = add_subdir_to_iter((
+                    'channel-2::python-2.7.13-0',
+                    'channel-2::pandas-0.20.3-py27_0',
+                ))
+                for spec in order:
+                    assert spec in convert_to_dist_str(final_state_3)
 
-        specs_to_add = MatchSpec("six<1.10"),
-        specs_to_remove = MatchSpec("pytz"),
-        with get_solver_aggregate_1(tmpdir, specs_to_add=specs_to_add, specs_to_remove=specs_to_remove,
-                                    prefix_records=final_state_3, history_specs=specs) as solver:
-            final_state_4 = solver.solve_final_state()
-            pprint(convert_to_dist_str(final_state_4))
-            order = add_subdir_to_iter((
-                'channel-2::python-2.7.13-0',
-                'channel-2::six-1.9.0-py27_0',
-            ))
-            for spec in order:
-                assert spec in convert_to_dist_str(final_state_4)
-            assert 'pandas' not in convert_to_dist_str(final_state_4)
+            specs_to_add = MatchSpec("six<1.10"),
+            specs_to_remove = MatchSpec("pytz"),
+            with get_solver_aggregate_1(tmpdir, specs_to_add=specs_to_add, specs_to_remove=specs_to_remove,
+                                        prefix_records=final_state_3, history_specs=specs) as solver:
+                final_state_4 = solver.solve_final_state()
+                pprint(convert_to_dist_str(final_state_4))
+                order = add_subdir_to_iter((
+                    'channel-2::python-2.7.13-0',
+                    'channel-2::six-1.9.0-py27_0',
+                ))
+                for spec in order:
+                    assert spec in convert_to_dist_str(final_state_4)
+                assert 'pandas' not in convert_to_dist_str(final_state_4)
 
 
 @pytest.mark.skipif(context.solver_logic.value == "libsolv", reason="libsolv does not support features")
@@ -2201,7 +2203,7 @@ def test_features_solve_1(tmpdir):
     #   and channel-4 is a view of the newer pkgs/main/linux-64
     # The channel list, equivalent to context.channels is ('channel-2', 'channel-4')
     specs = (MatchSpec("python=2.7"), MatchSpec("numpy"), MatchSpec("nomkl"))
-    with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_CHANNEL_PRIORITY", "flexible", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with get_solver_aggregate_1(tmpdir, specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
@@ -2219,7 +2221,7 @@ def test_features_solve_1(tmpdir):
             ))
             assert convert_to_dist_str(final_state_1) == order
 
-    with env_var("CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var("CONDA_CHANNEL_PRIORITY", "disabled", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with get_solver_aggregate_1(tmpdir, specs) as solver:
             final_state_1 = solver.solve_final_state()
             pprint(convert_to_dist_str(final_state_1))
