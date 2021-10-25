@@ -1836,7 +1836,8 @@ class LibSolvSolver(Solver):
                 assert words[1] == "package"
                 assert words[3] == "requires"
                 dashed_specs.append(words[2])
-                conda_build_specs.append(words[4:5])
+                end = words.index("but")
+                conda_build_specs.append(words[4:end])
             elif "- nothing provides" in line and "needed by" in line:
                 dashed_specs.append(words[-1])
             elif "- nothing provides" in line:
