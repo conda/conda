@@ -1702,7 +1702,7 @@ class LibSolvSolver(Solver):
         tasks = defaultdict(list)
         history = state["history"].get_requested_specs_map()
         specs_map = specs_map.copy()
-        installed = {rec.name: rec for rec in state["installed_pkgs"]}
+        installed = {rec.name: rec for rec in state["conda_prefix_data"].iter_records()}
 
         # Section 11 - deprioritize installed stuff that wasn't requested
         # These packages might not be available in future Python versions, but we don't
