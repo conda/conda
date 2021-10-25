@@ -1701,7 +1701,7 @@ class LibSolvSolver(Solver):
         from mamba import mamba_api as api
         tasks = defaultdict(list)
         history = state["history"].get_requested_specs_map()
-
+        specs_map = specs_map.copy()
         # Section 11 - deprioritize installed stuff that wasn't requested
         # These packages might not be available in future Python versions, but we don't
         # want them to block a requested Python update
@@ -1888,6 +1888,10 @@ class LibSolvSolver(Solver):
                           prune=NULL):
         specs_map = state["specs_map"]
         final_prefix_map = TrackedDict({pkg.name: pkg for pkg in state["final_prefix_state"]})
+        history_map = state["history"].get_requested_specs_map()
+        self.neutered_specs = tuple(pkg_spec for pkg_name, pkg_spec in specs_map.items() if
+                                    pkg_name in history_map and
+                                    pkg_spec.strictness < history_map[pkg_name].strictness)
 
         # TODO: We are currently not handling dependencies orphaned after identifying
         # conflicts (stored in `ssc.add_back_map`).
@@ -2016,6 +2020,7 @@ class LibSolvSolver(Solver):
                 packages = line.split()[4:]
                 raise PackagesNotFoundError([" ".join(packages)])
         raise RawStrUnsatisfiableError(problems)
+
 
 class SolverStateContainer(object):
     # A mutable container with defined attributes to help keep method signatures clean

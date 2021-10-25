@@ -2895,7 +2895,14 @@ dependencies:
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
             with open(os.path.join(prefix, 'conda-meta', 'history')) as f:
                 d = f.read()
-            assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
+            if context.solver_logic.value == "libsolv":
+                # libsolv relaxes more aggressively sometimes
+                # instead of relaxing from pkgname=version=build to pkgname=version, it
+                # goes to just pkgname; this is because libsolv does not take into account
+                # matchspec target and optionality (iow, MatchSpec.conda_build_form() does not)
+                assert re.search(r"neutered specs:.*'psutil'\]", d)
+            else:
+                assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
             # this would be unsatisfiable if the neutered specs were not being factored in correctly.
             #    If this command runs successfully (does not raise), then all is well.
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "imagesize")
