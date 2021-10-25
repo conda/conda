@@ -1710,7 +1710,7 @@ class LibSolvSolver(Solver):
         log.debug("Deprioritizing conflicts:")
         protect_these = set(s.name for s in self.specs_to_add)  # explicitly requested
         protect_these.update(("python", "conda"))
-        protect_these.update([pkg_name for pkg_name, pkg_name in installed.items() if pkg_name.is_unmanageable])
+        protect_these.update([pkg_name for pkg_name, pkg_record in installed.items() if pkg_record.is_unmanageable])
         for conflict in state["conflicting"]:
             if conflict in specs_map and conflict not in protect_these:
                 spec = specs_map.pop(conflict)
