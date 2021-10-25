@@ -1702,12 +1702,15 @@ class LibSolvSolver(Solver):
         tasks = defaultdict(list)
         history = state["history"].get_requested_specs_map()
         specs_map = specs_map.copy()
+        installed = {rec.name: rec for rec in state["installed_pkgs"]}
+
         # Section 11 - deprioritize installed stuff that wasn't requested
         # These packages might not be available in future Python versions, but we don't
         # want them to block a requested Python update
         log.debug("Deprioritizing conflicts:")
         protect_these = set(s.name for s in self.specs_to_add)  # explicitly requested
         protect_these.update(("python", "conda"))
+        protect_these.update([pkg_name for pkg_name, pkg_name in installed.items() if pkg_name.is_unmanageable])
         for conflict in state["conflicting"]:
             if conflict in specs_map and conflict not in protect_these:
                 spec = specs_map.pop(conflict)
@@ -1716,7 +1719,6 @@ class LibSolvSolver(Solver):
                 tasks[("api.SOLVER_ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec.conda_build_form())
 
         # Wrap up and create tasks for the solver
-        installed = {rec.name: rec for rec in state["installed_pkgs"]}
         for name, spec in specs_map.items():
             if name in installed:
                 if name == "python":
