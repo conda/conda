@@ -786,7 +786,7 @@ def test_only_deps_2(tmpdir):
 
 
 def test_update_all_1(tmpdir):
-    specs = MatchSpec("numpy=1.5"), MatchSpec("python=2.6"), MatchSpec("system[build_number=0]")
+    specs = MatchSpec("numpy=1.5"), MatchSpec("python=2.6"), MatchSpec(name="system", version="*", build="*0")
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
