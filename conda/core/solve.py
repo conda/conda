@@ -1519,7 +1519,7 @@ class LibSolvSolver(Solver):
                 if pkg_name not in conflicting:  # TODO
                     log.debug("Freezing because installed and not conflicting")
                     specs_map[pkg_name] = pkg_record.to_match_spec()
-                else:
+                elif not pkg_record.is_unmanageable:
                     log.debug("Unfreezing because conflicting...")
                     specs_map[pkg_name] = MatchSpec(
                         pkg_name, target=pkg_record.to_match_spec(), optional=True)
@@ -1543,6 +1543,7 @@ class LibSolvSolver(Solver):
                         log.debug("Update all: spec is pip-installed")
                         new_specs_map[pkg_name] = MatchSpec(pkg_name)
                     elif pkg_name not in new_specs_map:
+                        log.debug("Update all: adding spec to list because it was installed")
                         new_specs_map[pkg_name] = MatchSpec(pkg_name)
             else:
                 for pkg_name, pkg_record in installed.items():
