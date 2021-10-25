@@ -2149,6 +2149,7 @@ dependencies:
                             "agate=1.6", "--dry-run")
 
     @pytest.mark.skipif(sys.version_info.major == 2 and context.subdir == "win-32", reason="Incompatible DLLs with win-32 python 2.7 ")
+    @pytest.mark.skipif(context.solver_logic.value == "libsolv", reason="Inconsistency analysis not yet implemented")
     def test_conda_recovery_of_pip_inconsistent_env(self):
         with make_temp_env("pip=10", "python", "anaconda-client",
                            use_restricted_unicode=on_win) as prefix:
