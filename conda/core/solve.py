@@ -1674,7 +1674,7 @@ class LibSolvSolver(Solver):
         log.debug("Make sure specs are upgraded if requested explicitly and not in conflict")
         if (deps_modifier != DepsModifier.ONLY_DEPS
             and update_modifier != UpdateModifier.UPDATE_DEPS
-            and self._command != "recursive_call_for_update_deps"):
+            and self._command in ("update", "", None, NULL)):
             for spec in self.specs_to_add:
                 if (spec.name in specs_map and specs_map[spec.name].strictness == 1
                     and spec.name in installed):
@@ -1682,6 +1682,11 @@ class LibSolvSolver(Solver):
                         # We obtained a "nothing provides" error, which means this
                         # spec cannot be updated further; no forced update then
                         # TODO: Refactor conflict into dict of dicts with name->spec,reason
+                        continue
+                    if spec.name in ("pip", "setuptools"):
+                        # If added with no constrains, excluding their installed version can
+                        # result in unneded python downgrades
+                        # see tests/conda_env/test_cli.py::IntegrationTests::test_update_env_no_action_json_output
                         continue
                     installed_version = installed[spec.name].version
                     if installed_version:
