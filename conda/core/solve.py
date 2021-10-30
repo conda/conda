@@ -1543,7 +1543,7 @@ class LibSolvSolver(Solver):
                     log.debug("Unfreezing because conflicting...")
                     specs_map[pkg_name] = MatchSpec(
                         pkg_name, target=pkg_record.to_match_spec(), optional=True)
-            log.debug("specs_map with targets: %s", specs_map)
+            # log.debug("specs_map with targets: %s", specs_map)
 
         # Section 6: Handle UPDATE_ALL
         elif update_modifier == UpdateModifier.UPDATE_ALL:
@@ -1666,14 +1666,20 @@ class LibSolvSolver(Solver):
                 log.debug("Adjust conda spec")
                 specs_map["conda"] = conda_spec
 
-        # Section 11 - If Python is installed and has been requested with no constrains,
-        # we assume the user wants an update, so we add >{current_version}
+        # Section 11 - Mamba/Conda behaviour difference workaround
+        # If a spec is installed and has been requested with no constrains,
+        # we assume the user wants an update, so we add >{current_version}, but only if no
+        # flags have been passed -- otherwise interactions between implicit updates create unneeded
+        # conflicts
         log.debug("Make sure specs are upgraded if requested explicitly and not in conflict")
-        if self._command != "recursive_call_for_update_deps":
+        if (deps_modifier != DepsModifier.ONLY_DEPS and update_modifier == UpdateModifier.UPDATE_SPECS
+            and self._command != "recursive_call_for_update_deps"):
             for spec in self.specs_to_add:
                 if (spec.name in specs_map and specs_map[spec.name].strictness == 1
                     and spec.name in installed):  # and spec.name not in conflicting):
-                    specs_map[spec.name] = MatchSpec(name=spec.name, version=f"!={installed[spec.name].version}")
+                    if spec.name == "python" and "python" in conflicting:
+                        continue  # do not modify python if it was conflicting
+                    specs_map[spec.name] = MatchSpec(name=spec.name, version=f">{installed[spec.name].version}")
         # if (installed_python and py_requested_explicitly
         #         and not specs_map["python"].version and "python" not in conflicting):
         #     specs_map["python"] = MatchSpec(name="python", version=f"!={installed_python.version}")
@@ -1745,6 +1751,8 @@ class LibSolvSolver(Solver):
 
         # Wrap up and create tasks for the solver
         for name, spec in specs_map.items():
+            if name.startswith("__"):
+                continue
             if name in installed:
                 if name == "python":
                     key = "api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL
