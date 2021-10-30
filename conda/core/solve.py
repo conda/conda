@@ -1108,14 +1108,17 @@ class LibSolvSolver(Solver):
                 state['conflicting'],
             )
             result = self._solve_attempt(state, kwargs)
-            if result:
+            if result is not None:
                 return result
 
         # Last attempt, we report everything installed as a conflict just in case
         log.debug("Last attempt: reporting all installed as conflicts:")
-        state["conflicting"].update({pkg.name: pkg.to_match_spec() for pkg in state["installed_pkgs"]})
+        state["conflicting"].update(
+            {pkg.name: pkg.to_match_spec() for pkg in state["conda_prefix_data"].iter_records()
+             if not pkg.is_unmanageable}
+        )
         result = self._solve_attempt(state, kwargs)
-        if result:
+        if result is not None:
             return result
 
         # If we didn't return already, raise last known issue.
@@ -1140,6 +1143,7 @@ class LibSolvSolver(Solver):
             # conflicts were reported, try again
             # an exception will be raised from _run_solver
             # if we end up in a conflict loop
+            log.debug("Failed attempt!")
             return
         # 4. Export back to conda
         self._export_final_state(state)
