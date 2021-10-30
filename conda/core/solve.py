@@ -1789,7 +1789,7 @@ class LibSolvSolver(Solver):
             installed_pins = state["conda_prefix_data"].query(pin.name) or ()
             for installed in installed_pins:
                 if not pin.match(installed):
-                    raise SpecsConfigurationConflictError([pin], [installed], self.prefix)
+                    raise SpecsConfigurationConflictError([installed], [pin], self.prefix)
             pin_these_specs.append(pin)
         return tuple(pin_these_specs)
 

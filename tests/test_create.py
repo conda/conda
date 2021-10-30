@@ -1122,9 +1122,10 @@ dependencies:
 
     def test_pinned_override_with_explicit_spec(self):
         with make_temp_env("python=3.6") as prefix:
+            python = next(PrefixData(prefix).query("python"))
             run_command(Commands.CONFIG, prefix,
-                        "--add", "pinned_packages", "python=3.6.5")
-            run_command(Commands.INSTALL, prefix, "python=3.7", no_capture=True)
+                        "--add", "pinned_packages", f"python={python.version}")
+            run_command(Commands.INSTALL, prefix, "python=3.7", no_capture=False)
             assert package_is_installed(prefix, "python=3.7")
 
     def test_remove_all(self):
