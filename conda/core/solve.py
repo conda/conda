@@ -1687,7 +1687,7 @@ class LibSolvSolver(Solver):
                     if installed_version:
                         specs_map[spec.name] = MatchSpec(
                             name=spec.name,
-                            version=f">{installed_version}")
+                            version=f"!={installed_version}")
         # if (installed_python and py_requested_explicitly
         #         and not specs_map["python"].version and "python" not in conflicting):
         #     specs_map["python"] = MatchSpec(name="python", version=f"!={installed_python.version}")
@@ -1775,7 +1775,6 @@ class LibSolvSolver(Solver):
             else:
                 key = "api.SOLVER_INSTALL", api.SOLVER_INSTALL
             tasks[key].append(spec.conda_build_form())
-
 
         return tasks
 
@@ -1922,7 +1921,6 @@ class LibSolvSolver(Solver):
         for name, spec in previous.items():
             if name not in conflicts:
                 conflicts[name] = spec
-
         return conflicts
 
     def _post_solve_tasks(self,
