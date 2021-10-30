@@ -1107,37 +1107,53 @@ class LibSolvSolver(Solver):
                 n_installed_pkgs-attempts,
                 state['conflicting'],
             )
-            # 2. Create solver and needed flags, tasks and jobs
-            self._configure_solver(
-                state,
-                update_modifier=kwargs["update_modifier"],
-                deps_modifier=kwargs["deps_modifier"],
-                ignore_pinned=kwargs["ignore_pinned"],
-                force_remove=kwargs["force_remove"],
-                force_reinstall=kwargs["force_reinstall"],
-                prune=kwargs["prune"],
-            )
-            # 3. Run the SAT solver
-            success = self._run_solver(state)
-            if not success:
-                # conflicts were reported, try again
-                # an exception will be raised from _run_solver
-                # if we end up in a conflict loop
-                continue
-            # 4. Export back to conda
-            self._export_final_state(state)
-            # 5. Refine solutions depending on the value of some modifier flags
-            return self._post_solve_tasks(
-                state,
-                update_modifier=kwargs["update_modifier"],
-                deps_modifier=kwargs["deps_modifier"],
-                ignore_pinned=kwargs["ignore_pinned"],
-                force_remove=kwargs["force_remove"],
-                force_reinstall=kwargs["force_reinstall"],
-                prune=kwargs["prune"],
-            )
+            result = self._solve_attempt(state, kwargs)
+            if result:
+                return result
+
+        # Last attempt, we report everything installed as a conflict just in case
+        log.debug("Last attempt: reporting all installed as conflicts:")
+        state["conflicting"].update({pkg.name: pkg.to_match_spec() for pkg in state["installed_pkgs"]})
+        result = self._solve_attempt(state, kwargs)
+        if result:
+            return result
+
         # If we didn't return already, raise last known issue.
-        raise self.raise_for_problems(state["solver"].problems_to_str())
+        problems = state["solver"].problems_to_str()
+        log.debug("We didn't find a solution. Reporting problems: %s", problems)
+        raise self.raise_for_problems(problems)
+
+    def _solve_attempt(self, state, kwargs):
+        # 2. Create solver and needed flags, tasks and jobs
+        self._configure_solver(
+            state,
+            update_modifier=kwargs["update_modifier"],
+            deps_modifier=kwargs["deps_modifier"],
+            ignore_pinned=kwargs["ignore_pinned"],
+            force_remove=kwargs["force_remove"],
+            force_reinstall=kwargs["force_reinstall"],
+            prune=kwargs["prune"],
+        )
+        # 3. Run the SAT solver
+        success = self._run_solver(state)
+        if not success:
+            # conflicts were reported, try again
+            # an exception will be raised from _run_solver
+            # if we end up in a conflict loop
+            return
+        # 4. Export back to conda
+        self._export_final_state(state)
+        # 5. Refine solutions depending on the value of some modifier flags
+        return self._post_solve_tasks(
+            state,
+            update_modifier=kwargs["update_modifier"],
+            deps_modifier=kwargs["deps_modifier"],
+            ignore_pinned=kwargs["ignore_pinned"],
+            force_remove=kwargs["force_remove"],
+            force_reinstall=kwargs["force_reinstall"],
+            prune=kwargs["prune"],
+        )
+
 
     def _merge_signature_flags_with_context(
             self,
@@ -1496,7 +1512,7 @@ class LibSolvSolver(Solver):
                 log.debug("Pinning because installed and not requested")
                 specs_map[name] = MatchSpec(pin, optional=False)
             elif is_requested:
-                log.debug("Pin overrides user-requesred spec")
+                log.debug("Pin overrides user-requested spec")
                 if specs_to_add_map[name].match(pin):
                     log.debug("pinned spec `%s` despite user-requested spec `%s` being present "
                               "because pin is stricter", pin, specs_to_add_map[name])
@@ -1648,10 +1664,14 @@ class LibSolvSolver(Solver):
 
         # Section 11 - If Python is installed and has been requested with no constrains,
         # we assume the user wants an update, so we add >{current_version}
-        log.debug("Make sure python is upgraded if requested explicitly and not in conflict")
-        if (installed_python and py_requested_explicitly
-                and not specs_map["python"].version and "python" not in conflicting):
-            specs_map["python"] = MatchSpec(name="python", version=f">{installed_python.version}")
+        log.debug("Make sure specs are upgraded if requested explicitly and not in conflict")
+        for spec in self.specs_to_add:
+            if (spec.name in specs_map and specs_map[spec.name].strictness == 1
+                and spec.name in installed):  # and spec.name not in conflicting):
+                specs_map[spec.name] = MatchSpec(name=spec.name, version=f"!={installed[spec.name].version}")
+        # if (installed_python and py_requested_explicitly
+        #         and not specs_map["python"].version and "python" not in conflicting):
+        #     specs_map["python"] = MatchSpec(name="python", version=f"!={installed_python.version}")
 
         return specs_map
 
@@ -1724,7 +1744,7 @@ class LibSolvSolver(Solver):
                 if name == "python":
                     key = "api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL
                 else:
-                    key = "api.SOLVER_UPDATE", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL
+                    key = "api.SOLVER_UPDATE", api.SOLVER_UPDATE
 
                 history_spec = history.get(name)
                 if history_spec:
@@ -1766,8 +1786,7 @@ class LibSolvSolver(Solver):
             # it would be better if we could pass a graph object or something
             # that the exception can actually format if needed
             problems = solver.problems_to_str()
-            previous = state["conflicting"].copy()
-            state["conflicting"] = self._parse_problems(problems, previous)
+            state["conflicting"] = self._parse_problems(problems, state["conflicting"].copy())
 
         return solved
 
@@ -1850,7 +1869,7 @@ class LibSolvSolver(Solver):
             name, version, build = conflict.rsplit("-", 2)
             conflicts[name] = MatchSpec(name=name, version=version, build=build)
         for conflict in conda_build_specs:
-            kwargs = {"name": conflict[0]}
+            kwargs = {"name": conflict[0].rstrip(",")}
             if len(conflict) >= 2:
                 kwargs["version"] = conflict[1].rstrip(",")
             if len(conflict) == 3:
