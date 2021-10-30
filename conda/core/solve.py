@@ -1870,7 +1870,6 @@ class LibSolvSolver(Solver):
         dashed_specs = []       # e.g. package-1.2.3-h5487548_0
         conda_build_specs = []  # e.g. package 1.2.8.*
         missing = []
-        print(problems)
         for line in problems.splitlines():
             line = line.strip()
             words = line.split()
@@ -1924,7 +1923,6 @@ class LibSolvSolver(Solver):
             if name not in conflicts:
                 conflicts[name] = spec
 
-        print(conflicts, [c.missing for c in conflicts.values()])
         return conflicts
 
     def _post_solve_tasks(self,
