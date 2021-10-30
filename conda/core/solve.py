@@ -1594,7 +1594,7 @@ class LibSolvSolver(Solver):
                 if installed_record:
                     # Check the index for available updates
                     installed_version = VersionOrder(installed_record.version)
-                    query = mamba_search(f"{spec.name} >={spec.version}", pool=state["pool"])
+                    query = mamba_search(f"{spec.name} >={installed_version}", pool=state["pool"])
                     for pkg_record in query["result"]["pkgs"]:
                         if pkg_record["channel"] == "installed":
                             continue
@@ -1677,10 +1677,17 @@ class LibSolvSolver(Solver):
             and self._command != "recursive_call_for_update_deps"):
             for spec in self.specs_to_add:
                 if (spec.name in specs_map and specs_map[spec.name].strictness == 1
-                    and spec.name in installed):  # and spec.name not in conflicting):
-                    if spec.name == "python" and "python" in conflicting:
-                        continue  # do not modify python if it was conflicting
-                    specs_map[spec.name] = MatchSpec(name=spec.name, version=f">{installed[spec.name].version}")
+                    and spec.name in installed):
+                    if spec.name in conflicting and getattr(conflicting[spec.name], "missing", False):
+                        # We obtained a "nothing provides" error, which means this
+                        # spec cannot be updated further; no forced update then
+                        # TODO: Refactor conflict into dict of dicts with name->spec,reason
+                        continue
+                    installed_version = installed[spec.name].version
+                    if installed_version:
+                        specs_map[spec.name] = MatchSpec(
+                            name=spec.name,
+                            version=f">{installed_version}")
         # if (installed_python and py_requested_explicitly
         #         and not specs_map["python"].version and "python" not in conflicting):
         #     specs_map["python"] = MatchSpec(name="python", version=f"!={installed_python.version}")
@@ -1862,6 +1869,8 @@ class LibSolvSolver(Solver):
     def _parse_problems(self, problems, previous):
         dashed_specs = []       # e.g. package-1.2.3-h5487548_0
         conda_build_specs = []  # e.g. package 1.2.8.*
+        missing = []
+        print(problems)
         for line in problems.splitlines():
             line = line.strip()
             words = line.split()
@@ -1874,14 +1883,17 @@ class LibSolvSolver(Solver):
                 end = words.index("but")
                 conda_build_specs.append(words[4:end])
             elif "- nothing provides" in line and "needed by" in line:
+                missing.append(words[-1])
                 dashed_specs.append(words[-1])
             elif "- nothing provides" in line:
+                missing.append(words[4:])
                 conda_build_specs.append(words[4:])
 
         conflicts = {}
         for conflict in dashed_specs:
             name, version, build = conflict.rsplit("-", 2)
             conflicts[name] = MatchSpec(name=name, version=version, build=build)
+            conflicts[name].missing = conflict in missing
         for conflict in conda_build_specs:
             kwargs = {"name": conflict[0].rstrip(",")}
             if len(conflict) >= 2:
@@ -1889,6 +1901,7 @@ class LibSolvSolver(Solver):
             if len(conflict) == 3:
                 kwargs["build"] = conflict[2].rstrip(",")
             conflicts[kwargs["name"]] = MatchSpec(**kwargs)
+            conflicts[kwargs["name"]].missing = conflict in missing
 
         previous_set = set(previous.values())
         current_set = set(conflicts.values())
@@ -1907,11 +1920,11 @@ class LibSolvSolver(Solver):
         # Preserve old conflicts (now neutered as name-only spes) in the
         # new list of conflicts (unless a different variant is now present)
         # This allows us to have a conflict memory for next attempts.
-        for spec in previous:
-            if spec not in conflicts:
-                conflicts[spec] = MatchSpec(name=spec)
+        for name, spec in previous.items():
+            if name not in conflicts:
+                conflicts[name] = spec
 
-
+        print(conflicts, [c.missing for c in conflicts.values()])
         return conflicts
 
     def _post_solve_tasks(self,
