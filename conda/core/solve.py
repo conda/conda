@@ -1363,7 +1363,7 @@ class LibSolvSolver(Solver):
         )
 
         for (_, task_type), specs in tasks.items():
-            solver.add_jobs(specs, task_type)
+            solver.add_jobs(sorted(specs), task_type)
 
         return solver
 
@@ -1693,9 +1693,6 @@ class LibSolvSolver(Solver):
                         specs_map[spec.name] = MatchSpec(
                             name=spec.name,
                             version=f"!={installed_version}")
-        # if (installed_python and py_requested_explicitly
-        #         and not specs_map["python"].version and "python" not in conflicting):
-        #     specs_map["python"] = MatchSpec(name="python", version=f"!={installed_python.version}")
 
         return specs_map
 
