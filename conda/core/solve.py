@@ -1672,7 +1672,8 @@ class LibSolvSolver(Solver):
         # flags have been passed -- otherwise interactions between implicit updates create unneeded
         # conflicts
         log.debug("Make sure specs are upgraded if requested explicitly and not in conflict")
-        if (deps_modifier != DepsModifier.ONLY_DEPS and update_modifier == UpdateModifier.UPDATE_SPECS
+        if (deps_modifier != DepsModifier.ONLY_DEPS
+            and update_modifier != UpdateModifier.UPDATE_DEPS
             and self._command != "recursive_call_for_update_deps"):
             for spec in self.specs_to_add:
                 if (spec.name in specs_map and specs_map[spec.name].strictness == 1
