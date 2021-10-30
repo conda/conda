@@ -1669,10 +1669,11 @@ class LibSolvSolver(Solver):
         # Section 11 - If Python is installed and has been requested with no constrains,
         # we assume the user wants an update, so we add >{current_version}
         log.debug("Make sure specs are upgraded if requested explicitly and not in conflict")
-        for spec in self.specs_to_add:
-            if (spec.name in specs_map and specs_map[spec.name].strictness == 1
-                and spec.name in installed):  # and spec.name not in conflicting):
-                specs_map[spec.name] = MatchSpec(name=spec.name, version=f"!={installed[spec.name].version}")
+        if self._command != "recursive_call_for_update_deps":
+            for spec in self.specs_to_add:
+                if (spec.name in specs_map and specs_map[spec.name].strictness == 1
+                    and spec.name in installed):  # and spec.name not in conflicting):
+                    specs_map[spec.name] = MatchSpec(name=spec.name, version=f"!={installed[spec.name].version}")
         # if (installed_python and py_requested_explicitly
         #         and not specs_map["python"].version and "python" not in conflicting):
         #     specs_map["python"] = MatchSpec(name="python", version=f"!={installed_python.version}")
@@ -2005,7 +2006,7 @@ class LibSolvSolver(Solver):
                 # we will import the needed state bits manually.
                 solver2 = self.__class__(self.prefix, self.channels, self.subdirs,
                                          list(specs_map.values()), self.specs_to_remove,
-                                         self._repodata_fn, self._command)
+                                         self._repodata_fn, "recursive_call_for_update_deps")
                 solved_pkgs = solver2.solve_final_state(
                     update_modifier=UpdateModifier.UPDATE_SPECS,  # avoid recursion!
                     deps_modifier=deps_modifier,
