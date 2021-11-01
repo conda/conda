@@ -1673,7 +1673,7 @@ class LibSolvSolver(Solver):
         # conflicts
         log.debug("Make sure specs are upgraded if requested explicitly and not in conflict")
         if (deps_modifier != DepsModifier.ONLY_DEPS
-            and update_modifier != UpdateModifier.UPDATE_DEPS
+            and update_modifier not in (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED)
             and self._command in ("update", "", None, NULL)):
             for spec in self.specs_to_add:
                 if (spec.name in specs_map and specs_map[spec.name].strictness == 1
@@ -1690,6 +1690,8 @@ class LibSolvSolver(Solver):
                         continue
                     installed_version = installed[spec.name].version
                     if installed_version:
+                        # TODO: We might want to say "any version or build of this package",
+                        # but not the installed one
                         specs_map[spec.name] = MatchSpec(
                             name=spec.name,
                             version=f"!={installed_version}")
