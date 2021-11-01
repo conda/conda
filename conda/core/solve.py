@@ -1300,6 +1300,8 @@ class LibSolvSolver(Solver):
                 channel = channel.base_url or channel.name
             channel = escape_channel_url(channel)
             channels.append(channel)
+        if context.restore_free_channel and "https://repo.anaconda.com/pkgs/free" not in channels:
+            channels.append('https://repo.anaconda.com/pkgs/free')
         return channels
 
     def _configure_solver(self,
@@ -1811,6 +1813,7 @@ class LibSolvSolver(Solver):
             # that the exception can actually format if needed
             problems = solver.problems_to_str()
             state["conflicting"] = self._parse_problems(problems, state["conflicting"].copy())
+            log.debug("Attempt failed with %s", problems)
 
         return solved
 
