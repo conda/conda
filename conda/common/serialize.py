@@ -10,12 +10,9 @@ from .compat import odict, ensure_text_type
 from ..auxlib.entity import EntityEncoder
 
 try:
-    import ruamel_yaml as yaml
-except ImportError:  # pragma: no cover
-    try:
-        import ruamel.yaml as yaml
-    except ImportError:
-        raise ImportError("No yaml library available. To proceed, conda install ruamel_yaml")
+    import ruamel.yaml as yaml
+except ImportError:
+    raise ImportError("No yaml library available. To proceed, conda install ruamel.yaml")
 
 log = getLogger(__name__)
 

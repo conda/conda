@@ -109,7 +109,7 @@ ROOT_ENV_NAME = 'base'
 ROOT_NO_RM = (
     'python',
     'pycosat',
-    'ruamel_yaml',
+    'ruamel.yaml',
     'conda',
     'openssl',
     'requests',

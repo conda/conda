@@ -47,14 +47,12 @@ from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_struct
 from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
 
-try:  # pragma: no cover
-    from ruamel_yaml.comments import CommentedSeq, CommentedMap
-    from ruamel_yaml.reader import ReaderError
-    from ruamel_yaml.scanner import ScannerError
-except ImportError:  # pragma: no cover
-    from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
+try:
+    from ruamel.yaml.comments import CommentedSeq, CommentedMap
     from ruamel.yaml.reader import ReaderError
     from ruamel.yaml.scanner import ScannerError
+except ImportError:
+    raise ImportError("No yaml library available. To proceed, conda install ruamel.yaml")
 
 log = getLogger(__name__)
 
