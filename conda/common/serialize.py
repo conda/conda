@@ -16,14 +16,14 @@ log = getLogger(__name__)
 @memoize
 def get_yaml():
     try:
-        import ruamel_yaml as yaml
+        import ruamel.yaml as yaml
     except ImportError:  # pragma: no cover
         try:
             import ruamel.yaml as yaml
         except ImportError:
             raise ImportError("No yaml library available.\n"
                               "To proceed, conda install "
-                              "ruamel_yaml")
+                              "ruamel.yaml")
     return yaml
 
 

@@ -1,7 +1,5 @@
 import json
 import os
-import yaml
-
 import pytest
 import unittest
 
@@ -261,7 +259,7 @@ class IntegrationTests(unittest.TestCase):
         o, e = run_env_command(Commands.ENV_CREATE, None, '--dry-run')
         self.assertFalse(env_is_created(test_env_name_1))
 
-        output = yaml.safe_load('\n'.join(o.splitlines()[2:]))
+        output = yaml_safe_load('\n'.join(o.splitlines()[2:]))
         assert output['name'] == 'env-1'
         assert len(output['dependencies']) > 0
 

@@ -44,9 +44,9 @@ from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, excepts, merge, merge_with, unique
 
 try:  # pragma: no cover
-    from ruamel_yaml.comments import CommentedSeq, CommentedMap
-    from ruamel_yaml.reader import ReaderError
-    from ruamel_yaml.scanner import ScannerError
+    from ruamel.yaml.comments import CommentedSeq, CommentedMap
+    from ruamel.yaml.reader import ReaderError
+    from ruamel.yaml.scanner import ScannerError
 except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
     from ruamel.yaml.reader import ReaderError
