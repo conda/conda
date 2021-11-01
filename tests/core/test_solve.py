@@ -27,10 +27,11 @@ from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
+from conda.models.version import VersionOrder
 from conda.resolve import MatchSpec
 from ..helpers import add_subdir_to_iter, get_index_r_1, get_index_r_2, get_index_r_4, \
     get_index_r_5, get_index_cuda, get_index_must_unfreeze, EXPORTED_CHANNELS_DIR, \
-    _alias_canonical_channel_name_cache_to_file_prefixed
+    _alias_canonical_channel_name_cache_to_file_prefixed, add_subdir
 
 from conda.common.compat import iteritems, on_win
 
@@ -1100,8 +1101,23 @@ def test_conda_downgrade(tmpdir):
                 'channel-2::conda-4.3.30-py36h5d9f9f4_0',
                 'channel-4::conda-build-3.12.1-py36_0'
             ))
-            assert convert_to_dist_str(unlink_precs) == unlink_order
-            assert convert_to_dist_str(link_precs) == link_order
+            if context.solver_logic.value == "libsolv":
+                # We only check for conda itself and the explicit specs
+                # The other packages are slightly different;
+                # again libedit and ncurses are involved
+                # (they are also involved in test_fast_update_with_update_modifier_not_set)
+                for pkg in link_precs:
+                    if pkg.name == "conda":
+                        assert VersionOrder(pkg.version) < VersionOrder("4.4.10")
+                    elif pkg.name == "python":
+                        assert pkg.version == "3.6.2"
+                    elif pkg.name == "conda-build":
+                        assert pkg.version == "3.12.1"
+                    elif pkg.name == "itsdangerous":
+                        assert pkg.version == "0.24"
+            else:
+                assert convert_to_dist_str(unlink_precs) == unlink_order
+                assert convert_to_dist_str(link_precs) == link_order
     finally:
         sys.prefix = saved_sys_prefix
 
@@ -1701,8 +1717,13 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
             'channel-4::libedit-3.1.20170329-h6b74fdf_2',
             'channel-4::python-3.6.4-hc3d631a_1',  # python is upgraded
         ))
-        assert convert_to_dist_str(unlink_precs) == unlink_order
-        assert convert_to_dist_str(link_precs) == link_order
+        if context.solver_logic.value == "libsolv":
+            # We only check python was upgraded as expected
+            assert add_subdir("channel-4::python-2.7.14-h89e7a4a_22") in convert_to_dist_str(unlink_precs)
+            assert add_subdir("channel-4::python-3.6.4-hc3d631a_1") in convert_to_dist_str(link_precs)
+        else:
+            assert convert_to_dist_str(unlink_precs) == unlink_order
+            assert convert_to_dist_str(link_precs) == link_order
 
     specs_to_add = MatchSpec("sqlite"),
     with get_solver_4(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -1723,8 +1744,19 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
             'channel-4::sqlite-3.24.0-h84994c4_0',  # sqlite is upgraded
             'channel-4::python-2.7.15-h1571d57_0',  # python is not upgraded
         ))
-        assert convert_to_dist_str(unlink_precs) == unlink_order
-        assert convert_to_dist_str(link_precs) == link_order
+        if context.solver_logic.value == "libsolv":
+            # We only check sqlite was upgraded as expected
+            assert add_subdir("channel-4::sqlite-3.21.0-h1bed415_2") in convert_to_dist_str(unlink_precs)
+            sqlite = next(pkg for pkg in link_precs if pkg.name == "sqlite")
+            # mamba chooses a different sqlite version (3.23 instead of 3.24)
+            assert VersionOrder(sqlite.version) > VersionOrder("3.21")
+            # If Python was changed, it should have stayed at 2.7
+            python = next((pkg for pkg in link_precs if pkg.name == "python"), None)
+            if python:
+                assert python.version.startswith("2.7")
+        else:
+            assert convert_to_dist_str(unlink_precs) == unlink_order
+            assert convert_to_dist_str(link_precs) == link_order
 
     specs_to_add = MatchSpec("sqlite"), MatchSpec("python"),
     with get_solver_4(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -2043,6 +2075,8 @@ def test_timestamps_1(tmpdir):
         ))
         assert convert_to_dist_str(link_dists) == order
 
+@pytest.mark.xfail(context.solver_logic.value == "libsolv",
+                   reason="Known bug: mamba prefers arch to noarch")
 def test_channel_priority_churn_minimized(tmpdir):
     specs = MatchSpec("conda-build"), MatchSpec("itsdangerous"),
     with get_solver_aggregate_2(tmpdir, specs) as solver:
