@@ -19,6 +19,4 @@ conda activate ./built-conda-test-env
 echo $CONDA_PREFIX
 [ "$CONDA_PREFIX" = "$PWD/built-conda-test-env" ] || exit 1
 [ $(python -c "import sys; print(sys.version_info[1])") = ${TEST_MINOR_VER} ] || exit 1
-#python -c '__requires__ = ["ruamel_yaml_conda >= 0.11.14"]; import pkg_resources' || exit 1
 conda deactivate
-#pytest tests -m "not integration and not installed" -vv

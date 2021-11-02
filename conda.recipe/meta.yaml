@@ -63,9 +63,6 @@ test:
   imports:
     - conda
     - conda_env
-  files:
-    - test_conda.bat                # [win]
-    - test_conda.sh                 # [unix]
 
 about:
   home: https://conda.io
@@ -95,3 +92,5 @@ extra:
     - pelson
     - scopatz
     - chenghlee
+    - jezdez
+    - kenodegard

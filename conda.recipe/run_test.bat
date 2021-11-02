@@ -16,19 +16,11 @@ SET TEST_MINOR_VER=9
 FOR /F "delims=" %%i IN ('python -c "import random as r; print(r.randint(0,4294967296))"') DO set "PYTHONHASHSEED=%%i"
 where conda
 CALL conda info
-REM IF NOT "%APPVEYOR%" == "True" (
-  CALL conda create -q -y -p "%TEMP%\built-conda-test-env" "python=3.%TEST_MINOR_VER%"
-  CALL conda.bat activate "%TEMP%\built-conda-test-env"
-  ECHO %CONDA_PREFIX%
-  IF NOT "%CONDA_PREFIX%"=="%TEMP%\built-conda-test-env" EXIT /B 1
-  FOR /F "delims=" %%i IN ('python -c "import sys; print(sys.version_info[1])"') DO set "ENV_PYTHON_MINOR_VERSION=%%i"
-  IF NOT "%ENV_PYTHON_MINOR_VERSION%" == "%TEST_MINOR_VER%" EXIT /B 1
-  CALL conda deactivate
-  rd /s /q "%TEMP%\built-conda-test-env"
-REM )
-REM SET MSYSTEM=MINGW%ARCH%
-REM SET MSYS2_PATH_TYPE=inherit
-REM SET CHERE_INVOKING=1
-REM FOR /F "delims=" %%i IN ('cygpath.exe -u "%PREFIX%"') DO set "PREFIXP=%%i"
-REM bash -lc "source %PREFIXP%/Scripts/activate"
-REM pytest tests -m "not integration and not installed" -vv
+CALL conda create -q -y -p "%TEMP%\built-conda-test-env" "python=3.%TEST_MINOR_VER%"
+CALL conda.bat activate "%TEMP%\built-conda-test-env"
+ECHO %CONDA_PREFIX%
+IF NOT "%CONDA_PREFIX%"=="%TEMP%\built-conda-test-env" EXIT /B 1
+FOR /F "delims=" %%i IN ('python -c "import sys; print(sys.version_info[1])"') DO set "ENV_PYTHON_MINOR_VERSION=%%i"
+IF NOT "%ENV_PYTHON_MINOR_VERSION%" == "%TEST_MINOR_VER%" EXIT /B 1
+CALL conda deactivate
+rd /s /q "%TEMP%\built-conda-test-env"
