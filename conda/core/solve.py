@@ -1101,7 +1101,7 @@ class LibSolvSolver(Solver):
         n_installed_pkgs = len(state["installed_pkgs"])
         attempts = n_installed_pkgs
         while attempts:
-            attempts -=1
+            attempts -= 1
             log.debug(
                 "Attempt number %s. Current conflicts (including learnt ones): %s",
                 n_installed_pkgs-attempts,
@@ -1157,7 +1157,6 @@ class LibSolvSolver(Solver):
             force_reinstall=kwargs["force_reinstall"],
             prune=kwargs["prune"],
         )
-
 
     def _merge_signature_flags_with_context(
             self,
@@ -1361,7 +1360,8 @@ class LibSolvSolver(Solver):
 
         log.debug(
             "Invoking libsolv with tasks: %s",
-            "\n".join([f"{task_str}: {', '.join(specs)}" for (task_str, _), specs in tasks.items()])
+            "\n".join([f"{task_str}: {', '.join(specs)}"
+                       for (task_str, _), specs in tasks.items()])
         )
 
         for (_, task_type), specs in tasks.items():
@@ -1446,21 +1446,19 @@ class LibSolvSolver(Solver):
         log.debug("Relaxing some installed specs")
         for pkg_name, pkg_record in installed.items():
             name_spec = MatchSpec(pkg_name)
-            if (    # 1.4.1. History is empty. Add everything (happens with update --all)
+            if (  # 1.4.1. History is empty. Add everything (happens with update --all)
                     not history
-                    # 1.4.2. Pkg is part of the aggresive update list
+                  # 1.4.2. Pkg is part of the aggresive update list
                     or name_spec in context.aggressive_update_packages
-                    # 1.4.3. it was installed with pip/others; treat it as a historic package
-                    or pkg_record.subdir == 'pypi'
-                ):
+                  # 1.4.3. it was installed with pip/others; treat it as a historic package
+                    or pkg_record.subdir == 'pypi'):
                 specs_map[pkg_name] = name_spec
 
         # Section 2 - Here we technically consider the packages that need to be removed
         # but we are handling that as a separate action right now - TODO?
 
-
         # Section 3 - Refine specs implicitly by the prefix state
-
+        #
         # 3.1. If the prefix already contain matching specs for what we have added so far,
         # constrain these whenever possible to reduce the amount of changes
         log.debug("Refining some installed packages...")
@@ -1474,7 +1472,7 @@ class LibSolvSolver(Solver):
                     f"  pkg_name: {pkg_name}\n"
                     f"  spec: {pkg_spec}\n"
                     f"  matches_for_spec: {matches_for_spec}\n"
-                    )
+                )
             spec_in_prefix = matches_for_spec[0]
             # 3.1.1: always update
             if MatchSpec(pkg_name) in context.aggressive_update_packages:
@@ -1496,9 +1494,11 @@ class LibSolvSolver(Solver):
             # 3.1.3: soft-constrain via `target`
             elif pkg_name in history:
                 log.debug("Soft-freezing because historic")
-                specs_map[pkg_name] = MatchSpec(history[pkg_name], target=spec_in_prefix.dist_str())
+                specs_map[pkg_name] = MatchSpec(
+                    history[pkg_name], target=spec_in_prefix.dist_str())
             else:
-                log.debug("Soft-freezing because it is requested and already installed as a 2nd order dependency")
+                log.debug("Soft-freezing because it is requested and "
+                          "already installed as a 2nd order dependency")
                 specs_map[pkg_name] = MatchSpec(pkg_name, target=spec_in_prefix.dist_str())
 
         # Section 4: Check pinned packages
@@ -1578,8 +1578,8 @@ class LibSolvSolver(Solver):
             # We overwrite the specs map so far!
             specs_map = new_specs_map
 
-        # Section 6 - Handle UPDATE_SPECS  (note: this might be unimportant)
-        # Unfreezes the indirect specs that otherwise conflict
+        # Section 6 - Handle UPDATE_SPECS (note: this might be unimportant)
+        # Unfreezes the indirect specs that otherwise conflict
         # with the update of the explicitly requested spec
         elif update_modifier == UpdateModifier.UPDATE_SPECS:
             from mamba.repoquery import search as mamba_search
@@ -1601,11 +1601,13 @@ class LibSolvSolver(Solver):
                         if pkg_record["channel"] == "installed":
                             continue
                         found_version = VersionOrder(pkg_record["version"])
-                        greater_version =  found_version > installed_version
-                        greater_build = (found_version == installed_version and
-                                         pkg_record["build_number"] > installed_record.build_number)
+                        greater_version = found_version > installed_version
+                        greater_build = (
+                            found_version == installed_version and
+                            pkg_record["build_number"] > installed_record.build_number
+                        )
                         if greater_version or greater_build:
-                            has_update =  True
+                            has_update = True
                             break
                 if has_update:
                     potential_conflicts.append(
@@ -1675,12 +1677,14 @@ class LibSolvSolver(Solver):
         # conflicts
         log.debug("Make sure specs are upgraded if requested explicitly and not in conflict")
         if (deps_modifier != DepsModifier.ONLY_DEPS
-            and update_modifier not in (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED)
-            and self._command in ("update", "", None, NULL)):
+                and update_modifier not in
+                (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED)
+                and self._command in ("update", "", None, NULL)):
             for spec in self.specs_to_add:
                 if (spec.name in specs_map and specs_map[spec.name].strictness == 1
-                    and spec.name in installed):
-                    if spec.name in conflicting and getattr(conflicting[spec.name], "missing", False):
+                        and spec.name in installed):
+                    conflicting_spec = conflicting.get(spec.name)
+                    if conflicting_spec and getattr(conflicting_spec, "missing", False):
                         # We obtained a "nothing provides" error, which means this
                         # spec cannot be updated further; no forced update then
                         # TODO: Refactor conflict into dict of dicts with name->spec,reason
@@ -1688,7 +1692,7 @@ class LibSolvSolver(Solver):
                     if spec.name in ("pip", "setuptools"):
                         # If added with no constrains, excluding their installed version can
                         # result in unneded python downgrades
-                        # see tests/conda_env/test_cli.py::IntegrationTests::test_update_env_no_action_json_output
+                        # see tests/conda_env/test_cli.py::test_update_env_no_action_json_output
                         continue
                     installed_version = installed[spec.name].version
                     if installed_version:
@@ -1712,8 +1716,9 @@ class LibSolvSolver(Solver):
         # force optional to true. This is what it is originally in
         # pinned_specs, but we override that in _compute_specs_map to make it
         # non-optional when there's a name match in the explicit package pool
-        conflicting_pinned_specs = groupby(lambda s: MatchSpec(s, optional=True)
-                                           in self._pinned_specs(state, ignore_pinned), conflicting_specs)
+        conflicting_pinned_specs = groupby(
+            lambda s: MatchSpec(s, optional=True) in self._pinned_specs(state, ignore_pinned),
+            conflicting_specs)
 
         if conflicting_pinned_specs.get(True):
             in_specs_map = grouped_specs.get(True, ())
@@ -1737,7 +1742,8 @@ class LibSolvSolver(Solver):
                 else:
                     neutered_spec = MatchSpec(spec.name)
                 specs_map[spec.name] = neutered_spec
-            if spec.name not in specs_map:  # side-effect conflict; add to specs with less restrains
+            if spec.name not in specs_map:
+                # side-effect conflict; add to specs with less restrains
                 specs_map[spec.name] = MatchSpec(name=spec.name, target=spec.dist_str())
 
         return specs_map
@@ -1755,13 +1761,16 @@ class LibSolvSolver(Solver):
         log.debug("Deprioritizing conflicts:")
         protect_these = set(s.name for s in self.specs_to_add)  # explicitly requested
         protect_these.update(("python", "conda"))
-        protect_these.update([pkg_name for pkg_name, pkg_record in installed.items() if pkg_record.is_unmanageable])
+        protect_these.update([pkg_name for pkg_name, pkg_record in installed.items()
+                              if pkg_record.is_unmanageable])
         for conflict in state["conflicting"]:
             if conflict in specs_map and conflict not in protect_these:
                 spec = specs_map.pop(conflict)
                 log.debug("  MOV: %s from specs_map to SOLVER_DISFAVOR", conflict)
-                tasks[("api.SOLVER_DISFAVOR", api.SOLVER_DISFAVOR)].append(spec.conda_build_form())
-                tasks[("api.SOLVER_ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec.conda_build_form())
+                tasks[("api.SOLVER_DISFAVOR", api.SOLVER_DISFAVOR)].append(
+                    spec.conda_build_form())
+                tasks[("api.SOLVER_ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(
+                    spec.conda_build_form())
 
         # Wrap up and create tasks for the solver
         for name, spec in specs_map.items():
@@ -1769,15 +1778,20 @@ class LibSolvSolver(Solver):
                 continue
             if name in installed:
                 if name == "python":
-                    key = "api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL
+                    key = ("api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL",
+                           api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
                 else:
                     key = "api.SOLVER_UPDATE", api.SOLVER_UPDATE
 
                 history_spec = history.get(name)
                 if history_spec:
                     installed_rec = installed[name]
-                    ms = MatchSpec(name=installed_rec.name, version=installed_rec.version, build=installed_rec.build)
-                    tasks[("api.SOLVER_USERINSTALLED", api.SOLVER_USERINSTALLED)].append(ms.conda_build_form())
+                    ms = MatchSpec(
+                        name=installed_rec.name,
+                        version=installed_rec.version,
+                        build=installed_rec.build)
+                    tasks[("api.SOLVER_USERINSTALLED", api.SOLVER_USERINSTALLED)].append(
+                        ms.conda_build_form())
             else:
                 key = "api.SOLVER_INSTALL", api.SOLVER_INSTALL
             tasks[key].append(spec.conda_build_form())
@@ -1918,7 +1932,7 @@ class LibSolvSolver(Solver):
             conflicts.pop("python")
 
         current_set = set(conflicts.values())
-        if (previous and (previous_set == current_set)) or len(diff) >= 10: # or previous_set.issubset(current_set)):
+        if (previous and (previous_set == current_set)) or len(diff) >= 10:
             # We have same or more (up to 10) conflicts now! Abort to avoid recursion.
             self.raise_for_problems(problems)
 
@@ -1974,7 +1988,8 @@ class LibSolvSolver(Solver):
 
         # If ONLY_DEPS is set, we need to make sure the originally requested specs
         # are not part of the result
-        elif deps_modifier == DepsModifier.ONLY_DEPS and update_modifier != UpdateModifier.UPDATE_DEPS:
+        elif (deps_modifier == DepsModifier.ONLY_DEPS
+              and update_modifier != UpdateModifier.UPDATE_DEPS):
             graph = PrefixGraph(state["final_prefix_state"], self.specs_to_add)
             removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
             specs_to_add = set(MatchSpec(name) for name in state["names_to_add"])
@@ -2026,7 +2041,7 @@ class LibSolvSolver(Solver):
             specs_map.update({spec.name: spec for spec in self.specs_to_add})
 
             with context.override("quiet", True):
-                # Create a new solver instance to perform a 2nd solve with deps added
+                # Create a new solver instance to perform a 2nd solve with deps added
                 # We do it like this to avoid overwriting state accidentally. Instead,
                 # we will import the needed state bits manually.
                 solver2 = self.__class__(self.prefix, self.channels, self.subdirs,
