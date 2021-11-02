@@ -102,3 +102,18 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend {
 .plantuml svg text::selection {
     background: none;
 }
+
+.jsPanel-ftr span.desc {
+    display: "flex";
+    justify-content: "space-between";
+}
+
+.jsPanel-ftr span.desc {
+    flex-grow: 1;
+}
+
+.jsPanel-ftr span.buttons {
+    display: flex;
+    align-items: center;
+}
+
