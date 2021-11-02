@@ -1,4 +1,4 @@
-name: Deploy "conda" conda packages
+name: Build and upload conda packages
 
 on:
   workflow_run:
@@ -14,7 +14,7 @@ jobs:
   # this way because secrets cannot be used directly in GitHub Action
   # conditionals; see https://github.com/actions/runner/issues/520 for details.
   check-config:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     outputs:
       okay: ${{ steps.check-secrets.outputs.defined }}
     steps:
@@ -43,11 +43,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - runner: ubuntu-18.04
+          - runner: ubuntu-latest
             subdir: linux-64
-          - runner: macos-10.15
+          - runner: macos-latest
             subdir: osx-64
-          - runner: windows-2019
+          - runner: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runner }}
     steps:
@@ -58,25 +58,24 @@ jobs:
           fetch-depth: 0
       - uses: conda-incubator/setup-miniconda@v2
       - name: Build & upload package
-        env:
-          ANACONDA_ORG_TOKEN: ${{ secrets.ANACONDA_ORG_TOKEN }}
-
-          # These don't really need to be secrets, but we don't really have
-          # another way of performing per-repository/-fork configuration.
-          #ANACONDA_ORG_CHANNEL: ${{ secrets.ANACONDA_ORG_CHANNEL }}
-          #ANACONDA_ORG_LABEL: ${{ secrets.ANACONDA_ORG_LABEL }}
         shell: bash -l {0}
+        # Note: In the `run` commands below, `ANACONDA_ORG_CHANNEL` and
+        # `ANACONDA_ORG_LABEL` don't really _need_ to be secrets (e.g., masked
+        # out in the logs), but I don't really know of another way of
+        # performing per-repository/fork configuration for GitHub Actions.
         run: |
-          set -eu
+          set -euo pipefail
           conda activate
-          conda update --yes conda
-          conda install --yes conda-build anaconda-client git
+          conda update --yes --quiet conda
+          conda install --yes --quiet conda-build anaconda-client git
           conda info
           conda config --show-sources
           conda list
           conda build --croot=./pkgs conda.recipe
-          anaconda --token ${ANACONDA_ORG_TOKEN} upload \
+          anaconda --token ${{ secrets.ANACONDA_ORG_TOKEN }} upload \
             --force --register --no-progress \
             --user ${{ secrets.ANACONDA_ORG_CHANNEL }} \
             --label ${{ secrets.ANACONDA_ORG_LABEL }} \
             ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2
+          echo "Uploaded the following files:"
+          ls ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2 | cut -d/ -f3- | tr ' ' $'\n'
