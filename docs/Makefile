@@ -12,7 +12,7 @@ help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 livehtml:
-	@AUTOBUILD=1 sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) "$(SOURCEDIR)/_static/js/panzoom.js" --ignore=.git/* --ignore=_build/* $(O)
+	@AUTOBUILD=1 sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) --ignore=.git/* --ignore=_build/* $(O)
 
 serve:
 	python3 -m http.server --directory "$(BUILDDIR)/html"
