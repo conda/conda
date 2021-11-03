@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from glob import glob
 
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda._vendor.toolz.itertoolz import groupby
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
@@ -33,8 +33,8 @@ import requests
 
 from conda import CondaError, CondaMultiError, plan, __version__ as CONDA_VERSION, \
     CONDA_PACKAGE_ROOT
-from conda._vendor.auxlib.entity import EntityEncoder
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.entity import EntityEncoder
+from conda.auxlib.ish import dals
 from conda._vendor.toolz import concatv
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks, \
     PREFIX_MAGIC_FILE, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES
@@ -101,7 +101,7 @@ SPACER_CHARACTER = ' '
 def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
-from conda._vendor.auxlib.decorators import memoize
+from conda.auxlib.decorators import memoize
 
 @memoize
 def running_a_python_capable_of_unicode_subprocessing():

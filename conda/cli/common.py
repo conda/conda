@@ -8,7 +8,7 @@ from os.path import basename, dirname, isdir, isfile, join
 import re
 import sys
 
-from .._vendor.auxlib.ish import dals
+from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.constants import NULL

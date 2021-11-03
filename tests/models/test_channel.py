@@ -7,7 +7,7 @@ from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
 
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import Context, conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import odict, text_type

@@ -12,7 +12,7 @@ from ..common.compat import text_type
 from ..core.prefix_data import PrefixData
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import is_conda_environment
-from .._vendor.auxlib.path import expand
+from ..auxlib.path import expand
 from conda_env import exceptions, specs
 from ..models.match_spec import MatchSpec
 

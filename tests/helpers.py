@@ -10,7 +10,7 @@ import os
 from os.path import dirname, join, abspath
 import re
 from shlex import split
-from conda._vendor.auxlib.compat import shlex_split_unicode
+from conda.auxlib.compat import shlex_split_unicode
 import sys
 from tempfile import gettempdir
 from unittest import mock
@@ -18,7 +18,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from conda import cli
-from conda._vendor.auxlib.decorators import memoize
+from conda.auxlib.decorators import memoize
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems, itervalues, encode_arguments
 from conda.common.io import argv, captured, captured as common_io_captured, env_var

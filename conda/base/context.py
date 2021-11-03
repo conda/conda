@@ -20,8 +20,8 @@ from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODA
                         ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
-from .._vendor.auxlib.decorators import memoize, memoizedproperty
-from .._vendor.auxlib.ish import dals
+from ..auxlib.decorators import memoize, memoizedproperty
+from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from .._vendor.toolz import concat, concatv, unique

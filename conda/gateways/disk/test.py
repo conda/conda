@@ -11,7 +11,7 @@ from uuid import uuid4
 from .create import create_link
 from .delete import rm_rf
 from .link import islink, lexists
-from ..._vendor.auxlib.decorators import memoize
+from ...auxlib.decorators import memoize
 from ...base.constants import PREFIX_MAGIC_FILE
 from ...common.compat import text_type
 from ...common.path import expand

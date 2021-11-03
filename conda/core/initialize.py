@@ -49,8 +49,8 @@ except NameError:
     FileNotFoundError = IOError
 
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
-from .._vendor.auxlib.compat import Utf8NamedTemporaryFile
-from .._vendor.auxlib.ish import dals
+from ..auxlib.compat import Utf8NamedTemporaryFile
+from ..auxlib.ish import dals
 from ..activate import (CshActivator, FishActivator,
                         PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context

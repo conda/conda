@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from conda.common.io import env_var, env_vars
 
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 from conda.common.compat import odict, string_types
 from conda.common.configuration import (Configuration, ConfigurationObject, ObjectParameter,
                                         ParameterFlag, ParameterLoader, PrimitiveParameter,

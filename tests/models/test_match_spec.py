@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from unittest import TestCase
 
-from conda._vendor.auxlib.collection import frozendict
+from conda.auxlib.collection import frozendict
 import pytest
 
 from conda import text_type

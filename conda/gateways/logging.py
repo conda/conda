@@ -10,7 +10,7 @@ import re
 import sys
 
 from .. import CondaError
-from .._vendor.auxlib.decorators import memoize
+from ..auxlib.decorators import memoize
 from ..common.io import attach_stderr_handler
 from ..common.compat import string_types
 

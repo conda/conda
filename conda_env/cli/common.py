@@ -5,8 +5,8 @@ import os
 from os.path import isdir, join
 import sys
 
-from conda._vendor.auxlib.entity import EntityEncoder
-from conda._vendor.auxlib.path import expand
+from conda.auxlib.entity import EntityEncoder
+from conda.auxlib.path import expand
 from conda.base.context import context
 from conda.cli import install as cli_install
 from conda.cli import common as cli_common

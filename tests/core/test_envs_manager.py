@@ -8,7 +8,7 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from conda._vendor.auxlib.collection import AttrDict
+from conda.auxlib.collection import AttrDict
 from conda.base.constants import PREFIX_MAGIC_FILE
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var

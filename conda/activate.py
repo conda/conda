@@ -17,7 +17,7 @@ from textwrap import dedent
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CondaError
 from ._vendor.toolz import concatv, drop
-from ._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import (FILESYSTEM_ENCODING, PY2, iteritems, on_win,
@@ -773,7 +773,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     if paths is None:
         return None
     from subprocess import CalledProcessError, PIPE, Popen
-    from conda._vendor.auxlib.compat import shlex_split_unicode
+    from conda.auxlib.compat import shlex_split_unicode
     # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
     # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
     # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at

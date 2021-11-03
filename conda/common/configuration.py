@@ -36,9 +36,9 @@ from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
 from .. import CondaError, CondaMultiError
-from .._vendor.auxlib.collection import AttrDict, first, last, make_immutable
-from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
-from .._vendor.auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
+from ..auxlib.collection import AttrDict, first, last, make_immutable
+from ..auxlib.exceptions import ThisShouldNeverHappenError
+from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, excepts, merge, merge_with, unique
@@ -529,7 +529,7 @@ class LoadedParameter(object):
 
         Returns: LoadedParameter
         """
-        # This is similar to conda._vendor.auxlib.type_coercion.typify_data_structure
+        # This is similar to conda.auxlib.type_coercion.typify_data_structure
         # It could be DRY-er but that would break SRP.
         if isinstance(self.value, Mapping):
             new_value = type(self.value)((k, v.expand()) for k, v in iteritems(self.value))

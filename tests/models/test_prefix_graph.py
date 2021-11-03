@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from pprint import pprint
 
-from conda._vendor.auxlib.decorators import memoize
+from conda.auxlib.decorators import memoize
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import CyclicalDependencyError

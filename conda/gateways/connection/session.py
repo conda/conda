@@ -12,7 +12,7 @@ from .adapters.ftp import FTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
 from ..anaconda_client import read_binstar_tokens
-from ..._vendor.auxlib.ish import dals
+from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
 from ...common.compat import iteritems, with_metaclass

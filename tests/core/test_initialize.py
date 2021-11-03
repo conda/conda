@@ -12,7 +12,7 @@ from unittest import TestCase
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open
