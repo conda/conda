@@ -106,7 +106,9 @@ def generate_pumls(app, config):
 def download_plantuml(app, config):
     if os.path.exists(config.plantuml_jarfile_path):
         sys.stdout.write(
-            f"PlantUML jar file already downloaded. To update run `make clean` or manually delete {config.plantuml_jarfile_path}.\n"
+            f"PlantUML jar file already downloaded. "
+            f"To update run `make clean` or manually "
+            f"delete {config.plantuml_jarfile_path}.\n"
         )
     else:
         parent = os.path.dirname(config.plantuml_jarfile_path)
