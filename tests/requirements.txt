@@ -8,6 +8,7 @@ conda-build
 conda-package-handling
 conda-verify
 conda-forge::pytest-split
+conda-forge::xdoctest
 cytoolz
 filelock
 flake8
