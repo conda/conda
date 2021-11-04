@@ -15,16 +15,12 @@ You can also access help from the command line with the
 
    conda install --help
 
-
-Conda general commands
-======================
-
 The following commands are part of conda:
 
 .. toctree::
    :glob:
    :maxdepth: 2
- 
+
    commands/*
 
 Conda vs. pip vs. virtualenv commands

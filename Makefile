@@ -49,7 +49,7 @@ toolz:
 
 
 env-docs:
-	conda create --name conda-docs --channel defaults python=3.8 --yes
+	conda create --name conda-docs --channel defaults python=3.8 graphviz --yes
 	conda run --name conda-docs pip install -r ./docs/requirements.txt
 
 
