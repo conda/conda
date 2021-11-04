@@ -2,7 +2,7 @@ name: Build and upload conda packages
 
 on:
   workflow_run:
-    workflow:
+    workflows:
       - CI tests
     branches:
       - master
