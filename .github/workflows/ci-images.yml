@@ -7,10 +7,12 @@ on:
     paths:
       - 'ci/Dockerfile'
       - '.github/workflows/ci-images.yml'
+      - 'tests/requirements.txt'
   push:
     paths:
       - 'ci/Dockerfile'
       - '.github/workflows/ci-images.yml'
+      - 'tests/requirements.txt'
   workflow_dispatch:
 
 env:
