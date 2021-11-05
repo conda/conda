@@ -40,13 +40,13 @@ NumPy MKL library load failed
 Error messages like
 
 .. code-block::
-   
+
     Intel MKL FATAL ERROR: Cannot load mkl_intel_thread.dll
 
 or
 
 .. code-block::
-    
+
     The ordinal 241 could not be located in the the dynamic link library
 
 Cause
@@ -111,7 +111,7 @@ more drastic measures.
      These should be set to a value of ``1`` to enable them.  For example, in an Anaconda Prompt terminal::
 
        set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
-    
+
     .. note::
        Only ``CONDA_DLL_SEARCH_MODIFICATION_ENABLE`` should be set finally.
 
@@ -289,13 +289,13 @@ Cause
 
 This error may be caused by lack of activation on Windows or expired
 certifications::
-    
+
     SSL verification error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
 
 Solution
 ~~~~~~~~
 Make sure your conda is up-to-date: ``conda --version``
- 
+
 If not, run: ``conda update conda``
 
 Temporarily set your ``ssl_verify`` variable to false, upgrade the requests package, and then
@@ -304,10 +304,10 @@ set ``ssl_verify`` back to ``true`` using the following commands::
     conda config --set ssl_verify false
     conda update requests
     conda config --set ssl_verify true
- 
+
 You can also set ``ssl_verify`` to a string path to a certificate, which can be used to verify
 SSL connections. Modify your ``.condarc`` and include the following::
- 
+
     ssl_verify: path-to-cert/chain/filename.ext
 
 If the repository uses a self-signed certificate, use the actual path to the certificate.
@@ -435,6 +435,7 @@ Solution
    .. code:: python
 
       import sys
+
       print(sys.prefix)
 
 
@@ -966,7 +967,7 @@ Cause
 -----
 Downgrading conda from 4.6.1 to 4.5.x and then trying to ``conda install conda`` or  ``conda upgrade conda`` will produce a solving and upgrade error similar to the following:
 
-.. code-block:: python
+.. code-block:: bash
 
    Solving environment: failed
    CondaUpgradeError: This environment has previously been operated on by a conda version that's newer than the conda currently being used. A newer version of conda is required.
@@ -977,8 +978,8 @@ Downgrading conda from 4.6.1 to 4.5.x and then trying to ``conda install conda``
 Solution
 --------
 
-Change the ``.condarc`` file. Set the parameter by editing the ``.condarc`` file directly: 
-``allow_conda_downgrades: true`` in conda version 4.5.12. This will then let you upgrade. If you have something older than 4.5.12, install conda 4.6.1 again from the package cache. 
+Change the ``.condarc`` file. Set the parameter by editing the ``.condarc`` file directly:
+``allow_conda_downgrades: true`` in conda version 4.5.12. This will then let you upgrade. If you have something older than 4.5.12, install conda 4.6.1 again from the package cache.
 
 EXAMPLE: If my conda info says package cache : /opt/conda/pkgs and my Python version is 3.7, then on the command line, type ``conda install /opt/conda/pkgs/conda-4.6.1-py37_0.tar.bz2`` to resolve the issue.
 
@@ -1077,12 +1078,12 @@ above. Note that only the quotes wrapping the entire expression should be
 there. That is how variables are properly set in batch scripts, and these
 account for any spaces in any entries in PATH. No additional quotes should
 be within the value assigned to PATH.
- 
+
 To make 3rd party software take precedence over the same-named programs
 as supplied by conda, add it to PATH after activating conda:
 
 .. code-block:: console
-   
+
    set
    “PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\”
    call “<miniconda/anaconda root>\Scripts\activate”
@@ -1098,4 +1099,3 @@ they have priority.
    set
    PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”
    call “<miniconda/anaconda root>\Scripts\activate”
-
