@@ -128,6 +128,12 @@ Conda looks in the following locations for a ``.condarc`` file:
          '$CONDA_ROOT/.condarc',
          '$CONDA_ROOT/condarc',
          '$CONDA_ROOT/condarc.d/',
+         '$XDG_CONFIG_HOME/conda/.condarc',
+         '$XDG_CONFIG_HOME/conda/condarc',
+         '$XDG_CONFIG_HOME/conda/condarc.d/',
+         '~/.config/conda/.condarc',
+         '~/.config/conda/condarc',
+         '~/.config/conda/condarc.d/',
          '~/.conda/.condarc',
          '~/.conda/condarc',
          '~/.conda/condarc.d/',
@@ -138,6 +144,9 @@ Conda looks in the following locations for a ``.condarc`` file:
          '$CONDARC',
      )
 
+``XDG_CONFIG_HOME`` is the path to where user-specific configuration files should
+be stored defined following The XDG Base Directory Specification (XDGBDS). Default
+to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
 ``CONDA_PREFIX`` is the path to the current active environment.
 
@@ -1073,7 +1082,7 @@ Setting any of the above can be done in ``.condarc`` or with
 conda config:
 
 At your terminal::
-  
+
   conda config --set repodata_threads 2
 
 In ``.condarc``::
