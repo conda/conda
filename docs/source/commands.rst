@@ -104,7 +104,7 @@ Scroll to the right to see the entire table.
 
 \* ``conda activate`` only works on conda 4.6 and later versions.
 For conda versions prior to 4.6, type:
-   
+
    * Windows: ``activate``
    * Linux and macOS: ``source activate``
 
