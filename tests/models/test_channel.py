@@ -649,10 +649,10 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
         channels_config = dals("""
         channels:
           - http://user22:$EXPANDED_PWD@some.url:8080
-          
+
         whitelist_channels:
           - http://user22:$EXPANDED_PWD@some.url:8080
-        
+
         custom_channels:
           unexpanded: http://user1:$UNEXPANDED_PWD@another.url:8080/with/path/t/tk-1234
           expanded: http://user33:$EXPANDED_PWD@another.url:8080/with/path/t/tk-1234
@@ -1118,4 +1118,3 @@ def test_ppc64le_vs_ppc64():
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
     assert ppc64_channel.subdir == "linux-ppc64"
     assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
-

@@ -968,4 +968,3 @@ def test_general_graph_bfs_version():
 
     a_to_g2 = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("g=2"))
     assert a_to_g2 == [MatchSpec("a"), MatchSpec("d"), MatchSpec("g=2")]
-

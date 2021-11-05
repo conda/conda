@@ -1,3 +1,5 @@
+# generally speaking we ignore all vendored code as well as tests data
+exclude: ^(conda/_vendor|tests/data/(conda_format_repo|env_metadata/.+|legacy_repodata|repodata|tar_traversal))/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.0.1
@@ -9,6 +11,7 @@ repos:
       # ensure syntaxes are valid
       - id: check-toml
       - id: check-yaml
+        exclude: ^(conda\.)?recipe/meta.yaml
       # catch git merge/rebase problems
       - id: check-merge-conflict
   - repo: https://github.com/akaihola/darker
@@ -16,7 +19,6 @@ repos:
     hooks:
       - id: darker
         additional_dependencies: [black==21.9b0]
-        exclude: ^conda/_vendor/
   - repo: https://github.com/asottile/blacken-docs
     rev: v1.11.0
     hooks:
@@ -36,4 +38,5 @@ repos:
     hooks:
       - id: bandit
         args: [--exit-zero]
-        exclude: ^(conda/_vendor|tests)/
+        # ignore all tests, not just tests data
+        exclude: ^tests/

@@ -46,7 +46,7 @@ class ExportIntegrationTests(TestCase):
 
             output, error, _ = run_command(Commands.LIST, prefix, "-e")
             self.assertIn("conda-forge", output)
-            
+
             try:
                 with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                     env_txt.write(output)

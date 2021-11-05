@@ -207,7 +207,7 @@ Installing NumPy with BLAS variants
 
 To specify which variant of NumPy that you want, you could potentially
 specify the BLAS library you want::
-  
+
   conda install numpy mkl
 
 However, that doesn’t actually preclude OpenBLAS from being chosen.
@@ -228,11 +228,11 @@ OpenBLAS has this with its “nomkl” package:
 https://github.com/AnacondaRecipes/openblas-feedstock/blob/ae5af5e/recipe/meta.yaml#L133-L147
 
 Nothing should use “nomkl” as a dependency. It is strictly a utility for users
-to facilitate switching from MKL (which is the default) to OpenBLAS. 
+to facilitate switching from MKL (which is the default) to OpenBLAS.
 
 How did MKL become the default? The solver needs a way to prioritize some packages
 over others. We achieve that with an older conda feature called track_features that originally
-served a different purpose. 
+served a different purpose.
 
 Track_features
 **************
@@ -244,7 +244,7 @@ package among many variants is the one that would cause the least track_features
 
 There is a catch, though: any track_features must be unique. No two packages can provide the
 same track_feature. For this reason, our standard practice is to attach track_features to
-the metapackage associated with what we want to be non-default. 
+the metapackage associated with what we want to be non-default.
 
 Take another look at the OpenBLAS recipe: https://github.com/AnacondaRecipes/openblas-feedstock/blob/ae5af5e/recipe/meta.yaml#L127-L137
 
@@ -258,7 +258,7 @@ than the default option.
 More info
 *********
 
-For reference, the Visual Studio version alignment on Windows also uses mutex metapackages. 
+For reference, the Visual Studio version alignment on Windows also uses mutex metapackages.
 https://github.com/AnacondaRecipes/aggregate/blob/9635228/vs2017/meta.yaml#L24
 
 
@@ -341,4 +341,3 @@ More information
 Go deeper on how to :ref:`manage packages <managing-pkgs>`.
 Learn more about package metadata, repository structure and index,
 and package match specifications at :doc:`Package specifications <../concepts/pkg-specs>`.
-

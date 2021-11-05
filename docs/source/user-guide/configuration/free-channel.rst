@@ -40,7 +40,7 @@ You can also add the ``free`` channel back into your defaults by
 changing the ``.condarc`` file itself.
 
 Add the following to the conda section of your ``.condarc`` file::
-   
+
    restore_free_channel: true
 
 Read more about :doc:`use-condarc`.
@@ -50,7 +50,7 @@ Package name changes
 
 Some packages that are available in the ``free`` channel
 have different names in the ``main`` channel.
- 
+
 .. list-table::
    :widths: 25 75
    :header-rows: 1
@@ -105,4 +105,3 @@ If you encounter these errors, consider using a newer package than
 the one in ``free``. If you want those older versions, you can
 :ref:`add the free channel back into your defaults
 <free-channel-default>`.
-

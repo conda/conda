@@ -518,10 +518,9 @@ class NewIntegrationTests(unittest.TestCase):
             snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2, '--no-builds')
             assert not e.strip()
             env_description = yaml_safe_load(snowflake)
-            assert len(env_description['dependencies'])
-            for spec_str in env_description['dependencies']:
-                assert spec_str.count('=') == 1
-            
+            assert len(env_description["dependencies"])
+            for spec_str in env_description["dependencies"]:
+                assert spec_str.count("=") == 1
 
         run_env_command(Commands.ENV_REMOVE, test_env_name_2)
         assert not env_is_created(test_env_name_2)

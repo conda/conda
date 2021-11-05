@@ -38,7 +38,7 @@
     /*header 1 text color */
     color: #047704;
  }
-  
+
 .rst-content .toctree-wrapper p.caption, h2, h3, h4, h5, h6, legend {
     /*text color of rst content and subheads*/
     color: #414042;
@@ -116,4 +116,3 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend {
     display: flex;
     align-items: center;
 }
-
