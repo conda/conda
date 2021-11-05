@@ -29,14 +29,16 @@ class NullHandler(Handler):  # NOQA
     def emit(self, record):
         pass
 
+
 getLogger('auxlib').addHandler(NullHandler())
 
 __all__ = [
     "__version__", "__author__",
     "__email__", "__license__", "__copyright__",
     "__summary__", "__url__",
-    "BuildPyCommand", "SDistCommand", "Tox", "get_version",
 ]
+
+__version__ = "0.0.43"
 
 __author__ = 'Kale Franz'
 __email__ = 'kale@franz.io'

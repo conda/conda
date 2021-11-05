@@ -13,7 +13,6 @@ StringIO, with_metaclass = StringIO, with_metaclass
 PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types = PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types  # NOQA
 text_type, wraps = text_type, wraps
 from shlex import split
-from functools import partial
 from tempfile import NamedTemporaryFile, template
 
 try:
@@ -68,23 +67,37 @@ if sys.version_info[0] < 3:
                                prefix=template, dir=None, delete=True):
         if 'CONDA_TEST_SAVE_TEMPS' in os.environ:
             delete = False
-        return codecs.getwriter('utf-8')(NamedTemporaryFile(mode=mode, bufsize=bufsize, suffix=suffix,
-                                 prefix=template, dir=dir, delete=delete))
+        return codecs.getwriter("utf-8")(
+            NamedTemporaryFile(
+                mode=mode,
+                bufsize=bufsize,
+                suffix=suffix,
+                prefix=template,
+                dir=dir,
+                delete=delete,
+            )
+        )
 else:
     def Utf8NamedTemporaryFile(mode='w+b', buffering=-1, newline=None,
                                suffix=None, prefix=None, dir=None, delete=True):
         if 'CONDA_TEST_SAVE_TEMPS' in os.environ:
             delete = False
         encoding = None
-        if not 'b' in mode:
-            encoding = 'utf-8'
-        return NamedTemporaryFile(mode=mode, buffering=buffering, encoding=encoding,
-                                  newline=newline, suffix=suffix, prefix=prefix,
-                                  dir=dir, delete=delete)
+        if "b" not in mode:
+            encoding = "utf-8"
+        return NamedTemporaryFile(
+            mode=mode,
+            buffering=buffering,
+            encoding=encoding,
+            newline=newline,
+            suffix=suffix,
+            prefix=prefix,
+            dir=dir,
+            delete=delete,
+        )
 
 
-
-'''
+"""
 def shlex_split_unicode(to_split, posix=True):
     if isinstance(to_split, string_types):
         t=string_types[0]
@@ -107,15 +120,11 @@ def shlex_split_unicode(to_split, posix=True):
     for r in res:
         assert isinstance(r, t)
     return res
-
-
 from contextlib import contextmanager
 import sys
-
 #import shlex
-#t = u'/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/190e_çñôáêß/bin/python3.5 -Wi -m compileall -q -l -i /var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/tmp6tn_c5 ōγђ家固한áêñßôç'
+#t = u'/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/190e_çñôáêß/bin/python3.5 -Wi -m compileall -q -l -i /var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/tmp6tn_c5 ōγђ家固한áêñßôç'  # noqa: E501
 #t2 = shlex.split(t)
-
 class ImportBlocker(object):
     def __init__(self, args):
         self.module_names = [unicode(a) for a in args]
@@ -129,8 +138,6 @@ class ImportBlocker(object):
         return None
     def load_module(self, name):
         raise ImportError("%s is blocked and cannot be imported" % name)
-
-
 @contextmanager
 def blocked_imports(sys_module, *modules):
     old_modules = dict({})
@@ -146,14 +153,11 @@ def blocked_imports(sys_module, *modules):
         for k, v in old_modules.items():
             sys_module.modules[k] = v
         sys_module.meta_path = sys_meta_path
-
 with blocked_imports('cStringIO'):
     if 'cStringIO' in sys.modules: print(sys.modules['cStringIO'])
     import shlex
     if 'cStringIO' in sys.modules: print(sys.modules['cStringIO'])
-
 if 'cStringIO' in sys.modules: print(sys.modules['cStringIO'])
-
-t = u'/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/190e_çñôáêß/bin/python3.5 -Wi -m compileall -q -l -i /var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/tmp6tn_c5 ōγђ 家固한áêñßôç'
+t = u'/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/190e_çñôáêß/bin/python3.5 -Wi -m compileall -q -l -i /var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/tmp6tn_c5 ōγђ 家固한áêñßôç'  # noqa: E501
 t2 = shlex.split(t)
-'''
+"""

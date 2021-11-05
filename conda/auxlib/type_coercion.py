@@ -102,6 +102,7 @@ class _Regex(object):
                      if regex.match(value_string)),
                     NO_MATCH)
 
+
 _REGEX = _Regex()
 
 
