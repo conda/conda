@@ -1,6 +1,6 @@
 name: Speed Improvement
 description: If you think Conda could be faster
-labels: type-speed_improvement
+labels: ['type::feature', 'tag::performance']
 body:
   - type: markdown
     attributes:
