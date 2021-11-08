@@ -241,7 +241,7 @@ class Solver(object):
         retrying = hasattr(self, 'ssc')
 
         if not retrying:
-            ssc = SolverStateContainer(
+            ssc = SolverStateContainerLegacy(
                 self.prefix, update_modifier, deps_modifier, prune, ignore_pinned, force_remove,
                 should_retry_solve,
             )
@@ -2089,7 +2089,7 @@ class LibSolvSolver(Solver):
         raise RawStrUnsatisfiableError(problems)
 
 
-class SolverStateContainer(object):
+class SolverStateContainerLegacy(object):
     # A mutable container with defined attributes to help keep method signatures clean
     # and also keep track of important state variables.
 
