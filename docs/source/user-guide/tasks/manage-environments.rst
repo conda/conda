@@ -400,7 +400,7 @@ Earlier versions of conda introduced scripts to make activation
 behavior uniform across operating systems. Conda 4.4 allowed
 ``conda activate myenv``. Conda 4.6 added extensive initialization
 support so that conda works faster and less disruptively on
-a wide variety of shells (bash, zsh, csh, fish, xonsh, and more).
+a wide variety of shells (bash, zsh, csh, fish, elvish, xonsh, and more).
 Now these shells can use the ``conda activate`` command.
 Removing the need to modify PATH makes conda less disruptive to
 other software on your system. For more information, read the

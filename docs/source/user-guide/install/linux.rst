@@ -46,6 +46,13 @@ To use conda with fish shell, run the following in your terminal:
 
   ``conda init fish``
 
+Using with Elvish
+=========================
+
+To use conda with the Elvish shell, run the following in your terminal:
+
+  ``conda init elvish``
+
 Installing in silent mode
 =========================
 
