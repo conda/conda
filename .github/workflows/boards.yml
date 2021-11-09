@@ -25,7 +25,7 @@ jobs:
           action: delete
           project: Triaging
           column: Ready
-          repo-token: ${{ secrets.PROJECT_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: alex-page/github-project-automation-plus@v0.8.1
         if: contains(github.event.issue.labels.*.name, 'backlog')
         with:
