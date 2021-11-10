@@ -68,8 +68,12 @@ from ..gateways.subprocess import subprocess_call
 
 if on_win:
     import winreg
-    from menuinst._legacy.knownfolders import get_folder_path, FOLDERID
-    from menuinst._legacy.winshortcut import create_shortcut
+    try:
+        from menuinst._legacy.knownfolders import get_folder_path, FOLDERID
+        from menuinst._legacy.winshortcut import create_shortcut
+    except ImportError:  # menuinst <2
+        from menuinst.knownfolders import get_folder_path, FOLDERID
+        from menuinst.winshortcut import create_shortcut
 
 
 
