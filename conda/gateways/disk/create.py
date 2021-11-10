@@ -13,6 +13,9 @@ from shutil import copyfileobj, copystat
 import sys
 import tempfile
 import warnings as _warnings
+import json
+
+import menuinst
 
 from . import mkdir_p
 from .delete import path_is_clean, rm_rf
@@ -235,15 +238,20 @@ def make_menu(prefix, file_path, remove=False):
     Passes all menu config files %PREFIX%/Menu/*.json to ``menuinst.install``.
     ``remove=True`` will remove the menu items.
     """
-    if not on_win:
-        return
-    elif basename(prefix).startswith('_'):
+    if basename(prefix).startswith('_'):
         log.warn("Environment name starts with underscore '_'. Skipping menu installation.")
         return
 
     try:
-        import menuinst
-        menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
+        json_path = join(prefix, win_path_ok(file_path))
+        with open(json_path) as f:
+            metadata = json.load(f)
+        if "$schema" not in metadata:  # old style JSON
+            menuinst._legacy.install(json_path, remove, prefix)
+        elif remove:
+            menuinst.remove(metadata, prefix)
+        else:
+            menuinst.install(metadata, prefix)
     except Exception:
         stdoutlog.error("menuinst Exception", exc_info=True)
 

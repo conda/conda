@@ -32,3 +32,5 @@ pytest-xdist
 requests
 responses
 ruamel_yaml
+# TODO:  Remove before merge, temporary:
+napari/label/bundle_tools::menuinst>=2

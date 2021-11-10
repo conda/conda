@@ -68,8 +68,9 @@ from ..gateways.subprocess import subprocess_call
 
 if on_win:
     import winreg
-    from menuinst.knownfolders import get_folder_path, FOLDERID
-    from menuinst.winshortcut import create_shortcut
+    from menuinst._legacy.knownfolders import get_folder_path, FOLDERID
+    from menuinst._legacy.winshortcut import create_shortcut
+
 
 
 log = getLogger(__name__)
