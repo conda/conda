@@ -19,7 +19,7 @@ import pytest
 import conda.core.solve
 
 from conda.base.context import context
-from conda.exceptions import ResolvePackageNotFound, UnsatisfiableError
+from conda.exceptions import PackagesNotFoundError, ResolvePackageNotFound, UnsatisfiableError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec
@@ -343,8 +343,7 @@ class SolverTests:
             ('python=3',),
         ])
 
-        # XXX: We need UnsatisfiableError here because mamba does not have more granular exceptions yet.
-        with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
+        with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)) as exc_info:
             env.install('numpy 1.5*', 'numpy 1.6*')
         if exc_info.type is ResolvePackageNotFound:
             assert sorted(map(str, exc_info.value.bad_deps)) == [
@@ -524,10 +523,9 @@ class SolverTests:
         ])
 
     def test_nonexistent(self, env):
-        # XXX: We need UnsatisfiableError here because mamba does not have more granular exceptions yet.
-        with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
+        with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)) as exc_info:
             env.install('notarealpackage 2.0*')
-        with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
+        with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)) as exc_info:
             env.install('numpy 1.5')
 
     def test_timestamps_and_deps(self, env):
