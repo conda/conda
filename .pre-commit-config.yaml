@@ -1,5 +1,5 @@
 # generally speaking we ignore all vendored code as well as tests data
-exclude: ^(conda/_vendor|tests/data/(conda_format_repo|env_metadata/.+|legacy_repodata|repodata|tar_traversal))/
+exclude: ^(conda/_vendor|tests/data/(conda_format_repo|env_metadata/.+|legacy_repodata|repodata|tar_traversal|corrupt))/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.0.1
