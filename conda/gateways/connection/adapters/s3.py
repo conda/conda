@@ -54,7 +54,7 @@ class S3Adapter(BaseAdapter):
         from botocore.exceptions import BotoCoreError, ClientError
         bucket_name, key_string = url_to_s3_info(request.url)
         # https://github.com/conda/conda/issues/8993
-        # creating a seaprate boto3 session to make this threadsafe
+        # creating a separate boto3 session to make this thread safe
         session = boto3.session.Session()
         # create a resource client using this thread's session object
         s3 = session.resource('s3')
