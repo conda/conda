@@ -36,3 +36,6 @@ conda.tmp/
 *.iml
 *.ipr
 *.iws
+
+# Rever
+rever/
