@@ -54,5 +54,4 @@ jobs:
           build-args: PYTHON_VERSION=${{ matrix.python }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
-          ## TODO: Do not merge like this!
-          push: ${{ github.ref == 'refs/heads/gitpod' }}
+          push: ${{ github.ref == 'refs/heads/master' }}

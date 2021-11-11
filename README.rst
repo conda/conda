@@ -23,11 +23,6 @@
    :alt: latest release version
    :target: https://github.com/conda/conda/releases
 
-.. image:: https://gitpod.io/button/open-in-gitpod.svg
-   :alt: open in gitpod for one-click development
-   :target: https://gitpod.io/#https://github.com/conda/conda
-
-
 Conda is a cross-platform, language-agnostic binary package manager. It is the
 package manager used by `Anaconda
 <https://www.anaconda.com/distribution/>`_ installations, but it may be
@@ -164,6 +159,10 @@ code and issue tracker for conda are on `GitHub <https://github.com/conda/conda>
 
 Contributing
 ------------
+
+.. image:: https://gitpod.io/button/open-in-gitpod.svg
+   :alt: open in gitpod for one-click development
+   :target: https://gitpod.io/#https://github.com/conda/conda
 
 Contributions to conda are welcome. See the `contributing <CONTRIBUTING.md>`_ documentation
 for instructions on setting up a development environment.

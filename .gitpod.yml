@@ -1,5 +1,4 @@
-# https://www.gitpod.io/docs/config-start-tasks/#configuring-the-terminal
-
+# TODO: Replace gitpod with master
 image: ghcr.io/conda/conda-ci:gitpod-linux-python3.9
 tasks:
   - name: initialize
