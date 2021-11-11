@@ -1,3 +1,5 @@
+[//]: # (current developments)
+
 ## 4.10.3 (2021-06-29)
 
 ### Bug fixes
@@ -174,7 +176,7 @@
 
 ## 4.9.0 (2020-10-19)
 
-### Enhancements:
+### Enhancements
 
 * Add `osx-arm64` as a recognized platform (#10128, #10134, #10137)
 * Resign files modified during installation on ARM64 macOS (#10260)
@@ -200,13 +202,13 @@
 * Bump vendored version of tqdm to fix various threading and I/O bugs (#10266)
 
 
-### Docs:
+### Docs
 
 * Correctly state default `/AddToPath` option in Windows installer (#10179)
 * Fix typos in `--repodata-fn` help text (#10279)
 
 
-### Miscellaneous:
+### Miscellaneous
 
 * Update CI infrastructure to use GitHub Actions (#10176, #10186, #10234)
 * Update README badge to show GitHub Actions status (#10254)
@@ -249,7 +251,7 @@
 
 ## 4.8.4 (2020-08-06)
 
-### Enhancements:
+### Enhancements
 
 * Add `linux-ppc64` as a recognized platform (#9797, #9877)
 * Add `linux-s390x` as a recognized platform (#9933, #10051)
@@ -286,20 +288,20 @@
 * Fix logic error when running under Python 2.7 on 64-bit platforms (#10108)
 * Fix Python 3.8 leaked semaphore issue (#10115)
 
-### Docs:
+### Docs
 
 * Fix formatting and typos (#9623, #9689, #9898, #10042)
 * Correct location for yum repository configuration files (#9988)
 * Clarify usage for the `--channel` option (#10054)
 * Clarify Python is not installed by default into new environments (#10089)
 
-### Miscellaneous:
+### Miscellaneous
 
 * Fixes to tests and CI pipelines (#9842, #9863, #9938, #9960, #10010)
 * Remove conda-forge dependencies for developing conda (#9857, #9871)
 * Audit YAML usage for `safe_load` vs `round_trip_load` (#9902)
 
-### Contributors:
+### Contributors
 
 * @alanhdu
 * @angloyna
@@ -340,7 +342,7 @@
 
 ## 4.8.3 (2020-03-13)
 
-### Docs:
+### Docs
 
 * Add release notes for 4.8.2 to docs (#9632)
 * Fix typos in docs (#9637, #9643)
@@ -350,7 +352,7 @@
 
 * Account for channel is specs (#9748)
 
-### Contributors:
+### Contributors
 
 * @bernardoduarte
 * @forrestwaters
@@ -362,11 +364,11 @@
 
 ## 4.8.2 (2020-01-24)
 
-### Enhancements:
+### Enhancements
 
 * Solver messaging improvements (#9560)
 
-### Docs:
+### Docs
 
 * Added precedence and conflict info  (#9565)
 * Added how to set env variables with config API  (#9536)
@@ -380,7 +382,7 @@
 * Conda env create empty dir (#9543)
 
 
-### Contributors:
+### Contributors
 
 * @msarahan
 * @jjhelmus
@@ -392,7 +394,7 @@
 
 ## 4.8.1 (2019-12-19)
 
-### Enhancements:
+### Enhancements
 
 * improve performance for conda run by avoiding Popen.communicate  (#9381)
 * Put conda keyring in /usr/share/keyrings on Debian (#9424)
@@ -402,7 +404,7 @@
 * Use freeze_installed to speed up conda env update  (#9511)
 * add networking args to conda env create (#9525)
 
-### Docs:
+### Docs
 
 * fix string concatenation running words together regarding CONDA_EXE  (#9411)
 * Fix typo ("list" -> "info")  (#9433)
@@ -427,7 +429,7 @@
 * fix overly greedy capture done by subprocess for conda run  (#9537)
 
 
-### Contributors:
+### Contributors
 
 * @AntoinePrv
 * @brettcannon
@@ -454,7 +456,7 @@
 
 ## 4.8.0 (2019-11-04)
 
-### Enhancements:
+### Enhancements
 
 * retry downloads if they fail, controlled by `remote_max_retries` and `remote_backoff_factor` configuration values (#9318)
 * redact authentication information in some URLs (#9341)
@@ -512,7 +514,7 @@
 
 ## 4.7.12 (2019-09-12)
 
-### Enhancements:
+### Enhancements
 
 * add support for env file creation based on explicit specs in history (#9093)
 * detect prefix paths when -p nor -n not given  (#9135)
@@ -594,7 +596,7 @@
 * fix bugs in building of chains in prefix graph
 
 
-### Contributors:
+### Contributors
 
 * @msarahan
 
@@ -607,7 +609,7 @@
 * fix potential keyerror in depth-first search
 * fix PackageNotFound attribute error
 
-### Contributors:
+### Contributors
 
 * @jjhelmus
 * @msarahan
@@ -628,7 +630,7 @@
 * streamline fallback paths to unfrozen solve in case frozen fails. (#8942)
 * Environment activation output only shows `conda activate envname` now, instead of sometimes showing just `activate`.  (#8947)
 
-### Contributors:
+### Contributors
 
 * @forrestwaters
 * @jjhelmus
@@ -751,7 +753,7 @@
 * Revert to solver-based unsatisfiability determination  (#8775)
 * fix renaming of existing prompt function in powershell  (#8774)
 
-### Contributors:
+### Contributors
 
 * @jjhelmus
 * @msarahan
