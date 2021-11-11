@@ -4,6 +4,9 @@ image: ghcr.io/conda/conda-ci:gitpod-linux-python3.9
 tasks:
   - name: initialize
     before: |
+      # Re-export latest tag; for some reason `git describe` in this env
+      # and conda requires it to get its own version...
+      git tag "$(git tag --sort=committerdate | tail -1).dev"
       eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
     init: |
       mkdir -p .vscode
