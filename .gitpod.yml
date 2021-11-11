@@ -1,12 +1,16 @@
 # https://www.gitpod.io/docs/config-start-tasks/#configuring-the-terminal
 
-image: ghcr.io/conda/conda-ci:master-linux-python3.9
+image:
+  file: ci/Dockerfile
 tasks:
-  - name: Prepare development
+  - name: initialize
+    before: |
+      eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
     init: |
       mkdir -p .vscode
       echo '{"python.pythonPath": "/opt/conda/bin/python"}' > .vscode/settings.json
-      eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+      sudo su root -c "/opt/conda/bin/conda install -yq conda-build"
+      conda-build tests/test-recipes/activate_deactivate_package
 
 vscode:
   extensions:
