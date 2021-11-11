@@ -739,8 +739,8 @@ class RawStrUnsatisfiableError(UnsatisfiableError):
     The error message is passed directly as a str.
     """
 
-    def __init__(self, message):
-        super(CondaError, self).__init__(str(message))
+    def __init__(self, message, **kwargs):
+        super(UnsatisfiableError, self).__init__(str(message))
 
 
 class InstallError(CondaError):
