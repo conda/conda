@@ -1,0 +1,33 @@
+# https://www.gitpod.io/docs/config-start-tasks/#configuring-the-terminal
+
+image: ghcr.io/conda/conda-ci:master-linux-python3.9
+tasks:
+  - name: Prepare development
+    init: |
+      mkdir -p .vscode
+      echo '{"python.pythonPath": "/opt/conda/bin/python"}' > .vscode/settings.json
+      eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+
+vscode:
+  extensions:
+    - eamodio.gitlens
+    - ms-python.python
+
+github:
+  prebuilds:
+    # enable for master branch
+    master: true
+    # enable for other branches (defaults to false)
+    branches: false
+    # enable for pull requests coming from this repo (defaults to true)
+    pullRequests: false
+    # enable for pull requests coming from forks (defaults to false)
+    pullRequestsFromForks: false
+    # add a check to pull requests (defaults to true)
+    addCheck: false
+    # add a "Review in Gitpod" button as a comment to pull requests (defaults to false)
+    addComment: false
+    # add a "Review in Gitpod" button to the pull request's description (defaults to false)
+    addBadge: false
+    # add a label once the prebuild is ready to pull requests (defaults to false)
+    addLabel: false

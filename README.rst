@@ -23,6 +23,10 @@
    :alt: latest release version
    :target: https://github.com/conda/conda/releases
 
+.. image:: https://gitpod.io/button/open-in-gitpod.svg
+   :alt: open in gitpod for one-click development
+   :target: https://gitpod.io/#https://github.com/conda/conda
+
 
 Conda is a cross-platform, language-agnostic binary package manager. It is the
 package manager used by `Anaconda
