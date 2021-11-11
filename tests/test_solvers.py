@@ -1254,5 +1254,9 @@ class TestLibSolvSolver(SolverTests):
             ],
             'LibSolvSolver installs numpy with mkl while we were expecting no-mkl numpy': [
                 'test_remove',
+            ],
+            'Known bug in mamba, see #10995': [
+                'test_noarch_preferred_over_arch_when_build_greater',
+                'test_noarch_preferred_over_arch_when_build_greater_dep',
             ]
         }
