@@ -6,7 +6,7 @@ apt-get update --fix-missing
 apt-get install -y --no-install-recommends \
     tini wget build-essential bzip2  ca-certificates \
     libglib2.0-0 libxext6 libsm6 libxrender1 git mercurial subversion \
-    sudo htop less nano man tail
+    sudo htop less nano man
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
