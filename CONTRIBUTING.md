@@ -91,14 +91,28 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    $ ./dev/start_docker
    ```
 
+   **cmd.exe (Windows)**
+
+   ```batch
+   > .\dev\start_docker.bat
+   ```
+
    This will download the `conda-ci` Docker image from the
    [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
    and start `bash` with the conda development mode already enabled.
    By default, it will pick the Python 3.9 image built from `master`. If you need
    a different Python version, set a `CONDA_DOCKER_PYTHON` environment variable like this:
 
+   **Bash (macOS, Linux, Windows)**
+
    ```bash
    $ CONDA_DOCKER_PYTHON=3.8 ./dev/start_docker
+   ```
+
+   **cmd.exe (Windows)**
+
+   ```batch
+   > set CONDA_DOCKER_PYTHON=3.8 && .\dev\start_docker.bat && set "CONDA_DOCKER_PYTHON="
    ```
 
    The `conda` repository will be mounted to `/opt/conda-src`, so all changes done in your

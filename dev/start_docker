@@ -14,6 +14,6 @@ EOF
 
 PY=${CONDA_DOCKER_PYTHON:-3.9}
 
-docker run -it -v "$SCRIPT_DIR/..":/opt/conda-src ghcr.io/conda/conda-ci:poc-libsolv-linux-python${PY}-mamba bash --rcfile /opt/conda-src/dev/docker.bashrc
+echo docker run -it -v "$SCRIPT_DIR/..":/opt/conda-src ghcr.io/conda/conda-ci:master-linux-python${PY} bash --rcfile /opt/conda-src/dev/docker.bashrc
 
-rm "$STARTFILE"
+# rm "$STARTFILE"
