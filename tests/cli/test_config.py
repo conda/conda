@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from textwrap import dedent
 import pytest
 
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from conda.auxlib.compat import Utf8NamedTemporaryFile
 
 from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
 from conda.cli.python_api import Commands, run_command

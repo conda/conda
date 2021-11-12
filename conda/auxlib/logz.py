@@ -59,6 +59,8 @@ class DumpEncoder(JSONEncoder):
             return obj.dump()
         # Let the base class default method raise the TypeError
         return super(DumpEncoder, self).default(obj)
+
+
 _DUMPS = DumpEncoder(indent=2, ensure_ascii=False, sort_keys=True).encode
 
 

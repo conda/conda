@@ -87,7 +87,7 @@ else:  # pragma: no cover
     from os import getcwd
     from os.path import isfile
     import sys
-    from ..._vendor.auxlib._vendor import six
+    from ...auxlib._vendor import six
     builtins = six.moves.builtins
 
     def islink(path):

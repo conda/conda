@@ -1,5 +1,5 @@
 from os.path import exists, join
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from conda.auxlib.compat import Utf8NamedTemporaryFile
 from unittest import TestCase
 
 from conda.gateways.disk.delete import rm_rf

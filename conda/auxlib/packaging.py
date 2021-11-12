@@ -75,7 +75,7 @@ from logging import getLogger
 from os import getenv, listdir, remove
 from os.path import abspath, dirname, expanduser, isdir, isfile, join
 from re import compile
-from conda._vendor.auxlib.compat import shlex_split_unicode
+from conda.auxlib.compat import shlex_split_unicode
 from subprocess import CalledProcessError, PIPE, Popen
 import sys
 
@@ -184,8 +184,8 @@ def write_version_into_init(target_dir, version):
             init_lines[q] = None
     print("UPDATING {0}".format(target_init_file))
     remove(target_init_file)
-    with open(target_init_file, 'w') as f:
-        f.write(''.join(l for l in init_lines if l is not None))
+    with open(target_init_file, "w") as f:
+        f.write("".join(filter(None, init_lines)))
 
 
 def write_version_file(target_dir, version):
@@ -221,9 +221,7 @@ def find_packages(where='.', exclude=()):
         where, prefix = stack.pop(0)
         for name in listdir(where):
             fn = join(where, name)
-            if ('.' not in name and isdir(fn) and
-                    isfile(join(fn, '__init__.py'))
-                ):
+            if "." not in name and isdir(fn) and isfile(join(fn, "__init__.py")):
                 out.append(prefix + name)
                 stack.append((fn, prefix + name + '.'))
     for pat in list(exclude) + ['ez_setup', 'distribute_setup']:

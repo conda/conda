@@ -92,7 +92,7 @@ non_x86_linux_machines, sys_rc_path = non_x86_machines, sys_rc_path
 get_prefix = get_prefix
 reset_context = reset_context
 
-from ._vendor.auxlib.entity import EntityEncoder # NOQA
+from .auxlib.entity import EntityEncoder # NOQA
 EntityEncoder = EntityEncoder
 from .base.constants import DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
 DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX = DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA

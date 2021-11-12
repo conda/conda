@@ -8,9 +8,9 @@ import sys
 
 from enum import Enum
 
-from .._vendor.auxlib.decorators import classproperty
-from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.type_coercion import TypeCoercionError, boolify
+from ..auxlib.decorators import classproperty
+from ..auxlib.ish import dals
+from ..auxlib.type_coercion import TypeCoercionError, boolify
 from ..common.compat import string_types
 from ..exceptions import CondaUpgradeError
 

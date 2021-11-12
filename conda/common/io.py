@@ -27,9 +27,9 @@ from time import sleep, time
 from .compat import StringIO, iteritems, on_win, encode_environment
 from .constants import NULL
 from .path import expand
-from .._vendor.auxlib.decorators import memoizemethod
-from .._vendor.auxlib.logz import NullHandler
-from .._vendor.auxlib.type_coercion import boolify
+from ..auxlib.decorators import memoizemethod
+from ..auxlib.logz import NullHandler
+from ..auxlib.type_coercion import boolify
 from .._vendor.tqdm import tqdm
 
 log = getLogger(__name__)

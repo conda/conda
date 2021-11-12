@@ -14,8 +14,8 @@ from .envs_manager import get_user_environments_txt_file, register_env, unregist
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 from .. import CondaError
-from .._vendor.auxlib.compat import with_metaclass
-from .._vendor.auxlib.ish import dals
+from ..auxlib.compat import with_metaclass
+from ..auxlib.ish import dals
 from .._vendor.toolz import concat
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context

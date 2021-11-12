@@ -14,7 +14,7 @@ from os.path import join, abspath, dirname
 
 import pytest
 
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 from conda.base.context import context, Context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars, stderr_log_level, captured

@@ -15,9 +15,9 @@ from os.path import isdir, isfile, join
 
 from .link import islink, lexists
 from .create import TemporaryDirectory
-from ..._vendor.auxlib.collection import first
-from ..._vendor.auxlib.compat import shlex_split_unicode
-from ..._vendor.auxlib.ish import dals
+from ...auxlib.collection import first
+from ...auxlib.compat import shlex_split_unicode
+from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import open, scandir
 from ...common.pkg_formats.python import (

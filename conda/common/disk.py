@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from contextlib import contextmanager
 from os import unlink
-from .._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from ..auxlib.compat import Utf8NamedTemporaryFile
 
 @contextmanager
 def temporary_content_in_file(content, suffix=""):

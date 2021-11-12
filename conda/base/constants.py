@@ -256,7 +256,7 @@ class ChannelPriorityMeta(EnumMeta):
             return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
         except ValueError:
             if isinstance(value, string_types):
-                from .._vendor.auxlib.type_coercion import typify
+                from ..auxlib.type_coercion import typify
                 value = typify(value)
             if value is True:
                 value = 'flexible'

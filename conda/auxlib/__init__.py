@@ -19,7 +19,10 @@ Major areas addressed include:
   - :ref:`logz`: logging initialization routines to simplify python logging setup
   - :ref:`crypt`: simple, but correct, pycrypto wrapper
 
-
+[2021-11-09] Our version of auxlib has deviated from the upstream project by a significant amount
+(especially compared with the other vendored packages). Further, the upstream project has low
+popularity and is no longer actively maintained. Consequently it was decided to absorb, refactor,
+and replace auxlib. As a first step of this process we moved conda._vendor.auxlib to conda.auxlib.
 """
 from __future__ import absolute_import, division, print_function
 
@@ -29,14 +32,16 @@ class NullHandler(Handler):  # NOQA
     def emit(self, record):
         pass
 
+
 getLogger('auxlib').addHandler(NullHandler())
 
 __all__ = [
     "__version__", "__author__",
     "__email__", "__license__", "__copyright__",
     "__summary__", "__url__",
-    "BuildPyCommand", "SDistCommand", "Tox", "get_version",
 ]
+
+__version__ = "0.0.43"
 
 __author__ = 'Kale Franz'
 __email__ = 'kale@franz.io'

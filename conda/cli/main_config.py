@@ -12,7 +12,7 @@ import sys
 from textwrap import wrap
 
 from .. import CondaError
-from .._vendor.auxlib.entity import EntityEncoder
+from ..auxlib.entity import EntityEncoder
 from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
                               UpdateModifier, SatSolverChoice)

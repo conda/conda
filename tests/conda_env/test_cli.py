@@ -5,7 +5,7 @@ import yaml
 import pytest
 import unittest
 
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.conda_argparse import do_call
@@ -171,7 +171,7 @@ def run_conda_command(command, prefix, *arguments):
     else:  # CREATE
         command_line = "{0} -y -q -n {1} {2}".format(command, prefix, " ".join(arguments))
 
-    from conda._vendor.auxlib.compat import shlex_split_unicode
+    from conda.auxlib.compat import shlex_split_unicode
     commands = shlex_split_unicode(command_line)
     args = p.parse_args(commands)
     context._set_argparse_args(args)

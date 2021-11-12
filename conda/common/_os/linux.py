@@ -8,7 +8,7 @@ from genericpath import exists
 from logging import getLogger
 import sys
 
-from ..._vendor.auxlib.decorators import memoize
+from ...auxlib.decorators import memoize
 from ..compat import iteritems, scandir
 
 
