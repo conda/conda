@@ -9,6 +9,8 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
+import pytest
+
 from conda.common.compat import on_win, odict
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from tests.data.env_metadata import (
@@ -17,6 +19,7 @@ from tests.data.env_metadata import (
 from conda.base.constants import PREFIX_STATE_FILE
 from conda.gateways.disk import mkdir_p
 from conda.gateways.disk.delete import rm_rf
+from conda.exceptions import CorruptedEnvironmentError
 
 
 ENV_VARS_FILE = '''
@@ -180,6 +183,19 @@ def test_get_conda_anchor_files_and_records():
 
     _print_output(output, expected_output)
     assert output == expected_output
+
+
+def test_corrupt_unicode_conda_meta_json():
+    """Test for graceful failure if a Unicode corrupt file exists in conda-meta."""
+    with pytest.raises(CorruptedEnvironmentError):
+        PrefixData("tests/data/corrupt/unicode").load()
+
+
+def test_corrupt_json_conda_meta_json():
+    """Test for graceful failure if a JSON corrupt file exists in conda-meta."""
+    with pytest.raises(CorruptedEnvironmentError):
+        PrefixData("tests/data/corrupt/json").load()
+
 
 class PrefixDatarUnitTests(TestCase):
 

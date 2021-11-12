@@ -173,7 +173,9 @@ class PrefixData(object):
         with open(prefix_record_json_path) as fh:
             try:
                 json_data = json_load(fh.read())
-            except JSONDecodeError:
+            except (UnicodeDecodeError, JSONDecodeError):
+                # UnicodeDecodeError: catch horribly corrupt files
+                # JSONDecodeError: catch bad json format files
                 raise CorruptedEnvironmentError(self.prefix_path, prefix_record_json_path)
 
             # TODO: consider, at least in memory, storing prefix_record_json_path as part
