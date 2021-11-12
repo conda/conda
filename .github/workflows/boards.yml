@@ -1,0 +1,35 @@
+name: Automate Boards
+on:
+  issues:
+    types: [opened, labeled]
+jobs:
+  # move to triaging board if new
+  triaging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        if: github.event.action == 'opened' && !contains(github.event.issue.labels.*.name, 'backlog')
+        with:
+          action: update
+          project: Triaging
+          column: New
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  # move to backlog board if labeled as backlog
+  backlog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        if: contains(github.event.issue.labels.*.name, 'backlog')
+        with:
+          action: delete
+          project: Triaging
+          column: Ready
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        if: contains(github.event.issue.labels.*.name, 'backlog')
+        with:
+          action: update
+          project: Backlog
+          column: Unplanned
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
