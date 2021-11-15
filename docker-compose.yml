@@ -1,0 +1,18 @@
+services:
+  interactive:
+    image: ghcr.io/conda/conda-ci:master-linux-python${CONDA_DOCKER_PYTHON:-3.9}
+    volumes:
+      - .:/opt/conda-src
+    command: ["bash", "--rcfile", "/opt/conda-src/dev/docker.bashrc"]
+
+  integration-tests:
+    image: ghcr.io/conda/conda-ci:master-linux-python${CONDA_DOCKER_PYTHON:-3.9}
+    volumes:
+      - .:/opt/conda-src
+    command: ["bash", "/opt/conda-src/ci/scripts/linux/integration.sh"]
+
+  unit-tests:
+    image: ghcr.io/conda/conda-ci:master-linux-python${CONDA_DOCKER_PYTHON:-3.9}
+    volumes:
+      - .:/opt/conda-src
+    command: ["bash", "/opt/conda-src/ci/scripts/linux/unit.sh"]

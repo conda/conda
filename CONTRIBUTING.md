@@ -83,18 +83,20 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
 
 4. Alternatively, for Linux development only, you can use the same Docker
    image the CI pipelines use. Note that you can run this from all three operating
-   systems!
+   systems! We are using `docker compose`, which provides three actions for you:
 
-   **Bash (macOS, Linux, Windows)**
+   - `unit-tests`: Run all unit tests.
+   - `integration-tests`: Run all integration tests.
+   - `interactive`: You are dropped in a pre-initialized Bash session, where you can
+     run all your `pytest` commands as required.
+
+   Use them with `docker compose run <action>`. For example:
+
+
+   **Any shell (macOS, Linux, Windows)**
 
    ```bash
-   $ ./dev/start_docker
-   ```
-
-   **cmd.exe (Windows)**
-
-   ```batch
-   > .\dev\start_docker.bat
+   $ docker compose run unit-tests
    ```
 
    This will download the `conda-ci` Docker image from the
@@ -106,13 +108,13 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    **Bash (macOS, Linux, Windows)**
 
    ```bash
-   $ CONDA_DOCKER_PYTHON=3.8 ./dev/start_docker
+   $ CONDA_DOCKER_PYTHON=3.8 docker compose run unit-tests
    ```
 
    **cmd.exe (Windows)**
 
    ```batch
-   > set CONDA_DOCKER_PYTHON=3.8 && .\dev\start_docker.bat && set "CONDA_DOCKER_PYTHON="
+   > set CONDA_DOCKER_PYTHON=3.8 && docker compose run unit-tests && set "CONDA_DOCKER_PYTHON="
    ```
 
    The `conda` repository will be mounted to `/opt/conda-src`, so all changes done in your
