@@ -3,12 +3,13 @@ version: "3.9"
 x-base: &base
   build:
     context: .
-    cache_from:
-      - debian:buster-slim
+    # cache_from:
+    #   - debian:buster-slim
     args:
       - python_version=${CONDA_DOCKER_PYTHON:-3.9}
   volumes:
     - .:/opt/conda-src
+  container_name: conda-linux-python-${CONDA_DOCKER_PYTHON:-3.9}
 
 services:
   interactive:

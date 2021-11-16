@@ -103,24 +103,29 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    This builds the same Docker image as used in continuous
    integration from the [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
    and starts `bash` with the conda development mode already enabled.
-   By default, it will pick the Python 3.9 image built from `master`.
+   By default, it will use Python 3.9 installation.
 
    If you need a different Python version, set a `CONDA_DOCKER_PYTHON`
-   environment variable like this to rebuild the image:
+   environment variable like this to rebuild the image. You might need
+   to add `--no-cache` to make sure the image is rebuilt.
 
    **Bash (macOS, Linux, Windows)**
 
    ```bash
-   $ CONDA_DOCKER_PYTHON=3.8 docker compose build unit-tests
+   $ CONDA_DOCKER_PYTHON=3.8 docker compose build --no-cache unit-tests
    ```
 
    **cmd.exe (Windows)**
 
    ```batch
-   > set CONDA_DOCKER_PYTHON=3.8 && docker compose build unit-tests && set "CONDA_DOCKER_PYTHON="
+   > set CONDA_DOCKER_PYTHON=3.8 && docker compose build --no-cache unit-tests && set "CONDA_DOCKER_PYTHON="
    ```
 
-   The `conda` repository will be mounted to `/opt/conda-src`, so all changes
+   The next time you run `docker compose run <task>` you will use the new image.
+   If you want to revert to the version you were previously using, you need to rebuild
+   the image again.
+
+   > The `conda` repository will be mounted to `/opt/conda-src`, so all changes
    done in your editor will be reflected live while the Docker container is
    running.
 
