@@ -47,7 +47,7 @@ jobs:
     - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
       shell: cmd
       run: |
-        call .\ci\scripts\windows\${{ matrix.test-type }}.bat
+        call .\dev\windows\${{ matrix.test-type }}.bat
 
     - uses: codecov/codecov-action@v2
       with:
