@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "Initializing conda in dev mode..."
 echo "Factory config is:"

@@ -82,13 +82,14 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    `conda info --all`.
 
 4. Alternatively, for Linux development only, you can use the same Docker
-   image the CI pipelines use. Note that you can run this from all three operating
-   systems! We are using `docker compose`, which provides three actions for you:
+   image the CI pipelines use. Note that you can run this from all three
+   operating systems! We are using `docker compose`, which provides three
+   actions for you:
 
    - `unit-tests`: Run all unit tests.
    - `integration-tests`: Run all integration tests.
-   - `interactive`: You are dropped in a pre-initialized Bash session, where you can
-     run all your `pytest` commands as required.
+   - `interactive`: You are dropped in a pre-initialized Bash session,
+     where you can run all your `pytest` commands as required.
 
    Use them with `docker compose run <action>`. For example:
 
@@ -99,26 +100,29 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    $ docker compose run unit-tests
    ```
 
-   This will download the `conda-ci` Docker image from the
-   [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
-   and start `bash` with the conda development mode already enabled.
-   By default, it will pick the Python 3.9 image built from `master`. If you need
-   a different Python version, set a `CONDA_DOCKER_PYTHON` environment variable like this:
+   This builds the same Docker image as used in continuous
+   integration from the [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
+   and starts `bash` with the conda development mode already enabled.
+   By default, it will pick the Python 3.9 image built from `master`.
+
+   If you need a different Python version, set a `CONDA_DOCKER_PYTHON`
+   environment variable like this to rebuild the image:
 
    **Bash (macOS, Linux, Windows)**
 
    ```bash
-   $ CONDA_DOCKER_PYTHON=3.8 docker compose run unit-tests
+   $ CONDA_DOCKER_PYTHON=3.8 docker compose build unit-tests
    ```
 
    **cmd.exe (Windows)**
 
    ```batch
-   > set CONDA_DOCKER_PYTHON=3.8 && docker compose run unit-tests && set "CONDA_DOCKER_PYTHON="
+   > set CONDA_DOCKER_PYTHON=3.8 && docker compose build unit-tests && set "CONDA_DOCKER_PYTHON="
    ```
 
-   The `conda` repository will be mounted to `/opt/conda-src`, so all changes done in your
-   editor will be reflected live while the Docker container is running.
+   The `conda` repository will be mounted to `/opt/conda-src`, so all changes
+   done in your editor will be reflected live while the Docker container is
+   running.
 
 ## Static Code Analysis
 

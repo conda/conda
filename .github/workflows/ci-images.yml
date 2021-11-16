@@ -5,12 +5,12 @@ on:
     - cron:  '0 0 * * 0'
   pull_request:
     paths:
-      - 'ci/Dockerfile'
+      - 'Dockerfile'
       - '.github/workflows/ci-images.yml'
       - 'tests/requirements.txt'
   push:
     paths:
-      - 'ci/Dockerfile'
+      - 'Dockerfile'
       - '.github/workflows/ci-images.yml'
       - 'tests/requirements.txt'
   workflow_dispatch:
@@ -50,8 +50,8 @@ jobs:
       - name: Build & push Python ${{ matrix.python }}
         uses: docker/build-push-action@v2
         with:
-          file: ./ci/Dockerfile
-          build-args: PYTHON_VERSION=${{ matrix.python }}
+          file: ./Dockerfile
+          build-args: python_version=${{ matrix.python }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           push: ${{ github.ref == 'refs/heads/master' }}

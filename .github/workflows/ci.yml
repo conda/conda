@@ -79,7 +79,7 @@ jobs:
           -e TEST_SPLITS
           -e TEST_GROUP
           ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}
-          /opt/conda-src/ci/scripts/linux/${{ matrix.test-type }}.sh
+          /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:

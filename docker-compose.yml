@@ -1,18 +1,24 @@
+version: "3.9"
+
+x-base: &base
+  build:
+    context: .
+    cache_from:
+      - debian:buster-slim
+    args:
+      - python_version=${CONDA_DOCKER_PYTHON:-3.9}
+  volumes:
+    - .:/opt/conda-src
+
 services:
   interactive:
-    image: ghcr.io/conda/conda-ci:master-linux-python${CONDA_DOCKER_PYTHON:-3.9}
-    volumes:
-      - .:/opt/conda-src
-    command: ["bash", "--rcfile", "/opt/conda-src/dev/docker.bashrc"]
+    <<: *base
+    command: ["bash", "--rcfile", "/opt/conda-src/dev/linux/bashrc.sh"]
 
   integration-tests:
-    image: ghcr.io/conda/conda-ci:master-linux-python${CONDA_DOCKER_PYTHON:-3.9}
-    volumes:
-      - .:/opt/conda-src
-    command: ["bash", "/opt/conda-src/ci/scripts/linux/integration.sh"]
+    <<: *base
+    command: ["bash", "/opt/conda-src/dev/linux/integration.sh"]
 
   unit-tests:
-    image: ghcr.io/conda/conda-ci:master-linux-python${CONDA_DOCKER_PYTHON:-3.9}
-    volumes:
-      - .:/opt/conda-src
-    command: ["bash", "/opt/conda-src/ci/scripts/linux/unit.sh"]
+    <<: *base
+    command: ["bash", "/opt/conda-src/dev/linux/unit.sh"]
