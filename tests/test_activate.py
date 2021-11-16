@@ -1650,9 +1650,9 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             $Env:PATH = "%(new_path)s"
             . "%(deactivate1)s"
-            Remove-Item Env:/CONDA_PREFIX
-            Remove-Item Env:/CONDA_DEFAULT_ENV
-            Remove-Item Env:/CONDA_PROMPT_MODIFIER
+            $Env:CONDA_PREFIX = ""
+            $Env:CONDA_DEFAULT_ENV = ""
+            $Env:CONDA_PROMPT_MODIFIER = ""
             $Env:CONDA_SHLVL = "0"
             %(conda_exe_export)s
             """) % {
