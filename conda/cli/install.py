@@ -130,10 +130,8 @@ def install(args, parser, command='install'):
     if isupdate and not (args.file or args.packages
                          or context.update_modifier == UpdateModifier.UPDATE_ALL):
         raise CondaValueError("""no package names supplied
-# If you want to update to a newer version of Anaconda, type:
-#
-# $ conda update --prefix %s anaconda
-""" % prefix)
+# Example: conda update -n myenv scipy
+""")
 
     if not newenv:
         if isdir(prefix):
