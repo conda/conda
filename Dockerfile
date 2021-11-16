@@ -1,4 +1,4 @@
-FROM debian:buster-slim AS buildbase
+FROM --platform=linux/amd64 debian:buster-slim AS buildbase
 
 ARG MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 
@@ -11,7 +11,7 @@ RUN wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \
     rm ~/miniconda.sh && \
     /opt/conda/bin/conda clean --all --yes
 
-FROM debian:buster-slim
+FROM --platform=linux/amd64 debian:buster-slim
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
