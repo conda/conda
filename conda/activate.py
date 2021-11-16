@@ -1037,7 +1037,7 @@ class PowerShellActivator(_Activator):
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
         self.command_join = '\n'
 
-        self.unset_var_tmpl = 'Remove-Item Env:/%s'
+        self.unset_var_tmpl = '$Env:%s = ""'
         self.export_var_tmpl = '$Env:%s = "%s"'
         self.set_var_tmpl = '$Env:%s = "%s"'
         self.run_script_tmpl = '. "%s"'
