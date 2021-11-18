@@ -8,8 +8,7 @@ If your issue is a bug report or feature request for:
 * **anaconda.org**: please file it at <https://anaconda.org/contact/report>
 * **repo.anaconda.com**: please file it at <https://github.com/ContinuumIO/anaconda-issues/issues>
 * **commands under `conda build`**: please file it at <https://github.com/conda/conda-build/issues>
-* **commands under `conda env`**: please file it here!
-* **all other conda commands**: please file it here!
+* **commands under `conda env` and all other conda commands**: please file it at <https://github.com/conda/conda/issues>
 
 ## Code of Conduct
 
@@ -260,14 +259,18 @@ everywhere to actually perform the release. So it is customary to run
 
 The standard workflow is thus:
 
-   rever check
-   rever 1.2.3
+```bash
+$ rever check
+$ rever 1.2.3
+```
 
 If for some reason a release fails partway through, or you want to claw back a
 release that you have made, rever allows you to undo activities. If you find yourself
-in this pickle, you can pass the ``--undo`` option a comma-separated list of
+in this pickle, you can pass the `--undo` option a comma-separated list of
 activities you'd like to undo. For example:
 
-   rever --undo tag,changelog,authors 1.2.3
+```bash
+$ rever --undo tag,changelog,authors 1.2.3
+```
 
 Happy releasing!
