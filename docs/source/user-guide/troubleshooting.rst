@@ -768,7 +768,7 @@ message such as this one::
     The following specifications were found to be in conflict:
     - python 3*
     - wxpython 3* -> python 2.7*
-    Use "conda search <package> --info" to see the dependencies
+    Use ``conda search <package> --info`` to see the dependencies
     for each package.
 
 This indicates that the specification to install wxpython 3
