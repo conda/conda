@@ -124,7 +124,7 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    If you want to revert to the version you were previously using, you need to rebuild
    the image again.
 
-   > The `conda` repository will be mounted to `/opt/conda-src`, so all changes
+>  The `conda` repository will be mounted to `/opt/conda-src`, so all changes
    done in your editor will be reflected live while the Docker container is
    running.
 
@@ -148,6 +148,8 @@ what you need to get started below:
 ```bash
 # reuse the development environment created above
 $ source ./dev/start
+# or start the Docker image in interactive mode
+# $ docker compose run interactive
 
 # install pre-commit hooks for conda
 $ cd "$CONDA_PROJECT_ROOT"
@@ -166,6 +168,8 @@ $ git commit
 ```batch
 :: reuse the development environment created above
 > .\dev\start.bat
+:: or start the Docker image in interactive mode
+:: > docker compose run interactive
 
 :: install pre-commit hooks for conda
 > cd "%CONDA_PROJECT_ROOT%"
@@ -203,6 +207,8 @@ but generally speaking all you need is the following:
 ```bash
 # reuse the development environment created above
 $ source ./dev/start
+# or start the Docker image in interactive mode
+# $ docker compose run interactive
 
 # run conda's unit tests using GNU make
 $ make unit
@@ -219,6 +225,8 @@ $ pytest tests/test_create.py -k create_install_update_remove_smoketest
 ```batch
 :: reuse the development environment created above
 > .\dev\start.bat
+:: or start the Docker image in interactive mode
+:: > docker compose run interactive
 
 :: run conda's unit tests with pytest
 > pytest -m "not integration" conda tests
@@ -226,6 +234,20 @@ $ pytest tests/test_create.py -k create_install_update_remove_smoketest
 :: or you can use pytest to focus on one specific test
 > pytest tests\test_create.py -k create_install_update_remove_smoketest
 ```
+
+Note: Some integration tests require you build a package with conda-build beforehand.
+This is taking care of if you run `docker compose run integration-tests`, but you need
+to do it manually in other modes:
+
+**Bash (macOS, Linux, Windows)**
+
+```bash
+$ conda install conda-build
+$ conda-build tests/test-recipes/activate_deactivate_package
+```
+
+Check `dev/linux/integration.sh` and `dev\windows\integration.bat` for more details.
+
 
 ## Conda Contributor License Agreement
 
