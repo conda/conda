@@ -42,7 +42,7 @@ jobs:
     - name: Setup environment
       shell: cmd
       run: |
-        call .\ci\scripts\windows\setup.bat
+        call .\dev\windows\setup.bat
 
     - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
       shell: cmd
