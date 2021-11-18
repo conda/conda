@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Stop referring to updating anaconda when `conda update`
+  fails with an error.
+
+### Other
+
+* <news item>
