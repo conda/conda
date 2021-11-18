@@ -1,0 +1,19 @@
+#!/bin/bash
+
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+STARTFILE="$SCRIPT_DIR/docker.bashrc"
+
+cat > "$STARTFILE" <<'EOF'
+echo "Initializing conda in dev mode..."
+echo "Factory config is:"
+grep -e "conda location" -e "conda version" -e "python version" <(conda info -a) | sed 's/^\s*/  /'
+eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+echo "Done! Now running:"
+grep -e "conda location" -e "conda version" -e "python version" <(conda info -a) | sed 's/^\s*/  /'
+EOF
+
+PY=${CONDA_DOCKER_PYTHON:-3.9}
+
+docker run -it -v "$SCRIPT_DIR/..":/opt/conda-src ghcr.io/conda/conda-ci:poc-libsolv-linux-python${PY}-mamba bash --rcfile /opt/conda-src/dev/docker.bashrc
+
+rm "$STARTFILE"

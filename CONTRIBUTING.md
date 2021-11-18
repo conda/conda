@@ -58,7 +58,7 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    > git remote add upstream git@github.com:conda/conda
    ```
 
-3. Create a local development environment and activate that environment
+3. One option is to create a local development environment and activate that environment
 
    **Bash (macOS, Linux, Windows)**
 
@@ -80,6 +80,29 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    To be sure that the conda code being interpreted is the code in the project
    directory, look at the value of `conda location:` in the output of
    `conda info --all`.
+
+4. Alternatively, for Linux development only, you can use the same Docker
+   image the CI pipelines use. Note that you can run this from all three operating
+   systems!
+
+   **Bash (macOS, Linux, Windows)**
+
+   ```bash
+   $ ./dev/start_docker
+   ```
+
+   This will download the `conda-ci` Docker image from the
+   [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
+   and start `bash` with the conda development mode already enabled.
+   By default, it will pick the Python 3.9 image built from `master`. If you need
+   a different Python version, set a `CONDA_DOCKER_PYTHON` environment variable like this:
+
+   ```bash
+   $ CONDA_DOCKER_PYTHON=3.8 ./dev/start_docker
+   ```
+
+   The `conda` repository will be mounted to `/opt/conda-src`, so all changes done in your
+   editor will be reflected live while the Docker container is running.
 
 ## Static Code Analysis
 
