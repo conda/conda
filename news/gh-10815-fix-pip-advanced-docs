@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Fix the advanced pip example to stop using the now invalid `file:` prefix.
+
+### Other
+
+* <news item>
