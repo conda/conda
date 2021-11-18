@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 from os import chmod as os_chmod, lstat
 from os.path import abspath, isdir, islink as os_islink, lexists as os_lexists
+import sys
 
 from ...common.compat import PY2, on_win
 from ...exceptions import CondaOSError, ParseError
@@ -16,6 +17,7 @@ from ...exceptions import CondaOSError, ParseError
 __all__ = ('islink', 'lchmod', 'lexists', 'link', 'readlink', 'stat_nlink', 'symlink')
 
 log = getLogger(__name__)
+PYPY = sys.implementation.name == 'pypy'
 
 
 if PY2:  # pragma: py3 no cover
@@ -74,7 +76,7 @@ else:  # pragma: unix no cover
     symlink = win_soft_link
 
 
-if not (on_win and PY2):
+if not (on_win and (PY2 or PYPY)):
     from os import readlink
     islink = os_islink
     lexists = os_lexists
