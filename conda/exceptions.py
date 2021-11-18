@@ -892,6 +892,7 @@ class NotWritableError(CondaError, OSError):
                 'gid': os.getegid(),
             })
         super(NotWritableError, self).__init__(message, **kwargs)
+        self.errno = errno
 
 
 class NoWritableEnvsDirError(CondaError):
