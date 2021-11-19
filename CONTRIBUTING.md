@@ -258,8 +258,6 @@ both use similar agreements.
 
 Note: New contributors are required to complete the [Conda Contributor License Agreement][1].
 
-<iframe src="https://anaconda.na2.echosign.com/public/esignWidget?wid=CBFCIBAA3AAABLblqZhAzPD8JNseGxXBNSY55tQ9ZE65FLEa2B-rUNAEYEjfxph-KGE3uSbu0fvR5cTRRCnY*&hosted=false" width="100%" height="100%" frameborder="0" style="border: 0; overflow: hidden; min-height: 500px; min-width: 600px;"></iframe>
-
 For pull requests to be merged, contributors to GitHub pull requests need to
 have signed the [Conda Contributor License Agreement][1], so Anaconda, Inc.
 has it on file. A record of prior signatories is kept in a [separate repo in
