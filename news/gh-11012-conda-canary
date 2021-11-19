@@ -1,13 +1,6 @@
 ### Enhancements
 
-* Automatically build the conda package upon the successful merge into the
-  master branch and upload it to the conda-canary channel on anaconda.org.
-
-  To try conda out simply run:
-
-  ```
-  conda install -c conda-canary conda
-  ```
+* <news item>
 
 ### Bug fixes
 
@@ -23,4 +16,11 @@
 
 ### Other
 
-* <news item>
+* Automatically build the conda package upon the successful merge into the
+  master branch and upload it to the conda-canary channel on anaconda.org.
+
+  To try conda out simply run:
+
+  ```
+  conda install -c conda-canary/label/dev conda
+  ```

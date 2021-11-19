@@ -1,7 +1,6 @@
 ### Enhancements
 
-* Refactor test suite to use more GitHub Actions runners in parallel,
-  reducing total run time by 50%.
+* <news item>
 
 ### Bug fixes
 
@@ -17,4 +16,5 @@
 
 ### Other
 
-* <news item>
+* Refactor test suite to use more GitHub Actions runners in parallel,
+  reducing total run time by 50%.

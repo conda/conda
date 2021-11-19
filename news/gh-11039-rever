@@ -1,7 +1,6 @@
 ### Enhancements
 
-* Start using [rever](https://regro.github.io/rever-docs/) for release
-  management.
+* <news item>
 
 ### Bug fixes
 
@@ -17,4 +16,5 @@
 
 ### Other
 
-* <news item>
+* Start using [rever](https://regro.github.io/rever-docs/) for release
+  management.

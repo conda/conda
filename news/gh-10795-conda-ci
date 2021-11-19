@@ -1,10 +1,6 @@
 ### Enhancements
 
-* Build Docker images periodically on GitHub Actions for the continuous
-  integration testing on Linux, storing them on GitHub Packages's registry
-  for reduced latency and cost when using Docker Hub.
-
-* Simplify the Linux GitHub actions workflows by combining used shell scripts.
+* <news item>
 
 ### Bug fixes
 
@@ -20,4 +16,8 @@
 
 ### Other
 
-* <news item>
+* Build Docker images periodically on GitHub Actions for the continuous
+  integration testing on Linux, storing them on GitHub Packages's registry
+  for reduced latency and cost when using Docker Hub.
+
+* Simplify the Linux GitHub actions workflows by combining used shell scripts.
