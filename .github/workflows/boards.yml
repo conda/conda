@@ -13,7 +13,7 @@ jobs:
           action: update
           project: Triaging
           column: New
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
 
   # move to backlog board if labeled as backlog
   backlog:
@@ -25,11 +25,11 @@ jobs:
           action: delete
           project: Triaging
           column: Ready
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
       - uses: alex-page/github-project-automation-plus@v0.8.1
         if: contains(github.event.issue.labels.*.name, 'backlog')
         with:
           action: update
           project: Backlog
           column: Unplanned
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
