@@ -1,0 +1,22 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Automate adding new issues to [public GitHub project board](https://github.com/orgs/conda/projects/4)
+  to facilitate issue triage.
+
+* Update GitHub issue and pull request labels to be more consistent.

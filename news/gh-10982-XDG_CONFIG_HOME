@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add `XDG_CONFIG_HOME` to the conda search path following
+  the [XDG Base Directory Specification (XDGBDS)](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html).
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

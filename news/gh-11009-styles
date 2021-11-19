@@ -1,0 +1,29 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Expand the contributing documentation with a section about
+  static code analysis and code linting.
+
+### Other
+
+* Add and automatically run pre-commit as part of the CI system
+  to improve the code quality continuously and raise issues
+  in contributed patches early on.
+
+  The used code linters are: [flake8](https://flake8.pycqa.org/),
+  [pylint](https://pylint.org/) and [bandit](https://bandit.readthedocs.io/).
+
+  The [Python code formatter black](https://black.readthedocs.io/) is used
+  as well but is only enforced on changed code in a commit and not to the
+  whole code base at once.
