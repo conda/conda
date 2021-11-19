@@ -105,7 +105,7 @@ class IntegrationTests(TestCase):
                 assert env_vars['FIXED'] == 'fixed'
                 assert env_vars['CHANGES'] == 'updated_value'
                 assert env_vars['NEW_VAR'] == 'new_var'
-                
+
                 # This ends up sticking around since there is no real way of knowing that an environment
                 # variable _used_ to be in the variables dict, but isn't any more.
                 assert env_vars['GETS_DELETED'] == 'not_actually_removed_though'
@@ -135,7 +135,7 @@ class IntegrationTests(TestCase):
                 assert env_vars['FIXED'] == 'fixed'
                 assert env_vars['CHANGES'] == 'updated_value'
                 assert env_vars['NEW_VAR'] == 'new_var'
-                
+
                 # This ends up sticking around since there is no real way of knowing that an environment
                 # variable _used_ to be in the variables dict, but isn't any more.
                 assert env_vars['GETS_DELETED'] == 'not_actually_removed_though'
