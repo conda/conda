@@ -8,8 +8,7 @@ If your issue is a bug report or feature request for:
 * **anaconda.org**: please file it at <https://anaconda.org/contact/report>
 * **repo.anaconda.com**: please file it at <https://github.com/ContinuumIO/anaconda-issues/issues>
 * **commands under `conda build`**: please file it at <https://github.com/conda/conda-build/issues>
-* **commands under `conda env`**: please file it here!
-* **all other conda commands**: please file it here!
+* **commands under `conda env` and all other conda commands**: please file it at <https://github.com/conda/conda/issues>
 
 ## Code of Conduct
 
@@ -58,7 +57,7 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    > git remote add upstream git@github.com:conda/conda
    ```
 
-3. Create a local development environment and activate that environment
+3. One option is to create a local development environment and activate that environment
 
    **Bash (macOS, Linux, Windows)**
 
@@ -81,6 +80,54 @@ The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.num
    directory, look at the value of `conda location:` in the output of
    `conda info --all`.
 
+4. Alternatively, for Linux development only, you can use the same Docker
+   image the CI pipelines use. Note that you can run this from all three
+   operating systems! We are using `docker compose`, which provides three
+   actions for you:
+
+   - `unit-tests`: Run all unit tests.
+   - `integration-tests`: Run all integration tests.
+   - `interactive`: You are dropped in a pre-initialized Bash session,
+     where you can run all your `pytest` commands as required.
+
+   Use them with `docker compose run <action>`. For example:
+
+
+   **Any shell (macOS, Linux, Windows)**
+
+   ```bash
+   $ docker compose run unit-tests
+   ```
+
+   This builds the same Docker image as used in continuous
+   integration from the [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
+   and starts `bash` with the conda development mode already enabled.
+   By default, it will use Python 3.9 installation.
+
+   If you need a different Python version, set a `CONDA_DOCKER_PYTHON`
+   environment variable like this to rebuild the image. You might need
+   to add `--no-cache` to make sure the image is rebuilt.
+
+   **Bash (macOS, Linux, Windows)**
+
+   ```bash
+   $ CONDA_DOCKER_PYTHON=3.8 docker compose build --no-cache unit-tests
+   ```
+
+   **cmd.exe (Windows)**
+
+   ```batch
+   > set CONDA_DOCKER_PYTHON=3.8 && docker compose build --no-cache unit-tests && set "CONDA_DOCKER_PYTHON="
+   ```
+
+   The next time you run `docker compose run <task>` you will use the new image.
+   If you want to revert to the version you were previously using, you need to rebuild
+   the image again.
+
+>  The `conda` repository will be mounted to `/opt/conda-src`, so all changes
+   done in your editor will be reflected live while the Docker container is
+   running.
+
 ## Static Code Analysis
 
 This project is configured with [pre-commit](https://pre-commit.com/) to
@@ -101,6 +148,8 @@ what you need to get started below:
 ```bash
 # reuse the development environment created above
 $ source ./dev/start
+# or start the Docker image in interactive mode
+# $ docker compose run interactive
 
 # install pre-commit hooks for conda
 $ cd "$CONDA_PROJECT_ROOT"
@@ -119,6 +168,8 @@ $ git commit
 ```batch
 :: reuse the development environment created above
 > .\dev\start.bat
+:: or start the Docker image in interactive mode
+:: > docker compose run interactive
 
 :: install pre-commit hooks for conda
 > cd "%CONDA_PROJECT_ROOT%"
@@ -156,6 +207,8 @@ but generally speaking all you need is the following:
 ```bash
 # reuse the development environment created above
 $ source ./dev/start
+# or start the Docker image in interactive mode
+# $ docker compose run interactive
 
 # run conda's unit tests using GNU make
 $ make unit
@@ -172,6 +225,8 @@ $ pytest tests/test_create.py -k create_install_update_remove_smoketest
 ```batch
 :: reuse the development environment created above
 > .\dev\start.bat
+:: or start the Docker image in interactive mode
+:: > docker compose run interactive
 
 :: run conda's unit tests with pytest
 > pytest -m "not integration" conda tests
@@ -179,6 +234,20 @@ $ pytest tests/test_create.py -k create_install_update_remove_smoketest
 :: or you can use pytest to focus on one specific test
 > pytest tests\test_create.py -k create_install_update_remove_smoketest
 ```
+
+Note: Some integration tests require you build a package with conda-build beforehand.
+This is taking care of if you run `docker compose run integration-tests`, but you need
+to do it manually in other modes:
+
+**Bash (macOS, Linux, Windows)**
+
+```bash
+$ conda install conda-build
+$ conda-build tests/test-recipes/activate_deactivate_package
+```
+
+Check `dev/linux/integration.sh` and `dev\windows\integration.bat` for more details.
+
 
 ## Conda Contributor License Agreement
 
@@ -212,14 +281,18 @@ everywhere to actually perform the release. So it is customary to run
 
 The standard workflow is thus:
 
-   rever check
-   rever 1.2.3
+```bash
+$ rever check
+$ rever 1.2.3
+```
 
 If for some reason a release fails partway through, or you want to claw back a
 release that you have made, rever allows you to undo activities. If you find yourself
-in this pickle, you can pass the ``--undo`` option a comma-separated list of
+in this pickle, you can pass the `--undo` option a comma-separated list of
 activities you'd like to undo. For example:
 
-   rever --undo tag,changelog,authors 1.2.3
+```bash
+$ rever --undo tag,changelog,authors 1.2.3
+```
 
 Happy releasing!

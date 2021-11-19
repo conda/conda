@@ -56,9 +56,9 @@ that approach may not be as up to date.
    user-guide/index
    configuration
    api/index
-   release-notes
    commands
-   architecture
    glossary
+   dev-guide/index
+   release-notes
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN

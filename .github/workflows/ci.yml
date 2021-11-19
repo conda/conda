@@ -42,12 +42,12 @@ jobs:
     - name: Setup environment
       shell: cmd
       run: |
-        call .\ci\scripts\windows\setup.bat
+        call .\dev\windows\setup.bat
 
     - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
       shell: cmd
       run: |
-        call .\ci\scripts\windows\${{ matrix.test-type }}.bat
+        call .\dev\windows\${{ matrix.test-type }}.bat
 
     - uses: codecov/codecov-action@v2
       with:
@@ -79,7 +79,7 @@ jobs:
           -e TEST_SPLITS
           -e TEST_GROUP
           ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}
-          /opt/conda-src/ci/scripts/linux/${{ matrix.test-type }}.sh
+          /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
