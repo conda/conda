@@ -238,7 +238,7 @@ def test_solve_1(tmpdir):
 
 @pytest.mark.skipif(
     not getattr(_get_solver_logic(), "_uses_ssc", True),
-    reason="This Solver implementation does not use SolverStateContainer"
+    reason="This Solver implementation does not use SolverStateContainerLegacy"
 )
 def test_solve_2(tmpdir):
     specs = MatchSpec("numpy"),
@@ -293,7 +293,7 @@ def test_solve_2(tmpdir):
 
 @pytest.mark.skipif(
     not getattr(_get_solver_logic(), "_uses_ssc", True),
-    reason="This Solver implementation does not use SolverStateContainer"
+    reason="This Solver implementation does not use SolverStateContainerLegacy"
 )
 def test_virtual_package_solver(tmpdir):
     specs = MatchSpec("cudatoolkit"),
@@ -849,7 +849,7 @@ def test_update_all_1(tmpdir):
 
 @pytest.mark.skipif(
     not getattr(_get_solver_logic(), "_uses_ssc", True),
-    reason="This Solver implementation does not use SolverStateContainer"
+    reason="This Solver implementation does not use SolverStateContainerLegacy"
 )
 def test_broken_install(tmpdir):
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
