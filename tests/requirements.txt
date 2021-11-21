@@ -32,3 +32,4 @@ pytest-xdist
 requests
 responses
 ruamel_yaml
+napari/label/bundle_tools::menuinst

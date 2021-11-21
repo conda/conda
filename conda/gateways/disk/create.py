@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import codecs
 from errno import EACCES, EPERM, EROFS
 from io import open
-from logging import getLogger
+from logging import getLogger, warning
 import os
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
@@ -247,7 +247,15 @@ def make_menu(prefix, file_path, remove=False):
         with open(json_path) as f:
             metadata = json.load(f)
         if "$schema" not in metadata:  # old style JSON
-            menuinst._legacy.install(json_path, remove, prefix)
+            if not on_win:
+                log.warn(
+                    "menuinst._legacy is only supported on Windows. "
+                    "Switch to the new-style menu definitions for cross-platform compatibility."
+                )
+            else:
+                from menuinst._legacy import install
+
+                install(json_path, remove, prefix)
         elif remove:
             menuinst.remove(metadata, prefix)
         else:
