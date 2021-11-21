@@ -15,8 +15,6 @@ import tempfile
 import warnings as _warnings
 import json
 
-import menuinst
-
 from . import mkdir_p
 from .delete import path_is_clean, rm_rf
 from .link import islink, lexists, link, readlink, symlink
@@ -242,11 +240,13 @@ def make_menu(prefix, file_path, remove=False):
         log.warn("Environment name starts with underscore '_'. Skipping menu installation.")
         return
 
+    import menuinst.api
+
     try:
         json_path = join(prefix, win_path_ok(file_path))
         with open(json_path) as f:
             metadata = json.load(f)
-        if "$schema" not in metadata:  # old style JSON
+        if "$id" not in metadata:  # old style JSON
             if not on_win:
                 log.warn(
                     "menuinst._legacy is only supported on Windows. "
@@ -257,9 +257,9 @@ def make_menu(prefix, file_path, remove=False):
 
                 install(json_path, remove, prefix)
         elif remove:
-            menuinst.remove(metadata, prefix)
+            menuinst.api.remove(metadata, prefix)
         else:
-            menuinst.install(metadata, prefix)
+            menuinst.api.install(metadata, prefix)
     except Exception:
         stdoutlog.error("menuinst Exception", exc_info=True)
 
