@@ -451,8 +451,12 @@ class MakeMenuAction(CreateInPrefixPathAction):
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
         if context.shortcuts:
             MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-            return tuple(cls(transaction_context, package_info, target_prefix, spi.path)
-                         for spi in package_info.paths_data.paths if bool(MENU_RE.match(spi.path)))
+            actions = []
+            for spi in package_info.paths_data.paths:
+                if bool(MENU_RE.match(spi.path)):
+                    if not context.shortcuts_only or (context.shortcuts_only and package_info.name in context.shortcuts_only):
+                        actions.append(cls(transaction_context, package_info, target_prefix, spi.path))
+            return tuple(actions)
         else:
             return ()
 

@@ -315,8 +315,11 @@ class Context(Configuration):
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
     report_errors = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
-    shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
+    shortcuts = ParameterLoader(PrimitiveParameter(True))
+    shortcuts_only = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
+        expandvars=True)
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
 
@@ -987,6 +990,7 @@ class Context(Configuration):
                 "extra_safety_checks",
                 "signing_metadata_url_base",
                 "shortcuts",
+                "shortcuts_only",
                 "non_admin_enabled",
                 "separate_format_cache",
                 "verify_threads",
@@ -1487,6 +1491,10 @@ class Context(Configuration):
                 Menu) at install time.
                 """
             ),
+            shortcuts_only=dals(
+                """
+                Create shortcuts only for the specified package names.
+                """),
             show_channel_urls=dals(
                 """
                 Show channel URLs when displaying what is going to be downloaded.
