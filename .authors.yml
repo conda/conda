@@ -31,6 +31,7 @@
   email: 37975741+zvikfir@users.noreply.github.com
   num_commits: 1
   first_commit: 2021-08-03 12:39:14
+  github: zvikfir
 - name: Nelson Liu
   email: nelson-liu@users.noreply.github.com
   num_commits: 1
@@ -191,6 +192,7 @@
   email: jan.jagusch@gmail.com
   num_commits: 1
   first_commit: 2021-10-20 18:17:36
+  github: janjagusch
 - name: Tyler Kim
   email: tkim139@illinois.edu
   num_commits: 115
@@ -263,6 +265,7 @@
   email: jonas@lophus.org
   num_commits: 1
   first_commit: 2021-10-20 20:48:06
+  github: jonashaag
 - name: Bruno Oliveira
   email: nicoddemus@gmail.com
   num_commits: 5
@@ -404,6 +407,7 @@
   email: danmeador33@gmail.com
   num_commits: 3
   first_commit: 2021-08-26 19:24:11
+  github: LtDan33
 - name: Armin Burgmeier
   email: aburgmeier@bloomberg.net
   num_commits: 26
@@ -712,6 +716,7 @@
   email: ilancosman@gmail.com
   num_commits: 1
   first_commit: 2021-11-04 16:29:53
+  github: IlanCosman
 - name: Ernst Reissner
   email: rei3ner@arcor.de
   num_commits: 1
@@ -796,6 +801,7 @@
   email: gregor.krzmanc@gmail.com
   num_commits: 1
   first_commit: 2021-09-17 18:36:52
+  github: gregorkrz
 - name: Ondřej Čertík
   email: ondrej.certik@gmail.com
   num_commits: 2
@@ -1747,6 +1753,7 @@
   email: hsinspeng@gmail.com
   num_commits: 1
   first_commit: 2021-11-05 17:19:19
+  github: Hsins
 - name: Flavio Martins
   email: flaviomartins@acm.org
   num_commits: 1
@@ -1882,3 +1889,17 @@
   email: bryanv@filer.atx.continuum.io
   num_commits: 4
   first_commit: 2013-03-08 01:07:36
+- name: Chawye Hsu
+  email: chawyehsu@hotmail.com
+  github: chawyehsu
+- name: Daniel Holth
+  email: dholth@anaconda.com
+  github: dholth
+- name: John Flavin
+  email: flavinj@gmail.com
+  github: johnflavin
+- name: bfis
+  email: b.fis@cern.ch
+  github: bfis
+- name: pre-commit CI
+  email: 66853113+pre-commit-ci[bot]@users.noreply.github.com
