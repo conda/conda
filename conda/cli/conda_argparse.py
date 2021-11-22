@@ -1763,21 +1763,26 @@ def add_parser_package_install_options(p):
         default=NULL,
         help="Install all packages using copies instead of hard- or soft-linking."
     )
-    if on_win:
-        package_install_options.add_argument(
-            "--shortcuts",
-            action="store_true",
-            help=SUPPRESS,
-            dest="shortcuts",
-            default=NULL,
-        )
-        package_install_options.add_argument(
-            "--no-shortcuts",
-            action="store_false",
-            help="Don't install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
+    package_install_options.add_argument(
+        "--shortcuts",
+        action="store_true",
+        help=SUPPRESS,
+        dest="shortcuts",
+        default=NULL,
+    )
+    package_install_options.add_argument(
+        "--no-shortcuts",
+        action="store_false",
+        help="Don't install start menu shortcuts",
+        dest="shortcuts",
+        default=NULL,
+    )
+    package_install_options.add_argument(
+        "--shortcuts-only",
+        action="append",
+        help="Install shortcuts only for this package name. Can be used several times.",
+        dest="shortcuts_only",
+    )
     return package_install_options
 
 
