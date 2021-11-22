@@ -1,5 +1,86 @@
 [//]: # (current developments)
 
+## 4.11 (2021-11-22)
+
+### Enhancements
+
+* Allow channel_alias to interpolate environment variables.
+* Support running conda with PyPy on Windows.
+* Add ability to add, append and prepend to sequence values when using the conda config subcommand.
+* Support Python 3.10 in version parser.
+* Add `XDG_CONFIG_HOME` to the conda search path following the [XDG Base Directory Specification (XDGBDS)](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html).
+
+### Bug fixes
+
+* Fix the PowerShell activator to not show an error when unsetting environment variables.
+* Remove superfluous `eval` statements in fish shell integration.
+* Indent the conda fish integration file using fish_indent.
+* Fix handling of environment variables containing equal signs (`=`).
+* Handle permission errors when listing all known prefixes.
+* Catch Unicode decoding errors when parsing conda-meta files.
+* Fix handling write errors when trying to create package cache or env directories.
+
+### Docs
+
+* Update path of conda repo in RHEL based systems to `/etc/yum.repos.d/conda.repo`.
+* Fix the advanced pip example to stop using the now invalid `file:` prefix.
+* Minor docs cleanup and adding Code of Conduct.
+* Add auto-built architecture documentation for conda based on the [C4 Model](https://c4model.com). See the conda documentation for more information.
+* Expand the contributing documentation with a section about static code analysis and code linting.
+* Add [developer guide section](https://docs.conda.io/projects/conda/en/latest/dev-guide/) to the documentation, including a conda [architecture overview](https://docs.conda.io/projects/conda/en/latest/architecture.html).
+* Stop referring to updating anaconda when `conda update` fails with an error.
+
+### Other
+
+* Build Docker images periodically on GitHub Actions for the continuous integration testing on Linux, storing them on GitHub Packages's registry for reduced latency and cost when using Docker Hub.
+
+* Simplify the Linux GitHub actions workflows by combining used shell scripts.
+* Add periodic GitHub Actions workflow to review old issues in the conda issue tracker and mark them as stale if no feedback is provided in a sensible amount of time, eventually closing them.
+* Add periodic GitHub Actions workflow to lock the comment threads of old issues and pull requests in the conda GitHub repository to surface regressions with new issues instead.
+* Refactor test suite to use more GitHub Actions runners in parallel, reducing total run time by 50%.
+* Switched the issue tracker to use forms with additional questions for bug reporters to help in ticket triage.
+* Add and automatically run pre-commit as part of the CI system to improve the code quality continuously and raise issues in contributed patches early on.
+
+  The used code linters are: [flake8](https://flake8.pycqa.org/), [pylint](https://pylint.org/) and [bandit](https://bandit.readthedocs.io/).
+
+  The [Python code formatter black](https://black.readthedocs.io/) is used as well but is only enforced on changed code in a commit and not to the whole code base at once.
+* Automatically build the conda package upon the successful merge into the master branch and upload it to the conda-canary channel on anaconda.org.
+
+  To try conda out simply run:
+
+  ```
+  conda install -c conda-canary/label/dev conda
+  ```
+* Automate adding new issues to [public GitHub project board](https://github.com/orgs/conda/projects/4) to facilitate issue triage.
+
+* Update GitHub issue and pull request labels to be more consistent.
+* Start using [rever](https://regro.github.io/rever-docs/) for release management.
+* (preview) Enable one-click gitpod and GitHub Codespaces setup for Linux development.
+
+### Contributors
+
+* Benjamin Bertrand
+* Chawye Hsu
+* Cheng H. Lee
+* Dan Meador
+* Daniel Bast
+* Daniel Holth
+* Gregor Kržmanc
+* Hsin-Hsiang Peng
+* Ilan Cosman
+* Isuru Fernando
+* Jaime Rodríguez-Guerra
+* Jan-Benedikt Jagusch
+* Jannis Leidel
+* John Flavin
+* Jonas Haag
+* Ken Odegard
+* Kfir Zvi
+* Mervin Fansler
+* bfis
+* mkincaid
+* pre-commit CI
+
 ## 4.10.3 (2021-06-29)
 
 ### Bug fixes
