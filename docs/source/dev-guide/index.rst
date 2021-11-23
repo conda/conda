@@ -7,3 +7,6 @@ Developer guide
 
    contributing
    ../architecture
+   deep-dive-install
+   deep-dive-activation
+   deep-dive-context
