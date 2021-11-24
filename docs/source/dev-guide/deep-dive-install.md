@@ -181,9 +181,13 @@ So, in essence, fetching the channel information means can be expressed in pseud
 platform = []
 noarch = []
 for channel in context.channels:
-    platform_repodata = fetch_extract_and_read(channel.full_url / context.subdir / "repodata.json.bz2")
+    platform_repodata = fetch_extract_and_read(
+        channel.full_url / context.subdir / "repodata.json.bz2"
+    )
     platform.append(platform_repodata)
-    noarch_repodata = fetch_extract_and_read(channel.full_url / "noarch" / "repodata.json.bz2")
+    noarch_repodata = fetch_extract_and_read(
+        channel.full_url / "noarch" / "repodata.json.bz2"
+    )
     noarch.append(noarch_repodata)
 ```
 
