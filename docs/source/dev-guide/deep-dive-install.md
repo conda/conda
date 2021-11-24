@@ -99,12 +99,125 @@ In essence, they all deal with the same task: changing which packages are presen
 If you go and read that function, you will see there are several lines of code handling diverse
 situations (new environments, clones, etc) before we arrive to the next section. We will not discuss
 them here, but feel free to explore [that section](https://github.com/conda/conda/blob/4.11.0/conda/cli/install.py#L111-L223).
+It's mostly ensuring that the destination prefix exists, whether we are creating a new environment
+and massaging some command-line flags that would allow us to skip the solver (e.g. `--clone`).
 
 <!-- TODO: Maybe we do want to explain those checks? -->
 
 ## Fetching the index
 
-WIP
+At this point, we are ready to start doing some work! All the previous code was telling us what to
+do, and now we know. We want `conda` to _install_  `numpy` on our `base` environment. First thing
+we need to know is where we can find packages with the name `numpy`. The answer is... the channels!
+
+Users download packages from `conda` channels. These are normally hosted at `anaconda.org`. A channel
+is essentially a directory structure with these elements:
+
+```
+<channel>
+├── channeldata.json
+├── index.html
+├── <platform> (e.g. linux-64)
+│   ├── current_repodata.json
+│   ├── current_repodata.json.bz2
+│   ├── index.html
+│   ├── repodata.json
+│   ├── repodata.json.bz2
+│   ├── repodata_from_packages.json
+│   └── repodata_from_packages.json.bz2
+└── noarch
+    ├── current_repodata.json
+    ├── current_repodata.json.bz2
+    ├── index.html
+    ├── repodata.json
+    ├── repodata.json.bz2
+    ├── repodata_from_packages.json
+    └── repodata_from_packages.json.bz2
+```
+
+The important bits are:
+
+* A channel contains one or more platform-specific directories (`linux-64`, `osx-64`, etc), plus a
+  platform-agnostic directory called `noarch`. In `conda` jargon, these are also referred as channel
+  _subdirs_.
+* Each _subdir_ contains, at least, a `repodata.json` file: a gigantic dictionary with _all_ the
+  metadata for each package available on that platform.
+* In most cases, the same subdirs also contain the `*.tar.bz2` files for each of the published
+  packages. This is what `conda` downloads and extracts once solving is complete. The anatomy of
+  these files is well defined, both in content and naming structure. See {ref}``.
+
+Additionally, the channel main directory might contain a `channeldata.json` file, with channel-wide
+metadata (this is, not specific per platform). Not all channels include this and, actually, it's not
+really used these days. <!-- TODO: Check why and reasons for this file to exist -->
+
+Since conda's philosophy is to keep all packages ever published around for reproducibility,
+`repodata.json` is always growing, which presents a problem both for the download itself and the
+solver engine. To reduce download times and bandwidth usage, `repodata.json` is also served as a
+BZIP2 compressed file, `repodata.json.bz2`. This is what most `conda` clients end up downloading.
+
+> Note on `current_repodata.json`: More _repodatas_ variations can be found in
+> some channels, but they are mostly reduced versions of the main one for the sake of performance
+> For example, `current_repodata.json` only contains the most recent version of each package, plus
+> their dependencies. The rationale behind this optimization trick can be found [here](# TODO: ).
+
+So, in essence, fetching the channel information means can be expressed in pseudo-code like this:
+
+```python
+platform = []
+noarch = []
+for channel in context.channels:
+    platform_repodata = fetch_extract_and_read(channel.full_url / context.subdir / "repodata.json.bz2")
+    platform.append(platform_repodata)
+    noarch_repodata = fetch_extract_and_read(channel.full_url / "noarch" / "repodata.json.bz2")
+    noarch.append(noarch_repodata)
+
+```
+
+In this example, `context.channels` has been populated through different, cascading mechanisms:
+
+* The default settings as found in `~/.condarc` or equivalent.
+* The `CONDA_CHANNELS` environment variable (rare usage).
+* The command-line flags, such as `-c <channel>`, `--use-local` or `--override-channels`.
+* The channels present in a command-line _spec_. Remember that users can say `channel::numpy`
+  instead of simply `numpy` to require that numpy comes from that specific channel. That means that
+  the repodata for such channel needs to be fetched too!
+
+The items in `context.channels` are supposed to be `conda.models.channels.Channel` objects, but you
+can also find strings that refer to their name, alias or full URL. In that case, you can use
+`Channel` objects to parse and retrieve the full URL for each subdir using the `Channel.urls()`
+method. Several helper functions can be found in `conda.core.index`, if needed.
+
+Sadly, `fetch_extract_and_read()` does not exist as such, but as a combination of objects.
+
+Once you have the full URL, fetching actually takes place through `conda.core.subdir_data.SubdirData`
+objects. This object implements caching, authentication, proxies and other things that complicate
+the simple idea of "just download the file please". Most of the logic is in `SubdirData._load()`,
+which ends up calling `conda.core.subdir_data.fetch_repodata_remote_request()` to process the
+request. Finally, `SubdirData._process_raw_repodata_str()` does the parsing and loading.
+
+Internally, the `SubdirData` stores all the package metadata as a list of `PackageRecord` objects.
+Its main usage is via `.query()` (one result at a time) or `.query_all()` (all possible matches).
+These `.query*` methods accept spec strings (e.g. `numpy =1.14`), `MatchSpec` and `PackageRecord`
+instances. Alternatively, if you want _all_ records with no queries, use `SubdirData.iter_records()`.
+
+### Channel priorities
+
+`context.channels` returns an `IndexedSet` of `Channel` objects; essentially a list of unique items.
+The different channels in this list can have overlapping or even conflicting information for the same
+package name. For example, `defaults` and `conda-forge` will for sure contain packages that fullfil
+the `conda install numpy` request. Which one is chosen by `conda` in this case? It depends on the
+`context.channel_priority` setting: From the help message:
+
+> Accepts values of 'strict', 'flexible', and 'disabled'. The default value
+> is 'flexible'. With strict channel priority, packages in lower priority channels
+> are not considered if a package with the same name appears in a higher
+> priority channel. With flexible channel priority, the solver may reach into
+> lower priority channels to fulfill dependencies, rather than raising an
+> unsatisfiable error. With channel priority disabled, package version takes
+> precedence, and the configured priority of channels is used only to break ties.
+
+In practice, `channel_priority=strict` is often the recommended setting for most users. It's faster
+to solve and causes less problems down the line.
 
 ## Solving the install request
 
