@@ -6,6 +6,8 @@ Some resources that helped draft this document:
 * https://www.anaconda.com/blog/understanding-and-improving-condas-performance
 -->
 
+# Deep dive: conda install
+
 In this document we will explore what happens in Conda from the moment a user types their
 installation command until the process is finished successfully. For the sake of completeness,
 we will consider the following situation:
@@ -13,7 +15,7 @@ we will consider the following situation:
 * The user is running commands on a Linux x64 machine with a working installation of Miniconda.
 * This means we have a `base` environment with `conda`, `python`, and their dependencies.
 * The `base` environment is already preactivated for Bash. For more details on activation, check
-  {ref}`Deep Dive: Activation`.
+  {ref}`deep_dive_activation`.
 
 So... here we are:
 
@@ -57,50 +59,53 @@ First, a quick note on an implementation detail that might be not obvious.
 When you type `conda install numpy` in your terminal, Bash took those three words and looked for a
 `conda` command to pass a list of arguments `['conda', 'install', 'numpy']`. Before finding the
 `conda` executable located at `CONDA_HOME/condabin`, it probably found the shell function defined
-[here](https://github.com/conda/conda/blob/4.11.0/conda/shell/etc/profile.d/conda.sh#L62-L76). This
-shell function runs the (de)activation logic on the shell if requested, or delegates over to
-the actual Python entry-points otherwise. This part of the logic can be found in
-[`conda/shell`](https://github.com/conda/conda/tree/4.11.0/conda/shell).
+[here][conda_shell_function]. This shell function runs the (de)activation logic on the shell if
+requested, or delegates over to the actual Python entry-points otherwise. This part of the logic can
+be found in [`conda.shell`][conda.shell].
 
-Once we are running the Python entry-point, we are in the
-[`conda.cli`](https://github.com/conda/conda/tree/4.11.0/conda/cli) reigns. The function called by
-the entry point is [`conda.cli.main:main()`](https://github.com/conda/conda/blob/4.11.0/conda/cli/main.py#L121).
-Here, another check is done for `shell.*` subcommands, which generate the shell initializers you
-see in `~/.bashrc` and others. If you are curious where his happens, it's
-[`conda.activate`](https://github.com/conda/conda/blob/4.11.0/conda/activate.py).
+Once we are running the Python entry-point, we are in the [`conda.cli`][conda.cli]
+reigns. The function called by the entry point is [`conda.cli.main:main()`][conda.cli.main:main].
+Here, another check is done for `shell.*` subcommands, which generate the shell initializers you see
+in `~/.bashrc` and others. If you are curious where his happens, it's
+[`conda.activate`][conda.activate].
 
 Since our command is `conda install ...` we still need to arrive somewhere else. You will notice
 that the rest of the logic is delegated to `conda.cli.main:_main()`, which will invoke the parser
 generators, initialize the context and loggers, and, eventually, pass the argument list over to
 the corresponding command function. These four steps are implemented in four functions/classes:
 
-1. [`conda.cli.conda_argparse:generate_parser()`](https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L28):
+1. [`conda.cli.conda_argparse:generate_parser()`][conda.cli.conda_argparse:generate_parser]:
   This uses `argparse` to generate the CLI. Each subcommand is initialized in separate functions.
   Note that the command-line options are not generated dynamically from the `Context` object, but
   annotated manually. If this is needed (e.g. `--repodata-fn` is exposed in `Context.repodata_fn`)
-  the `dest` variable of each CLI option should [match the target attribute in the context object](https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L1484).
-2. [`conda.base.context.Context`](https://github.com/conda/conda/blob/4.11.0/conda/cli/main.py#L75):
+  the `dest` variable of each CLI option should
+  [match the target attribute in the context object][context_match].
+2. [`conda.base.context.Context`][context_init]:
   Initialized taking into account, among other things, the parsed arguments from step above. This is
-  covered in more detail in a separate deep dive: {ref}`deep-dive-context`.
-3. [`conda.gateways.logging:initialize_logging()](https://github.com/conda/conda/blob/4.11.0/conda/gateways/logging.py#L162):
+  covered in more detail in a separate deep dive: {ref}`deep_dive_context`.
+3. [`conda.gateways.logging:initialize_logging()`][initialize_logging]:
   Not too exciting and easy to follow. This part of the code base is more or less self-explanatory.
-4. [`conda.cli.conda_argparse:do_call()] (https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L77):
-  The argument parsing will populate a `func` value which contains the import path to the function
-  responsible for that subcommand. For example, `conda install` is [taken care of](https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L775)
-  by `conda.cli.main_install`. By design, all the modules reported by `func` must contain an
-  `execute()` function that implements the command logic. `execute()` takes the parsed arguments
-  and the parser itself as arguments. For example, in the case of `conda install`, `execute()` only
-  [redirects](https://github.com/conda/conda/blob/4.11.0/conda/cli/main_install.py#L12) to a certain
-  mode in `conda.cli.install`.
+4. [`conda.cli.conda_argparse:do_call()`][conda.cli.conda_argparse:do_call]: The argument parsing
+   will populate a `func` value which contains the import path to the function responsible for that
+   subcommand. For example, `conda install` is [taken care of][conda_install_delegation] by
+   [`conda.cli.main_install`][conda.cli.main_install]. By design, all the modules reported by `func`
+   must contain an `execute()` function that implements the command logic. `execute()` takes the
+   parsed arguments and the parser itself as arguments. For example, in the case of `conda install`,
+   `execute()` only [redirects][conda_main_install_delegation] to a certain mode in
+   [`conda.cli.install:install()`][conda.cli.install:install].
 
-Let's go take a look at that module now. [`conda.cli.install:install()`](https://github.com/conda/conda/blob/4.11.0/conda/cli/install.py#L107)
+Let's go take a look at that module now. [`conda.cli.install:install()`][conda.cli.install:install]
 implements the logic behind `conda create`, `conda install`, `conda update` and `conda remove`.
 In essence, they all deal with the same task: changing which packages are present in an environment.
 If you go and read that function, you will see there are several lines of code handling diverse
 situations (new environments, clones, etc) before we arrive to the next section. We will not discuss
-them here, but feel free to explore [that section](https://github.com/conda/conda/blob/4.11.0/conda/cli/install.py#L111-L223).
+them here, but feel free to explore [that section][conda_cli_install_presolve_logic].
 It's mostly ensuring that the destination prefix exists, whether we are creating a new environment
 and massaging some command-line flags that would allow us to skip the solver (e.g. `--clone`).
+
+```{admonition} More information on environments
+Check the concepts for {ref}`concepts-conda-environments`.
+```
 
 <!-- TODO: Maybe we do want to explain those checks? -->
 
@@ -110,8 +115,8 @@ At this point, we are ready to start doing some work! All the previous code was 
 do, and now we know. We want `conda` to _install_  `numpy` on our `base` environment. First thing
 we need to know is where we can find packages with the name `numpy`. The answer is... the channels!
 
-Users download packages from `conda` channels. These are normally hosted at `anaconda.org`. A channel
-is essentially a directory structure with these elements:
+Users download packages from `conda` channels. These are normally hosted at `anaconda.org`. A
+channel is essentially a directory structure with these elements:
 
 ```
 <channel>
@@ -135,6 +140,12 @@ is essentially a directory structure with these elements:
     └── repodata_from_packages.json.bz2
 ```
 
+```{admonition} More info on Channels
+You can find some more user-oriented notes on Channels at {ref}`concepts-channels` and
+{ref}`repo-si`. If you are interested in more technical details, check the corresponding
+[documentation pages at conda-build][conda_build_channels].
+```
+
 The important bits are:
 
 * A channel contains one or more platform-specific directories (`linux-64`, `osx-64`, etc), plus a
@@ -144,7 +155,9 @@ The important bits are:
   metadata for each package available on that platform.
 * In most cases, the same subdirs also contain the `*.tar.bz2` files for each of the published
   packages. This is what `conda` downloads and extracts once solving is complete. The anatomy of
-  these files is well defined, both in content and naming structure. See {ref}``.
+  these files is well defined, both in content and naming structure. See {ref}`concept-conda-package`,
+  {ref}`package_metadata` and/or [Package naming conventions][conda_build_package_names] for more
+  details.
 
 Additionally, the channel main directory might contain a `channeldata.json` file, with channel-wide
 metadata (this is, not specific per platform). Not all channels include this and, actually, it's not
@@ -155,10 +168,12 @@ Since conda's philosophy is to keep all packages ever published around for repro
 solver engine. To reduce download times and bandwidth usage, `repodata.json` is also served as a
 BZIP2 compressed file, `repodata.json.bz2`. This is what most `conda` clients end up downloading.
 
-> Note on `current_repodata.json`: More _repodatas_ variations can be found in
-> some channels, but they are mostly reduced versions of the main one for the sake of performance
-> For example, `current_repodata.json` only contains the most recent version of each package, plus
-> their dependencies. The rationale behind this optimization trick can be found [here](# TODO: ).
+```{admonition} Note on current_repodata.json
+More _repodatas_ variations can be found in some channels, but they are always reduced versions
+of the main one for the sake of performance. For example, `current_repodata.json` only contains
+the most recent version of each package, plus their dependencies. The rationale behind this
+optimization trick can be found [here][current_repodata_details].
+```
 
 So, in essence, fetching the channel information means can be expressed in pseudo-code like this:
 
@@ -170,7 +185,6 @@ for channel in context.channels:
     platform.append(platform_repodata)
     noarch_repodata = fetch_extract_and_read(channel.full_url / "noarch" / "repodata.json.bz2")
     noarch.append(noarch_repodata)
-
 ```
 
 In this example, `context.channels` has been populated through different, cascading mechanisms:
@@ -178,9 +192,9 @@ In this example, `context.channels` has been populated through different, cascad
 * The default settings as found in `~/.condarc` or equivalent.
 * The `CONDA_CHANNELS` environment variable (rare usage).
 * The command-line flags, such as `-c <channel>`, `--use-local` or `--override-channels`.
-* The channels present in a command-line _spec_. Remember that users can say `channel::numpy`
-  instead of simply `numpy` to require that numpy comes from that specific channel. That means that
-  the repodata for such channel needs to be fetched too!
+* The channels present in a command-line {ref}`spec <build-version-spec>`. Remember that users can
+  say `channel::numpy` instead of simply `numpy` to require that numpy comes from that specific
+  channel. That means that the repodata for such channel needs to be fetched too!
 
 The items in `context.channels` are supposed to be `conda.models.channels.Channel` objects, but you
 can also find strings that refer to their name, alias or full URL. In that case, you can use
@@ -208,16 +222,18 @@ package name. For example, `defaults` and `conda-forge` will for sure contain pa
 the `conda install numpy` request. Which one is chosen by `conda` in this case? It depends on the
 `context.channel_priority` setting: From the help message:
 
-> Accepts values of 'strict', 'flexible', and 'disabled'. The default value
-> is 'flexible'. With strict channel priority, packages in lower priority channels
-> are not considered if a package with the same name appears in a higher
-> priority channel. With flexible channel priority, the solver may reach into
-> lower priority channels to fulfill dependencies, rather than raising an
-> unsatisfiable error. With channel priority disabled, package version takes
-> precedence, and the configured priority of channels is used only to break ties.
+```{admonition} Help message for channel priority
+Accepts values of 'strict', 'flexible', and 'disabled'. The default value is 'flexible'. With strict
+channel priority, packages in lower priority channels are not considered if a package with the same
+name appears in a higher priority channel. With flexible channel priority, the solver may reach into
+lower priority channels to fulfill dependencies, rather than raising an unsatisfiable error. With
+channel priority disabled, package version takes precedence, and the configured priority of channels
+is used only to break ties.
+```
 
 In practice, `channel_priority=strict` is often the recommended setting for most users. It's faster
-to solve and causes less problems down the line.
+to solve and causes less problems down the line. Check more details
+{ref}`here <concepts-performance-channel-priority>`.
 
 ## Solving the install request
 
@@ -242,3 +258,25 @@ WIP
 ## Post-linking and post-activation tasks
 
 WIP
+
+
+<!-- Links and references -->
+
+[conda_build_channels]: https://docs.conda.io/projects/conda-build/en/latest/concepts/generating-index.html
+[conda_build_package_names]: https://docs.conda.io/projects/conda-build/en/latest/concepts/package-naming-conv.html
+[conda_cli_install_presolve_logic]: https://github.com/conda/conda/blob/4.11.0/conda/cli/install.py#L107
+[conda_install_delegation]: https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L775
+[conda_main_install_delegation]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main_install.py#L12
+[conda_shell_function]: https://github.com/conda/conda/blob/4.11.0/conda/shell/etc/profile.d/conda.sh#L62-L76
+[conda.activate]: https://github.com/conda/conda/blob/4.11.0/conda/activate.py
+[conda.cli.conda_argparse:do_call]: https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L77
+[conda.cli.conda_argparse:generate_parser]: https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L28
+[conda.cli.install:install]: https://github.com/conda/conda/blob/4.11.0/conda/cli/install.py#L107
+[conda.cli.main_install]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main_install.py
+[conda.cli.main:main]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main.py#L121
+[conda.cli]: https://github.com/conda/conda/tree/4.11.0/conda/cli
+[conda.shell]: https://github.com/conda/conda/tree/4.11.0/conda/shell
+[context_init]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main.py#L75
+[context_match]: https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L1484
+[current_repodata_details]: https://docs.conda.io/projects/conda-build/en/latest/concepts/generating-index.html#trimming-to-current-repodata
+[initialize_logging]: https://github.com/conda/conda/blob/4.11.0/conda/gateways/logging.py#L162
