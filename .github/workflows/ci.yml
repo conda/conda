@@ -89,7 +89,7 @@ jobs:
   macos:
     runs-on: macos-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         python-version: ['3.9']
         test-type: ['unit', 'integration']
