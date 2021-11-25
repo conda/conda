@@ -113,7 +113,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        shell: bash -l {0}
+        shell: sudo bash -l {0}
         run : |
           ./dev/macos/setup.sh
           ./dev/macos/${{ matrix.test-type }}.sh
