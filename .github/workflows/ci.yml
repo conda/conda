@@ -108,14 +108,17 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: conda-test-env
+          activate-environment: conda-tests
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
         shell: bash -l {0}
         run: |
-          ./dev/macos/setup.sh
+          # restoring the default for changeps1 to have parity with dev
+          conda config --set changeps1 true
+          conda install --name conda-test-env --yes --file tests/requirements.txt
+          conda update openssl ca-certificates certifi
 
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: bash -l {0}
