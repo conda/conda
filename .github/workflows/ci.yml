@@ -108,7 +108,7 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: conda-tests
+          activate-environment: conda-test-env
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
 
