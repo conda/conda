@@ -115,7 +115,7 @@ jobs:
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: bash -l {0}
         run : |
-          conda install -n conda-tests -y -f tests/requirements.txt
+          conda install --name conda-tests --yes --file tests/requirements.txt
           conda update openssl ca-certificates certifi
           eval "$(sudo python -m conda init bash --dev)"
           ./dev/macos/${{ matrix.test-type }}.sh
