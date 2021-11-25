@@ -151,16 +151,11 @@ jobs:
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
 
-      - name: Setup environment
-        shell: bash -l {0}
-        run : |
-          make env-tests
-          conda run --name conda-tests bash ./ci/scripts/macos/setup.sh
-
       - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: bash -l {0}
-        run: |
-          conda run --name conda-tests bash ./ci/scripts/macos/${{ matrix.test-type }}.sh
+        run : |
+          ./ci/scripts/macos/setup.sh
+          ./ci/scripts/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
