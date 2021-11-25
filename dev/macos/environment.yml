@@ -1,0 +1,8 @@
+name: conda-tests
+channels:
+  - defaults
+dependencies:
+  - pip
+  - conda-build
+  - conda-verify
+  - pytest

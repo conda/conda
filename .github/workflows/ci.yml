@@ -111,11 +111,13 @@ jobs:
           activate-environment: conda-tests
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
+          environment-file: dev/macos/environment.yml
 
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        shell: sudo bash -l {0}
+        shell: bash -l {0}
         run : |
-          ./dev/macos/setup.sh
+          conda update openssl ca-certificates certifi
+          eval "$(sudo python -m conda init bash --dev)"
           ./dev/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
