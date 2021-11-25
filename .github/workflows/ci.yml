@@ -106,15 +106,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache conda
-        uses: actions/cache@v2
-        env:
-          # Increase this value to reset cache if tests/requirements.txt has not changed
-          CACHE_NUMBER: 0
-        with:
-          path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('tests/requirements.txt') }}
+      # - name: Cache conda
+      #   uses: actions/cache@v2
+      #   env:
+      #     # Increase this value to reset cache if tests/requirements.txt has not changed
+      #     CACHE_NUMBER: 0
+      #   with:
+      #     path: ~/conda_pkgs_dir
+      #     key:
+      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('tests/requirements.txt') }}
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
