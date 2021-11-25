@@ -93,12 +93,12 @@ jobs:
       matrix:
         python-version: ['3.9']
         test-type: ['unit', 'integration']
-        test-group: ['1', '2']
+        test-group: ['1', '2', '3']
 
     env:
       OS: 'macos'
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 2
+      TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
 
     steps:
