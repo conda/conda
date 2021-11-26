@@ -1230,7 +1230,7 @@ class LibSolvSolver(Solver):
 
     def _setup_state(self):
         from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
-        from mamba.mamba_api import Pool, Repo, PrefixData as MambaPrefixData
+        from libmambapy import Pool, Repo, PrefixData as MambaPrefixData
 
         init_api_context()
 
@@ -1337,7 +1337,7 @@ class LibSolvSolver(Solver):
                                       force_remove=NULL,
                                       force_reinstall=NULL,
                                       prune=NULL):
-        from mamba import mamba_api as api
+        import libmambapy as api
 
         # Set different solver options
         solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
@@ -1377,7 +1377,7 @@ class LibSolvSolver(Solver):
         if not_installed:
             raise PackagesNotFoundError(not_installed)
 
-        from mamba import mamba_api as api
+        import libmambapy as api
 
         solver_options = [
             (api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1),
@@ -1750,7 +1750,7 @@ class LibSolvSolver(Solver):
         return specs_map
 
     def _specs_map_to_tasks(self, state, specs_map):
-        from mamba import mamba_api as api
+        import libmambapy as api
         tasks = defaultdict(list)
         history = state["history"].get_requested_specs_map()
         specs_map = specs_map.copy()
@@ -1833,7 +1833,7 @@ class LibSolvSolver(Solver):
         return solved
 
     def _export_final_state(self, state):
-        from mamba import mamba_api as api
+        import libmambapy as api
         from mamba.utils import to_package_record_from_subjson
 
         solver = state["solver"]
