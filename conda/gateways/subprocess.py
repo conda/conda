@@ -8,14 +8,14 @@ from io import StringIO
 from logging import getLogger
 import os
 from os.path import abspath
-from conda._vendor.auxlib.compat import shlex_split_unicode
+from conda.auxlib.compat import shlex_split_unicode
 import sys
 from subprocess import CalledProcessError, PIPE, Popen
 from ..utils import wrap_subprocess_call
 
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
-from .._vendor.auxlib.ish import dals
+from ..auxlib.ish import dals
 from ..common.compat import (ensure_binary, string_types, encode_arguments,
                              on_win, encode_environment, isiterable)
 from ..gateways.disk.delete import rm_rf

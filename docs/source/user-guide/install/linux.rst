@@ -42,7 +42,7 @@ Installing on Linux
 Using with fish shell
 =========================
 
-To use conda with fish shell, run the following in your terminal: 
+To use conda with fish shell, run the following in your terminal:
 
   ``conda init fish``
 

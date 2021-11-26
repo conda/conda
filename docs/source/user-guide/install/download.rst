@@ -127,7 +127,7 @@ Download the installer file and before installing verify it as follows:
     #. Navigate to the file.
 
     #. Run the following command::
-    
+
         Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
 
 * macOS: In iTerm or a terminal window enter ``shasum -a 256 filename``.

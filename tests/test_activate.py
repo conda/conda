@@ -15,7 +15,7 @@ import json
 
 from conda import __version__ as conda_version
 from conda import CONDA_PACKAGE_ROOT
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
     PowerShellActivator, XonshActivator, activator_map, _build_activator_cls, \
@@ -34,7 +34,7 @@ from conda.gateways.disk.update import touch
 import pytest
 from tests.helpers import tempdir
 from tests.test_create import Commands, run_command
-from conda._vendor.auxlib.decorators import memoize
+from conda.auxlib.decorators import memoize
 from .test_create import SPACER_CHARACTER
 
 try:
@@ -1650,9 +1650,9 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             $Env:PATH = "%(new_path)s"
             . "%(deactivate1)s"
-            Remove-Item Env:/CONDA_PREFIX
-            Remove-Item Env:/CONDA_DEFAULT_ENV
-            Remove-Item Env:/CONDA_PROMPT_MODIFIER
+            $Env:CONDA_PREFIX = ""
+            $Env:CONDA_DEFAULT_ENV = ""
+            $Env:CONDA_PROMPT_MODIFIER = ""
             $Env:CONDA_SHLVL = "0"
             %(conda_exe_export)s
             """) % {

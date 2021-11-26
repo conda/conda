@@ -7,8 +7,8 @@ import json
 from logging import getLogger
 
 from .compat import PY2, odict, ensure_text_type
-from .._vendor.auxlib.decorators import memoize
-from .._vendor.auxlib.entity import EntityEncoder
+from ..auxlib.decorators import memoize
+from ..auxlib.entity import EntityEncoder
 
 log = getLogger(__name__)
 

@@ -63,17 +63,15 @@ def run_command(command, *arguments, **kwargs):
           STDOUT redirects to stdout target and returns None as stderr value.
           Otherwise redirect to file-like object stderr.
 
-    Returns: a tuple of stdout, stderr, and return_code.
+    Returns:
+        a tuple of stdout, stderr, and return_code.
         stdout, stderr are either strings, None or the corresponding file-like function argument.
 
-    Examples::
-
-    >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask",
-                    use_exception_handler=True)
-    >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")
-    >>  run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
-
-
+    Examples:
+        >>> run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask", \
+                        use_exception_handler=True)
+        >>> run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")
+        >>> run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
     """
     initialize_std_loggers()
     use_exception_handler = kwargs.pop('use_exception_handler', False)

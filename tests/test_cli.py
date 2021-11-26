@@ -2,7 +2,7 @@ import json
 import unittest
 import uuid
 
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 import pytest
 
 from conda.base.context import context

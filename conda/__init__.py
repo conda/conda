@@ -19,7 +19,7 @@ if sys.version_info[0] == 2:
     reload(sys)  # NOQA
     sys.setdefaultencoding('utf-8')
 
-from ._vendor.auxlib.packaging import get_version
+from .auxlib.packaging import get_version
 from .common.compat import text_type, iteritems
 
 

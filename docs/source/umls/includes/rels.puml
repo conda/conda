@@ -1,0 +1,14 @@
+@startuml
+
+Rel(user, developer, "gives feedback", "Bugs and other issues", "")
+Rel(user, miniconda, "Uses", "CLI", "")
+Rel(miniconda, conda, "Bootstraps", "File system & shell", "")
+Rel(developer, conda, "Maintains", "Source code", "")
+BiRel(developer, packager, "collaborates", "CEPs & specs")
+Rel(packager, conda_build, "Builds", "Packages", "")
+
+Rel(conda_build, channels, "Publishes", "HTTPS", "")
+Rel(conda, conda_env, "Modifies", "CLI", "Creates, exports, lists, removes and updates environments")
+Rel_U(channels, conda, "Downloads", "HTTPS", "Metadata & package files")
+
+@endtuml

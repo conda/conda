@@ -11,7 +11,7 @@ from .channel import Channel
 from .package_info import PackageInfo
 from .records import PackageRecord
 from .. import CondaError
-from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
+from ..auxlib.entity import Entity, EntityType, IntegerField, StringField
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass

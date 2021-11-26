@@ -10,7 +10,7 @@ from os.path import basename, isdir, isfile, join, lexists
 import re
 
 from ..base.constants import PREFIX_STATE_FILE
-from .._vendor.auxlib.exceptions import ValidationError
+from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, itervalues, odict, scandir,
@@ -173,7 +173,9 @@ class PrefixData(object):
         with open(prefix_record_json_path) as fh:
             try:
                 json_data = json_load(fh.read())
-            except JSONDecodeError:
+            except (UnicodeDecodeError, JSONDecodeError):
+                # UnicodeDecodeError: catch horribly corrupt files
+                # JSONDecodeError: catch bad json format files
                 raise CorruptedEnvironmentError(self.prefix_path, prefix_record_json_path)
 
             # TODO: consider, at least in memory, storing prefix_record_json_path as part

@@ -80,5 +80,3 @@ def test_attach_stderr_handler():
     assert c.stdout == ''
     assert 'test message' in c.stderr
     assert debug_message in c.stderr
-
-

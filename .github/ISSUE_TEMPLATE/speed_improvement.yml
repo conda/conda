@@ -1,6 +1,6 @@
 name: Speed Improvement
 description: If you think Conda could be faster
-labels: type-speed_improvement
+labels: ['type::feature', 'tag::performance']
 body:
   - type: markdown
     attributes:
@@ -8,9 +8,9 @@ body:
         Thanks for helping Conda! 🐍
 
         Going through bugs and issues takes up a lot of time, so please be so kind and take a few minutes to fill out all the areas to the best of your ability.
-         
+
         There will always be more issues than there is time to do them, and so we will need to selectively close issues that don't provide enough information, so we can focus our time on helping people like you who fill out the issue form completely. Thank you for your collaboration!
-        
+
         There are also already a lot of open issues, so please take 2 minutes and search through existing ones to see if what you are experiencing already exists
 
         Thanks for helping Conda be amazing. We are nothing without people like you helping build a better community 💐!

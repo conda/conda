@@ -8,8 +8,8 @@ from os.path import dirname
 import re
 import sys
 
-from ._vendor.auxlib.decorators import memoize
-from ._vendor.auxlib.compat import shlex_split_unicode, string_types, Utf8NamedTemporaryFile
+from .auxlib.decorators import memoize
+from .auxlib.compat import shlex_split_unicode, string_types, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
 
 from .common.path import win_path_to_unix, which

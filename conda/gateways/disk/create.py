@@ -20,7 +20,7 @@ from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
 from ... import CondaError
-from ..._vendor.auxlib.ish import dals
+from ...auxlib.ish import dals
 from ...base.constants import CONDA_PACKAGE_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import on_win

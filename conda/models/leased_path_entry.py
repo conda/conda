@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from .enums import LeasedPathType
-from .._vendor.auxlib.entity import Entity, EnumField, StringField
+from ..auxlib.entity import Entity, EnumField, StringField
 
 log = getLogger(__name__)
 

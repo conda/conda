@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from pprint import pprint
 
-from conda._vendor.auxlib.decorators import memoize
+from conda.auxlib.decorators import memoize
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import CyclicalDependencyError
@@ -968,4 +968,3 @@ def test_general_graph_bfs_version():
 
     a_to_g2 = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("g=2"))
     assert a_to_g2 == [MatchSpec("a"), MatchSpec("d"), MatchSpec("g=2")]
-

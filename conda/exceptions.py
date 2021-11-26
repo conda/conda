@@ -16,9 +16,9 @@ from traceback import format_exception, format_exception_only
 import getpass
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
-from ._vendor.auxlib.entity import EntityEncoder
-from ._vendor.auxlib.ish import dals
-from ._vendor.auxlib.type_coercion import boolify
+from .auxlib.entity import EntityEncoder
+from .auxlib.ish import dals
+from .auxlib.type_coercion import boolify
 from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
@@ -543,7 +543,7 @@ class CondaHTTPError(CondaError):
         reason = reason or 'CONNECTION FAILED'
         elapsed_time = elapsed_time or '-'
 
-        from ._vendor.auxlib.logz import stringify
+        from .auxlib.logz import stringify
         response_details = (stringify(response, content_max_len=1024) or '') if response else ''
 
         url = maybe_unquote(url)
@@ -904,6 +904,7 @@ class NotWritableError(CondaError, OSError):
                 'gid': os.getegid(),
             })
         super(NotWritableError, self).__init__(message, **kwargs)
+        self.errno = errno
 
 
 class NoWritableEnvsDirError(CondaError):

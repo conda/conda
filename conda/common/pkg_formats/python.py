@@ -21,7 +21,7 @@ from ..compat import PY2, StringIO, itervalues, odict, open, scandir, string_typ
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )
-from ..._vendor.auxlib.decorators import memoizedproperty
+from ...auxlib.decorators import memoizedproperty
 from ..._vendor.frozendict import frozendict
 from ..._vendor.toolz import concat, concatv, groupby
 

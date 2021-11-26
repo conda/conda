@@ -9,8 +9,8 @@ import os
 import getpass
 
 from conda import text_type
-from conda._vendor.auxlib.collection import AttrDict
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.collection import AttrDict
+from conda.auxlib.ish import dals
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_win
 from conda.common.io import captured, env_var

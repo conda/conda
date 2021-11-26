@@ -427,7 +427,10 @@ class Field(object):
             raise AttributeError("The {0} field is immutable.".format(self.name))
         # validate will raise an exception if invalid
         # validate will return False if the value should be removed
-        instance.__dict__[self.name] = self.validate(instance, self.box(instance, instance.__class__, val))
+        instance.__dict__[self.name] = self.validate(
+            instance,
+            self.box(instance, instance.__class__, val),
+        )
 
     def __delete__(self, instance):
         if self.immutable and instance._initd:
@@ -511,11 +514,13 @@ class BooleanField(Field):
     def box(self, instance, instance_type, val):
         return None if val is None else bool(val)
 
+
 BoolField = BooleanField
 
 
 class IntegerField(Field):
     _type = integer_types
+
 
 IntField = IntegerField
 
@@ -742,7 +747,7 @@ class Entity(object):
                 if alias is not None:
                     setattr(self, key, kwargs[alias])
                 elif key in getattr(self, KEY_OVERRIDES_MAP):
-                    # handle the case of fields inherited from subclass but overrode on class object
+                    # handle case of fields inherited from subclass but overrode on class object
                     setattr(self, key, getattr(self, KEY_OVERRIDES_MAP)[key])
                 elif field.required and field.default is NULL:
                     raise ValidationError(key, msg="{0} requires a {1} field. Instantiated with "
@@ -753,7 +758,6 @@ class Entity(object):
                     raise
         if not self._lazy_validate:
             self.validate()
-
 
     @classmethod
     def from_objects(cls, *objects, **override_fields):

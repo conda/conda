@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from conda.auxlib.compat import Utf8NamedTemporaryFile
 from unittest import TestCase
 import warnings
 

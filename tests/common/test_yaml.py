@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 
 log = getLogger(__name__)

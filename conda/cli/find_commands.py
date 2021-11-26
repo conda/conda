@@ -9,7 +9,7 @@ import re
 import sys
 import sysconfig
 
-from .._vendor.auxlib.decorators import memoize
+from ..auxlib.decorators import memoize
 from ..common.compat import on_win
 
 

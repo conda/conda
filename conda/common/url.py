@@ -11,7 +11,7 @@ import socket
 
 from .compat import input, on_win
 from .path import split_filename, strip_pkg_extension
-from .._vendor.auxlib.decorators import memoize
+from ..auxlib.decorators import memoize
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
 

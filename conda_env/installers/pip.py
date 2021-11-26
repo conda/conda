@@ -5,7 +5,7 @@ from __future__ import absolute_import
 
 import os
 import os.path as op
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from conda_env.pip_util import pip_subprocess, get_pip_installed_packages
 from conda.common.io import Spinner

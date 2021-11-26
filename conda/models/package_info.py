@@ -8,8 +8,15 @@ from logging import getLogger
 from .channel import Channel
 from .enums import NoarchType
 from .records import PackageRecord, PathsData
-from .._vendor.auxlib.entity import (ComposableField, Entity, EnumField, ImmutableEntity,
-                                     IntegerField, ListField, StringField)
+from ..auxlib.entity import (
+    ComposableField,
+    Entity,
+    EnumField,
+    ImmutableEntity,
+    IntegerField,
+    ListField,
+    StringField,
+)
 from ..common.compat import string_types
 
 log = getLogger(__name__)
