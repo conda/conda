@@ -21,7 +21,7 @@ from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, _get_solver_logic, UpdateModifier, Resolve
-from conda.exceptions import RawStrUnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
+from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
 from conda.gateways.disk.create import TemporaryDirectory
 from conda.history import History
 from conda.models.channel import Channel
@@ -322,7 +322,7 @@ def test_solve_msgs_exclude_vp(tmpdir):
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(RawStrUnsatisfiableError) as exc:
+            with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
     assert "__cuda==10.0" not in str(exc.value).strip()
@@ -360,7 +360,7 @@ def test_cuda_fail_1(tmpdir):
     # No cudatoolkit in index for CUDA 8.0
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(RawStrUnsatisfiableError) as exc:
+            with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
     if sys.platform == "darwin":
@@ -399,7 +399,7 @@ def test_cuda_fail_2(tmpdir):
     # No CUDA on system
     with env_var('CONDA_OVERRIDE_CUDA', ''):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(RawStrUnsatisfiableError) as exc:
+            with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
     error_msg = str(exc.value).strip()
@@ -453,7 +453,7 @@ def test_cuda_constrain_unsat(tmpdir):
     # No cudatoolkit in index for CUDA 8.0
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(RawStrUnsatisfiableError) as exc:
+            with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
@@ -485,7 +485,7 @@ def test_cuda_glibc_unsat_depend(tmpdir):
 
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(RawStrUnsatisfiableError) as exc:
+            with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
@@ -503,7 +503,7 @@ def test_cuda_glibc_unsat_constrain(tmpdir):
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.12'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(RawStrUnsatisfiableError) as exc:
+            with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
 @pytest.mark.skipif(context.solver_logic.value == "libsolv",
@@ -761,7 +761,7 @@ def test_only_deps_2(tmpdir):
     # fails because numpy=1.5 is in our history as an explicit spec
     specs_to_add = MatchSpec("numba=0.5"),
     with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-        with pytest.raises(RawStrUnsatisfiableError):
+        with pytest.raises(UnsatisfiableError):
             final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
 
     specs_to_add = MatchSpec("numba=0.5"), MatchSpec("numpy")
@@ -1162,7 +1162,7 @@ def test_unfreeze_when_required(tmpdir):
     #    this section of the test broke when we improved the detection of conflicting specs.
     # specs_to_add = MatchSpec("qux"),
     # with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-    #     with pytest.raises(RawStrUnsatisfiableError):
+    #     with pytest.raises(UnsatisfiableError):
     #         solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
     specs_to_add = MatchSpec("qux"),
@@ -1835,13 +1835,13 @@ def test_pinned_1(tmpdir):
         specs_to_add = MatchSpec("scikit-learn==0.13"),
         with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
-            with pytest.raises((SpecsConfigurationConflictError, RawStrUnsatisfiableError)) as exc:
+            with pytest.raises((SpecsConfigurationConflictError, UnsatisfiableError)) as exc:
                 solver.solve_final_state(ignore_pinned=False)
             if isinstance(exc, SpecsConfigurationConflictError):
                 kwargs = exc.value._kwargs
                 assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
                 assert kwargs["pinned_specs"] == ["python=2.6"]
-            elif isinstance(exc, RawStrUnsatisfiableError):
+            elif isinstance(exc, UnsatisfiableError):
                 assert "package scikit-learn-0.13-np17py27_1 requires python 2.7*" in str(exc)
 
         specs_to_add = MatchSpec("numba"),
@@ -1977,7 +1977,7 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
 
     specs_to_add = MatchSpec("zope.interface>4.1"),
     with get_solver(tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-        with pytest.raises(RawStrUnsatisfiableError):
+        with pytest.raises(UnsatisfiableError):
             final_state_2 = solver.solve_final_state()
 
     # allow python to float
@@ -2351,7 +2351,7 @@ def test_freeze_deps_1(tmpdir):
         assert convert_to_dist_str(link_precs) == link_order
 
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
-    with pytest.raises(RawStrUnsatisfiableError):
+    with pytest.raises(UnsatisfiableError):
         specs_to_add = MatchSpec("bokeh=0.12.5"),
         with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1,
                         history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
@@ -2401,7 +2401,7 @@ def test_freeze_deps_1(tmpdir):
     specs_to_add = MatchSpec("bokeh=0.12.5"),
     with get_solver_2(tmpdir, specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
-        with pytest.raises(RawStrUnsatisfiableError):
+        with pytest.raises(UnsatisfiableError):
             solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
 
@@ -2531,7 +2531,7 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
     specs_to_add = MatchSpec("scikit-learn==0.13"),
     with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                     history_specs=specs) as solver:
-        with pytest.raises(RawStrUnsatisfiableError) as exc:
+        with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
         error_msg = str(exc.value).strip()
@@ -2548,7 +2548,7 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
     specs_to_add = MatchSpec("unsatisfiable-with-py26"),
     with get_solver(tmpdir, specs_to_add=specs_to_add, prefix_records=final_state_1,
                     history_specs=specs) as solver:
-        with pytest.raises(RawStrUnsatisfiableError) as exc:
+        with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
         error_msg = str(exc.value).strip()
         if context.solver_logic.value == "legacy":
