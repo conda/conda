@@ -17,8 +17,8 @@ import re
 
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
-from .._vendor.auxlib.collection import frozendict
-from .._vendor.auxlib.decorators import memoizedproperty
+from ..auxlib.collection import frozendict
+from ..auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,

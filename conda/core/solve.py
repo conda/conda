@@ -17,8 +17,8 @@ from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
-from .._vendor.auxlib.decorators import memoizedproperty
-from .._vendor.auxlib.ish import dals
+from ..auxlib.decorators import memoizedproperty
+from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
@@ -590,7 +590,7 @@ class Solver(object):
                 if len(matches_for_spec) != 1:
                     raise CondaError(dals("""
                     Conda encountered an error with your environment.  Please report an issue
-                    at https://github.com/conda/conda/issues/new.  In your report, please include
+                    at https://github.com/conda/conda/issues.  In your report, please include
                     the output of 'conda info' and 'conda list' for the active environment, along
                     with the command you invoked that resulted in this error.
                       pkg_name: %s

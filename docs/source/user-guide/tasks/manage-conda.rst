@@ -78,12 +78,11 @@ to update conda to the latest version:
     ==> WARNING: A newer version of conda exists. <==
     current version: 4.6.13
     latest version: 4.8.0
- 
+
 Update conda by running: ``conda update -n base conda``
- 
+
 Run the following command from your terminal or Anaconda Prompt:
 ``conda config --set notify_outdated_conda false``
- 
+
 Or add the following line in your ``.condarc`` file:
 ``notify_outdated_conda: false``
-

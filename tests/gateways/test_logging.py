@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 from conda.gateways.logging import TokenURLFilter
 from logging import getLogger
 

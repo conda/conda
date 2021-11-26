@@ -17,7 +17,7 @@ import time
 import warnings
 
 from . import __version__ as CONDA_VERSION
-from ._vendor.auxlib.ish import dals
+from .auxlib.ish import dals
 from ._vendor.toolz import groupby, take
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .base.context import context

@@ -21,8 +21,8 @@ from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODA
                         SolverLogicChoice, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
-from .._vendor.auxlib.decorators import memoize, memoizedproperty
-from .._vendor.auxlib.ish import dals
+from ..auxlib.decorators import memoize, memoizedproperty
+from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from .._vendor.toolz import concat, concatv, unique
@@ -241,7 +241,8 @@ class Context(Configuration):
     _channel_alias = ParameterLoader(
         PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                            validation=channel_alias_validation),
-        aliases=('channel_alias',))
+        aliases=('channel_alias',),
+        expandvars=True)
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter(

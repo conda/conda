@@ -45,6 +45,12 @@ SEARCH_PATH += (
     '$CONDA_ROOT/.condarc',
     '$CONDA_ROOT/condarc',
     '$CONDA_ROOT/condarc.d/',
+    '$XDG_CONFIG_HOME/conda/.condarc',
+    '$XDG_CONFIG_HOME/conda/condarc',
+    '$XDG_CONFIG_HOME/conda/condarc.d/',
+    '~/.config/conda/.condarc',
+    '~/.config/conda/condarc',
+    '~/.config/conda/condarc.d/',
     '~/.conda/.condarc',
     '~/.conda/condarc',
     '~/.conda/condarc.d/',
@@ -250,7 +256,7 @@ class ChannelPriorityMeta(EnumMeta):
             return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
         except ValueError:
             if isinstance(value, string_types):
-                from .._vendor.auxlib.type_coercion import typify
+                from ..auxlib.type_coercion import typify
                 value = typify(value)
             if value is True:
                 value = 'flexible'

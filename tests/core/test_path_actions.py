@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import pytest
 
-from conda._vendor.auxlib.collection import AttrDict
+from conda.auxlib.collection import AttrDict
 from conda._vendor.toolz.itertoolz import groupby
 from conda.base.context import context
 from conda.common.compat import PY2, on_win

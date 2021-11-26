@@ -5,9 +5,11 @@ beautifulsoup4
 chardet
 conda
 conda-build
+conda-forge::pre-commit
+conda-forge::pytest-split
+conda-forge::xdoctest
 conda-package-handling
 conda-verify
-conda-forge::pytest-split
 cytoolz
 filelock
 flake8
@@ -21,12 +23,12 @@ pkginfo
 pycosat
 pycrypto
 pyflakes
+pytest
 pytest-cov
 pytest-mock
 pytest-rerunfailures
 pytest-timeout
 pytest-xdist
-pytest
 requests
 responses
 ruamel_yaml

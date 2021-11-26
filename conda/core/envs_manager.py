@@ -82,7 +82,12 @@ def list_all_known_prefixes():
     for home_dir in search_dirs:
         environments_txt_file = get_user_environments_txt_file(home_dir)
         if isfile(environments_txt_file):
-            all_env_paths.update(_clean_environments_txt(environments_txt_file))
+            try:
+                # When the user is an admin, some environments.txt files might
+                # not be readable (if on network file system for example)
+                all_env_paths.update(_clean_environments_txt(environments_txt_file))
+            except PermissionError:
+                log.warning(f"Unable to access {environments_txt_file}")
 
     # in case environments.txt files aren't complete, also add all known conda environments in
     # all envs_dirs

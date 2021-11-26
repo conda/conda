@@ -10,7 +10,7 @@ from os.path import abspath, basename, exists, isdir, isfile, join
 from . import common
 from .common import check_non_admin
 from .. import CondaError
-from .._vendor.auxlib.ish import dals
+from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import scandir, text_type
@@ -130,10 +130,8 @@ def install(args, parser, command='install'):
     if isupdate and not (args.file or args.packages
                          or context.update_modifier == UpdateModifier.UPDATE_ALL):
         raise CondaValueError("""no package names supplied
-# If you want to update to a newer version of Anaconda, type:
-#
-# $ conda update --prefix %s anaconda
-""" % prefix)
+# Example: conda update -n myenv scipy
+""")
 
     if not newenv:
         if isdir(prefix):

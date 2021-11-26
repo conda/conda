@@ -15,7 +15,7 @@ if not sys.version_info[:2] >= (3, 6):
 # means that we need to add the src directory to the sys.path.
 src_dir = here = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, src_dir)
-import conda._vendor.auxlib.packaging  # NOQA
+import conda.auxlib.packaging
 
 long_description = """
 .. image:: https://s3.amazonaws.com/conda-dev/conda_logo.svg
@@ -70,19 +70,15 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],
-    packages=conda._vendor.auxlib.packaging.find_packages(exclude=(
-        "tests",
-        "tests.*",
-        "build",
-        "utils",
-        ".tox"
-    )),
+    packages=conda.auxlib.packaging.find_packages(
+        exclude=("tests", "tests.*", "build", "utils", ".tox")
+    ),
     package_data={
         '': package_files('conda/shell') + ['LICENSE'],
     },
     cmdclass={
-        'build_py': conda._vendor.auxlib.packaging.BuildPyCommand,
-        'sdist': conda._vendor.auxlib.packaging.SDistCommand,
+        "build_py": conda.auxlib.packaging.BuildPyCommand,
+        "sdist": conda.auxlib.packaging.SDistCommand,
     },
     entry_points={
         'console_scripts': [

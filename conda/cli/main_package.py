@@ -11,7 +11,7 @@ import re
 import tarfile
 import tempfile
 
-from .._vendor.auxlib.entity import EntityEncoder
+from ..auxlib.entity import EntityEncoder
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
 from ..base.context import context
 from ..common.compat import PY3

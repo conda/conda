@@ -19,9 +19,17 @@ from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .enums import MetadataSignatureStatus
 from .match_spec import MatchSpec
-from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, IntegerField, ListField, NumberField,
-                                     StringField)
+from ..auxlib.entity import (
+    BooleanField,
+    ComposableField,
+    DictSafeMixin,
+    Entity,
+    EnumField,
+    IntegerField,
+    ListField,
+    NumberField,
+    StringField,
+)
 from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type

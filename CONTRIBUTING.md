@@ -5,193 +5,294 @@
 If your issue is a bug report or feature request for:
 
 * **a specific conda package**: please file it at <https://github.com/ContinuumIO/anaconda-issues/issues>
-* **anaconda.org**: please file it at <https://github.com/Anaconda-Platform/support/issues>
+* **anaconda.org**: please file it at <https://anaconda.org/contact/report>
 * **repo.anaconda.com**: please file it at <https://github.com/ContinuumIO/anaconda-issues/issues>
 * **commands under `conda build`**: please file it at <https://github.com/conda/conda-build/issues>
-* **commands under `conda env`**: please file it here!
-* **all other conda commands**: please file it here!
+* **commands under `conda env` and all other conda commands**: please file it at <https://github.com/conda/conda/issues>
+
+## Code of Conduct
+
+The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.numfocus.org/code-of-conduct).
+
+## Development Environment
+
+0. [Signup for a GitHub account][github signup] (if you haven't already) and
+   [install Git on your system][install git].
+1. Fork the conda repository to your personal GitHub account by clicking the
+   "Fork" button on https://github.com/conda/conda and follow GitHub's
+   instructions.
+2. Clone the repo you just forked on GitHub to your local machine. Configure
+   your repo to point to both "upstream" (the main conda repo) and your fork
+   ("origin"). For detailed directions, see below:
+
+   **Bash (macOS, Linux, Windows)**
+
+   ```bash
+   # choose the repository location
+   # warning: not the location of an existing conda installation!
+   $ CONDA_PROJECT_ROOT="$HOME/conda"
+
+   # clone the project
+   # replace `your-username` with your actual GitHub username
+   $ git clone git@github.com:your-username/conda "$CONDA_PROJECT_ROOT"
+   $ cd "$CONDA_PROJECT_ROOT"
+
+   # set the `upstream` as the the main repository
+   $ git remote add upstream git@github.com:conda/conda
+   ```
+
+   **cmd.exe (Windows)**
+
+   ```batch
+   # choose the repository location
+   # warning: not the location of an existing conda installation!
+   > set "CONDA_PROJECT_ROOT=%HOMEPATH%\conda"
+
+   # clone the project
+   # replace `your-username` with your actual GitHub username
+   > git clone git@github.com:your-username/conda "%CONDA_PROJECT_ROOT%"
+   > cd "%CONDA_PROJECT_ROOT%"
+
+   # set the `upstream` as the main repository
+   > git remote add upstream git@github.com:conda/conda
+   ```
+
+3. One option is to create a local development environment and activate that environment
+
+   **Bash (macOS, Linux, Windows)**
+
+   ```bash
+   $ source ./dev/start
+   ```
+
+   **cmd.exe (Windows)**
+
+   ```batch
+   > .\dev\start.bat
+   ```
+
+   This command will create a project-specific base environment (see `devenv`
+   in your repo directory after running this command). If the base environment
+   already exists this command will simply activate the already-created
+   `devenv` environment.
+
+   To be sure that the conda code being interpreted is the code in the project
+   directory, look at the value of `conda location:` in the output of
+   `conda info --all`.
+
+4. Alternatively, for Linux development only, you can use the same Docker
+   image the CI pipelines use. Note that you can run this from all three
+   operating systems! We are using `docker compose`, which provides three
+   actions for you:
+
+   - `unit-tests`: Run all unit tests.
+   - `integration-tests`: Run all integration tests.
+   - `interactive`: You are dropped in a pre-initialized Bash session,
+     where you can run all your `pytest` commands as required.
+
+   Use them with `docker compose run <action>`. For example:
 
 
-## Development Environment, Bash <!-- TODO: make this so (including the msys2 shell on Windows) -->
+   **Any shell (macOS, Linux, Windows)**
 
-To set up an environment to start developing on conda code, we recommend the following steps:
+   ```bash
+   $ docker compose run unit-tests
+   ```
 
-1. Fork the conda/conda repository, clone it locally anywhere you choose (an isolation miniconda
-   will be set up within the clone directory), and set up `git remote` to point to upstream
-   and fork. For detailed directions, see below.
+   This builds the same Docker image as used in continuous
+   integration from the [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
+   and starts `bash` with the conda development mode already enabled.
+   By default, it will use Python 3.9 installation.
 
-   1a. Choose where you want the repository located (not location of existing conda)
+   If you need a different Python version, set a `CONDA_DOCKER_PYTHON`
+   environment variable like this to rebuild the image. You might need
+   to add `--no-cache` to make sure the image is rebuilt.
 
-       CONDA_PROJECT_ROOT="$HOME/conda"
+   **Bash (macOS, Linux, Windows)**
 
-   1b. Clone the project, with `upstream` being the main repository. Make sure to click the `Fork`
-       button above so you have your own copy of this repo.
+   ```bash
+   $ CONDA_DOCKER_PYTHON=3.8 docker compose build --no-cache unit-tests
+   ```
 
-       GITHUB_USERNAME=kalefranz
-       git clone git@github.com:$GITHUB_USERNAME/conda "$CONDA_PROJECT_ROOT"
-       cd "$CONDA_PROJECT_ROOT"
-       git remote add upstream git@github.com:conda/conda
+   **cmd.exe (Windows)**
 
-2. Create a local development environment, and activate that environment
+   ```batch
+   > set CONDA_DOCKER_PYTHON=3.8 && docker compose build --no-cache unit-tests && set "CONDA_DOCKER_PYTHON="
+   ```
 
-       source ./dev/start
+   The next time you run `docker compose run <task>` you will use the new image.
+   If you want to revert to the version you were previously using, you need to rebuild
+   the image again.
 
-   This command will create a project-specific base environment at `./devenv`. If
-   the environment already exists, this command will just quickly activate the
-   already-created `./devenv` environment.
+>  The `conda` repository will be mounted to `/opt/conda-src`, so all changes
+   done in your editor will be reflected live while the Docker container is
+   running.
 
-   To be sure that the conda code being interpreted is the code in the project directory,
-   look at the value of `conda location:` in the output of `conda info --all`.
+## Static Code Analysis
 
-3. Run conda's unit tests using GNU make
+This project is configured with [pre-commit](https://pre-commit.com/) to
+automatically run linting and other static code analysis on every commit.
+Running these tools prior to the PR/code review process helps in two ways:
 
-       make unit
+1. it helps *you* by automating the nitpicky process of identifying and
+   correcting code style/quality issues
+2. it helps *us* where during code review we can focus on the substance of
+   your contribution
 
-   or alternately with pytest
+Feel free to read up on everything pre-commit related in their
+[docs](https://pre-commit.com/#quick-start) but we've included the gist of
+what you need to get started below:
 
-       pytest -m "not integration" conda tests
+**Bash (macOS, Linux, Windows)**
 
-   or you can use pytest to focus on one specific test
+```bash
+# reuse the development environment created above
+$ source ./dev/start
+# or start the Docker image in interactive mode
+# $ docker compose run interactive
 
-       pytest tests/test_create.py -k create_install_update_remove_smoketest
+# install pre-commit hooks for conda
+$ cd "$CONDA_PROJECT_ROOT"
+$ pre-commit install
 
-3.1  Test-suite issues
+# manually running pre-commit on current changes
+# note: by default pre-commit only runs on staged files
+$ pre-commit run
 
-       If you do not have git installed and your test does not install it then
-       queries to conda --version will except (yeah, this should get fixed). To
-       workaround:
+# automatically running pre-commit during commit
+$ git commit
+```
 
-       git describe > conda/.version
+**cmd.exe (Windows)**
 
-       .. Then make this file PEP440 compliant.
+```batch
+:: reuse the development environment created above
+> .\dev\start.bat
+:: or start the Docker image in interactive mode
+:: > docker compose run interactive
 
-       .. (initially an every time you commit).
+:: install pre-commit hooks for conda
+> cd "%CONDA_PROJECT_ROOT%"
+> pre-commit install
 
-       The tests-suite is very sensitive to the initial environment. We have make
-       some effort to make the tests runnable in popular IDEs, and in PyCharm's
-       case, many tests can be run from a clean environment (variable-wise)
+:: manually running pre-commit on current changes
+:: note: by default pre-commit only runs on staged files
+> pre-commit run
 
-## Development Environment, Windows cmd.exe shell
+:: automatically running pre-commit during commit
+> git commit
+```
 
-In these steps, we assume `git` is installed and available on `PATH`.
+Beware that some of the tools run by pre-commit can potentially modify the
+code (see [black](https://github.com/psf/black),
+[blacken-docs](https://github.com/asottile/blacken-docs), and
+[darker](https://github.com/akaihola/darker)). If pre-commit detects that any
+files were modified it will terminate the commit giving you the opportunity to
+review the code before committing again.
 
-1. Choose where you want the project located
+Strictly speaking using pre-commit on your local machine for commits is
+optional (if you don't install pre-commit you will still be able to commit
+normally). But once you open a PR to contribue your changes, pre-commit will
+be automatically run at which point any errors that occur will need to be
+addressed prior to proceeding.
 
-       set "CONDA_PROJECT_ROOT=%HOMEPATH%\conda"
+## Testing
 
-2. Clone the project, with `origin` being the main repository. Make sure to click the `Fork`
-   button above so you have your own copy of this repo.
+We use pytest to run our test suite. Please consult pytest's
+[docs](https://docs.pytest.org/en/6.2.x/usage.html) for detailed instructions
+but generally speaking all you need is the following:
 
-       set GITHUB_USERNAME=kalefranz
-       git clone git@github.com:conda/conda "%CONDA_PROJECT_ROOT%"
-       cd "%CONDA_PROJECT_ROOT%"
-       git remote add %GITHUB_USERNAME% git@github.com:%GITHUB_USERNAME%/conda
+**Bash (macOS, Linux, Windows)**
 
-3. Create a local development environment, and activate that environment
+```bash
+# reuse the development environment created above
+$ source ./dev/start
+# or start the Docker image in interactive mode
+# $ docker compose run interactive
 
-       .\dev\start.bat
+# run conda's unit tests using GNU make
+$ make unit
 
-   This command will create a project-specific base environment at `.\devenv`. If
-   the environment already exists, this command will just quickly activate the
-   already-created `.\devenv` environment.
+# or alternately with pytest
+$ pytest -m "not integration" conda tests
 
-   To be sure that the conda code being interpreted is the code in the project directory,
-   look at the value of `conda location:` in the output of `conda info --all`.
+# or you can use pytest to focus on one specific test
+$ pytest tests/test_create.py -k create_install_update_remove_smoketest
+```
+
+**cmd.exe (Windows)**
+
+```batch
+:: reuse the development environment created above
+> .\dev\start.bat
+:: or start the Docker image in interactive mode
+:: > docker compose run interactive
+
+:: run conda's unit tests with pytest
+> pytest -m "not integration" conda tests
+
+:: or you can use pytest to focus on one specific test
+> pytest tests\test_create.py -k create_install_update_remove_smoketest
+```
+
+Note: Some integration tests require you build a package with conda-build beforehand.
+This is taking care of if you run `docker compose run integration-tests`, but you need
+to do it manually in other modes:
+
+**Bash (macOS, Linux, Windows)**
+
+```bash
+$ conda install conda-build
+$ conda-build tests/test-recipes/activate_deactivate_package
+```
+
+Check `dev/linux/integration.sh` and `dev\windows\integration.bat` for more details.
 
 
 ## Conda Contributor License Agreement
 
-In case you're new to CLAs, this is rather standard procedure for larger projects.
-[Django](https://www.djangoproject.com/foundation/cla/) and even
-[Python](https://www.python.org/psf/contrib/contrib-form/) itself both use something similar.
+In case you're new to CLAs, this is rather standard procedure for larger
+projects. [Django](https://www.djangoproject.com/foundation/cla/) and
+[Python](https://www.python.org/psf/contrib/contrib-form/) for example
+both use similar agreements.
 
-### Process
+Note: New contributors are required to complete the [Conda Contributor License Agreement][1].
 
-New contributors should complete the Conda Contributor License Agreement located
-[here](https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement). A 
-signed contributor license agreement for a pull request author needs to be on file with 
-Anaconda, Inc. for pull requests to be merged. A record of signatories is kept in the 
-[`.cla-signers`](https://github.com/conda/conda/blob/master/.cla-signers) file in the
-project root.
+For pull requests to be merged, contributors to GitHub pull requests need to
+have signed the [Conda Contributor License Agreement][1], so Anaconda, Inc.
+has it on file. A record of prior signatories is kept in a [separate repo in
+conda's GitHub][2] organization.
 
-### Individual Contributor License Agreement – Conda Code Organization
+[1]: https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement
+[2]: https://github.com/conda/clabot-config/blob/master/.clabot
+[install git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+[github signup]: https://github.com/signup
 
-In order to clarify the intellectual property license granted with Contributions from any person 
-or entity, all projects under the **Conda Code Organization** (“Conda”) must have a Contributor 
-License Agreement (“Agreement”) on file that has been signed by each Contributor, indicating 
-agreement to the license terms below for each project. This license is for your protection as a 
-Contributor as well as the protection of **Anaconda, Inc.** (“Anaconda”) as project manager and 
-Conda users; it does not change your rights to use your own Contributions for any other purpose. 
-This agreement applies to any current and all future Conda projects, including conda, conda-build, 
-constructor, and associated projects under the Conda Code Organization. While currently hosted on 
-GitHub at https://github.com/conda, the project hosting site is subject to change at Anaconda's 
-sole discretion. 
+## Releasing
 
-You accept and agree to the following terms and conditions for Your present and future 
-Contributions submitted to Anaconda under Conda. In return, Anaconda shall not use Your 
-Contributions in a way that is contrary to the public benefit. Except for the license granted 
-herein to Anaconda and recipients of software distributed by Anaconda, you reserve all right, 
-title, and interest in and to Your Contributions.
+Conda releases may be performed via the [rever command](https://regro.github.io/rever-docs/).
+Rever is configured to perform the activities for a typical conda-build release.
+To cut a release, simply run `rever <X.Y.Z>` where `<X.Y.Z>` is the
+release number that you want bump to. For example, `rever 1.2.3`.
 
-1. Definitions. "You" (or "Your") shall mean the copyright owner or legal entity authorized 
-by the copyright owner that is making this Agreement with Anaconda. For legal entities, the entity 
-making a Contribution and all other entities that control, are controlled by, or are under common 
-control with that entity are considered to be a single Contributor. For the purposes of this 
-definition, "control" means (i) the power, direct or indirect, to cause the direction or 
-management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent 
-(50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity. 
-"Contribution" shall mean any original work of authorship, including any modifications or 
-additions to an existing work, that is intentionally submitted by You to Anaconda for inclusion 
-in, or documentation of, any of the projects owned or managed by Anaconda (the "Work"). For the 
-purposes of this definition, "submitted" means any form of electronic, verbal, or written 
-communication sent to Anaconda or its representatives, including but not limited to communication 
-on electronic mailing lists, source code control systems, and issue tracking systems that are 
-managed by, or on behalf of, Anaconda for the purpose of discussing and improving the Work, but 
-excluding communication that is conspicuously marked or otherwise designated in writing by You as 
-"Not a Contribution."
+However, it is always good idea to make sure that the you have permissions
+everywhere to actually perform the release. So it is customary to run
+`rever check` before the release, just to make sure.
 
-2. Grant of Copyright License. Subject to the terms and conditions of this Agreement, You hereby 
-grant to Anaconda and to recipients of software distributed by Anaconda a perpetual, worldwide, 
-non-exclusive, no-charge, royalty-free, irrevocable copyright license to reproduce, prepare 
-derivative works of, publicly display, publicly perform, sublicense, and distribute Your 
-Contributions and such derivative works.
+The standard workflow is thus:
 
-3. Grant of Patent License. Subject to the terms and conditions of this Agreement, You hereby 
-grant to Anaconda and to recipients of software distributed by Anaconda a perpetual, worldwide, 
-non-exclusive, no-charge, royalty-free, irrevocable (except as stated in this section) patent 
-license to make, have made, use, offer to sell, sell, import, and otherwise transfer the Work, 
-where such license applies only to those patent claims licensable by You that are necessarily 
-infringed by Your Contribution(s) alone or by combination of Your Contribution(s) with the Work 
-to which such Contribution(s) was submitted. If any entity institutes patent litigation against 
-You or any other entity (including a cross-claim or counterclaim in a lawsuit) alleging that Your
-Contribution, or the Work to which You have contributed, constitutes direct or contributory patent
-infringement, then any patent licenses granted to that entity under this Agreement for that
-Contribution or Work shall terminate as of the date such litigation is filed.
+```bash
+$ rever check
+$ rever 1.2.3
+```
 
-4. You represent that you are legally entitled to grant the above license. If your employer(s) has
-rights to intellectual property that you create that includes your Contributions, You represent
-that you have received permission to make Contributions on behalf of that employer, that your
-employer has waived such rights for your Contributions to Anaconda, or that your employer has
-executed a separate Corporate Contributor License Agreement with Anaconda. 
+If for some reason a release fails partway through, or you want to claw back a
+release that you have made, rever allows you to undo activities. If you find yourself
+in this pickle, you can pass the `--undo` option a comma-separated list of
+activities you'd like to undo. For example:
 
-5. You represent that each of Your Contributions is Your original creation (see Section 7 for
-submissions on behalf of others). You represent that Your Contribution submissions include
-complete details of any third-party license or other restriction (including, but not limited to,
-related patents and trademarks) of which you are personally aware and which are associated with
-any part of Your Contributions. 
+```bash
+$ rever --undo tag,changelog,authors 1.2.3
+```
 
-6.	You are not expected to provide support for Your Contributions, except to the extent You
-desire to provide support. You may provide support for free, for a fee, or not at all. Unless
-required by applicable law or agreed to in writing, You provide Your Contributions on an "AS IS"
-BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties or conditions of TITLE, NONINFRINGEMENT, MERCHANTABILITY, or FITNESS
-FOR A PARTICULAR PURPOSE. 
-
-7. Should You wish to submit work that is not Your original creation, You may submit it to
-Anaconda separately from any Contribution, identifying the complete details of its source and of
-any license or other restriction (including, but not limited to, related patents, trademarks,
-and license agreements) of which you are personally aware, and conspicuously marking the work as
-"Submitted on behalf of a third-party: [named here]".
-
-8. You agree to notify Anaconda of any facts or circumstances of which you become aware that
-would make these representations inaccurate in any respect.
+Happy releasing!

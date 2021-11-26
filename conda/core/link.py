@@ -19,8 +19,8 @@ from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePr
                            UpdateHistoryAction, AggregateCompileMultiPycAction)
 from .prefix_data import PrefixData, get_python_version_for_prefix
 from .. import CondaError, CondaMultiError, conda_signal_handler
-from .._vendor.auxlib.collection import first
-from .._vendor.auxlib.ish import dals
+from ..auxlib.collection import first
+from ..auxlib.ish import dals
 from .._vendor.toolz import concat, concatv, interleave
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context

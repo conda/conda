@@ -14,8 +14,8 @@ from . import (ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema
 from .session import CondaSession
 from ..disk.delete import rm_rf
 from ... import CondaError
-from ..._vendor.auxlib.ish import dals
-from ..._vendor.auxlib.logz import stringify
+from ...auxlib.ish import dals
+from ...auxlib.logz import stringify
 from ...base.context import context
 from ...common.compat import text_type
 from ...common.io import time_recorder

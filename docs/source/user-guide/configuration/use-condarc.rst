@@ -108,36 +108,45 @@ Conda looks in the following locations for a ``.condarc`` file:
 
 .. code-block:: python
 
-    if on_win:
-     SEARCH_PATH = (
-         'C:/ProgramData/conda/.condarc',
-         'C:/ProgramData/conda/condarc',
-         'C:/ProgramData/conda/condarc.d',
-     )
-     else:
-     SEARCH_PATH = (
-         '/etc/conda/.condarc',
-         '/etc/conda/condarc',
-         '/etc/conda/condarc.d/',
-         '/var/lib/conda/.condarc',
-         '/var/lib/conda/condarc',
-         '/var/lib/conda/condarc.d/',
+  if on_win:
+      SEARCH_PATH = (
+          "C:/ProgramData/conda/.condarc",
+          "C:/ProgramData/conda/condarc",
+          "C:/ProgramData/conda/condarc.d",
+      )
+  else:
+      SEARCH_PATH = (
+          "/etc/conda/.condarc",
+          "/etc/conda/condarc",
+          "/etc/conda/condarc.d/",
+          "/var/lib/conda/.condarc",
+          "/var/lib/conda/condarc",
+          "/var/lib/conda/condarc.d/",
       )
 
-     SEARCH_PATH += (
-         '$CONDA_ROOT/.condarc',
-         '$CONDA_ROOT/condarc',
-         '$CONDA_ROOT/condarc.d/',
-         '~/.conda/.condarc',
-         '~/.conda/condarc',
-         '~/.conda/condarc.d/',
-         '~/.condarc',
-         '$CONDA_PREFIX/.condarc',
-         '$CONDA_PREFIX/condarc',
-         '$CONDA_PREFIX/condarc.d/',
-         '$CONDARC',
-     )
+  SEARCH_PATH += (
+      "$CONDA_ROOT/.condarc",
+      "$CONDA_ROOT/condarc",
+      "$CONDA_ROOT/condarc.d/",
+      "$XDG_CONFIG_HOME/conda/.condarc",
+      "$XDG_CONFIG_HOME/conda/condarc",
+      "$XDG_CONFIG_HOME/conda/condarc.d/",
+      "~/.config/conda/.condarc",
+      "~/.config/conda/condarc",
+      "~/.config/conda/condarc.d/",
+      "~/.conda/.condarc",
+      "~/.conda/condarc",
+      "~/.conda/condarc.d/",
+      "~/.condarc",
+      "$CONDA_PREFIX/.condarc",
+      "$CONDA_PREFIX/condarc",
+      "$CONDA_PREFIX/condarc.d/",
+      "$CONDARC",
+  )
 
+``XDG_CONFIG_HOME`` is the path to where user-specific configuration files should
+be stored defined following The XDG Base Directory Specification (XDGBDS). Default
+to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
 ``CONDA_PREFIX`` is the path to the current active environment.
 
@@ -1073,7 +1082,7 @@ Setting any of the above can be done in ``.condarc`` or with
 conda config:
 
 At your terminal::
-  
+
   conda config --set repodata_threads 2
 
 In ``.condarc``::

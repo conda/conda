@@ -129,7 +129,7 @@ To bootstrap your environment, use the standalone conda
 approach in your ``appveyor.yml``:
 
 .. code-block:: yaml
-   
+
    # Config file for automatic testing at travis-ci.org
 
    language: python

@@ -14,8 +14,8 @@ from .envs_manager import get_user_environments_txt_file, register_env, unregist
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 from .. import CondaError
-from .._vendor.auxlib.compat import with_metaclass
-from .._vendor.auxlib.ish import dals
+from ..auxlib.compat import with_metaclass
+from ..auxlib.ish import dals
 from .._vendor.toolz import concat
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
@@ -1250,9 +1250,8 @@ class ExtractPackageAction(PathAction):
             # At this point, we can assume the package tarball is bad.
             # Remove everything and move on.
             print("ERROR: Encountered corrupt package tarball at %s. Conda has "
-                  "left it in place.  Please report this to the maintainers "
-                  "of your package.  For the defaults channel, please report "
-                  "to https://github.com/continuumio/anaconda-issues" % self.source_full_path)
+                  "left it in place. Please report this to the maintainers "
+                  "of the package." % self.source_full_path)
             sys.exit(1)
 
         if isinstance(self.record_or_spec, MatchSpec):

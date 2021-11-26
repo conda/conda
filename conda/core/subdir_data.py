@@ -22,8 +22,8 @@ from time import time
 import warnings
 
 from .. import CondaError
-from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.logz import stringify
+from ..auxlib.ish import dals
+from ..auxlib.logz import stringify
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN

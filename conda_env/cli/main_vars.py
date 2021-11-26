@@ -126,7 +126,7 @@ def execute_set(args, parser):
     env_vars_to_add = {}
     for v in args.vars:
         var_def = v.split('=')
-        env_vars_to_add[var_def[0].strip()] = var_def[-1].strip()
+        env_vars_to_add[var_def[0].strip()] = "=".join(var_def[1:]).strip()
     pd.set_environment_env_vars(env_vars_to_add)
     if prefix == context.active_prefix:
         print("To make your changes take effect please reactivate your environment")

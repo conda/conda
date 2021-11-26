@@ -533,4 +533,3 @@ def test_read_no_link(tmpdir):
     _make_lines_file(no_softlink)
     s2 = read_no_link(tempdir)
     assert s2 == {'line 1', 'line 2', 'line 4'}
-

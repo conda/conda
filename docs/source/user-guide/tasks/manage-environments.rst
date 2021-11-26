@@ -140,7 +140,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
       conda env list
 
   You can also use ``conda info --envs``.
-  
+
 
 .. _specifying-location:
 
@@ -156,9 +156,9 @@ of the current working directory called ``envs``::
 
 You then activate an environment created with a prefix using the same
 command used to activate environments created by name::
- 
+
   conda activate ./envs
- 
+
 Specifying a path to a subdirectory of your project directory when
 creating an environment has the following benefits:
 
@@ -174,7 +174,7 @@ folder, you’ll have to give each environment a different name.
 
 There are a few things to be aware of when placing conda environments
 outside of the default ``envs`` folder.
- 
+
 #. Conda can no longer find your environment with the ``--name`` flag.
    You’ll generally need to pass the ``--prefix`` flag along with the
    environment’s full path to find the environment.
@@ -635,7 +635,7 @@ You can specify the environment you want to affect using the ``-n`` and ``-p`` f
 
 To unset the environment variable, run ``conda env config vars unset my_var -n test-env``.
 
-When you deactivate your environment, you can see that environment variable goes away by rerunning 
+When you deactivate your environment, you can see that environment variable goes away by rerunning
 ``echo my_var`` or ``conda env config vars list`` to show that the variable name
 is no longer present.
 
@@ -762,7 +762,7 @@ Exporting the environment.yml file
    current directory, it will be overwritten during this task.
 
 #. Activate the environment to export: ``conda activate myenv``
-   
+
    .. note::
       Replace ``myenv`` with the name of the environment.
 
@@ -796,7 +796,7 @@ for dependencies. This will introduce packages that may not be compatible
 across platforms.
 
 If you use ``conda env export``, it will export all of those packages.
-However, if you use ``conda env export --from-history``, it will 
+However, if you use ``conda env export --from-history``, it will
 only export those you specifically chose:
 
 .. code-block::
@@ -812,7 +812,7 @@ only export those you specifically chose:
    prefix: /Users/username/anaconda3/envs/env-name
 
 .. note::
-   If you installed Anaconda 2019.10 on macOS, your prefix may be 
+   If you installed Anaconda 2019.10 on macOS, your prefix may be
    ``/Users/username/opt/envs/env-name``.
 
 .. _create-env-file-manually:
@@ -848,7 +848,7 @@ EXAMPLE: A more complex environment file:
      - pip:
        - Flask-Testing
 
-.. note:: 
+.. note::
    Note the use of the wildcard * when defining the patch version
    number. Defining the version number by fixing the major and minor
    version numbers while allowing the patch version number to vary
@@ -883,13 +883,13 @@ Restoring an environment
 Conda keeps a history of all the changes made to your environment,
 so you can easily "roll back" to a previous version. To list the history of each change to the current environment:
 ``conda list --revisions``
- 
+
 To restore environment to a previous revision: ``conda install --revision=REVNUM``
 or ``conda install --rev REVNUM``.
- 
+
 .. note::
    Replace REVNUM with the revision number.
- 
+
 Example:
 If you want to restore your environment to revision 8, run ``conda install --rev 8``.
 

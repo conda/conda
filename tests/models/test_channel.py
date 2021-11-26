@@ -7,7 +7,7 @@ from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
 
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import Context, conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import odict, text_type
@@ -649,10 +649,10 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
         channels_config = dals("""
         channels:
           - http://user22:$EXPANDED_PWD@some.url:8080
-          
+
         whitelist_channels:
           - http://user22:$EXPANDED_PWD@some.url:8080
-        
+
         custom_channels:
           unexpanded: http://user1:$UNEXPANDED_PWD@another.url:8080/with/path/t/tk-1234
           expanded: http://user33:$EXPANDED_PWD@another.url:8080/with/path/t/tk-1234
@@ -1118,4 +1118,3 @@ def test_ppc64le_vs_ppc64():
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
     assert ppc64_channel.subdir == "linux-ppc64"
     assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
-

@@ -79,27 +79,27 @@ jobs:
 
             Thank you for your contribution.
           # Label to apply on staled issues
-          stale-issue-label: stale-marked
+          stale-issue-label: 'stale'
           # Label to apply on closed issues
-          close-issue-label: stale-closed
+          close-issue-label: 'stale::closed'
           # Label to apply on staled PRs
-          stale-pr-label: stale-marked
+          stale-pr-label: 'stale'
           # Label to apply on closed PRs
-          close-pr-label: stale-closed
+          close-pr-label: 'stale::closed'
 
           # Issues with these labels will never be considered stale
-          exempt-issue-labels: 'good-first-issue,help-wanted,Epic,priority-high,s-1,source-partner,type-advisory,type-techdebt'
+          exempt-issue-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,Epic,priority-high'
           # Issues with these labels will never be considered stale
-          exempt-pr-labels: 'good-first-issue,help-wanted,Epic,priority-high,s-1,source-partner,type-advisory,type-techdebt'
+          exempt-pr-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,Epic,priority-high'
 
           # Max number of operations per run
-          operations-per-run: 10
+          operations-per-run: ${{ secrets.STALE_OPERATIONS_PER_RUN || 100 }}
           # Remove stale label from issues/PRs on updates/comments
           remove-stale-when-updated: true
 
           # Add specified labels to issues/PRs when they become unstale
-          # disabled due to https://github.com/actions/stale/issues/551
-          # labels-to-add-when-unstale: stale-recovered
+          labels-to-add-when-unstale: 'stale::recovered'
+          labels-to-remove-when-unstale: 'stale,stale::closed'
 
           # Dry-run (default: false)
           debug-only: false
