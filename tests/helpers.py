@@ -18,9 +18,11 @@ from unittest.mock import patch
 from uuid import uuid4
 from pathlib import Path
 from time import time
+import collections
 
 from conda import cli
 from conda._vendor.auxlib.decorators import memoize
+from conda.base.constants import REPODATA_FN
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import iteritems, itervalues, encode_arguments
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
@@ -518,3 +520,16 @@ def get_index_cuda(subdir=context.subdir):
 
     _patch_for_local_exports("channel-1", sd, channel, index)
     return index, r
+
+
+def record(name='a', version='1.0', depends=None, build='0', build_number=0, timestamp=0, channel=None, **kwargs):
+    return PackageRecord(
+        name=name,
+        version=version,
+        depends=depends or [],
+        build=build,
+        build_number=build_number,
+        timestamp=timestamp,
+        channel=channel,
+        **kwargs,
+    )

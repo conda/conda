@@ -7,6 +7,7 @@ import copy
 from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
+import os
 import sys
 from textwrap import dedent
 from itertools import chain
@@ -80,7 +81,7 @@ class Solver(object):
                 The set of package specs to remove from the prefix.
 
         """
-        self.prefix = prefix
+        self.prefix = os.fspath(prefix)
         self._channels = channels or context.channels
         self.channels = IndexedSet(Channel(c) for c in self._channels)
         self.subdirs = tuple(s for s in subdirs or context.subdirs)
