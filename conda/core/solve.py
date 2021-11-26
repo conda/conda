@@ -1843,7 +1843,6 @@ class LibSolvSolver(Solver):
         transaction = api.Transaction(
             solver,
             api.MultiPackageCache(context.pkgs_dirs),
-            PackageCacheData.first_writable().pkgs_dir,
         )
         (names_to_add, names_to_remove), to_link, to_unlink = transaction.to_conda()
 
