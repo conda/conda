@@ -92,10 +92,8 @@ class SimpleEnvironment:
         self._write_installed_packages()
         for channel_name, packages in self._channel_packages.items():
             self._write_repo_packages(channel_name, packages)
-            channels += [
-                Channel('file://{}'.format(self._channels_path / channel_name / subdir))
-                for subdir in self.subdirs
-            ]
+            channel = Channel(str(self._channels_path / channel_name))
+            channels.append(channel)
         return self._solver_class(
             prefix=self._prefix_path,
             subdirs=self.subdirs,
