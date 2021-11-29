@@ -1,13 +1,13 @@
 name: Automate Boards
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened, labeled, milestoned, demilestoned]
 jobs:
-  # move to triaging board if new
+  # move to Triaging board if new
   triaging:
     runs-on: ubuntu-latest
     steps:
-      - uses: alex-page/github-project-automation-plus@v0.8.1
+      - uses: alex-page/github-project-automation-plus@v0
         if: github.event.action == 'opened' && !contains(github.event.issue.labels.*.name, 'backlog')
         with:
           action: update
@@ -15,21 +15,53 @@ jobs:
           column: New
           repo-token: ${{ secrets.PROJECT_TOKEN }}
 
-  # move to backlog board if labeled as backlog
+  # move to Backlog board if labeled as [backlog]
   backlog:
     runs-on: ubuntu-latest
     steps:
-      - uses: alex-page/github-project-automation-plus@v0.8.1
+      - uses: alex-page/github-project-automation-plus@v0
         if: contains(github.event.issue.labels.*.name, 'backlog')
         with:
           action: delete
           project: Triaging
           column: Ready
           repo-token: ${{ secrets.PROJECT_TOKEN }}
-      - uses: alex-page/github-project-automation-plus@v0.8.1
+      - uses: alex-page/github-project-automation-plus@v0
         if: contains(github.event.issue.labels.*.name, 'backlog')
         with:
           action: update
           project: Backlog
           column: Unplanned
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
+
+  # remove [backlog] (& remove from Backlog board) if milestoned
+  milestoned:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/label-actions@v2
+        if: github.event.action == 'milestoned'
+        with:
+          unlabel: backlog
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+      - uses: alex-page/github-project-automation-plus@v0
+        with:
+          action: delete
+          project: Backlog
+          column: Do Next
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
+
+  # add [backlog] (& move back to Backlog board) if demilestoned
+  demilestoned:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/label-actions@v2
+        if: github.event.action == 'demilestoned'
+        with:
+          label: backlog
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+      - uses: alex-page/github-project-automation-plus@v0
+        with:
+          action: update
+          project: Backlog
+          column: Do Next
           repo-token: ${{ secrets.PROJECT_TOKEN }}
