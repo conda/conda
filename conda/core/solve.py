@@ -12,6 +12,7 @@ import sys
 from textwrap import dedent
 from itertools import chain
 from collections import defaultdict
+from string import ascii_letters
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -26,7 +27,7 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
                               ChannelPriority)
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, text_type
+from ..common.compat import iteritems, itervalues, odict, text_type, on_win
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
@@ -1298,7 +1299,11 @@ class LibSolvSolver(Solver):
                 channel = subdir_url.rstrip("/").rsplit("/", 1)[0]
             if isinstance(channel, Channel):
                 channel = channel.base_url or channel.name
-            channel = escape_channel_url(channel)
+            if on_win and channel[0] in ascii_letters and channel[1] == ":":
+                # absolute path C:/path/stuff, problematic with escaping
+                channel = channel[:2] + escape_channel_url(channel[2:])
+            else:
+                channel = escape_channel_url(channel)
             channels.append(channel)
         if context.restore_free_channel and "https://repo.anaconda.com/pkgs/free" not in channels:
             channels.append('https://repo.anaconda.com/pkgs/free')
