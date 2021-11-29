@@ -49,6 +49,13 @@ jobs:
           project: Backlog
           column: Do Next
           repo-token: ${{ secrets.PROJECT_TOKEN }}
+      # just in case the issue is still on the Triaging board
+      - uses: alex-page/github-project-automation-plus@v0
+        with:
+          action: delete
+          project: Triaging
+          column: Ready
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
 
   # add [backlog] (& move back to Backlog board) if demilestoned
   demilestoned:
