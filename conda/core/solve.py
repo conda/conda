@@ -31,7 +31,7 @@ from ..common.compat import iteritems, itervalues, odict, text_type, on_win
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..common.url import escape_channel_url, split_anaconda_token, remove_auth
+from ..common.url import escape_channel_url, path_to_url, percent_decode, split_anaconda_token, remove_auth
 from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
                           UnsatisfiableError, RawStrUnsatisfiableError)
 from ..history import History
@@ -1297,11 +1297,12 @@ class LibSolvSolver(Solver):
                 # but it fails (at least in the CI docker image).
                 subdir_url = Channel("local").urls()[0]
                 channel = subdir_url.rstrip("/").rsplit("/", 1)[0]
+
             if isinstance(channel, Channel):
                 channel = channel.base_url or channel.name
+            # absolute path C:/path/stuff, problematic with escaping
             if on_win and channel[0] in ascii_letters and channel[1] == ":":
-                # absolute path C:/path/stuff, problematic with escaping
-                channel = channel[:2] + escape_channel_url(channel[2:])
+                channel = path_to_url(channel)
             else:
                 channel = escape_channel_url(channel)
             channels.append(channel)
@@ -2082,8 +2083,20 @@ class LibSolvSolver(Solver):
         # self.specs_to_remove = {MatchSpec(name) for name in state["names_to_remove"]
         #                         if not name.startswith("__")}
 
+        if on_win:
+            # TODO: We are manually decoding local paths in windows because the colon
+            # in paths like file:///C:/Users... gets html escaped as %3a in our workarounds
+            # There must be a better way to do this but we will find it while cleaning up
+            final_prefix_values = []
+            for pkg in final_prefix_map.values():
+                if pkg.url.startswith("file://") and "%" in pkg.url:
+                    pkg.url = percent_decode(pkg.url)
+                final_prefix_values.append(pkg)
+        else:
+            final_prefix_values = final_prefix_map.values()
+
         # TODO: Review performance here just in case
-        return IndexedSet(PrefixGraph(final_prefix_map.values()).graph)
+        return IndexedSet(PrefixGraph(final_prefix_values).graph)
 
     def raise_for_problems(self, problems):
         for line in problems.splitlines():
