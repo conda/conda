@@ -19,6 +19,7 @@ import pytest
 import conda.core.solve
 
 from conda.base.context import context
+from conda.compat import on_win
 from conda.exceptions import PackagesNotFoundError, ResolvePackageNotFound, UnsatisfiableError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
@@ -1238,7 +1239,7 @@ class TestLibSolvSolver(SolverTests):
 
     @property
     def tests_to_skip(self):
-        return {
+        reasons = {
             'LibSolvSolver does not support track-features/features': [
                 'test_iopro_mkl',
                 'test_iopro_nomkl',
@@ -1258,3 +1259,10 @@ class TestLibSolvSolver(SolverTests):
                 'test_noarch_preferred_over_arch_when_build_greater_dep',
             ]
         }
+
+        if on_win:
+            reasons["LibSolvSolver does not support track-features/features"].append(
+                "test_unintentional_feature_downgrade"
+            )
+
+        return reasons
