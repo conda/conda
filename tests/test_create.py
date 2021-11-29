@@ -2309,6 +2309,10 @@ dependencies:
         finally:
             rmtree(prefix, ignore_errors=True)
 
+    @pytest.mark.xfail(
+        on_win and context.solver_logic.value == "libsolv",
+        reason="Known issue in mamba. Reported here: https://github.com/mamba-org/mamba/issues/1308",
+    )
     def test_clean_index_cache(self):
         prefix = ''
 
@@ -2322,6 +2326,10 @@ dependencies:
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
 
+    @pytest.mark.xfail(
+        on_win and context.solver_logic.value == "libsolv",
+        reason="Known issue in mamba. Reported here: https://github.com/mamba-org/mamba/issues/1308",
+    )
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
         from conda.core.subdir_data import SubdirData
