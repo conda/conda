@@ -9,7 +9,7 @@ jobs:
   triaging:
     runs-on: ubuntu-latest
     steps:
-      - uses: alex-page/github-project-automation-plus@v0
+      - uses: alex-page/github-project-automation-plus@v0.8.1
         if: github.event.action == 'opened' && !contains(github.event.issue.labels.*.name, 'backlog')
         with:
           action: update
@@ -21,7 +21,7 @@ jobs:
   pending_feedback:
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/label-actions@v2
+      - uses: dessant/label-actions@v2.2.0
         if: github.event_name == 'issue_comment' && github.event.action == 'created' && !github.event.issue.pull_request
         with:
           unlabel: pending::feedback
@@ -31,14 +31,14 @@ jobs:
   backlog:
     runs-on: ubuntu-latest
     steps:
-      - uses: alex-page/github-project-automation-plus@v0
+      - uses: alex-page/github-project-automation-plus@v0.8.1
         if: contains(github.event.issue.labels.*.name, 'backlog')
         with:
           action: delete
           project: Triaging
           column: Ready
           repo-token: ${{ secrets.PROJECT_TOKEN }}
-      - uses: alex-page/github-project-automation-plus@v0
+      - uses: alex-page/github-project-automation-plus@v0.8.1
         if: contains(github.event.issue.labels.*.name, 'backlog')
         with:
           action: update
@@ -50,7 +50,7 @@ jobs:
   milestoned:
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/label-actions@v2
+      - uses: dessant/label-actions@v2.2.0
         if: github.event.action == 'milestoned'
         with:
           unlabel: backlog
@@ -62,7 +62,7 @@ jobs:
           column: Do Next
           repo-token: ${{ secrets.PROJECT_TOKEN }}
       # just in case the issue is still on the Triaging board
-      - uses: alex-page/github-project-automation-plus@v0
+      - uses: alex-page/github-project-automation-plus@v0.8.1
         with:
           action: delete
           project: Triaging
@@ -73,12 +73,12 @@ jobs:
   demilestoned:
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/label-actions@v2
+      - uses: dessant/label-actions@v2.2.0
         if: github.event.action == 'demilestoned'
         with:
           label: backlog
           github-token: ${{ secrets.PROJECT_TOKEN }}
-      - uses: alex-page/github-project-automation-plus@v0
+      - uses: alex-page/github-project-automation-plus@v0.8.1
         with:
           action: update
           project: Backlog
