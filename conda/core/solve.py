@@ -2089,7 +2089,7 @@ class LibSolvSolver(Solver):
             # There must be a better way to do this but we will find it while cleaning up
             final_prefix_values = []
             for pkg in final_prefix_map.values():
-                if pkg.url.startswith("file://") and "%" in pkg.url:
+                if pkg.url and pkg.url.startswith("file://") and "%" in pkg.url:
                     pkg.url = percent_decode(pkg.url)
                 final_prefix_values.append(pkg)
         else:
