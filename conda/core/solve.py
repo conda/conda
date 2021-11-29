@@ -16,7 +16,6 @@ from string import ascii_letters
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
-from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
@@ -31,9 +30,19 @@ from ..common.compat import iteritems, itervalues, odict, text_type, on_win
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..common.url import escape_channel_url, path_to_url, percent_decode, split_anaconda_token, remove_auth
-from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
-                          UnsatisfiableError, RawStrUnsatisfiableError)
+from ..common.url import (
+    escape_channel_url,
+    path_to_url,
+    percent_decode,
+    split_anaconda_token,
+    remove_auth,
+)
+from ..exceptions import (
+    PackagesNotFoundError,
+    SpecsConfigurationConflictError,
+    UnsatisfiableError,
+    RawStrUnsatisfiableError,
+)
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -2085,7 +2094,7 @@ class LibSolvSolver(Solver):
 
         if on_win:
             # TODO: We are manually decoding local paths in windows because the colon
-            # in paths like file:///C:/Users... gets html escaped as %3a in our workarounds
+            # in paths like file:///C:/Users... gets html escaped as %3a in our workarounds
             # There must be a better way to do this but we will find it while cleaning up
             final_prefix_values = []
             for pkg in final_prefix_map.values():
