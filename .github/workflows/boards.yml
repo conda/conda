@@ -2,6 +2,8 @@ name: Automate Boards
 on:
   issues:
     types: [opened, labeled, milestoned, demilestoned]
+  issue_comment:
+    types: [created]
 jobs:
   # move to Triaging board if new
   triaging:
@@ -14,6 +16,16 @@ jobs:
           project: Triaging
           column: New
           repo-token: ${{ secrets.PROJECT_TOKEN }}
+
+  # remove [pending::feedback] if commented
+  pending_feedback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/label-actions@v2
+        if: github.event_name == 'issue_comment' && github.event.action == 'created' && !github.event.issue.pull_request
+        with:
+          unlabel: pending::feedback
+          github-token: ${{ secrets.PROJECT_TOKEN }}
 
   # move to Backlog board if labeled as [backlog]
   backlog:
