@@ -53,7 +53,7 @@ from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
-    PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
+    PackagesNotFoundError, RawStrUnsatisfiableError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
     DisallowedPackageError, DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound, \
     CondaValueError
 from conda.gateways.anaconda_client import read_binstar_tokens
@@ -144,7 +144,8 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
     tmpdir = tmpdir_in_use or gettempdir()
     capable = running_a_python_capable_of_unicode_subprocessing()
 
-    if not capable or use_restricted_unicode:
+    # TODO: Remove libsolv check once https://github.com/mamba-org/mamba/issues/1201 is fixed
+    if not capable or use_restricted_unicode or context.solver_logic.value == "libsolv":
         RESTRICTED = UNICODE_CHARACTERS_RESTRICTED_PY2 \
             if (sys.version_info[0] == 2) \
             else UNICODE_CHARACTERS_RESTRICTED_PY3
@@ -1122,9 +1123,10 @@ dependencies:
 
     def test_pinned_override_with_explicit_spec(self):
         with make_temp_env("python=3.6") as prefix:
+            python = next(PrefixData(prefix).query("python"))
             run_command(Commands.CONFIG, prefix,
-                        "--add", "pinned_packages", "python=3.6.5")
-            run_command(Commands.INSTALL, prefix, "python=3.7", no_capture=True)
+                        "--add", "pinned_packages", f"python={python.version}")
+            run_command(Commands.INSTALL, prefix, "python=3.7", no_capture=False)
             assert package_is_installed(prefix, "python=3.7")
 
     def test_remove_all(self):
@@ -1154,6 +1156,7 @@ dependencies:
         hardlink_supported_mock._result_cache.clear()
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
+    @pytest.mark.skipif(context.solver_logic.value == "libsolv", reason="features not supported")
     def test_remove_features(self):
         with make_temp_env("python=2", "numpy=1.13", "nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
@@ -1998,7 +2001,8 @@ dependencies:
 
 
     def test_conda_pip_interop_conda_editable_package(self):
-        with env_var('CONDA_RESTORE_FREE_CHANNEL', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_vars({'CONDA_RESTORE_FREE_CHANNEL': True, 'CONDA_REPORT_ERRORS': False},
+                      stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
                 conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
                 workdir = prefix
@@ -2057,11 +2061,13 @@ dependencies:
                 assert "All requested packages already installed." in stdout
 
                 # should raise an error
-                with pytest.raises(PackagesNotFoundError):
+                with pytest.raises((PackagesNotFoundError, RawStrUnsatisfiableError)) as exc:
                     # TODO: This raises PackagesNotFoundError, but the error should really explain
                     #       that we can't install urllib3 because it's already installed and
                     #       unmanageable. The error should suggest trying to use pip to uninstall it.
                     stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "urllib3=1.20", "--dry-run")
+                    if isinstance(exc, RawStrUnsatisfiableError):
+                        assert "nothing provides requested urllib3 1.20.*" in exc.value
 
                 # Now install a manageable urllib3.
                 output = check_output(PYTHON_BINARY + " -m pip install -U urllib3==1.20",
@@ -2145,6 +2151,7 @@ dependencies:
                             "agate=1.6", "--dry-run")
 
     @pytest.mark.skipif(sys.version_info.major == 2 and context.subdir == "win-32", reason="Incompatible DLLs with win-32 python 2.7 ")
+    @pytest.mark.xfail(context.solver_logic.value == "libsolv", reason="Inconsistency analysis not yet implemented")
     def test_conda_recovery_of_pip_inconsistent_env(self):
         with make_temp_env("pip=10", "python", "anaconda-client",
                            use_restricted_unicode=on_win) as prefix:
@@ -2302,6 +2309,10 @@ dependencies:
         finally:
             rmtree(prefix, ignore_errors=True)
 
+    @pytest.mark.xfail(
+        on_win and context.solver_logic.value == "libsolv",
+        reason="Known issue in mamba. Reported here: https://github.com/mamba-org/mamba/issues/1308",
+    )
     def test_clean_index_cache(self):
         prefix = ''
 
@@ -2315,6 +2326,10 @@ dependencies:
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
 
+    @pytest.mark.xfail(
+        on_win and context.solver_logic.value == "libsolv",
+        reason="Known issue in mamba. Reported here: https://github.com/mamba-org/mamba/issues/1308",
+    )
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
         from conda.core.subdir_data import SubdirData
@@ -2357,6 +2372,7 @@ dependencies:
                 mock_method.side_effect = side_effect
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
+    @pytest.mark.xfail(context.solver_logic.value == "libsolv", reason="Known broken; bug in libmamba")
     def test_offline_with_empty_index_cache(self):
         from conda.core.subdir_data import SubdirData
         SubdirData._cache_.clear()
@@ -2890,7 +2906,14 @@ dependencies:
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
             with open(os.path.join(prefix, 'conda-meta', 'history')) as f:
                 d = f.read()
-            assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
+            if context.solver_logic.value == "libsolv":
+                # libsolv relaxes more aggressively sometimes
+                # instead of relaxing from pkgname=version=build to pkgname=version, it
+                # goes to just pkgname; this is because libsolv does not take into account
+                # matchspec target and optionality (iow, MatchSpec.conda_build_form() does not)
+                assert re.search(r"neutered specs:.*'psutil'\]", d)
+            else:
+                assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
             # this would be unsatisfiable if the neutered specs were not being factored in correctly.
             #    If this command runs successfully (does not raise), then all is well.
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "imagesize")

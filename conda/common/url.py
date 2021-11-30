@@ -26,7 +26,7 @@ except ImportError:  # pragma: py3 no cover
 
 
 def hex_octal_to_int(ho):
-    ho = ord(ho)
+    ho = ord(ho.upper())
     o0 = ord('0')
     o9 = ord('9')
     oA = ord('A')
@@ -42,7 +42,7 @@ def percent_decode(path):
     if '%' not in path:
         return path
     ranges = []
-    for m in re.finditer(r'(%[0-9A-F]{2})', path):
+    for m in re.finditer(r'(%[0-9A-F]{2})', path, flags=re.IGNORECASE):
         ranges.append((m.start(), m.end()))
     if not len(ranges):
         return path

@@ -9,4 +9,5 @@ eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 conda info
 # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
 sudo rm -rf /opt/conda/pkgs/*-*-*
-CONDA_SOLVER_LOGIC=libsolv pytest -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP} tests/core/test_solve.py
+mamba --version
+CONDA_SOLVER_LOGIC=libsolv pytest -m "not integration" -k "not TestLegacySolver" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP} tests/core/test_solve.py tests/test_solvers.py

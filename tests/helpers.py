@@ -18,6 +18,7 @@ from unittest.mock import patch
 from uuid import uuid4
 from pathlib import Path
 from time import time
+import collections
 
 from conda import cli
 from conda.auxlib.decorators import memoize
@@ -192,6 +193,8 @@ def _export_subdir_data_to_repodata(subdir_data, index):
     packages = {}
     for pkg in index:
         data = pkg.dump()
+        if pkg.timestamp:
+            data["timestamp"] = pkg.timestamp
         if "features" in data:
             # Features are deprecated, so they are not implemented
             # in modern solvers like mamba. Mamba does implement
@@ -516,3 +519,16 @@ def get_index_cuda(subdir=context.subdir):
 
     _patch_for_local_exports("channel-1", sd, channel, index)
     return index, r
+
+
+def record(name='a', version='1.0', depends=None, build='0', build_number=0, timestamp=0, channel=None, **kwargs):
+    return PackageRecord(
+        name=name,
+        version=version,
+        depends=depends or [],
+        build=build,
+        build_number=build_number,
+        timestamp=timestamp,
+        channel=channel,
+        **kwargs,
+    )
