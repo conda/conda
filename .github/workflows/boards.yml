@@ -1,35 +1,111 @@
 name: Automate Boards
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened, labeled, milestoned, demilestoned]
+  issue_comment:
+    types: [created]
 jobs:
-  # move to triaging board if new
+  # move to Triaging board if new
   triaging:
+    if: >-
+      github.event_name == 'issues'
+      && github.event.action == 'opened'
+      && github.event.issue.state == 'open'
+      && !contains(github.event.issue.labels.*.name, 'backlog')
     runs-on: ubuntu-latest
     steps:
       - uses: alex-page/github-project-automation-plus@v0.8.1
-        if: github.event.action == 'opened' && !contains(github.event.issue.labels.*.name, 'backlog')
         with:
-          action: update
+          action: add
           project: Triaging
           column: New
           repo-token: ${{ secrets.PROJECT_TOKEN }}
 
-  # move to backlog board if labeled as backlog
+  # if labeled as [pending::feedback] and the author responded remove [pending::feedback] and add [pending::support]
+  # clearly this will not catch cases where multiple users act as the author/reporter, this is just an effort to catch the majority of support cases
+  pending_support:
+    if: >-
+      github.event_name == 'issue_comment'
+      && github.event.action == 'created'
+      && !github.event.issue.pull_request
+      && contains(github.event.issue.labels.*.name, 'pending::feedback')
+      && github.event.issue.user.login == github.event.comment.user.login
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: pending::feedback
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      - uses: actions-ecosystem/action-add-labels@v1.1.0
+        # if the author closed out the issue we will not apply [pending::support]
+        if: github.event.issue.state == 'open'
+        with:
+          labels: pending::support
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+
+  # move to Backlog board if labeled as [backlog]
   backlog:
+    if: >-
+      github.event_name == 'issues'
+      && github.event.action == 'labeled'
+      && github.event.issue.state == 'open'
+      && contains(github.event.issue.labels.*.name, 'backlog')
     runs-on: ubuntu-latest
     steps:
       - uses: alex-page/github-project-automation-plus@v0.8.1
-        if: contains(github.event.issue.labels.*.name, 'backlog')
         with:
           action: delete
           project: Triaging
           column: Ready
           repo-token: ${{ secrets.PROJECT_TOKEN }}
       - uses: alex-page/github-project-automation-plus@v0.8.1
-        if: contains(github.event.issue.labels.*.name, 'backlog')
         with:
-          action: update
+          action: add
           project: Backlog
           column: Unplanned
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
+
+  # remove [backlog] (& remove from Backlog board) if milestoned
+  milestoned:
+    if: >-
+      github.event_name == 'issues'
+      && github.event.action == 'milestoned'
+      && github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: backlog
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        with:
+          action: delete
+          project: Backlog
+          column: Do Next
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
+      # just in case the issue is still on the Triaging board
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        with:
+          action: delete
+          project: Triaging
+          column: Ready
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
+
+  # add [backlog] (& move back to Backlog board) if demilestoned
+  demilestoned:
+    if: >-
+      github.event_name == 'issues'
+      && github.event.action == 'demilestoned'
+      && github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-ecosystem/action-add-labels@v1.1.0
+        with:
+          labels: backlog
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        with:
+          action: add
+          project: Backlog
+          column: Do Next
           repo-token: ${{ secrets.PROJECT_TOKEN }}
