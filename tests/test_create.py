@@ -37,7 +37,7 @@ from conda.auxlib.entity import EntityEncoder
 from conda.auxlib.ish import dals
 from conda._vendor.toolz import concatv
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks, \
-    PREFIX_MAGIC_FILE, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES
+    PREFIX_MAGIC_FILE, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, SolverLogicChoice
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
@@ -144,8 +144,8 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
     tmpdir = tmpdir_in_use or gettempdir()
     capable = running_a_python_capable_of_unicode_subprocessing()
 
-    # TODO: Remove libsolv check once https://github.com/mamba-org/mamba/issues/1201 is fixed
-    if not capable or use_restricted_unicode or context.solver_logic.value == "libsolv":
+    # TODO: Remove libmamba check once https://github.com/mamba-org/mamba/issues/1201 is fixed
+    if not capable or use_restricted_unicode or context.solver_logic == SolverLogicChoice.LIBMAMBA:
         RESTRICTED = UNICODE_CHARACTERS_RESTRICTED_PY2 \
             if (sys.version_info[0] == 2) \
             else UNICODE_CHARACTERS_RESTRICTED_PY3
@@ -1156,7 +1156,7 @@ dependencies:
         hardlink_supported_mock._result_cache.clear()
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-    @pytest.mark.skipif(context.solver_logic.value == "libsolv", reason="features not supported")
+    @pytest.mark.skipif(context.solver_logic == SolverLogicChoice.LIBMAMBA, reason="features not supported")
     def test_remove_features(self):
         with make_temp_env("python=2", "numpy=1.13", "nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
@@ -2151,7 +2151,7 @@ dependencies:
                             "agate=1.6", "--dry-run")
 
     @pytest.mark.skipif(sys.version_info.major == 2 and context.subdir == "win-32", reason="Incompatible DLLs with win-32 python 2.7 ")
-    @pytest.mark.xfail(context.solver_logic.value == "libsolv", reason="Inconsistency analysis not yet implemented")
+    @pytest.mark.xfail(context.solver_logic == SolverLogicChoice.LIBMAMBA, reason="Inconsistency analysis not yet implemented")
     def test_conda_recovery_of_pip_inconsistent_env(self):
         with make_temp_env("pip=10", "python", "anaconda-client",
                            use_restricted_unicode=on_win) as prefix:
@@ -2310,7 +2310,7 @@ dependencies:
             rmtree(prefix, ignore_errors=True)
 
     @pytest.mark.xfail(
-        on_win and context.solver_logic.value == "libsolv",
+        on_win and context.solver_logic == SolverLogicChoice.LIBMAMBA,
         reason="Known issue in mamba. Reported here: https://github.com/mamba-org/mamba/issues/1308",
     )
     def test_clean_index_cache(self):
@@ -2327,7 +2327,7 @@ dependencies:
         assert not glob(join(index_cache_dir, "*.json"))
 
     @pytest.mark.xfail(
-        on_win and context.solver_logic.value == "libsolv",
+        on_win and context.solver_logic == SolverLogicChoice.LIBMAMBA,
         reason="Known issue in mamba. Reported here: https://github.com/mamba-org/mamba/issues/1308",
     )
     def test_use_index_cache(self):
@@ -2372,7 +2372,7 @@ dependencies:
                 mock_method.side_effect = side_effect
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
-    @pytest.mark.xfail(context.solver_logic.value == "libsolv", reason="Known broken; bug in libmamba")
+    @pytest.mark.xfail(context.solver_logic == SolverLogicChoice.LIBMAMBA, reason="Known broken; bug in libmamba")
     def test_offline_with_empty_index_cache(self):
         from conda.core.subdir_data import SubdirData
         SubdirData._cache_.clear()
@@ -2906,10 +2906,10 @@ dependencies:
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
             with open(os.path.join(prefix, 'conda-meta', 'history')) as f:
                 d = f.read()
-            if context.solver_logic.value == "libsolv":
-                # libsolv relaxes more aggressively sometimes
+            if context.solver_logic == SolverLogicChoice.LIBMAMBA:
+                # libmamba relaxes more aggressively sometimes
                 # instead of relaxing from pkgname=version=build to pkgname=version, it
-                # goes to just pkgname; this is because libsolv does not take into account
+                # goes to just pkgname; this is because libmamba does not take into account
                 # matchspec target and optionality (iow, MatchSpec.conda_build_form() does not)
                 assert re.search(r"neutered specs:.*'psutil'\]", d)
             else:

@@ -287,8 +287,8 @@ class SatSolverChoice(Enum):
 
 
 class SolverLogicChoice(Enum):
-    LEGACY = 'legacy'
-    LIBSOLV = 'libsolv'
+    CLASSIC = 'classic'
+    LIBMAMBA = 'libmamba'
 
     def __str__(self):
         return self.value

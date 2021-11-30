@@ -16,6 +16,7 @@ from os.path import join, abspath, dirname
 import pytest
 
 from conda.auxlib.ish import dals
+from conda.base.constants import SolverLogicChoice
 from conda.base.context import context, Context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
@@ -506,7 +507,7 @@ def test_cuda_glibc_unsat_constrain(tmpdir):
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
-@pytest.mark.skipif(context.solver_logic.value == "libsolv",
+@pytest.mark.skipif(context.solver_logic == SolverLogicChoice.LIBMAMBA,
                     reason="Features / nomkl involved. Not supported.")
 def test_prune_1(tmpdir):
     specs = MatchSpec("numpy=1.6"), MatchSpec("python=2.7.3"), MatchSpec("accelerate"),
@@ -1101,7 +1102,7 @@ def test_conda_downgrade(tmpdir):
                 'channel-2::conda-4.3.30-py36h5d9f9f4_0',
                 'channel-4::conda-build-3.12.1-py36_0'
             ))
-            if context.solver_logic.value == "libsolv":
+            if context.solver_logic == SolverLogicChoice.LIBMAMBA:
                 # We only check for conda itself and the explicit specs
                 # The other packages are slightly different;
                 # again libedit and ncurses are involved
@@ -1504,8 +1505,8 @@ def test_python2_update(tmpdir):
         ))
         obtained_solution = convert_to_dist_str(final_state_2)
         pprint(obtained_solution)
-        if context.solver_logic.value == "libsolv":
-            # libsolv has a different solution here (cryptography 2.3 instead of 2.2.2)
+        if context.solver_logic == SolverLogicChoice.LIBMAMBA:
+            # libmamba has a different solution here (cryptography 2.3 instead of 2.2.2)
             # and cryptography-vectors (not present in regular conda)
             # they are essentially the same functional solution; the important part here
             # is that the env migrated to Python 3.7, so we only check some packages
@@ -1717,7 +1718,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
             'channel-4::libedit-3.1.20170329-h6b74fdf_2',
             'channel-4::python-3.6.4-hc3d631a_1',  # python is upgraded
         ))
-        if context.solver_logic.value == "libsolv":
+        if context.solver_logic == SolverLogicChoice.LIBMAMBA:
             # We only check python was upgraded as expected
             assert add_subdir("channel-4::python-2.7.14-h89e7a4a_22") in convert_to_dist_str(unlink_precs)
             assert add_subdir("channel-4::python-3.6.4-hc3d631a_1") in convert_to_dist_str(link_precs)
@@ -1744,7 +1745,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
             'channel-4::sqlite-3.24.0-h84994c4_0',  # sqlite is upgraded
             'channel-4::python-2.7.15-h1571d57_0',  # python is not upgraded
         ))
-        if context.solver_logic.value == "libsolv":
+        if context.solver_logic == SolverLogicChoice.LIBMAMBA:
             # We only check sqlite was upgraded as expected
             assert add_subdir("channel-4::sqlite-3.21.0-h1bed415_2") in convert_to_dist_str(unlink_precs)
             sqlite = next(pkg for pkg in link_precs if pkg.name == "sqlite")
@@ -2075,7 +2076,7 @@ def test_timestamps_1(tmpdir):
         ))
         assert convert_to_dist_str(link_dists) == order
 
-@pytest.mark.xfail(context.solver_logic.value == "libsolv",
+@pytest.mark.xfail(context.solver_logic == SolverLogicChoice.LIBMAMBA,
                    reason="Known bug: mamba prefers arch to noarch")
 def test_channel_priority_churn_minimized(tmpdir):
     specs = MatchSpec("conda-build"), MatchSpec("itsdangerous"),
@@ -2163,10 +2164,10 @@ def test_remove_with_constrained_dependencies(tmpdir):
         for spec in order:
             assert spec in convert_to_dist_str(unlink_dists_2)
 
-@pytest.mark.xfail(context.solver_logic.value == "libsolv",
-                   reason="channel priority is a bit different in libsolv; TODO")
+@pytest.mark.xfail(context.solver_logic == SolverLogicChoice.LIBMAMBA,
+                   reason="channel priority is a bit different in libmamba; TODO")
 def test_priority_1(tmpdir):
-    priority = "strict" if context.solver_logic.value == "libsolv" else "flexible"
+    priority = "strict" if context.solver_logic == SolverLogicChoice.LIBMAMBA else "flexible"
     with env_var("CONDA_SUBDIR", "linux-64", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         specs = MatchSpec("pandas"), MatchSpec("python=2.7"),
         with env_var("CONDA_CHANNEL_PRIORITY", priority, stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -2233,7 +2234,7 @@ def test_priority_1(tmpdir):
                 assert 'pandas' not in convert_to_dist_str(final_state_4)
 
 
-@pytest.mark.skipif(context.solver_logic.value == "libsolv", reason="libsolv does not support features")
+@pytest.mark.skipif(context.solver_logic == SolverLogicChoice.LIBMAMBA, reason="libmamba does not support features")
 def test_features_solve_1(tmpdir):
     # in this test, channel-2 is a view of pkgs/free/linux-64
     #   and channel-4 is a view of the newer pkgs/main/linux-64
@@ -2535,11 +2536,11 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             solver.solve_final_state()
 
         error_msg = str(exc.value).strip()
-        if context.solver_logic.value == "legacy":
+        if context.solver_logic == SolverLogicChoice.CLASSIC:
             assert "incompatible with the existing python installation in your environment:" in error_msg
             assert "- scikit-learn==0.13 -> python=2.7" in error_msg
             assert "Your python: python=2.6" in error_msg
-        elif context.solver_logic.value == "libsolv":
+        elif context.solver_logic == SolverLogicChoice.LIBMAMBA:
             assert "Encountered problems while solving" in error_msg
             assert "package scikit-learn-0.13" in error_msg and "requires python 2.7*" in error_msg
         else:
@@ -2551,11 +2552,11 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
         error_msg = str(exc.value).strip()
-        if context.solver_logic.value == "legacy":
+        if context.solver_logic == SolverLogicChoice.CLASSIC:
             assert "incompatible with the existing python installation in your environment:" in error_msg
             assert "- unsatisfiable-with-py26 -> python=2.7" in error_msg
             assert "Your python: python=2.6" in error_msg
-        elif context.solver_logic.value == "libsolv":
+        elif context.solver_logic == SolverLogicChoice.LIBMAMBA:
             assert "Encountered problems while solving" in error_msg
             assert "package unsatisfiable-with-py26-1.0-0 requires scikit-learn 0.13" in error_msg
             warnings.warn("!!! This test passed with a message that is not as informative as Conda's. "

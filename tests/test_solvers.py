@@ -1226,21 +1226,21 @@ class SolverTests:
         assert package1.subdir == 'noarch'
 
 
-class TestLegacySolver(SolverTests):
+class TestClassicSolver(SolverTests):
     @property
     def solver_class(self):
         return conda.core.solve.Solver
 
 
-class TestLibSolvSolver(SolverTests):
+class TestLibMambaSolver(SolverTests):
     @property
     def solver_class(self):
-        return conda.core.solve.LibSolvSolver
+        return conda.core.solve.LibMambaSolver
 
     @property
     def tests_to_skip(self):
-        reasons = {
-            'LibSolvSolver does not support track-features/features': [
+        return {
+            'LibMambaSolver does not support track-features/features': [
                 'test_iopro_mkl',
                 'test_iopro_nomkl',
                 'test_mkl',
@@ -1250,8 +1250,11 @@ class TestLibSolvSolver(SolverTests):
                 'test_no_features',
                 'test_surplus_features_1',
                 'test_surplus_features_2',
+                # this one below only fails reliably on windows;
+                # it passes Linux on CI, but not locally?
+                'test_unintentional_feature_downgrade',
             ],
-            'LibSolvSolver installs numpy with mkl while we were expecting no-mkl numpy': [
+            'LibMambaSolver installs numpy with mkl while we were expecting no-mkl numpy': [
                 'test_remove',
             ],
             'Known bug in mamba, see #10995': [
@@ -1259,10 +1262,3 @@ class TestLibSolvSolver(SolverTests):
                 'test_noarch_preferred_over_arch_when_build_greater_dep',
             ]
         }
-
-        if on_win:
-            reasons["LibSolvSolver does not support track-features/features"].append(
-                "test_unintentional_feature_downgrade"
-            )
-
-        return reasons

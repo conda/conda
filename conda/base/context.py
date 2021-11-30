@@ -302,10 +302,10 @@ class Context(Configuration):
     # ######################################################
     # ##              Solver Logic Configuration          ##
     # ######################################################
-    solver_logic = ParameterLoader(PrimitiveParameter(SolverLogicChoice.LEGACY))
+    solver_logic = ParameterLoader(PrimitiveParameter(SolverLogicChoice.CLASSIC))
 
     # ######################################################
-    # ##             Legacy Solver Configuration          ##
+    # ##           (Classic) Solver Configuration         ##
     # ######################################################
     deps_modifier = ParameterLoader(PrimitiveParameter(DepsModifier.NOT_SET))
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
