@@ -1024,12 +1024,9 @@ class RemoveMenuAction(RemoveFromPrefixPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
-        if on_win:
-            MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-            return tuple(cls(transaction_context, linked_package_data, target_prefix, trgt)
-                         for trgt in linked_package_data.files if bool(MENU_RE.match(trgt)))
-        else:
-            return ()
+        MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
+        return tuple(cls(transaction_context, linked_package_data, target_prefix, trgt)
+                        for trgt in linked_package_data.files if bool(MENU_RE.match(trgt)))
 
     def __init__(self, transaction_context, linked_package_data,
                  target_prefix, target_short_path):
