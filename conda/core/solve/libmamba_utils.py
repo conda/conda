@@ -141,7 +141,7 @@ def load_channels(
         else:
             priority = 0
         if has_priority:
-            subpriority = 0
+            subpriority = 1
         else:
             subpriority = subprio_index
             subprio_index -= 1
