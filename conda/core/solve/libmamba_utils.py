@@ -57,7 +57,7 @@ def get_index(
             spec = (
                 spec[:first_at]
                 + urllib.parse.quote(spec[first_at])
-                + spec[first_at + 1 :]
+                + spec[first_at + 1:]
             )
         if platform:
             spec = spec + "[" + ",".join(platform) + "]"
