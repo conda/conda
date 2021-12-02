@@ -10,9 +10,6 @@ from os.path import join
 import os
 import sys
 from textwrap import dedent
-from itertools import chain
-from collections import defaultdict
-from string import ascii_letters
 
 from ..index import get_reduced_index, _supplement_index_with_system
 from ..link import PrefixSetup, UnlinkLinkTransaction
@@ -23,25 +20,16 @@ from ...auxlib.decorators import memoizedproperty
 from ...auxlib.ish import dals
 from ..._vendor.boltons.setutils import IndexedSet
 from ..._vendor.toolz import concat, concatv, groupby
-from ...base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
-                              ChannelPriority)
+from ...base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN
 from ...base.context import context
-from ...common.compat import iteritems, itervalues, odict, text_type, on_win
+from ...common.compat import iteritems, itervalues, odict, text_type
 from ...common.constants import NULL
 from ...common.io import Spinner, dashlist, time_recorder
 from ...common.path import get_major_minor_version, paths_equal
-from ...common.url import (
-    escape_channel_url,
-    path_to_url,
-    percent_decode,
-    split_anaconda_token,
-    remove_auth,
-)
 from ...exceptions import (
     PackagesNotFoundError,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
-    RawStrUnsatisfiableError,
 )
 from ...history import History
 from ...models.channel import Channel
