@@ -221,7 +221,7 @@ class LibMambaSolver(Solver):
 
     def _setup_state(self):
         import libmambapy as api
-        from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
+        from .libmamba_utils import load_channels, get_installed_jsonfile, init_api_context
 
         init_api_context()
 
@@ -831,7 +831,7 @@ class LibMambaSolver(Solver):
 
     def _export_final_state(self, state):
         import libmambapy as api
-        from mamba.utils import to_package_record_from_subjson
+        from .libmamba_utils import to_package_record_from_subjson
 
         solver = state["solver"]
         index = state["index"]
