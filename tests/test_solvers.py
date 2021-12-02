@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 import collections
-import contextlib
 import functools
 import json
-import os
 import pathlib
-import re
 import tempfile
-import textwrap
 
 from typing import Type
 
@@ -19,7 +15,6 @@ import pytest
 import conda.core.solve
 
 from conda.base.context import context
-from conda.compat import on_win
 from conda.exceptions import PackagesNotFoundError, ResolvePackageNotFound, UnsatisfiableError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
@@ -173,10 +168,10 @@ class SimpleEnvironment:
 
 
 class SolverTests:
-    """Tests for :py:class:`conda.core.solve.Solver` implementations."""
+    """Tests for :py:class:`conda.core.solve.classic.Solver` implementations."""
 
     @property
-    def solver_class(self) -> Type[conda.core.solve.Solver]:
+    def solver_class(self) -> Type[conda.core.solve.classic.Solver]:
         """Class under test."""
         raise NotImplementedError
 
@@ -1226,21 +1221,21 @@ class SolverTests:
         assert package1.subdir == 'noarch'
 
 
-class TestLegacySolver(SolverTests):
+class TestClassicSolver(SolverTests):
     @property
     def solver_class(self):
-        return conda.core.solve.Solver
+        return conda.core.solve.classic.Solver
 
 
-class TestLibSolvSolver(SolverTests):
+class TestLibMambaSolver(SolverTests):
     @property
     def solver_class(self):
-        return conda.core.solve.LibSolvSolver
+        return conda.core.solve.libmamba.LibMambaSolver
 
     @property
     def tests_to_skip(self):
-        reasons = {
-            'LibSolvSolver does not support track-features/features': [
+        return {
+            'LibMambaSolver does not support track-features/features': [
                 'test_iopro_mkl',
                 'test_iopro_nomkl',
                 'test_mkl',
@@ -1250,8 +1245,11 @@ class TestLibSolvSolver(SolverTests):
                 'test_no_features',
                 'test_surplus_features_1',
                 'test_surplus_features_2',
+                # this one below only fails reliably on windows;
+                # it passes Linux on CI, but not locally?
+                'test_unintentional_feature_downgrade',
             ],
-            'LibSolvSolver installs numpy with mkl while we were expecting no-mkl numpy': [
+            'LibMambaSolver installs numpy with mkl while we were expecting no-mkl numpy': [
                 'test_remove',
             ],
             'Known bug in mamba, see #10995': [
@@ -1259,10 +1257,3 @@ class TestLibSolvSolver(SolverTests):
                 'test_noarch_preferred_over_arch_when_build_greater_dep',
             ]
         }
-
-        if on_win:
-            reasons["LibSolvSolver does not support track-features/features"].append(
-                "test_unintentional_feature_downgrade"
-            )
-
-        return reasons

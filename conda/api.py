@@ -3,13 +3,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from .base.constants import DepsModifier as _DepsModifier, UpdateModifier as _UpdateModifier
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
-from .core.solve import DepsModifier as _DepsModifier, _get_solver_logic
-from .core.solve import UpdateModifier as _UpdateModifier
+from .core.solve import _get_solver_logic
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
+
 
 DepsModifier = _DepsModifier
 """Flags to enable alternate handling of dependencies."""

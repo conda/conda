@@ -21,26 +21,26 @@ jobs:
         test-type: ["unit", "integration"]
         test-group: ["1", "2", "3"]
         test-splits: ["3"]
-        conda-solver-logic: ["legacy"]
+        conda-solver-logic: ["classic"]
         include:
           - python-version: "3.9"
             test-type: "integration"
-            conda-solver-logic: "libsolv"
+            conda-solver-logic: "libmamba"
             test-splits: "3"
             test-group: "1"
           - python-version: "3.9"
             test-type: "integration"
-            conda-solver-logic: "libsolv"
+            conda-solver-logic: "libmamba"
             test-splits: "3"
             test-group: "2"
           - python-version: "3.9"
             test-type: "integration"
-            conda-solver-logic: "libsolv"
+            conda-solver-logic: "libmamba"
             test-splits: "3"
             test-group: "3"
           - python-version: "3.9"
             test-type: "experimental-resolver"
-            conda-solver-logic: "libsolv"
+            conda-solver-logic: "libmamba"
     env:
       OS: "win-64"
       PYTHON: ${{ matrix.python-version }}
@@ -85,26 +85,26 @@ jobs:
         test-type: ["unit", "integration"]
         test-group: ["1", "2", "3"]
         test-splits: ["3"]
-        conda-solver-logic: ["legacy"]
+        conda-solver-logic: ["classic"]
         include:
           - python-version: "3.9"
             test-type: "integration"
-            conda-solver-logic: "libsolv"
+            conda-solver-logic: "libmamba"
             test-splits: "3"
             test-group: "1"
           - python-version: "3.9"
             test-type: "integration"
-            conda-solver-logic: "libsolv"
+            conda-solver-logic: "libmamba"
             test-splits: "3"
             test-group: "2"
           - python-version: "3.9"
             test-type: "integration"
-            conda-solver-logic: "libsolv"
+            conda-solver-logic: "libmamba"
             test-splits: "3"
             test-group: "3"
           - python-version: "3.9"
             test-type: "experimental-resolver"
-            conda-solver-logic: "libsolv"
+            conda-solver-logic: "libmamba"
     env:
       OS: "linux"
       PYTHON: ${{ matrix.python-version }}

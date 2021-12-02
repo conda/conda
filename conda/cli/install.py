@@ -11,14 +11,14 @@ from . import common
 from .common import check_non_admin
 from .. import CondaError
 from ..auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME, UpdateModifier, REPODATA_FN
+from ..base.constants import ROOT_ENV_NAME, DepsModifier, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import scandir, text_type
 from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
-from ..core.solve import DepsModifier, _get_solver_logic
+from ..core.solve import _get_solver_logic
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotACondaEnvironmentError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
