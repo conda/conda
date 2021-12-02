@@ -268,22 +268,16 @@ class LibMambaSolver(Solver):
 
     def _channel_urls(self):
         """
-        TODO: This collection of workarounds should be, ideally,
-        handled in libmamba:
-
-        - Escape URLs
-        - Handle `local` correctly
+        TODO: libmambapy could handle path to url, and escaping
+        but so far we are doing it ourselves
         """
         def _channel_to_url_or_name(channel):
             # This fixes test_activate_deactivate_modify_path_bash
             # and other local channels (path to url) issues
             urls = []
             for url in channel.urls():
-                if url.startswith((context._channel_alias,) + context.migrated_channel_aliases):
-                    urls.append(channel.name)
                 url = url.rstrip("/").rsplit("/", 1)[0]  # remove subdir
                 urls.append(escape_channel_url(url))
-
             # deduplicate
             urls = list(OrderedDict.fromkeys(urls))
             return urls

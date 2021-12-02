@@ -388,10 +388,13 @@ def escape_channel_url(channel):
     parts = _urlparse(channel)
     if parts.scheme:
         components = parts.path.split("/")
-        if on_win and len(parts.netloc) == 2 and parts.netloc[1] == ":":
-            # with absolute paths (e.g. C:/something), C:, D:, etc are parsed as netloc
-            path = "/".join([parts.netloc] + [quote(p) for p in components])
-            parts = parts._replace(netloc=None)
+        if on_win:
+            if len(parts.netloc) == 2 and parts.netloc[1] == ":":
+                # with absolute paths (e.g. C:/something), C:, D:, etc might get parsed as netloc
+                path = "/".join([parts.netloc] + [quote(p) for p in components])
+                parts = parts._replace(netloc="")
+            else:
+                path = "/".join(components[:2] + [quote(p) for p in components[2:]])
         else:
             path = "/".join([quote(p) for p in components])
         parts = parts._replace(path=path)
