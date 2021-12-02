@@ -1,8 +1,7 @@
 
 from itertools import chain
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from logging import getLogger
-from string import ascii_letters
 
 from ..index import _supplement_index_with_system
 from ..prefix_data import PrefixData
@@ -11,13 +10,10 @@ from ..._vendor.boltons.setutils import IndexedSet
 from ..._vendor.toolz import concatv, groupby
 from ...base.constants import DepsModifier, UpdateModifier, ChannelPriority
 from ...base.context import context
-from ...common.compat import on_win
 from ...common.constants import NULL
 from ...common.path import get_major_minor_version, paths_equal
 from ...common.url import (
     escape_channel_url,
-    path_to_url,
-    percent_decode,
     split_anaconda_token,
     remove_auth,
 )
@@ -278,27 +274,25 @@ class LibMambaSolver(Solver):
         - Escape URLs
         - Handle `local` correctly
         """
-        channels = []
-        for channel in self._channels:
-            if channel == "local":
-                # This fixes test_activate_deactivate_modify_path_bash
-                # TODO: This can be improved earlier in the call stack
-                # Mamba should be able to handle this on its own too,
-                # but it fails (at least in the CI docker image).
-                subdir_url = Channel("local").urls()[0]
-                channel = subdir_url.rstrip("/").rsplit("/", 1)[0]
+        def _channel_to_url_or_name(channel):
+            # This fixes test_activate_deactivate_modify_path_bash
+            # and other local channels (path to url) issues
+            urls = []
+            for url in channel.urls():
+                if url.startswith((context._channel_alias,) + context.migrated_channel_aliases):
+                    urls.append(channel.name)
+                url = url.rstrip("/").rsplit("/", 1)[0]  # remove subdir
+                urls.append(escape_channel_url(url))
 
-            if isinstance(channel, Channel):
-                channel = channel.url().rstrip("/").rsplit("/", 1)[0] or channel.name
-            # # absolute path C:/path/stuff, problematic with escaping
-            # if on_win and channel[0] in ascii_letters and channel[1] == ":":
-            #     channel = path_to_url(channel)
-            # else:
-            #     channel = escape_channel_url(channel)
-            channels.append(channel)
+            # deduplicate
+            urls = list(OrderedDict.fromkeys(urls))
+            return urls
+
+        channels = [url for c in self._channels for url in _channel_to_url_or_name(Channel(c))]
         if context.restore_free_channel and "https://repo.anaconda.com/pkgs/free" not in channels:
             channels.append('https://repo.anaconda.com/pkgs/free')
-        return channels
+
+        return tuple(channels)
 
     def _configure_solver(self,
                           state,
