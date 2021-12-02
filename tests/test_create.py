@@ -144,8 +144,7 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
     tmpdir = tmpdir_in_use or gettempdir()
     capable = running_a_python_capable_of_unicode_subprocessing()
 
-    # TODO: Remove libmamba check once https://github.com/mamba-org/mamba/issues/1201 is fixed
-    if not capable or use_restricted_unicode or context.solver_logic == SolverLogicChoice.LIBMAMBA:
+    if not capable or use_restricted_unicode:
         RESTRICTED = UNICODE_CHARACTERS_RESTRICTED_PY2 \
             if (sys.version_info[0] == 2) \
             else UNICODE_CHARACTERS_RESTRICTED_PY3
