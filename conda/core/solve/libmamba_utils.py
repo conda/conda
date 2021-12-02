@@ -314,4 +314,3 @@ def get_installed_jsonfile(prefix):
     installed_json_f.write(json_dump(output))
     installed_json_f.flush()
     return installed_json_f, installed_pkg_recs
-
