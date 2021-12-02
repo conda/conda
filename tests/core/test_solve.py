@@ -3,27 +3,23 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from contextlib import contextmanager
 import warnings
-import os
 from pprint import pprint
 import platform
 import sys
-from textwrap import dedent
 import copy
-from unittest import TestCase
 
 from os.path import join, abspath, dirname
 
 import pytest
 
 from conda.auxlib.ish import dals
-from conda.base.constants import SolverLogicChoice
-from conda.base.context import context, Context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.constants import SolverLogicChoice, DepsModifier, UpdateModifier
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_linux
-from conda.common.io import env_var, env_vars, stderr_log_level, captured
+from conda.common.io import env_var, env_vars
 from conda.core.prefix_data import PrefixData
-from conda.core.solve import DepsModifier, _get_solver_logic, UpdateModifier, Resolve
-from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
-from conda.gateways.disk.create import TemporaryDirectory
+from conda.core.solve import _get_solver_logic
+from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
@@ -33,8 +29,6 @@ from conda.resolve import MatchSpec
 from ..helpers import add_subdir_to_iter, get_index_r_1, get_index_r_2, get_index_r_4, \
     get_index_r_5, get_index_cuda, get_index_must_unfreeze, EXPORTED_CHANNELS_DIR, \
     _alias_canonical_channel_name_cache_to_file_prefixed, add_subdir
-
-from conda.common.compat import iteritems, on_win
 
 try:
     from unittest.mock import Mock, patch

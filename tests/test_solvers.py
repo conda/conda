@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 import collections
-import contextlib
 import functools
 import json
-import os
 import pathlib
-import re
 import tempfile
-import textwrap
 
 from typing import Type
 
@@ -19,7 +15,6 @@ import pytest
 import conda.core.solve
 
 from conda.base.context import context
-from conda.compat import on_win
 from conda.exceptions import PackagesNotFoundError, ResolvePackageNotFound, UnsatisfiableError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
@@ -173,10 +168,10 @@ class SimpleEnvironment:
 
 
 class SolverTests:
-    """Tests for :py:class:`conda.core.solve.Solver` implementations."""
+    """Tests for :py:class:`conda.core.solve.classic.Solver` implementations."""
 
     @property
-    def solver_class(self) -> Type[conda.core.solve.Solver]:
+    def solver_class(self) -> Type[conda.core.solve.classic.Solver]:
         """Class under test."""
         raise NotImplementedError
 
@@ -1229,13 +1224,13 @@ class SolverTests:
 class TestClassicSolver(SolverTests):
     @property
     def solver_class(self):
-        return conda.core.solve.Solver
+        return conda.core.solve.classic.Solver
 
 
 class TestLibMambaSolver(SolverTests):
     @property
     def solver_class(self):
-        return conda.core.solve.LibMambaSolver
+        return conda.core.solve.libmamba.LibMambaSolver
 
     @property
     def tests_to_skip(self):
