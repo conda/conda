@@ -383,8 +383,11 @@ def remove_auth(url):
 
 
 def escape_channel_url(channel):
-    if on_win and channel.startswith("file:"):
-        channel = channel.replace("\\", "/")
+    if channel.startswith("file:"):
+        if "%" in channel:  # it's escaped already
+            return channel
+        if on_win:
+            channel = channel.replace("\\", "/")
     parts = _urlparse(channel)
     if parts.scheme:
         components = parts.path.split("/")
