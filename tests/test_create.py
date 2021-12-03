@@ -457,14 +457,22 @@ def package_is_installed(prefix, spec):
     is_installed = _package_is_installed(prefix, spec)
 
     # Mamba needs to escape the URL (e.g. space -> %20)
-    # Which end up rendered in the package spec
+    # Which ends up rendered in the package spec
     # Let's try query with a escaped spec in case we are
     # testing for Mamba or other implementations that need this
     if not is_installed and "::" in spec:
         channel, pkg = spec.split("::", 1)
-        channel = escape_channel_url(channel)
-        escaped_spec = channel + "::" + pkg
+        escaped_channel = escape_channel_url(channel)
+        escaped_spec = escaped_channel + "::" + pkg
         is_installed = _package_is_installed(prefix, escaped_spec)
+
+        # Workaround for https://github.com/mamba-org/mamba/issues/1324
+        if not is_installed and channel.startswith("file:"):
+            components = channel.split("/")
+            lowercase_channel = "/".join(components[:-1] + [components[-1].lower()])
+            spec = lowercase_channel + "::" + pkg
+            is_installed = _package_is_installed(prefix, spec)
+
     return is_installed
 
 
