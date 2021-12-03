@@ -1,6 +1,9 @@
 # Copyright (C) 2019, QuantStack
 # SPDX-License-Identifier: BSD-3-Clause
 
+# TODO: Temporarily vendored from mamba.utils v0.19 on 2021.12.02
+# Decide what to do with it when we split into a plugin
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
@@ -141,6 +144,9 @@ def load_channels(
         else:
             priority = 0
         if has_priority:
+            # NOTE: -- this is the whole reason we are vendoring this file --
+            # We are patching this from 0 to 1, starting with mamba 0.19
+            # Otherwise, test_create::test_force_remove fails :shrug:
             subpriority = 1
         else:
             subpriority = subprio_index

@@ -228,10 +228,6 @@ class LibMambaSolver(Solver):
         # Maybe conda already handles that beforehand
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7/mamba/mamba.py#L426-L485
 
-        # https://github.com/mamba-org/mamba/blob/89174c0dc06398c99589/src/core/prefix_data.cpp#L13
-        # for the C++ implementation of PrefixData
-        mamba_prefix_data = api.PrefixData(self.prefix)
-        mamba_prefix_data.load()
         installed_json_f, installed_pkgs = get_installed_jsonfile(self.prefix)
         repos = []
         installed = api.Repo(pool, "installed", installed_json_f.name, "")
@@ -254,7 +250,6 @@ class LibMambaSolver(Solver):
 
         state.update({
             "pool": pool,
-            "mamba_prefix_data": mamba_prefix_data,
             "conda_prefix_data": PrefixData(self.prefix),
             "repos": repos,
             "index": index,
@@ -1053,29 +1048,8 @@ class LibMambaSolver(Solver):
             graph.prune()
             final_prefix_map = {p.name: p for p in graph.graph}
 
-        # Wrap up and return the final state
-
-        # NOTE: We are exporting state back to the class! These are expected by
-        # super().solve_for_diff() and super().solve_for_transaction() :/
-        # self.specs_to_add = {MatchSpec(name) for name in state["names_to_add"]
-        #                      if not name.startswith("__")}
-        # self.specs_to_remove = {MatchSpec(name) for name in state["names_to_remove"]
-        #                         if not name.startswith("__")}
-
-        # if on_win:
-        #     # TODO: We are manually decoding local paths in windows because the colon
-        #     # in paths like file:///C:/Users... gets html escaped as %3a in our workarounds
-        #     # There must be a better way to do this but we will find it while cleaning up
-        #     final_prefix_values = []
-        #     for pkg in final_prefix_map.values():
-        #         if pkg.url and pkg.url.startswith("file://") and "%" in pkg.url:
-        #             pkg.url = percent_decode(pkg.url)
-        #         final_prefix_values.append(pkg)
-        # else:
-        final_prefix_values = final_prefix_map.values()
-
         # TODO: Review performance here just in case
-        return IndexedSet(PrefixGraph(final_prefix_values).graph)
+        return IndexedSet(PrefixGraph(final_prefix_map.values()).graph)
 
     def raise_for_problems(self, problems):
         for line in problems.splitlines():
