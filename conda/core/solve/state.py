@@ -12,7 +12,7 @@ class TrackedMap(MutableMapping):
     def __init__(self, name, data=None):
         self._data = data
         self._name = name
-        self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
 
     def _set(self, key, value, *, reason=None, _level=3):
         msg = f'{self._name}[{key}] set to `{value}`'
