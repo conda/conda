@@ -15,11 +15,16 @@ class TrackedMap(MutableMapping):
         self._logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
 
     def _set(self, key, value, *, reason=None, _level=3):
-        msg = f'{self._name}[{key}] set to `{value}`'
+        try:
+            old = self._data[key]
+            msg = f'{self._name}[{key}] (={old}) set to `{value}`'
+        except KeyError:
+            msg = f'{self._name}[{key}] set to `{value}`'
+
         if reason:
             msg += f' ({reason})'
-        self._logger.debug(msg, stacklevel=_level)
         self._data[key] = value
+        self._logger.debug(msg, stacklevel=_level)
 
     @property
     def name(self):
@@ -38,29 +43,36 @@ class TrackedMap(MutableMapping):
         self._set(key, value)
 
     def __delitem__(self, key):
-        self._logger.debug(f'{self._name}[{key}] was deleted', stacklevel=2)
         del self._data[key]
+        self._logger.debug(f'{self._name}[{key}] was deleted', stacklevel=2)
 
     def pop(self, key):
-        self._logger.debug(f'{self._name}[{key}] was deleted', stacklevel=2)
-        return self._data.pop(key)
+        value = self._data.pop(key)
+        self._logger.debug(f'{self._name}[{key}] (={value}) was deleted', stacklevel=2)
+        return value
 
     def popitem(self, key):
-        self._logger.debug(f'{self._name}[{key}] was deleted', stacklevel=2)
-        return self._data.popitem(key)
+        key, value = self._data.popitem(key)
+        self._logger.debug(f'{self._name}[{key}] (={value}) was deleted', stacklevel=2)
+        return key, value
 
     def clear(self):
-        self._logger.debug(f'{self._name} was cleared')
         self._data.clear()
+        self._logger.debug(f'{self._name} was cleared')
 
-    def update(self, data, **kwargs):
-        if data and kwargs:
-            raise ValueError('Can only update via a data object or keyword mapping')
-        self._logger.debug(f'{self._name}[{key}] was deleted', stacklevel=2)
-        return self._data.popitem(key)
+    def update(self, data=None, **kwargs):
+        if data is not None:
+            if hasattr(data, "keys"):
+                for k in data.keys():
+                    self._set(k, data[k])
+            else:
+                for k, v in data:
+                    self._set(k, v)
+        for k, v in kwargs.items():
+            self._set(k, v)
 
     def set(self, key, value, *, reason=None):
-        self._set(key, value)
+        self._set(key, value, reason=reason)
 
 
 class SpecMap(Mapping):
