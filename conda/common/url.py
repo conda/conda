@@ -383,9 +383,24 @@ def remove_auth(url):
 
 
 def escape_channel_url(channel):
+    if channel.startswith("file:"):
+        if "%" in channel:  # it's escaped already
+            return channel
+        if on_win:
+            channel = channel.replace("\\", "/")
     parts = _urlparse(channel)
     if parts.scheme:
-        parts = parts._replace(path=quote(parts.path))
+        components = parts.path.split("/")
+        if on_win:
+            if len(parts.netloc) == 2 and parts.netloc[1] == ":":
+                # with absolute paths (e.g. C:/something), C:, D:, etc might get parsed as netloc
+                path = "/".join([parts.netloc] + [quote(p) for p in components])
+                parts = parts._replace(netloc="")
+            else:
+                path = "/".join(components[:2] + [quote(p) for p in components[2:]])
+        else:
+            path = "/".join([quote(p) for p in components])
+        parts = parts._replace(path=path)
         return _urlunparse(parts)
     return channel
 

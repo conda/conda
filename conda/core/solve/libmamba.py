@@ -1,8 +1,7 @@
 
 from itertools import chain
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from logging import getLogger
-from string import ascii_letters
 
 from ..index import _supplement_index_with_system
 from ..prefix_data import PrefixData
@@ -11,13 +10,10 @@ from ..._vendor.boltons.setutils import IndexedSet
 from ..._vendor.toolz import concatv, groupby
 from ...base.constants import DepsModifier, UpdateModifier, ChannelPriority
 from ...base.context import context
-from ...common.compat import on_win
 from ...common.constants import NULL
 from ...common.path import get_major_minor_version, paths_equal
 from ...common.url import (
     escape_channel_url,
-    path_to_url,
-    percent_decode,
     split_anaconda_token,
     remove_auth,
 )
@@ -221,7 +217,7 @@ class LibMambaSolver(Solver):
 
     def _setup_state(self):
         import libmambapy as api
-        from mamba.utils import load_channels, get_installed_jsonfile, init_api_context
+        from .libmamba_utils import load_channels, get_installed_jsonfile, init_api_context
 
         init_api_context()
 
@@ -232,10 +228,6 @@ class LibMambaSolver(Solver):
         # Maybe conda already handles that beforehand
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7/mamba/mamba.py#L426-L485
 
-        # https://github.com/mamba-org/mamba/blob/89174c0dc06398c99589/src/core/prefix_data.cpp#L13
-        # for the C++ implementation of PrefixData
-        mamba_prefix_data = api.PrefixData(self.prefix)
-        mamba_prefix_data.load()
         installed_json_f, installed_pkgs = get_installed_jsonfile(self.prefix)
         repos = []
         installed = api.Repo(pool, "installed", installed_json_f.name, "")
@@ -258,7 +250,6 @@ class LibMambaSolver(Solver):
 
         state.update({
             "pool": pool,
-            "mamba_prefix_data": mamba_prefix_data,
             "conda_prefix_data": PrefixData(self.prefix),
             "repos": repos,
             "index": index,
@@ -272,33 +263,25 @@ class LibMambaSolver(Solver):
 
     def _channel_urls(self):
         """
-        TODO: This collection of workarounds should be, ideally,
-        handled in libmamba:
-
-        - Escape URLs
-        - Handle `local` correctly
+        TODO: libmambapy could handle path to url, and escaping
+        but so far we are doing it ourselves
         """
-        channels = []
-        for channel in self._channels:
-            if channel == "local":
-                # This fixes test_activate_deactivate_modify_path_bash
-                # TODO: This can be improved earlier in the call stack
-                # Mamba should be able to handle this on its own too,
-                # but it fails (at least in the CI docker image).
-                subdir_url = Channel("local").urls()[0]
-                channel = subdir_url.rstrip("/").rsplit("/", 1)[0]
+        def _channel_to_url_or_name(channel):
+            # This fixes test_activate_deactivate_modify_path_bash
+            # and other local channels (path to url) issues
+            urls = []
+            for url in channel.urls():
+                url = url.rstrip("/").rsplit("/", 1)[0]  # remove subdir
+                urls.append(escape_channel_url(url))
+            # deduplicate
+            urls = list(OrderedDict.fromkeys(urls))
+            return urls
 
-            if isinstance(channel, Channel):
-                channel = channel.base_url or channel.name
-            # absolute path C:/path/stuff, problematic with escaping
-            if on_win and channel[0] in ascii_letters and channel[1] == ":":
-                channel = path_to_url(channel)
-            else:
-                channel = escape_channel_url(channel)
-            channels.append(channel)
+        channels = [url for c in self._channels for url in _channel_to_url_or_name(Channel(c))]
         if context.restore_free_channel and "https://repo.anaconda.com/pkgs/free" not in channels:
             channels.append('https://repo.anaconda.com/pkgs/free')
-        return channels
+
+        return tuple(channels)
 
     def _configure_solver(self,
                           state,
@@ -831,7 +814,7 @@ class LibMambaSolver(Solver):
 
     def _export_final_state(self, state):
         import libmambapy as api
-        from mamba.utils import to_package_record_from_subjson
+        from .libmamba_utils import to_package_record_from_subjson
 
         solver = state["solver"]
         index = state["index"]
@@ -1065,29 +1048,8 @@ class LibMambaSolver(Solver):
             graph.prune()
             final_prefix_map = {p.name: p for p in graph.graph}
 
-        # Wrap up and return the final state
-
-        # NOTE: We are exporting state back to the class! These are expected by
-        # super().solve_for_diff() and super().solve_for_transaction() :/
-        # self.specs_to_add = {MatchSpec(name) for name in state["names_to_add"]
-        #                      if not name.startswith("__")}
-        # self.specs_to_remove = {MatchSpec(name) for name in state["names_to_remove"]
-        #                         if not name.startswith("__")}
-
-        if on_win:
-            # TODO: We are manually decoding local paths in windows because the colon
-            # in paths like file:///C:/Users... gets html escaped as %3a in our workarounds
-            # There must be a better way to do this but we will find it while cleaning up
-            final_prefix_values = []
-            for pkg in final_prefix_map.values():
-                if pkg.url and pkg.url.startswith("file://") and "%" in pkg.url:
-                    pkg.url = percent_decode(pkg.url)
-                final_prefix_values.append(pkg)
-        else:
-            final_prefix_values = final_prefix_map.values()
-
         # TODO: Review performance here just in case
-        return IndexedSet(PrefixGraph(final_prefix_values).graph)
+        return IndexedSet(PrefixGraph(final_prefix_map.values()).graph)
 
     def raise_for_problems(self, problems):
         for line in problems.splitlines():
