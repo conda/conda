@@ -1084,7 +1084,7 @@ class ElvishActivator(_Activator):
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'del E:%s'
-        self.export_var_tmpl = 'E:%s = "%s"'
+        self.export_var_tmpl = 'set E:%s = "%s"'
         self.set_var_tmpl = 'var %s = "%s"'
         self.run_script_tmpl = 'eval (slurp < "%s")'
 
@@ -1094,16 +1094,16 @@ class ElvishActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return ('E:CONDA_EXE = (cygpath "%s")\n'
+            return ('set E:CONDA_EXE = (cygpath "%s")\n'
                     'var -conda-root = (cygpath "%s")\n'
                     'var -conda-exe~ = (external (cygpath "%s"))\n'
-                    'E:CONDA_PYTHON_EXE = (cygpath "%s")'
+                    'set E:CONDA_PYTHON_EXE = (cygpath "%s")'
                     % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
         else:
-            return ('E:CONDA_EXE = "%s"\n'
+            return ('set E:CONDA_EXE = "%s"\n'
                     'var -conda-root = "%s"\n'
                     'var -conda-exe~ = (external "%s")\n'
-                    'E:CONDA_PYTHON_EXE = "%s"'
+                    'set E:CONDA_PYTHON_EXE = "%s"'
                     % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
 
 

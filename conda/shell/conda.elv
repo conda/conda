@@ -22,14 +22,14 @@ use re
 # General setup - initialize CONDA_SHLVL and add condabin to the PATH
 
 if (not (has-env CONDA_SHLVL)) {
-  E:CONDA_SHLVL = 0
+  set E:CONDA_SHLVL = 0
 }
 var -conda-root = (path:dir (path:dir $E:CONDA_EXE))
 set paths = [$-conda-root/condabin $@paths]
 
 ###########################################################################
 # Entry point for conda command
-fn conda [@args]{
+fn conda {|@args|
   if (eq $args []) {
     -conda-exe
   } else {
@@ -54,9 +54,9 @@ edit:add-var conda~ $conda~
 
 fn conda-prompt-indicator {
   if (!=s $E:CONDA_PROMPT_MODIFIER '') {
-    style = green
+    var style = green
     if (has-env CONDA_PROMPT_MODIFIER_STYLE) {
-      style = $E:CONDA_PROMPT_MODIFIER_STYLE
+      set style = $E:CONDA_PROMPT_MODIFIER_STYLE
     }
     styled $E:CONDA_PROMPT_MODIFIER $style
   }
@@ -73,14 +73,14 @@ var -conda-original-rprompt-fn~ = $edit:rprompt
 
 # Redefine them to include the conda indicator based on the value of
 # CONDA_LEFT_PROMPT (default is to show in the right prompt).
-edit:prompt = {
+set edit:prompt = {
   if (has-env CONDA_LEFT_PROMPT) {
     conda-prompt-indicator
   }
   -conda-original-prompt-fn
 }
 
-edit:rprompt = {
+set edit:rprompt = {
   if (not (has-env CONDA_LEFT_PROMPT)) {
     conda-prompt-indicator
   }
@@ -97,7 +97,7 @@ edit:rprompt = {
 
 var debug = $false
 
-fn -debugmsg [@args &color=blue]{
+fn -debugmsg {|@args &color=blue|
   if $debug {
     echo (styled (echo ">>> " $@args) $color) >/dev/tty
   }
@@ -105,9 +105,9 @@ fn -debugmsg [@args &color=blue]{
 
 fn empty { nop }
 
-fn files [arg &regex='' &dirs-only=$false &transform=$nil]{
-  edit:complete-filename $arg | each [c]{
-    x = $c[stem]
+fn files {|arg &regex='' &dirs-only=$false &transform=$nil|
+  edit:complete-filename $arg | each {|c|
+    var x = $c[stem]
     if (or (path:is-dir $x) (and (not $dirs-only) (or (eq $regex '') (re:match $regex $x)))) {
       if $transform {
         edit:complex-candidate ($transform $x)
@@ -118,71 +118,71 @@ fn files [arg &regex='' &dirs-only=$false &transform=$nil]{
   }
 }
 
-fn dirs [arg &regex='' &transform=$nil]{
+fn dirs {|arg &regex='' &transform=$nil|
   files $arg &regex=$regex &dirs-only=$true &transform=$transform
 }
 
-fn extract-opts [@cmd
+fn extract-opts {|@cmd
   &regex='^\s*(?:-(\w),?\s*)?(?:--?([\w-]+))?(?:\[=(\S+)\]|[ =](\S+))?\s*?\s\s(\w.*)$'
   &regex-map=[&short=1 &long=2 &arg-optional=3 &arg-required=4 &desc=5]
   &fold=$false
   &first-sentence=$false
   &opt-completers=[&]
-]{
-  -line = ''
-  capture = $all~
+|
+  var -line = ''
+  var capture = $all~
   if $fold {
-    capture = { each [l]{
+    set capture = { each {|l|
         if (re:match '^\s{8,}\w' $l) {
           var folded = $-line$l
           # -debugmsg "Folded line: "$folded
           put $folded
-          -line = ''
+          set -line = ''
         } else {
           # -debugmsg "Non-folded line: "$-line
           put $-line
-          -line = $l
+          set -line = $l
         }
       }
     }
   }
-  $capture | each [l]{
+  $capture | each {|l|
     -debugmsg "Got line: "$l
     re:find $regex $l
-  } | each [m]{
+  } | each {|m|
     -debugmsg "Matches: "(to-string $m) &color=red
-    g = $m[groups]
-    opt = [&]
-    keys $regex-map | each [k]{
+    var g = $m[groups]
+    var opt = [&]
+    keys $regex-map | each {|k|
       if (has-key $g $regex-map[$k]) {
-        field = (str:trim-space $g[$regex-map[$k]][text])
+        var field = (str:trim-space $g[$regex-map[$k]][text])
         if (not-eq $field '') {
           if (has-value [arg-optional arg-required] $k) {
-            opt[$k] = $true
-            opt[arg-desc] = $field
+            set opt[$k] = $true
+            set opt[arg-desc] = $field
             if (has-key $opt-completers $field) {
-              opt[arg-completer] = $opt-completers[$field]
+              set opt[arg-completer] = $opt-completers[$field]
             } else {
-              opt[arg-completer] = $edit:complete-filename~
+              set opt[arg-completer] = $edit:complete-filename~
             }
           } else {
-            opt[$k] = $field
+            set opt[$k] = $field
           }
         }
       }
     }
     if (or (has-key $opt short) (has-key $opt long)) {
       if (and (has-key $opt desc) $first-sentence) {
-        opt[desc] = (re:replace '\. .*$|\.\s*$|\s*\(.*$' '' $opt[desc])
+        set opt[desc] = (re:replace '\. .*$|\.\s*$|\s*\(.*$' '' $opt[desc])
       }
-      opt[desc] = (re:replace '\s+' ' ' $opt[desc])
+      set opt[desc] = (re:replace '\s+' ' ' $opt[desc])
       put $opt
     }
   }
 }
 
-fn -handler-arity [func]{
-  fnargs = [ (to-string (count $func[arg-names])) (== $func[rest-arg] -1)]
+fn -handler-arity {|func|
+  var fnargs = [ (to-string (count $func[arg-names])) (== $func[rest-arg] -1)]
   if     (eq $fnargs [ 0 $true ])  { put no-args
   } elif (eq $fnargs [ 1 $true ])  { put one-arg
   } elif (eq $fnargs [ 1 $false ]) { put rest-arg
@@ -190,9 +190,9 @@ fn -handler-arity [func]{
   }
 }
 
-fn -expand-item [def @cmd]{
-  arg = $cmd[-1]
-  what = (kind-of $def)
+fn -expand-item {|def @cmd|
+  var arg = $cmd[-1]
+  var what = (kind-of $def)
   if (eq $what 'fn') {
     [ &no-args=  { $def }
       &one-arg=  { $def $arg }
@@ -206,15 +206,15 @@ fn -expand-item [def @cmd]{
   }
 }
 
-fn -expand-sequence [seq @cmd &opts=[]]{
+fn -expand-sequence {|seq @cmd &opts=[]|
 
-  final-opts = [(
-      -expand-item $opts $@cmd | each [opt]{
+  var final-opts = [(
+      -expand-item $opts $@cmd | each {|opt|
         -debugmsg "In final-opts: opt before="(to-string $opt) &color=yellow
         if (eq (kind-of $opt) map) {
           if (has-key $opt arg-completer) {
             -debugmsg &color=yellow "Assigning opt[completer] = [_]{ -expand-item "(to-string $opt[arg-completer]) $@cmd "}"
-            opt[completer] = [_]{ -expand-item $opt[arg-completer] $@cmd }
+            set opt[completer] = {|_| -expand-item $opt[arg-completer] $@cmd }
           }
           -debugmsg "In final-opts: opt after="(to-string $opt) &color=yellow
           put $opt
@@ -224,17 +224,17 @@ fn -expand-sequence [seq @cmd &opts=[]]{
       }
   )]
 
-  final-handlers = [(
-      all $seq | each [f]{
+  var final-handlers = [(
+      all $seq | each {|f|
         if (eq (kind-of $f) 'fn') {
           put [
-            &no-args=  [_]{ $f }
+            &no-args=  {|_| $f }
             &one-arg=  $f
-            &rest-arg= [_]{ $f $@cmd }
-            &other-args= [_]{ put '<expand-sequence-completion-fn-arity-error>' }
+            &rest-arg= {|_| $f $@cmd }
+            &other-args= {|_| put '<expand-sequence-completion-fn-arity-error>' }
           ][(-handler-arity $f)]
         } elif (eq (kind-of $f) 'list') {
-          put [_]{ all $f }
+          put {|_| all $f }
         } elif (and (eq (kind-of $f) 'string') (eq $f '...')) {
           put $f
         }
@@ -245,64 +245,64 @@ fn -expand-sequence [seq @cmd &opts=[]]{
   edit:complete-getopt $cmd[1..] $final-opts $final-handlers
 }
 
-fn -expand-subcommands [def @cmd &opts=[]]{
+fn -expand-subcommands {|def @cmd &opts=[]|
 
-  subcommands = [(keys $def)]
-  n = (count $cmd)
-  kw = [(range 1 $n | each [i]{
+  var subcommands = [(keys $def)]
+  var n = (count $cmd)
+  var kw = [(range 1 $n | each {|i|
         if (has-value $subcommands $cmd[$i]) { put $cmd[$i] $i }
   })]
 
   if (and (not-eq $kw []) (not-eq $kw[1] (- $n 1))) {
-    sc sc-pos = $kw[0 1]
+    var sc sc-pos = $kw[0 1]
     if (eq (kind-of $def[$sc]) 'string') {
-      cmd[$sc-pos] = $def[$sc]
+      set cmd[$sc-pos] = $def[$sc]
       -expand-subcommands &opts=$opts $def $@cmd
     } else {
       $def[$sc] (all $cmd[{$sc-pos}..])
     }
 
   } else {
-    top-def = [ { put $@subcommands } ]
+    var top-def = [ { put $@subcommands } ]
     -expand-sequence &opts=$opts $top-def $@cmd
   }
 }
 
-fn item [item &pre-hook=$nop~ &post-hook=$nop~]{
-  put [@cmd]{
+fn item {|item &pre-hook=$nop~ &post-hook=$nop~|
+  put {|@cmd|
     $pre-hook $@cmd
-    result = [(-expand-item $item $@cmd)]
+    var result = [(-expand-item $item $@cmd)]
     $post-hook $result $@cmd
     put $@result
   }
 }
 
-fn sequence [sequence &opts=[] &pre-hook=$nop~ &post-hook=$nop~]{
-  put [@cmd &inspect=$false]{
+fn sequence {|sequence &opts=[] &pre-hook=$nop~ &post-hook=$nop~|
+  put {|@cmd &inspect=$false|
     if $inspect {
       echo "sequence definition: "(to-string $sequence)
       echo "opts: "(to-string $opts)
     } else {
       $pre-hook $@cmd
-      result = [(-expand-sequence &opts=$opts $sequence $@cmd)]
+      var result = [(-expand-sequence &opts=$opts $sequence $@cmd)]
       $post-hook $result $@cmd
       put $@result
     }
   }
 }
 
-fn subcommands [def &opts=[] &pre-hook=$nop~ &post-hook=$nop~]{
-  put [@cmd &inspect=$false]{
+fn subcommands {|def &opts=[] &pre-hook=$nop~ &post-hook=$nop~|
+  put {|@cmd &inspect=$false|
     if $inspect {
       echo "Completer definition: "(to-string $def)
       echo "opts: "(to-string $opts)
     } else {
       $pre-hook $@cmd
       if (and (eq $opts []) (has-key $def -options)) {
-        opts = $def[-options]
+        set opts = $def[-options]
       }
       del def[-options]
-      result = [(-expand-subcommands &opts=$opts $def $@cmd)]
+      var result = [(-expand-subcommands &opts=$opts $def $@cmd)]
       $post-hook $result $@cmd
       put $@result
     }
@@ -328,7 +328,7 @@ fn init-conda-commands {
   if (not $conda-commands) {
     # `activate` and `deactivate` are not in the commands output so we add them
     # by hand.
-    conda-commands = [(conda shell.elvish commands) activate deactivate]
+    set conda-commands = [(conda shell.elvish commands) activate deactivate]
   }
 }
 
@@ -345,7 +345,7 @@ fn PACKAGES {
 
 fn SHELLS {
   if (not $conda-shells) {
-    conda-shells = [(python -c 'from conda.base.constants import COMPATIBLE_SHELLS; print("\n".join(COMPATIBLE_SHELLS))')]
+    set conda-shells = [(python -c 'from conda.base.constants import COMPATIBLE_SHELLS; print("\n".join(COMPATIBLE_SHELLS))')]
   }
   all $conda-shells
 }
@@ -357,7 +357,7 @@ fn COMMANDS {
 
 fn CONFIG-KEYS {
   if (not $conda-config-keys) {
-    conda-config-keys = [(python -c 'from conda.base.context import context; print ("\n".join(context.list_parameters()))')]
+    set conda-config-keys = [(python -c 'from conda.base.context import context; print ("\n".join(context.list_parameters()))')]
   }
   all $conda-config-keys
 }
@@ -367,7 +367,7 @@ fn CONFIG-KEYS {
 # `completer-of` is to take no arguments (which is the case for most conda
 # commands).
 var conda-completers = [
-  &activate=  [ [stem]{ ENVIRONMENTS; if (re:match '^[./]' $stem) { dirs $stem } } ]
+  &activate=  [ {|stem| ENVIRONMENTS; if (re:match '^[./]' $stem) { dirs $stem } } ]
   &compare=   [ $files~ ]
   &develop=   [ $dirs~ ... ]
   &env= [
@@ -390,7 +390,7 @@ var conda-completers = [
   ]
   &remove=    [ $PACKAGES~ ... ]
   &render=    [ $dirs~ ]
-  &run=       [ [arg]{ edit:complete-sudo run $arg } ]
+  &run=       [ {|arg| edit:complete-sudo run $arg } ]
   &skeleton=  [
     &cpan= []
     &cran= []
@@ -506,12 +506,12 @@ var conda-opt-manual-completions = [
 # in the list $path. If not found, return &default.
 # E.g.:
 #    path-in [&a=[&b=foo]] [a b]   => foo
-fn path-in [obj path &default=$nil]{
-  each [k]{
+fn path-in {|obj path &default=$nil|
+  each {|k|
     try {
-      obj = $obj[$k]
+      set obj = $obj[$k]
     } except {
-      obj = $default
+      set obj = $default
       break
     }
   } $path
@@ -519,17 +519,17 @@ fn path-in [obj path &default=$nil]{
 }
 
 # Return the positional completers of the given command.
-fn completer-of [@cmd]{
+fn completer-of {|@cmd|
   or (path-in $conda-completers $cmd) $conda-completers[-DEFAULT]
 }
 
 # Fetch command options for a command from its help text.
-fn conda-opts [@cmd]{
+fn conda-opts {|@cmd|
   var opts
   var cmd-str = (str:join ' ' $cmd)
   if (has-key $conda-opt-completions-cache $cmd-str) {
     # If the options are cached already, return them
-    opts = $conda-opt-completions-cache[$cmd-str]
+    set opts = $conda-opt-completions-cache[$cmd-str]
   } else {
     # Otherwise, parse them from the command's --help output.
 
@@ -539,19 +539,19 @@ fn conda-opts [@cmd]{
     var opts-regex = '^  (?:-(\w)(?: \[[A-Z\[][A-Z_ \[\]\.]+\]| [A-Z][A-Z_ \[\]\.]+)?,?\s*)?(?:--?([\w-]+))(?: (\[[A-Z\[][A-Z_ \[\]\.]+\]|[A-Z][A-Z_ \[\]\.]+))?\s*?\s\s(\w.*)$'
     var opts-regex-map = [&short=1 &long=2 &arg-optional=9999 &arg-required=3 &desc=4]
 
-    opts = [
-      (_ = ?(conda $@cmd --help 2>&1; echo "") | ^
+    set opts = [
+      (set _ = ?(conda $@cmd --help 2>&1; echo "") | ^
       extract-opts &fold &first-sentence &regex=$opts-regex &regex-map=$opts-regex-map &opt-completers=$conda-opt-completers)
     ]
     # Add manually-defined option completers, if any
     if (var manual-comps = (path-in $conda-opt-manual-completions $cmd)) {
       # We add only end nodes, not the intermediate maps
       if (eq (kind-of $manual-comps) list) {
-        opts = [ $@opts $@manual-comps ]
+        set opts = [ $@opts $@manual-comps ]
       }
     }
     # Store in cache for future use
-    conda-opt-completions-cache[$cmd-str] = $opts
+    set conda-opt-completions-cache[$cmd-str] = $opts
   }
   -debugmsg "conda-opts "(to-string $cmd)": "(to-string $opts)
   all $opts
@@ -560,16 +560,16 @@ fn conda-opts [@cmd]{
 # Populate a map of subcommand completions using their definitions from
 # $conda-completers. This is used for the top-level conda commands, and recurses
 # through those that have subcommands of their own.
-fn completion-structure [@c]{
+fn completion-structure {|@c|
   var completions = [&]
-  each [cmd]{
-    seq = (completer-of $@c $cmd)
+  each {|cmd|
+    var seq = (completer-of $@c $cmd)
     if (eq (kind-of $seq) string) {
-      completions[$cmd] = $seq
+      set completions[$cmd] = $seq
     } elif (eq (kind-of $seq) map) {
-      completions[$cmd] = (subcommands (keys $seq | completion-structure $@c $cmd) &opts={ conda-opts $@c $cmd })
+      set completions[$cmd] = (subcommands (keys $seq | completion-structure $@c $cmd) &opts={ conda-opts $@c $cmd })
     } else {
-      completions[$cmd] = (sequence $seq &opts={ conda-opts $@c $cmd })
+      set completions[$cmd] = (sequence $seq &opts={ conda-opts $@c $cmd })
     }
   }
   put $completions
@@ -577,9 +577,9 @@ fn completion-structure [@c]{
 
 # Configure the completer function
 fn init-completions {
-  completions = (COMMANDS | completion-structure)
+  var completions = (COMMANDS | completion-structure)
   var conda-completer = (subcommands $completions &opts={ conda-opts })
-  edit:completion:arg-completer[conda] = $conda-completer
+  set edit:completion:arg-completer[conda] = $conda-completer
 }
 
 init-completions
