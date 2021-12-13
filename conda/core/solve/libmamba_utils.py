@@ -284,6 +284,8 @@ def to_package_record_from_subjson(entry, pkg, jsn_string):
     return package_record
 
 
+# TODO: This one can be deleted once merged
+
 def get_installed_packages(prefix, show_channel_urls=None):
     result = {"packages": {}}
 
@@ -309,9 +311,11 @@ def get_installed_packages(prefix, show_channel_urls=None):
 
     return installed, result
 
+# TODO: This one can be deleted once merged
 
 installed_pkg_recs = None
 
+# TODO: This one can be deleted once merged
 
 def get_installed_jsonfile(prefix):
     global installed_pkg_recs

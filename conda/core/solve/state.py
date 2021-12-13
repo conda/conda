@@ -4,22 +4,24 @@ Solver-agnostic logic to expose the prefix state to the solver.
 
 from collections import defaultdict, Mapping, MutableMapping
 from types import MappingProxyType
-from typing import Any, Hashable, Iterable, Union, Optional, Tuple
+from typing import Any, Hashable, Iterable, Type, Union, Optional, Tuple
 from os import PathLike
 import logging
 import functools
 
-from conda.exceptions import RawStrUnsatisfiableError
-
 from ... import CondaError
+from ..._vendor.boltons.setutils import IndexedSet
 from ...auxlib.ish import dals
 from ...base.constants import DepsModifier, UpdateModifier
 from ...base.context import context
 from ...common.io import dashlist
 from ...common.path import get_major_minor_version, paths_equal
+from ...exceptions import RawStrUnsatisfiableError
 from ...history import History
+from ...models.channel import Channel
 from ...models.match_spec import MatchSpec
 from ...models.records import PackageRecord
+from ...models.prefix_graph import PrefixGraph
 from ..index import _supplement_index_with_system
 from ..prefix_data import PrefixData
 from .classic import get_pinned_specs
@@ -133,26 +135,26 @@ class TrackedMap(MutableMapping):
         self._reasons.pop(key, None)
         self._logger.debug(f'{self._name}[{key}] was deleted', stacklevel=2)
 
-    def pop(self, key: Hashable, *, reason: Optional[str] = None) -> Any:
+    def pop(self, key: Hashable, *default: Any, reason: Optional[str] = None) -> Any:
         """
         Remove a key-value pair and return the value. A reason can be provided
         for logging purposes, but it won't be stored in the object.
         """
         value = self._data.pop(key)
-        self._reasons.pop(key, None)
+        self._reasons.pop(key, *default)
         msg = f'{self._name}[{key}] (={value}) was deleted'
         if reason:
             msg += f" (reason={reason})"
         self._logger.debug(msg, stacklevel=2)
         return value
 
-    def popitem(self, key: Hashable, *, reason: Optional[str] = None) -> Tuple[Hashable, Any]:
+    def popitem(self, key: Hashable, *default: Any, reason: Optional[str] = None) -> Tuple[Hashable, Any]:
         """
         Remove and return a key-value pair. A reason can be provided for logging purposes,
         but it won't be stored in the object.
         """
         key, value = self._data.popitem(key)
-        self._reasons.pop(key, None)
+        self._reasons.pop(key, *default)
         msg = f'{self._name}[{key}] (={value}) was deleted'
         if reason:
             msg += f" (reason={reason})"
@@ -211,6 +213,21 @@ class TrackedMap(MutableMapping):
         """
         return self._reasons.get(key)
 
+class IndexState:
+    """
+    The _index_ refers to the combination of all configured channels and their
+    platform-corresponding subdirectories. It provides the sources for available
+    packages that can become part of a prefix state, eventually.
+    """
+
+    def __init__(
+        self,
+        channels: Optional[Iterable[Union[str, Channel]]] = None,
+        subdirs: Optional[Iterable[str]] = None,
+    ):
+        self.channels = tuple(Channel(c) for c in (channels or context.channels))
+        self.subdirs = tuple(subdir for subdir in (subdirs or context.subdirs))
+
 
 class SolverInputState:
     """
@@ -268,6 +285,7 @@ class SolverInputState:
         _pip_interop_enabled: Optional[bool] = None,
     ):
         self._prefix_data = PrefixData(prefix, pip_interop_enabled=_pip_interop_enabled)
+        self._pip_interop_enabled = _pip_interop_enabled
         self._history = History(prefix).get_requested_specs_map()
         self._pinned = get_pinned_specs(prefix)
         self._aggressive_updates = {s.name for s in context.aggressive_update_packages}
@@ -498,124 +516,83 @@ class SolverOutputState(Mapping):
     def __init__(
         self,
         *,
+        solver_input_state: SolverInputState,
         specs: Optional[Mapping[str, MatchSpec]] = None,
         records: Optional[Mapping[str, PackageRecord]] = None,
+        for_history: Optional[Mapping[str, MatchSpec]] = None,
         neutered: Optional[Mapping[str, MatchSpec]] = None,
         conflicts: Optional[Mapping[str, MatchSpec]] = None,
-        solver_input_state: Optional[SolverInputState] = None,
-
-        # NOTE: Ignore this gigantic list of pools
-
-        # conflicting_installed: Optional[Mapping] = None,
-        # deps_modifier: Optional[Mapping] = None,
-        # history: Optional[Mapping] = None,
-        # installed: Optional[Mapping] = None,
-        # neutered: Optional[Mapping] = None,
-        # requested: Optional[Mapping] = None,
-        # update_modifier: Optional[Mapping] = None,
-        # virtual_system: Optional[Mapping] = None,
     ):
-        # spec pools
-        # # NOTE: Redo this. They shouldn't be reasons, but instructions to the solver
-        # # about how strict / flexible the specs requested are. Reasons are in each
-        # # TrackedMap instance if needed.
-        # # self._requested = TrackedMap("requested", data=(requested or {}))
-        # # self._installed = TrackedMap("installed", data=(installed or {}))
-        # # self._conflicting_installed = TrackedMap("conflicting_installed", data=(conflicting_installed or {}))
-        # # self._history = TrackedMap("history", data=(history or {}))
-        # # self._neutered = TrackedMap("neutered", data=(neutered or {}))
-        # # self._update_modifier = TrackedMap("update_modifier", data=(update_modifier or {}))
-        # # self._deps_modifier = TrackedMap("deps_modifier", data=(deps_modifier or {}))
-        # # self._virtual_system = TrackedMap("virtual_system", data=(virtual_system or {}))
-        # # The spec pools are:
+        self.solver_input_state: SolverInputState = solver_input_state
 
-        # # * ``installed``: packages that were already installed and shouldn't be modified.
-        # #     These packages are pinned to a specific strict version (``numpy=1.7.8=0``).
-        # #     In principle, only one package should be available for this expression.
-        # # * ``conflicting_installed``: as ``installed``, but ended up causing a solving
-        # #     conflict so their pinning was relaxed to allow the solver to find a solution.
-        # # * ``history``: packages that were installed and requested explicitly by the user.
-        # #     These packages are pinned to a specific expression (``numpy>=1.9``).
-        # #     More than one package can fulfill that expression.
-        # # * ``neutered``: packages that were in the history but ended up causing a solving
-        # #     conflict, so the expression was _neutered_ (relaxed); e.g. ``numpy>=1.9``
-        # #     became ``numpy``. These packages could be labeled as ``conflicting_history``
-        # #     but they get special treatment because they end up in the history file.
-        # # * ``requested``: requested by the user explicitly in the command-line.
-        # # * ``update_modifier``: added due to non-default update behavior (e.g. ``--update-all``
-        # #     will add all the installed packages as bare specs with no version restrain).
-        # # * ``deps_modifier``: added due to non-default dependency solving behaviour (e.g.
-        # #     ``--update-deps`` will ask for a 2nd solve and add all dependencies involved in the
-        # #     1st solve as marked for update even if the first solve was successful already).
-        # # * ``virtual_system``: added implicitly by us so the solver can consider constrains such
-        # #     as ``__glibc>=2.17``.
+        self.records: Mapping[str, PackageRecord] = TrackedMap("records")
+        if records:
+            self.records.update(records, reason="Initialized from explicitly passed arguments")
+        elif solver_input_state.installed:
+            self.records.update(solver_input_state.installed, reason="Initialized from installed packages in prefix")
 
-        # # In most conditions, ``requested`` takes precedence over everything else (especially if
-        # # the user specified a version constraint, and not just a package name). Constrained specs
-        # # might be relaxed if they are found to cause solver conflicts.
+        self.specs: Mapping[str, MatchSpec] = TrackedMap("specs")
+        if specs:
+            self.specs.update(specs, reason="Initialized from explicitly passed arguments")
+        else:
+            self._initialize_specs_from_input_state()
 
-        # /ignore
+        self.for_history: Mapping[str, MatchSpec] = TrackedMap("for_history")
+        if for_history:
+            self.for_history.update(for_history, reason="Initialized from explicitly passed arguments")
+        elif solver_input_state.requested:
+            self.for_history.update(solver_input_state.requested, reason="Initialized from requested specs in solver input state")
 
-        self.specs: Mapping[str, MatchSpec] = TrackedMap("specs", data=(specs or {}))
-        self.records: Mapping[str, PackageRecord] = TrackedMap("records", data=(records or {}))
-        self.neutered: Mapping[str, MatchSpec] = TrackedMap("neutered", data=(neutered or {}))
+        self.neutered: Mapping[str, MatchSpec] = TrackedMap("neutered", data=(neutered or {}), reason="From arguments")
 
         # we track conflicts to relax some constrains and help the solver out
-        self.conflicts: Mapping[str, MatchSpec] = TrackedMap("conflicts", data=(conflicts or {}))
+        self.conflicts: Mapping[str, MatchSpec] = TrackedMap("conflicts", data=(conflicts or {}), reason="From arguments")
 
-        self.solver_input_state = solver_input_state
 
-    @classmethod
-    def from_solver_input_state(
-        cls: "SolverOutputState",
-        in_state: SolverInputState,
-        specs: Optional[Mapping[str, MatchSpec]] = None,
-        records: Optional[Mapping[str, PackageRecord]] = None,
-        neutered: Optional[Mapping[str, MatchSpec]] = None,
-        conflicts: Optional[Mapping[str, MatchSpec]] = None,
-    ) -> "SolverOutputState":
-        if records is None:
-            # Pre-initialize solution to the current state of the prefix
-            records = TrackedMap("records", data=in_state.installed, reason="As installed")
-
-        inst = cls(specs=specs, records=records, conflicts=conflicts, neutered=neutered, solver_input_state=in_state)
-
+    def _initialize_specs_from_input_state(self):
         # Initialize specs following conda.core.solve._collect_all_metadata()
 
         # First initialization depends on whether we have a history to work with or not
-        if in_state.history:
+        if self.solver_input_state.history:
             # add in historically-requested specs
-            inst.specs.update(in_state.history, reason="As in history")
-            for name, record in in_state.installed.items():
-                if name in in_state.aggressive_updates:
-                    inst.specs.set(name, MatchSpec(name), reason="Installed and in aggressive updates")
-                elif name in in_state.do_not_remove:
+            self.specs.update(self.solver_input_state.history, reason="As in history")
+            for name, record in self.solver_input_state.installed.items():
+                if name in self.solver_input_state.aggressive_updates:
+                    self.specs.set(name, MatchSpec(name), reason="Installed and in aggressive updates")
+                elif name in self.solver_input_state.do_not_remove:
                     # these are things that we want to keep even if they're not explicitly specified.  This
                     # is to compensate for older installers not recording these appropriately for them
                     # to be preserved.
-                    inst.specs.set(name, MatchSpec(name), reason="Installed and protected in do_not_remove", overwrite=False)
+                    self.specs.set(name, MatchSpec(name), reason="Installed and protected in do_not_remove", overwrite=False)
                 elif record.subdir == "pypi":
                     # add in foreign stuff (e.g. from pip) into the specs
                     # map. We add it so that it can be left alone more. This is a
                     # declaration that it is manually installed, much like the
                     # history map. It may still be replaced if it is in conflict,
                     # but it is not just an indirect dep that can be pruned.
-                    inst.specs.set(name, MatchSpec(name), reason="Installed from PyPI; protect from indirect pruning")
+                    self.specs.set(name, MatchSpec(name), reason="Installed from PyPI; protect from indirect pruning")
         else:
             # add everything in prefix if we have no history to work with (e.g. with --update-all)
-            inst.specs.update({name: MatchSpec(name) for name in in_state.installed}, reason="Installed and no history available")
+            self.specs.update({name: MatchSpec(name) for name in self.solver_input_state.installed}, reason="Installed and no history available")
 
         # Add virtual packages so they are taken into account by the solver
-        for name in in_state.virtual:
+        for name in self.solver_input_state.virtual:
             # we only add a bare name spec here, no constrain!
-            inst.specs.set(name, MatchSpec(name), reason="Virtual system", overwrite=False)
+            self.specs.set(name, MatchSpec(name), reason="Virtual system", overwrite=False)
 
-        return inst
+    @property
+    def current_solution(self):
+        return IndexedSet(PrefixGraph(self.records.values()).graph)
 
-    def prepare_for_add(self) -> dict[str, MatchSpec]:
-        if self.solver_input_state is None:
-            raise ValueError("Class needs to be initialized with `solver_input_state` to use this method.")
+    def prepare_specs(self) -> dict[str, MatchSpec]:
+        if self.solver_input_state.is_removing:
+            self._prepare_for_remove()
+        else:
+            self._prepare_for_add()
+        self._prepare_for_solve()
+        return self.specs
 
+    def _prepare_for_add(self) -> dict[str, MatchSpec]:
         sis = self.solver_input_state
 
         # The constructor should have prepared the _basics_ of the specs / records maps. Now we
@@ -804,11 +781,10 @@ class SolverOutputState(Mapping):
         # next step -> .prepare_for_solve()
 
 
-    def prepare_for_remove(self) -> dict[str, MatchSpec]:
+    def _prepare_for_remove(self) -> dict[str, MatchSpec]:
         pass
 
-
-    def prepare_for_solve(self):
+    def _prepare_for_solve(self):
         ### Inconsistency analysis ###
         # here we would call conda.core.solve.classic.Solver._find_inconsistent_packages()
 
@@ -821,11 +797,60 @@ class SolverOutputState(Mapping):
         # or fail and repopulate the conflicts list in the SolverOutputState object
         ...
 
-    def post_solve(self):
+    def early_exit(self):
+        """
+        Operations that do not need a solver at all and might result in returning early
+        are collected here.
+        """
+        sis = self.solver_input_state
+
+        if sis.is_removing and sis.force_remove:
+            for name, spec in self.requested.items():
+                for record in self.installed.values():
+                    if spec.match(record):
+                        self.records.pop(name)
+                        break
+            return self.current_solution
+
+        if sis.with_specs_satisfied_skip_solve and not sis.is_removing:
+            for name, spec in sis.requested.items():
+                if name not in sis.installed:
+                    break
+            else:
+                # All specs match a package in the current environment.
+                # Return early, with the current solution (at this point, .records is set
+                # to the map of installed packages)
+                return self.current_solution
+
+
+    def post_solve(self, solver_cls: Type = None):
+        """
+        These tasks are performed _after_ the solver has done its work. It could be solver-agnostic
+        but unfortunately ``--update-deps`` requires a second solve; that's why this method needs
+        a solver class to be passed as an argument.
+
+        Parameters
+        ----------
+        solver_cls
+            The class used to instantiate the Solver. If not provided, defaults to the one specified
+            in the context configuration.
+        """
+        if solver_cls is None:
+            solver_cls = context.solver_class
+
         # After a solve, we still need to do some refinement
+        sis = self.solver_input_state
+
+        ### Record history ###
+        # user requested specs need to be annotated in history
+        # we control that in .for_history
+        self.for_history.update(sis.requested, reason="User requested specs recorded to history")
 
         ### Neutered ###
         # annotate overridden history specs so they are written to disk
+        for name, spec in self.specs.items():
+            if name in sis.history and spec.strictness < sis.history[name].strictness:
+                self.neutered.set(name, spec, reason="Spec needs less strict constrains than history ")
 
         ### Add inconsistent packages back ###
         # direct result of the inconsistency analysis above
@@ -834,9 +859,139 @@ class SolverOutputState(Mapping):
         # handle the different modifiers (NO_DEPS, ONLY_DEPS, UPDATE_DEPS)
         # this might mean removing different records by hand or even calling the solver a 2nd time
 
+        if sis.with_no_deps:
+            # In the NO_DEPS case, we need to start with the original list of packages in the
+            # environment, and then only modify packages that match the requested specs
+            #
+            # Help information notes that use of NO_DEPS is expected to lead to broken
+            # environments.
+            original_state = dict(sis.installed)
+            only_change_these = {}
+            for name, spec in sis.requested.items():
+                for record in sis.records.values():
+                    if spec.match(record):
+                        only_change_these[name] = record
+
+            if sis.is_removing:
+                # TODO: This could be a pre-solve task to save time in forced removes?
+                for name in only_change_these:
+                    del original_state[name]
+            else:
+                for name, record in only_change_these.items():
+                    original_state[name] = record
+
+            self.records.clear(reason="Redefining records due to --no-deps")
+            self.records.update(original_state, reason="Redefined records due to --no-deps")
+
+        elif sis.with_only_deps and not sis.with_update_deps:
+            # Using a special instance of PrefixGraph to remove youngest child nodes that match
+            # the original requested specs.  It's important to remove only the *youngest* child nodes,
+            # because a typical use might be `conda install --only-deps python=2 flask`, and in
+            # that case we'd want to keep python.
+            #
+            # What are we supposed to do if flask was already in the environment?
+            # We can't be removing stuff here that's already in the environment.
+            #
+            # What should be recorded for the user-requested specs in this case? Probably all
+            # direct dependencies of flask.
+
+            graph = PrefixGraph(self.records.values(), self.requested.values())
+            # this method below modifies the graph inplace _and_ returns the removed nodes (like dict.pop())
+            would_remove = graph.remove_youngest_descendant_nodes_with_specs()
+
+            # We need to distinguish the behaviour between `conda remove` and the rest
+            if sis.is_removing:
+                to_remove = []
+                for record in would_remove:
+                    # do not remove records that were not requested but were installed
+                    if record.name not in sis.requested and record.name in sis.installed:
+                        continue
+                    to_remove.append(record)
+            else:
+                to_remove = would_remove
+                for record in would_remove:
+                    for dependency in record.depends:
+                        spec = MatchSpec(dependency)
+                        if spec.name not in self.specs:
+                            # NOTE: We are REDEFINING the requested specs so they are recorded in history
+                            # following https://github.com/conda/conda/pull/8766
+                            sis._requested.set(spec.name, spec, reason="Recording deps brought by --only-deps as explicit")
+
+            for record in to_remove:
+                self.records.pop(record.name, reason="Excluding from solution due to --only-deps")
+
+        elif sis.with_update_deps:
+            # Here we have to SAT solve again :(  It's only now that we know the dependency
+            # chain of specs_to_add.
+            #
+            # UPDATE_DEPS is effectively making each spec in the dependency chain a user-requested
+            # spec. For all other specs, we drop all information but name, drop target, and add them to
+            # `requested` so it gets recorded in the history file.
+            #
+            # It's like UPDATE_ALL, but only for certain dependency chains.
+            new_specs = TrackedMap("update_deps_specs")
+
+            graph = PrefixGraph(self.records.values())
+            for name, spec in sis.requested.values():
+                record = graph.get_node_by_name(name)
+                for ancestor in graph.all_ancestors(record):
+                    new_specs.set(ancestor.name, MatchSpec(ancestor.name), reason="New specs asked by --update-deps")
+
+            # Remove pinned_specs
+            for name, spec in sis.pinned:
+                new_specs.pop(name, None, reason="Exclude pinned packages from --update-deps specs")
+            # Follow major-minor pinning business rule for python
+            if "python" in new_specs:
+                record = sis.installed["python"]
+                version = ".".join(record.version.split(".")[:2]) + ".*"
+                new_specs.set("python", MatchSpec(name="python", version=version))
+            # Add in the original `requested` on top.
+            new_specs.update(sis.requested, reason="Add original requested specs on top for --update-deps")
+
+            if sis.is_removing:
+                specs_to_add = ()
+                specs_to_remove = new_specs
+            else:
+                specs_to_add = list(new_specs.values())
+                specs_to_remove = ()
+
+            with context.override("quiet", True):
+                # Create a new solver instance to perform a 2nd solve with deps added
+                # We do it like this to avoid overwriting state accidentally. Instead,
+                # we will import the needed state bits manually.
+                records = solver_cls(
+                    prefix=self.prefix,
+                    channels=self.channels,
+                    subdirs=self.subdirs,
+                    specs_to_add=specs_to_add,
+                    specs_to_remove=specs_to_remove,
+                    command="recursive_call_for_update_deps"
+                ).solve_final_state(
+                    update_modifier=UpdateModifier.UPDATE_SPECS,  # avoid recursion!
+                    deps_modifier=sis.deps_modifier,
+                    ignore_pinned=sis.ignore_pinned,
+                    force_remove=sis.force_remove,
+                    force_reinstall=sis.force_reinstall,
+                    prune=sis.prune
+                )
+                records = {record.name: record for record in records}
+
+            self.records.clear(reason="Redefining due to --update-deps")
+            self.records.update(records, reason="Redefined due to --update-deps")
+            self.for_history.clear(reason="Redefining due to --update-deps")
+            self.for_history.update(new_specs, reason="Redefined due to --update-deps")
+
+            # Disable pruning regardless the original value
+            # TODO: Why? Dive in https://github.com/conda/conda/pull/7719
+            sis._prune = False
+
         ### Prune ###
         # remove orphan leaves in the graph
-        ...
+        if sis.prune:
+            graph = PrefixGraph(list(self.records.values()), self.specs.values())
+            graph.prune()
+            self.records.clear(reason="Pruning")
+            self.records.update({record.name: record for record in graph.graph}, reason="Pruned")
 
     @property
     def _pools(self):
@@ -849,12 +1004,13 @@ class SolverOutputState(Mapping):
             self._unconstrained,
         )
 
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=None)
     def _join_pools(self, *pools):
         # First item in each list is highest priority
         data = defaultdict(list)
         for pool in pools:
-            for key, value in pool.items():
+            for key, val
+            ue in pool.items():
                 data[key].append(value)
         return data
 
