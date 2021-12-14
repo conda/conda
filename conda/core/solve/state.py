@@ -3,6 +3,7 @@ Solver-agnostic logic to expose the prefix state to the solver.
 """
 
 from collections import defaultdict, Mapping, MutableMapping
+from itertools import chain
 from types import MappingProxyType
 from typing import Any, Hashable, Iterable, Type, Union, Optional, Tuple
 from os import PathLike
@@ -16,7 +17,11 @@ from ...base.constants import DepsModifier, UpdateModifier
 from ...base.context import context
 from ...common.io import dashlist
 from ...common.path import get_major_minor_version, paths_equal
-from ...exceptions import RawStrUnsatisfiableError
+from ...exceptions import (
+    PackagesNotFoundError,
+    RawStrUnsatisfiableError,
+    SpecsConfigurationConflictError
+)
 from ...history import History
 from ...models.channel import Channel
 from ...models.match_spec import MatchSpec
@@ -287,7 +292,7 @@ class SolverInputState:
         self._prefix_data = PrefixData(prefix, pip_interop_enabled=_pip_interop_enabled)
         self._pip_interop_enabled = _pip_interop_enabled
         self._history = History(prefix).get_requested_specs_map()
-        self._pinned = get_pinned_specs(prefix)
+        self._pinned = {spec.name: spec for spec in get_pinned_specs(prefix)}
         self._aggressive_updates = {s.name for s in context.aggressive_update_packages}
 
         self._virtual = {}
@@ -309,6 +314,19 @@ class SolverInputState:
         # special cases
         _do_not_remove = ('anaconda', 'conda', 'conda-build', 'python.app', 'console_shortcut', 'powershell_shortcut')
         self._do_not_remove = {p: MatchSpec(p) for p in _do_not_remove}
+
+        self._check_state()
+
+    def _check_state(self):
+        """
+        Run some consistency checks to ensure configuration is solid.
+        """
+        # Ensure configured pins match installed builds
+        for name, spec in self._pinned.items():
+            installed = self.installed.get(name)
+            if installed:
+                if not spec.match(installed):
+                    raise SpecsConfigurationConflictError([installed], [spec], self.prefix)
 
     @property
     def prefix_data(self) -> PrefixData:
@@ -788,6 +806,23 @@ class SolverOutputState(Mapping):
         ### Inconsistency analysis ###
         # here we would call conda.core.solve.classic.Solver._find_inconsistent_packages()
 
+        ### Check conflicts are only present in .specs
+        conflicting_and_pinned = [
+            spec for name, spec in self.conflicts.items()
+            if name in self.solver_input_state.pinned
+        ]
+        if conflicting_and_pinned:
+            requested = [
+                str(spec)
+                for spec in chain(self.specs, self.solver_input_state.requested)
+                if spec not in conflicting_and_pinned
+            ]
+            raise SpecsConfigurationConflictError(
+                requested_specs=requested,
+                pinned_specs=[str(spec) for spec in conflicting_and_pinned],
+                prefix=self.solver_input_state.prefix,
+            )
+
         ### Conflict minimization ###
         # here conda.core.solve.classic.Solver._run_sat() enters a `while conflicting_specs`
         # loop to neuter some of the specs in self.specs. In other solvers we let the solver run into them.
@@ -822,6 +857,11 @@ class SolverOutputState(Mapping):
                 # to the map of installed packages)
                 return self.current_solution
 
+        # Check we are not trying to remove things that are not installed
+        if sis.is_removing:
+            not_installed = [spec for name, spec in sis.requested.items() if name not in sis.installed]
+            if not_installed:
+                raise PackagesNotFoundError(not_installed)
 
     def post_solve(self, solver_cls: Type = None):
         """

@@ -16,8 +16,6 @@ from ...common.url import (
 )
 from ...exceptions import (
     PackagesNotFoundError,
-    # TODO: Implement the part of the solver logic that raises this exception below
-    SpecsConfigurationConflictError,
     RawStrUnsatisfiableError,
 )
 from ...models.channel import Channel
