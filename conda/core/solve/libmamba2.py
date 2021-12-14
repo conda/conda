@@ -198,7 +198,8 @@ class LibMambaSolver2(Solver):
 
         ### Conver to tasks
         tasks = self._specs_to_tasks(in_state, out_state)
-        for (_, task_type), specs in tasks.items():
+        for (task_name, task_type), specs in tasks.items():
+            log.debug("Adding task %s with specs %s", task_name, specs)
             self.solver.add_jobs(specs, task_type)
 
         ### Run solver
@@ -216,12 +217,15 @@ class LibMambaSolver2(Solver):
         return False
 
     def _specs_to_tasks(self, in_state: SolverInputState, out_state: SolverOutputState):
+        log.debug("Creating tasks for %s specs", len(out_state.specs))
+        if in_state.is_removing:
+            return self._specs_to_tasks_remove(in_state, out_state)
+        return self._specs_to_tasks_add(in_state, out_state)
+
+    def _specs_to_tasks_add(self, in_state: SolverInputState, out_state: SolverOutputState):
         import libmambapy as api
 
         tasks = defaultdict(list)
-        log.debug("Creating tasks for %s specs", len(out_state.specs))
-
-
         for name, spec in out_state.specs.items():
             spec = spec.conda_build_form()
             if name.startswith("__"):
@@ -230,23 +234,22 @@ class LibMambaSolver2(Solver):
             if name in out_state.conflicts:
                 if name in in_state.installed or name in ("python", "conda"):
                     continue
-                tasks[("SOLVER_DISFAVOR", api.SOLVER_DISFAVOR)].append(spec)
-                tasks[("SOLVER_ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec)
+                tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec)
+                tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec)
 
             ### Regular task ###
             elif name in in_state.installed:
                 ### Protect if installed AND history
                 if name in in_state.history:
                     installed_spec = in_state.installed[name].to_match_spec().conda_build_form()
-                    tasks[("SOLVER_USERINSTALLED", api.SOLVER_USERINSTALLED)].append(installed_spec)
+                    tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(installed_spec)
                 # In addition to that, install or update it
                 if name in ("python", "conda"):
-                    key = ("SOLVER_UPDATE | SOLVER_ESSENTIAL",
-                           api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
+                    key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
                 else:
-                    key = "SOLVER_UPDATE", api.SOLVER_UPDATE
+                    key = "UPDATE", api.SOLVER_UPDATE
             else:
-                key = "api.SOLVER_INSTALL", api.SOLVER_INSTALL
+                key = "INSTALL", api.SOLVER_INSTALL
 
             tasks[key].append(spec)
 
@@ -255,6 +258,31 @@ class LibMambaSolver2(Solver):
              for (task_str, _), specs in tasks.items()]
         )
         log.debug("Created %s tasks:\n  %s", len(tasks), tasks_list_as_str)
+
+        return tasks
+
+    def _specs_to_tasks_remove(self, in_state: SolverInputState, out_state: SolverOutputState):
+        # TODO: Consider merging add/remove in a single logic this so there's no split
+        import libmambapy as api
+
+        tasks = defaultdict(list)
+
+        # Protect history and aggressive updates from being uninstalled if possible
+        for name, spec in out_state.specs.items():
+            spec = spec.conda_build_form()
+            aggressive_update = name in in_state.aggressive_updates and name in in_state.installed
+            if name in in_state.history and aggressive_update:
+                tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(spec)
+
+        # No complications here: delete requested and their deps
+        # TODO: There are some flags to take care of here, namely:
+        # --all
+        # --no-deps
+        # --deps-only
+        key = ("ERASE | CLEANDEPS", api.SOLVER_ERASE | api.SOLVER_CLEANDEPS)
+        for name, spec in in_state.requested.items():
+            spec.conda_build_form()
+            tasks[key].append(spec)
 
         return tasks
 

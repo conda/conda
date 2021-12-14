@@ -33,6 +33,7 @@ from .classic import get_pinned_specs
 
 
 class TrackedMap(MutableMapping):
+    # TODO: I am sure there's a better place for this object; e.g. conda.models
     """
     Implements a dictionary-like interface with self-logging capabilities.
 
@@ -235,6 +236,8 @@ class IndexState:
 
 
 class SolverInputState:
+    # TODO: I am sure there's a better place for this object; e.g. conda.models
+
     """
     Helper object to provide the input data needed to compute the state that will be
     exposed to the solver.
@@ -498,6 +501,8 @@ class SolverInputState:
 
 
 class SolverOutputState(Mapping):
+    # TODO: This object is starting to look _a lot_ like conda.core.solve itself...
+    # Consider merging this with a base class in conda.core.solve
     """
     This is the main mutable object we will massage before passing the
     result of the computation to the solver. It will also store the result
@@ -800,7 +805,8 @@ class SolverOutputState(Mapping):
 
 
     def _prepare_for_remove(self) -> dict[str, MatchSpec]:
-        pass
+        # This logic is simpler than when we are installing packages
+        self.specs.update(self.solver_input_state.requested, reason="Adding user-requested specs")
 
     def _prepare_for_solve(self):
         ### Inconsistency analysis ###
@@ -830,7 +836,6 @@ class SolverOutputState(Mapping):
 
         # After this, we finally let the solver do its work. It will either finish with a final state
         # or fail and repopulate the conflicts list in the SolverOutputState object
-        ...
 
     def early_exit(self):
         """
@@ -1049,8 +1054,7 @@ class SolverOutputState(Mapping):
         # First item in each list is highest priority
         data = defaultdict(list)
         for pool in pools:
-            for key, val
-            ue in pool.items():
+            for key, value in pool.items():
                 data[key].append(value)
         return data
 
