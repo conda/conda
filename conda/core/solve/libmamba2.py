@@ -31,6 +31,9 @@ class LibMambaSolver2(Solver):
     """
     Cleaner implementation using the ``state`` module helpers.
     """
+
+    _uses_ssc = False
+
     def __init__(
         self,
         prefix,
