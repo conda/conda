@@ -130,7 +130,10 @@ class LibMambaSolver2(Solver):
 
         init_api_context()
 
-        pool = api.Pool()
+        # We don't really use the pool again, but we need to keep a
+        # non-local reference to the object in the Python layer so
+        # we don't get segfaults due to the missing object down the line
+        self._pool = pool = api.Pool()
 
         # export installed records to a temporary json file
         exported_installed = {"packages": {}}
