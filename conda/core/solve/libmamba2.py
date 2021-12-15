@@ -133,7 +133,7 @@ class LibMambaSolver2(Solver):
         pool = api.Pool()
 
         # export installed records to a temporary json file
-        exported_installed = defaultdict(dict)
+        exported_installed = {"packages": {}}
         for record in chain(in_state.installed.values(), in_state.virtual.values()):
             exported_installed["packages"][record.fn] = {
                 **record.dist_fields_dump(),
@@ -191,16 +191,16 @@ class LibMambaSolver2(Solver):
             raise RuntimeError("Solver is not initialized. Call `._setup_solver()` first.")
 
         log.debug("New solver attempt")
-        log.debug("Current conflicts (including learnt ones)", out_state.conflicts)
+        log.debug("Current conflicts (including learnt ones): %s", out_state.conflicts)
 
         ### First, we need to obtain the list of specs ###
         out_state.prepare_specs()
+        log.debug("Computed specs: %s", out_state.specs)
 
         ### Conver to tasks
         tasks = self._specs_to_tasks(in_state, out_state)
         for (task_name, task_type), specs in tasks.items():
             log.debug("Adding task %s with specs %s", task_name, specs)
-            print("Adding task %s with specs %s" % (task_name, specs))
             self.solver.add_jobs(specs, task_type)
 
         ### Run solver
