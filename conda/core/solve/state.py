@@ -31,6 +31,7 @@ from ..index import _supplement_index_with_system
 from ..prefix_data import PrefixData
 from .classic import get_pinned_specs
 
+logger = logging.getLogger(__name__)
 
 class TrackedMap(MutableMapping):
     # TODO: I am sure there's a better place for this object; e.g. conda.models
@@ -98,14 +99,14 @@ class TrackedMap(MutableMapping):
             self.update(data or {}, reason=reason)
 
     def _set(self, key, value, *, reason: Optional[str] = None, overwrite=True, _level=3):
-        assert isinstance(key, str), f"{key} is not str ({reason})"
+        assert isinstance(key, str), f"{key!r} is not str ({reason})"
         try:
             old = self._data[key]
             old_reason = self._reasons.get(key, [None])[-1]
-            msg = f"{self._name}[{key}] (={old}, reason={old_reason}) updated to '{value}'"
+            msg = f"{self._name}[{key!r}] (={old!r}, reason={old_reason}) updated to {value!r}"
             write = overwrite
         except KeyError:
-            msg = f"{self._name}[{key}] set to '{value}'"
+            msg = f"{self._name}[{key!r}] set to {value!r}"
             write = True
 
         if write:
@@ -115,7 +116,7 @@ class TrackedMap(MutableMapping):
             self._data[key] = value
         else:
             msg = (
-                f"{self._name}[{key}] (={old}, reason={old_reason}) wanted new value '{value}' "
+                f"{self._name}[{key!r}] (={old!r}, reason={old_reason}) wanted new value {value!r} "
                 f"(reason={reason}) but stayed the same due to overwrite=False."
             )
 
@@ -151,7 +152,7 @@ class TrackedMap(MutableMapping):
     def __delitem__(self, key: Hashable):
         del self._data[key]
         self._reasons.pop(key, None)
-        self._logger.debug(f'{self._name}[{key}] was deleted', stacklevel=2)
+        self._logger.debug(f'{self._name}[{key!r}] was deleted', stacklevel=2)
 
     def pop(self, key: Hashable, *default: Any, reason: Optional[str] = None) -> Any:
         """
@@ -160,7 +161,7 @@ class TrackedMap(MutableMapping):
         """
         value = self._data.pop(key)
         self._reasons.pop(key, *default)
-        msg = f'{self._name}[{key}] (={value}) was deleted'
+        msg = f'{self._name}[{key!r}] (={value!r}) was deleted'
         if reason:
             msg += f" (reason={reason})"
         self._logger.debug(msg, stacklevel=2)
@@ -173,7 +174,7 @@ class TrackedMap(MutableMapping):
         """
         key, value = self._data.popitem(key)
         self._reasons.pop(key, *default)
-        msg = f'{self._name}[{key}] (={value}) was deleted'
+        msg = f'{self._name}[{key!r}] (={value!r}) was deleted'
         if reason:
             msg += f" (reason={reason})"
         self._logger.debug(msg, stacklevel=2)
@@ -512,6 +513,15 @@ class SolverInputState:
     def prune(self) -> bool:
         return self._prune
 
+    ### methods
+    def package_has_updates(self, *args, **kwargs):
+        logger.warning("Method `package_has_updates` not implemented!")
+        return ()
+
+    def get_conflicting_specs(self, *args, **kwargs):
+        logger.warning("Method `get_conflicting_specs` not implemented!")
+        return ()
+
 
 class SolverOutputState(Mapping):
     # TODO: This object is starting to look _a lot_ like conda.core.solve itself...
@@ -728,7 +738,7 @@ class SolverOutputState(Mapping):
             # This factors in pins and also ignores specs from the history.  It is unfreezing only
             # for the indirect specs that otherwise conflict with update of the immediate request
             pinned_requests = []
-            for name, spec in sis.requested:
+            for name, spec in sis.requested.items():
                 if name not in pin_overrides and name in sis.pinned:
                     continue
                 if name in sis.history:
@@ -996,7 +1006,7 @@ class SolverOutputState(Mapping):
                     new_specs.set(ancestor.name, MatchSpec(ancestor.name), reason="New specs asked by --update-deps")
 
             # Remove pinned_specs
-            for name, spec in sis.pinned:
+            for name, spec in sis.pinned.items():
                 new_specs.pop(name, None, reason="Exclude pinned packages from --update-deps specs")
             # Follow major-minor pinning business rule for python
             if "python" in new_specs:

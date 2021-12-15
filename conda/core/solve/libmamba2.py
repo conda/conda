@@ -121,6 +121,8 @@ class LibMambaSolver2(Solver):
         # Run post-solve tasks
         out_state.post_solve(solver_cls=self.__class__)
 
+        return out_state.current_solution
+
     def _setup_solver(self, in_state: SolverInputState):
         if self.solver is not None:
             return
