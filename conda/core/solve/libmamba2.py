@@ -217,8 +217,7 @@ class LibMambaSolver2(Solver):
         problems = self.solver.problems_to_str()
         old_conflicts = out_state.conflicts.copy()
         new_conflicts = self._problems_to_specs(problems, old_conflicts)
-        for conflict in new_conflicts:
-            out_state.conflicts.set(conflict.name, conflict, reason="New conflict found")
+        out_state.conflicts.update(new_conflicts.items(), reason="New conflict found")
         log.debug("Attempt failed with %s conflicts", len(new_conflicts))
         return False
 
@@ -242,6 +241,7 @@ class LibMambaSolver2(Solver):
                     continue
                 tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec)
                 tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec)
+                key = "INSTALL", api.SOLVER_INSTALL
 
             ### Regular task ###
             elif name in in_state.installed:
@@ -343,7 +343,7 @@ class LibMambaSolver2(Solver):
         current_set = set(conflicts.values())
         if (previous and (previous_set == current_set)) or len(diff) >= 10:
             # We have same or more (up to 10) conflicts now! Abort to avoid recursion.
-            self.raise_for_problems(problems)
+            self._raise_for_problems(problems)
 
         return conflicts
 

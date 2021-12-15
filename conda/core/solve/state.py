@@ -92,7 +92,10 @@ class TrackedMap(MutableMapping):
 
         if isinstance(data, TrackedMap):
             self._data = data._data.copy()
-            self._reasons = data._reasons.copy()
+            if reason:
+                self._reasons = {k: reason for k in self._data}
+            else:
+                self._reasons = data._reasons.copy()
         else:
             self._data = {}
             self._reasons = defaultdict(list)
