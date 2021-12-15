@@ -232,6 +232,9 @@ class TrackedMap(MutableMapping):
         """
         return self._reasons.get(key)
 
+    def copy(self):
+        return self.__class__(name=self._name, data=self)
+
 class IndexState:
     """
     The _index_ refers to the combination of all configured channels and their
