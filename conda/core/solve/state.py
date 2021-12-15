@@ -311,6 +311,7 @@ class SolverInputState:
         command: Optional[str] = None,
         _pip_interop_enabled: Optional[bool] = None,
     ):
+        self.prefix = prefix
         self._prefix_data = PrefixData(prefix, pip_interop_enabled=_pip_interop_enabled)
         self._pip_interop_enabled = _pip_interop_enabled
         self._history = History(prefix).get_requested_specs_map()
@@ -969,7 +970,7 @@ class SolverOutputState(Mapping):
             # What should be recorded for the user-requested specs in this case? Probably all
             # direct dependencies of flask.
 
-            graph = PrefixGraph(self.records.values(), self.requested.values())
+            graph = PrefixGraph(self.records.values(), sis.requested.values())
             # this method below modifies the graph inplace _and_ returns the removed nodes (like dict.pop())
             would_remove = graph.remove_youngest_descendant_nodes_with_specs()
 
