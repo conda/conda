@@ -2419,7 +2419,7 @@ dependencies:
                             # This first install passes because flask and its dependencies are in the
                             # package cache.
                             assert not package_is_installed(prefix, "flask")
-                            run_command(Commands.INSTALL, prefix, "-c", channel, "flask", "--offline")
+                            run_command(Commands.INSTALL, prefix, "-c", channel, "flask", "--offline", no_capture=True)
                             assert package_is_installed(prefix, "flask")
 
                             # The mock should have been called with our local channel URL though.
