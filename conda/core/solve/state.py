@@ -1007,7 +1007,7 @@ class SolverOutputState(Mapping):
             new_specs = TrackedMap("update_deps_specs")
 
             graph = PrefixGraph(self.records.values())
-            for name, spec in sis.requested.values():
+            for name, spec in sis.requested.items():
                 record = graph.get_node_by_name(name)
                 for ancestor in graph.all_ancestors(record):
                     new_specs.set(ancestor.name, MatchSpec(ancestor.name), reason="New specs asked by --update-deps")
