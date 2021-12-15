@@ -125,6 +125,15 @@ class TrackedMap(MutableMapping):
     def name(self):
         return self._name
 
+    def __repr__(self):
+        lines = ["{"]
+        for k, v in self._data.items():
+            reasons = self._reasons.get(k)
+            reasons = f"  # reasons={reasons}" if reasons else ""
+            lines.append(f"  {k!r}: {v!r},{reasons}")
+        lines.append("}")
+        return "\n".join(lines)
+
     def __iter__(self):
         return iter(self._data)
 
