@@ -620,7 +620,7 @@ class SolverOutputState(Mapping):
     def current_solution(self):
         return IndexedSet(PrefixGraph(self.records.values()).graph)
 
-    def prepare_specs(self) -> dict[str, MatchSpec]:
+    def prepare_specs(self) -> Mapping[str, MatchSpec]:
         if self.solver_input_state.is_removing:
             self._prepare_for_remove()
         else:
@@ -628,7 +628,7 @@ class SolverOutputState(Mapping):
         self._prepare_for_solve()
         return self.specs
 
-    def _prepare_for_add(self) -> dict[str, MatchSpec]:
+    def _prepare_for_add(self) -> Mapping[str, MatchSpec]:
         sis = self.solver_input_state
 
         # The constructor should have prepared the _basics_ of the specs / records maps. Now we
@@ -817,7 +817,7 @@ class SolverOutputState(Mapping):
         # next step -> .prepare_for_solve()
 
 
-    def _prepare_for_remove(self) -> dict[str, MatchSpec]:
+    def _prepare_for_remove(self) -> Mapping[str, MatchSpec]:
         # This logic is simpler than when we are installing packages
         self.specs.update(self.solver_input_state.requested, reason="Adding user-requested specs")
 
