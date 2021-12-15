@@ -898,7 +898,7 @@ class SolverOutputState(Mapping):
             if not_installed:
                 raise PackagesNotFoundError(not_installed)
 
-    def post_solve(self, solver_cls: Type = None):
+    def post_solve(self, solver: Type["Solver"]):
         """
         These tasks are performed _after_ the solver has done its work. It could be solver-agnostic
         but unfortunately ``--update-deps`` requires a second solve; that's why this method needs
@@ -910,9 +910,6 @@ class SolverOutputState(Mapping):
             The class used to instantiate the Solver. If not provided, defaults to the one specified
             in the context configuration.
         """
-        if solver_cls is None:
-            solver_cls = context.solver_class
-
         # After a solve, we still need to do some refinement
         sis = self.solver_input_state
 
@@ -1034,10 +1031,10 @@ class SolverOutputState(Mapping):
                 # Create a new solver instance to perform a 2nd solve with deps added
                 # We do it like this to avoid overwriting state accidentally. Instead,
                 # we will import the needed state bits manually.
-                records = solver_cls(
-                    prefix=self.prefix,
-                    channels=self.channels,
-                    subdirs=self.subdirs,
+                records = solver.__class__(
+                    prefix=solver.prefix,
+                    channels=solver.channels,
+                    subdirs=solver.subdirs,
                     specs_to_add=specs_to_add,
                     specs_to_remove=specs_to_remove,
                     command="recursive_call_for_update_deps"

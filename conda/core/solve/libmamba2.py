@@ -122,7 +122,7 @@ class LibMambaSolver2(Solver):
         self._get_solved_records(in_state, out_state)
 
         # Run post-solve tasks
-        out_state.post_solve(solver_cls=self.__class__)
+        out_state.post_solve(solver=self)
 
         return out_state.current_solution
 
