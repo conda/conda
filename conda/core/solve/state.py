@@ -95,9 +95,10 @@ class TrackedMap(MutableMapping):
         else:
             self._data = {}
             self._reasons = defaultdict(list)
-            self.update(data, reason=reason)
+            self.update(data or {}, reason=reason)
 
     def _set(self, key, value, *, reason: Optional[str] = None, overwrite=True, _level=3):
+        assert isinstance(key, str), f"{key} is not str ({reason})"
         try:
             old = self._data[key]
             old_reason = self._reasons.get(key, [None])[-1]
@@ -296,10 +297,11 @@ class SolverInputState:
         self._pip_interop_enabled = _pip_interop_enabled
         self._history = History(prefix).get_requested_specs_map()
         self._pinned = {spec.name: spec for spec in get_pinned_specs(prefix)}
-        self._aggressive_updates = {s.name for s in context.aggressive_update_packages}
+        self._aggressive_updates = {spec.name: spec for spec in context.aggressive_update_packages}
 
-        self._virtual = {}
-        _supplement_index_with_system(self._virtual)
+        virtual = {}
+        _supplement_index_with_system(virtual)
+        self._virtual = {record.name: record for record in virtual}
 
         self._requested = {}
         for spec in requested:
@@ -767,7 +769,7 @@ class SolverOutputState(Mapping):
         # that's been set.
 
         if not context.offline:
-            for name, spec in sis.aggressive_updates:
+            for name, spec in sis.aggressive_updates.items():
                 if name in self.specs:
                     self.specs.set(name, spec, reason="Aggressive updates relaxation")
 
@@ -776,7 +778,7 @@ class SolverOutputState(Mapping):
         # add in explicitly requested specs from specs_to_add
         # this overrides any name-matching spec already in the spec map
 
-        for name, spec in sis.requested:
+        for name, spec in sis.requested.items():
             if name not in pin_overrides:
                 self.specs.set(name, spec, reason="Explicitly requested by user")
 

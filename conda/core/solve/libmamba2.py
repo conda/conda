@@ -91,7 +91,7 @@ class LibMambaSolver2(Solver):
             return none_or_final_state
 
         # From now on we _do_ require a solver
-        self._setup_solver()
+        self._setup_solver(in_state)
 
         attempts = 0
         while attempts <= len(in_state.installed):
@@ -141,11 +141,11 @@ class LibMambaSolver2(Solver):
                 "constrains": record.constrains,
                 "build": record.build,
             }
-        exported_installed_f = NamedTemporaryFile(suffix=".json", delete=False)
-        exported_installed_f.write(json_dump(exported_installed))
-        installed = api.Repo(pool, "installed", exported_installed_f.name, "")
+        with NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            f.write(json_dump(exported_installed))
+        installed = api.Repo(pool, "installed", f.name, "")
         installed.set_installed()
-        os.unlink(exported_installed_f.name)
+        os.unlink(f.name)
 
         self._index = load_channels(
             pool=pool,
@@ -200,6 +200,7 @@ class LibMambaSolver2(Solver):
         tasks = self._specs_to_tasks(in_state, out_state)
         for (task_name, task_type), specs in tasks.items():
             log.debug("Adding task %s with specs %s", task_name, specs)
+            print("Adding task %s with specs %s" % (task_name, specs))
             self.solver.add_jobs(specs, task_type)
 
         ### Run solver
@@ -287,6 +288,9 @@ class LibMambaSolver2(Solver):
         return tasks
 
     def _problems_to_specs(self, problems: str, previous: Mapping[str, MatchSpec]):
+        if self.solver is None:
+            raise RuntimeError("Solver is not initialized. Call `._setup_solver()` first.")
+
         dashed_specs = []       # e.g. package-1.2.3-h5487548_0
         conda_build_specs = []  # e.g. package 1.2.8.*
         missing = []
@@ -339,6 +343,9 @@ class LibMambaSolver2(Solver):
         return conflicts
 
     def _raise_for_problems(self, problems: Optional[str] = None):
+        if self.solver is None:
+            raise RuntimeError("Solver is not initialized. Call `._setup_solver()` first.")
+
         # TODO: merge this with parse_problems somehow
         # e.g. return a dict of exception type -> specs involved
         # and we raise it here
@@ -353,6 +360,9 @@ class LibMambaSolver2(Solver):
         raise RawStrUnsatisfiableError(problems)
 
     def _get_solved_records(self, in_state: SolverInputState, out_state: SolverOutputState):
+        if self.solver is None:
+            raise RuntimeError("Solver is not initialized. Call `._setup_solver()` first.")
+
         import libmambapy as api
         from .libmamba_utils import to_package_record_from_subjson
 

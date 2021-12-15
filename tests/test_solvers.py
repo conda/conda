@@ -1253,3 +1253,8 @@ class TestLibMambaSolver(SolverTests):
                 'test_remove',
             ],
         }
+
+class TestLibMambaSolver2(TestLibMambaSolver):
+    @property
+    def solver_class(self):
+        return conda.core.solve.libmamba2.LibMambaSolver2
