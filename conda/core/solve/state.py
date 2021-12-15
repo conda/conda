@@ -2,10 +2,10 @@
 Solver-agnostic logic to expose the prefix state to the solver.
 """
 
-from collections import defaultdict, Mapping, MutableMapping
+from collections import defaultdict, MutableMapping
 from itertools import chain
 from types import MappingProxyType
-from typing import Any, Hashable, Iterable, Type, Union, Optional, Tuple
+from typing import Any, Hashable, Iterable, Type, Union, Optional, Tuple, Mapping
 from os import PathLike
 import logging
 import functools
