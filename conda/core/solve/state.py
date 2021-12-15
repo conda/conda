@@ -126,6 +126,8 @@ class TrackedMap(MutableMapping):
         return self._name
 
     def __repr__(self):
+        if not self._data:
+            return "{}"
         lines = ["{"]
         for k, v in self._data.items():
             reasons = self._reasons.get(k)
