@@ -1054,7 +1054,6 @@ class SolverOutputState(Mapping):
                     deps_modifier=sis.deps_modifier,
                     ignore_pinned=sis.ignore_pinned,
                     force_remove=sis.force_remove,
-                    force_reinstall=sis.force_reinstall,
                     prune=sis.prune
                 )
                 records = {record.name: record for record in records}
