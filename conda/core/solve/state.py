@@ -695,8 +695,8 @@ class SolverOutputState(Mapping):
                 self.specs.set(name, record.to_match_spec(), reason="Spec matches unmanageable record")
             elif name in sis.aggressive_updates:
                 self.specs.set(name, MatchSpec(name), reason="Spec matches record in aggressive updates")
-            # elif name not in self.conflicts and (name not in explicit_pool or record in explicit_pool[name]):
-            #     self.specs.set(name, record.to_match_spec(), reason="Spec matches record in explicit pool for its name")
+            elif name not in self.conflicts: # TODO: and (name not in explicit_pool or record in explicit_pool[name]):
+                self.specs.set(name, record.to_match_spec(), reason="Spec matches record in explicit pool for its name")
             elif name in sis.history:
                 # if the package was historically requested, we will honor that, but trying to
                 # keep the package as installed
@@ -773,10 +773,9 @@ class SolverOutputState(Mapping):
                 if name in sis.history:
                     continue
                 pinned_requests.append(sis.package_has_updates(spec))  # needs to be implemented, requires installed pool
-            conflicts = sis.get_conflicting_specs(self.specs.values(), pinned_requests) or ()
-            for conflict in conflicts:
-                name = conflict.name
-                if name in self.specs and (name not in sis.pinned) and name not in sis.history:
+            # conflicts = sis.get_conflicting_specs(self.specs.values(), pinned_requests) or ()
+            for name in self.conflicts:
+                if name not in sis.pinned and name not in sis.history:
                     self.specs.set(name, MatchSpec(name), reason="Relaxed because conflicting")
 
 
