@@ -990,15 +990,14 @@ class SolverOutputState(Mapping):
             would_remove = graph.remove_youngest_descendant_nodes_with_specs()
 
             # We need to distinguish the behaviour between `conda remove` and the rest
+            to_remove = []
             if sis.is_removing:
-                to_remove = []
                 for record in would_remove:
                     # do not remove records that were not requested but were installed
                     if record.name not in sis.requested and record.name in sis.installed:
                         continue
                     to_remove.append(record)
             else:
-                to_remove = would_remove
                 for record in would_remove:
                     for dependency in record.depends:
                         spec = MatchSpec(dependency)
@@ -1007,7 +1006,8 @@ class SolverOutputState(Mapping):
                             # following https://github.com/conda/conda/pull/8766
                             # reason="Recording deps brought by --only-deps as explicit"
                             sis._requested[spec.name] = spec
-
+                    if record.name not in sis.installed:
+                        to_remove.append(record)
 
             for record in to_remove:
                 self.records.pop(record.name, reason="Excluding from solution due to --only-deps")
