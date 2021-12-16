@@ -733,30 +733,26 @@ class SolverOutputState(Mapping):
 
         elif sis.with_update_all:
             # NOTE: This logic is VERY similar to what we are doing in the class constructor (?)
+            # NOTE: we are REDEFINING the specs acumulated so far
+            self.specs.clear(reason="Redefining from scratch due to --update-all")
             if sis.history:
                 # history is preferable because it has explicitly installed stuff in it.
                 # that simplifies our solution.
-                new = TrackedMap("new_specs")
-                for name, spec in sis.history.items():
+                for name in sis.history:
                     if name in sis.pinned:
-                        new.set(name, self.specs[name], reason="Update all, with history, pinned: reusing existing entry")
+                        self.specs.set(name, self.specs[name], reason="Update all, with history, pinned: reusing existing entry")
                     else:
-                        new.set(name, MatchSpec(spec), reason="Update all, with history, not pinned: adding spec from history with no constraints")
+                        self.specs.set(name, MatchSpec(name), reason="Update all, with history, not pinned: adding spec from history with no constraints")
 
                 for name, record in sis.installed.items():
                     if record.subdir == "pypi":
-                        new.set(name, MatchSpec(name), reason="Update all, with history: treat pip installed stuff as explicitly installed")
+                        self.specs.set(name, MatchSpec(name), reason="Update all, with history: treat pip installed stuff as explicitly installed")
             else:
-                new = TrackedMap("new_specs")
-                for name, record in sis.installed.items():
+                for name in sis.installed:
                     if name in sis.pinned:
-                        new.set(name, self.specs[name], reason="Update all, no history, pinned: reusing existing entry")
+                        self.specs.set(name, self.specs[name], reason="Update all, no history, pinned: reusing existing entry")
                     else:
-                        new.set(name, MatchSpec(name), reason="Update all, no history, not pinned: adding spec from installed with no constraints")
-
-            # NOTE: we are REDEFINING the specs acumulated so far
-            self.specs.clear()
-            self.specs.update(new)
+                        self.specs.set(name, MatchSpec(name), reason="Update all, no history, not pinned: adding spec from installed with no constraints")
 
         elif sis.with_update_specs:  # this is the default behaviour if no flags are passed
             # NOTE: This _anticipates_ conflicts; we can also wait for the next attempt and
