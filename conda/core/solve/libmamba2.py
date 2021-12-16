@@ -94,14 +94,13 @@ class LibMambaSolver2(Solver):
             return none_or_final_state
 
         # From now on we _do_ require a solver
-        self._setup_solver(in_state)
-
         for attempt in range(1, max(1, len(in_state.installed)) + 1):
             log.debug("Starting solver attempt %s", attempt)
+            # print("----- Starting solver attempt", attempt, "------")
             try:
-            solved = self._solve_attempt(in_state, out_state)
-            if solved:
-                break
+                solved = self._solve_attempt(in_state, out_state)
+                if solved:
+                    break
             except (RawStrUnsatisfiableError, PackagesNotFoundError):
                 solved = False
                 break  # try with last attempt
@@ -115,19 +114,20 @@ class LibMambaSolver2(Solver):
                     conflicts=dict(out_state.conflicts),
                 )
         if not solved:
-        log.debug("Last attempt: reporting all installed as conflicts")
-        out_state.conflicts.update(
-            {
-                name: record.to_match_spec()
-                for name, record in in_state.installed.items()
-                if not record.is_unmanageable
-            },
-            reason="Last attempt: all installed packages exposed as conflicts for maximum flexibility"
-        )
-        solved = self._solve_attempt(in_state, out_state)
-        if not solved:
-            # If we haven't found a solution already, we failed...
-            self._raise_for_problems()
+            log.debug("Last attempt: reporting all installed as conflicts")
+            # print("------ Last attempt! ------")
+            out_state.conflicts.update(
+                {
+                    name: record.to_match_spec()
+                    for name, record in in_state.installed.items()
+                    if not record.is_unmanageable
+                },
+                reason="Last attempt: all installed packages exposed as conflicts for maximum flexibility"
+            )
+            solved = self._solve_attempt(in_state, out_state)
+            if not solved:
+                # If we haven't found a solution already, we failed...
+                self._raise_for_problems()
 
         # We didn't fail? Nice, let's return the calculated state
         self._get_solved_records(in_state, out_state)
@@ -143,42 +143,42 @@ class LibMambaSolver2(Solver):
 
         if self.solver is None:
 
-        init_api_context()
+            init_api_context()
 
-        # We don't really use the pool again, but we need to keep a
-        # non-local reference to the object in the Python layer so
-        # we don't get segfaults due to the missing object down the line
-        self._pool = pool = api.Pool()
+            # We don't really use the pool again, but we need to keep a
+            # non-local reference to the object in the Python layer so
+            # we don't get segfaults due to the missing object down the line
+            self._pool = pool = api.Pool()
 
-        # export installed records to a temporary json file
-        exported_installed = {"packages": {}}
-        for record in chain(in_state.installed.values(), in_state.virtual.values()):
-            exported_installed["packages"][record.fn] = {
-                **record.dist_fields_dump(),
-                "depends": record.depends,
-                "constrains": record.constrains,
-                "build": record.build,
-            }
-        with NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
-            f.write(json_dump(exported_installed))
-        installed = api.Repo(pool, "installed", f.name, "")
-        installed.set_installed()
-        os.unlink(f.name)
+            # export installed records to a temporary json file
+            exported_installed = {"packages": {}}
+            for record in chain(in_state.installed.values(), in_state.virtual.values()):
+                exported_installed["packages"][record.fn] = {
+                    **record.dist_fields_dump(),
+                    "depends": record.depends,
+                    "constrains": record.constrains,
+                    "build": record.build,
+                }
+            with NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+                f.write(json_dump(exported_installed))
+            installed = api.Repo(pool, "installed", f.name, "")
+            installed.set_installed()
+            os.unlink(f.name)
 
-        self._index = load_channels(
-            pool=pool,
-            channels=self._channel_urls(),
-            repos=[installed],
-            prepend=False,
-            use_local=context.use_local,
-            platform=self.subdirs
-        )
+            self._index = load_channels(
+                pool=pool,
+                channels=self._channel_urls(),
+                repos=[installed],
+                prepend=False,
+                use_local=context.use_local,
+                platform=self.subdirs
+            )
 
             self._solver_options = solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
-        if self._command == "remove":
-            solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
-        if context.channel_priority is ChannelPriority.STRICT:
-            solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
+            if self._command == "remove":
+                solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
+            if context.channel_priority is ChannelPriority.STRICT:
+                solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
 
         self.solver = api.Solver(self._pool, self._solver_options)
 
@@ -209,10 +209,12 @@ class LibMambaSolver2(Solver):
 
         log.debug("New solver attempt")
         log.debug("Current conflicts (including learnt ones): %s", out_state.conflicts)
+        # print("Current conflicts (including learnt ones):", out_state.conflicts)
 
         ### First, we need to obtain the list of specs ###
         out_state.prepare_specs()
         log.debug("Computed specs: %s", out_state.specs)
+        # print("Computed specs:", out_state.specs)
 
         ### Conver to tasks
         tasks = self._specs_to_tasks(in_state, out_state)
