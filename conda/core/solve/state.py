@@ -85,10 +85,8 @@ class TrackedMap(MutableMapping):
     """
     def __init__(self, name: str, data: Optional[Union["TrackedMap", Iterable[Iterable], dict]] = None, reason: Optional[str] = None):
         self._name = name
-        logging_name = f"{__name__}::{self.__class__.__name__}"
-        if name:
-            logging_name += f"::{name}"
-        self._logger = logging.getLogger(logging_name)
+        self._clsname = self.__class__.__name__
+        self._logger = logging.getLogger(__name__)
 
         if isinstance(data, TrackedMap):
             self._data = data._data.copy()
@@ -106,10 +104,13 @@ class TrackedMap(MutableMapping):
         try:
             old = self._data[key]
             old_reason = self._reasons.get(key, [None])[-1]
-            msg = f"{self._name}[{key!r}] (={old!r}, reason={old_reason}) updated to {value!r}"
+            msg = (
+                f"{self._clsname}:{self._name}[{key!r}] "
+                f"(={old!r}, reason={old_reason}) updated to {self._short_repr(value)}"
+            )
             write = overwrite
         except KeyError:
-            msg = f"{self._name}[{key!r}] set to {value!r}"
+            msg = f"{self._clsname}:{self._name}[{key!r}] set to {self._short_repr(value)}"
             write = True
 
         if write:
@@ -119,7 +120,8 @@ class TrackedMap(MutableMapping):
             self._data[key] = value
         else:
             msg = (
-                f"{self._name}[{key!r}] (={old!r}, reason={old_reason}) wanted new value {value!r} "
+                f"{self._clsname}:{self._name}[{key!r}] "
+                f"(={old!r}, reason={old_reason}) wanted new value {self._short_repr(value)} "
                 f"(reason={reason}) but stayed the same due to overwrite=False."
             )
 
@@ -155,7 +157,7 @@ class TrackedMap(MutableMapping):
     def __delitem__(self, key: Hashable):
         del self._data[key]
         self._reasons.pop(key, None)
-        self._logger.debug(f'{self._name}[{key!r}] was deleted', stacklevel=2)
+        self._logger.debug(f'{self._clsname}:{self._name}[{key!r}] was deleted', stacklevel=2)
 
     def pop(self, key: Hashable, *default: Any, reason: Optional[str] = None) -> Any:
         """
@@ -164,7 +166,7 @@ class TrackedMap(MutableMapping):
         """
         value = self._data.pop(key)
         self._reasons.pop(key, *default)
-        msg = f'{self._name}[{key!r}] (={value!r}) was deleted'
+        msg = f'{self._clsname}:{self._name}[{key!r}] (={self._short_repr(value)}) was deleted'
         if reason:
             msg += f" (reason={reason})"
         self._logger.debug(msg, stacklevel=2)
@@ -177,7 +179,7 @@ class TrackedMap(MutableMapping):
         """
         key, value = self._data.popitem(key)
         self._reasons.pop(key, *default)
-        msg = f'{self._name}[{key!r}] (={value!r}) was deleted'
+        msg = f'{self._clsname}:{self._name}[{key!r}] (={self._short_repr(value)}) was deleted'
         if reason:
             msg += f" (reason={reason})"
         self._logger.debug(msg, stacklevel=2)
@@ -238,6 +240,12 @@ class TrackedMap(MutableMapping):
     def copy(self):
         return self.__class__(name=self._name, data=self)
 
+    @staticmethod
+    def _short_repr(value, maxlen=100):
+        value_repr = repr(value)
+        if len(value_repr) > maxlen:
+            value_repr = f"{value_repr[:maxlen-4]}...>"
+        return value_repr
 class IndexState:
     """
     The _index_ refers to the combination of all configured channels and their
@@ -822,10 +830,11 @@ class SolverOutputState(Mapping):
             if not spec.get("version"):
                 spec = MatchSpec(spec, version=required_version)
                 reason = "Pinning conda with version greater than currently installed"
+                self.specs.set("conda", spec, reason=reason)
             if context.auto_update_conda and "conda" not in sis.requested:
                 spec = MatchSpec("conda", version=required_version, target=None)
                 reason = "Pinning conda with version greater than currently installed, auto update"
-            self.specs.set("conda", spec, reason=reason)
+                self.specs.set("conda", spec, reason=reason)
 
         ### Extra logic ###
         # this is where we are adding workarounds for mamba difference's in behavior, which might not belong
@@ -940,7 +949,7 @@ class SolverOutputState(Mapping):
             original_state = dict(sis.installed)
             only_change_these = {}
             for name, spec in sis.requested.items():
-                for record in sis.records.values():
+                for record in self.records.values():
                     if spec.match(record):
                         only_change_these[name] = record
 
@@ -987,7 +996,9 @@ class SolverOutputState(Mapping):
                         if spec.name not in self.specs:
                             # NOTE: We are REDEFINING the requested specs so they are recorded in history
                             # following https://github.com/conda/conda/pull/8766
-                            sis._requested.set(spec.name, spec, reason="Recording deps brought by --only-deps as explicit")
+                            # reason="Recording deps brought by --only-deps as explicit"
+                            sis._requested[spec.name] = spec
+
 
             for record in to_remove:
                 self.records.pop(record.name, reason="Excluding from solution due to --only-deps")
