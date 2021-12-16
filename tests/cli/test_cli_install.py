@@ -26,7 +26,7 @@ class TestCliInstall(TestCase):
         rm_rf(self.prefix)
         rm_rf(self.testenv)
 
-    @pytest.mark.skipif(context.solver_logic == SolverLogicChoice.LIBMAMBA,
+    @pytest.mark.skipif(context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2),
                         reason="Conflict report / analysis is done differently with libmaba.")
     @pytest.mark.integration
     def test_find_conflicts_called_once(self):
