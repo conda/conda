@@ -766,16 +766,16 @@ class SolverOutputState(Mapping):
             # ensure that our self.specs_to_add are not being held back by packages in the env.
             # This factors in pins and also ignores specs from the history.  It is unfreezing only
             # for the indirect specs that otherwise conflict with update of the immediate request
-            pinned_requests = []
-            for name, spec in sis.requested.items():
-                if name not in pin_overrides and name in sis.pinned:
-                    continue
-                if name in sis.history:
-                    continue
-                pinned_requests.append(sis.package_has_updates(spec))  # needs to be implemented, requires installed pool
+            # pinned_requests = []
+            # for name, spec in sis.requested.items():
+            #     if name not in pin_overrides and name in sis.pinned:
+            #         continue
+            #     if name in sis.history:
+            #         continue
+            #     pinned_requests.append(sis.package_has_updates(spec))  # needs to be implemented, requires installed pool
             # conflicts = sis.get_conflicting_specs(self.specs.values(), pinned_requests) or ()
             for name in self.conflicts:
-                if name not in sis.pinned and name not in sis.history:
+                if name not in sis.pinned and name not in sis.history and name not in sis.requested:
                     self.specs.set(name, MatchSpec(name), reason="Relaxed because conflicting")
 
 
@@ -800,14 +800,14 @@ class SolverOutputState(Mapping):
                     spec = MatchSpec(spec, version=version)
 
                 # There's a chance the selected version results in a conflict -- detect and report?
-                specs = (spec, ) + tuple(sis.requested.values())
-                if sis.get_conflicting_specs(specs, sis.requested.values()):
-                    if not sis.installing:  # TODO: repodata checks?
-                        # raises a hopefully helpful error message
-                        sis.find_conflicts(specs)  # this might call the solver -- remove?
-                    else:
-                        # oops, no message?
-                        raise RawStrUnsatisfiableError("Couldn't find a Python version that does not conflict...")
+                # specs = (spec, ) + tuple(sis.requested.values())
+                # if sis.get_conflicting_specs(specs, sis.requested.values()):
+                #     if not sis.installing:  # TODO: repodata checks?
+                #         # raises a hopefully helpful error message
+                #         sis.find_conflicts(specs)  # this might call the solver -- remove?
+                #     else:
+                #         # oops, no message?
+                #         raise RawStrUnsatisfiableError("Couldn't find a Python version that does not conflict...")
 
                 self.specs.set("python", spec, reason=reason)
 

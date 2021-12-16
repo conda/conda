@@ -46,6 +46,8 @@ class LibMambaSolver2(Solver):
      ):
         if specs_to_add and specs_to_remove:
             raise ValueError("Only one of `specs_to_add` and `specs_to_remove` can be set at a time")
+        if specs_to_remove and command is NULL:
+            command = "remove"
 
         super().__init__(
             prefix,
@@ -120,7 +122,11 @@ class LibMambaSolver2(Solver):
                 {
                     name: record.to_match_spec()
                     for name, record in in_state.installed.items()
+                    # TODO: These conditions might not be needed here
                     if not record.is_unmanageable
+                    or name not in in_state.history
+                    or name not in in_state.requested
+                    or name not in in_state.pinned
                 },
                 reason="Last attempt: all installed packages exposed as conflicts for maximum flexibility"
             )
@@ -249,14 +255,12 @@ class LibMambaSolver2(Solver):
             spec = spec.conda_build_form()
             if name.startswith("__"):
                 continue
+            key = "INSTALL", api.SOLVER_INSTALL
             ### Low-prio task ###
             if name in out_state.conflicts:
-                if name in in_state.installed or name in ("python", "conda"):
-                    continue
-                tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec)
-                tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec)
-                key = "INSTALL", api.SOLVER_INSTALL
-
+                if name not in in_state.installed and name not in ("python", "conda"):
+                    tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec)
+                    tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec)
             ### Regular task ###
             elif name in in_state.installed:
                 ### Protect if installed AND history
@@ -268,16 +272,14 @@ class LibMambaSolver2(Solver):
                     key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
                 else:
                     key = "UPDATE", api.SOLVER_UPDATE
-            else:
-                key = "INSTALL", api.SOLVER_INSTALL
-
             tasks[key].append(spec)
 
-        tasks_list_as_str = "  \n".join(
-            [f"{task_str}: {', '.join(specs)}"
+        tasks_list_as_str = "\n".join(
+            [f"  {task_str}: {', '.join(specs)}"
              for (task_str, _), specs in tasks.items()]
         )
-        log.debug("Created %s tasks:\n  %s", len(tasks), tasks_list_as_str)
+        log.debug("Created %s tasks:\n%s", len(tasks), tasks_list_as_str)
+        # print("Created %s tasks:\n%s" % (len(tasks), tasks_list_as_str))
 
         return tasks
 
