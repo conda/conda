@@ -12,6 +12,7 @@ import functools
 
 from ... import CondaError
 from ..._vendor.boltons.setutils import IndexedSet
+from ...auxlib import NULL
 from ...auxlib.ish import dals
 from ...base.constants import DepsModifier, UpdateModifier
 from ...base.context import context
@@ -306,6 +307,16 @@ class SolverInputState:
         Internal only. Whether ``PrefixData`` will also expose packages not installed by
         ``conda`` (e.g. ``pip`` and others can put Python packages in the prefix).
     """
+    _ENUM_STR_MAP = {
+            "NOT_SET": DepsModifier.NOT_SET,
+            "NO_DEPS": DepsModifier.NO_DEPS,
+            "ONLY_DEPS": DepsModifier.ONLY_DEPS,
+            "SPECS_SATISFIED_SKIP_SOLVE": UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE,
+            "FREEZE_INSTALLED": UpdateModifier.FREEZE_INSTALLED,
+            "UPDATE_DEPS": UpdateModifier.UPDATE_DEPS,
+            "UPDATE_SPECS": UpdateModifier.UPDATE_SPECS,
+            "UPDATE_ALL": UpdateModifier.UPDATE_ALL,
+    }
     def __init__(
         self,
         prefix: Union[str, bytes, PathLike],
@@ -335,11 +346,11 @@ class SolverInputState:
             spec = MatchSpec(spec)
             self._requested[spec.name] = spec
 
-        self._update_modifier = update_modifier
-        self._deps_modifier = deps_modifier
-        self._ignore_pinned = ignore_pinned
-        self._force_remove = force_remove
-        self._force_reinstall = force_reinstall
+        self._update_modifier = self._value_from_context_if_null("update_modifier", update_modifier)
+        self._deps_modifier = self._value_from_context_if_null("deps_modifier", deps_modifier)
+        self._ignore_pinned = self._value_from_context_if_null("ignore_pinned", ignore_pinned)
+        self._force_remove = self._value_from_context_if_null("force_remove", force_remove)
+        self._force_reinstall = self._value_from_context_if_null("force_reinstall", force_reinstall)
         self._prune = prune
         self._command = command
 
@@ -359,6 +370,9 @@ class SolverInputState:
             if installed:
                 if not spec.match(installed):
                     raise SpecsConfigurationConflictError([installed], [spec], self.prefix)
+
+    def _value_from_context_if_null(self, name, value, context=context):
+        return getattr(context, name) if value is NULL else self._ENUM_STR_MAP.get(value, value)
 
     @property
     def prefix_data(self) -> PrefixData:

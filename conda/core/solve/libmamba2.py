@@ -96,14 +96,25 @@ class LibMambaSolver2(Solver):
         # From now on we _do_ require a solver
         self._setup_solver(in_state)
 
-        attempts = 0
-        while attempts <= len(in_state.installed):
-            attempts += 1
-            log.debug("Starting solver attempt %s", attempts)
+        for attempt in range(1, max(1, len(in_state.installed)) + 1):
+            log.debug("Starting solver attempt %s", attempt)
+            try:
             solved = self._solve_attempt(in_state, out_state)
             if solved:
                 break
-
+            except (RawStrUnsatisfiableError, PackagesNotFoundError):
+                solved = False
+                break  # try with last attempt
+            else:  # didn't solve yet, but can retry
+                out_state = SolverOutputState(
+                    solver_input_state=in_state,
+                    specs=dict(out_state.specs),
+                    records=dict(out_state.records),
+                    for_history=dict(out_state.for_history),
+                    neutered=dict(out_state.neutered),
+                    conflicts=dict(out_state.conflicts),
+                )
+        if not solved:
         log.debug("Last attempt: reporting all installed as conflicts")
         out_state.conflicts.update(
             {
@@ -127,11 +138,10 @@ class LibMambaSolver2(Solver):
         return out_state.current_solution
 
     def _setup_solver(self, in_state: SolverInputState):
-        if self.solver is not None:
-            return
-
         import libmambapy as api
         from .libmamba_utils import load_channels, init_api_context
+
+        if self.solver is None:
 
         init_api_context()
 
@@ -164,13 +174,13 @@ class LibMambaSolver2(Solver):
             platform=self.subdirs
         )
 
-        solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
+            self._solver_options = solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
         if self._command == "remove":
             solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
         if context.channel_priority is ChannelPriority.STRICT:
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
 
-        self.solver = api.Solver(pool, solver_options)
+        self.solver = api.Solver(self._pool, self._solver_options)
 
     def _channel_urls(self):
         """
@@ -195,8 +205,7 @@ class LibMambaSolver2(Solver):
         return tuple(channels)
 
     def _solve_attempt(self, in_state: SolverInputState, out_state: SolverOutputState):
-        if self.solver is None:
-            raise RuntimeError("Solver is not initialized. Call `._setup_solver()` first.")
+        self._setup_solver(in_state)
 
         log.debug("New solver attempt")
         log.debug("Current conflicts (including learnt ones): %s", out_state.conflicts)
@@ -220,8 +229,8 @@ class LibMambaSolver2(Solver):
         problems = self.solver.problems_to_str()
         old_conflicts = out_state.conflicts.copy()
         new_conflicts = self._problems_to_specs(problems, old_conflicts)
-        out_state.conflicts.update(new_conflicts.items(), reason="New conflict found")
         log.debug("Attempt failed with %s conflicts", len(new_conflicts))
+        out_state.conflicts.update(new_conflicts.items(), reason="New conflict found")
         return False
 
     def _specs_to_tasks(self, in_state: SolverInputState, out_state: SolverOutputState):
