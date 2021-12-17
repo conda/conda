@@ -85,6 +85,7 @@ class LibMambaSolver2(Solver):
             prune=prune,
             ignore_pinned=ignore_pinned,
             force_remove=force_remove,
+            command=self._command,
         )
 
         out_state = SolverOutputState(solver_input_state=in_state)
@@ -291,10 +292,9 @@ class LibMambaSolver2(Solver):
 
         # Protect history and aggressive updates from being uninstalled if possible
         for name, spec in out_state.specs.items():
-            spec = spec.conda_build_form()
             aggressive_update = name in in_state.aggressive_updates and name in in_state.installed
             if name in in_state.history and aggressive_update:
-                tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(spec)
+                tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(spec.conda_build_form())
 
         # No complications here: delete requested and their deps
         # TODO: There are some flags to take care of here, namely:
@@ -303,8 +303,7 @@ class LibMambaSolver2(Solver):
         # --deps-only
         key = ("ERASE | CLEANDEPS", api.SOLVER_ERASE | api.SOLVER_CLEANDEPS)
         for name, spec in in_state.requested.items():
-            spec.conda_build_form()
-            tasks[key].append(spec)
+            tasks[key].append(spec.conda_build_form())
 
         return tasks
 
