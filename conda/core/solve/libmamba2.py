@@ -250,6 +250,10 @@ class LibMambaSolver2(Solver):
     def _specs_to_tasks_add(self, in_state: SolverInputState, out_state: SolverOutputState):
         import libmambapy as api
 
+        # These packages receive special protection, since they will be
+        # exempt from conflict treatment (ALLOWUNINSTALL) and if installed
+        # their updates will be considered ESSENTIAL and USERINSTALLED
+        protected = ["python", "conda"] + list(in_state.history.keys())
         tasks = defaultdict(list)
         for name, spec in out_state.specs.items():
             spec = spec.conda_build_form()
@@ -257,21 +261,17 @@ class LibMambaSolver2(Solver):
                 continue
             key = "INSTALL", api.SOLVER_INSTALL
             ### Low-prio task ###
-            if name in out_state.conflicts:
-                if name not in in_state.installed and name not in ("python", "conda"):
+            if name in out_state.conflicts and name not in protected:
                     tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec)
                     tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec)
             ### Regular task ###
-            elif name in in_state.installed:
+            if name in in_state.installed:
+                key = "UPDATE", api.SOLVER_UPDATE
                 ### Protect if installed AND history
-                if name in in_state.history:
+                if name in protected:
                     installed_spec = in_state.installed[name].to_match_spec().conda_build_form()
                     tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(installed_spec)
-                # In addition to that, install or update it
-                if name in ("python", "conda"):
                     key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
-                else:
-                    key = "UPDATE", api.SOLVER_UPDATE
             tasks[key].append(spec)
 
         tasks_list_as_str = "\n".join(

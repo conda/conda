@@ -1042,7 +1042,7 @@ class SolverOutputState(Mapping):
 
             if sis.is_removing:
                 specs_to_add = ()
-                specs_to_remove = new_specs
+                specs_to_remove = list(new_specs.keys())
             else:
                 specs_to_add = list(new_specs.values())
                 specs_to_remove = ()
