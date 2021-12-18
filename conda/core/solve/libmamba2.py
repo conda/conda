@@ -346,37 +346,39 @@ class LibMambaSolver2(Solver):
                     # that we should try not messing with if conflicts appear
                     key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
 
-                    ### Here we deal with the "bare spec update" problem
-                    ### this only applies to conda and python for legacy reasons; forced updates
-                    ### like this should use constrained specs (e.g. conda install python=3)
-                    ### this is tested in tests/core/test_solve.py::test_pinned_1
-                    ### fixing this changes the outcome in other tests!
-                    # let's say we have an environment with python 2.6 and we say `conda install python`
-                    # libsolv will say we already have python and there's no reason to do anything else
-                    # even if we force an update with essential, other packages in the environment (built
-                    # for py26) will keep it in place.
-                    # we offer two ways to deal with this libsolv behaviour issue:
-                    # A) introduce an artificial version spec `python !=<currently installed>`
-                    # B) use FORCEBEST -- this would be ideal, but sometimes in gets in the way, so we only
-                    #    use it as a last attempt effort.
-                    # NOTE: This is a dirty-ish workaround... rethink?
-                    requested = in_state.requested.get(name)
-                    conditions = (
-                        requested,
-                        spec==requested,
-                        spec.strictness == 1,
-                        name in ("python", "conda"),
-                        in_state.deps_modifier != DepsModifier.ONLY_DEPS,
-                        in_state.update_modifier not in (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED)
-                    )
-                    if all(conditions):
-                        if self._command == "last_solve_attempt":
-                            key = (
-                                "UPDATE | ESSENTIAL | FORCEBEST",
-                                api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL | api.SOLVER_FORCEBEST
-                            )
-                        else:
-                            spec_str = f"{name} !={installed.version}"
+                ### Here we deal with the "bare spec update" problem
+                ### this only applies to conda and python for legacy reasons; forced updates
+                ### like this should use constrained specs (e.g. conda install python=3)
+                ### this is tested in:
+                ###   tests/core/test_solve.py::test_pinned_1
+                ###   tests/test_create.py::IntegrationTests::test_update_with_pinned_packages
+                ### fixing this changes the outcome in other tests!
+                # let's say we have an environment with python 2.6 and we say `conda install python`
+                # libsolv will say we already have python and there's no reason to do anything else
+                # even if we force an update with essential, other packages in the environment (built
+                # for py26) will keep it in place.
+                # we offer two ways to deal with this libsolv behaviour issue:
+                # A) introduce an artificial version spec `python !=<currently installed>`
+                # B) use FORCEBEST -- this would be ideal, but sometimes in gets in the way, so we only
+                #    use it as a last attempt effort.
+                # NOTE: This is a dirty-ish workaround... rethink?
+                requested = in_state.requested.get(name)
+                conditions = (
+                    requested,
+                    spec == requested,
+                    spec.strictness == 1,
+                    self._command in ("update", "last_solve_attempt", None, NULL),
+                    in_state.deps_modifier != DepsModifier.ONLY_DEPS,
+                    in_state.update_modifier not in (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED)
+                )
+                if all(conditions):
+                    if self._command == "last_solve_attempt":
+                        key = (
+                            "UPDATE | ESSENTIAL | FORCEBEST",
+                            api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL | api.SOLVER_FORCEBEST
+                        )
+                    else:
+                        spec_str = f"{name} !={installed.version}"
 
             tasks[key].append(spec_str)
 
