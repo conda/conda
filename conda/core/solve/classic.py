@@ -1114,8 +1114,9 @@ def get_pinned_specs(prefix):
                  concatv(context.pinned_packages, from_file))
 
 
-def diff_for_unlink_link_precs(prefix, final_precs: IndexedSet, 
-                               specs_to_add=(), force_reinstall=NULL):
+def diff_for_unlink_link_precs(
+    prefix, final_precs: IndexedSet, specs_to_add=(), force_reinstall=NULL
+):
     if not isinstance(final_precs, IndexedSet):
         raise ValueError("'final_precs' needs to be an IndexedSet")
 
