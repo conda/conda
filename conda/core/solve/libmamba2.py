@@ -6,7 +6,7 @@ import sys
 from tempfile import NamedTemporaryFile
 from typing import Iterable, Mapping, Optional
 
-from ...base.constants import REPODATA_FN, ChannelPriority
+from ...base.constants import REPODATA_FN, ChannelPriority, DepsModifier, UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
 from ...common.serialize import json_dump, json_load
@@ -349,6 +349,8 @@ class LibMambaSolver2(Solver):
                     ### Here we deal with the "bare spec update" problem
                     ### this only applies to conda and python for legacy reasons; forced updates
                     ### like this should use constrained specs (e.g. conda install python=3)
+                    ### this is tested in tests/core/test_solve.py::test_pinned_1
+                    ### fixing this changes the outcome in other tests!
                     # let's say we have an environment with python 2.6 and we say `conda install python`
                     # libsolv will say we already have python and there's no reason to do anything else
                     # even if we force an update with essential, other packages in the environment (built
@@ -359,13 +361,21 @@ class LibMambaSolver2(Solver):
                     #    use it as a last attempt effort.
                     # NOTE: This is a dirty-ish workaround... rethink?
                     requested = in_state.requested.get(name)
-                    if requested and spec == requested and spec.strictness == 1:
+                    conditions = (
+                        requested,
+                        spec==requested,
+                        spec.strictness == 1,
+                        name in ("python", "conda"),
+                        in_state.deps_modifier != DepsModifier.ONLY_DEPS,
+                        in_state.update_modifier not in (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED)
+                    )
+                    if all(conditions):
                         if self._command == "last_solve_attempt":
                             key = (
                                 "UPDATE | ESSENTIAL | FORCEBEST",
                                 api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL | api.SOLVER_FORCEBEST
                             )
-                        elif name in ("python", "conda"):
+                        else:
                             spec_str = f"{name} !={installed.version}"
 
             tasks[key].append(spec_str)
