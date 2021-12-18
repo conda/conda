@@ -2,13 +2,14 @@ import os
 from itertools import chain
 from collections import defaultdict, OrderedDict
 from logging import getLogger
+import sys
 from tempfile import NamedTemporaryFile
 from typing import Iterable, Mapping, Optional
 
 from ...base.constants import REPODATA_FN, ChannelPriority
 from ...base.context import context
 from ...common.constants import NULL
-from ...common.serialize import json_dump
+from ...common.serialize import json_dump, json_load
 from ...common.url import (
     escape_channel_url,
     split_anaconda_token,
@@ -17,14 +18,45 @@ from ...common.url import (
 from ...exceptions import (
     PackagesNotFoundError,
     RawStrUnsatisfiableError,
+    UnsatisfiableError,
 )
 from ...models.channel import Channel
 from ...models.match_spec import MatchSpec
 from .classic import Solver
-from .state import SolverInputState, SolverOutputState
+from .state import SolverInputState, SolverOutputState, IndexHelper
 
 
 log = getLogger(__name__)
+
+
+class LibMambaIndexHelper(IndexHelper):
+    def __init__(self, pool):
+        import libmambapy as api
+
+        self.pool = pool
+        self.query = api.Query(pool)
+        self.format = api.QueryFormat.JSON
+
+    def whoneeds(self, query: str):
+        return self.query.whoneeds(query, self.format)
+
+    def depends(self, query: str):
+        return self.query.depends(query, self.format)
+
+    def search(self, query: str):
+        return self.query.find(query, self.format)
+
+    def explicit_pool(self, specs: Iterable[MatchSpec]) -> Iterable[str]:
+        """
+        Returns all the package names that (might) depend on the passed specs
+        """
+        explicit_pool = set()
+        for spec in specs:
+            result_str = self.depends(spec.dist_str())
+            result = json_load(result_str)
+            for pkg in result["result"]["pkgs"]:
+                explicit_pool.add(pkg["name"])
+        return tuple(explicit_pool)
 
 
 class LibMambaSolver2(Solver):
@@ -62,9 +94,10 @@ class LibMambaSolver2(Solver):
         if self.subdirs is NULL or not self.subdirs:
             self.subdirs = context.subdirs
 
-        # These two attributes are set during ._setup_solver()
+        # These three attributes are set during ._setup_solver()
         self.solver = None
         self._index = None
+        self._pool = None
 
     def solve_final_state(self,
         update_modifier=NULL,
@@ -97,14 +130,17 @@ class LibMambaSolver2(Solver):
             return none_or_final_state
 
         # From now on we _do_ require a solver
+        self._setup_solver(in_state)
+        index = LibMambaIndexHelper(self._pool)
+
         for attempt in range(1, max(1, len(in_state.installed)) + 1):
             log.debug("Starting solver attempt %s", attempt)
-            # print("----- Starting solver attempt", attempt, "------")
+            print("----- Starting solver attempt", attempt, "------", file=sys.stderr)
             try:
-                solved = self._solve_attempt(in_state, out_state)
+                solved = self._solve_attempt(in_state, out_state, index)
                 if solved:
                     break
-            except (RawStrUnsatisfiableError, PackagesNotFoundError):
+            except (UnsatisfiableError, PackagesNotFoundError):
                 solved = False
                 break  # try with last attempt
             else:  # didn't solve yet, but can retry
@@ -118,20 +154,20 @@ class LibMambaSolver2(Solver):
                 )
         if not solved:
             log.debug("Last attempt: reporting all installed as conflicts")
-            # print("------ Last attempt! ------")
+            print("------ Last attempt! ------", file=sys.stderr)
             out_state.conflicts.update(
                 {
                     name: record.to_match_spec()
                     for name, record in in_state.installed.items()
                     # TODO: These conditions might not be needed here
                     if not record.is_unmanageable
-                    or name not in in_state.history
-                    or name not in in_state.requested
-                    or name not in in_state.pinned
+                    # or name not in in_state.history
+                    # or name not in in_state.requested
+                    # or name not in in_state.pinned
                 },
                 reason="Last attempt: all installed packages exposed as conflicts for maximum flexibility"
             )
-            solved = self._solve_attempt(in_state, out_state)
+            solved = self._solve_attempt(in_state, out_state, index)
             if not solved:
                 # If we haven't found a solution already, we failed...
                 self._raise_for_problems()
@@ -141,6 +177,9 @@ class LibMambaSolver2(Solver):
 
         # Run post-solve tasks
         out_state.post_solve(solver=self)
+        print("SOLUTION for command", self._command, ":", file=sys.stderr)
+        for name, record in out_state.records.items():
+            print(" ", record.to_match_spec().conda_build_form(), "# reasons=", out_state.records._reasons.get(name, "<None>"), file=sys.stderr)
 
         return out_state.current_solution
 
@@ -152,9 +191,9 @@ class LibMambaSolver2(Solver):
 
             init_api_context()
 
-            # We don't really use the pool again, but we need to keep a
-            # non-local reference to the object in the Python layer so
+            # We need to keep a non-local reference to the object in the Python layer so
             # we don't get segfaults due to the missing object down the line
+            # We also need it for the IndexHelper (repoquery stuff)
             self._pool = pool = api.Pool()
 
             # export installed records to a temporary json file
@@ -211,20 +250,25 @@ class LibMambaSolver2(Solver):
 
         return tuple(channels)
 
-    def _solve_attempt(self, in_state: SolverInputState, out_state: SolverOutputState):
+    def _solve_attempt(self, in_state: SolverInputState, out_state: SolverOutputState, index: LibMambaIndexHelper):
         self._setup_solver(in_state)
 
         log.debug("New solver attempt")
         log.debug("Current conflicts (including learnt ones): %s", out_state.conflicts)
-        # print("Current conflicts (including learnt ones):", out_state.conflicts)
+        print("Current conflicts (including learnt ones):", out_state.conflicts, file=sys.stderr)
 
         ### First, we need to obtain the list of specs ###
-        out_state.prepare_specs()
+        out_state.prepare_specs(index)
         log.debug("Computed specs: %s", out_state.specs)
-        # print("Computed specs:", out_state.specs)
+        print("Computed specs:", out_state.specs, file=sys.stderr)
 
-        ### Conver to tasks
+        ### Convert to tasks
         tasks = self._specs_to_tasks(in_state, out_state)
+        tasks_list_as_str = "\n".join(
+            [f"  {task_str}: {', '.join(specs)}"
+             for (task_str, _), specs in tasks.items()]
+        )
+        print("Created %s tasks:\n%s" % (len(tasks), tasks_list_as_str), file=sys.stderr)
         for (task_name, task_type), specs in tasks.items():
             log.debug("Adding task %s with specs %s", task_name, specs)
             self.solver.add_jobs(specs, task_type)
@@ -263,8 +307,8 @@ class LibMambaSolver2(Solver):
             key = "INSTALL", api.SOLVER_INSTALL
             ### Low-prio task ###
             if name in out_state.conflicts and name not in protected:
-                    tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec)
-                    tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec)
+                tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec)
+                tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec)
             ### Regular task ###
             if name in in_state.installed:
                 key = "UPDATE", api.SOLVER_UPDATE
@@ -274,13 +318,6 @@ class LibMambaSolver2(Solver):
                     tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(installed_spec)
                     key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
             tasks[key].append(spec)
-
-        tasks_list_as_str = "\n".join(
-            [f"  {task_str}: {', '.join(specs)}"
-             for (task_str, _), specs in tasks.items()]
-        )
-        log.debug("Created %s tasks:\n%s", len(tasks), tasks_list_as_str)
-        # print("Created %s tasks:\n%s" % (len(tasks), tasks_list_as_str))
 
         return tasks
 
@@ -388,6 +425,9 @@ class LibMambaSolver2(Solver):
 
         transaction = api.Transaction(self.solver, api.MultiPackageCache(context.pkgs_dirs))
         (names_to_add, names_to_remove), to_link, to_unlink = transaction.to_conda()
+
+        print("TO_LINK", to_link, file=sys.stderr)
+        print("TO_UNLINK", to_unlink, file=sys.stderr)
 
         channel_lookup = {}
         for _, entry in self._index:

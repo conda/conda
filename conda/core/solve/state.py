@@ -165,7 +165,7 @@ class TrackedMap(MutableMapping):
         Remove a key-value pair and return the value. A reason can be provided
         for logging purposes, but it won't be stored in the object.
         """
-        value = self._data.pop(key)
+        value = self._data.pop(key, *default)
         self._reasons.pop(key, *default)
         msg = f'{self._clsname}:{self._name}[{key!r}] (={self._short_repr(value)}) was deleted'
         if reason:
@@ -247,20 +247,17 @@ class TrackedMap(MutableMapping):
         if len(value_repr) > maxlen:
             value_repr = f"{value_repr[:maxlen-4]}...>"
         return value_repr
-class IndexState:
+
+
+class IndexHelper:
     """
     The _index_ refers to the combination of all configured channels and their
     platform-corresponding subdirectories. It provides the sources for available
     packages that can become part of a prefix state, eventually.
     """
 
-    def __init__(
-        self,
-        channels: Optional[Iterable[Union[str, Channel]]] = None,
-        subdirs: Optional[Iterable[str]] = None,
-    ):
-        self.channels = tuple(Channel(c) for c in (channels or context.channels))
-        self.subdirs = tuple(subdir for subdir in (subdirs or context.subdirs))
+    def explicit_pool(self, specs: Iterable[MatchSpec]) -> Iterable[str]:
+        raise NotImplementedError
 
 
 class SolverInputState:
@@ -659,15 +656,15 @@ class SolverOutputState(Mapping):
     def current_solution(self):
         return IndexedSet(PrefixGraph(self.records.values()).graph)
 
-    def prepare_specs(self) -> Mapping[str, MatchSpec]:
+    def prepare_specs(self, index: IndexHelper) -> Mapping[str, MatchSpec]:
         if self.solver_input_state.is_removing:
-            self._prepare_for_remove()
+            self._prepare_for_remove(index)
         else:
-            self._prepare_for_add()
-        self._prepare_for_solve()
+            self._prepare_for_add(index)
+        self._prepare_for_solve(index)
         return self.specs
 
-    def _prepare_for_add(self) -> Mapping[str, MatchSpec]:
+    def _prepare_for_add(self, index: IndexHelper) -> Mapping[str, MatchSpec]:
         sis = self.solver_input_state
 
         # The constructor should have prepared the _basics_ of the specs / records maps. Now we
@@ -710,15 +707,36 @@ class SolverOutputState(Mapping):
         ### Pinnings ###
 
         # Now let's add the pinnings
+        # We want to pin packages that are
+        # - installed
+        # - requested by the user (if request and pin conflict, request takes precedence)
+        # - a dependency of something requested by the user
         pin_overrides = set()
+        if sis.pinned:
+            explicit_pool = set(index.explicit_pool(sis.requested.values()))
         for name, spec in sis.pinned.items():
-            if name not in sis.requested:
-                self.specs.set(name, MatchSpec(spec, optional=False), reason="Pinned and not explicitly requested")
-            elif sis.explicit_pool[name] & sis.package_pool([spec]).get(name, set()):
-                self.specs.set(name, MatchSpec(spec, optional=False), reason="Pinned and in explicitly pool")
-                pin_overrides.add(name)
+            pin = MatchSpec(spec, optional=False)
+            requested = name in sis.requested
+            if name in sis.installed and not requested:
+                    self.specs.set(name, pin, reason="Pinned, installed and not requested")
+            elif requested:
+                if sis.requested[name].match(spec):
+                    self.specs.set(name, pin, reason="Pinned, installed and requested; constraining request as pin because they are compatible")
+                    pin_overrides.add(name)
+                else:
+                    self.specs.set(name, sis.requested[name], reason="Pinned, installed and requested; pin and request are conflicting, so adding user request due to higher precedence")
+            elif name in explicit_pool:
+                # TODO: This might be introducing additional specs into the list if the pin matches a dependency
+                # of a request, but that dependency only appears in _some_ of the request variants. For example,
+                # package A=2 depends on B, but package A=3 no longer depends on B. B will be part of A's explicit
+                # pool because it "could" be a dependency. If B happens to be pinned but A=3 ends up being the one
+                # chosen by the solver, then B would be included in the solution when it shouldn't. It's a corner
+                # case but it can happen so we might need to further restrict the explicit_pool to see. The
+                # original logic in the classic solver checked:
+                # `if explicit_pool[s.name] & ssc.r._get_package_pool([s]).get(s.name, set()):`
+                self.specs.set(name, pin, reason="Pin matches one of the potential dependencies of user requests")
             else:
-                self._logger.warn("pinned spec %s conflicts with explicit specs. Overriding pinned spec.", spec)
+                logger.warn("pinned spec %s conflicts with explicit specs. Overriding pinned spec.", spec)
 
 
         ### Update modifiers ###
@@ -734,13 +752,14 @@ class SolverOutputState(Mapping):
         elif sis.with_update_all:
             # NOTE: This logic is VERY similar to what we are doing in the class constructor (?)
             # NOTE: we are REDEFINING the specs acumulated so far
+            old_specs = self.specs._data.copy()
             self.specs.clear(reason="Redefining from scratch due to --update-all")
             if sis.history:
                 # history is preferable because it has explicitly installed stuff in it.
                 # that simplifies our solution.
                 for name in sis.history:
                     if name in sis.pinned:
-                        self.specs.set(name, self.specs[name], reason="Update all, with history, pinned: reusing existing entry")
+                        self.specs.set(name, old_specs[name], reason="Update all, with history, pinned: reusing existing entry")
                     else:
                         self.specs.set(name, MatchSpec(name), reason="Update all, with history, not pinned: adding spec from history with no constraints")
 
@@ -750,7 +769,7 @@ class SolverOutputState(Mapping):
             else:
                 for name in sis.installed:
                     if name in sis.pinned:
-                        self.specs.set(name, self.specs[name], reason="Update all, no history, pinned: reusing existing entry")
+                        self.specs.set(name, old_specs[name], reason="Update all, no history, pinned: reusing existing entry")
                     else:
                         self.specs.set(name, MatchSpec(name), reason="Update all, no history, not pinned: adding spec from installed with no constraints")
 
@@ -852,11 +871,11 @@ class SolverOutputState(Mapping):
         # next step -> .prepare_for_solve()
 
 
-    def _prepare_for_remove(self) -> Mapping[str, MatchSpec]:
+    def _prepare_for_remove(self, index: IndexHelper) -> Mapping[str, MatchSpec]:
         # This logic is simpler than when we are installing packages
         self.specs.update(self.solver_input_state.requested, reason="Adding user-requested specs")
 
-    def _prepare_for_solve(self):
+    def _prepare_for_solve(self, index: IndexHelper):
         ### Inconsistency analysis ###
         # here we would call conda.core.solve.classic.Solver._find_inconsistent_packages()
 
