@@ -171,7 +171,8 @@ class LibMambaSolver2(Solver):
                     # or name not in in_state.requested
                     # or name not in in_state.pinned
                 },
-                reason="Last attempt: all installed packages exposed as conflicts for maximum flexibility",
+                reason="Last attempt: all installed packages exposed "
+                "as conflicts for maximum flexibility",
             )
             # we only check this for "desperate" strategies in _specs_to_tasks
             self._command = "last_solve_attempt"
@@ -284,7 +285,7 @@ class LibMambaSolver2(Solver):
                 "Current conflicts (including learnt ones):", out_state.conflicts, file=sys.stderr
             )
 
-        ### First, we need to obtain the list of specs ###
+        # ## First, we need to obtain the list of specs ###
         try:
             out_state.prepare_specs(index)
         except SpecsConfigurationConflictError as exc:
@@ -299,7 +300,7 @@ class LibMambaSolver2(Solver):
         if not context.json and not context.quiet:
             print("Computed specs:", out_state.specs, file=sys.stderr)
 
-        ### Convert to tasks
+        # ## Convert to tasks
         tasks = self._specs_to_tasks(in_state, out_state)
         tasks_list_as_str = "\n".join(
             [f"  {task_str}: {', '.join(specs)}" for (task_str, _), specs in tasks.items()]
@@ -310,7 +311,7 @@ class LibMambaSolver2(Solver):
             log.debug("Adding task %s with specs %s", task_name, specs)
             self.solver.add_jobs(specs, task_type)
 
-        ### Run solver
+        # ## Run solver
         solved = self.solver.solve()
         if solved:
             out_state.conflicts.clear(reason="Solution found")
@@ -346,38 +347,40 @@ class LibMambaSolver2(Solver):
             if name.startswith("__"):
                 continue
             key = "INSTALL", api.SOLVER_INSTALL
-            ### Low-prio task ###
+            # ## Low-prio task ###
             if name in out_state.conflicts and name not in protected:
                 tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec_str)
                 tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec_str)
             if name in in_state.installed:
                 installed = in_state.installed[name]
-                ### Regular task ###
+                # ## Regular task ###
                 key = "UPDATE", api.SOLVER_UPDATE
-                ### Protect if installed AND history
+                # ## Protect if installed AND history
                 if name in protected:
                     installed_spec = installed.to_match_spec().conda_build_form()
                     tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(installed_spec)
-                    # This is "just" an essential job, so it gets higher priority in the solver conflict
-                    # resolution. We do this because these are "protected" packages (history, aggressive updates)
-                    # that we should try not messing with if conflicts appear
+                    # This is "just" an essential job, so it gets higher priority in the solver
+                    # conflict resolution. We do this because these are "protected" packages
+                    # (history, aggressive updates) that we should try not messing with if
+                    # conflicts appear
                     key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
 
-                ### Here we deal with the "bare spec update" problem
-                ### this only applies to conda and python for legacy reasons; forced updates
-                ### like this should use constrained specs (e.g. conda install python=3)
-                ### this is tested in:
-                ###   tests/core/test_solve.py::test_pinned_1
-                ###   tests/test_create.py::IntegrationTests::test_update_with_pinned_packages
-                ### fixing this changes the outcome in other tests!
-                # let's say we have an environment with python 2.6 and we say `conda install python`
-                # libsolv will say we already have python and there's no reason to do anything else
-                # even if we force an update with essential, other packages in the environment (built
-                # for py26) will keep it in place.
-                # we offer two ways to deal with this libsolv behaviour issue:
-                # A) introduce an artificial version spec `python !=<currently installed>`
-                # B) use FORCEBEST -- this would be ideal, but sometimes in gets in the way, so we only
-                #    use it as a last attempt effort.
+                # ## Here we deal with the "bare spec update" problem
+                # ## this only applies to conda and python for legacy reasons; forced updates
+                # ## like this should use constrained specs (e.g. conda install python=3)
+                # ## this is tested in:
+                # ##   tests/core/test_solve.py::test_pinned_1
+                # ##   tests/test_create.py::IntegrationTests::test_update_with_pinned_packages
+                # ## fixing this changes the outcome in other tests!
+                # let's say we have an environment with python 2.6 and we say `conda install
+                # python` libsolv will say we already have python and there's no reason to do
+                # anything else even if we force an update with essential, other packages in the
+                # environment (built for py26) will keep it in place. we offer two ways to deal
+                # with this libsolv behaviour issue:
+                #   A) introduce an artificial version spec `python !=<currently installed>`
+                #   B) use FORCEBEST -- this would be ideal, but
+                #      sometimes in gets in the way, so we only use it as a last
+                #      attempt effort.
                 # NOTE: This is a dirty-ish workaround... rethink?
                 requested = in_state.requested.get(name)
                 conditions = (
@@ -396,6 +399,7 @@ class LibMambaSolver2(Solver):
                             api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL | api.SOLVER_FORCEBEST,
                         )
                     else:
+                        # NOTE: This is ugly and there should be another way
                         spec_str = f"{name} !={installed.version}"
 
             tasks[key].append(spec_str)
