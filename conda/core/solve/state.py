@@ -958,8 +958,9 @@ class SolverOutputState(Mapping):
         ### Neutered ###
         # annotate overridden history specs so they are written to disk
         for name, spec in self.specs.items():
-            if name in sis.history and spec.strictness < sis.history[name].strictness:
-                self.neutered.set(name, spec, reason="Spec needs less strict constrains than history ")
+            history_spec = sis.history.get(name)
+            if history_spec and spec.strictness < history_spec.strictness:
+                self.neutered.set(name, spec, reason="Spec needs less strict constrains than history")
 
         ### Add inconsistent packages back ###
         # direct result of the inconsistency analysis above

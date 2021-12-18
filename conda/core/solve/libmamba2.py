@@ -187,6 +187,8 @@ class LibMambaSolver2(Solver):
             for name, record in out_state.records.items():
                 print(" ", record.to_match_spec().conda_build_form(), "# reasons=", out_state.records._reasons.get(name, "<None>"), file=sys.stderr)
 
+        self.neutered_specs = tuple(out_state.neutered.values())
+
         return out_state.current_solution
 
     def _setup_solver(self, in_state: SolverInputState):
