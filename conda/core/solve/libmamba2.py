@@ -135,7 +135,8 @@ class LibMambaSolver2(Solver):
 
         for attempt in range(1, max(1, len(in_state.installed)) + 1):
             log.debug("Starting solver attempt %s", attempt)
-            print("----- Starting solver attempt", attempt, "------", file=sys.stderr)
+            if not context.json and not context.quiet:
+                print("----- Starting solver attempt", attempt, "------", file=sys.stderr)
             try:
                 solved = self._solve_attempt(in_state, out_state, index)
                 if solved:
@@ -154,7 +155,8 @@ class LibMambaSolver2(Solver):
                 )
         if not solved:
             log.debug("Last attempt: reporting all installed as conflicts")
-            print("------ Last attempt! ------", file=sys.stderr)
+            if not context.json and not context.quiet:
+                print("------ Last attempt! ------", file=sys.stderr)
             out_state.conflicts.update(
                 {
                     name: record.to_match_spec()
@@ -179,9 +181,10 @@ class LibMambaSolver2(Solver):
 
         # Run post-solve tasks
         out_state.post_solve(solver=self)
-        print("SOLUTION for command", self._command, ":", file=sys.stderr)
-        for name, record in out_state.records.items():
-            print(" ", record.to_match_spec().conda_build_form(), "# reasons=", out_state.records._reasons.get(name, "<None>"), file=sys.stderr)
+        if not context.json and not context.quiet:
+            print("SOLUTION for command", self._command, ":", file=sys.stderr)
+            for name, record in out_state.records.items():
+                print(" ", record.to_match_spec().conda_build_form(), "# reasons=", out_state.records._reasons.get(name, "<None>"), file=sys.stderr)
 
         return out_state.current_solution
 
@@ -224,10 +227,10 @@ class LibMambaSolver2(Solver):
 
             self._solver_options = solver_options = [
                 (api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1),
-                (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1)
-                # (api.SOLVER_FLAG_INSTALL_ALSO_UPDATES, 1),
-                # (api.SOLVER_FLAG_FOCUS_BEST, 1),
-                # (api.SOLVER_FLAG_BEST_OBEY_POLICY, 1),
+                (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1),
+                (api.SOLVER_FLAG_INSTALL_ALSO_UPDATES, 1),
+                (api.SOLVER_FLAG_FOCUS_BEST, 1),
+                (api.SOLVER_FLAG_BEST_OBEY_POLICY, 1),
             ]
             if context.channel_priority is ChannelPriority.STRICT:
                 solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
@@ -261,12 +264,14 @@ class LibMambaSolver2(Solver):
 
         log.debug("New solver attempt")
         log.debug("Current conflicts (including learnt ones): %s", out_state.conflicts)
-        print("Current conflicts (including learnt ones):", out_state.conflicts, file=sys.stderr)
+        if not context.json and not context.quiet:
+            print("Current conflicts (including learnt ones):", out_state.conflicts, file=sys.stderr)
 
         ### First, we need to obtain the list of specs ###
         out_state.prepare_specs(index)
         log.debug("Computed specs: %s", out_state.specs)
-        print("Computed specs:", out_state.specs, file=sys.stderr)
+        if not context.json and not context.quiet:
+            print("Computed specs:", out_state.specs, file=sys.stderr)
 
         ### Convert to tasks
         tasks = self._specs_to_tasks(in_state, out_state)
@@ -274,7 +279,8 @@ class LibMambaSolver2(Solver):
             [f"  {task_str}: {', '.join(specs)}"
              for (task_str, _), specs in tasks.items()]
         )
-        print("Created %s tasks:\n%s" % (len(tasks), tasks_list_as_str), file=sys.stderr)
+        if not context.json and not context.quiet:
+            print("Created %s tasks:\n%s" % (len(tasks), tasks_list_as_str), file=sys.stderr)
         for (task_name, task_type), specs in tasks.items():
             log.debug("Adding task %s with specs %s", task_name, specs)
             self.solver.add_jobs(specs, task_type)
@@ -449,8 +455,9 @@ class LibMambaSolver2(Solver):
         transaction = api.Transaction(self.solver, api.MultiPackageCache(context.pkgs_dirs))
         (names_to_add, names_to_remove), to_link, to_unlink = transaction.to_conda()
 
-        print("TO_LINK", to_link, file=sys.stderr)
-        print("TO_UNLINK", to_unlink, file=sys.stderr)
+        if not context.json and not context.quiet:
+            print("TO_LINK", to_link, file=sys.stderr)
+            print("TO_UNLINK", to_unlink, file=sys.stderr)
 
         channel_lookup = {}
         for _, entry in self._index:
