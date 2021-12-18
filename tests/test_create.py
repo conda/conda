@@ -978,6 +978,11 @@ dependencies:
             rmtree(prefix, ignore_errors=True)
 
     def test_install_tarball_from_local_channel(self):
+        # NOTE: If this test fails on Windows and libmamba
+        # it is probably because the libcurl present in the environment
+        # has not been compiled with unicode support. You can check with
+        # `curl --version`. Unicode should be listed under features.
+
         # Regression test for #2812
         # install from local channel
         '''
