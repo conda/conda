@@ -57,11 +57,7 @@ def get_index(
         at_count = spec.count("@")
         if at_count > 1:
             first_at = spec.find("@")
-            spec = (
-                spec[:first_at]
-                + urllib.parse.quote(spec[first_at])
-                + spec[first_at + 1:]
-            )
+            spec = spec[:first_at] + urllib.parse.quote(spec[first_at]) + spec[first_at + 1 :]
         if platform:
             spec = spec + "[" + ",".join(platform) + "]"
         return spec
@@ -88,9 +84,7 @@ def get_index(
             )
             sd.load()
 
-            index.append(
-                (sd, {"platform": channel_platform, "url": url, "channel": channel})
-            )
+            index.append((sd, {"platform": channel_platform, "url": url, "channel": channel}))
             dlist.add(sd)
 
     is_downloaded = dlist.download(True)
@@ -209,9 +203,7 @@ def init_api_context(use_mamba_experimental=False):
                 return tmp.rsplit("/", 1)[0]
         return tmp
 
-    api_ctx.channel_alias = str(
-        get_base_url(context.channel_alias.url(with_credentials=True))
-    )
+    api_ctx.channel_alias = str(get_base_url(context.channel_alias.url(with_credentials=True)))
 
     additional_custom_channels = {}
     for el in context.custom_channels:
@@ -259,9 +251,7 @@ def init_api_context(use_mamba_experimental=False):
 
 def to_conda_channel(channel, platform):
     if channel.scheme == "file":
-        return CondaChannel.from_value(
-            channel.platform_url(platform, with_credentials=False)
-        )
+        return CondaChannel.from_value(channel.platform_url(platform, with_credentials=False))
 
     return CondaChannel(
         channel.scheme,
@@ -286,13 +276,12 @@ def to_package_record_from_subjson(entry, pkg, jsn_string):
 
 # TODO: This one can be deleted once merged
 
+
 def get_installed_packages(prefix, show_channel_urls=None):
     result = {"packages": {}}
 
     # Currently, we need to have pip interop disabled :/
-    installed = {
-        rec: rec for rec in PrefixData(prefix, pip_interop_enabled=False).iter_records()
-    }
+    installed = {rec: rec for rec in PrefixData(prefix, pip_interop_enabled=False).iter_records()}
 
     # add virtual packages as installed packages
     # they are packages installed on the system that conda can do nothing
@@ -311,11 +300,13 @@ def get_installed_packages(prefix, show_channel_urls=None):
 
     return installed, result
 
+
 # TODO: This one can be deleted once merged
 
 installed_pkg_recs = None
 
 # TODO: This one can be deleted once merged
+
 
 def get_installed_jsonfile(prefix):
     global installed_pkg_recs

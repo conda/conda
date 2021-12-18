@@ -76,9 +76,11 @@ class LibMambaSolver2(Solver):
         specs_to_remove=(),
         repodata_fn=REPODATA_FN,
         command=NULL,
-     ):
+    ):
         if specs_to_add and specs_to_remove:
-            raise ValueError("Only one of `specs_to_add` and `specs_to_remove` can be set at a time")
+            raise ValueError(
+                "Only one of `specs_to_add` and `specs_to_remove` can be set at a time"
+            )
         if specs_to_remove and command is NULL:
             command = "remove"
 
@@ -89,18 +91,19 @@ class LibMambaSolver2(Solver):
             specs_to_add=specs_to_add,
             specs_to_remove=specs_to_remove,
             repodata_fn=repodata_fn,
-            command=command
+            command=command,
         )
 
         if self.subdirs is NULL or not self.subdirs:
             self.subdirs = context.subdirs
 
-        # These three attributes are set during ._setup_solver()
+        # These three attributes are set during ._setup_solver()
         self.solver = None
         self._index = None
         self._pool = None
 
-    def solve_final_state(self,
+    def solve_final_state(
+        self,
         update_modifier=NULL,
         deps_modifier=NULL,
         prune=NULL,
@@ -125,12 +128,12 @@ class LibMambaSolver2(Solver):
         out_state = SolverOutputState(solver_input_state=in_state)
 
         # These tasks do _not_ require a solver...
-        # TODO: Abstract away in the base class?
+        # TODO: Abstract away in the base class?
         none_or_final_state = out_state.early_exit()
         if none_or_final_state is not None:
             return none_or_final_state
 
-        # From now on we _do_ require a solver
+        # From now on we _do_ require a solver
         self._setup_solver(in_state)
         index = LibMambaIndexHelper(self._pool)
 
@@ -168,7 +171,7 @@ class LibMambaSolver2(Solver):
                     # or name not in in_state.requested
                     # or name not in in_state.pinned
                 },
-                reason="Last attempt: all installed packages exposed as conflicts for maximum flexibility"
+                reason="Last attempt: all installed packages exposed as conflicts for maximum flexibility",
             )
             # we only check this for "desperate" strategies in _specs_to_tasks
             self._command = "last_solve_attempt"
@@ -185,7 +188,13 @@ class LibMambaSolver2(Solver):
         if not context.json and not context.quiet:
             print("SOLUTION for command", self._command, ":", file=sys.stderr)
             for name, record in out_state.records.items():
-                print(" ", record.to_match_spec().conda_build_form(), "# reasons=", out_state.records._reasons.get(name, "<None>"), file=sys.stderr)
+                print(
+                    " ",
+                    record.to_match_spec().conda_build_form(),
+                    "# reasons=",
+                    out_state.records._reasons.get(name, "<None>"),
+                    file=sys.stderr,
+                )
 
         self.neutered_specs = tuple(out_state.neutered.values())
 
@@ -225,7 +234,7 @@ class LibMambaSolver2(Solver):
                 repos=[installed],
                 prepend=False,
                 use_local=context.use_local,
-                platform=self.subdirs
+                platform=self.subdirs,
             )
 
             self._solver_options = solver_options = [
@@ -245,6 +254,7 @@ class LibMambaSolver2(Solver):
         TODO: libmambapy could handle path to url, and escaping
         but so far we are doing it ourselves
         """
+
         def _channel_to_url_or_name(channel):
             # This fixes test_activate_deactivate_modify_path_bash
             # and other local channels (path to url) issues
@@ -258,17 +268,21 @@ class LibMambaSolver2(Solver):
 
         channels = [url for c in self._channels for url in _channel_to_url_or_name(Channel(c))]
         if context.restore_free_channel and "https://repo.anaconda.com/pkgs/free" not in channels:
-            channels.append('https://repo.anaconda.com/pkgs/free')
+            channels.append("https://repo.anaconda.com/pkgs/free")
 
         return tuple(channels)
 
-    def _solve_attempt(self, in_state: SolverInputState, out_state: SolverOutputState, index: LibMambaIndexHelper):
+    def _solve_attempt(
+        self, in_state: SolverInputState, out_state: SolverOutputState, index: LibMambaIndexHelper
+    ):
         self._setup_solver(in_state)
 
         log.debug("New solver attempt")
         log.debug("Current conflicts (including learnt ones): %s", out_state.conflicts)
         if not context.json and not context.quiet:
-            print("Current conflicts (including learnt ones):", out_state.conflicts, file=sys.stderr)
+            print(
+                "Current conflicts (including learnt ones):", out_state.conflicts, file=sys.stderr
+            )
 
         ### First, we need to obtain the list of specs ###
         try:
@@ -288,8 +302,7 @@ class LibMambaSolver2(Solver):
         ### Convert to tasks
         tasks = self._specs_to_tasks(in_state, out_state)
         tasks_list_as_str = "\n".join(
-            [f"  {task_str}: {', '.join(specs)}"
-             for (task_str, _), specs in tasks.items()]
+            [f"  {task_str}: {', '.join(specs)}" for (task_str, _), specs in tasks.items()]
         )
         if not context.json and not context.quiet:
             print("Created %s tasks:\n%s" % (len(tasks), tasks_list_as_str), file=sys.stderr)
@@ -322,7 +335,11 @@ class LibMambaSolver2(Solver):
         # These packages receive special protection, since they will be
         # exempt from conflict treatment (ALLOWUNINSTALL) and if installed
         # their updates will be considered ESSENTIAL and USERINSTALLED
-        protected = ["python", "conda"] + list(in_state.history.keys()) + list(in_state.aggressive_updates.keys())
+        protected = (
+            ["python", "conda"]
+            + list(in_state.history.keys())
+            + list(in_state.aggressive_updates.keys())
+        )
         tasks = defaultdict(list)
         for name, spec in out_state.specs.items():
             spec_str = spec.conda_build_form()
@@ -358,7 +375,7 @@ class LibMambaSolver2(Solver):
                 # even if we force an update with essential, other packages in the environment (built
                 # for py26) will keep it in place.
                 # we offer two ways to deal with this libsolv behaviour issue:
-                # A) introduce an artificial version spec `python !=<currently installed>`
+                # A) introduce an artificial version spec `python !=<currently installed>`
                 # B) use FORCEBEST -- this would be ideal, but sometimes in gets in the way, so we only
                 #    use it as a last attempt effort.
                 # NOTE: This is a dirty-ish workaround... rethink?
@@ -369,13 +386,14 @@ class LibMambaSolver2(Solver):
                     spec.strictness == 1,
                     self._command in ("update", "last_solve_attempt", None, NULL),
                     in_state.deps_modifier != DepsModifier.ONLY_DEPS,
-                    in_state.update_modifier not in (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED)
+                    in_state.update_modifier
+                    not in (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED),
                 )
                 if all(conditions):
                     if self._command == "last_solve_attempt":
                         key = (
                             "UPDATE | ESSENTIAL | FORCEBEST",
-                            api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL | api.SOLVER_FORCEBEST
+                            api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL | api.SOLVER_FORCEBEST,
                         )
                     else:
                         spec_str = f"{name} !={installed.version}"
@@ -411,7 +429,7 @@ class LibMambaSolver2(Solver):
         if self.solver is None:
             raise RuntimeError("Solver is not initialized. Call `._setup_solver()` first.")
 
-        dashed_specs = []       # e.g. package-1.2.3-h5487548_0
+        dashed_specs = []  # e.g. package-1.2.3-h5487548_0
         conda_build_specs = []  # e.g. package 1.2.8.*
         missing = []
         for line in problems.splitlines():
@@ -436,7 +454,7 @@ class LibMambaSolver2(Solver):
         for conflict in dashed_specs:
             name, version, build = conflict.rsplit("-", 2)
             conflicts[name] = MatchSpec(name=name, version=version, build=build)
-            conflicts[name].missing = conflict in missing  # TODO: FIX this ugly hack
+            conflicts[name].missing = conflict in missing  # TODO: FIX this ugly hack
         for conflict in conda_build_specs:
             kwargs = {"name": conflict[0].rstrip(",")}
             if len(conflict) >= 2:
@@ -519,7 +537,9 @@ class LibMambaSolver2(Solver):
             if key not in channel_lookup:
                 raise ValueError(f"missing key {key} in channels {channel_lookup}")
             record = to_package_record_from_subjson(channel_lookup[key], filename, json_str)
-            out_state.records.set(record.name, record, reason="Part of solution calculated by libmamba")
+            out_state.records.set(
+                record.name, record, reason="Part of solution calculated by libmamba"
+            )
 
     def _reset(self):
         self.solver = None
