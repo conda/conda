@@ -881,7 +881,7 @@ class SolverOutputState(Mapping):
 
         ### Check conflicts are only present in .specs
         conflicting_and_pinned = [
-            spec for name, spec in self.conflicts.items()
+            str(spec) for name, spec in self.conflicts.items()
             if name in self.solver_input_state.pinned
         ]
         if conflicting_and_pinned:
@@ -892,7 +892,7 @@ class SolverOutputState(Mapping):
             ]
             raise SpecsConfigurationConflictError(
                 requested_specs=requested,
-                pinned_specs=[str(spec) for spec in conflicting_and_pinned],
+                pinned_specs=conflicting_and_pinned,
                 prefix=self.solver_input_state.prefix,
             )
 

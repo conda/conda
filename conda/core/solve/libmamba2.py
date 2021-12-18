@@ -18,6 +18,7 @@ from ...common.url import (
 from ...exceptions import (
     PackagesNotFoundError,
     RawStrUnsatisfiableError,
+    SpecsConfigurationConflictError,
     UnsatisfiableError,
 )
 from ...models.channel import Channel
@@ -268,7 +269,16 @@ class LibMambaSolver2(Solver):
             print("Current conflicts (including learnt ones):", out_state.conflicts, file=sys.stderr)
 
         ### First, we need to obtain the list of specs ###
-        out_state.prepare_specs(index)
+        try:
+            out_state.prepare_specs(index)
+        except SpecsConfigurationConflictError as exc:
+            # in the last attempt we have marked everything
+            # as a conflict so everything gets unconstrained
+            # however this will be detected as a conflict with the
+            # pins, but we can ignore it because we did it ourselves
+            if self._command != "last_solve_attempt":
+                raise exc
+
         log.debug("Computed specs: %s", out_state.specs)
         if not context.json and not context.quiet:
             print("Computed specs:", out_state.specs, file=sys.stderr)
@@ -333,18 +343,28 @@ class LibMambaSolver2(Solver):
                     # resolution. We do this because these are "protected" packages (history, aggressive updates)
                     # that we should try not messing with if conflicts appear
                     key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
-                    if self._command == "last_solve_attempt":
-                        # NOTE: This is a dirty-ish workaround... rethink?
-                        # FORCEBEST makes the solver update a bare spec (no version specified) even if one is installed
-                        # we only do these for requested specs that match an installed version
-                        # notice we check if the spec is the SAME as in the requested (it can be overridden by pinned
-                        # specs, update-all and others)
-                        requested = in_state.requested.get(name)
-                        if requested and spec == requested and spec.strictness == 1:
+
+                    ### Here we deal with the "bare spec update" problem
+                    ### this only applies to conda and python for legacy reasons; forced updates
+                    ### like this should use constrained specs (e.g. conda install python=3)
+                    # let's say we have an environment with python 2.6 and we say `conda install python`
+                    # libsolv will say we already have python and there's no reason to do anything else
+                    # even if we force an update with essential, other packages in the environment (built
+                    # for py26) will keep it in place.
+                    # we offer two ways to deal with this libsolv behaviour issue:
+                    # A) introduce an artificial version spec `python !=<currently installed>`
+                    # B) use FORCEBEST -- this would be ideal, but sometimes in gets in the way, so we only
+                    #    use it as a last attempt effort.
+                    # NOTE: This is a dirty-ish workaround... rethink?
+                    requested = in_state.requested.get(name)
+                    if requested and spec == requested and spec.strictness == 1:
+                        if self._command == "last_solve_attempt":
                             key = (
                                 "UPDATE | ESSENTIAL | FORCEBEST",
                                 api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL | api.SOLVER_FORCEBEST
                             )
+                        elif name in ("python", "conda"):
+                            spec_str = f"{name} !={installed.version}"
 
             tasks[key].append(spec_str)
 
