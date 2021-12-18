@@ -220,9 +220,13 @@ class LibMambaSolver2(Solver):
                 platform=self.subdirs
             )
 
-            self._solver_options = solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
-            if self._command == "remove":
-                solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
+            self._solver_options = solver_options = [
+                (api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1),
+                (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1)
+                # (api.SOLVER_FLAG_INSTALL_ALSO_UPDATES, 1),
+                # (api.SOLVER_FLAG_FOCUS_BEST, 1),
+                # (api.SOLVER_FLAG_BEST_OBEY_POLICY, 1),
+            ]
             if context.channel_priority is ChannelPriority.STRICT:
                 solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
 
@@ -298,26 +302,37 @@ class LibMambaSolver2(Solver):
         # These packages receive special protection, since they will be
         # exempt from conflict treatment (ALLOWUNINSTALL) and if installed
         # their updates will be considered ESSENTIAL and USERINSTALLED
-        protected = ["python", "conda"] + list(in_state.history.keys())
+        protected = ["python", "conda"] + list(in_state.history.keys()) + list(in_state.aggressive_updates.keys())
         tasks = defaultdict(list)
         for name, spec in out_state.specs.items():
-            spec = spec.conda_build_form()
+            spec_str = spec.conda_build_form()
             if name.startswith("__"):
                 continue
             key = "INSTALL", api.SOLVER_INSTALL
             ### Low-prio task ###
             if name in out_state.conflicts and name not in protected:
-                tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec)
-                tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec)
-            ### Regular task ###
+                tasks[("DISFAVOR", api.SOLVER_DISFAVOR)].append(spec_str)
+                tasks[("ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec_str)
             if name in in_state.installed:
+                ### Regular task ###
                 key = "UPDATE", api.SOLVER_UPDATE
                 ### Protect if installed AND history
                 if name in protected:
                     installed_spec = in_state.installed[name].to_match_spec().conda_build_form()
                     tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(installed_spec)
-                    key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
-            tasks[key].append(spec)
+                    if name in in_state.requested and spec == in_state.requested[name]:
+                        # FORCEBEST makes the solver update a bare spec (no version specified) even if one is installed
+                        # we only do these for requested specs that match an installed version
+                        # notice we check if the spec is the SAME as in the requested (it can be overridden by pinned
+                        # specs, update-all and others)
+                        key = ("UPDATE | ESSENTIAL | FORCEBEST", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL | api.SOLVER_FORCEBEST)
+                    else:
+                        # This is "just" an essential job, so it gets higher priority in the solver conflict
+                        # resolution. We do this because these are "protected" packages (history, aggressive updates)
+                        # that we should try not messing with if conflicts appear
+                        key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
+
+            tasks[key].append(spec_str)
 
         return tasks
 
