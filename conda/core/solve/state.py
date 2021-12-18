@@ -1024,7 +1024,7 @@ class SolverOutputState(Mapping):
                         if spec.name not in self.specs:
                             # following https://github.com/conda/conda/pull/8766
                             reason = "Recording deps brought by --only-deps as explicit"
-                            sis.for_history(spec.name, spec, reason=reason)
+                            self.for_history.set(spec.name, spec, reason=reason)
                     to_remove.append(record.name)
 
             for name in to_remove:
@@ -1069,7 +1069,7 @@ class SolverOutputState(Mapping):
                 specs_to_add = list(new_specs.values())
                 specs_to_remove = ()
 
-            with context.override("quiet", True):
+            with context.override("quiet", False):
                 # Create a new solver instance to perform a 2nd solve with deps added
                 # We do it like this to avoid overwriting state accidentally. Instead,
                 # we will import the needed state bits manually.
