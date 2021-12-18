@@ -57,7 +57,8 @@ def get_index(
         at_count = spec.count("@")
         if at_count > 1:
             first_at = spec.find("@")
-            spec = spec[:first_at] + urllib.parse.quote(spec[first_at]) + spec[first_at + 1 :]
+            after_first_at = first_at + 1
+            spec = spec[:first_at] + urllib.parse.quote(spec[first_at]) + spec[after_first_at:]
         if platform:
             spec = spec + "[" + ",".join(platform) + "]"
         return spec
