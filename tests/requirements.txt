@@ -34,3 +34,4 @@ responses
 ruamel_yaml
 # only for mamba poc
 conda-forge::mamba
+conda-forge::libcurl
