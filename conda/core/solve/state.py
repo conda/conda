@@ -893,8 +893,8 @@ class SolverOutputState(Mapping):
         sis = self.solver_input_state
 
         if sis.is_removing and sis.force_remove:
-            for name, spec in self.requested.items():
-                for record in self.installed.values():
+            for name, spec in sis.requested.items():
+                for record in sis.installed.values():
                     if spec.match(record):
                         self.records.pop(name)
                         break

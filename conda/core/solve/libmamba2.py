@@ -291,10 +291,10 @@ class LibMambaSolver2(Solver):
         tasks = defaultdict(list)
 
         # Protect history and aggressive updates from being uninstalled if possible
-        for name, spec in out_state.specs.items():
-            aggressive_update = name in in_state.aggressive_updates and name in in_state.installed
-            if name in in_state.history and aggressive_update:
-                tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(spec.conda_build_form())
+        for name, record in out_state.records.items():
+            if name in in_state.history or name in in_state.aggressive_updates:
+                spec = record.to_match_spec().conda_build_form()
+                tasks[("USERINSTALLED", api.SOLVER_USERINSTALLED)].append(spec)
 
         # No complications here: delete requested and their deps
         # TODO: There are some flags to take care of here, namely:
