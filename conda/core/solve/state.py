@@ -1016,21 +1016,23 @@ class SolverOutputState(Mapping):
                     # do not remove records that were not requested but were installed
                     if record.name not in sis.requested and record.name in sis.installed:
                         continue
-                    to_remove.append(record)
+                    to_remove.append(record.name)
             else:
                 for record in would_remove:
                     for dependency in record.depends:
                         spec = MatchSpec(dependency)
                         if spec.name not in self.specs:
-                            # NOTE: We are REDEFINING the requested specs so they are recorded in history
                             # following https://github.com/conda/conda/pull/8766
-                            # reason="Recording deps brought by --only-deps as explicit"
-                            sis._requested[spec.name] = spec
-                    if record.name not in sis.installed:
-                        to_remove.append(record)
+                            reason = "Recording deps brought by --only-deps as explicit"
+                            sis.for_history(spec.name, spec, reason=reason)
+                    to_remove.append(record.name)
 
-            for record in to_remove:
-                self.records.pop(record.name, reason="Excluding from solution due to --only-deps")
+            for name in to_remove:
+                installed = sis.installed.get(name)
+                if installed:
+                    self.records.set(name, installed, reason="Restoring originally installed due to --only-deps")
+                else:
+                    self.records.pop(record.name, reason="Excluding from solution due to --only-deps")
 
         elif sis.with_update_deps:
             # Here we have to SAT solve again :(  It's only now that we know the dependency
