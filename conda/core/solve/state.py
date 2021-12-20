@@ -3,6 +3,7 @@ Solver-agnostic logic to expose the prefix state to the solver.
 """
 
 from collections import defaultdict, MutableMapping
+from enum import Enum
 from itertools import chain
 from types import MappingProxyType
 from typing import Any, Hashable, Iterable, Type, Union, Optional, Tuple, Mapping
@@ -257,6 +258,35 @@ class TrackedMap(MutableMapping):
         return value_repr
 
 
+class EnumAsBools:
+    """
+    Allows an Enum to be bool-evaluated with attribute access.
+
+    >>> update_modifier = UpdateModifier("update_deps")
+    >>> update_modifier_as_bools = EnumAsBools(update_modifier)
+    >>> update_modifier == UpdateModifier.UPDATE_DEPS  # from this
+        True
+    >>> update_modidier_as_bools.UPDATE_DEPS  # to this
+        True
+    >>> update_modifier_as_bools.UPDATE_ALL
+        False
+    """
+
+    def __init__(self, enum: Enum):
+        self._enum = enum
+        self._names = {v.name for v in self._enum.__class__.__members__.values()}
+
+    def __getattr__(self, name: str) -> Any:
+        if name in ("name", "value"):
+            return getattr(self._enum, name)
+        if name in self._names:
+            return self._enum.name == name
+        raise AttributeError(f"'{name}' is not a valid name for {self._enum.__class__.__name__}")
+
+    def _dict(self):
+        return {name: self._enum.name == name for name in self._names}
+
+
 class IndexHelper:
     """
     The _index_ refers to the combination of all configured channels and their
@@ -464,10 +494,6 @@ class SolverInputState:
         """
         return MappingProxyType(self._requested)
 
-    # NOTE: All the blocks below can (and should) be expressed through dataclasses
-    # For example .installing should become .command.install, and .with_update_all
-    # could be .update_modifier.update_all
-
     # Types of commands
 
     @property
@@ -498,49 +524,15 @@ class SolverInputState:
         """
         return self._command == "remove"
 
-    # Update modifiers
+    # modifiers
 
     @property
-    def update_modifier(self) -> UpdateModifier:
-        return self._update_modifier
+    def update_modifier(self) -> EnumAsBools:
+        return EnumAsBools(self._update_modifier)
 
     @property
-    def with_update_specs(self) -> UpdateModifier:
-        return str(self._update_modifier) == str(UpdateModifier.UPDATE_SPECS)
-
-    @property
-    def with_update_all(self) -> UpdateModifier:
-        return str(self._update_modifier) == str(UpdateModifier.UPDATE_ALL)
-
-    @property
-    def with_update_deps(self) -> UpdateModifier:
-        return str(self._update_modifier) == str(UpdateModifier.UPDATE_DEPS)
-
-    @property
-    def with_freeze_installed(self) -> UpdateModifier:
-        return str(self._update_modifier) == str(UpdateModifier.FREEZE_INSTALLED)
-
-    @property
-    def with_specs_satisfied_skip_solve(self) -> UpdateModifier:
-        return str(self._update_modifier) == str(UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE)
-
-    # Deps modifiers
-
-    @property
-    def deps_modifier(self) -> DepsModifier:
-        return self._deps_modifier
-
-    @property
-    def with_deps(self) -> DepsModifier:
-        return str(self._deps_modifier) == str(DepsModifier.NOT_SET)
-
-    @property
-    def with_no_deps(self) -> DepsModifier:
-        return str(self._deps_modifier) == str(DepsModifier.NO_DEPS)
-
-    @property
-    def with_only_deps(self) -> DepsModifier:
-        return str(self._deps_modifier) == str(DepsModifier.ONLY_DEPS)
+    def deps_modifier(self) -> EnumAsBools:
+        return EnumAsBools(self._deps_modifier)
 
     # Other flags
 
@@ -820,7 +812,7 @@ class SolverOutputState(Mapping):
 
         # ## Update modifiers ###
 
-        if sis.with_freeze_installed:
+        if sis.update_modifier.FREEZE_INSTALLED:
             for name, record in sis.installed.items():
                 if name in self.conflicts:
                     # TODO: Investigate why we use to_match_spec() here and other targets use
@@ -833,7 +825,7 @@ class SolverOutputState(Mapping):
                 else:
                     self.specs.set(name, record.to_match_spec(), reason="Freezing as installed")
 
-        elif sis.with_update_all:
+        elif sis.update_modifier.UPDATE_ALL:
             # NOTE: This logic is VERY similar to what we are doing in the class constructor (?)
             # NOTE: we are REDEFINING the specs acumulated so far
             old_specs = self.specs._data.copy()
@@ -880,7 +872,8 @@ class SolverOutputState(Mapping):
                             "installed with no constraints",
                         )
 
-        elif sis.with_update_specs:  # this is the default behaviour if no flags are passed
+        elif sis.update_modifier.UPDATE_SPECS:
+            # this is the default behaviour if no flags are passed
             # NOTE: This _anticipates_ conflicts; we can also wait for the next attempt and
             # get the real solver conflicts as part of self.conflicts -- that would simplify
             # this logic a bit
@@ -912,7 +905,7 @@ class SolverOutputState(Mapping):
 
         if "python" in self.records and "python" not in sis.requested:
             record = self.records["python"]
-            if "python" not in self.conflicts and sis.with_freeze_installed:
+            if "python" not in self.conflicts and sis.update_modifier.FREEZE_INSTALLED:
                 self.specs.set(
                     "python",
                     record.to_match_spec(),
@@ -1040,7 +1033,7 @@ class SolverOutputState(Mapping):
                         break
             return self.current_solution
 
-        if sis.with_specs_satisfied_skip_solve and not sis.is_removing:
+        if sis.update_modifier.SPECS_SATISFIED_SKIP_SOLVE and not sis.is_removing:
             for name, spec in sis.requested.items():
                 if name not in sis.installed:
                     break
@@ -1094,7 +1087,7 @@ class SolverOutputState(Mapping):
         # handle the different modifiers (NO_DEPS, ONLY_DEPS, UPDATE_DEPS)
         # this might mean removing different records by hand or even calling the solver a 2nd time
 
-        if sis.with_no_deps:
+        if sis.deps_modifier.NO_DEPS:
             # In the NO_DEPS case, we need to start with the original list of packages in the
             # environment, and then only modify packages that match the requested specs
             #
@@ -1118,7 +1111,7 @@ class SolverOutputState(Mapping):
             self.records.clear(reason="Redefining records due to --no-deps")
             self.records.update(original_state, reason="Redefined records due to --no-deps")
 
-        elif sis.with_only_deps and not sis.with_update_deps:
+        elif sis.deps_modifier.ONLY_DEPS and not sis.update_modifier.UPDATE_DEPS:
             # Using a special instance of PrefixGraph to remove youngest child nodes that match the
             # original requested specs.  It's important to remove only the *youngest* child nodes,
             # because a typical use might be `conda install --only-deps python=2 flask`, and in
@@ -1164,7 +1157,7 @@ class SolverOutputState(Mapping):
                         record.name, reason="Excluding from solution due to --only-deps"
                     )
 
-        elif sis.with_update_deps:
+        elif sis.update_modifier.UPDATE_DEPS:
             # Here we have to SAT solve again :(  It's only now that we know the dependency
             # chain of specs_to_add.
             #
@@ -1220,7 +1213,7 @@ class SolverOutputState(Mapping):
                     command="recursive_call_for_update_deps",
                 ).solve_final_state(
                     update_modifier=UpdateModifier.UPDATE_SPECS,  # avoid recursion!
-                    deps_modifier=sis.deps_modifier,
+                    deps_modifier=sis._deps_modifier,
                     ignore_pinned=sis.ignore_pinned,
                     force_remove=sis.force_remove,
                     prune=sis.prune,
