@@ -182,7 +182,7 @@ class LibMambaSolver2(Solver):
                 self._raise_for_problems()
 
         # We didn't fail? Nice, let's return the calculated state
-        self._get_solved_records(in_state, out_state)
+        self._export_solved_records(in_state, out_state)
 
         # Run post-solve tasks
         out_state.post_solve(solver=self)
@@ -274,7 +274,10 @@ class LibMambaSolver2(Solver):
         return tuple(channels)
 
     def _solve_attempt(
-        self, in_state: SolverInputState, out_state: SolverOutputState, index: LibMambaIndexHelper
+        self,
+        in_state: SolverInputState,
+        out_state: SolverOutputState,
+        index: LibMambaIndexHelper,
     ):
         self._setup_solver(in_state)
 
@@ -501,7 +504,7 @@ class LibMambaSolver2(Solver):
                 raise PackagesNotFoundError([" ".join(packages)])
         raise RawStrUnsatisfiableError(problems)
 
-    def _get_solved_records(self, in_state: SolverInputState, out_state: SolverOutputState):
+    def _export_solved_records(self, in_state: SolverInputState, out_state: SolverOutputState):
         if self.solver is None:
             raise RuntimeError("Solver is not initialized. Call `._setup_solver()` first.")
 
@@ -548,3 +551,4 @@ class LibMambaSolver2(Solver):
     def _reset(self):
         self.solver = None
         self._index = None
+        self._pool = None

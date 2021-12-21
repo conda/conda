@@ -552,15 +552,6 @@ class SolverInputState:
     def prune(self) -> bool:
         return self._prune
 
-    # ## methods
-    def package_has_updates(self, *args, **kwargs):
-        logger.warning("Method `package_has_updates` not implemented!")
-        return ()
-
-    def get_conflicting_specs(self, *args, **kwargs):
-        logger.warning("Method `get_conflicting_specs` not implemented!")
-        return ()
-
 
 class SolverOutputState(Mapping):
     # TODO: This object is starting to look _a lot_ like conda.core.solve itself...
