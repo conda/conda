@@ -373,7 +373,7 @@ class LibMambaSolver2(Solver):
                 # ## like this should (imo) use constrained specs (e.g. conda install python=3)
                 # ## or the update command as in `conda update python`. however conda thinks
                 # ## differently of update vs install (quite counterintuitive):
-                # ##   https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/installing-with-conda.html#conda-update-versus-conda-install
+                # ##   https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/installing-with-conda.html#conda-update-versus-conda-install  # noqa
                 # ## this is tested in:
                 # ##   tests/core/test_solve.py::test_pinned_1
                 # ##   tests/test_create.py::IntegrationTests::test_update_with_pinned_packages
