@@ -283,6 +283,9 @@ class EnumAsBools:
             return self._enum.name == name
         raise AttributeError(f"'{name}' is not a valid name for {self._enum.__class__.__name__}")
 
+    def __eq__(self, __o: object) -> bool:
+        return self._enum.__eq__(__o)
+
     def _dict(self):
         return {name: self._enum.name == name for name in self._names}
 
