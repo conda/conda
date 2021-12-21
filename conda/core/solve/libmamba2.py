@@ -369,8 +369,11 @@ class LibMambaSolver2(Solver):
                     key = ("UPDATE | ESSENTIAL", api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
 
                 # ## Here we deal with the "bare spec update" problem
-                # ## this only applies to conda and python for legacy reasons; forced updates
-                # ## like this should use constrained specs (e.g. conda install python=3)
+                # ## I am only adding this for legacy / test compliancy reasons; forced updates
+                # ## like this should (imo) use constrained specs (e.g. conda install python=3)
+                # ## or the update command as in `conda update python`. however conda thinks
+                # ## differently of update vs install (quite counterintuitive):
+                # ##   https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/installing-with-conda.html#conda-update-versus-conda-install
                 # ## this is tested in:
                 # ##   tests/core/test_solve.py::test_pinned_1
                 # ##   tests/test_create.py::IntegrationTests::test_update_with_pinned_packages
@@ -381,9 +384,8 @@ class LibMambaSolver2(Solver):
                 # environment (built for py26) will keep it in place. we offer two ways to deal
                 # with this libsolv behaviour issue:
                 #   A) introduce an artificial version spec `python !=<currently installed>`
-                #   B) use FORCEBEST -- this would be ideal, but
-                #      sometimes in gets in the way, so we only use it as a last
-                #      attempt effort.
+                #   B) use FORCEBEST -- this would be ideal, but sometimes in gets in the way,
+                #      so we only use it as a last attempt effort.
                 # NOTE: This is a dirty-ish workaround... rethink?
                 requested = in_state.requested.get(name)
                 conditions = (
