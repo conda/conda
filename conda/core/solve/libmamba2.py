@@ -4,7 +4,7 @@ from collections import defaultdict, OrderedDict
 from logging import getLogger
 import sys
 from tempfile import NamedTemporaryFile
-from typing import Iterable, Mapping, Optional
+from typing import Iterable, Mapping, Optional, Union
 
 from ...base.constants import REPODATA_FN, ChannelPriority, DepsModifier, UpdateModifier
 from ...base.context import context
@@ -23,6 +23,7 @@ from ...exceptions import (
 )
 from ...models.channel import Channel
 from ...models.match_spec import MatchSpec
+from ...models.records import PackageRecord
 from .classic import Solver
 from .state import SolverInputState, SolverOutputState, IndexHelper
 
@@ -31,21 +32,81 @@ log = getLogger(__name__)
 
 
 class LibMambaIndexHelper(IndexHelper):
-    def __init__(self, pool):
+    def __init__(
+        self,
+        installed_records: Iterable[PackageRecord] = (),
+        channels: Iterable[Union[Channel, str]] = None,
+        subdirs: Iterable[str] = None,
+    ):
         import libmambapy as api
+        from .libmamba_utils import load_channels
 
-        self.pool = pool
-        self.query = api.Query(pool)
-        self.format = api.QueryFormat.JSON
+        self._pool = api.Pool()
+
+        # export installed records to a temporary json file
+        exported_installed = {"packages": {}}
+        for record in installed_records:
+            exported_installed["packages"][record.fn] = {
+                **record.dist_fields_dump(),
+                "depends": record.depends,
+                "constrains": record.constrains,
+                "build": record.build,
+            }
+        with NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            f.write(json_dump(exported_installed))
+        installed = api.Repo(self._pool, "installed", f.name, "")
+        installed.set_installed()
+        os.unlink(f.name)
+
+        if channels is None:
+            channels = context.channels
+        if subdirs is None:
+            subdirs = context.subdirs
+
+        self._index = load_channels(
+            pool=self._pool,
+            channels=self._channel_urls(channels),
+            repos=[installed],
+            prepend=False,
+            use_local=context.use_local,
+            platform=subdirs,
+        )
+
+        self._query = api.Query(self._pool)
+        self._format = api.QueryFormat.JSON
+
+    @staticmethod
+    def _channel_urls(channels: Iterable[Union[Channel, str]]):
+        """
+        TODO: libmambapy could handle path to url, and escaping
+        but so far we are doing it ourselves
+        """
+
+        def _channel_to_url_or_name(channel):
+            # This fixes test_activate_deactivate_modify_path_bash
+            # and other local channels (path to url) issues
+            urls = []
+            for url in channel.urls():
+                url = url.rstrip("/").rsplit("/", 1)[0]  # remove subdir
+                urls.append(escape_channel_url(url))
+            # deduplicate
+            urls = list(OrderedDict.fromkeys(urls))
+            return urls
+
+        channels = [url for c in channels for url in _channel_to_url_or_name(Channel(c))]
+        if context.restore_free_channel and "https://repo.anaconda.com/pkgs/free" not in channels:
+            channels.append("https://repo.anaconda.com/pkgs/free")
+
+        return tuple(channels)
 
     def whoneeds(self, query: str):
-        return self.query.whoneeds(query, self.format)
+        return self._query.whoneeds(query, self._format)
 
     def depends(self, query: str):
-        return self.query.depends(query, self.format)
+        return self._query.depends(query, self._format)
 
     def search(self, query: str):
-        return self.query.find(query, self.format)
+        return self._query.find(query, self._format)
 
     def explicit_pool(self, specs: Iterable[MatchSpec]) -> Iterable[str]:
         """
@@ -99,8 +160,7 @@ class LibMambaSolver2(Solver):
 
         # These three attributes are set during ._setup_solver()
         self.solver = None
-        self._index = None
-        self._pool = None
+        self._solver_options = None
 
     def solve_final_state(
         self,
@@ -133,9 +193,17 @@ class LibMambaSolver2(Solver):
         if none_or_final_state is not None:
             return none_or_final_state
 
-        # From now on we _do_ require a solver
-        self._setup_solver(in_state)
-        index = LibMambaIndexHelper(self._pool)
+        # From now on we _do_ require a solver and the index
+        from .libmamba_utils import init_api_context
+
+        init_api_context()
+
+        index = LibMambaIndexHelper(
+            installed_records=chain(in_state.installed.values(), in_state.virtual.values()),
+            channels=self._channels,
+            subdirs=self.subdirs,
+        )
+        self._setup_solver(index)
 
         for attempt in range(1, max(1, len(in_state.installed)) + 1):
             log.debug("Starting solver attempt %s", attempt)
@@ -182,7 +250,7 @@ class LibMambaSolver2(Solver):
                 self._raise_for_problems()
 
         # We didn't fail? Nice, let's return the calculated state
-        self._export_solved_records(in_state, out_state)
+        self._export_solved_records(in_state, out_state, index)
 
         # Run post-solve tasks
         out_state.post_solve(solver=self)
@@ -201,77 +269,20 @@ class LibMambaSolver2(Solver):
 
         return out_state.current_solution
 
-    def _setup_solver(self, in_state: SolverInputState):
+    def _setup_solver(self, index: LibMambaIndexHelper):
         import libmambapy as api
-        from .libmamba_utils import load_channels, init_api_context
 
-        if self.solver is None:
+        self._solver_options = solver_options = [
+            (api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1),
+            (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1),
+            (api.SOLVER_FLAG_INSTALL_ALSO_UPDATES, 1),
+            (api.SOLVER_FLAG_FOCUS_BEST, 1),
+            (api.SOLVER_FLAG_BEST_OBEY_POLICY, 1),
+        ]
+        if context.channel_priority is ChannelPriority.STRICT:
+            solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
 
-            init_api_context()
-
-            # We need to keep a non-local reference to the object in the Python layer so
-            # we don't get segfaults due to the missing object down the line
-            # We also need it for the IndexHelper (repoquery stuff)
-            self._pool = pool = api.Pool()
-
-            # export installed records to a temporary json file
-            exported_installed = {"packages": {}}
-            for record in chain(in_state.installed.values(), in_state.virtual.values()):
-                exported_installed["packages"][record.fn] = {
-                    **record.dist_fields_dump(),
-                    "depends": record.depends,
-                    "constrains": record.constrains,
-                    "build": record.build,
-                }
-            with NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
-                f.write(json_dump(exported_installed))
-            installed = api.Repo(pool, "installed", f.name, "")
-            installed.set_installed()
-            os.unlink(f.name)
-
-            self._index = load_channels(
-                pool=pool,
-                channels=self._channel_urls(),
-                repos=[installed],
-                prepend=False,
-                use_local=context.use_local,
-                platform=self.subdirs,
-            )
-
-            self._solver_options = solver_options = [
-                (api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1),
-                (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1),
-                (api.SOLVER_FLAG_INSTALL_ALSO_UPDATES, 1),
-                (api.SOLVER_FLAG_FOCUS_BEST, 1),
-                (api.SOLVER_FLAG_BEST_OBEY_POLICY, 1),
-            ]
-            if context.channel_priority is ChannelPriority.STRICT:
-                solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
-
-        self.solver = api.Solver(self._pool, self._solver_options)
-
-    def _channel_urls(self):
-        """
-        TODO: libmambapy could handle path to url, and escaping
-        but so far we are doing it ourselves
-        """
-
-        def _channel_to_url_or_name(channel):
-            # This fixes test_activate_deactivate_modify_path_bash
-            # and other local channels (path to url) issues
-            urls = []
-            for url in channel.urls():
-                url = url.rstrip("/").rsplit("/", 1)[0]  # remove subdir
-                urls.append(escape_channel_url(url))
-            # deduplicate
-            urls = list(OrderedDict.fromkeys(urls))
-            return urls
-
-        channels = [url for c in self._channels for url in _channel_to_url_or_name(Channel(c))]
-        if context.restore_free_channel and "https://repo.anaconda.com/pkgs/free" not in channels:
-            channels.append("https://repo.anaconda.com/pkgs/free")
-
-        return tuple(channels)
+        self.solver = api.Solver(index._pool, self._solver_options)
 
     def _solve_attempt(
         self,
@@ -279,7 +290,7 @@ class LibMambaSolver2(Solver):
         out_state: SolverOutputState,
         index: LibMambaIndexHelper,
     ):
-        self._setup_solver(in_state)
+        self._setup_solver(index)
 
         log.debug("New solver attempt")
         log.debug("Current conflicts (including learnt ones): %s", out_state.conflicts)
@@ -501,7 +512,12 @@ class LibMambaSolver2(Solver):
                 raise PackagesNotFoundError([" ".join(packages)])
         raise RawStrUnsatisfiableError(problems)
 
-    def _export_solved_records(self, in_state: SolverInputState, out_state: SolverOutputState):
+    def _export_solved_records(
+        self,
+        in_state: SolverInputState,
+        out_state: SolverOutputState,
+        index: LibMambaIndexHelper,
+    ):
         if self.solver is None:
             raise RuntimeError("Solver is not initialized. Call `._setup_solver()` first.")
 
@@ -516,7 +532,7 @@ class LibMambaSolver2(Solver):
             print("TO_UNLINK", to_unlink, file=sys.stderr)
 
         channel_lookup = {}
-        for _, entry in self._index:
+        for _, entry in index._index:
             key = entry["channel"].platform_url(entry["platform"], with_credentials=False)
             channel_lookup[key] = entry
 
@@ -547,5 +563,4 @@ class LibMambaSolver2(Solver):
 
     def _reset(self):
         self.solver = None
-        self._index = None
-        self._pool = None
+        self._solver_options = None

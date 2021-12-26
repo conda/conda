@@ -687,6 +687,14 @@ class SolverOutputState(Mapping):
     def current_solution(self):
         return IndexedSet(PrefixGraph(self.records.values()).graph)
 
+    @property
+    def real_specs(self):
+        return {name: spec for name, spec in self.specs.items() if not name.startswith("__")}
+
+    @property
+    def virtual_specs(self):
+        return {name: spec for name, spec in self.specs.items() if name.startswith("__")}
+
     def prepare_specs(self, index: IndexHelper) -> Mapping[str, MatchSpec]:
         if self.solver_input_state.is_removing:
             self._prepare_for_remove(index)
