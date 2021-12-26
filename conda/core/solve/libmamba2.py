@@ -440,30 +440,26 @@ class LibMambaSolver2(Solver):
 
         dashed_specs = []  # e.g. package-1.2.3-h5487548_0
         conda_build_specs = []  # e.g. package 1.2.8.*
-        missing = []
         for line in problems.splitlines():
             line = line.strip()
             words = line.split()
             if not line.startswith("- "):
                 continue
             if "none of the providers can be installed" in line:
-                assert words[1] == "package"
-                assert words[3] == "requires"
+                if words[1] != "package" or words[3] != "requires":
+                    raise ValueError(f"Unknown message: {line}")
                 dashed_specs.append(words[2])
                 end = words.index("but")
                 conda_build_specs.append(words[4:end])
             elif "- nothing provides" in line and "needed by" in line:
-                missing.append(words[-1])
                 dashed_specs.append(words[-1])
             elif "- nothing provides" in line:
-                missing.append(words[4:])
                 conda_build_specs.append(words[4:])
 
         conflicts = {}
         for conflict in dashed_specs:
             name, version, build = conflict.rsplit("-", 2)
             conflicts[name] = MatchSpec(name=name, version=version, build=build)
-            conflicts[name].missing = conflict in missing  # TODO: FIX this ugly hack
         for conflict in conda_build_specs:
             kwargs = {"name": conflict[0].rstrip(",")}
             if len(conflict) >= 2:
@@ -471,7 +467,6 @@ class LibMambaSolver2(Solver):
             if len(conflict) == 3:
                 kwargs["build"] = conflict[2].rstrip(",")
             conflicts[kwargs["name"]] = MatchSpec(**kwargs)
-            conflicts[kwargs["name"]].missing = conflict in missing
 
         previous_set = set(previous.values())
         current_set = set(conflicts.values())
