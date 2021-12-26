@@ -729,9 +729,8 @@ class SolverOutputState(Mapping):
                 self.specs.set(
                     name, MatchSpec(name), reason="Spec matches record in aggressive updates"
                 )
-            elif (
-                name not in self.conflicts
-            ):  # TODO: and (name not in explicit_pool or record in explicit_pool[name]):
+            elif name not in self.conflicts:
+                # TODO: and (name not in explicit_pool or record in explicit_pool[name]):
                 self.specs.set(
                     name,
                     record.to_match_spec(),
@@ -774,14 +773,14 @@ class SolverOutputState(Mapping):
                 if sis.requested[name].match(spec):
                     reason = (
                         "Pinned, installed and requested; constraining request "
-                        "as pin because they are compatible",
+                        "as pin because they are compatible"
                     )
                     self.specs.set(name, pin, reason=reason)
                     pin_overrides.add(name)
                 else:
                     reason = (
                         "Pinned, installed and requested; pin and request "
-                        "are conflicting, so adding user request due to higher precedence",
+                        "are conflicting, so adding user request due to higher precedence"
                     )
                     self.specs.set(name, sis.requested[name], reason=reason)
             elif name in explicit_pool:
@@ -957,8 +956,8 @@ class SolverOutputState(Mapping):
 
         if (
             "conda" in self.specs
-            and paths_equal(sis.prefix, context.conda_prefix)
             and "conda" in sis.installed
+            and paths_equal(sis.prefix, context.conda_prefix)
         ):
             record = sis.installed["conda"]
             spec = self.specs["conda"]
