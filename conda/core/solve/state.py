@@ -450,13 +450,13 @@ class SolverInputState:
             spec = MatchSpec(spec)
             self._requested[spec.name] = spec
 
-        self._update_modifier = self._value_from_context_if_null(
+        self._update_modifier = self._default_to_context_if_null(
             "update_modifier", update_modifier
         )
-        self._deps_modifier = self._value_from_context_if_null("deps_modifier", deps_modifier)
-        self._ignore_pinned = self._value_from_context_if_null("ignore_pinned", ignore_pinned)
-        self._force_remove = self._value_from_context_if_null("force_remove", force_remove)
-        self._force_reinstall = self._value_from_context_if_null(
+        self._deps_modifier = self._default_to_context_if_null("deps_modifier", deps_modifier)
+        self._ignore_pinned = self._default_to_context_if_null("ignore_pinned", ignore_pinned)
+        self._force_remove = self._default_to_context_if_null("force_remove", force_remove)
+        self._force_reinstall = self._default_to_context_if_null(
             "force_reinstall", force_reinstall
         )
         self._prune = prune
@@ -474,11 +474,10 @@ class SolverInputState:
         # Ensure configured pins match installed builds
         for name, pin_spec in self._pinned.items():
             installed = self.installed.get(name)
-            if installed:
-                if not pin_spec.match(installed):
-                    raise SpecsConfigurationConflictError([installed], [pin_spec], self.prefix)
+            if installed and not pin_spec.match(installed):
+                raise SpecsConfigurationConflictError([installed], [pin_spec], self.prefix)
 
-    def _value_from_context_if_null(self, name, value, context=context):
+    def _default_to_context_if_null(self, name, value, context=context):
         "Obtain default value from the context if value is set to NULL; otherwise leave as is"
         return getattr(context, name) if value is NULL else self._ENUM_STR_MAP.get(value, value)
 
@@ -545,8 +544,6 @@ class SolverInputState:
         is not configurable, but hardcoded for legacy reasons.
         """
         return MappingProxyType(self._do_not_remove)
-
-    # User requested pools
 
     @property
     def requested(self) -> Mapping[str, MatchSpec]:
