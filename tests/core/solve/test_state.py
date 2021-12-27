@@ -77,7 +77,7 @@ def test_create_requested_and_pinned():
         with empty_prefix() as prefix:
             sis = SolverInputState(prefix=prefix, requested=packages)
             sos = SolverOutputState(solver_input_state=sis)
-            index = LibMambaIndexHelper.from_state()
+            index = LibMambaIndexHelper()
             sos.prepare_specs(index=index)
             assert sis.pinned == {"python": MatchSpec(pinned, optional=True)}
             assert sos.real_specs == {"python": MatchSpec(pinned)}
