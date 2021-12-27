@@ -64,7 +64,6 @@ from types import MappingProxyType
 from typing import Any, Hashable, Iterable, Type, Union, Optional, Tuple, Mapping
 from os import PathLike
 import logging
-import functools
 
 from ... import CondaError
 from ..._vendor.boltons.setutils import IndexedSet
@@ -634,7 +633,8 @@ class SolverOutputState:
     # Consider merging this with a base class in conda.core.solve
     """
     This is the main mutable object we will massage before passing the result of the computation
-    (the ``specs`` mapping) to the solver. It will also store the result of the solve (in ``records``).
+    (the ``specs`` mapping) to the solver. It will also store the result of the solve (in
+    ``records``).
 
     Parameters
     ----------
@@ -645,39 +645,42 @@ class SolverOutputState:
         driven by ``solver_input_state`` (check ``._initialize_specs_from_input_state()`` for more
         details).
     records
-        Mapping of package names to ``PackageRecord`` objects. If not provided, it will be initialized
-        from the ``installed`` records in ``solver_input_state``.
+        Mapping of package names to ``PackageRecord`` objects. If not provided, it will be
+        initialized from the ``installed`` records in ``solver_input_state``.
     for_history
-        Mapping of package names to ``MatchSpec`` objects. These specs will be written to the prefix
-        history once the solve is complete. Its default initial value is taken from the explicitly
-        requested packages in the ``solver_input_state`` instance.
+        Mapping of package names to ``MatchSpec`` objects. These specs will be written to
+        the prefix history once the solve is complete. Its default initial value is taken from the
+        explicitly requested packages in the ``solver_input_state`` instance.
     neutered
-        Mapping of package names to ``MatchSpec`` objects. These specs are also written to the prefix
-        history, as part of the neutered specs. If not provided, their default value is a blank mapping.
+        Mapping of package names to ``MatchSpec`` objects. These specs are also written to
+        the prefix history, as part of the neutered specs. If not provided, their default value is
+        a blank mapping.
     conflicts
-        If a solve attempt is not successful, conflicting specs are kept here for further relaxation
-        of the version and build constrains. If not provided, their default value is a blank mapping.
+        If a solve attempt is not successful, conflicting specs are kept here for further
+        relaxation of the version and build constrains. If not provided, their default value is a
+        blank mapping.
 
     Notes
     -----
-    Almost all the attributes in this object map package names (``str``) to ``MatchSpec`` (_specs_ in
-    short) objects. The only mapping with different values is ``records``, which stores ``PackageRecord``
-    objects. A quick note on these objects:
+    Almost all the attributes in this object map package names (``str``) to ``MatchSpec``
+    (_specs_ in short) objects. The only mapping with different values is ``records``, which
+    stores ``PackageRecord`` objects. A quick note on these objects:
 
-    * ``MatchSpec`` objects are a query language for packages, based on the ``PackageRecord`` schema.
-      ``PackageRecord`` objects is how packages that are already installed are represented. This is
-      what you get from ``PrefixData.iter_records()``. Since they are related, ``MatchSpec``
-      objects can be created from a ``PackageRecord`` with ``.to_match_spec()``.
+    * ``MatchSpec`` objects are a query language for packages, based on the ``PackageRecord``
+      schema. ``PackageRecord`` objects is how packages that are already installed are
+      represented. This is what you get from ``PrefixData.iter_records()``. Since they are
+      related, ``MatchSpec`` objects can be created from a ``PackageRecord`` with
+      ``.to_match_spec()``.
     * ``MatchSpec`` objects also feature fields like ``target`` and ``optional``. These are,
-      essentially, used by the low-level classic solver (:class:`conda.resolve.Resolve`) to mark
-      specs as items it can optionally play with to satisfy the solver constrains. A ``target``
-      marked spec is _soft-pinned_ in the sense that the solver will try to satisfy that but it
-      will stop trying if it gets in the way, so you might end up a different version or build.
-      ``optional`` seems to be in the same lines, but maybe the entire spec can be dropped from the
-      request? The key idea here is that these two fields might not be directly usable by the
-      solver, but it might need some custom adaptation. For example, for ``libmamba`` we might need
-      a separate pool that can be configured as a flexible task. See more details in the first
-      comment of ``conda.core.solve.classic.Solver._add_specs``
+      essentially, used by the low-level classic solver (:class:`conda.resolve.Resolve`) to
+      mark specs as items it can optionally play with to satisfy the solver constrains. A
+      ``target`` marked spec is _soft-pinned_ in the sense that the solver will try to satisfy
+      that but it will stop trying if it gets in the way, so you might end up a different
+      version or build. ``optional`` seems to be in the same lines, but maybe the entire spec
+      can be dropped from the request? The key idea here is that these two fields might not be
+      directly usable by the solver, but it might need some custom adaptation. For example, for
+      ``libmamba`` we might need a separate pool that can be configured as a flexible task. See
+      more details in the first comment of ``conda.core.solve.classic.Solver._add_specs``
     """
 
     def __init__(
@@ -780,8 +783,8 @@ class SolverOutputState:
     @property
     def current_solution(self):
         """
-        Massage currently stored records so they can be returned as the type
-        expected by the solver API. This is what you should return in ``Solver.solve_final_state()``.
+        Massage currently stored records so they can be returned as the type expected by the
+        solver API. This is what you should return in ``Solver.solve_final_state()``.
         """
         return IndexedSet(PrefixGraph(self.records.values()).graph)
 
@@ -826,11 +829,11 @@ class SolverOutputState:
         """
         sis = self.solver_input_state
 
-        # The constructor should have prepared the _basics_ of the specs / records maps. Now we we
-        # will try to refine the version constrains to minimize changes in the environment whenever
-        # possible. Take into account this is done iteratively together with the solver!
-        # self.records starts with the initial prefix state (if any), but acumulates solution
-        # attempts after each retry.
+        # The constructor should have prepared the _basics_ of the specs / records maps. Now we
+        # we will try to refine the version constrains to minimize changes in the environment
+        # whenever possible. Take into account this is done iteratively together with the
+        # solver! self.records starts with the initial prefix state (if any), but acumulates
+        # solution attempts after each retry.
 
         # ## Refine specs that match currently proposed solution
         # ## (either prefix as is, or a failed attempt)
@@ -865,8 +868,8 @@ class SolverOutputState:
                     reason="Spec matches record in explicit pool for its name",
                 )
             elif name in sis.history:
-                # if the package was historically requested, we will honor that, but trying to keep
-                # the package as installed
+                # if the package was historically requested, we will honor that, but trying to
+                # keep the package as installed
                 #
                 # TODO: JRG: I don't know how mamba will handle _both_ a constrain and a target;
                 # play with priorities?
@@ -876,8 +879,8 @@ class SolverOutputState:
                     reason="Spec matches record in history",
                 )
             else:
-                # every other spec that matches something installed will be configured with only a
-                # target This is the case for conflicts, among others
+                # every other spec that matches something installed will be configured with
+                # only a target This is the case for conflicts, among others
                 self.specs.set(
                     name, MatchSpec(name, target=record.dist_str()), reason="Spec matches record"
                 )
@@ -912,15 +915,16 @@ class SolverOutputState:
                     )
                     self.specs.set(name, sis.requested[name], reason=reason)
             elif name in explicit_pool:
-                # TODO: This might be introducing additional specs into the list if the pin matches
-                # a dependency of a request, but that dependency only appears in _some_ of the
-                # request variants. For example, package A=2 depends on B, but package A=3 no
-                # longer depends on B. B will be part of A's explicit pool because it "could" be a
-                # dependency. If B happens to be pinned but A=3 ends up being the one chosen by the
-                # solver, then B would be included in the solution when it shouldn't. It's a corner
-                # case but it can happen so we might need to further restrict the explicit_pool to
-                # see. The original logic in the classic solver checked:
-                # `if explicit_pool[s.name] & ssc.r._get_package_pool([s]).get(s.name, set()):`
+                # TODO: This might be introducing additional specs into the list if the pin
+                # matches a dependency of a request, but that dependency only appears in _some_
+                # of the request variants. For example, package A=2 depends on B, but package
+                # A=3 no longer depends on B. B will be part of A's explicit pool because it
+                # "could" be a dependency. If B happens to be pinned but A=3 ends up being the
+                # one chosen by the solver, then B would be included in the solution when it
+                # shouldn't. It's a corner case but it can happen so we might need to further
+                # restrict the explicit_pool to see. The original logic in the classic solver
+                # checked: `if explicit_pool[s.name] & ssc.r._get_package_pool([s]).get(s.name,
+                # set()):`
                 self.specs.set(
                     name,
                     pin,
@@ -1000,8 +1004,9 @@ class SolverOutputState:
             # this logic a bit
 
             # ensure that our self.specs_to_add are not being held back by packages in the env.
-            # This factors in pins and also ignores specs from the history.  It is unfreezing only
-            # for the indirect specs that otherwise conflict with update of the immediate request
+            # This factors in pins and also ignores specs from the history.  It is unfreezing
+            # only for the indirect specs that otherwise conflict with update of the immediate
+            # request:
             # pinned_requests = []
             # for name, spec in sis.requested.items():
             #     if name not in pin_overrides and name in sis.pinned:
@@ -1044,7 +1049,8 @@ class SolverOutputState:
                     version = get_major_minor_version(record.version) + ".*"
                     spec = MatchSpec(spec, version=version)
 
-                # There's a chance the selected version results in a conflict -- detect and report?
+                # There's a chance the selected version results in a conflict -- detect and
+                # report?
                 # specs = (spec, ) + tuple(sis.requested.values())
                 # if sis.get_conflicting_specs(specs, sis.requested.values()):
                 #     if not sis.installing:  # TODO: repodata checks?
@@ -1100,8 +1106,8 @@ class SolverOutputState:
                 self.specs.set("conda", spec, reason=reason)
 
         # ## Extra logic ###
-        # this is where we are adding workarounds for mamba difference's in behavior, which might
-        # not belong here as they are solver specific
+        # this is where we are adding workarounds for mamba difference's in behavior, which
+        # might not belong here as they are solver specific
 
         # next step -> .prepare_for_solve()
 
@@ -1194,8 +1200,8 @@ class SolverOutputState:
 
         Notes
         -----
-        This method could be solver-agnostic  but unfortunately ``--update-deps`` requires a second
-        solve; that's why this method needs a solver class to be passed as an argument.
+        This method could be solver-agnostic  but unfortunately ``--update-deps`` requires a
+        second solve; that's why this method needs a solver class to be passed as an argument.
         """
         # After a solve, we still need to do some refinement
         sis = self.solver_input_state
@@ -1219,7 +1225,8 @@ class SolverOutputState:
 
         # ## Deps modifier ###
         # handle the different modifiers (NO_DEPS, ONLY_DEPS, UPDATE_DEPS)
-        # this might mean removing different records by hand or even calling the solver a 2nd time
+        # this might mean removing different records by hand or even calling
+        # the solver a 2nd time
 
         if sis.deps_modifier.NO_DEPS:
             # In the NO_DEPS case, we need to start with the original list of packages in the
@@ -1246,10 +1253,10 @@ class SolverOutputState:
             self.records.update(original_state, reason="Redefined records due to --no-deps")
 
         elif sis.deps_modifier.ONLY_DEPS and not sis.update_modifier.UPDATE_DEPS:
-            # Using a special instance of PrefixGraph to remove youngest child nodes that match the
-            # original requested specs.  It's important to remove only the *youngest* child nodes,
-            # because a typical use might be `conda install --only-deps python=2 flask`, and in
-            # that case we'd want to keep python.
+            # Using a special instance of PrefixGraph to remove youngest child nodes that match
+            # the original requested specs.  It's important to remove only the *youngest* child
+            # nodes, because a typical use might be `conda install --only-deps python=2 flask`,
+            # and in that case we'd want to keep python.
             #
             # What are we supposed to do if flask was already in the environment?
             # We can't be removing stuff here that's already in the environment.
@@ -1258,8 +1265,8 @@ class SolverOutputState:
             # direct dependencies of flask.
 
             graph = PrefixGraph(self.records.values(), sis.requested.values())
-            # this method below modifies the graph inplace _and_ returns the removed nodes (like
-            # dict.pop())
+            # this method below modifies the graph inplace _and_ returns the removed nodes
+            # (like dict.pop())
             would_remove = graph.remove_youngest_descendant_nodes_with_specs()
 
             # We need to distinguish the behaviour between `conda remove` and the rest
@@ -1295,9 +1302,9 @@ class SolverOutputState:
             # Here we have to SAT solve again :(  It's only now that we know the dependency
             # chain of specs_to_add.
             #
-            # UPDATE_DEPS is effectively making each spec in the dependency chain a user-requested
-            # spec. For all other specs, we drop all information but name, drop target, and add
-            # them to `requested` so it gets recorded in the history file.
+            # UPDATE_DEPS is effectively making each spec in the dependency chain a
+            # user-requested spec. For all other specs, we drop all information but name, drop
+            # target, and add them to `requested` so it gets recorded in the history file.
             #
             # It's like UPDATE_ALL, but only for certain dependency chains.
             new_specs = TrackedMap("update_deps_specs")
@@ -1335,9 +1342,9 @@ class SolverOutputState:
                 specs_to_remove = ()
 
             with context.override("quiet", False):
-                # Create a new solver instance to perform a 2nd solve with deps added We do it like
-                # this to avoid overwriting state accidentally. Instead, we will import the needed
-                # state bits manually.
+                # Create a new solver instance to perform a 2nd solve with deps added We do it
+                # like this to avoid overwriting state accidentally. Instead, we will import
+                # the needed state bits manually.
                 records = solver.__class__(
                     prefix=solver.prefix,
                     channels=solver.channels,
