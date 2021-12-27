@@ -1374,6 +1374,20 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     return context
 
 
+@contextmanager
+def fresh_context(env=None, search_path=SEARCH_PATH, argparse_args=None, **kwargs):
+    if env or kwargs:
+        old_env = os.environ.copy()
+        os.environ.update(env or {})
+        os.environ.update(kwargs)
+    context.
+    yield reset_context(search_path=search_path, argparse_args=argparse_args)
+    if env or kwargs:
+        os.environ.clear()
+        os.environ.update(old_env)
+        reset_context()
+
+
 class ContextStackObject(object):
 
     def __init__(self, search_path=SEARCH_PATH, argparse_args=None):

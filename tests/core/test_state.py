@@ -12,13 +12,12 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from conda.base.context import context, reset_context
-from conda.common.io import env_var
+from conda.base.context import context, fresh_context
 from conda.core.solve.classic import Solver
 from conda.core.solve.libmamba2 import LibMambaIndexHelper
 from conda.core.solve.state import SolverInputState, SolverOutputState
 from conda.models.match_spec import MatchSpec
-from ...test_solvers import SimpleEnvironment, index_packages
+from ..test_solvers import SimpleEnvironment, index_packages
 
 
 def empty_prefix():
@@ -42,8 +41,7 @@ def env(solver_class=Solver) -> SimpleEnvironment:
     ],
 )
 def test_create_empty(default_packages):
-    with env_var("CONDA_CREATE_DEFAULT_PACKAGES", default_packages):
-        reset_context()
+    with fresh_context(CONDA_CREATE_DEFAULT_PACKAGES=default_packages):
         with empty_prefix() as prefix:
             sis = SolverInputState(prefix)
             sos = SolverOutputState(solver_input_state=sis)
@@ -72,8 +70,7 @@ def test_create_requested_and_pinned():
     """
     packages = ("python",)
     pinned = "python=3"
-    with env_var("CONDA_PINNED_PACKAGES", pinned):
-        reset_context()
+    with fresh_context(CONDA_PINNED_PACKAGES=pinned):
         with empty_prefix() as prefix:
             sis = SolverInputState(prefix=prefix, requested=packages)
             sos = SolverOutputState(solver_input_state=sis)
@@ -89,7 +86,6 @@ def test_python_updates(env: SimpleEnvironment):
     That can only be overridden if the user explicitly requests python in the
     CLI specs. Ideally, the explicit spec contains a version constrain too.
     """
-    reset_context()
     # Setup the prefix
     env.repo_packages = index_packages(1)
     env.installed_packages = env.install("python 2.*", as_specs=True)
