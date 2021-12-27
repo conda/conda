@@ -9,8 +9,6 @@ behavioral units that, eventually, will allow us to further split the
 logic into discrete, composable parts.
 """
 from tempfile import TemporaryDirectory
-from itertools import chain
-from typing import Match
 
 import pytest
 
@@ -20,7 +18,6 @@ from conda.core.solve.classic import Solver
 from conda.core.solve.libmamba2 import LibMambaIndexHelper
 from conda.core.solve.state import SolverInputState, SolverOutputState
 from conda.models.match_spec import MatchSpec
-from conda.models.version import VersionSpec
 from ...test_solvers import SimpleEnvironment, index_packages
 
 

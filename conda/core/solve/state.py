@@ -1,5 +1,60 @@
 """
-Solver-agnostic logic to expose the prefix state to the solver.
+Solver-agnostic logic to compose the requests passed to the solver
+and accumulate its results.
+
+The state exposed to the solver is handled by two objects whose primary
+function is to serve read-only information to the solver and its other helpers.
+
+- ``SolverInputState``: fully solver agnostic. It handles:
+    - The local state on disk, namely the prefix state. This includes the
+      already installed packages in the prefix (if any), the explicit requests
+      made in that prefix in the past (history), its pinned specs, packages
+      configured as aggresive updates and others.
+    - The runtime context, determined by the configuration file(s),
+      `CONDA_*` environment variables, command line flags and the requested
+      specs (if any).
+- ``IndexHelper``: can be subclassed to add solver-specific logic
+  (e.g. custom index building). It should, provide, at least, a method to
+  query the index for the _explicit pool_ of packages for a given spec (e.g.
+  its potential dependency tree). Note that the IndexHelper might need
+  pieces of ``SolverInputState`` to build the index (e.g. installed packages,
+  configured channels and subdirs...)
+
+.. todo::
+
+    Embed IndexHelper in SolverInputState?
+
+Since ``conda`` follows an iterative approach to solve a request,
+in addition the _input_ state, the Solver itself can store additional state
+in a separate helper: the ``SolverOutputState`` object. This is meant to help
+accumulate the following pieces of data:
+
+- ``specs``: a mapping of package names to its corresponding ``MatchSpec``
+  objects. These objects are passed to the actual Solver, hoping it will return
+  a solution.
+- ``records``: a mapping of package names to ``PackageRecord`` objects. It will
+  end up containing the list of package records that will compose the final state
+  of the prefix (the _solution_). Its default value is set to the currently installed
+  packages in the prefix. The solver will alter this list as needed to accommodate
+  the final solution.
+
+If the algorithm was not iterative, the sole purpose of the solver would be to turn
+the ``specs`` into ``records``. However, ``conda``'s logic will try to constrain the
+solution to mimic the initial state as much as possible to reduce the amount of
+changes in the prefix. Sometimes, the initial request is too constrained, which results
+in a number of conflicts. These conflicts are then stored in the ``conflicts`` mapping,
+which will determine which ``specs`` are relaxed in the next attempt. Additionally,
+``conda`` stores other solve artifacts:
+
+- ``for_history``: The explicitly requested specs in the command-line should end up
+  in the history. Some modifier flags can affect how this mapping is populated (e.g.
+  ``--update-deps``.)
+- ``neutered``: Pieces of history that were found to be conflicting in the future and
+  were annotated as such to avoid falling in the same conflict again.
+
+The mappings stored in ``SolverOutputState`` are backed by ``TrackedMap`` objects,
+which allow to keep the reasons _why_ those specs or records were added to the mappings,
+as well as richer logging for each action.
 """
 
 from collections import defaultdict, MutableMapping
@@ -283,8 +338,8 @@ class EnumAsBools:
             return self._enum.name == name
         raise AttributeError(f"'{name}' is not a valid name for {self._enum.__class__.__name__}")
 
-    def __eq__(self, __o: object) -> bool:
-        return self._enum.__eq__(__o)
+    def __eq__(self, obj: object) -> bool:
+        return self._enum.__eq__(obj)
 
     def _dict(self):
         return {name: self._enum.name == name for name in self._names}
@@ -295,6 +350,8 @@ class IndexHelper:
     The _index_ refers to the combination of all configured channels and their
     platform-corresponding subdirectories. It provides the sources for available
     packages that can become part of a prefix state, eventually.
+
+    Subclass this helper to add custom repodata fetching if needed.
     """
 
     def explicit_pool(self, specs: Iterable[MatchSpec]) -> Iterable[str]:
@@ -355,6 +412,14 @@ class SolverInputState:
         "UPDATE_SPECS": UpdateModifier.UPDATE_SPECS,
         "UPDATE_ALL": UpdateModifier.UPDATE_ALL,
     }
+    _DO_NOT_REMOVE_NAMES = (
+        "anaconda",
+        "conda",
+        "conda-build",
+        "python.app",
+        "console_shortcut",
+        "powershell_shortcut",
+    )
 
     def __init__(
         self,
@@ -398,15 +463,7 @@ class SolverInputState:
         self._command = command
 
         # special cases
-        _do_not_remove = (
-            "anaconda",
-            "conda",
-            "conda-build",
-            "python.app",
-            "console_shortcut",
-            "powershell_shortcut",
-        )
-        self._do_not_remove = {p: MatchSpec(p) for p in _do_not_remove}
+        self._do_not_remove = {p: MatchSpec(p) for p in self._DO_NOT_REMOVE_NAMES}
 
         self._check_state()
 
@@ -415,13 +472,14 @@ class SolverInputState:
         Run some consistency checks to ensure configuration is solid.
         """
         # Ensure configured pins match installed builds
-        for name, spec in self._pinned.items():
+        for name, pin_spec in self._pinned.items():
             installed = self.installed.get(name)
             if installed:
-                if not spec.match(installed):
-                    raise SpecsConfigurationConflictError([installed], [spec], self.prefix)
+                if not pin_spec.match(installed):
+                    raise SpecsConfigurationConflictError([installed], [pin_spec], self.prefix)
 
     def _value_from_context_if_null(self, name, value, context=context):
+        "Obtain default value from the context if value is set to NULL; otherwise leave as is"
         return getattr(context, name) if value is NULL else self._ENUM_STR_MAP.get(value, value)
 
     @property
@@ -531,10 +589,28 @@ class SolverInputState:
 
     @property
     def update_modifier(self) -> EnumAsBools:
+        """
+        Use attribute access to test whether the modifier is set to that value
+
+        >>> update_modifier = EnumAsBools(context.update_modifier)
+        >>> update_modifier.UPDATE_SPECS
+            True
+        >>> update_modifier.UPDATE_DEPS
+            False
+        """
         return EnumAsBools(self._update_modifier)
 
     @property
     def deps_modifier(self) -> EnumAsBools:
+        """
+        Use attribute access to test whether the modifier is set to that value
+
+        >>> deps_modifier = EnumAsBools(context.deps_modifier)
+        >>> deps_modifier.NOT_SET
+            True
+        >>> deps_modifier.DEPS_ONLY
+            False
+        """
         return EnumAsBools(self._deps_modifier)
 
     # Other flags
@@ -556,32 +632,48 @@ class SolverInputState:
         return self._prune
 
 
-class SolverOutputState(Mapping):
+class SolverOutputState:
     # TODO: This object is starting to look _a lot_ like conda.core.solve itself...
     # Consider merging this with a base class in conda.core.solve
     """
-    This is the main mutable object we will massage before passing the result of the computation to
-    the solver. It will also store the result of the solve.
+    This is the main mutable object we will massage before passing the result of the computation
+    (the ``specs`` mapping) to the solver. It will also store the result of the solve (in ``records``).
 
-    Its main intent is to populate the different spec pools with MatchSpec objects obtained from an
-    ``SolverInputState`` instance.
+    Parameters
+    ----------
+    solver_input_state
+        This instance provides the initial state for the output.
+    specs
+        Mapping of package names to ``MatchSpec`` objects that will override the initialization
+        driven by ``solver_input_state`` (check ``._initialize_specs_from_input_state()`` for more
+        details).
+    records
+        Mapping of package names to ``PackageRecord`` objects. If not provided, it will be initialized
+        from the ``installed`` records in ``solver_input_state``.
+    for_history
+        Mapping of package names to ``MatchSpec`` objects. These specs will be written to the prefix
+        history once the solve is complete. Its default initial value is taken from the explicitly
+        requested packages in the ``solver_input_state`` instance.
+    neutered
+        Mapping of package names to ``MatchSpec`` objects. These specs are also written to the prefix
+        history, as part of the neutered specs. If not provided, their default value is a blank mapping.
+    conflicts
+        If a solve attempt is not successful, conflicting specs are kept here for further relaxation
+        of the version and build constrains. If not provided, their default value is a blank mapping.
 
-    The main result of this operation is available through ``.pool_items()``, which returns ``str,
-    MatchSpec`` tuples, mimicking ``dict.items()``. The key here is the pool name, which stands for
-    a reason why this spec made it to the final list.
-
-    The pool merging logic is done in ``._populate_pools()``.
-
-    All of these pools will map package names (``str``) to ``MatchSpec`` (_specs_ in short)
+    Notes
+    -----
+    Almost all the attributes in this object map package names (``str``) to ``MatchSpec`` (_specs_ in
+    short) objects. The only mapping with different values is ``records``, which stores ``PackageRecord``
     objects. A quick note on these objects:
 
-    * They are a query language for packages, based on the ``PackageRecord`` schema.
+    * ``MatchSpec`` objects are a query language for packages, based on the ``PackageRecord`` schema.
       ``PackageRecord`` objects is how packages that are already installed are represented. This is
       what you get from ``PrefixData.iter_records()``. Since they are related, ``MatchSpec``
-      objects can be created from a ``PackageRecord``.
+      objects can be created from a ``PackageRecord`` with ``.to_match_spec()``.
     * ``MatchSpec`` objects also feature fields like ``target`` and ``optional``. These are,
       essentially, used by the low-level classic solver (:class:`conda.resolve.Resolve`) to mark
-      specs as items they can optionally play with to satisfy the solver constrains. A ``target``
+      specs as items it can optionally play with to satisfy the solver constrains. A ``target``
       marked spec is _soft-pinned_ in the sense that the solver will try to satisfy that but it
       will stop trying if it gets in the way, so you might end up a different version or build.
       ``optional`` seems to be in the same lines, but maybe the entire spec can be dropped from the
@@ -639,6 +731,10 @@ class SolverOutputState(Mapping):
         )
 
     def _initialize_specs_from_input_state(self):
+        """
+        Provide the initial value for the ``.specs`` mapping. This depends on whether
+        there's a history available (existing prefix) or not (new prefix).
+        """
         # Initialize specs following conda.core.solve._collect_all_metadata()
 
         # First initialization depends on whether we have a history to work with or not
@@ -680,30 +776,57 @@ class SolverOutputState(Mapping):
 
         # Add virtual packages so they are taken into account by the solver
         for name in self.solver_input_state.virtual:
-            # we only add a bare name spec here, no constrain!
+            # we only add a bare name spec here, no constrain! the constrain is only available
+            # in the index, since it will only contain a single value for the virtual package
             self.specs.set(name, MatchSpec(name), reason="Virtual system", overwrite=False)
 
     @property
     def current_solution(self):
+        """
+        Massage currently stored records so they can be returned as the type
+        expected by the solver API. This is what you should return in ``Solver.solve_final_state()``.
+        """
         return IndexedSet(PrefixGraph(self.records.values()).graph)
 
     @property
     def real_specs(self):
+        """
+        Specs that are _not_ virtual.
+        """
         return {name: spec for name, spec in self.specs.items() if not name.startswith("__")}
 
     @property
     def virtual_specs(self):
+        """
+        Specs that are virtual.
+        """
         return {name: spec for name, spec in self.specs.items() if name.startswith("__")}
 
     def prepare_specs(self, index: IndexHelper) -> Mapping[str, MatchSpec]:
+        """
+        Main method to populate the ``specs`` mapping. ``index`` is needed only
+        in some cases, and only to call its method ``.explicit_pool()``.
+        """
         if self.solver_input_state.is_removing:
-            self._prepare_for_remove(index)
+            self._prepare_for_remove()
         else:
             self._prepare_for_add(index)
-        self._prepare_for_solve(index)
+        self._prepare_for_solve()
         return self.specs
 
-    def _prepare_for_add(self, index: IndexHelper) -> Mapping[str, MatchSpec]:
+    def _prepare_for_add(self, index: IndexHelper):
+        """
+        This is the core logic for specs processing. In contrast with the ``conda remove``
+        logic, this part is more intricate since it has to deal with details such as the
+        role of the history specs, aggressive updates, pinned packages and the deps / update
+        modifiers.
+
+        Parameters
+        ----------
+        index
+            Needed to query for the dependency tree of potentially conflicting
+            specs.
+        """
         sis = self.solver_input_state
 
         # The constructor should have prepared the _basics_ of the specs / records maps. Now we we
@@ -985,11 +1108,20 @@ class SolverOutputState(Mapping):
 
         # next step -> .prepare_for_solve()
 
-    def _prepare_for_remove(self, index: IndexHelper) -> Mapping[str, MatchSpec]:
+    def _prepare_for_remove(self):
+        "Just add the user requested specs to ``specs``"
         # This logic is simpler than when we are installing packages
         self.specs.update(self.solver_input_state.requested, reason="Adding user-requested specs")
 
-    def _prepare_for_solve(self, index: IndexHelper):
+    def _prepare_for_solve(self):
+        """
+        Last part of the logic, common to addition and removal of packages. Originally,
+        the legacy logic will also minimize the conflicts here by doing a pre-solve
+        analysis, but so far we have opted for a different approach in libmamba: let the
+        solver try, fail with conflicts, and annotate those as such so they are unconstrained.
+
+        Now, this method only ensures that the pins do not cause conflicts.
+        """
         # ## Inconsistency analysis ###
         # here we would call conda.core.solve.classic.Solver._find_inconsistent_packages()
 
@@ -1054,15 +1186,19 @@ class SolverOutputState(Mapping):
 
     def post_solve(self, solver: Type["Solver"]):
         """
-        These tasks are performed _after_ the solver has done its work. It could be solver-agnostic
-        but unfortunately ``--update-deps`` requires a second solve; that's why this method needs
-        a solver class to be passed as an argument.
+        These tasks are performed _after_ the solver has done its work. It essentially
+        post-processes the ``records`` mapping.
 
         Parameters
         ----------
         solver_cls
             The class used to instantiate the Solver. If not provided, defaults to the one
             specified in the context configuration.
+
+        Notes
+        -----
+        This method could be solver-agnostic  but unfortunately ``--update-deps`` requires a second
+        solve; that's why this method needs a solver class to be passed as an argument.
         """
         # After a solve, we still need to do some refinement
         sis = self.solver_input_state
@@ -1238,48 +1374,9 @@ class SolverOutputState(Mapping):
             self.records.clear(reason="Pruning")
             self.records.update({record.name: record for record in graph.graph}, reason="Pruned")
 
-    @property
-    def _pools(self):
-        # ordered by priority (high to low)
-        # note this is only an approximation
-        return (
-            self._explicit,
-            self._hard_constrained,
-            self._soft_constrained,
-            self._unconstrained,
-        )
-
-    @functools.lru_cache(maxsize=None)
-    def _join_pools(self, *pools):
-        # First item in each list is highest priority
-        data = defaultdict(list)
-        for pool in pools:
-            for key, value in pool.items():
-                data[key].append(value)
-        return data
-
-    @property
-    def _data(self):
-        # we don't do this directly here to use lru_cache
-        return self._join_pools(self._pools)
-
-    def __getitem__(self, key):
-        return self._data[key]
-
-    def __iter__(self):
-        yield from self._data
-
-    def __len__(self):
-        return len(self._data)
-
-    def pool_items(self):
-        """Iterator that goes over the pool items one by one."""
-        for pool in self._pools:
-            for item in pool:
-                yield (pool, item)
-
     @staticmethod
     def _raise_incompatible_spec_records(spec, records):
+        "Raise an error if something is very wrong with the environment"
         raise CondaError(
             dals(
                 f"""
