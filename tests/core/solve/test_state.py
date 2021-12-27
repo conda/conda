@@ -89,6 +89,7 @@ def test_python_updates(env: SimpleEnvironment):
     That can only be overridden if the user explicitly requests python in the
     CLI specs. Ideally, the explicit spec contains a version constrain too.
     """
+    reset_context()
     # Setup the prefix
     env.repo_packages = index_packages(1)
     env.installed_packages = env.install("python 2.*", as_specs=True)

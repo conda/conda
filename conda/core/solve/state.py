@@ -472,7 +472,7 @@ class SolverInputState:
         Run some consistency checks to ensure configuration is solid.
         """
         # Ensure configured pins match installed builds
-        for name, pin_spec in self._pinned.items():
+        for name, pin_spec in self.pinned.items():
             installed = self.installed.get(name)
             if installed and not pin_spec.match(installed):
                 raise SpecsConfigurationConflictError([installed], [pin_spec], self.prefix)
