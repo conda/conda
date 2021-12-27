@@ -1380,7 +1380,6 @@ def fresh_context(env=None, search_path=SEARCH_PATH, argparse_args=None, **kwarg
         old_env = os.environ.copy()
         os.environ.update(env or {})
         os.environ.update(kwargs)
-    context.
     yield reset_context(search_path=search_path, argparse_args=argparse_args)
     if env or kwargs:
         os.environ.clear()
