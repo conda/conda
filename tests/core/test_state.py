@@ -34,22 +34,26 @@ def env(solver_class=Solver) -> SimpleEnvironment:
     "default_packages",
     [
         "",
-        # TODO: These will fail
-        # "python",
-        # "python,jupyter",
-        # "python=3",
+        "python,jupyter",
+        "python=3",
     ],
 )
 def test_create_empty(default_packages):
-    with fresh_context(CONDA_CREATE_DEFAULT_PACKAGES=default_packages):
-        with empty_prefix() as prefix:
-            sis = SolverInputState(prefix)
-            sos = SolverOutputState(solver_input_state=sis)
-            # `index` should be an IndexHelper, not None, but we don't need one for this test
-            sos.prepare_specs(index=None)
-            if default_packages:
-                assert context.create_default_packages
-            assert tuple(sos.real_specs.values()) == context.create_default_packages
+    """
+    Test what happens when `conda create` is invoked with no specs.
+
+    `requested` is empty in that case (unless `create_default_packages` config key
+    is populated, which would add specs to requested through conda.cli.install logic)
+    """
+    with fresh_context(CONDA_CREATE_DEFAULT_PACKAGES=default_packages), empty_prefix() as prefix:
+        default_specs = [MatchSpec(spec_str) for spec_str in context.create_default_packages]
+        sis = SolverInputState(prefix, requested=default_specs)
+        sos = SolverOutputState(solver_input_state=sis)
+        # `index` should be an IndexHelper, not None, but we don't need one for this test
+        sos.prepare_specs(index=None)
+        if default_packages:
+            assert context.create_default_packages
+        assert list(sos.real_specs.values()) == default_specs
 
 
 @pytest.mark.parametrize("packages", [["python"], ["conda"]])
