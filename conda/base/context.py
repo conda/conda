@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 
+import functools
 from errno import ENOENT
 from logging import getLogger
 import os
@@ -129,6 +130,7 @@ def ssl_verify_validation(value):
     return True
 
 
+@functools.lru_cache(maxsize=None)  # XXX: Replace with functools.cache once we drop 3.8.
 def get_plugin_manager():
     pm = pluggy.PluginManager('conda')
     pm.add_hookspecs(plugins)
