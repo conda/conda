@@ -150,7 +150,8 @@ The important bits are:
 
 * A channel contains one or more platform-specific directories (`linux-64`, `osx-64`, etc), plus a
   platform-agnostic directory called `noarch`. In `conda` jargon, these are also referred as channel
-  _subdirs_.
+  _subdirs_. Officially, the `noarch` subdirectory is enough to make it a `conda` channel; e.g. no
+  platform subdirectory is necessary.
 * Each _subdir_ contains, at least, a `repodata.json` file: a gigantic dictionary with _all_ the
   metadata for each package available on that platform.
 * In most cases, the same subdirs also contain the `*.tar.bz2` files for each of the published
@@ -209,7 +210,7 @@ Sadly, `fetch_extract_and_read()` does not exist as such, but as a combination o
 
 Once you have the full URL, fetching actually takes place through `conda.core.subdir_data.SubdirData`
 objects. This object implements caching, authentication, proxies and other things that complicate
-the simple idea of "just download the file please". Most of the logic is in `SubdirData._load()`,
+the simple idea of "just download the file, please". Most of the logic is in `SubdirData._load()`,
 which ends up calling `conda.core.subdir_data.fetch_repodata_remote_request()` to process the
 request. Finally, `SubdirData._process_raw_repodata_str()` does the parsing and loading.
 
@@ -241,7 +242,71 @@ to solve and causes less problems down the line. Check more details
 
 ## Solving the install request
 
-WIP
+At this point, we can start asking things to the solver, right? After all, we have loaded the
+channels into our index, building the catalog of available packages and versions we can install.
+We also have the command-line instructions and configurations needed to customize the solver request.
+So, let's just do it: "Solver, please install numpy on this prefix using these channels as
+package sources".
+
+Well, not that quick. The explicit instructions given by the user are only one part of the request
+we will send to the solver. Other pieces of implicit state are taken into account to build the
+final request. Namely, the state of your prefix. In total, these are the ingredients of the
+solver request.
+
+1. Packages already present in your environment, if you are not _creating_ a new one. This is
+   exposed through the `conda.core.prefix_data.PrefixData` class, which provides an iterator method
+   via `.iter_records()`. As the name suggests, this yields `conda.models.records.PackageRecord`
+   objects.
+2. Past actions you have performed in that environment; the _History_. This is a journal of all the
+   `conda install|update|remove` commands you have run in the past. The _specs_ of those commands
+   receive special treatment by the solver.
+3. Packages included in the _aggressive updates_ list. These packages are always included in any
+   requests to make sure they stay up-to-date under all circumstances.
+4. Packages pinned to a specific version, either via `pinned_packages` in your `.condarc` or defined
+   in a `$PREFIX/conda-meta/pinned` file.
+5. In new environments, packages included in the `create_default_packages` list. These specs are
+   injected in each `conda create` command, so the solver will see them as explicitly requested
+   by the user.
+6. The specs the user is actually asking for.
+
+All of those sources of information produce a number a of `MatchSpec` objects which are then
+combined and modified in very specific ways depending on the command-line flags and their origin
+(e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
+explicitly). This logic is intricate and has been covered in detail {ref}`here <deep_dive_solvers>`.
+Just keep in mind that it's an iterative process where the specs list is initially constrained
+to match the installed packages state as much as possible, but it can be relaxed as needed to
+workaround the potential conflicts.
+
+```{admonition} Tricks to reduce the size of the index
+
+`conda` supports the notion of trying with different versions of the index in an effort to minimize
+the solution space. A smaller index means a faster search after all! The default logic starts with
+`current_repodata.json` files in the channel, which contain only the latest versions of each package
+plus their dependencies. If that fails, then the full `repodata.json` is used. This happens _before_
+the `Solver` is even invoked.
+
+The second trick is done within the sovler logic: an informed index reduction. In essence, the
+index (whether it's `current_repodata.json` or full `repodata.json`) is pruned by the solver,
+trying to keep only the parts that it anticipates will be needed. More details can be found on
+[the `get_reduced_index` function][conda.core.index:get_reduced_index]. Interestingly, this
+optimization step also takes longer the bigger the index gets...
+```
+
+Once the solver receives the list of specs it needs to resolve, we can consider it will do some
+magic and, eventually, either:
+
+* Succeed and return a list of `PackageRecord` objects: those entries in the index that match
+  our request. More on this in the next section.
+* Fail with an `UnsatisfiableError`. The details of this error are gathered through a rather
+  expensive function that tries to recover _why_ the request is unsatisfiable. This is done in the
+  [`build_conflict_map` function][conda.resolve:build_conflict_map].
+
+```{admonition} Disabling unsatisfiable hints
+
+Unsatisfiability reasons can be disabled through the `context` options, but unfortunately that
+gets in the way of conda's iterative logic. It will shortcut any constrained attempts and prevent
+the solver from trying less constrained specs. This is a part of the logic that should be improved.
+```
 
 ## Generating the transaction and the corresponding actions
 
@@ -265,7 +330,6 @@ WIP
 
 
 <!-- Links and references -->
-
 [conda_build_channels]: https://docs.conda.io/projects/conda-build/en/latest/concepts/generating-index.html
 [conda_build_package_names]: https://docs.conda.io/projects/conda-build/en/latest/concepts/package-naming-conv.html
 [conda_cli_install_presolve_logic]: https://github.com/conda/conda/blob/4.11.0/conda/cli/install.py#L107
@@ -279,8 +343,10 @@ WIP
 [conda.cli.main_install]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main_install.py
 [conda.cli.main:main]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main.py#L121
 [conda.cli]: https://github.com/conda/conda/tree/4.11.0/conda/cli
+[conda.resolve:build_conflict_map]: https://github.com/conda/conda/blob/4.11.0/conda/resolve.py#L415
 [conda.shell]: https://github.com/conda/conda/tree/4.11.0/conda/shell
 [context_init]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main.py#L75
 [context_match]: https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L1484
 [current_repodata_details]: https://docs.conda.io/projects/conda-build/en/latest/concepts/generating-index.html#trimming-to-current-repodata
 [initialize_logging]: https://github.com/conda/conda/blob/4.11.0/conda/gateways/logging.py#L162
+[conda.core.index:get_reduced_index]: https://github.com/conda/conda/blob/4.11.0/conda/core/index.py#L246
