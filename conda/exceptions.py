@@ -1005,6 +1005,10 @@ class NoSpaceLeftError(CondaError):
         super(NoSpaceLeftError, self).__init__(message, caused_by=caused_by, **kwargs)
 
 
+class PluginError(CondaError):
+    pass
+
+
 def maybe_raise(error, context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)

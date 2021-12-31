@@ -13,6 +13,8 @@ import platform
 import sys
 import struct
 
+import pluggy
+
 from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
@@ -35,6 +37,8 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..common.decorators import env_override
 
 from .. import CONDA_PACKAGE_ROOT
+
+from .. import plugins
 
 try:
     os.getcwd()
@@ -123,6 +127,13 @@ def ssl_verify_validation(value):
                     "certificate bundle file, or a path to a directory containing "
                     "certificates of trusted CAs." % value)
     return True
+
+
+def get_plugin_manager():
+    pm = pluggy.PluginManager('conda')
+    pm.add_hookspecs(plugins)
+    pm.load_setuptools_entrypoints('conda')
+    return pm
 
 
 class Context(Configuration):
@@ -354,6 +365,13 @@ class Context(Configuration):
 
         super(Context, self).__init__(search_path=search_path, app_name=APP_NAME,
                                       argparse_args=argparse_args)
+
+        # plugin support
+        self._plugin_manager = get_plugin_manager()
+
+    @property
+    def plugin_manager(self):
+        return self._plugin_manager
 
     def post_build_validation(self):
         errors = []
