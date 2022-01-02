@@ -155,10 +155,10 @@ The important bits are:
 * Each _subdir_ contains, at least, a `repodata.json` file: a gigantic dictionary with _all_ the
   metadata for each package available on that platform.
 * In most cases, the same subdirs also contain the `*.tar.bz2` files for each of the published
-  packages. This is what `conda` downloads and extracts once solving is complete. The anatomy of
-  these files is well defined, both in content and naming structure. See {ref}`concept-conda-package`,
-  {ref}`package_metadata` and/or [Package naming conventions][conda_build_package_names] for more
-  details.
+  packages. This is what `conda` downloads and extracts once solving is complete. The anatomy
+  of these files is well defined, both in content and naming structure. See
+  {ref}`concept-conda-package`, {ref}`package_metadata` and/or [Package naming
+  conventions][conda_build_package_names] for more details.
 
 Additionally, the channel main directory might contain a `channeldata.json` file, with channel-wide
 metadata (this is, not specific per platform). Not all channels include this and, actually, it's not
@@ -208,24 +208,26 @@ method. Several helper functions can be found in `conda.core.index`, if needed.
 
 Sadly, `fetch_extract_and_read()` does not exist as such, but as a combination of objects.
 
-Once you have the full URL, fetching actually takes place through `conda.core.subdir_data.SubdirData`
-objects. This object implements caching, authentication, proxies and other things that complicate
-the simple idea of "just download the file, please". Most of the logic is in `SubdirData._load()`,
-which ends up calling `conda.core.subdir_data.fetch_repodata_remote_request()` to process the
-request. Finally, `SubdirData._process_raw_repodata_str()` does the parsing and loading.
+Once you have the full URL, fetching actually takes place through
+`conda.core.subdir_data.SubdirData` objects. This object implements caching, authentication,
+proxies and other things that complicate the simple idea of "just download the file, please".
+Most of the logic is in `SubdirData._load()`, which ends up calling
+`conda.core.subdir_data.fetch_repodata_remote_request()` to process the request. Finally,
+`SubdirData._process_raw_repodata_str()` does the parsing and loading.
 
-Internally, the `SubdirData` stores all the package metadata as a list of `PackageRecord` objects.
-Its main usage is via `.query()` (one result at a time) or `.query_all()` (all possible matches).
-These `.query*` methods accept spec strings (e.g. `numpy =1.14`), `MatchSpec` and `PackageRecord`
-instances. Alternatively, if you want _all_ records with no queries, use `SubdirData.iter_records()`.
+Internally, the `SubdirData` stores all the package metadata as a list of `PackageRecord`
+objects. Its main usage is via `.query()` (one result at a time) or `.query_all()` (all
+possible matches). These `.query*` methods accept spec strings (e.g. `numpy =1.14`),
+`MatchSpec` and `PackageRecord` instances. Alternatively, if you want _all_ records with no
+queries, use `SubdirData.iter_records()`.
 
 ### Channel priorities
 
-`context.channels` returns an `IndexedSet` of `Channel` objects; essentially a list of unique items.
-The different channels in this list can have overlapping or even conflicting information for the same
-package name. For example, `defaults` and `conda-forge` will for sure contain packages that fullfil
-the `conda install numpy` request. Which one is chosen by `conda` in this case? It depends on the
-`context.channel_priority` setting: From the help message:
+`context.channels` returns an `IndexedSet` of `Channel` objects; essentially a list of unique
+items. The different channels in this list can have overlapping or even conflicting information
+for the same package name. For example, `defaults` and `conda-forge` will for sure contain
+packages that fullfil the `conda install numpy` request. Which one is chosen by `conda` in this
+case? It depends on the `context.channel_priority` setting: From the help message:
 
 ```{admonition} Help message for channel priority
 Accepts values of 'strict', 'flexible', and 'disabled'. The default value is 'flexible'. With strict
@@ -243,10 +245,10 @@ to solve and causes less problems down the line. Check more details
 ## Solving the install request
 
 At this point, we can start asking things to the solver, right? After all, we have loaded the
-channels into our index, building the catalog of available packages and versions we can install.
-We also have the command-line instructions and configurations needed to customize the solver request.
-So, let's just do it: "Solver, please install numpy on this prefix using these channels as
-package sources".
+channels into our index, building the catalog of available packages and versions we can
+install. We also have the command-line instructions and configurations needed to customize the
+solver request. So, let's just do it: "Solver, please install numpy on this prefix using these
+channels as package sources".
 
 Well, not that quick. The explicit instructions given by the user are only one part of the request
 we will send to the solver. Other pieces of implicit state are taken into account to build the
@@ -310,23 +312,323 @@ the solver from trying less constrained specs. This is a part of the logic that 
 
 ## Generating the transaction and the corresponding actions
 
-WIP
+The Solver API defines three public methods:
+
+* `.solve_final_state()`: this is the core function, described in the section above. Given some
+  input state, it returns an `IndexedSet` of `PackageRecord` objects that reflect what the final
+  state of the environment should look like.
+* `.solve_for_diff()`: this method takes the final state and diffs it with the current state of the
+  environment, discovering which old records need to be removed, and which ones need to be added.
+* `.solve_for_transaction()`: this method takes the diff and creates a `Transaction` object for this
+  operation. This is what the main CLI logic expects back from the solver.
+
+So what is a `Transaction` object and why is it needed? [Transactional actions][transaction_PR]
+were introduced in conda 4.3. They seem to be the last iteration of a set of changes designed to
+check whether `conda` would be able to download and link the needed packages (e.g. check that
+there is enough space on disk, whether the user has enough permissions for the target paths, etc).
+For more info, refer to PRs [#3571][pr3571], [#3301][pr3301], and [#3034][pr3034].
+
+The transaction is essentially a set of `action` objects. Each action is allowed to run some
+checks to determine whether it can be executed successfully. If that's not the case, the failed
+checks will signal the parent transaction that the whole operation needs to be aborted and
+rolled back to leave things in the state they were before running that `conda` command. It is also
+responsible of some of the messages you will see in the CLI output, like the reports of what will
+be installed, updated or removed.
+
+```{admonition} Transactions and parallelism
+
+Since the transaction object knows about all the actions that need to happen, it also enables
+parallelism for the verification, downloading and (un)linking tasks. The level of parallelism
+can be changed through the following `context` settings:
+
+* `default_threads`
+* `verify_threads`
+* `execute_threads`
+```
+
+There's only one class of transaction in `conda`:
+[LinkUnlinkTransaction][conda.core.link:UnlinkLinkTransaction]. It only accepts an input parameter:
+a list of `PrefixSetup` objects, which are just `namedtuple` objects with these fields. These are
+populated by `Solver.solve_for_transaction` after running `.solve_for_diff`:
+
+* `target_prefix`: the environment path the command is running on.
+* `unlink_precs`: `PackageRecord` objects that need to be unlinked (removed).
+* `link_precs`: `PackageRecord` objects that need to be linked (added).
+* `remove_specs`: `MatchSpec` objects that need to be marked as removed in the history (the user
+  asked for these packages to be uninstalled).
+* `update_specs`: `MatchSpec` objects that need to be marked as added in the history (the user
+  asked for these packages to be installed or updated).
+* `neutered_specs`: `MatchSpec` objects that were already in history but had to be relaxed in order
+  to avoid solving conflicts.
+
+
+Whatever happens after instantiation depends on the content of these `PrefixSetup` objects.
+Sometimes, the transaction results in no actions (see the [`nothing_to_do`][nothing_to_do]
+property) because the request asked by the user is already fulfilled by the current state
+of the environment.
+
+However, most of the time the transaction will involve a number of actions. This is done via two
+public methods:
+
+* `download_and_extract()`: essentially a forwarder to instantiate and call
+  `ProgressiveFetchExtract`, responsible for deciding which `PackageRecords` need to be
+  downloaded and extracted to the packages cache.
+* `execute()`: the core logic is layed out here. It involves preparing, verifying and
+  performing the rest of the actions. Among others:
+    * Unlinking packages (removing a package from the environment)
+    * Linking (adding a package to the environment)
+    * Compiling bytecode (generating the `pyc` counterpart for each `py` module)
+    * Adding entry points (generate command line executables for the configured functions)
+    * Adding the JSON records (for each package, a json file is added to `conda-meta/`)
+    * Make menu items (create shortcuts for packages featuring a JSON file under `Menu/`)
+    * Remove menu items (remove the shortcuts created by that package)
+
+It's important to notice that download and extraction happen separately from all the other actions.
+This separation is important and core to the idea of what a `conda` environment is. Essentially,
+when you create a new `conda` environment you are not necessarily _copying_ files over to the target
+prefix location. Instead, `conda` maintains a cache of every package ever downloaded to disk (both
+the tarball and the extracted contents). To save space and speed up environment creation and
+deletion, files are not copied over, but instead they are linked (usually via a hardlink). That's
+why these two tasks are separated in the transaction logic: you don't need to download and extract
+packages that are already in the cache, you only need to link them!
+
+```{admonition} Transactions also drive reports
+
+The type and number of actions can also be calculated by `_make_legacy_action_groups()`, which
+returns a list of _action groups_ (one per `PrefixSetup`). Each action group is a just a dictionary
+following this specification:
+
+  ```
+  {
+    "FETCH": Iterable[PackageRecord],  # estimated by `ProgressiveFetchExtract`
+    "PREFIX": str,
+    "UNLINK": Iterable[PackageRecord],
+    "LINK: Iterable[PackageRecord],
+  }
+  ```
+
+
+These simpler action groups are only used for reporting, either via a processed text report
+(via `print_transaction_summary`) or just the raw JSON (via `stdout_json_success`). As you can see,
+they do not know anything about other types of tasks.
+```
 
 ## Download and extraction
 
-WIP
+`conda` maintains a cache of downloaded tarballs and their extracted contents to save disk space
+and improve the performance of environment modifications. This requires some code to check whether
+a given `PackageRecord` is already present in the cache, and, if it's not, how to download the
+tarball and extract its contents in a performant way. This is all handled by the
+`ProgressiveFetchExtract` class, which can instantiate up to two `Action` objects for each
+passed `PackageRecord`:
 
-## Integrity verification
+* `CacheUrlAction`: downloads (if remote) or copies (if local) a tarball to the cache location.
+* `ExtractPackageAction`: extracts the contents of the tarball.
 
-WIP
+These two actions only take place _if_ the package is not in cache yet and if it has already been
+extracted, respectively. They can also revert the changes if the transaction is aborted (either
+due to an error or because the user pressed Ctrl+C).
 
-## Linking and unlinking files
+```{admonition} Anatomy of the conda caches
+TODO
+```
 
-WIP
+## Populating the prefix
 
-## Post-linking and post-activation tasks
+When all the necessary packages have been downloaded and extracted to the cache, it is time to
+start populating the prefix with the needed files. This means we need to:
 
-WIP
+1. For each package that needs to be unlinked, run the pre-unlink logic (`deactivate` and
+   `pre-unlink` scripts, as well as shortcut removal, if needed) and then unlink the package files.
+2. For each package that needs to be linked, create the links and run the post-link logic
+   (`post-link` and `activate` scripts, as well as creating the shortcuts, if needed).
+
+> Note that when you are updating a package version, you are actually removing the installed version
+entirely and then adding the new one. In other words, an update is just unlink+link.
+
+How is this implemented? For each `PrefixSetup` object passed to `UnlinkLinkTransaction`, a
+number of `ActionGroup` namedtuples (one per task _category_) will be instantiated and grouped
+together in a `PrefixActionGroup` namedtuple. These are then passed to `.verify()`. This method
+will take each action, run its checks and, if all of them passed, will allow us to perform the
+actual execution in `.execute()`. If one of them failed, the transaction can be aborted and
+rolled back.
+
+For all this to work, each action object follows the
+[`PathAction` API contract][conda.core.path_actions:PathAction]:
+
+```python
+class PathAction:
+    _verified = False
+    def verify(self):
+      "Run checks to assess if the action can proceed"
+    def execute(self):
+      "Perform the action"
+    def reverse(self):
+      "Undo execute"
+    def cleanup(self):
+      "Remove artifacts from verification, execution or reversal"
+    @property
+    def verified(self):
+      "True if verification was run and successful"
+```
+
+Additional `PathAction` subclasses will dd more methods and properties, but this is what the
+transaction execution logic expects. To support all the different actions involved in populating
+the prefix, the `PathAction` class tree holds quite the graph:
+
+```
+PathAction
+  PrefixPathAction
+    CreateInPrefixPathAction
+      LinkPathAction
+        PrefixReplaceLinkAction
+      MakeMenuAction
+      CreateNonadminAction
+      CreatePythonEntryPointAction
+      CreatePrefixRecordAction
+      UpdateHistoryAction
+    RemoveFromPrefixPathAction
+      UnlinkPathAction
+        RemoveLinkedPackageRecordAction
+      RemoveMenuAction
+  RegisterEnvironmentLocationAction
+  UnregisterEnvironmentLocationAction
+  CacheUrlAction
+  ExtractPackageAction
+
+MultiPathAction
+  CompileMultiPycAction
+    AggregateCompileMultiPycAction
+
+```
+
+You are welcome to read on the docstring for each of those classes to understand which each one
+is doing; all of them are listed under `conda.core.path_actions`. In the following sections we will
+only comment on the most important ones.
+
+## Linking the files in the environment
+
+When conda _links_ a file from the cache location to the prefix location, it can actually mean
+three different actions:
+
+1. Creating a soft-link
+2. Creating a hard-link
+3. Copying the file
+
+The difference between softlinks and hardlinks is subtle, but important. You can find more info on
+the differences elsewhere (e.g. here), but for our purposes it means that:
+
+* Hard-links are cheaper to resolve, behave like a real file, but can only link files in the same
+  mount point.
+* Soft-links can link files across mount points, but they don't behave exactly like files (more like
+  forwarders), so it's possible that they break assumptions made in certain pieces of code.
+
+Most of the time, `conda` will try to hardlink files and, if that fails, it will copy them over.
+Copying a file is an expensive disk operation, both in terms of time and space, so it should be
+the last option. However, sometimes it's the only way. Specially when the file needs to be modified
+to be used in the target prefix.
+
+Ummm... what? Why would `conda` modify a file to install it? This has to do with relocatability.
+When a `conda` package is created, `conda-build` creates up to three temporary environments:
+
+* Build environment: where compilers and other build tools are installed to, separate from the
+  host environment to support cross-compilation.
+* Host environment: where build-time dependencies are installed to, together with the package you
+  are building.
+* Test environment: where run-time dependencies are installed, together with the package you just
+  build. It simulates what will happen when a user installs the package so you can run arbitrary
+  checks on your package.
+
+When you are building a package, references to the build-time paths can leak into the content of
+some files, both text and binary. This is not a problem for users who build the our own package
+from source, since they can choose this path and leave the files there. However, this is almost
+never true for `conda` packages. They are created in one machine and installed in another. To avoid
+"path not found" issues and other problems, `conda-build` marks those packages that hold references
+to the build-time paths by replacing them with placeholders. At install-time, `conda` will replace
+those placeholders with the target prefix and everything works!
+
+But there's a problem: we can't modify the files on the cache location because they might be used
+across environments (with obviously different paths). In these cases, files are not linked, but
+copied; the path replacement only happens on the target copy, of course!
+
+How does `conda` know how to link a given package or, more precisely, its extracted files? All
+of this is determined in the preparation routines contained in
+[`UnlinkLinkTransaction._prepare()`][conda.core.link:_prepare] (more specifically, through
+[`determine_link_type()`][conda.core.link:determine_link_type]), as well as
+[`LinkPathAction.create_file_link_actions()`][conda.core.path_actions:create_file_link_actions].
+
+Note that the (un)linking actions also include the execution of pre-(un)link and post-(un)link
+scripts, if listed.
+
+## Action groups and actions, in detal
+
+Once the old packages have been removed and the new ones have been linked through the appropriate
+means, we are done, right? Well, not there yet! There's one step left: the post-linking logic.
+
+It turns out that there's a number of smaller tasks that need to happen to make `conda` as
+convenient as it is. You can find all of them listed a few paragraphs above, but we'll cover
+them here too. The execution order is determined in
+[`UnlinLinkTransaction._prepare`][conda.core.link:_prepare].
+All the possible groups are listed under [`PrefixActionGroup`][conda.core.link:PrefixActionGroup].
+Their order is roughly how they happen in practice:
+
+1. `remove_menu_action_groups`, composed of `RemoveMenuAction` actions.
+2. `unlink_action_groups`, includes `UnlinkPathAction`, `RemoveLinkedPackageRecordAction`, as well
+   as the logic to run the pre- and post-unlink scripts.
+3. `unregister_action_groups`, basically a single `UnregisterEnvironmentLocationAction` action.
+4. `link_action_groups`, includes `LinkPathAction`, `PrefixReplaceLinkAction`, as well as the logic
+   to run pre- and post-link scripts.
+8. `entry_point_action_groups`, a collection of `CreatePythonEntryPointAction` actions.
+5. `register_action_groups`, a single `RegisterEnvironmentLocationAction` action.
+6. `compile_action_groups`, several `CompileMultiPycAction` that end up aggregated as a
+   `AggregateCompileMultiPycAction` for performance.
+7. `make_menu_action_groups`, composed of `MakeMenuAction` actions.
+9. `prefix_record_groups`, records installed packages in the environment via
+   `CreatePrefixRecordAction` actions.
+
+
+Let's discuss them for the command we are describing in this guide: `conda install numpy`. The
+solution given by the solver says we need to:
+
+* unlink Python 3.9.6
+* link Python 3.9.9
+* link numpy 1.19
+
+This is what would happen:
+
+1. No menu items are removed because Python 3.9.6 didn't create any.
+2. Pre-unlink scripts for Python 3.9.6 would run, but in this case there are none.
+3. Python 3.9.6 files are removed from the environment. This can be parallelized.
+4. Post-unlink scripts are run, if any.
+5. Pre-link scripts are run for Python 3.9.9 and numpy 1.19, if any
+6. Files in the Python 3.9.9 and numpy 1.19 packages are linked and/or copied to the prefix. This
+   can be parallelized.
+7. Entry points are created for the new packages, if any.
+8. Post-link scripts are run.
+9. `pyc` files are generated for the new packages.
+10. The new packages are registered under `conda-meta/`.
+11. The menu shortcuts are created for the new packages, if any.
+
+Any of these steps can fail with a given exception. If that's the case, the first of those
+exceptions is printed to STDOUT. Additionally, if `rollback_enabled` is properly configured in
+the `context`, the transaction will be rolled back by calling the `.reverse()` method in each
+action, from last to first.
+
+If no exceptions are reported, then the actions can run their cleanup routines.
+
+And that's it! If this command had resulted in a new environment being created, you would get a
+message telling you how to activate the newly created environment.
+
+## Conclusion
+
+This is what happens when you type `conda install`. It might be a bit more involved than you
+initially thought but it all boil downs to only some steps. TLDR:
+
+1. Parse arguments and initialize the context
+2. Download and build the index
+3. Tell the solver what we want
+4. Convert the solution into a transaction
+5. Verify and run each action contained in the transaction
 
 
 <!-- Links and references -->
@@ -343,10 +645,22 @@ WIP
 [conda.cli.main_install]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main_install.py
 [conda.cli.main:main]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main.py#L121
 [conda.cli]: https://github.com/conda/conda/tree/4.11.0/conda/cli
+[conda.core.index:get_reduced_index]: https://github.com/conda/conda/blob/4.11.0/conda/core/index.py#L246
+[conda.core.link:_prepare]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L266
+[conda.core.link:determine_link_type]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L50
+[conda.core.link:UnlinkLinkTransaction]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L156
+[conda.core.path_actions:create_file_link_actions]: https://github.com/conda/conda/blob/4.11.0/conda/core/path_actions.py#L190
+[conda.core.path_actions:PathAction]: https://github.com/conda/conda/blob/4.11.0/conda/core/path_actions.py#L61
 [conda.resolve:build_conflict_map]: https://github.com/conda/conda/blob/4.11.0/conda/resolve.py#L415
 [conda.shell]: https://github.com/conda/conda/tree/4.11.0/conda/shell
 [context_init]: https://github.com/conda/conda/blob/4.11.0/conda/cli/main.py#L75
 [context_match]: https://github.com/conda/conda/blob/4.11.0/conda/cli/conda_argparse.py#L1484
 [current_repodata_details]: https://docs.conda.io/projects/conda-build/en/latest/concepts/generating-index.html#trimming-to-current-repodata
 [initialize_logging]: https://github.com/conda/conda/blob/4.11.0/conda/gateways/logging.py#L162
-[conda.core.index:get_reduced_index]: https://github.com/conda/conda/blob/4.11.0/conda/core/index.py#L246
+[nothing_to_do]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L184
+[pr3034]: https://github.com/conda/conda/pull/3034
+[pr3301]: https://github.com/conda/conda/pull/3301
+[pr3571]: https://github.com/conda/conda/pull/3571
+[transaction_PR]: https://github.com/conda/conda/pull/3833
+[conda.core.link:PrefixActionGroup]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L123
+[conda.core.link:_prepare]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L602
