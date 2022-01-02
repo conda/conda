@@ -459,17 +459,22 @@ For all this to work, each action object follows the
 ```python
 class PathAction:
     _verified = False
+
     def verify(self):
-      "Run checks to assess if the action can proceed"
+        "Run checks to assess if the action can proceed"
+
     def execute(self):
-      "Perform the action"
+        "Perform the action"
+
     def reverse(self):
-      "Undo execute"
+        "Undo execute"
+
     def cleanup(self):
-      "Remove artifacts from verification, execution or reversal"
+        "Remove artifacts from verification, execution or reversal"
+
     @property
     def verified(self):
-      "True if verification was run and successful"
+        "True if verification was run and successful"
 ```
 
 Additional `PathAction` subclasses will dd more methods and properties, but this is what the
