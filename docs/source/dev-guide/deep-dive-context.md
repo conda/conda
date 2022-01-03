@@ -7,6 +7,7 @@ repository of settings. You normally import the singleton and access its (many) 
 
 ```python
 from conda.base.context import context
+
 context.quiet
 # False
 ```
@@ -130,4 +131,3 @@ final `Configuration` object might not be obvious at first. This is different fo
   the `dest` value of your `argparse.Argument` matches the attribute name in `Context`. This way,
   `Configuration.__init__` can take the `argparse.Namespace` object, turn it into a dictionary,
   and make it pass through the loading machinery.
-
