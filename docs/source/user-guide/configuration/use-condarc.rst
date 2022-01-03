@@ -101,6 +101,8 @@ gives a non-exhaustive list of the most frequently used options and
 their usage. For a complete list of all available options for your
 version of conda, use the ``conda config --describe`` command.
 
+.. _condarc_search_precedence:
+
 Searching for .condarc
 ======================
 
