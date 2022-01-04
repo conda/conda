@@ -89,13 +89,135 @@ combined and modified in very specific ways depending on the command-line flags 
 (e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
 explicitly). This logic is intricate will be covered in the next sections.
 
-## The solver logic
+## The solver logic in `conda.cli.install`
 
+The full solver logic does not start at the `conda.core.solve.Solver` API, but before that, all the
+way up in the `conda.cli.install` module. Here, some important decisions are already made:
 
+* Whether the solver is not needed at all because:
+    * The operation is an explicit package install
+    * The user requested to roll back to a history checkpoint
+    * We are just creating a copy of an existing environment (cloning)
+* Which `repodata` source to use (see {ref}`here <index_reduction_tricks>`). It not only depends on
+  depends on the current configuration (via `.condarc` or command line flags), but also on the value
+  of `use_only_tar_bz2`.
+* Whether the solver should start by freezing all installed packages (default for
+  `conda install` and `conda remove` in existing environments).
+* If the solver does not find a solution, whether we need to retry again without freezing the
+  installed packages for the current `repodata` variant or if we should try with the next one.
 
+So, roughly, the global logic there follows this pseudocode:
+
+```python
+if operation in (explicit, rollback, clone):
+    transaction = handle_without_solver()
+else:
+    repodatas = from_config or ("current_repodata.json", "repodata.json")
+    freeze_installed = (is_install or is_remove) and (env exists) and (update_modifier not in argv)
+    for repodata in repodatas:
+        try:
+            transaction = solve_for_transaction(...)
+        except:
+            if repodata is last:
+                raise
+            elif freeze_installed:
+                transaction = solve_for_transaction(freeze_installed = False)
+            else:
+                try with next repodata
+
+handle_txn(transaction)
+```
+
+We have, then, two reasons to re-run the full Solver logic:
+
+* Freezing the installed packages didn't work, so we try without freezing again.
+* Using `current_repodata` did not work, so we try with full `repodata`.
+
+These two strategies are stacked so in the end, before eventually failing, we will have tried four
+things:
+
+1. Solve with `current_repodata.json` and `freeze_installed=True`
+2. Solve with `current_repodata.json` and `freeze_installed=False`
+3. Solve with `repodata.json` and `freeze_installed=True`
+4. Solve with `repodata.json` and `freeze_installed=False`
+
+Interestingly, those strategies are designed to improve `conda`'s average performance, but they
+should be seen as a risky bet. Those attempts can get expensive!
+
+```{admonition} How to ask for a simpler approach
+If you want to try the full thing without checking whether the optimized solves work, you can
+override the default behaviour with these flags in your `conda install` commands:
+
+* `--repodata-fn=repodata.json`: do not use `current_repodata.json`
+* `--update-specs`: do not try to freeze installed
+```
+
+Then, the `Solver` class has its own internal logic, which also features some retry loops. This
+will be discussed later and summarized.
 ## Early exit tasks
 
-WIP
+Some tasks do not involve the solver at all. Let's enumerate them:
+
+### Explicit package installs
+
+These commands do not need a solver because the requested packages are expressed with a direct
+URL or path to a specific tarball. Instead of a `MatchSpec`, we already have a
+`PackageRecord`-like entity! For this to work, all the requested packages neeed to be URLs or paths.
+They can be typed in the command line or in a text file including a `@EXPLICIT` line.
+
+Since the solver is not involved, the dependencies of the explicit package(s) are not processed
+at all. This can leave the environment in an _inconsistent state_, which can be fixed by
+running `conda update --all`, for example.
+
+Explicit installs are taken care of by the [`explicit`][conda.misc:explicit] function.
+
+### Cloning an environment
+
+`conda create` has a `--clone` flag that allows you to create a fully working copy of an
+existing environment. This is needed because you cannot just copy (or rename) an environment
+using the usual means (`cp`, `mv` or your favorite file manager): this will break your
+environment! Conda _environments_ are _not_ relocatable; some files might contain hardcoded
+paths to existing files in the original location, and those references will break with a
+rename. You can create a new environment anywhere you want, but once created they shall not
+change locations.
+
+The [`clone_env`][conda.misc:clone_env] function implements this functionality. It essentially
+takes the source environment, generates the URLs for each installed packages (filtering
+`conda`, `conda-env` and their dependencies) and passes the list of URLs to `explicit()`. If
+the source tarballs are not in the cache anymore, it will query the index for the best possible
+match for the current channels. As such, there's a slim chance that the copy is not exactly a clone
+of the original environment.
+
+### History rollback
+
+`conda install` has a `--revision` flag, which allows you to revert the state of the environment
+to a previous one. This is done through the `History` file, but its
+[current implementation][conda.plan:revert_actions] can be considered broken. Once fixed,
+we will cover it in detail.
+
+<!-- TODO: Write --revision docs once fixed -->
+
+### Forced removals
+
+Similar to explicit installs, you can remove a package without performing a full solve. If
+`conda remove` is invoked with `--force`, the specified package(s) will be removed directly, without
+analyzing their dependency tree and pruning the orphans. This can only happen after querying the
+active prefix for the installed packages, so it is [handled][conda.core.solve:force_remove]
+in the `Solver` class. This part of the logic returns the list of `PackageRecord` objects
+already found in the `PrefixData` list after filtering out the ones that should be removed.
+
+### Skip solve if already satisfied
+
+`conda install` and `update` have a rather obscure flag: `-S, --satisfied-skip-solve`:
+
+> Exit early and do not run the solver if the requested specs are satisfied. Also skips
+> aggressive updates as configured by 'aggressive_update_packages'. Similar to the default
+> behavior of 'pip install'.
+
+This is also [implemented][conda.core.solve:satisfied_skip_solve] at the `Solver` level,
+because we also need a `PrefixData` instance. It essentially checks if all of the passed `MatchSpec`
+objects can match a `PackageRecord` already in prefix. If that's the case, we return the installed
+state as is. If not, we proceed for the full solve.
 
 ## Compiling the full list of `MatchSpec` requests
 
@@ -139,3 +261,8 @@ the solver from trying less constrained specs. This is a part of the logic that 
 [conda_package_naming]: https://docs.conda.io/projects/conda-build/en/latest/concepts/package-naming-conv.html
 [conda.models.records:PackageRecord]: https://github.com/conda/conda/blob/4.11.0/conda/models/records.py#L242
 [conda.models.match_spec:MatchSpec]: https://github.com/conda/conda/blob/4.11.0/conda/models/match_spec.py#L73
+[conda.misc:explicit]: https://github.com/conda/conda/blob/4.11.0/conda/misc.py#L52
+[conda.misc:clone_env]:https://github.com/conda/conda/blob/4.11.0/conda/misc.py#L187
+[conda.plan:revert_actions]: https://github.com/conda/conda/blob/4.11.0/conda/plan.py#L279
+[conda.core.solve:force_remove]: https://github.com/conda/conda/blob/4.11.0/conda/core/solve.py#L239-L245
+[conda.core.solve:satisfied_skip_solve]: https://github.com/conda/conda/blob/4.11.0/conda/core/solve.py#L247-L256
