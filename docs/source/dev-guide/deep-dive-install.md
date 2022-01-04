@@ -109,6 +109,8 @@ Check the concepts for {ref}`concepts-conda-environments`.
 
 <!-- TODO: Maybe we do want to explain those checks? -->
 
+(deep_dive_install_index)=
+
 ## Fetching the index
 
 At this point, we are ready to start doing some work! All the previous code was telling us what to
@@ -201,14 +203,15 @@ In this example, `context.channels` has been populated through different, cascad
   say `channel::numpy` instead of simply `numpy` to require that numpy comes from that specific
   channel. That means that the repodata for such channel needs to be fetched too!
 
-The items in `context.channels` are supposed to be `conda.models.channels.Channel` objects, but you
-can also find strings that refer to their name, alias or full URL. In that case, you can use
-`Channel` objects to parse and retrieve the full URL for each subdir using the `Channel.urls()`
-method. Several helper functions can be found in `conda.core.index`, if needed.
+The items in `context.channels` are supposed to be `conda.models.channels.Channel` objects, but
+the Solver API also allows strings that refer to their name, alias or full URL. In that case,
+you can use `Channel` objects to parse and retrieve the full URL for each subdir using the
+`Channel.urls()` method. Several helper functions can be found in `conda.core.index`, if
+needed.
 
-Sadly, `fetch_extract_and_read()` does not exist as such, but as a combination of objects.
-
-Once you have the full URL, fetching actually takes place through
+Sadly, `fetch_extract_and_read()` does not exist as such, but as a combination of objects. The
+main driving function is actually [`get_index()`][conda.core.index:get_index], which passes the
+channel URLs to `fetch_index`, a wrapper that delegates directly to
 `conda.core.subdir_data.SubdirData` objects. This object implements caching, authentication,
 proxies and other things that complicate the simple idea of "just download the file, please".
 Most of the logic is in `SubdirData._load()`, which ends up calling
@@ -221,63 +224,6 @@ possible matches). These `.query*` methods accept spec strings (e.g. `numpy =1.1
 `MatchSpec` and `PackageRecord` instances. Alternatively, if you want _all_ records with no
 queries, use `SubdirData.iter_records()`.
 
-### Channel priorities
-
-`context.channels` returns an `IndexedSet` of `Channel` objects; essentially a list of unique
-items. The different channels in this list can have overlapping or even conflicting information
-for the same package name. For example, `defaults` and `conda-forge` will for sure contain
-packages that fullfil the `conda install numpy` request. Which one is chosen by `conda` in this
-case? It depends on the `context.channel_priority` setting: From the help message:
-
-```{admonition} Help message for channel priority
-Accepts values of 'strict', 'flexible', and 'disabled'. The default value is 'flexible'. With strict
-channel priority, packages in lower priority channels are not considered if a package with the same
-name appears in a higher priority channel. With flexible channel priority, the solver may reach into
-lower priority channels to fulfill dependencies, rather than raising an unsatisfiable error. With
-channel priority disabled, package version takes precedence, and the configured priority of channels
-is used only to break ties.
-```
-
-In practice, `channel_priority=strict` is often the recommended setting for most users. It's faster
-to solve and causes less problems down the line. Check more details
-{ref}`here <concepts-performance-channel-priority>`.
-
-## Solving the install request
-
-At this point, we can start asking things to the solver, right? After all, we have loaded the
-channels into our index, building the catalog of available packages and versions we can
-install. We also have the command-line instructions and configurations needed to customize the
-solver request. So, let's just do it: "Solver, please install numpy on this prefix using these
-channels as package sources".
-
-Well, not that quick. The explicit instructions given by the user are only one part of the request
-we will send to the solver. Other pieces of implicit state are taken into account to build the
-final request. Namely, the state of your prefix. In total, these are the ingredients of the
-solver request.
-
-1. Packages already present in your environment, if you are not _creating_ a new one. This is
-   exposed through the `conda.core.prefix_data.PrefixData` class, which provides an iterator method
-   via `.iter_records()`. As the name suggests, this yields `conda.models.records.PackageRecord`
-   objects.
-2. Past actions you have performed in that environment; the _History_. This is a journal of all the
-   `conda install|update|remove` commands you have run in the past. The _specs_ of those commands
-   receive special treatment by the solver.
-3. Packages included in the _aggressive updates_ list. These packages are always included in any
-   requests to make sure they stay up-to-date under all circumstances.
-4. Packages pinned to a specific version, either via `pinned_packages` in your `.condarc` or defined
-   in a `$PREFIX/conda-meta/pinned` file.
-5. In new environments, packages included in the `create_default_packages` list. These specs are
-   injected in each `conda create` command, so the solver will see them as explicitly requested
-   by the user.
-6. The specs the user is actually asking for.
-
-All of those sources of information produce a number a of `MatchSpec` objects which are then
-combined and modified in very specific ways depending on the command-line flags and their origin
-(e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
-explicitly). This logic is intricate and has been covered in detail {ref}`here <deep_dive_solvers>`.
-Just keep in mind that it's an iterative process where the specs list is initially constrained
-to match the installed packages state as much as possible, but it can be relaxed as needed to
-workaround the potential conflicts.
 
 ```{admonition} Tricks to reduce the size of the index
 
@@ -294,21 +240,41 @@ trying to keep only the parts that it anticipates will be needed. More details c
 optimization step also takes longer the bigger the index gets...
 ```
 
-Once the solver receives the list of specs it needs to resolve, we can consider it will do some
-magic and, eventually, either:
+### Channel priorities
 
-* Succeed and return a list of `PackageRecord` objects: those entries in the index that match
-  our request. More on this in the next section.
-* Fail with an `UnsatisfiableError`. The details of this error are gathered through a rather
-  expensive function that tries to recover _why_ the request is unsatisfiable. This is done in the
-  [`build_conflict_map` function][conda.resolve:build_conflict_map].
+`context.channels` returns an `IndexedSet` of `Channel` objects; essentially a list of unique
+items. The different channels in this list can have overlapping or even conflicting information
+for the same package name. For example, `defaults` and `conda-forge` will for sure contain
+packages that fullfil the `conda install numpy` request. Which one is chosen by `conda` in this
+case? It depends on the `context.channel_priority` setting: From the help message:
 
-```{admonition} Disabling unsatisfiable hints
+> Accepts values of 'strict', 'flexible', and 'disabled'. The default value is 'flexible'. With
+> strict channel priority, packages in lower priority channels are not considered if a package
+> with the same name appears in a higher priority channel. With flexible channel priority, the
+> solver may reach into lower priority channels to fulfill dependencies, rather than raising an
+> unsatisfiable error. With channel priority disabled, package version takes precedence, and
+> the configured priority of channels is used only to break ties.
 
-Unsatisfiability reasons can be disabled through the `context` options, but unfortunately that
-gets in the way of conda's iterative logic. It will shortcut any constrained attempts and prevent
-the solver from trying less constrained specs. This is a part of the logic that should be improved.
-```
+In practice, `channel_priority=strict` is often the recommended setting for most users. It's faster
+to solve and causes less problems down the line. Check more details
+{ref}`here <concepts-performance-channel-priority>`.
+
+## Solving the install request
+
+At this point, we can start asking things to the solver, right? After all, we have loaded the
+channels into our index, building the catalog of available packages and versions we can
+install. We also have the command-line instructions and configurations needed to customize the
+solver request. So, let's just do it: "Solver, please install numpy on this prefix using these
+channels as package sources".
+
+The details are complicated, but in essence, the solver will:
+
+1. Express the requested packages, command line options and prefix state as `MatchSpec` objects
+2. Query the index for the best possible match that satisfy those constrains
+3. Return a list of `PackageRecord` objects.
+
+The full details are covered in {ref}`deep_dive_solvers` if you are curious. Just keep in mind that
+point (1) is conda-specific, while (2) can be tackled, in principle, by any SAT solver.
 
 ## Generating the transaction and the corresponding actions
 
@@ -669,3 +635,4 @@ initially thought but it all boil downs to only some steps. TLDR:
 [transaction_PR]: https://github.com/conda/conda/pull/3833
 [conda.core.link:PrefixActionGroup]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L123
 [conda.core.link:_prepare]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L602
+[conda.core.index:get_index]: https://github.com/conda/conda/blob/4.11.0/conda/core/index.py#L45
