@@ -224,6 +224,7 @@ possible matches). These `.query*` methods accept spec strings (e.g. `numpy =1.1
 `MatchSpec` and `PackageRecord` instances. Alternatively, if you want _all_ records with no
 queries, use `SubdirData.iter_records()`.
 
+(index_reduction_tricks)=
 
 ```{admonition} Tricks to reduce the size of the index
 
@@ -233,7 +234,7 @@ the solution space. A smaller index means a faster search after all! The default
 plus their dependencies. If that fails, then the full `repodata.json` is used. This happens _before_
 the `Solver` is even invoked.
 
-The second trick is done within the sovler logic: an informed index reduction. In essence, the
+The second trick is done within the solver logic: an informed index reduction. In essence, the
 index (whether it's `current_repodata.json` or full `repodata.json`) is pruned by the solver,
 trying to keep only the parts that it anticipates will be needed. More details can be found on
 [the `get_reduced_index` function][conda.core.index:get_reduced_index]. Interestingly, this
