@@ -324,12 +324,46 @@ This is the class that actually wraps the SAT solver. `conda.core.solve.Solver` 
 API that configures the solver _request_ and prepares the transaction. The actual solution is
 computed in this other module we are discussing now.
 
-The `Resolve` object will receive several arguments:
-*
-*
-*
+The `Resolve` object will mostly receive two arguments:
 
-### `MatchSpec` to SAT clauses
+* The fetched `index`, as processed by `conda.index.get_index()`.
+* The configured `channels`, so _channel priority_ can be sorted out.
+
+It will also hold certain state:
+
+* The `index` will be grouped by name under a `.groups` dictionary (`str`, `[PackageRecord]`). Each
+  group is later sorted so newer packages are listed first, helping reduce the index better.
+* Another dictionary of `PackageRecord` groups will be created, keyed by their `track_features`
+  entries, under the `.trackers` attribute.
+* Some other dictionaries are initialized as caches.
+
+The main methods in this class are:
+
+* `bad_installed()`: This method uses a series of small solves to check if the installed packages
+  are in a consistent state. In other words, if all the `PackageRecord` entries were expressed as
+  `MatchSpec` objects, would the environment be solvable?
+* `get_reduced_index()`: This method takes a full index and trims out the parts that are not
+  necessary for the current request, thus reducing the solution space and speeding up the solver.
+* `gen_clauses()`: This instantiates and configures the `Clauses` object, which is the real SAT
+  solver wrapper. More on this later.
+* `solve()`: The main method in the `Resolve` class. It will be discussed in the next section.
+* `find_conflicts()`: If the solver didn't succeed, this method performs a conflict analysis to find
+  the most plausible explanation for the current conflicts. It essentially relies on
+  `build_conflict_map()` to "find the common dependencies that might be the cause of conflicts".
+  `conda` can spend a lot of time in this method.
+
+```{admonition} Disabling conflict analysis
+Conflict analysis can be disabled through the `context.unsatisfiable_hints` options, but
+unfortunately that gets in the way of conda's iterative logic. It will shortcut earlt on the chain
+of attempts and prevent the solver from trying less constrained specs. This is a part of the logic
+that should be improved.
+```
+
+### `Resolve.solve()`
+
+WIP
+
+### The `Clauses` object wraps the SAT solver
 
 WIP
 
@@ -353,12 +387,7 @@ magic and, eventually, either:
 
 WIP
 
-```{admonition} Disabling unsatisfiable hints
 
-Unsatisfiability reasons can be disabled through the `context` options, but unfortunately that
-gets in the way of conda's iterative logic. It will shortcut any constrained attempts and prevent
-the solver from trying less constrained specs. This is a part of the logic that should be improved.
-```
 
 
 <!-- Links -->
