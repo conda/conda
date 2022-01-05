@@ -29,13 +29,14 @@ def fix_cli_install(tmpdir):
 
 
 @pytest.mark.integration
-def test_pre_link_message(fix_cli_install, capsys):
+def test_pre_link_message(fix_cli_install):
     prefix = fix_cli_install[0]
     with patch("conda.cli.common.confirm_yn") as mck:
         mck.return_value = True
-        run_command(Commands.INSTALL, prefix, "pre_link_messages_package", "--use-local")
-        captured = capsys.readouterr()
-        assert "Lorem ipsum dolor sit amet, consectetur adipiscing elit." in captured.out
+        stdout, stderr, _ = run_command(
+            Commands.INSTALL, prefix, "pre_link_messages_package", "--use-local"
+        )
+        assert "Lorem ipsum dolor sit amet, consectetur adipiscing elit." in stdout
 
 
 @pytest.mark.integration
