@@ -403,52 +403,46 @@ actions:
     but eventually only the first one will be returned while translating the _SAT names_ to
     `PackageRecord` objects.
 
-### The `Clauses` object wraps the SAT solver
+### The `Clauses` object wraps the SAT solver using several layers
 
-WIP
+The `Resolve` class exposes the solving logic, but when it comes to interacting with the SAT solver
+engine, that's done through the `Clauses` object tree. And we say tree because the actual engines
+are wrapped in several layers:
 
+* `Resolve` generates `conda.common.logic.Clauses` objects as needed.
+* `Clauses` is a tight wrapper around its private `conda.common._logic.Clauses` counterpart.
+  Let's call the former `_Clauses`. It simply wraps the `_Clauses` API with `._eval()` calls
+  and other shortcuts for convenience.
+* `_Clauses` provides an API to process the raw SAT formulas or clauses. It will wrap one of the
+  `conda.common._logic._SatSolver` subclasses. _These_ are the ones that wrap the SAT solver
+  engines! So far, there are three subclasses, selectable via the `context.sat_solver` setting:
+  * `_PycoSatSolver`, keyed as `pycosat`. This is the default one, a [Python wrapper][pycosat]
+    around the [`picosat` project][picosat].
+  * `_PySatSolver`, keyed as `pysat`. Uses the `Glucose4` solver found in the
+    [`pysat` project][pysat].
+  * `_PyCryptoSatSolver`, keyed as `pycryptosat`. Uses the Python bindings for the
+    [CryptoMiniSat project][pycryptosat].
 
-### Solving the SAT problem
+In principle, more SAT solvers can be added to `conda` if a wrapper that subscribes to the
+`_SatSolver` API is used. However, if the reason is choosing a better performing engine, consider
+the following:
 
-The rules:
+* The wrapped SAT solvers are already using compiled languages.
+* Generating the clauses is indeed written in pure Python and has a non-trivial overhead.
+* Optimization tricks like reducing the index and constraining the solution space have their costs
+  if the "bets" were not successful.
 
-* Only one _tarball_ (specific instance) can be installed per _package name_. You can't have both
-  `numpy-1.8.2-py34_0` and `numpy-1.8.2-py34_1`; just one `numpy` package. In other words,
-  environments are maps of _package names_ to a single _tarball_. If you want a different tarball,
-  the old one needs to be replaced.
-* If a package is installed, so should the dependencies of that specific version and build.
-* Each `MatchSpec` should only return a single tarball.
+```{admonition} More about SAT solvers in general
+This guide did not cover the details of what SAT solvers are or do. If you want to read about them,
+consider checking the following resources:
 
-There _a lot_ of solutions to those clauses, so we need to prioritize them to define which would be
-the best:
-
-* If channel priority is strict, prefer those in higher priority channels
-* Prefer the latest version
-* Prefer the latest build
-* Prefer the most recent (larger timestamp)
-* Prefer those with fewest `track_features` entries. These are deprecated these days, but they are
-  still in use to _downweight_ variants of the same package (e.g. `tensorflow` is available with
-  and without CUDA).
-* Prefer the solution with the fewer amount of packages. Less packages means faster and simpler!
-
-
-
-Once the solver receives the list of specs it needs to resolve, we can consider it will do some
-magic and, eventually, either:
-
-* Succeed and return a list of `PackageRecord` objects: those entries in the index that match
-  our request. More on this in the next section.
-* Fail with an `UnsatisfiableError`. The details of this error are gathered through a rather
-  expensive function that tries to recover _why_ the request is unsatisfiable. This is done in the
-  [`build_conflict_map` function][conda.resolve:build_conflict_map].
-
-
-
-### Back to `conda` packages... or not
-
-WIP
-
-
+* [Aaron Meurer's slides about Conda internals][asmeurer_conda_internals]. These slides reveal a lot
+  of details of `conda` back in 2015. Some things have changed, but the core SAT solver behaviour
+  is still well explained there.
+* ["Understanding and Improving Conda's performance"][anaconda_performance_blog]
+* [All the talks regarding solvers from Packaging-Con 2021][packagingcon_youtube]. Check which talks
+  belong to the [Solvers track][packagingcon_solvers] and enjoy!
+```
 
 
 <!-- Links -->
@@ -461,3 +455,11 @@ WIP
 [conda.plan:revert_actions]: https://github.com/conda/conda/blob/4.11.0/conda/plan.py#L279
 [conda.core.solve:force_remove]: https://github.com/conda/conda/blob/4.11.0/conda/core/solve.py#L239-L245
 [conda.core.solve:satisfied_skip_solve]: https://github.com/conda/conda/blob/4.11.0/conda/core/solve.py#L247-L256
+[pysat]: https://pysathq.github.io/
+[pycryptosat]: https://github.com/msoos/cryptominisat
+[pycosat]: https://github.com/conda/pycosat
+[picosat]: http://fmv.jku.at/picosat/
+[asmeurer_conda_internals]: https://speakerdeck.com/asmeurer/conda-internals
+[packagingcon_youtube]: https://www.youtube.com/channel/UCGjb8FEgGAfMaQ98bVjNVJg/videos
+[packagingcon_solvers]: https://pretalx.com/packagingcon-2021/schedule/#
+[anaconda_performance_blog]: https://www.anaconda.com/blog/understanding-and-improving-condas-performance
