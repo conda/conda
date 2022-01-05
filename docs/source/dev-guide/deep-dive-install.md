@@ -268,7 +268,7 @@ install. We also have the command-line instructions and configurations needed to
 solver request. So, let's just do it: "Solver, please install numpy on this prefix using these
 channels as package sources".
 
-The details are complicated, but in essence, the solver will:
+The details are complicated, but in essence, the `Solver` will:
 
 1. Express the requested packages, command line options and prefix state as `MatchSpec` objects
 2. Query the index for the best possible match that satisfy those constrains
@@ -277,13 +277,15 @@ The details are complicated, but in essence, the solver will:
 The full details are covered in {ref}`deep_dive_solvers` if you are curious. Just keep in mind that
 point (1) is conda-specific, while (2) can be tackled, in principle, by any SAT solver.
 
+(solver_api_transactions)=
 ## Generating the transaction and the corresponding actions
 
 The Solver API defines three public methods:
 
 * `.solve_final_state()`: this is the core function, described in the section above. Given some
   input state, it returns an `IndexedSet` of `PackageRecord` objects that reflect what the final
-  state of the environment should look like.
+  state of the environment should look like. This is the largest method, and its details are
+  fully covered {ref}`here <details_solve_final_state>`.
 * `.solve_for_diff()`: this method takes the final state and diffs it with the current state of the
   environment, discovering which old records need to be removed, and which ones need to be added.
 * `.solve_for_transaction()`: this method takes the diff and creates a `Transaction` object for this

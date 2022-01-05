@@ -89,7 +89,7 @@ combined and modified in very specific ways depending on the command-line flags 
 (e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
 explicitly). This logic is intricate will be covered in the next sections.
 
-## The solver logic in `conda.cli.install`
+## The high-level logic in `conda.cli.install`
 
 The full solver logic does not start at the `conda.core.solve.Solver` API, but before that, all the
 way up in the `conda.cli.install` module. Here, some important decisions are already made:
@@ -158,6 +158,12 @@ will be discussed later and summarized.
 
 Some tasks do not involve the solver at all. Let's enumerate them:
 
+* Explicit package installs: no index or prefix state needed.
+* Cloning an environment: the index might be needed if the cache has been cleared.
+* History rollback: currently broken.
+* Forced removal: prefix state needed. This happens in the `Solver` class.
+* Skip solve if already satisfied: prefix state needed. This happens in the `Solver` class.
+
 ### Explicit package installs
 
 These commands do not need a solver because the requested packages are expressed with a direct
@@ -219,16 +225,115 @@ because we also need a `PrefixData` instance. It essentially checks if all of th
 objects can match a `PackageRecord` already in prefix. If that's the case, we return the installed
 state as is. If not, we proceed for the full solve.
 
-## Compiling the full list of `MatchSpec` requests
+(details_solve_final_state)=
+
+## Details of `Solver.solve_final_state()`
+
+This is were most of the intricacies of the `conda` logic are defined. In this step, the
+configuration, command line flags, user-requested specs and prefix state are aggregated to query
+the current index for the best match.
+
+The aggregation of all those state bits will result in a list of `MatchSpec` objects. While it's
+easy to establish which package names will make it to the list, deciding which version and build
+string constrains the specs carry is a bit more involved.
+
+This is currently implemented in the `conda.core.solve.Solver` class. Its main goal is to
+populate the `specs_map` dictionary, which maps package names (`str`) to `MatchSpec` objects.
+This happens at the beginning of the `.solve_final_state()` method. The full details of the
+`specs_map` population are covered in the
+{ref}`solver state technical specification <techspec_solver_state>`, but here's a little map
+of what submethods are involved:
+
+1. Initialization of the `SolverStateContainer`: Often abbreviated as `ssc`, it's a helper
+   class to store some state across attempts (remember there are several retry loops). Most
+   importantly, it stores two key attributes (among others):
+    * `specs_map`: same as above. This is where it lives across solver attempts.
+    * `solution_precs`: a list of `PackageRecord` objects. It stores the solution returned by
+      the SAT solver. It's always initialized to reflect the installed packages in the target
+      prefix.
+2. `Solver._collect_all_metadata()`: Initializes the `specs_map` with the specs found in the
+   history or with the specs corresponding to the installed records. This method delegates to
+   `Solver._prepare()`. This initializes the index by fetching the channels and reducing it.
+   Then, a `conda.resolve.Resolve` instance is created with that index. The index is stored in
+   the `Solver` instance as `._index` and the `Resolve` object as `._r`. They are also kept
+   around in the `SolverStateContainer`, but as public attributes: `.index` and `.r`,
+   respectively.
+3. `Solver._remove_specs()`: If `conda remove` was called, it removes the relevant specs from
+   `specs_map`.
+4. `Solver._add_specs()`: For all the other `conda` commands (`create`, `install`, `update`), it
+   adds (or modifies) the relevant specs to `specs_map`. This is one of the most complicated pieces
+   of logic in the class!
+
+```{admonition} Check the other parts of the Solver API
+You can check the rest of the Solver API {ref}`here <solver_api_transactions>`.
+```
+
+At this point, the `specs_map` is adequately populated and we can call the SAT solver wrapped by
+the `conda.resolve.Resolve` class. This is done in `Solver._run_sat()`, but this method does some
+other things before actually solving the SAT problem:
+
+* Before calling `._run_sat()`, inconsistency analysis is performed via
+  `Solver._find_inconsistent_packages`. This will preemptively remove certain `PackageRecord`
+  objects from `ssc.solution_precs` if `Resolve.bad_installed()` determined they were causing
+  inconsistencies. This actually runs a series of small solves to check that the installed
+  records form a satisfiable set of clauses. Those that prevent that solution from being found
+  are annotated as such and ignored during the real solve later.
+* Make sure the requested package names are available in the index.
+* Anticipate and minimize potentially conflicting specs. This happens in a `while` loop fed by
+  `Resolve.get_conflicting_specs()`. If a spec is found to be conflicting, it is _neutered_: a new
+  `MatchSpec` object is created, but without version and build string constrains (e.g.
+  `numpy >=1.19` becomes just `numpy`). Then, `Resolve.get_conflicting_specs()` is called again,
+  and the loop continues until convergence: the list of conflicts cannot be reduced further, either
+  because there are no conflicts left or because the existing conflicts cannot be resolved by
+  constrain relaxation.
+* Now, the SAT solver is called. This happens via `Resolve.solve()`. More on this below.
+* If the solver failed, then `UnsatisfiableError` is raised. Depending on which attempt we are on,
+  `conda` will try again with non-frozen installed packages or a different repodata, or it will give
+  up and analyze the conflict cause core. This will be detailed later.
+* If the solver succeeded, some bookkeeping needs to be done:
+  * Neutered specs that happened to be in the history are annotated as such.
+  * Inconsistent packages are added back to the solution, including potential orphans.
+  * Constrain analysis is run via `Solver.get_constrained_packages()` and
+    `Solver.determine_constricting_specs()` to help the user understand why some packages were not
+    updated.
+
+We are not done yet, though. After `Solver._run_sat()`, we still need to run the post-solver logic!
+After the solve, the final list of `PackageRecord` objects might still change if certain modifiers
+are set. This is handled in the `Solver._post_sat_handling()`:
+
+* `--no-deps` (`DepsModifier.NO_DEPS`): Remove dependencies of the explicitly requested packages
+  from the final solution.
+* `--only-deps` (`DepsModifier.ONLY_DEPS`): Remove explicitly requested packages from the final
+  solution but leave their dependencies. This is done via
+  `PrefixGraph.remove_youngest_descendant_nodes_with_specs()`.
+* `--update-deps` (`UpdateModifier.UPDATE_DEPS`): This is the most interesting one. It actually
+  runs a second solve (!) where the user-requested specs are the originally requested specs plus
+  their (now determined) dependencies.
+* `--prune`: Removes orphan packages from the solution.
+
+```{admonition} The Solver also checks for Conda updates
+
+Interestingly, the Solver API is also responsible of checking if new `conda` versions are available
+in the configured channels. This is done here to take advantage of the fact that the index has been
+already built for the rest of the class.
+```
+
+## Details of `conda.resolve.Resolve`
+
+This is the class that actually wraps the SAT solver. `conda.core.solve.Solver` is a higher level
+API that configures the solver _request_ and prepares the transaction. The actual solution is
+computed in this other module we are discussing now.
+
+The `Resolve` object will receive several arguments:
+*
+*
+*
+
+### `MatchSpec` to SAT clauses
 
 WIP
 
-
-## `MatchSpec` to SAT clauses
-
-WIP
-
-## Solving the SAT problem
+### Solving the SAT problem
 
 WIP
 
@@ -244,7 +349,7 @@ magic and, eventually, either:
 
 
 
-## Back to `conda` packages... or not
+### Back to `conda` packages... or not
 
 WIP
 
