@@ -181,18 +181,23 @@ optimization trick can be found [here][current_repodata_details].
 So, in essence, fetching the channel information means can be expressed in pseudo-code like this:
 
 ```python
-platform = []
-noarch = []
-for channel in context.channels:
+platform = {}
+noarch = {}
+for channel in reversed(context.channels):
     platform_repodata = fetch_extract_and_read(
         channel.full_url / context.subdir / "repodata.json.bz2"
     )
-    platform.append(platform_repodata)
+    platform.update(platform_repodata)
     noarch_repodata = fetch_extract_and_read(
         channel.full_url / "noarch" / "repodata.json.bz2"
     )
-    noarch.append(noarch_repodata)
+    noarch.update(noarch_repodata)
 ```
+
+Note that these dictionaries are keyed by _filename_, so higher priority channels will overwrite
+entris with the exact same filename (e.g. `numpy-1.19-py36h87ha43_0.tar.bz2`). If they don't have
+the same _filename_ (e.g., same version and build number but different hash), this ambiguity will
+be resolved later in the solver, taking into account the channel priority mode.
 
 In this example, `context.channels` has been populated through different, cascading mechanisms:
 
