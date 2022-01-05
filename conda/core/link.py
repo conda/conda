@@ -35,7 +35,8 @@ from ..common.path import (explode_directories, get_all_directories, get_major_m
 from ..common.signals import signal_handler
 from ..exceptions import (DisallowedPackageError, EnvironmentNotWritableError,
                           KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise, CondaSystemExit)
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
+                          CondaSystemExit)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -242,7 +243,9 @@ class UnlinkLinkTransaction(object):
                 log.info(exceptions)
         try:
             self._verify_pre_link_message(
-                itertools.chain(*(act.link_action_groups for act in self.prefix_action_groups.values()))
+                itertools.chain(
+                    *(act.link_action_groups for act in self.prefix_action_groups.values())
+                )
             )
         except CondaSystemExit:
             rm_rf(self.transaction_context['temp_dir'])
@@ -252,7 +255,9 @@ class UnlinkLinkTransaction(object):
     def _verify_pre_link_message(self, all_link_groups):
         flag_pre_link = False
         for act in all_link_groups:
-            prelink_msg_dir = Path(act.pkg_data.extracted_package_dir) / "info" / "prelink_messages"
+            prelink_msg_dir = (
+                    Path(act.pkg_data.extracted_package_dir) / "info" / "prelink_messages"
+            )
             if prelink_msg_dir.is_dir() and list(prelink_msg_dir.glob("**/*")):
                 print(f"\nPre-link message from {act.pkg_data.repodata_record}:")
                 flag_pre_link = True
