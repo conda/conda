@@ -22,8 +22,8 @@ except ImportError:
 def fix_cli_install(tmpdir):
     prefix = tmpdir.mkdir("cli_install_prefix")
     test_env = tmpdir.mkdir("cli_install_test_env")
-    run_command(Commands.CREATE, prefix, 'python=3.7')
-    yield prefix, test_env
+    run_command(Commands.CREATE, str(prefix), 'python=3.7')
+    yield str(prefix), str(test_env)
     rm_rf(prefix)
     rm_rf(test_env)
 
