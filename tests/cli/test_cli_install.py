@@ -18,39 +18,44 @@ except ImportError:
     from mock import patch
 
 
-class TestCliInstall(TestCase):
-    def setUp(self):
-        self.prefix = tempfile.mkdtemp()
-        self.testenv = tempfile.mkdtemp()
-        run_command(Commands.CREATE, self.prefix, 'python=3.7')
+@pytest.fixture
+def fix_cli_install(tmpdir):
+    prefix = tmpdir.mkdir("cli_install_prefix")
+    test_env = tmpdir.mkdir("cli_install_test_env")
+    run_command(Commands.CREATE, prefix, 'python=3.7')
+    yield prefix, test_env
+    rm_rf(prefix)
+    rm_rf(test_env)
 
-    def tearDown(self):
-        rm_rf(self.prefix)
-        rm_rf(self.testenv)
 
-    @pytest.mark.integration
-    def test_pre_link_message(self, capsys):
-        with patch("conda.cli.common.confirm_yn") as mck:
-            mck.return_value = True
-            run_command(Commands.INSTALL, self.prefix, "pre_link_messages_package", "--use-local")
-            captured = capsys.readouterr()
-            assert "Lorem ipsum dolor sit amet, consectetur adipiscing elit." in captured.out
+@pytest.mark.integration
+def test_pre_link_message(fix_cli_install, capsys):
+    prefix = fix_cli_install[0]
+    with patch("conda.cli.common.confirm_yn") as mck:
+        mck.return_value = True
+        run_command(Commands.INSTALL, prefix, "pre_link_messages_package", "--use-local")
+        captured = capsys.readouterr()
+        assert "Lorem ipsum dolor sit amet, consectetur adipiscing elit." in captured.out
 
-    @pytest.mark.integration
-    def test_find_conflicts_called_once(self):
-        bad_deps = {'python': {((MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")), 'python=3')}}
 
-        with patch('conda.resolve.Resolve.find_conflicts') as monkey:
-            monkey.side_effect = UnsatisfiableError(bad_deps, strict=True)
-            with self.assertRaises(UnsatisfiableError):
-                # Statistics is a py27 only package allowing us a simple unsatisfiable case
-                stdout, stderr, _ = run_command(Commands.INSTALL, self.prefix, 'statistics')
-            self.assertEqual(monkey.call_count, 1)
-            monkey.reset_mock()
-            with self.assertRaises(UnsatisfiableError):
-                stdout, stderr, _ = run_command(Commands.INSTALL, self.prefix, 'statistics', '--freeze-installed')
-            self.assertEqual(monkey.call_count, 1)
-            monkey.reset_mock()
-            with self.assertRaises(UnsatisfiableError):
-                stdout, stderr, _ = run_command(Commands.CREATE, self.testenv, 'statistics', 'python=3.7')
-            self.assertEqual(monkey.call_count, 1)
+@pytest.mark.integration
+def test_find_conflicts_called_once(fix_cli_install):
+    prefix, test_env = fix_cli_install
+    bad_deps = {'python': {((MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")), 'python=3')}}
+
+    with patch('conda.resolve.Resolve.find_conflicts') as monkey:
+        monkey.side_effect = UnsatisfiableError(bad_deps, strict=True)
+        with pytest.raises(UnsatisfiableError):
+            # Statistics is a py27 only package allowing us a simple unsatisfiable case
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'statistics')
+        assert monkey.call_count == 1
+
+        monkey.reset_mock()
+        with pytest.raises(UnsatisfiableError):
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'statistics', '--freeze-installed')
+        assert monkey.call_count == 1
+
+        monkey.reset_mock()
+        with pytest.raises(UnsatisfiableError):
+            stdout, stderr, _ = run_command(Commands.CREATE, test_env, 'statistics', 'python=3.7')
+        assert monkey.call_count == 1
