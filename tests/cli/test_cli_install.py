@@ -29,6 +29,14 @@ class TestCliInstall(TestCase):
         rm_rf(self.testenv)
 
     @pytest.mark.integration
+    def test_pre_link_message(self, capsys):
+        with patch("conda.cli.common.confirm_yn") as mck:
+            mck.return_value = True
+            run_command(Commands.INSTALL, self.prefix, "pre_link_messages_package", "--use-local")
+            captured = capsys.readouterr()
+            assert "Lorem ipsum dolor sit amet, consectetur adipiscing elit." in captured.out
+
+    @pytest.mark.integration
     def test_find_conflicts_called_once(self):
         bad_deps = {'python': {((MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")), 'python=3')}}
 
