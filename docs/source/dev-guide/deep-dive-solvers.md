@@ -58,6 +58,7 @@ So the solver takes `MatchSpec` objects, query the index for the best match and 
 requested conda channels in a single entity. For more information, check
 {ref}`deep_dive_install_index`.
 
+(deep_dive_solvers_local_state)=
 ## Local state: the prefix and context
 
 When you do `conda install numpy`, do you think the solver will just see something like
@@ -87,7 +88,8 @@ these are the ingredients of the solver request.
 All of those sources of information produce a number a of `MatchSpec` objects which are then
 combined and modified in very specific ways depending on the command-line flags and their origin
 (e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
-explicitly). This logic is intricate will be covered in the next sections.
+explicitly). This logic is intricate will be covered in the next sections. A more technical
+description is also available in {ref}`solver_state_specification`.
 
 ## The high-level logic in `conda.cli.install`
 
