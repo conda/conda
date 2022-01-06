@@ -6,6 +6,8 @@ Some resources that helped draft this document:
 * https://www.anaconda.com/blog/understanding-and-improving-condas-performance
 -->
 
+(deep_dive_install)=
+
 # Deep dive: conda install
 
 In this document we will explore what happens in Conda from the moment a user types their
