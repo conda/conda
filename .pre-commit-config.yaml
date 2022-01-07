@@ -2,7 +2,7 @@
 exclude: ^(conda/_vendor|tests/data/(conda_format_repo|env_metadata/.+|legacy_repodata|repodata|tar_traversal|corrupt))/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.1.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
