@@ -42,7 +42,7 @@ from conda.base.context import Context, context, reset_context, conda_tests_ctxt
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import (ensure_text_type, iteritems, string_types, text_type,
-                                 encode_arguments)
+                                 encode_arguments, on_win, on_mac)
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -66,7 +66,7 @@ from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.models.version import VersionOrder
 from conda.resolve import exactness_and_number_of_deps
-from conda.utils import massage_arguments, on_win
+from conda.utils import massage_arguments
 
 from .cases import BaseTestCase
 
@@ -2607,6 +2607,7 @@ dependencies:
         assert env_which_etc
         assert not errs_etc
 
+    @pytest.mark.xfail(on_mac, reason="see #11128")
     def test_init_dev_and_NoBaseEnvironmentError(self):
         # This specific python version is named so that the test suite uses an
         # old python build that still hacks 'Library/bin' into PATH. Really, we
@@ -2787,6 +2788,7 @@ dependencies:
                 assert package_is_installed(prefix, 'openssl')
                 assert rs.call_count == 1
 
+    @pytest.mark.xfail(on_mac, reason="known broken; see #11127")
     def test_post_link_run_in_env(self):
         test_pkg = '_conda_test_env_activated_when_post_link_executed'
         # a non-unicode name must be provided here as activate.d scripts
