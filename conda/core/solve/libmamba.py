@@ -1,4 +1,3 @@
-
 from itertools import chain
 from collections import defaultdict, OrderedDict
 from logging import getLogger
@@ -47,11 +46,19 @@ class LibMambaSolver(Solver):
     - Pruning the repodata (?) - JRG: Not sure if this happens internally or at all.
     - Prioritizing different aspects of the solver (version, build strings, track_features...)
     """
+
     _uses_ssc = False
 
-    def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                          ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL,
-                          should_retry_solve=False):
+    def solve_final_state(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        force_reinstall=NULL,
+        should_retry_solve=False,
+    ):
         # Logic heavily based on Mamba's implementation (solver parts):
         # https://github.com/mamba-org/mamba/blob/fe4ecc5061a49c5b400fa7e7390b679e983e8456/mamba/mamba.py#L289
 
@@ -66,7 +73,7 @@ class LibMambaSolver(Solver):
             ignore_pinned=ignore_pinned,
             force_remove=force_remove,
             force_reinstall=force_reinstall,
-            should_retry_solve=should_retry_solve
+            should_retry_solve=should_retry_solve,
         )
 
         # Tasks that do not require a solver can be tackled right away
@@ -92,8 +99,8 @@ class LibMambaSolver(Solver):
             attempts -= 1
             log.debug(
                 "Attempt number %s. Current conflicts (including learnt ones): %s",
-                n_installed_pkgs-attempts,
-                state['conflicting'],
+                n_installed_pkgs - attempts,
+                state["conflicting"],
             )
             result = self._solve_attempt(state, kwargs)
             if result is not None:
@@ -102,8 +109,11 @@ class LibMambaSolver(Solver):
         # Last attempt, we report everything installed as a conflict just in case
         log.debug("Last attempt: reporting all installed as conflicts:")
         state["conflicting"].update(
-            {pkg.name: pkg.to_match_spec() for pkg in state["conda_prefix_data"].iter_records()
-             if not pkg.is_unmanageable}
+            {
+                pkg.name: pkg.to_match_spec()
+                for pkg in state["conda_prefix_data"].iter_records()
+                if not pkg.is_unmanageable
+            }
         )
         result = self._solve_attempt(state, kwargs)
         if result is not None:
@@ -147,14 +157,15 @@ class LibMambaSolver(Solver):
         )
 
     def _merge_signature_flags_with_context(
-            self,
-            update_modifier=NULL,
-            deps_modifier=NULL,
-            ignore_pinned=NULL,
-            force_remove=NULL,
-            force_reinstall=NULL,
-            prune=NULL,
-            should_retry_solve=False):
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        force_reinstall=NULL,
+        prune=NULL,
+        should_retry_solve=False,
+    ):
         """
         Context options can be overriden with the signature flags.
 
@@ -199,13 +210,18 @@ class LibMambaSolver(Solver):
                 # This is not reachable from the CLI, but it is from the Python API
                 raise NotImplementedError("Cannot add and remove packages simultaneously.")
             pkg_records = PrefixData(self.prefix).iter_records()
-            solution = tuple(pkg_record for pkg_record in pkg_records
-                             if not any(spec.match(pkg_record) for spec in self.specs_to_remove))
+            solution = tuple(
+                pkg_record
+                for pkg_record in pkg_records
+                if not any(spec.match(pkg_record) for spec in self.specs_to_remove)
+            )
             return IndexedSet(PrefixGraph(solution).graph)
 
         # Check if specs are satisfied by current environment. If they are, exit early.
-        if (update_modifier == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
-                and not self.specs_to_remove):
+        if (
+            update_modifier == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
+            and not self.specs_to_remove
+        ):
             prefix_data = PrefixData(self.prefix)
             for spec in self.specs_to_add:
                 if not next(prefix_data.query(spec), None):
@@ -243,21 +259,27 @@ class LibMambaSolver(Solver):
         subdirs = self.subdirs
         if subdirs is NULL or not subdirs:
             subdirs = context.subdirs
-        index = load_channels(pool, self._channel_urls(), repos,
-                              prepend=False,
-                              use_local=context.use_local,
-                              platform=subdirs)
+        index = load_channels(
+            pool,
+            self._channel_urls(),
+            repos,
+            prepend=False,
+            use_local=context.use_local,
+            platform=subdirs,
+        )
 
-        state.update({
-            "pool": pool,
-            "conda_prefix_data": PrefixData(self.prefix),
-            "repos": repos,
-            "index": index,
-            "installed_pkgs": installed_pkgs,
-            "history": History(self.prefix),
-            "conflicting": TrackedDict(),
-            "specs_map": TrackedDict(),
-        })
+        state.update(
+            {
+                "pool": pool,
+                "conda_prefix_data": PrefixData(self.prefix),
+                "repos": repos,
+                "index": index,
+                "installed_pkgs": installed_pkgs,
+                "history": History(self.prefix),
+                "conflicting": TrackedDict(),
+                "specs_map": TrackedDict(),
+            }
+        )
 
         return state
 
@@ -266,6 +288,7 @@ class LibMambaSolver(Solver):
         TODO: libmambapy could handle path to url, and escaping
         but so far we are doing it ourselves
         """
+
         def _channel_to_url_or_name(channel):
             # This fixes test_activate_deactivate_modify_path_bash
             # and other local channels (path to url) issues
@@ -279,18 +302,20 @@ class LibMambaSolver(Solver):
 
         channels = [url for c in self._channels for url in _channel_to_url_or_name(Channel(c))]
         if context.restore_free_channel and "https://repo.anaconda.com/pkgs/free" not in channels:
-            channels.append('https://repo.anaconda.com/pkgs/free')
+            channels.append("https://repo.anaconda.com/pkgs/free")
 
         return tuple(channels)
 
-    def _configure_solver(self,
-                          state,
-                          update_modifier=NULL,
-                          deps_modifier=NULL,
-                          ignore_pinned=NULL,
-                          force_remove=NULL,
-                          force_reinstall=NULL,
-                          prune=NULL):
+    def _configure_solver(
+        self,
+        state,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        force_reinstall=NULL,
+        prune=NULL,
+    ):
         if self.specs_to_remove:
             return self._configure_solver_for_remove(state)
         # ALl other operations are handled as an install operation
@@ -300,22 +325,26 @@ class LibMambaSolver(Solver):
         # - conda create -n empty
         # Take into account that early exit tasks (force remove, etc)
         # have been handled beforehand if needed
-        return self._configure_solver_for_install(state,
-                                                  update_modifier=update_modifier,
-                                                  deps_modifier=deps_modifier,
-                                                  ignore_pinned=ignore_pinned,
-                                                  force_remove=force_remove,
-                                                  force_reinstall=force_reinstall,
-                                                  prune=prune)
+        return self._configure_solver_for_install(
+            state,
+            update_modifier=update_modifier,
+            deps_modifier=deps_modifier,
+            ignore_pinned=ignore_pinned,
+            force_remove=force_remove,
+            force_reinstall=force_reinstall,
+            prune=prune,
+        )
 
-    def _configure_solver_for_install(self,
-                                      state,
-                                      update_modifier=NULL,
-                                      deps_modifier=NULL,
-                                      ignore_pinned=NULL,
-                                      force_remove=NULL,
-                                      force_reinstall=NULL,
-                                      prune=NULL):
+    def _configure_solver_for_install(
+        self,
+        state,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        force_reinstall=NULL,
+        prune=NULL,
+    ):
         import libmambapy as api
 
         # Set different solver options
@@ -325,13 +354,15 @@ class LibMambaSolver(Solver):
         state["solver"] = solver = api.Solver(state["pool"], solver_options)
 
         # Configure jobs
-        state["specs_map"] = self._compute_specs_map(state,
-                                                     update_modifier=update_modifier,
-                                                     deps_modifier=deps_modifier,
-                                                     ignore_pinned=ignore_pinned,
-                                                     force_remove=force_remove,
-                                                     force_reinstall=force_reinstall,
-                                                     prune=prune)
+        state["specs_map"] = self._compute_specs_map(
+            state,
+            update_modifier=update_modifier,
+            deps_modifier=deps_modifier,
+            ignore_pinned=ignore_pinned,
+            force_remove=force_remove,
+            force_reinstall=force_reinstall,
+            prune=prune,
+        )
 
         # Neuter conflicts if any (modifies specs_map in place)
         specs_map = self._neuter_conflicts(state, ignore_pinned=ignore_pinned)
@@ -340,8 +371,9 @@ class LibMambaSolver(Solver):
 
         log.debug(
             "Invoking libmamba with tasks: %s",
-            "\n".join([f"{task_str}: {', '.join(specs)}"
-                       for (task_str, _), specs in tasks.items()])
+            "\n".join(
+                [f"{task_str}: {', '.join(specs)}" for (task_str, _), specs in tasks.items()]
+            ),
         )
 
         for (_, task_type), specs in tasks.items():
@@ -360,7 +392,7 @@ class LibMambaSolver(Solver):
 
         solver_options = [
             (api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1),
-            (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1)
+            (api.SOLVER_FLAG_ALLOW_UNINSTALL, 1),
         ]
         if context.channel_priority is ChannelPriority.STRICT:
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
@@ -369,8 +401,11 @@ class LibMambaSolver(Solver):
         # pkgs in aggresive_update_packages should be protected too (even if not
         # requested explicitly by the user)
         # see https://github.com/conda/conda/blob/9e9461760bb/tests/core/test_solve.py#L520-L521
-        aggresive_updates = [p.conda_build_form() for p in context.aggressive_update_packages
-                             if p.name in installed_names]
+        aggresive_updates = [
+            p.conda_build_form()
+            for p in context.aggressive_update_packages
+            if p.name in installed_names
+        ]
         solver.add_jobs(
             list(set(chain(self._history_specs(), aggresive_updates))),
             api.SOLVER_USERINSTALLED,
@@ -381,14 +416,16 @@ class LibMambaSolver(Solver):
         state["solver"] = solver
         return solver
 
-    def _compute_specs_map(self,
-                           state,
-                           update_modifier=NULL,
-                           deps_modifier=NULL,
-                           ignore_pinned=NULL,
-                           force_remove=NULL,
-                           force_reinstall=NULL,
-                           prune=NULL):
+    def _compute_specs_map(
+        self,
+        state,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        force_reinstall=NULL,
+        prune=NULL,
+    ):
         """
         Reimplement the logic found in super()._collect_all_metadata()
         and super()._add_specs(), but simplified.
@@ -409,8 +446,14 @@ class LibMambaSolver(Solver):
         log.debug("Adding history pins")
         specs_map.update(history)
         # 1.2. Protect some critical packages from being removed accidentally
-        for pkg_name in ('anaconda', 'conda', 'conda-build', 'python.app',
-                         'console_shortcut', 'powershell_shortcut'):
+        for pkg_name in (
+            "anaconda",
+            "conda",
+            "conda-build",
+            "python.app",
+            "console_shortcut",
+            "powershell_shortcut",
+        ):
             if pkg_name not in specs_map and state["conda_prefix_data"].get(pkg_name, None):
                 specs_map[pkg_name] = MatchSpec(pkg_name)
 
@@ -427,11 +470,12 @@ class LibMambaSolver(Solver):
         for pkg_name, pkg_record in installed.items():
             name_spec = MatchSpec(pkg_name)
             if (  # 1.4.1. History is empty. Add everything (happens with update --all)
-                    not history
-                  # 1.4.2. Pkg is part of the aggresive update list
-                    or name_spec in context.aggressive_update_packages
-                  # 1.4.3. it was installed with pip/others; treat it as a historic package
-                    or pkg_record.subdir == 'pypi'):
+                not history
+                # 1.4.2. Pkg is part of the aggresive update list
+                or name_spec in context.aggressive_update_packages
+                # 1.4.3. it was installed with pip/others; treat it as a historic package
+                or pkg_record.subdir == "pypi"
+            ):
                 specs_map[pkg_name] = name_spec
 
         # Section 2 - Here we technically consider the packages that need to be removed
@@ -475,10 +519,13 @@ class LibMambaSolver(Solver):
             elif pkg_name in history:
                 log.debug("Soft-freezing because historic")
                 specs_map[pkg_name] = MatchSpec(
-                    history[pkg_name], target=spec_in_prefix.dist_str())
+                    history[pkg_name], target=spec_in_prefix.dist_str()
+                )
             else:
-                log.debug("Soft-freezing because it is requested and "
-                          "already installed as a 2nd order dependency")
+                log.debug(
+                    "Soft-freezing because it is requested and "
+                    "already installed as a 2nd order dependency"
+                )
                 specs_map[pkg_name] = MatchSpec(pkg_name, target=spec_in_prefix.dist_str())
 
         # Section 4: Check pinned packages
@@ -500,13 +547,21 @@ class LibMambaSolver(Solver):
             elif is_requested:
                 log.debug("Pin overrides user-requested spec")
                 if specs_to_add_map[name].match(pin):
-                    log.debug("pinned spec `%s` despite user-requested spec `%s` being present "
-                              "because pin is stricter", pin, specs_to_add_map[name])
+                    log.debug(
+                        "pinned spec `%s` despite user-requested spec `%s` being present "
+                        "because pin is stricter",
+                        pin,
+                        specs_to_add_map[name],
+                    )
                     specs_map[name] = MatchSpec(pin, optional=False)
                     pin_overrides.add(name)
                 else:
-                    log.warn("pinned spec %s conflicts with explicit specs (%s).  "
-                             "Overriding pinned spec.", pin, specs_to_add_map[name])
+                    log.warn(
+                        "pinned spec %s conflicts with explicit specs (%s).  "
+                        "Overriding pinned spec.",
+                        pin,
+                        specs_to_add_map[name],
+                    )
             elif name in explicit_pool:
                 log.debug("Pinning because this spec is part of the explicit pool")
                 specs_map[name] = MatchSpec(pin, optional=False)
@@ -524,7 +579,8 @@ class LibMambaSolver(Solver):
                 elif not pkg_record.is_unmanageable:
                     log.debug("Unfreezing because conflicting...")
                     specs_map[pkg_name] = MatchSpec(
-                        pkg_name, target=pkg_record.to_match_spec(), optional=True)
+                        pkg_name, target=pkg_record.to_match_spec(), optional=True
+                    )
             # log.debug("specs_map with targets: %s", specs_map)
 
         # Section 6: Handle UPDATE_ALL
@@ -541,7 +597,7 @@ class LibMambaSolver(Solver):
                         new_specs_map[matchspec.name] = specs_map[matchspec.name]
                 for pkg_name, pkg_record in installed.items():
                     # treat pip-installed stuff as explicitly installed, too.
-                    if pkg_record.subdir == 'pypi':
+                    if pkg_record.subdir == "pypi":
                         log.debug("Update all: spec is pip-installed")
                         new_specs_map[pkg_name] = MatchSpec(pkg_name)
                     elif pkg_name not in new_specs_map:
@@ -563,6 +619,7 @@ class LibMambaSolver(Solver):
         # with the update of the explicitly requested spec
         elif update_modifier == UpdateModifier.UPDATE_SPECS:
             from mamba.repoquery import search as mamba_search
+
             potential_conflicts = []
             for spec in self.specs_to_add:  # requested by the user
                 in_pins = spec.name not in pin_overrides and spec.name in pinned
@@ -583,8 +640,8 @@ class LibMambaSolver(Solver):
                         found_version = VersionOrder(pkg_record["version"])
                         greater_version = found_version > installed_version
                         greater_build = (
-                            found_version == installed_version and
-                            pkg_record["build_number"] > installed_record.build_number
+                            found_version == installed_version
+                            and pkg_record["build_number"] > installed_record.build_number
                         )
                         if greater_version or greater_build:
                             has_update = True
@@ -620,16 +677,17 @@ class LibMambaSolver(Solver):
                 # will our prefix record conflict with any explict spec?  If so, don't add
                 #     anything here - let python float when it hasn't been explicitly specified
                 python_spec = specs_map.get("python", MatchSpec("python"))
-                if not python_spec.get('version'):
-                    pinned_version = get_major_minor_version(installed_python.version) + '.*'
+                if not python_spec.get("version"):
+                    pinned_version = get_major_minor_version(installed_python.version) + ".*"
                     python_spec = MatchSpec(python_spec, version=pinned_version)
                 specs_map["python"] = python_spec
 
         # Section 8 - Make sure aggressive updates are not constrained now
         if not context.offline:
             log.debug("Make sure aggressive updates did not end up pinned again")
-            specs_map.update({s.name: s for s in context.aggressive_update_packages
-                              if s.name in specs_map})
+            specs_map.update(
+                {s.name: s for s in context.aggressive_update_packages if s.name in specs_map}
+            )
 
         # Section 9 - FINALLY we add the explicitly requested specs
         log.debug("Add user specs")
@@ -656,13 +714,18 @@ class LibMambaSolver(Solver):
         # flags have been passed -- otherwise interactions between implicit updates create unneeded
         # conflicts
         log.debug("Make sure specs are upgraded if requested explicitly and not in conflict")
-        if (deps_modifier != DepsModifier.ONLY_DEPS
-                and update_modifier not in
-                (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED)
-                and self._command in ("update", "", None, NULL)):
+        if (
+            deps_modifier != DepsModifier.ONLY_DEPS
+            and update_modifier
+            not in (UpdateModifier.UPDATE_DEPS, UpdateModifier.FREEZE_INSTALLED)
+            and self._command in ("update", "", None, NULL)
+        ):
             for spec in self.specs_to_add:
-                if (spec.name in specs_map and specs_map[spec.name].strictness == 1
-                        and spec.name in installed):
+                if (
+                    spec.name in specs_map
+                    and specs_map[spec.name].strictness == 1
+                    and spec.name in installed
+                ):
                     conflicting_spec = conflicting.get(spec.name)
                     if conflicting_spec and getattr(conflicting_spec, "missing", False):
                         # We obtained a "nothing provides" error, which means this
@@ -679,8 +742,8 @@ class LibMambaSolver(Solver):
                         # TODO: We might want to say "any version or build of this package",
                         # but not the installed one
                         specs_map[spec.name] = MatchSpec(
-                            name=spec.name,
-                            version=f"!={installed_version}")
+                            name=spec.name, version=f"!={installed_version}"
+                        )
 
         return specs_map
 
@@ -698,18 +761,18 @@ class LibMambaSolver(Solver):
         # non-optional when there's a name match in the explicit package pool
         conflicting_pinned_specs = groupby(
             lambda s: MatchSpec(s, optional=True) in self._pinned_specs(state, ignore_pinned),
-            conflicting_specs)
+            conflicting_specs,
+        )
 
         if conflicting_pinned_specs.get(True):
             in_specs_map = grouped_specs.get(True, ())
             pinned_conflicts = conflicting_pinned_specs.get(True, ())
-            in_specs_map_or_specs_to_add = ((set(in_specs_map) | set(self.specs_to_add))
-                                            - set(pinned_conflicts))
+            requested = (set(in_specs_map) | set(self.specs_to_add)) - set(pinned_conflicts)
 
             raise SpecsConfigurationConflictError(
-                sorted(s.__str__() for s in in_specs_map_or_specs_to_add),
+                sorted(s.__str__() for s in requested),
                 sorted(s.__str__() for s in {s for s in pinned_conflicts}),
-                self.prefix
+                self.prefix,
             )
 
         log.debug("Neutering specs...")
@@ -717,7 +780,7 @@ class LibMambaSolver(Solver):
             # if spec.name == "python":
             #     continue
             if spec.target and not spec.optional:
-                if spec.get('version'):
+                if spec.get("version"):
                     neutered_spec = MatchSpec(spec.name, version=spec.version)
                 else:
                     neutered_spec = MatchSpec(spec.name)
@@ -742,16 +805,16 @@ class LibMambaSolver(Solver):
         log.debug("Deprioritizing conflicts:")
         protect_these = set(s.name for s in self.specs_to_add)  # explicitly requested
         protect_these.update(("python", "conda"))
-        protect_these.update([pkg_name for pkg_name, pkg_record in installed.items()
-                              if pkg_record.is_unmanageable])
+        protect_these.update(
+            [pkg_name for pkg_name, pkg_record in installed.items() if pkg_record.is_unmanageable]
+        )
         for conflict in state["conflicting"]:
             if conflict in specs_map and conflict not in protect_these:
                 spec = specs_map.pop(conflict)
                 log.debug("  MOV: %s from specs_map to SOLVER_DISFAVOR", conflict)
-                tasks[("api.SOLVER_DISFAVOR", api.SOLVER_DISFAVOR)].append(
-                    spec.conda_build_form())
-                tasks[("api.SOLVER_ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(
-                    spec.conda_build_form())
+                spec_str = spec.conda_build_form()
+                tasks[("api.SOLVER_DISFAVOR", api.SOLVER_DISFAVOR)].append(spec_str)
+                tasks[("api.SOLVER_ALLOWUNINSTALL", api.SOLVER_ALLOWUNINSTALL)].append(spec_str)
 
         # Wrap up and create tasks for the solver
         for name, spec in specs_map.items():
@@ -759,8 +822,10 @@ class LibMambaSolver(Solver):
                 continue
             if name in installed:
                 if name == "python":
-                    key = ("api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL",
-                           api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL)
+                    key = (
+                        "api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL",
+                        api.SOLVER_UPDATE | api.SOLVER_ESSENTIAL,
+                    )
                 else:
                     key = "api.SOLVER_UPDATE", api.SOLVER_UPDATE
 
@@ -770,9 +835,11 @@ class LibMambaSolver(Solver):
                     ms = MatchSpec(
                         name=installed_rec.name,
                         version=installed_rec.version,
-                        build=installed_rec.build)
+                        build=installed_rec.build,
+                    )
                     tasks[("api.SOLVER_USERINSTALLED", api.SOLVER_USERINSTALLED)].append(
-                        ms.conda_build_form())
+                        ms.conda_build_form()
+                    )
             else:
                 key = "api.SOLVER_INSTALL", api.SOLVER_INSTALL
             tasks[key].append(spec.conda_build_form())
@@ -793,8 +860,9 @@ class LibMambaSolver(Solver):
         return tuple(pin_these_specs)
 
     def _history_specs(self):
-        return [s.conda_build_form()
-                for s in History(self.prefix).get_requested_specs_map().values()]
+        return [
+            s.conda_build_form() for s in History(self.prefix).get_requested_specs_map().values()
+        ]
 
     def _run_solver(self, state):
         solver = state["solver"]
@@ -867,7 +935,7 @@ class LibMambaSolver(Solver):
         return state
 
     def _parse_problems(self, problems, previous):
-        dashed_specs = []       # e.g. package-1.2.3-h5487548_0
+        dashed_specs = []  # e.g. package-1.2.3-h5487548_0
         conda_build_specs = []  # e.g. package 1.2.8.*
         missing = []
         for line in problems.splitlines():
@@ -924,20 +992,24 @@ class LibMambaSolver(Solver):
                 conflicts[name] = spec
         return conflicts
 
-    def _post_solve_tasks(self,
-                          state,
-                          deps_modifier=NULL,
-                          update_modifier=NULL,
-                          force_reinstall=NULL,
-                          ignore_pinned=NULL,
-                          force_remove=NULL,
-                          prune=NULL):
+    def _post_solve_tasks(
+        self,
+        state,
+        deps_modifier=NULL,
+        update_modifier=NULL,
+        force_reinstall=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        prune=NULL,
+    ):
         specs_map = state["specs_map"]
         final_prefix_map = TrackedDict({pkg.name: pkg for pkg in state["final_prefix_state"]})
         history_map = state["history"].get_requested_specs_map()
-        self.neutered_specs = tuple(pkg_spec for pkg_name, pkg_spec in specs_map.items() if
-                                    pkg_name in history_map and
-                                    pkg_spec.strictness < history_map[pkg_name].strictness)
+        self.neutered_specs = tuple(
+            pkg_spec
+            for pkg_name, pkg_spec in specs_map.items()
+            if pkg_name in history_map and pkg_spec.strictness < history_map[pkg_name].strictness
+        )
 
         # TODO: We are currently not handling dependencies orphaned after identifying
         # conflicts (stored in `ssc.add_back_map`).
@@ -950,26 +1022,33 @@ class LibMambaSolver(Solver):
             # Help information notes that use of NO_DEPS is expected to lead to broken
             # environments.
             _no_deps_solution = IndexedSet(state["conda_prefix_data"].iter_records())
-            only_remove_these = set(prec
-                                    for name in state["names_to_remove"]
-                                    for prec in _no_deps_solution
-                                    if MatchSpec(name).match(prec))
+            only_remove_these = set(
+                prec
+                for name in state["names_to_remove"]
+                for prec in _no_deps_solution
+                if MatchSpec(name).match(prec)
+            )
             _no_deps_solution -= only_remove_these
 
-            only_add_these = set(prec
-                                 for name in state["names_to_add"]
-                                 for prec in state["final_prefix_state"]
-                                 if MatchSpec(name).match(prec))
+            only_add_these = set(
+                prec
+                for name in state["names_to_add"]
+                for prec in state["final_prefix_state"]
+                if MatchSpec(name).match(prec)
+            )
             remove_before_adding_back = set(prec.name for prec in only_add_these)
-            _no_deps_solution = IndexedSet(prec for prec in _no_deps_solution
-                                           if prec.name not in remove_before_adding_back)
+            _no_deps_solution = IndexedSet(
+                prec for prec in _no_deps_solution if prec.name not in remove_before_adding_back
+            )
             _no_deps_solution |= only_add_these
             final_prefix_map = {p.name: p for p in _no_deps_solution}
 
         # If ONLY_DEPS is set, we need to make sure the originally requested specs
         # are not part of the result
-        elif (deps_modifier == DepsModifier.ONLY_DEPS
-              and update_modifier != UpdateModifier.UPDATE_DEPS):
+        elif (
+            deps_modifier == DepsModifier.ONLY_DEPS
+            and update_modifier != UpdateModifier.UPDATE_DEPS
+        ):
             graph = PrefixGraph(state["final_prefix_state"], self.specs_to_add)
             removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
             specs_to_add = set(MatchSpec(name) for name in state["names_to_add"])
@@ -982,8 +1061,11 @@ class LibMambaSolver(Solver):
 
             # Add back packages that are already in the prefix.
             specs_to_remove_names = set(name for name in state["names_to_remove"])
-            add_back = [state["conda_prefix_data"].get(node.name, None) for node in removed_nodes
-                        if node.name not in specs_to_remove_names]
+            add_back = [
+                state["conda_prefix_data"].get(node.name, None)
+                for node in removed_nodes
+                if node.name not in specs_to_remove_names
+            ]
             final_prefix_map = {p.name: p for p in concatv(graph.graph, filter(None, add_back))}
 
         elif update_modifier == UpdateModifier.UPDATE_DEPS:
@@ -1024,16 +1106,23 @@ class LibMambaSolver(Solver):
                 # Create a new solver instance to perform a 2nd solve with deps added
                 # We do it like this to avoid overwriting state accidentally. Instead,
                 # we will import the needed state bits manually.
-                solver2 = self.__class__(self.prefix, self.channels, self.subdirs,
-                                         list(specs_map.values()), self.specs_to_remove,
-                                         self._repodata_fn, "recursive_call_for_update_deps")
+                solver2 = self.__class__(
+                    self.prefix,
+                    self.channels,
+                    self.subdirs,
+                    list(specs_map.values()),
+                    self.specs_to_remove,
+                    self._repodata_fn,
+                    "recursive_call_for_update_deps",
+                )
                 solved_pkgs = solver2.solve_final_state(
                     update_modifier=UpdateModifier.UPDATE_SPECS,  # avoid recursion!
                     deps_modifier=deps_modifier,
                     ignore_pinned=ignore_pinned,
                     force_remove=force_remove,
                     force_reinstall=force_reinstall,
-                    prune=prune)
+                    prune=prune,
+                )
                 final_prefix_map = {p.name: p for p in solved_pkgs}
                 # NOTE: We are exporting state back to the class! These are expected by
                 # super().solve_for_diff() and super().solve_for_transaction() :/

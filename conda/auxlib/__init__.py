@@ -79,6 +79,9 @@ class _Null(object):
     def __json__(self):
         return 'null'
 
+    def __str__(self):
+        return 'Null'
+
     to_json = __json__
 
 
