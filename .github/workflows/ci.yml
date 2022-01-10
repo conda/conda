@@ -16,31 +16,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9]
-        conda-subdir: ["win-64"]
-        test-type: ["unit", "integration"]
-        test-group: ["1", "2", "3"]
-        test-splits: ["3"]
-        conda-solver-logic: ["classic"]
+        python-version: ['3.7', '3.8', '3.9']
+        conda-subdir: ['win-64']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3']
+        test-splits: ['3']
+        conda-solver-logic: ['classic']
         include:
-          - python-version: "3.9"
-            test-type: "integration"
-            conda-solver-logic: "libmamba2"
-            test-splits: "3"
-            test-group: "1"
-          - python-version: "3.9"
-            test-type: "integration"
-            conda-solver-logic: "libmamba2"
-            test-splits: "3"
-            test-group: "2"
-          - python-version: "3.9"
-            test-type: "integration"
-            conda-solver-logic: "libmamba2"
-            test-splits: "3"
-            test-group: "3"
-          - python-version: "3.9"
-            test-type: "experimental-resolver"
-            conda-solver-logic: "libmamba2"
+          - python-version: '3.9'
+            test-type: 'integration'
+            conda-solver-logic: 'libmamba2'
+            test-splits: '3'
+            test-group: '1'
+          - python-version: '3.9'
+            test-type: 'integration'
+            conda-solver-logic: 'libmamba2'
+            test-splits: '3'
+            test-group: '2'
+          - python-version: '3.9'
+            test-type: 'integration'
+            conda-solver-logic: 'libmamba2'
+            test-splits: '3'
+            test-group: '3'
+          - python-version: '3.9'
+            test-type: 'experimental-resolver'
+            conda-solver-logic: 'libmamba2'
     env:
       OS: "win-64"
       PYTHON: ${{ matrix.python-version }}
@@ -125,6 +125,64 @@ jobs:
           -e CONDA_SOLVER_LOGIC
           ghcr.io/conda/conda-ci:poc-libsolv-linux-python${{ matrix.python-version }}-mamba
           /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
+
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: ${{ matrix.test-type }}
+          env_vars: OS,PYTHON
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3']
+
+    env:
+      OS: 'macos'
+      PYTHON: ${{ matrix.python-version }}
+      TEST_SPLITS: 3
+      TEST_GROUP: ${{ matrix.test-group }}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      # - name: Cache conda
+      #   uses: actions/cache@v2
+      #   env:
+      #     # Increase this value to reset cache if tests/requirements.txt has not changed
+      #     CACHE_NUMBER: 0
+      #   with:
+      #     path: ~/conda_pkgs_dir
+      #     key:
+      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('tests/requirements.txt') }}
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: conda-test-env
+          miniconda-version: "latest"
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+
+      - name: Setup environment
+        shell: bash -l {0}
+        run: |
+          # restoring the default for changeps1 to have parity with dev
+          conda config --set changeps1 true
+          # make sure the caching works correctly
+          conda config --set use_only_tar_bz2 true
+          # install all test requirements
+          conda install --name conda-test-env --yes --file tests/requirements.txt
+          conda update openssl ca-certificates certifi
+
+      - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+        shell: bash -l {0}
+        run : |
+          ./dev/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
