@@ -7,4 +7,5 @@ TEST_GROUP="${TEST_GROUP:-1}"
 
 eval "$(sudo python -m conda init bash --dev)"
 conda info
+mamba --version
 pytest -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}

@@ -139,12 +139,34 @@ jobs:
         python-version: ['3.9']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
+        test-splits: ['3']
+        conda-solver-logic: ['classic']
+        include:
+          - python-version: '3.9'
+            test-type: 'integration'
+            conda-solver-logic: 'libmamba2'
+            test-splits: '3'
+            test-group: '1'
+          - python-version: '3.9'
+            test-type: 'integration'
+            conda-solver-logic: 'libmamba2'
+            test-splits: '3'
+            test-group: '2'
+          - python-version: '3.9'
+            test-type: 'integration'
+            conda-solver-logic: 'libmamba2'
+            test-splits: '3'
+            test-group: '3'
+          - python-version: '3.9'
+            test-type: 'experimental-resolver'
+            conda-solver-logic: 'libmamba2'
 
     env:
       OS: 'macos'
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
+      TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
+      CONDA_SOLVER_LOGIC: ${{ matrix.conda-solver-logic }}
 
     steps:
       - uses: actions/checkout@v2
