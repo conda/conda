@@ -1,11 +1,13 @@
 import os
 from itertools import chain
 from collections import defaultdict, OrderedDict
-from logging import getLogger
+import logging
 import sys
 from tempfile import NamedTemporaryFile
 from typing import Iterable, Mapping, Optional, Union
+from textwrap import dedent
 
+from ... import __version__ as _conda_version
 from ...base.constants import REPODATA_FN, ChannelPriority, DepsModifier, UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
@@ -27,8 +29,7 @@ from ...models.records import PackageRecord
 from .classic import Solver
 from .state import SolverInputState, SolverOutputState, IndexHelper
 
-
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class LibMambaIndexHelper(IndexHelper):
@@ -171,8 +172,8 @@ class LibMambaSolver2(Solver):
         force_remove=NULL,
         should_retry_solve=False,
     ):
-        if not context.json and not context.quiet:
-            print("------ USING EXPERIMENTAL LIBMAMBA2 INTEGRATIONS ------")
+        # Temporary, only during experimental phase to ease debugging
+        self._print_info()
 
         in_state = SolverInputState(
             prefix=self.prefix,
@@ -268,6 +269,34 @@ class LibMambaSolver2(Solver):
         self.neutered_specs = tuple(out_state.neutered.values())
 
         return out_state.current_solution
+
+    def _print_info(self):
+        if not context.json and not context.quiet:
+            print(
+                dedent(
+                    f"""
+                    ----       USING EXPERIMENTAL LIBMAMBA2 INTEGRATIONS       ----
+                        This is a highly experimental product. If something is
+                        not working as expected, please submit an issue at
+                        https://github.com/conda/conda and attach the log file
+                        found in the following path. Thank you!
+
+                        {context.logfile_path}
+
+                    ---------------------------------------------------------------
+                    """
+                )
+            )
+
+        import mamba
+
+        log.info("Using experimental libmamba2 integrations")
+        log.info("Conda version: %s", _conda_version)
+        log.info("Mamba version: %s", mamba.__version__)
+        log.info("Target prefix: %s", self.prefix)
+        log.info("Command: %s", sys.argv)
+        log.info("Specs to add: %s", self.specs_to_add)
+        log.info("Specs to remove: %s", self.specs_to_remove)
 
     def _setup_solver(self, index: LibMambaIndexHelper):
         import libmambapy as api
