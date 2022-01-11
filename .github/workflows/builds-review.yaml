@@ -84,5 +84,5 @@ jobs:
           echo "::endgroup::"
           echo "Uploaded the following files:"
           ls ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2 | cut -d/ -f3- | tr ' ' $'\n'
-          echo "Feel free to use this:"
+          echo "Use this command to try out:"
           echo "conda install -c ${{ secrets.ANACONDA_ORG_CHANNEL }}/label/${{ secrets.ANACONDA_ORG_LABEL }} conda"
