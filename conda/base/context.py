@@ -540,6 +540,20 @@ class Context(Configuration):
         mkdir_p(trash_dir)
         return trash_dir
 
+    @memoizedproperty
+    def logfile_path(self):
+        # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
+        from ..core.package_cache_data import PackageCacheData
+
+        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
+        logs = join(pkgs_dir, ".logs")
+        from ..gateways.disk.create import mkdir_p
+
+        mkdir_p(logs)
+
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        return os.path.join(logs, f"{timestamp}.log")
+
     @property
     def default_prefix(self):
         if self.active_prefix:

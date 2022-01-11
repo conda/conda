@@ -327,8 +327,8 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
 
     # create new stderr logger
     new_stderr_handler = StreamHandler(sys.stderr)
-    new_stderr_handler.name = 'stderr'
-    new_stderr_handler.setLevel(NOTSET)
+    new_stderr_handler.name = "stderr"
+    new_stderr_handler.setLevel(level)
     new_stderr_handler.setFormatter(formatter or _FORMATTER)
 
     # do the switch
@@ -336,7 +336,7 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
-        logr.setLevel(level)
+        logr.setLevel(logging.NOTSET)
         logr.propagate = propagate
 
 
