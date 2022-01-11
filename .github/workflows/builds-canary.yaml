@@ -1,4 +1,4 @@
-name: Build and upload conda packages
+name: Canary builds
 
 on:
   workflow_run:
@@ -65,17 +65,27 @@ jobs:
         # performing per-repository/fork configuration for GitHub Actions.
         run: |
           set -euo pipefail
+          echo "::group::Setting up environment"
           conda activate
           conda update --yes --quiet conda
           conda install --yes --quiet conda-build anaconda-client git
+          echo "::endgroup::"
+          echo "::group::Debugging information"
           conda info
           conda config --show-sources
           conda list
+          echo "::endgroup::"
+          echo "::group::Building package"
           conda build --croot=./pkgs conda.recipe
+          echo "::endgroup::"
+          echo "::group::Uploading package"
           anaconda --token ${{ secrets.ANACONDA_ORG_TOKEN }} upload \
             --force --register --no-progress \
             --user ${{ secrets.ANACONDA_ORG_CHANNEL }} \
             --label ${{ secrets.ANACONDA_ORG_LABEL }} \
             ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2
+          echo "::endgroup::"
           echo "Uploaded the following files:"
           ls ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2 | cut -d/ -f3- | tr ' ' $'\n'
+          echo "Use this command to try out:"
+          echo "conda install -c ${{ secrets.ANACONDA_ORG_CHANNEL }}/label/${{ secrets.ANACONDA_ORG_LABEL }} conda"
