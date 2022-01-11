@@ -47,6 +47,7 @@ def generate_parser():
     if PARSER is not None:
         return PARSER
     from .conda_argparse import generate_parser
+
     PARSER = generate_parser()
     return PARSER
 
@@ -58,7 +59,7 @@ def init_loggers(context=None):
     initialize_logging()
     if context and context.json:
         # Silence logging info to avoid interfering with JSON output
-        for logger in ('conda.stdout.verbose', 'conda.stdoutlog', 'conda.stderrlog'):
+        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
             getLogger(logger).setLevel(CRITICAL + 1)
 
     if context and context.verbosity:
@@ -70,29 +71,32 @@ def init_loggers(context=None):
 
 def _main(*args, **kwargs):
     if len(args) == 1:
-        args = args + ('-h',)
+        args = args + ("-h",)
 
     p = generate_parser()
     args = p.parse_args(args[1:])
 
     from ..base.context import context
+
     context.__init__(argparse_args=args)
     init_loggers(context)
 
     # used with main_pip.py
-    post_parse_hook = kwargs.pop('post_parse_hook', None)
+    post_parse_hook = kwargs.pop("post_parse_hook", None)
     if post_parse_hook:
         post_parse_hook(args, p)
 
     from .conda_argparse import do_call
+
     exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code
-    elif hasattr(exit_code, 'rc'):
+    elif hasattr(exit_code, "rc"):
         return exit_code.rc
 
 
-if sys.platform == 'win32' and sys.version_info[0] == 2:
+if sys.platform == "win32" and sys.version_info[0] == 2:
+
     def win32_unicode_argv():
         """Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
         strings.
@@ -129,7 +133,7 @@ def main(*args, **kwargs):
     init_std_stream_encoding()
 
     if not args:
-        if sys.platform == 'win32' and sys.version_info[0] == 2:
+        if sys.platform == "win32" and sys.version_info[0] == 2:
             args = sys.argv = win32_unicode_argv()
         else:
             args = sys.argv
@@ -139,22 +143,26 @@ def main(*args, **kwargs):
     if len(args) > 1:
         try:
             argv1 = args[1].strip()
-            if argv1.startswith('shell.'):
+            if argv1.startswith("shell."):
                 from ..activate import main as activator_main
+
                 return activator_main()
-            elif argv1.startswith('..'):
+            elif argv1.startswith(".."):
                 import conda.cli.activate as activate
+
                 activate.main()
                 return
         except Exception:
             _, exc_val, exc_tb = sys.exc_info()
             init_loggers()
             from ..exceptions import ExceptionHandler
+
             return ExceptionHandler().handle_exception(exc_val, exc_tb)
 
     from ..exceptions import conda_exception_handler
+
     return conda_exception_handler(_main, *args, **kwargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
