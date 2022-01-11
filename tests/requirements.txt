@@ -33,5 +33,5 @@ requests
 responses
 ruamel_yaml
 # only for mamba poc
-conda-forge::mamba
+conda-forge::mamba >=0.19.0
 conda-forge::libcurl
