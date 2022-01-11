@@ -34,7 +34,7 @@ jobs:
               { echo "FATAL: ANACONDA_ORG_TOKEN secret not configured" >&2; exit 1; }
           echo "::set-output name=defined::true"
 
-  build-conda-pkgs:
+  build:
     needs:
       - check-config
     if: |
