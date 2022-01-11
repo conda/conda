@@ -1991,7 +1991,7 @@ dependencies:
                 # install an "editable" urllib3 that cannot be managed
                 output, err, _ = run_command(Commands.RUN, prefix, '--cwd', workdir,
                                              "python", "-m", "pip", "install", "-e",
-                                             "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
+                                             "git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
                 assert isfile(join(workdir, "src", "urllib3", "urllib3", "__init__.py"))
                 assert not isfile(join("src", "urllib3", "urllib3", "__init__.py"))
                 PrefixData._cache_.clear()
