@@ -144,7 +144,6 @@ class TrackedMap(MutableMapping):
     ):
         self._name = name
         self._clsname = self.__class__.__name__
-        self._logger = logging.getLogger(__name__)
 
         if isinstance(data, TrackedMap):
             self._data = data._data.copy()
@@ -183,7 +182,7 @@ class TrackedMap(MutableMapping):
                 f"(reason={reason}) but stayed the same due to overwrite=False."
             )
 
-        self._logger.debug(msg, stacklevel=_level)
+        logger.debug(msg, stacklevel=_level)
 
     @property
     def name(self):
@@ -215,7 +214,7 @@ class TrackedMap(MutableMapping):
     def __delitem__(self, key: Hashable):
         del self._data[key]
         self._reasons.pop(key, None)
-        self._logger.debug(f"{self._clsname}:{self._name}[{key!r}] was deleted", stacklevel=2)
+        logger.debug(f"{self._clsname}:{self._name}[{key!r}] was deleted", stacklevel=2)
 
     def pop(self, key: Hashable, *default: Any, reason: Optional[str] = None) -> Any:
         """
@@ -227,7 +226,7 @@ class TrackedMap(MutableMapping):
         msg = f"{self._clsname}:{self._name}[{key!r}] (={self._short_repr(value)}) was deleted"
         if reason:
             msg += f" (reason={reason})"
-        self._logger.debug(msg, stacklevel=2)
+        logger.debug(msg, stacklevel=2)
         return value
 
     def popitem(
@@ -242,7 +241,7 @@ class TrackedMap(MutableMapping):
         msg = f"{self._clsname}:{self._name}[{key!r}] (={self._short_repr(value)}) was deleted"
         if reason:
             msg += f" (reason={reason})"
-        self._logger.debug(msg, stacklevel=2)
+        logger.debug(msg, stacklevel=2)
         return key, value
 
     def clear(self, reason: Optional[str] = None):
@@ -255,7 +254,7 @@ class TrackedMap(MutableMapping):
         msg = f"{self._name} was cleared"
         if reason:
             msg += f" (reason={reason})"
-        self._logger.debug(msg)
+        logger.debug(msg)
 
     def update(
         self, data: Union[dict, Iterable], *, reason: Optional[str] = None, overwrite: bool = True
