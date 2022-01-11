@@ -38,7 +38,6 @@ jobs:
     needs:
       - check-config
     if: |
-      github.event.workflow_run.conclusion == 'success' &&
       github.event.label.name == 'build::review' &&
       needs.check-config.outputs.okay == 'true'
     strategy:
