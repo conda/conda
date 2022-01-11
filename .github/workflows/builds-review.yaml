@@ -14,11 +14,15 @@ jobs:
     outputs:
       okay: ${{ steps.check-secrets.outputs.defined }}
     steps:
+      - name: Inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4
+      - name: "Set environmental variables"
+        run: |
+          echo "ANACONDA_ORG_LABEL=$GITHUB_HEAD_REF_SLUG_URL" >> $GITHUB_ENV
       - name: Check for secrets needed to build & upload packages
         id: check-secrets
         env:
           ANACONDA_ORG_CHANNEL: ${{ secrets.ANACONDA_ORG_CHANNEL }}
-          ANACONDA_ORG_LABEL: ${{ github.ref_name }}
           ANACONDA_ORG_TOKEN: ${{ secrets.ANACONDA_ORG_TOKEN }}
         shell: bash -l {0}
         run: |
