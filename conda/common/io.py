@@ -22,7 +22,7 @@ import threading
 
 if sys.version_info[0] > 2:
     # Not used at present.
-    from io import BytesIO
+    from io import BytesIO, UnsupportedOperation
 from itertools import cycle
 import json
 import logging  # lgtm [py/import-and-import-from]
@@ -284,12 +284,20 @@ class CapturedDescriptor:
         self._captured_stream = stream
         self._threaded = threaded
         self._sentinel = sentinel
-        # Keep a reference to the descriptor we are capturing
-        self._captured_stream_fd = self._captured_stream.fileno()
-        # Create a pipe so the stream can be captured:
-        self._pipe_out, self._pipe_in = os.pipe()
+        try:
+            # Keep a reference to the descriptor we are capturing
+            self._captured_stream_fd = self._captured_stream.fileno()
+        except UnsupportedOperation:
+            # This happens in our tests because we are already
+            # capturing sys.stdout and stderr; if that's the case
+            # make this a noop
+            self.start = self._noop
+            self.stop = self._noop
+        else:
+            # Create a pipe so the stream can be captured:
+            self._pipe_out, self._pipe_in = os.pipe()
 
-        self.text = None
+            self.text = None
 
     def __enter__(self):
         self.start()
@@ -298,7 +306,10 @@ class CapturedDescriptor:
     def __exit__(self, type, value, traceback):
         self.stop()
 
-    def start(self):
+    def _noop(self, *args, **kwargs):
+        pass
+
+    def _start(self):
         """
         Start capturing the stream data.
         """
@@ -314,7 +325,9 @@ class CapturedDescriptor:
             # Make sure that the thread is running and os.read() has executed:
             sleep(0.01)
 
-    def stop(self):
+    start = _start
+
+    def _stop(self):
         """
         Stop capturing the stream data and save the text in `text`.
         """
@@ -336,6 +349,8 @@ class CapturedDescriptor:
         os.dup2(self._original_stream_fd, self._captured_stream_fd)
         # Close the duplicate stream:
         os.close(self._original_stream_fd)
+
+    stop = _stop
 
     def _read(self, length=1):
         """
