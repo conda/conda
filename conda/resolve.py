@@ -1243,7 +1243,7 @@ class Resolve(object):
     def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None,
               should_retry_solve=False):
         # type: (List[str], bool) -> List[PackageRecord]
-        
+
         if specs and not isinstance(specs[0], MatchSpec):
             specs = tuple(MatchSpec(_) for _ in specs)
         specs = set(specs)
