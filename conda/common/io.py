@@ -284,6 +284,7 @@ class CapturedDescriptor:
         self._captured_stream = stream
         self._threaded = threaded
         self._sentinel = sentinel
+        self.text = ""
         try:
             # Keep a reference to the descriptor we are capturing
             self._captured_stream_fd = self._captured_stream.fileno()
@@ -296,8 +297,6 @@ class CapturedDescriptor:
         else:
             # Create a pipe so the stream can be captured:
             self._pipe_out, self._pipe_in = os.pipe()
-
-            self.text = None
 
     def __enter__(self):
         self.start()
