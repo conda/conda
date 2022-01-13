@@ -48,8 +48,6 @@ jobs:
           clean: true
           fetch-depth: 0
       - uses: conda-incubator/setup-miniconda@v2
-      - name: Inject slug/short variables
-        uses: rlespinasse/github-slug-action@v4
       - name: Build & upload package
         shell: bash -l {0}
         # Note: In the `run` commands below, `ANACONDA_ORG_CHANNEL` and
