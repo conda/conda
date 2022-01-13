@@ -5,7 +5,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from concurrent.futures import (
-    ProcessPoolExecutor,
     ThreadPoolExecutor,
     Executor,
     Future,
@@ -26,7 +25,7 @@ if sys.version_info[0] > 2:
 from itertools import cycle
 import json
 import logging  # lgtm [py/import-and-import-from]
-from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
+from logging import CRITICAL, Formatter, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join
 import signal

@@ -800,7 +800,8 @@ class Context(Configuration):
                     iteritems,
                     (
                         custom_multichannels,
-                        reserved_multichannels,  # reserved comes last, so reserved overrides custom
+                        # reserved comes last, so reserved overrides custom
+                        reserved_multichannels,
                     ),
                 )
             )
@@ -1185,46 +1186,49 @@ class Context(Configuration):
                 #     """),
                 "aggressive_update_packages": dals(
                     """
-                    A list of packages that, if installed, are always updated to the latest possible
-                    version.
+                    A list of packages that, if installed, are always updated to the latest
+                    possible version.
                     """
                 ),
                 "allow_non_channel_urls": dals(
                     """
-                    Warn, but do not fail, when conda detects a channel url is not a valid channel.
+                    Warn, but do not fail, when conda detects a channel url is not a valid
+                    channel.
                     """
                 ),
                 "allow_softlinks": dals(
                     """
-                    When allow_softlinks is True, conda uses hard-links when possible, and soft-links
-                    (symlinks) when hard-links are not possible, such as when installing on a
-                    different filesystem than the one that the package cache is on. When
-                    allow_softlinks is False, conda still uses hard-links when possible, but when it
-                    is not possible, conda copies files. Individual packages can override
-                    this setting, specifying that certain files should never be soft-linked (see the
-                    no_link option in the build recipe documentation).
+                    When allow_softlinks is True, conda uses hard-links when possible, and
+                    soft-links (symlinks) when hard-links are not possible, such as when
+                    installing on a different filesystem than the one that the package cache is
+                    on. When allow_softlinks is False, conda still uses hard-links when
+                    possible, but when it is not possible, conda copies files. Individual
+                    packages can override this setting, specifying that certain files should
+                    never be soft-linked (see the no_link option in the build recipe
+                    documentation).
                     """
                 ),
                 "always_copy": dals(
                     """
-                    Register a preference that files be copied into a prefix during install rather
-                    than hard-linked.
+                    Register a preference that files be copied into a prefix during install
+                    rather than hard-linked.
                     """
                 ),
                 "always_softlink": dals(
                     """
-                    Register a preference that files be soft-linked (symlinked) into a prefix during
-                    install rather than hard-linked. The link source is the 'pkgs_dir' package cache
-                    from where the package is being linked. WARNING: Using this option can result in
-                    corruption of long-lived conda environments. Package caches are *caches*, which
-                    means there is some churn and invalidation. With this option, the contents of
-                    environments can be switched out (or erased) via operations on other environments.
+                    Register a preference that files be soft-linked (symlinked) into a prefix
+                    during install rather than hard-linked. The link source is the 'pkgs_dir'
+                    package cache from where the package is being linked. WARNING: Using this
+                    option can result in corruption of long-lived conda environments. Package
+                    caches are *caches*, which means there is some churn and invalidation. With
+                    this option, the contents of environments can be switched out (or erased)
+                    via operations on other environments.
                     """
                 ),
                 "always_yes": dals(
                     """
-                    Automatically choose the 'yes' option whenever asked to proceed with a conda
-                    operation, such as when running `conda install`.
+                    Automatically choose the 'yes' option whenever asked to proceed with a
+                    conda operation, such as when running `conda install`.
                     """
                 ),
                 "anaconda_upload": dals(
@@ -1239,22 +1243,23 @@ class Context(Configuration):
                 ),
                 "auto_update_conda": dals(
                     """
-                    Automatically update conda when a newer or higher priority version is detected.
+                    Automatically update conda when a newer or higher priority version is
+                    detected.
                     """
                 ),
                 "auto_stack": dals(
                     """
-                    Implicitly use --stack when using activate if current level of nesting
-                    (as indicated by CONDA_SHLVL environment variable) is less than or equal to
+                    Implicitly use --stack when using activate if current level of nesting (as
+                    indicated by CONDA_SHLVL environment variable) is less than or equal to
                     specified value. 0 or false disables automatic stacking, 1 or true enables
                     it for one level.
                     """
                 ),
                 "bld_path": dals(
                     """
-                    The location where conda-build will put built packages. Same as 'croot', but
-                    'croot' takes precedence when both are defined. Also used in construction of the
-                    'local' multichannel.
+                    The location where conda-build will put built packages. Same as 'croot',
+                    but 'croot' takes precedence when both are defined. Also used in
+                    construction of the 'local' multichannel.
                     """
                 ),
                 "changeps1": dals(
@@ -1271,14 +1276,14 @@ class Context(Configuration):
                 "channel_priority": dals(
                     """
                     Accepts values of 'strict', 'flexible', and 'disabled'. The default value
-                    is 'flexible'. With strict channel priority, packages in lower priority channels
-                    are not considered if a package with the same name appears in a higher
-                    priority channel. With flexible channel priority, the solver may reach into
-                    lower priority channels to fulfill dependencies, rather than raising an
-                    unsatisfiable error. With channel priority disabled, package version takes
-                    precedence, and the configured priority of channels is used only to break ties.
-                    In previous versions of conda, this parameter was configured as either True or
-                    False. True is now an alias to 'flexible'.
+                    is 'flexible'. With strict channel priority, packages in lower priority
+                    channels are not considered if a package with the same name appears in a
+                    higher priority channel. With flexible channel priority, the solver may
+                    reach into lower priority channels to fulfill dependencies, rather than
+                    raising an unsatisfiable error. With channel priority disabled, package
+                    version takes precedence, and the configured priority of channels is used
+                    only to break ties. In previous versions of conda, this parameter was
+                    configured as either True or False. True is now an alias to 'flexible'.
                     """
                 ),
                 "channels": dals(
@@ -1289,8 +1294,8 @@ class Context(Configuration):
                 "client_ssl_cert": dals(
                     """
                     A path to a single file containing a private key and certificate (e.g. .pem
-                    file). Alternately, use client_ssl_cert_key in conjuction with client_ssl_cert
-                    for individual files.
+                    file). Alternately, use client_ssl_cert_key in conjuction with
+                    client_ssl_cert for individual files.
                     """
                 ),
                 "client_ssl_cert_key": dals(
@@ -1308,7 +1313,8 @@ class Context(Configuration):
                     General configuration parameters for conda-build.
                     """
                 ),
-                # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration  # NOQA
+                # TODO: add shortened link to docs for conda_build at
+                # See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration  # NOQA
                 "create_default_packages": dals(
                     """
                     Packages that are by default added to a newly created environments.
@@ -1316,31 +1322,31 @@ class Context(Configuration):
                 ),  # TODO: This is a bad parameter name. Consider an alternate.
                 "croot": dals(
                     """
-                    The location where conda-build will put built packages. Same as 'bld_path', but
-                    'croot' takes precedence when both are defined. Also used in construction of the
-                    'local' multichannel.
+                    The location where conda-build will put built packages. Same as 'bld_path',
+                    but 'croot' takes precedence when both are defined. Also used in
+                    construction of the 'local' multichannel.
                     """
                 ),
                 "custom_channels": dals(
                     """
-                    A map of key-value pairs where the key is a channel name and the value is
-                    a channel location. Channels defined here override the default
-                    'channel_alias' value. The channel name (key) is not included in the channel
-                    location (value).  For example, to override the location of the 'conda-forge'
-                    channel where the url to repodata is
-                    https://anaconda-repo.dev/packages/conda-forge/linux-64/repodata.json, add an
-                    entry 'conda-forge: https://anaconda-repo.dev/packages'.
+                    A map of key-value pairs where the key is a channel name and the value is a
+                    channel location. Channels defined here override the default
+                    'channel_alias' value. The channel name (key) is not included in the
+                    channel location (value).  For example, to override the location of the
+                    'conda-forge' channel where the url to repodata is
+                    https://anaconda-repo.dev/packages/conda-forge/linux-64/repodata.json, add
+                    an entry 'conda-forge: https://anaconda-repo.dev/packages'.
                     """
                 ),
                 "custom_multichannels": dals(
                     """
-                    A multichannel is a metachannel composed of multiple channels. The two reserved
-                    multichannels are 'defaults' and 'local'. The 'defaults' multichannel is
-                    customized using the 'default_channels' parameter. The 'local'
-                    multichannel is a list of file:// channel locations where conda-build stashes
-                    successfully-built packages.  Other multichannels can be defined with
-                    custom_multichannels, where the key is the multichannel name and the value is
-                    a list of channel names and/or channel urls.
+                    A multichannel is a metachannel composed of multiple channels. The two
+                    reserved multichannels are 'defaults' and 'local'. The 'defaults'
+                    multichannel is customized using the 'default_channels' parameter. The
+                    'local' multichannel is a list of file:// channel locations where
+                    conda-build stashes successfully-built packages.  Other multichannels can
+                    be defined with custom_multichannels, where the key is the multichannel
+                    name and the value is a list of channel names and/or channel urls.
                     """
                 ),
                 "default_channels": dals(
@@ -1403,14 +1409,15 @@ class Context(Configuration):
                 ),
                 "force_reinstall": dals(
                     """
-                    Ensure that any user-requested package for the current operation is uninstalled
-                    and reinstalled, even if that package already exists in the environment.
+                    Ensure that any user-requested package for the current operation is
+                    uninstalled and reinstalled, even if that package already exists in the
+                    environment.
                     """
                 ),
                 # 'force': dals("""
-                #     Override any of conda's objections and safeguards for installing packages and
-                #     potentially breaking environments. Also re-installs the package, even if the
-                #     package is already installed. Implies --no-deps.
+                #     Override any of conda's objections and safeguards for installing packages
+                #     and potentially breaking environments. Also re-installs the package, even
+                #     if the package is already installed. Implies --no-deps.
                 #     """),
                 # 'force_32bit': dals("""
                 #     CONDA_FORCE_32BIT should only be used when running conda-build (in order
@@ -1443,19 +1450,19 @@ class Context(Configuration):
                     """
                 ),
                 # 'no_deps': dals("""
-                #     Do not install, update, remove, or change dependencies. This WILL lead to broken
-                #     environments and inconsistent behavior. Use at your own risk.
+                #     Do not install, update, remove, or change dependencies. This WILL lead to
+                #     broken environments and inconsistent behavior. Use at your own risk.
                 #     """),
                 "non_admin_enabled": dals(
                     """
-                    Allows completion of conda's create, install, update, and remove operations, for
-                    non-privileged (non-root or non-administrator) users.
+                    Allows completion of conda's create, install, update, and remove
+                    operations, for non-privileged (non-root or non-administrator) users.
                     """
                 ),
                 "notify_outdated_conda": dals(
                     """
-                    Notify if a newer version of conda is detected during a create, install, update,
-                    or remove operation.
+                    Notify if a newer version of conda is detected during a create, install,
+                    update, or remove operation.
                     """
                 ),
                 "offline": dals(
@@ -1547,8 +1554,9 @@ class Context(Configuration):
                 ),
                 "restore_free_channel": dals(
                     """"
-                    Add the "free" channel back into defaults, behind "main" in priority. The "free"
-                    channel was removed from the collection of default channels in conda 4.7.0.
+                    Add the "free" channel back into defaults, behind "main" in priority. The
+                    "free" channel was removed from the collection of default channels in conda
+                    4.7.0.
                     """
                 ),
                 "rollback_enabled": dals(
@@ -1575,14 +1583,15 @@ class Context(Configuration):
                 ),
                 "extra_safety_checks": dals(
                     """
-                    Spend extra time validating package contents.  Currently, runs sha256 verification
-                    on every file within each package during installation.
+                    Spend extra time validating package contents.  Currently, runs sha256
+                    verification on every file within each package during installation.
                     """
                 ),
                 "signing_metadata_url_base": dals(
                     """
                     Base URL for obtaining trust metadata updates (i.e., the `*.root.json` and
-                    `key_mgr.json` files) used to verify metadata and (eventually) package signatures.
+                    `key_mgr.json` files) used to verify metadata and (eventually) package
+                    signatures.
                     """
                 ),
                 "shortcuts": dals(
@@ -1600,10 +1609,10 @@ class Context(Configuration):
                     """
                     Conda verifies SSL certificates for HTTPS requests, just like a web
                     browser. By default, SSL verification is enabled, and conda operations will
-                    fail if a required url's certificate cannot be verified. Setting ssl_verify to
-                    False disables certification verification. The value for ssl_verify can also
-                    be (1) a path to a CA bundle file, or (2) a path to a directory containing
-                    certificates of trusted CA.
+                    fail if a required url's certificate cannot be verified. Setting ssl_verify
+                    to False disables certification verification. The value for ssl_verify can
+                    also be (1) a path to a CA bundle file, or (2) a path to a directory
+                    containing certificates of trusted CA.
                     """
                 ),
                 "track_features": dals(
@@ -1614,11 +1623,11 @@ class Context(Configuration):
                 ),
                 "repodata_fns": dals(
                     """
-                    Specify filenames for repodata fetching. The default is ('current_repodata.json',
-                    'repodata.json'), which tries a subset of the full index containing only the
-                    latest version for each package, then falls back to repodata.json.  You may
-                    want to specify something else to use an alternate index that has been reduced
-                    somehow.
+                    Specify filenames for repodata fetching. The default is
+                    ('current_repodata.json', 'repodata.json'), which tries a subset of the
+                    full index containing only the latest version for each package, then falls
+                    back to repodata.json.  You may want to specify something else to use an
+                    alternate index that has been reduced somehow.
                     """
                 ),
                 "use_index_cache": dals(
@@ -1628,9 +1637,10 @@ class Context(Configuration):
                 ),
                 "use_only_tar_bz2": dals(
                     """
-                    A boolean indicating that only .tar.bz2 conda packages should be downloaded.
-                    This is forced to True if conda-build is installed and older than 3.18.3,
-                    because older versions of conda break when conda feeds it the new file format.
+                    A boolean indicating that only .tar.bz2 conda packages should be
+                    downloaded. This is forced to True if conda-build is installed and older
+                    than 3.18.3, because older versions of conda break when conda feeds it the
+                    new file format.
                     """
                 ),
                 "verbosity": dals(
@@ -1640,8 +1650,8 @@ class Context(Configuration):
                 ),
                 "verify_threads": dals(
                     """
-                    Threads to use when performing the transaction verification step.  When not set,
-                    defaults to 1.
+                    Threads to use when performing the transaction verification step.  When not
+                    set, defaults to 1.
                     """
                 ),
                 "whitelist_channels": dals(
@@ -1669,10 +1679,10 @@ class Context(Configuration):
                 ),
                 "solver_logic": dals(
                     """
-                    A string to choose between the different solver logics implemented in conda.
-                    A solver logic takes care of turning your requested packages into a list of
-                    specs to add and/or remove from a given environment, based on their dependencies
-                    and specified constraints.
+                    A string to choose between the different solver logics implemented in
+                    conda. A solver logic takes care of turning your requested packages into a
+                    list of specs to add and/or remove from a given environment, based on their
+                    dependencies and specified constraints.
                     """
                 ),
             }
