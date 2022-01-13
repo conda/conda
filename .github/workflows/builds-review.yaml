@@ -27,7 +27,7 @@ jobs:
           clean: true
           fetch-depth: 0
       - uses: conda-incubator/setup-miniconda@v2
-      - uses: ./github/actions/canary
+      - uses: ./.github/actions/canary
         with:
           channel: conda-canary
           label: ${{ github.repository_owner }}-${{ github.event.repository.name }}-pr-${{ github.event.number }}
