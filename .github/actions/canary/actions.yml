@@ -1,0 +1,43 @@
+name: 'Canary releases'
+description: 'This builds and uploads canary releases of conda to the provided channel and label on anaconda.org.'
+inputs:
+  channel:
+    description: 'Channel on anaconda.org'
+    required: true
+  label:
+    description: 'Label to use when uploading'
+    required: true
+  token:
+    description: 'anaconda.org upload token'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Build & upload package
+      shell: bash -l {0}
+      run: |
+        echo "::group::Setting up environment"
+        set -euo pipefail
+        conda activate
+        conda update --yes --quiet conda
+        conda install --yes --quiet conda-build anaconda-client git
+        echo "::endgroup::"
+        echo "::group::Debugging information"
+        conda info
+        conda config --show-sources
+        conda list
+        echo "::endgroup::"
+        echo "::group::Building package"
+        conda build --croot=./pkgs conda.recipe
+        echo "::endgroup::"
+        echo "::group::Uploading package"
+        anaconda --token ${{ inputs.token }} upload \
+          --force --register --no-progress \
+          --user ${{ inputs.channel }} \
+          --label ${{ inputs.label }} \
+          ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2
+        echo "Uploaded the following files:"
+        ls ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2 | cut -d/ -f3- | tr ' ' $'\n'
+        echo "::endgroup::"
+        echo "Use this command to try out the build:"
+        echo "conda install -c ${{ inputs.channel }}/label/${{ inputs.label }} conda"
