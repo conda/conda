@@ -97,3 +97,7 @@
   description: related to conda-pip issues
   color: #86C579
   aliases: []
+- name: tag::multi-user
+  description: related to shared/multi-user installs
+  color: #86C579
+  aliases: []
