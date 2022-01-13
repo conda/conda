@@ -73,10 +73,10 @@ jobs:
           anaconda --token ${{ secrets.ANACONDA_ORG_TOKEN }} upload \
             --force --register --no-progress \
             --user conda-canary \
-            --label ${{ github.repository }}/pr/${{ github.event.number }} \
+            --label ${{ github.repository_owner }}-${{ github.event.repository.name }}-pr-${{ github.event.number }} \
             ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2
           echo "Uploaded the following files:"
           ls ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2 | cut -d/ -f3- | tr ' ' $'\n'
           echo "::endgroup::"
           echo "Use this command to try out:"
-          echo "conda install -c conda-canary/label/${{ github.repository }}/pr/${{ github.event.number }} conda"
+          echo "conda install -c conda-canary/label/${{ github.repository_owner }}-${{ github.event.repository.name }}-pr-${{ github.event.number }} conda"
