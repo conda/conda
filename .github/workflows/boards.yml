@@ -1,111 +1,203 @@
 name: Automate Boards
+
 on:
   issues:
-    types: [opened, labeled, milestoned, demilestoned]
-  issue_comment:
-    types: [created]
+    types: [opened, labeled, unlabeled]
+
+env:
+  BACKLOG_LBL: backlog
+  SPRINT_LBL: sprint
+  # these variables cannot be used in if expressions
+  # see https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
+  TRIAGING_ID: 4
+  TRIAGING_URL: https://api.github.com/projects/13697310
+  BACKLOG_ID: 5
+  BACKLOG_URL: https://api.github.com/projects/13697370
+  SPRINT_ID: 8
+  SPRINT_URL: https://api.github.com/projects/13829490
+
 jobs:
-  # move to Triaging board if new
-  triaging:
+  # new -> Triaging[New]
+  to_triaging:
+    # if new issue and not [backlog] or [sprint]
     if: >-
-      github.event_name == 'issues'
+      !github.event.repository.fork
+      && github.event.sender.login != 'conda-bot'
+      && github.event_name == 'issues'
       && github.event.action == 'opened'
-      && github.event.issue.state == 'open'
       && !contains(github.event.issue.labels.*.name, 'backlog')
+      && !contains(github.event.issue.labels.*.name, 'sprint')
     runs-on: ubuntu-latest
     steps:
+      # add to Triaging board
       - uses: alex-page/github-project-automation-plus@v0.8.1
         with:
-          action: add
+          action: add # if not present
           project: Triaging
           column: New
           repo-token: ${{ secrets.PROJECT_TOKEN }}
 
-  # if labeled as [pending::feedback] and the author responded remove [pending::feedback] and add [pending::support]
-  # clearly this will not catch cases where multiple users act as the author/reporter, this is just an effort to catch the majority of support cases
-  pending_support:
+  # new -> Backlog[Unplanned]
+  # Triaging[Ready] -> Backlog[Unplanned]
+  # Sprint[To Do] -> Backlog[Do Next]
+  to_backlog:
+    # if new issue with [backlog]
+    # if labeled [backlog]
+    # if added to Backlog board
+    # if unlabeled [sprint]
+    # if removed from Sprint board
     if: >-
-      github.event_name == 'issue_comment'
-      && github.event.action == 'created'
-      && !github.event.issue.pull_request
-      && contains(github.event.issue.labels.*.name, 'pending::feedback')
-      && github.event.issue.user.login == github.event.comment.user.login
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions-ecosystem/action-remove-labels@v1.3.0
-        with:
-          labels: pending::feedback
-          github_token: ${{ secrets.PROJECT_TOKEN }}
-      - uses: actions-ecosystem/action-add-labels@v1.1.0
-        # if the author closed out the issue we will not apply [pending::support]
-        if: github.event.issue.state == 'open'
-        with:
-          labels: pending::support
-          github_token: ${{ secrets.PROJECT_TOKEN }}
-
-  # move to Backlog board if labeled as [backlog]
-  backlog:
-    if: >-
-      github.event_name == 'issues'
-      && github.event.action == 'labeled'
+      !github.event.repository.fork
+      && github.event.sender.login != 'conda-bot'
       && github.event.issue.state == 'open'
-      && contains(github.event.issue.labels.*.name, 'backlog')
+      && (
+        (
+          github.event_name == 'issues'
+          && github.event.action == 'opened'
+          && contains(github.event.issue.labels.*.name, 'backlog')
+          && !contains(github.event.issue.labels.*.name, 'sprint')
+        )
+        || (
+          github.event_name == 'issues'
+          && github.event.action == 'labeled'
+          && github.event.label.name == 'backlog'
+        )
+        || (
+          github.event_name == 'issues'
+          && github.event.action == 'unlabeled'
+          && github.event.label.name == 'sprint'
+        )
+      )
     runs-on: ubuntu-latest
     steps:
+      # (helper) access private GitHub Action
+      - uses: actions/checkout@v2
+      # (helper) detect if attached to triaging board
+      - id: on_triaging
+        uses: conda/actions/issue-in-project@v1.0
+        with:
+          org: conda
+          project: ${{ env.TRIAGING_ID }}
+          issue: ${{ github.event.issue.id }}
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      # (helper) detect if attached to sprint board
+      - id: on_sprint
+        uses: conda/actions/issue-in-project@v1.0
+        with:
+          org: conda
+          project: ${{ env.SPRINT_ID }}
+          issue: ${{ github.event.issue.id }}
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      # (fail-safe) remove from Triaging board
       - uses: alex-page/github-project-automation-plus@v0.8.1
         with:
-          action: delete
+          action: delete # if present
           project: Triaging
-          column: Ready
+          column: Ready # unused
           repo-token: ${{ secrets.PROJECT_TOKEN }}
-      - uses: alex-page/github-project-automation-plus@v0.8.1
+      # add [backlog] label
+      - uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
-          action: add
+          labels: ${{ env.BACKLOG_LBL }}
+          number: ${{ github.event.issue.number }}
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      # add to Backlog board (from Triaging board)
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        if: >-
+          fromJSON(steps.on_triaging.outputs.contains)
+          && !contains(github.event.issue.labels.*.name, 'sprint')
+          && !fromJSON(steps.on_sprint.outputs.contains)
+        with:
+          action: add # if not present
           project: Backlog
           column: Unplanned
           repo-token: ${{ secrets.PROJECT_TOKEN }}
-
-  # remove [backlog] (& remove from Backlog board) if milestoned
-  milestoned:
-    if: >-
-      github.event_name == 'issues'
-      && github.event.action == 'milestoned'
-      && github.event.issue.state == 'open'
-    runs-on: ubuntu-latest
-    steps:
+      # add to Backlog board (from Sprint board)
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        if: >-
+          !fromJSON(steps.on_triaging.outputs.contains)
+          || contains(github.event.issue.labels.*.name, 'sprint')
+          || fromJSON(steps.on_sprint.outputs.contains)
+        with:
+          action: add # if not present
+          project: Backlog
+          column: Do Next
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
+      # remove [sprint] label
       - uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: backlog
+          labels: ${{ env.SPRINT_LBL }}
+          number: ${{ github.event.issue.number }}
           github_token: ${{ secrets.PROJECT_TOKEN }}
+      # remove from Sprint board
       - uses: alex-page/github-project-automation-plus@v0.8.1
         with:
-          action: delete
-          project: Backlog
-          column: Do Next
-          repo-token: ${{ secrets.PROJECT_TOKEN }}
-      # just in case the issue is still on the Triaging board
-      - uses: alex-page/github-project-automation-plus@v0.8.1
-        with:
-          action: delete
-          project: Triaging
-          column: Ready
+          action: delete # if present
+          project: Sprint
+          column: To Do # unused
           repo-token: ${{ secrets.PROJECT_TOKEN }}
 
-  # add [backlog] (& move back to Backlog board) if demilestoned
-  demilestoned:
+  # new -> Sprint[To Do]
+  # Backlog[Do Next] -> Sprint[To Do]
+  to_sprint:
+    # if new issue with [sprint]
+    # if unlabeled [backlog]
+    # if removed from Backlog board
+    # if labeled [sprint]
+    # if added to Sprint board
     if: >-
-      github.event_name == 'issues'
-      && github.event.action == 'demilestoned'
+      !github.event.repository.fork
+      && github.event.sender.login != 'conda-bot'
       && github.event.issue.state == 'open'
+      && (
+        (
+          github.event_name == 'issues'
+          && github.event.action == 'opened'
+          && contains(github.event.issue.labels.*.name, 'sprint')
+        )
+        || (
+          github.event_name == 'issues'
+          && github.event.action == 'unlabeled'
+          && github.event.label.name == 'backlog'
+        )
+        || (
+          github.event_name == 'issues'
+          && github.event.action == 'labeled'
+          && github.event.label.name == 'sprint'
+        )
+      )
     runs-on: ubuntu-latest
     steps:
-      - uses: actions-ecosystem/action-add-labels@v1.1.0
-        with:
-          labels: backlog
-          github_token: ${{ secrets.PROJECT_TOKEN }}
+      # (fail-safe) remove from Triaging board
       - uses: alex-page/github-project-automation-plus@v0.8.1
         with:
-          action: add
+          action: delete # if present
+          project: Triaging
+          column: Ready # unused
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
+      # remove [backlog] label
+      - uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: ${{ env.BACKLOG_LBL }}
+          number: ${{ github.event.issue.number }}
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      # remove from Backlog board
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        with:
+          action: delete # if present
           project: Backlog
-          column: Do Next
+          column: Do Next # unused
+          repo-token: ${{ secrets.PROJECT_TOKEN }}
+      # add [sprint] label
+      - uses: actions-ecosystem/action-add-labels@v1.1.0
+        with:
+          labels: ${{ env.SPRINT_LBL }}
+          number: ${{ github.event.issue.number }}
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      # add to Sprint board
+      - uses: alex-page/github-project-automation-plus@v0.8.1
+        with:
+          action: add # if not present
+          project: Sprint
+          column: To Do
           repo-token: ${{ secrets.PROJECT_TOKEN }}
