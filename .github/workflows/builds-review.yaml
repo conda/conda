@@ -14,11 +14,6 @@ jobs:
     outputs:
       okay: ${{ steps.check-secrets.outputs.defined }}
     steps:
-      - name: Inject slug/short variables
-        uses: rlespinasse/github-slug-action@v4
-      - name: "Set environmental variables"
-        run: |
-          echo "ANACONDA_ORG_LABEL=$GITHUB_HEAD_REF_SLUG_URL" >> $GITHUB_ENV
       - name: Check for secrets needed to build & upload packages
         id: check-secrets
         env:
@@ -28,8 +23,6 @@ jobs:
         run: |
           test -n "${ANACONDA_ORG_CHANNEL}" || \
               { echo "FATAL: ANACONDA_ORG_CHANNEL secret not configured" >&2; exit 1; }
-          test -n "${ANACONDA_ORG_LABEL}" || \
-              { echo "FATAL: ANACONDA_ORG_LABEL secret not configured" >&2; exit 1; }
           test -n "${ANACONDA_ORG_TOKEN}" || \
               { echo "FATAL: ANACONDA_ORG_TOKEN secret not configured" >&2; exit 1; }
           echo "::set-output name=defined::true"
@@ -57,6 +50,8 @@ jobs:
           clean: true
           fetch-depth: 0
       - uses: conda-incubator/setup-miniconda@v2
+      - name: Inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4
       - name: Build & upload package
         shell: bash -l {0}
         # Note: In the `run` commands below, `ANACONDA_ORG_CHANNEL` and
@@ -82,7 +77,7 @@ jobs:
           anaconda --token ${{ secrets.ANACONDA_ORG_TOKEN }} upload \
             --force --register --no-progress \
             --user ${{ secrets.ANACONDA_ORG_CHANNEL }} \
-            --label ${{ secrets.ANACONDA_ORG_LABEL }} \
+            --label ${{ env.GITHUB_HEAD_REF_SLUG_URL }} \
             ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2
           echo "::endgroup::"
           echo "Uploaded the following files:"
