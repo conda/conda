@@ -198,7 +198,6 @@ def init_api_context(verbosity: int = context.verbosity, use_mamba_experimental:
             raise ValueError(
                 f"Invalid conversion of env variable 'MAMBA_EXTRACT_THREADS' from value '{v}'"
             )
-    return api_ctx
 
     def get_base_url(url, name=None):
         tmp = url.rsplit("/", 1)[0]
@@ -251,6 +250,8 @@ def init_api_context(verbosity: int = context.verbosity, use_mamba_experimental:
         api_ctx.channel_priority = api.ChannelPriority.kFlexible
     elif context.channel_priority is ChannelPriority.DISABLED:
         api_ctx.channel_priority = api.ChannelPriority.kDisabled
+
+    return api_ctx
 
 
 def to_conda_channel(channel, platform):
