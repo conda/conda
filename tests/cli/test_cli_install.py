@@ -43,7 +43,7 @@ def test_find_conflicts_called_once(fix_cli_install):
     prefix, test_env = fix_cli_install
     bad_deps = {'python': {((MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")), 'python=3')}}
 
-        with patch(
+    with patch(
             "conda.resolve.Resolve.find_conflicts",
             side_effect=UnsatisfiableError(bad_deps, strict=True),
         ) as mocked_find_conflicts:
