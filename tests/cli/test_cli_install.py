@@ -44,19 +44,21 @@ def test_find_conflicts_called_once(fix_cli_install):
     prefix, test_env = fix_cli_install
     bad_deps = {'python': {((MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")), 'python=3')}}
 
-    with patch('conda.resolve.Resolve.find_conflicts') as monkey:
-        monkey.side_effect = UnsatisfiableError(bad_deps, strict=True)
-        with pytest.raises(UnsatisfiableError):
-            # Statistics is a py27 only package allowing us a simple unsatisfiable case
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'statistics')
-        assert monkey.call_count == 1
+        with patch(
+            "conda.resolve.Resolve.find_conflicts",
+            side_effect=UnsatisfiableError(bad_deps, strict=True),
+        ) as mocked_find_conflicts:
+            with pytest.raises(UnsatisfiableError):
+                # Statistics is a py27 only package allowing us a simple unsatisfiable case
+                run_command(Commands.INSTALL, prefix, "statistics")
+            assert mocked_find_conflicts.call_count == 1
 
-        monkey.reset_mock()
-        with pytest.raises(UnsatisfiableError):
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'statistics', '--freeze-installed')
-        assert monkey.call_count == 1
+            mocked_find_conflicts.reset_mock()
+            with pytest.raises(UnsatisfiableError):
+                run_command(Commands.INSTALL, prefix, "statistics", "--freeze-installed")
+            assert mocked_find_conflicts.call_count == 1
 
-        monkey.reset_mock()
-        with pytest.raises(UnsatisfiableError):
-            stdout, stderr, _ = run_command(Commands.CREATE, test_env, 'statistics', 'python=3.7')
-        assert monkey.call_count == 1
+            mocked_find_conflicts.reset_mock()
+            with pytest.raises(UnsatisfiableError):
+                run_command(Commands.CREATE, test_env, "statistics", "python=3.7")
+            assert mocked_find_conflicts.call_count == 1
