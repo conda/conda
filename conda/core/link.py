@@ -258,12 +258,14 @@ class UnlinkLinkTransaction(object):
             prelink_msg_dir = (
                     Path(act.pkg_data.extracted_package_dir) / "info" / "prelink_messages"
             )
-            if prelink_msg_dir.is_dir() and list(prelink_msg_dir.glob("**/*")):
-                print(f"\nPre-link message from {act.pkg_data.repodata_record}:")
+            all_msg_subdir = list(prelink_msg_dir.glob("**/*"))
+            if prelink_msg_dir.is_dir() and all_msg_subdir:
+                log.info(f"\nPre-link message from {act.pkg_data.repodata_record}:")
                 flag_pre_link = True
-                for msg_file in prelink_msg_dir.glob("**/*"):
+
+                for msg_file in all_msg_subdir:
                     if msg_file.is_file():
-                        print(f"File {msg_file.name};\n\nMessage:\n{msg_file.read_text()}")
+                        log.info(f"File {msg_file.name};\n\nMessage:\n{msg_file.read_text()}")
         if flag_pre_link:
             confirm_yn("Do you AGREE with ALL pre-link message")
 
