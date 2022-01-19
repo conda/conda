@@ -32,9 +32,9 @@ jobs:
       - name: Create and upload canary build
         uses: ./.github/actions/canary
         with:
-          channel: conda-canary
-          name: conda
-          subdir: ${{ matrix.subdir }}
-          label: dev
-          token: ${{ secrets.ANACONDA_ORG_TOKEN }}
           pr: ${{ github.event.number }}
+          package-name: conda
+          subdir: ${{ matrix.subdir }}
+          anaconda-org-channel: conda-canary
+          anaconda-org-label: dev
+          anaconda-org-token: ${{ secrets.ANACONDA_ORG_TOKEN }}

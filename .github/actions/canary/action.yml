@@ -1,36 +1,40 @@
 name: 'Canary releases'
 description: 'This builds and uploads canary releases of conda to the provided channel and label on anaconda.org.'
 inputs:
-  name:
+  pr:
+    description: 'Pull request ID'
+    required: true
+  package-name:
     description: 'Name of package on anaconda.org, needs to match build file name.'
-    required: true
-  channel:
-    description: 'Channel on anaconda.org'
-    required: true
-  label:
-    description: 'Label to use when uploading'
     required: true
   subdir:
     description: 'Subdirectory'
     required: true
-  token:
-    description: 'anaconda.org upload token'
+  comment-token:
+    description: 'Token for commenting build'
+    required: false
+  anaconda-org-channel:
+    description: 'Channel on anaconda.org'
     required: true
-  pr:
-    description: 'Pull request ID'
+  anaconda-org-label:
+    description: 'Label to use on anaconda.org'
+    required: true
+  anaconda-org-token:
+    description: 'Upload token for anaconda.org'
     required: true
 runs:
   using: "composite"
   steps:
-
     - uses: conda-incubator/setup-miniconda@v2
 
     - name: Create URL to the run output
       id: vars
+      shell: bash -l {0}
       run: echo ::set-output name=run-url::https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
 
     - name: Find Comment
       uses: peter-evans/find-comment@v1
+      if: inputs.comment_token != ''
       id: find-comment
       with:
         issue-number: ${{ inputs.pr }}
@@ -40,7 +44,9 @@ runs:
 
     - name: Create comment
       uses: peter-evans/create-or-update-comment@v1
-      if: steps.find-comment.outputs.comment-id == ''
+      if: |
+        steps.find-comment.outputs.comment-id == '' &&
+        inputs.comment_token != ''
       id: create-comment
       with:
         issue-number: ${{ inputs.pr }}
@@ -49,11 +55,12 @@ runs:
 
           [1]: ${{ steps.vars.outputs.run-url }}
         reactions: 'rocket'
-        token: ${{ secrets.CANARY_ACTION_TOKEN }}
+        token: ${{ inputs.comment_token }}
 
     - name: Build & upload package
+      # make sure we don't run on forks
       if: |
-        github.repository_owner == 'conda' &&  # make sure we don't run on forks
+        github.repository_owner == 'conda' &&
         steps.create-comment.outcome == 'success'
       id: build
       shell: bash -l {0}
@@ -91,7 +98,8 @@ runs:
     - name: Update comment (failure)
       if: |
         steps.create-comment.outputs.comment-id != '' &&
-        steps.build.outcome == 'failure'
+        steps.build.outcome == 'failure' &&
+        inputs.comment_token != ''
       uses: peter-evans/create-or-update-comment@v1
       with:
         comment-id: ${{ steps.create-comment.outputs.comment-id }}
@@ -100,12 +108,13 @@ runs:
 
           [1]: ${{ steps.vars.outputs.run-url }}
         reactions: 'eyes'
-        token: ${{ secrets.CANARY_ACTION_TOKEN }}
+        token: ${{ inputs.comment_token }}
 
     - name: Update comment (success)
       if: |
         steps.create-comment.outputs.comment-id != '' &&
-        steps.build.outcome == 'success'
+        steps.build.outcome == 'success' &&
+        inputs.comment_token != ''
       uses: peter-evans/create-or-update-comment@v1
       with:
         comment-id: ${{ steps.create-comment.outputs.comment-id }}
@@ -117,4 +126,4 @@ runs:
           conda install -c ${{ inputs.channel }}/label/${{ inputs.label }} ${{ inputs.name }}
           ```
         reactions: 'hooray'
-        token: ${{ secrets.CANARY_ACTION_TOKEN }}
+        token: ${{ inputs.comment_token }}
