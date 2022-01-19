@@ -4,30 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       dryrun:
-        description: "Preview changes to labels without editing them"
+        description: "dryrun: Preview changes to labels without editing them (true|false)"
         required: true
         default: "true"
 
 jobs:
-  global-labels:
+  sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: EndBug/label-sync@v2
+      - uses: EndBug/label-sync@v2.1.0
         with:
-          config-file: https://raw.githubusercontent.com/conda/infra/main/.github/labels.yml
-          delete-other-labels: true
-          dry-run: ${{ github.event.inputs.dryrun }}
-
-  local-labels:
-    runs-on: ubuntu-latest
-    steps:
-      - id: has_local
-        uses: andstor/file-existence-action@v1.0.1
-        with:
-          files: .github/labels.yml
-      - uses: EndBug/label-sync@v2
-        if: steps.has_local.outputs.files_exists == 'true'
-        with:
-          config-file: .github/labels.yml
+          config-file: |
+            https://raw.githubusercontent.com/conda/infra/main/.github/labels.yml
+            .github/labels.yml
           delete-other-labels: true
           dry-run: ${{ github.event.inputs.dryrun }}
