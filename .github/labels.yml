@@ -86,7 +86,7 @@
   color: "86C579"
   aliases: []
 - name: tag::auth
-  description:
+  # description:
   color: "86C579"
   aliases: []
 - name: tag::artifact-verification
