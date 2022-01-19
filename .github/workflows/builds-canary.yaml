@@ -28,9 +28,13 @@ jobs:
           ref: ${{ github.ref }}
           clean: true
           fetch-depth: 0
-      - uses: conda-incubator/setup-miniconda@v2
-      - uses: ./.github/actions/canary
+
+      - name: Create and upload canary build
+        uses: ./.github/actions/canary
         with:
           channel: conda-canary
+          name: conda
+          subdir: ${{ matrix.subdir }}
           label: dev
           token: ${{ secrets.ANACONDA_ORG_TOKEN }}
+          pr: ${{ github.event.number }}

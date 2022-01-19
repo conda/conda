@@ -1,19 +1,49 @@
 name: 'Canary releases'
 description: 'This builds and uploads canary releases of conda to the provided channel and label on anaconda.org.'
 inputs:
+  name:
+    description: 'Name of package on anaconda.org, needs to match build file name.'
+    required: true
   channel:
     description: 'Channel on anaconda.org'
     required: true
   label:
     description: 'Label to use when uploading'
     required: true
+  subdir:
+    description: 'Subdirectory'
+    required: true
   token:
     description: 'anaconda.org upload token'
     required: true
+  pr:
+    description: 'Pull request ID'
+    required: true
 runs:
   using: "composite"
-  steps:
+    - uses: conda-incubator/setup-miniconda@v2
+
+    - name: Create URL to the run output
+      id: vars
+      run: echo ::set-output name=run-url::https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+
+    - name: Create comment
+      uses: peter-evans/create-or-update-comment@v1
+      id: comment
+      with:
+        issue-number: ${{ inputs.pr }}
+        body: |
+          The canary build for ${{ inputs.name }} with the label `${{ inputs.label }}` in channel `${{ inputs.channel }}` [has started][1]!
+
+          [1]: ${{ steps.vars.outputs.run-url }}
+        reactions: 'rocket'
+        token: ${{ secrets.CANARY_ACTION_TOKEN }}
+
     - name: Build & upload package
+      if: |
+        github.repository_owner == 'conda' &&  # make sure we don't run on forks
+        steps.comment.outcome == 'success'
+      id: build
       shell: bash -l {0}
       run: |
         echo "::group::Setting up environment"
@@ -22,22 +52,57 @@ runs:
         conda update --yes --quiet conda
         conda install --yes --quiet conda-build anaconda-client git
         echo "::endgroup::"
+
         echo "::group::Debugging information"
         conda info
         conda config --show-sources
         conda list
         echo "::endgroup::"
+
         echo "::group::Building package"
         conda build --croot=./pkgs conda.recipe
         echo "::endgroup::"
+
         echo "::group::Uploading package"
         anaconda --token ${{ inputs.token }} upload \
           --force --register --no-progress \
           --user ${{ inputs.channel }} \
           --label ${{ inputs.label }} \
-          ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2
+          ./pkgs/${{ inputs.subdir }}/${{ inputs.name }}-*.tar.bz2
         echo "Uploaded the following files:"
-        ls ./pkgs/${{ matrix.subdir }}/conda-*.tar.bz2 | cut -d/ -f3- | tr ' ' $'\n'
+        ls ./pkgs/${{ inputs.subdir }}/${{ inputs.name }}-*.tar.bz2 | cut -d/ -f3- | tr ' ' $'\n'
         echo "::endgroup::"
+
         echo "Use this command to try out the build:"
-        echo "conda install -c ${{ inputs.channel }}/label/${{ inputs.label }} conda"
+        echo "conda install -c ${{ inputs.channel }}/label/${{ inputs.label }} ${{ inputs.name }}"
+
+    - name: Update comment (failure)
+      if: |
+        steps.comment.outputs.comment-id != '' &&
+        steps.build.outcome == 'failure'
+      uses: peter-evans/create-or-update-comment@v1
+      with:
+        comment-id: ${{ steps.comment.outputs.comment-id }}
+        body: |
+          The build failed! Please check the [workflow run][1] for errors.
+
+          [1]: ${{ steps.vars.outputs.run-url }}
+        reactions: 'eyes'
+        token: ${{ secrets.CANARY_ACTION_TOKEN }}
+
+    - name: Update comment (success)
+      if: |
+        steps.comment.outputs.comment-id != '' &&
+        steps.build.outcome == 'success'
+      uses: peter-evans/create-or-update-comment@v1
+      with:
+        comment-id: ${{ steps.comment.outputs.comment-id }}
+        body: |
+          Build successful! Use this command to try it out in an
+          empty conda environment:
+
+          ```
+          conda install -c ${{ inputs.channel }}/label/${{ inputs.label }} ${{ inputs.name }}
+          ```
+        reactions: 'hooray'
+        token: ${{ secrets.CANARY_ACTION_TOKEN }}
