@@ -21,6 +21,8 @@ inputs:
     required: true
 runs:
   using: "composite"
+  steps:
+
     - uses: conda-incubator/setup-miniconda@v2
 
     - name: Create URL to the run output
