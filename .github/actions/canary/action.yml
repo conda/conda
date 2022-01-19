@@ -29,9 +29,19 @@ runs:
       id: vars
       run: echo ::set-output name=run-url::https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
 
+    - name: Find Comment
+      uses: peter-evans/find-comment@v1
+      id: find-comment
+      with:
+        issue-number: ${{ inputs.pr }}
+        comment-author: conda-bot
+        body-includes: The canary build for
+        direction: last
+
     - name: Create comment
       uses: peter-evans/create-or-update-comment@v1
-      id: comment
+      if: steps.find-comment.outputs.comment-id == ''
+      id: create-comment
       with:
         issue-number: ${{ inputs.pr }}
         body: |
@@ -44,7 +54,7 @@ runs:
     - name: Build & upload package
       if: |
         github.repository_owner == 'conda' &&  # make sure we don't run on forks
-        steps.comment.outcome == 'success'
+        steps.create-comment.outcome == 'success'
       id: build
       shell: bash -l {0}
       run: |
@@ -80,11 +90,11 @@ runs:
 
     - name: Update comment (failure)
       if: |
-        steps.comment.outputs.comment-id != '' &&
+        steps.create-comment.outputs.comment-id != '' &&
         steps.build.outcome == 'failure'
       uses: peter-evans/create-or-update-comment@v1
       with:
-        comment-id: ${{ steps.comment.outputs.comment-id }}
+        comment-id: ${{ steps.create-comment.outputs.comment-id }}
         body: |
           The build failed! Please check the [workflow run][1] for errors.
 
@@ -94,11 +104,11 @@ runs:
 
     - name: Update comment (success)
       if: |
-        steps.comment.outputs.comment-id != '' &&
+        steps.create-comment.outputs.comment-id != '' &&
         steps.build.outcome == 'success'
       uses: peter-evans/create-or-update-comment@v1
       with:
-        comment-id: ${{ steps.comment.outputs.comment-id }}
+        comment-id: ${{ steps.create-comment.outputs.comment-id }}
         body: |
           Build successful! Use this command to try it out in an
           empty conda environment:
