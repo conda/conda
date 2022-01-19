@@ -58,4 +58,6 @@ def conda_build_recipes():
     test_recipes = Path(__file__).resolve().parent / "test-recipes"
     recipes_to_build = ["activate_deactivate_package", "pre_link_messages_package"]
     packages = [str(test_recipes / pkg) for pkg in recipes_to_build]
-    subprocess.run("conda-build", " ".join(packages), check=True)
+    cmd = ["conda-build"]
+    cmd.extend(packages)
+    subprocess.run(cmd, check=True)
