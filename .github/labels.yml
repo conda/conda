@@ -101,3 +101,14 @@
   description: related to shared/multi-user installs
   color: "86C579"
   aliases: []
+
+# Deprecated
+- name: epic
+  description: "[deprecated] use milestones"
+  color: "888888"
+- name: priority-high
+  description: "[deprecated] use severity::*"
+  color: "888888"
+- name: priority-low
+  description: "[deprecated] use severity::*"
+  color: "888888"
