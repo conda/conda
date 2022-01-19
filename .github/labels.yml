@@ -1,3 +1,9 @@
+# Builds
+- name: build::canary
+  description: trigger a canary build for this PR
+  color: "7B4052"
+  aliases: ["build::review"]
+
 # Solver
 - name: solver
   description: pertains to the solver
