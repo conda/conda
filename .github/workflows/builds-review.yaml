@@ -21,23 +21,6 @@ jobs:
             subdir: win-64
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.ref }}
-          clean: true
-          fetch-depth: 0
-
-      - name: Create and upload review build
-        uses: ./.github/actions/canary
-        with:
-          pr: ${{ github.event.number }}
-          package-name: conda
-          subdir: ${{ matrix.subdir }}
-          anaconda-org-channel: conda-canary
-          anaconda-org-label: ${{ github.repository_owner }}-${{ github.event.repository.name }}-pr-${{ github.event.number }}
-          anaconda-org-token: ${{ secrets.ANACONDA_ORG_TOKEN }}
-          comment-token: ${{ secrets.CANARY_ACTION_TOKEN }}
-
       - name: Remove build label
         uses: actions/github-script@v5
         with:
@@ -58,3 +41,20 @@ jobs:
                   name: buildLabel,
                 })
             }
+
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+          clean: true
+          fetch-depth: 0
+
+      - name: Create and upload review build
+        uses: ./.github/actions/canary
+        with:
+          pr: ${{ github.event.number }}
+          package-name: conda
+          subdir: ${{ matrix.subdir }}
+          anaconda-org-channel: conda-canary
+          anaconda-org-label: ${{ github.repository_owner }}-${{ github.event.repository.name }}-pr-${{ github.event.number }}
+          anaconda-org-token: ${{ secrets.ANACONDA_ORG_TOKEN }}
+          comment-token: ${{ secrets.CANARY_ACTION_TOKEN }}
