@@ -41,10 +41,19 @@ jobs:
       - name: Remove build label
         uses: actions/github-script@v5
         with:
+          github-token: ${{ secrets.CANARY_ACTION_TOKEN }}
           script: |
-            github.rest.issues.removeLabel({
-              issue_number: github.event.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: [github.event.label.name]
+            const { data: pullRequest } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: context.issue.number,
             })
+            const buildLabel = '${{ github.event.label.name }}'
+            const labels = pullRequest.labels.map(label => label.name)
+            const hasBuildLabel = labels.includes(buildLabel)
+
+            if (hasBuildLabel) {
+                await github.rest.issues.removeLabel({
+                  ...context.repo,
+                  issue_number: context.issue.number,
+                  name: buildLabel,
+                })
