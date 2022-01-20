@@ -53,6 +53,12 @@ runs:
         body: |
           The canary build for ${{ inputs.package-name }} with the label `${{ inputs.anaconda-org-label }}` in channel `${{ inputs.anaconda-org-channel }}` [has started][1]!
 
+          Once it's done, use this command to try it out in an empty conda environment:
+
+          ```
+          conda install -c ${{ inputs.anaconda-org-channel }}/label/${{ inputs.anaconda-org-label }} ${{ inputs.package-name }}
+          ```
+
           [1]: ${{ steps.vars.outputs.run-url }}
         reactions: 'rocket'
         token: ${{ inputs.comment-token }}
@@ -93,35 +99,15 @@ runs:
         echo "Use this command to try out the build:"
         echo "conda install -c ${{ inputs.anaconda-org-channel }}/label/${{ inputs.anaconda-org-label }} ${{ inputs.package-name }}"
 
-    - name: Update comment (failure)
+    - name: Leave comment on failure
       if: |
-        steps.create-comment.outputs.comment-id != '' &&
         steps.build.outcome == 'failure' &&
         inputs.comment-token != ''
       uses: peter-evans/create-or-update-comment@v1
       with:
-        comment-id: ${{ steps.create-comment.outputs.comment-id }}
         body: |
-          The build failed! Please check the [workflow run][1] for errors.
+          The canary build failed! Please check the [workflow run][1] for errors.
 
           [1]: ${{ steps.vars.outputs.run-url }}
         reactions: 'eyes'
-        token: ${{ inputs.comment-token }}
-
-    - name: Update comment (success)
-      if: |
-        steps.create-comment.outputs.comment-id != '' &&
-        steps.build.outcome == 'success' &&
-        inputs.comment-token != ''
-      uses: peter-evans/create-or-update-comment@v1
-      with:
-        comment-id: ${{ steps.create-comment.outputs.comment-id }}
-        body: |
-          Build successful! Use this command to try it out in an
-          empty conda environment:
-
-          ```
-          conda install -c ${{ inputs.anaconda-org-channel }}/label/${{ inputs.anaconda-org-label }} ${{ inputs.package-name }}
-          ```
-        reactions: 'hooray'
         token: ${{ inputs.comment-token }}
