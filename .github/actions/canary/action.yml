@@ -59,8 +59,7 @@ runs:
 
     - name: Build & upload package
       # make sure we don't run on forks
-      if: |
-        steps.create-comment.outcome == 'success'
+      if: github.repository_owner == 'conda'
       id: build
       shell: bash -l {0}
       run: |
