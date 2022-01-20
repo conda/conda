@@ -51,7 +51,7 @@ runs:
       with:
         issue-number: ${{ inputs.pr }}
         body: |
-          The canary build for ${{ inputs.name }} with the label `${{ inputs.label }}` in channel `${{ inputs.channel }}` [has started][1]!
+          The canary build for ${{ inputs.package-name }} with the label `${{ inputs.anaconda-org-label }}` in channel `${{ inputs.anaconda-org-channel }}` [has started][1]!
 
           [1]: ${{ steps.vars.outputs.run-url }}
         reactions: 'rocket'
@@ -83,17 +83,17 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Uploading package"
-        anaconda --token ${{ inputs.token }} upload \
+        anaconda --token ${{ inputs.anaconda-org-token }} upload \
           --force --register --no-progress \
-          --user ${{ inputs.channel }} \
-          --label ${{ inputs.label }} \
-          ./pkgs/${{ inputs.subdir }}/${{ inputs.name }}-*.tar.bz2
+          --user ${{ inputs.anaconda-org-channel }} \
+          --label ${{ inputs.anaconda-org-label }} \
+          ./pkgs/${{ inputs.subdir }}/${{ inputs.package-name }}-*.tar.bz2
         echo "Uploaded the following files:"
-        ls ./pkgs/${{ inputs.subdir }}/${{ inputs.name }}-*.tar.bz2 | cut -d/ -f3- | tr ' ' $'\n'
+        ls ./pkgs/${{ inputs.subdir }}/${{ inputs.package-name }}-*.tar.bz2 | cut -d/ -f3- | tr ' ' $'\n'
         echo "::endgroup::"
 
         echo "Use this command to try out the build:"
-        echo "conda install -c ${{ inputs.channel }}/label/${{ inputs.label }} ${{ inputs.name }}"
+        echo "conda install -c ${{ inputs.anaconda-org-channel }}/label/${{ inputs.anaconda-org-label }} ${{ inputs.package-name }}"
 
     - name: Update comment (failure)
       if: |
@@ -123,7 +123,7 @@ runs:
           empty conda environment:
 
           ```
-          conda install -c ${{ inputs.channel }}/label/${{ inputs.label }} ${{ inputs.name }}
+          conda install -c ${{ inputs.anaconda-org-channel }}/label/${{ inputs.anaconda-org-label }} ${{ inputs.package-name }}
           ```
         reactions: 'hooray'
         token: ${{ inputs.comment-token }}
