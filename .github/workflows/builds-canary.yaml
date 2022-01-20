@@ -24,10 +24,6 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.ref }}
-          clean: true
-          fetch-depth: 0
 
       - name: Create and upload canary build
         uses: conda/actions/canary-release
