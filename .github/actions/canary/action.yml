@@ -34,7 +34,7 @@ runs:
 
     - name: Find Comment
       uses: peter-evans/find-comment@v1
-      if: inputs.comment_token != ''
+      if: inputs.comment-token != ''
       id: find-comment
       with:
         issue-number: ${{ inputs.pr }}
@@ -46,7 +46,7 @@ runs:
       uses: peter-evans/create-or-update-comment@v1
       if: |
         steps.find-comment.outputs.comment-id == '' &&
-        inputs.comment_token != ''
+        inputs.comment-token != ''
       id: create-comment
       with:
         issue-number: ${{ inputs.pr }}
@@ -55,7 +55,7 @@ runs:
 
           [1]: ${{ steps.vars.outputs.run-url }}
         reactions: 'rocket'
-        token: ${{ inputs.comment_token }}
+        token: ${{ inputs.comment-token }}
 
     - name: Build & upload package
       # make sure we don't run on forks
@@ -99,7 +99,7 @@ runs:
       if: |
         steps.create-comment.outputs.comment-id != '' &&
         steps.build.outcome == 'failure' &&
-        inputs.comment_token != ''
+        inputs.comment-token != ''
       uses: peter-evans/create-or-update-comment@v1
       with:
         comment-id: ${{ steps.create-comment.outputs.comment-id }}
@@ -108,13 +108,13 @@ runs:
 
           [1]: ${{ steps.vars.outputs.run-url }}
         reactions: 'eyes'
-        token: ${{ inputs.comment_token }}
+        token: ${{ inputs.comment-token }}
 
     - name: Update comment (success)
       if: |
         steps.create-comment.outputs.comment-id != '' &&
         steps.build.outcome == 'success' &&
-        inputs.comment_token != ''
+        inputs.comment-token != ''
       uses: peter-evans/create-or-update-comment@v1
       with:
         comment-id: ${{ steps.create-comment.outputs.comment-id }}
@@ -126,4 +126,4 @@ runs:
           conda install -c ${{ inputs.channel }}/label/${{ inputs.label }} ${{ inputs.name }}
           ```
         reactions: 'hooray'
-        token: ${{ inputs.comment_token }}
+        token: ${{ inputs.comment-token }}
