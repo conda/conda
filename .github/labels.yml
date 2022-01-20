@@ -1,3 +1,9 @@
+# Builds
+- name: build::canary
+  description: trigger a canary build for this PR
+  color: "7B4052"
+  aliases: ["build::review"]
+
 # Solver
 - name: solver
   description: pertains to the solver
@@ -101,3 +107,14 @@
   description: related to shared/multi-user installs
   color: "86C579"
   aliases: []
+
+# Deprecated
+- name: epic
+  description: "[deprecated] use milestones"
+  color: "888888"
+- name: priority-high
+  description: "[deprecated] use severity::*"
+  color: "888888"
+- name: priority-low
+  description: "[deprecated] use severity::*"
+  color: "888888"
