@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
 
       - name: Create and upload canary build
-        uses: ./.github/actions/canary
+        uses: conda/actions/canary-release
         with:
           pr: ${{ github.event.number }}
           package-name: conda

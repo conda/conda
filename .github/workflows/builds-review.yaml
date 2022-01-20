@@ -49,7 +49,7 @@ jobs:
           fetch-depth: 0
 
       - name: Create and upload review build
-        uses: ./.github/actions/canary
+        uses: conda/actions/canary-release
         with:
           pr: ${{ github.event.number }}
           package-name: conda
@@ -57,4 +57,5 @@ jobs:
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ github.repository_owner }}-${{ github.event.repository.name }}-pr-${{ github.event.number }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_TOKEN }}
+          comment-author: conda-bot
           comment-token: ${{ secrets.CANARY_ACTION_TOKEN }}
