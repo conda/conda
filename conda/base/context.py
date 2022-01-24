@@ -629,7 +629,7 @@ class Context(Configuration):
 
         mkdir_p(logs)
 
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
         return os.path.join(logs, f"{timestamp}.log")
 
     @property

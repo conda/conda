@@ -235,8 +235,8 @@ def set_all_logger_level(level=DEBUG):
 @memoize
 def set_file_logging(logger_name=None, level=DEBUG, path=None):
     if path is None:
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        os.path.join(f".conda.{timestamp}.log")
+        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        path = os.path.join(f".conda.{timestamp}.log")
 
     conda_logger = getLogger(logger_name)
     handler = logging.FileHandler(path)
