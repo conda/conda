@@ -4,6 +4,14 @@
   color: "7B4052"
   aliases: ["build::review"]
 
+# Types
+- name: type::installer
+  description: indicates a request or issue pertaining to the installer
+  color: "fff2cc"
+- name: type::packaging
+  description: indicates a request regarding a package
+  color: "fff2cc"
+
 # Solver
 - name: solver
   description: pertains to the solver
