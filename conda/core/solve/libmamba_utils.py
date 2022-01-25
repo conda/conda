@@ -166,7 +166,7 @@ def load_channels(
     return index
 
 
-def init_api_context(use_mamba_experimental=False):
+def init_api_context(verbosity: int = context.verbosity, use_mamba_experimental: bool = False):
     api_ctx = api.Context()
 
     api_ctx.json = context.json
@@ -177,8 +177,10 @@ def init_api_context(use_mamba_experimental=False):
         if use_mamba_experimental:
             context.json = False
 
-    api_ctx.verbosity = context.verbosity
-    api_ctx.set_verbosity(context.verbosity)
+    # we want verbosity by default, we'll control stdout in our logging
+    # but the file logs will be DEBUG
+    api_ctx.verbosity = verbosity
+    api_ctx.set_verbosity(verbosity)
     api_ctx.quiet = context.quiet
     api_ctx.offline = context.offline
     api_ctx.local_repodata_ttl = context.local_repodata_ttl
@@ -248,6 +250,8 @@ def init_api_context(use_mamba_experimental=False):
         api_ctx.channel_priority = api.ChannelPriority.kFlexible
     elif context.channel_priority is ChannelPriority.DISABLED:
         api_ctx.channel_priority = api.ChannelPriority.kDisabled
+
+    return api_ctx
 
 
 def to_conda_channel(channel, platform):

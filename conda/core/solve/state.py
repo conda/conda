@@ -64,6 +64,7 @@ from types import MappingProxyType
 from typing import Any, Hashable, Iterable, Type, Union, Optional, Tuple, Mapping
 from os import PathLike
 import logging
+import sys
 
 from ... import CondaError
 from ..._vendor.boltons.setutils import IndexedSet
@@ -144,7 +145,6 @@ class TrackedMap(MutableMapping):
     ):
         self._name = name
         self._clsname = self.__class__.__name__
-        self._logger = logging.getLogger(__name__)
 
         if isinstance(data, TrackedMap):
             self._data = data._data.copy()
@@ -183,7 +183,7 @@ class TrackedMap(MutableMapping):
                 f"(reason={reason}) but stayed the same due to overwrite=False."
             )
 
-        self._logger.debug(msg, stacklevel=_level)
+        self._log_debug(msg, stacklevel=_level)
 
     @property
     def name(self):
@@ -215,7 +215,7 @@ class TrackedMap(MutableMapping):
     def __delitem__(self, key: Hashable):
         del self._data[key]
         self._reasons.pop(key, None)
-        self._logger.debug(f"{self._clsname}:{self._name}[{key!r}] was deleted", stacklevel=2)
+        self._log_debug(f"{self._clsname}:{self._name}[{key!r}] was deleted", stacklevel=2)
 
     def pop(self, key: Hashable, *default: Any, reason: Optional[str] = None) -> Any:
         """
@@ -227,7 +227,7 @@ class TrackedMap(MutableMapping):
         msg = f"{self._clsname}:{self._name}[{key!r}] (={self._short_repr(value)}) was deleted"
         if reason:
             msg += f" (reason={reason})"
-        self._logger.debug(msg, stacklevel=2)
+        self._log_debug(msg, stacklevel=2)
         return value
 
     def popitem(
@@ -242,7 +242,7 @@ class TrackedMap(MutableMapping):
         msg = f"{self._clsname}:{self._name}[{key!r}] (={self._short_repr(value)}) was deleted"
         if reason:
             msg += f" (reason={reason})"
-        self._logger.debug(msg, stacklevel=2)
+        self._log_debug(msg, stacklevel=2)
         return key, value
 
     def clear(self, reason: Optional[str] = None):
@@ -255,7 +255,7 @@ class TrackedMap(MutableMapping):
         msg = f"{self._name} was cleared"
         if reason:
             msg += f" (reason={reason})"
-        self._logger.debug(msg)
+        self._log_debug(msg, stacklevel=2)
 
     def update(
         self, data: Union[dict, Iterable], *, reason: Optional[str] = None, overwrite: bool = True
@@ -310,6 +310,12 @@ class TrackedMap(MutableMapping):
         if len(value_repr) > maxlen:
             value_repr = f"{value_repr[:maxlen-4]}...>"
         return value_repr
+
+    def _log_debug(self, *args, **kwargs):
+        # stacklevel was only added to logging in py38
+        if sys.version_info < (3, 8):
+            kwargs.pop("stacklevel", None)
+        logger.debug(*args, **kwargs)
 
 
 class EnumAsBools:

@@ -1,14 +1,17 @@
 import os
 from itertools import chain
 from collections import defaultdict, OrderedDict
-from logging import getLogger
+import logging
 import sys
 from tempfile import NamedTemporaryFile
 from typing import Iterable, Mapping, Optional, Union
+from textwrap import dedent
 
+from ... import __version__ as _conda_version
 from ...base.constants import REPODATA_FN, ChannelPriority, DepsModifier, UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
+from ...common.io import CapturedDescriptor
 from ...common.serialize import json_dump, json_load
 from ...common.url import (
     escape_channel_url,
@@ -27,8 +30,7 @@ from ...models.records import PackageRecord
 from .classic import Solver
 from .state import SolverInputState, SolverOutputState, IndexHelper
 
-
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class LibMambaIndexHelper(IndexHelper):
@@ -171,8 +173,8 @@ class LibMambaSolver2(Solver):
         force_remove=NULL,
         should_retry_solve=False,
     ):
-        if not context.json and not context.quiet:
-            print("------ USING EXPERIMENTAL LIBMAMBA2 INTEGRATIONS ------")
+        # Temporary, only during experimental phase to ease debugging
+        self._print_info()
 
         in_state = SolverInputState(
             prefix=self.prefix,
@@ -196,13 +198,15 @@ class LibMambaSolver2(Solver):
         # From now on we _do_ require a solver and the index
         from .libmamba_utils import init_api_context
 
-        init_api_context()
-
-        index = LibMambaIndexHelper(
-            installed_records=chain(in_state.installed.values(), in_state.virtual.values()),
-            channels=self._channels,
-            subdirs=self.subdirs,
-        )
+        with CapturedDescriptor(stream=sys.stderr, threaded=True) as captured:
+            api_ctx = init_api_context(verbosity=3)
+            index = LibMambaIndexHelper(
+                installed_records=chain(in_state.installed.values(), in_state.virtual.values()),
+                channels=self._channels,
+                subdirs=self.subdirs,
+            )
+        if captured.text:
+            log.debug("LibMambaIndexHelper:\n%s", captured.text)
         self._setup_solver(index)
 
         for attempt in range(1, max(1, len(in_state.installed)) + 1):
@@ -267,7 +271,40 @@ class LibMambaSolver2(Solver):
 
         self.neutered_specs = tuple(out_state.neutered.values())
 
+        # Restore intended verbosity to avoid unwanted
+        # "freeing xxxx..." messages when the libmambpy objects are deleted
+        api_ctx.verbosity = context.verbosity
+        api_ctx.set_verbosity(context.verbosity)
+
         return out_state.current_solution
+
+    def _print_info(self):
+        if not context.json and not context.quiet:
+            print(
+                dedent(
+                    f"""
+                    ----       USING EXPERIMENTAL LIBMAMBA2 INTEGRATIONS       ----
+                        This is a highly experimental product. If something is
+                        not working as expected, please submit an issue at
+                        https://github.com/conda/conda and attach the log file
+                        found in the following path. Thank you!
+
+                        {context.logfile_path}
+
+                    ---------------------------------------------------------------
+                    """
+                )
+            )
+
+        import mamba
+
+        log.info("Using experimental libmamba2 integrations")
+        log.info("Conda version: %s", _conda_version)
+        log.info("Mamba version: %s", mamba.__version__)
+        log.info("Target prefix: %s", self.prefix)
+        log.info("Command: %s", sys.argv)
+        log.info("Specs to add: %s", self.specs_to_add)
+        log.info("Specs to remove: %s", self.specs_to_remove)
 
     def _setup_solver(self, index: LibMambaIndexHelper):
         import libmambapy as api
@@ -282,7 +319,10 @@ class LibMambaSolver2(Solver):
         if context.channel_priority is ChannelPriority.STRICT:
             solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
 
-        self.solver = api.Solver(index._pool, self._solver_options)
+        with CapturedDescriptor(stream=sys.stderr, threaded=True) as captured:
+            self.solver = api.Solver(index._pool, self._solver_options)
+        if captured.text:
+            log.debug("Solver initialization:\n%s", captured.text)
 
     def _solve_attempt(
         self,
@@ -323,10 +363,17 @@ class LibMambaSolver2(Solver):
             print("Created %s tasks:\n%s" % (len(tasks), tasks_list_as_str), file=sys.stderr)
         for (task_name, task_type), specs in tasks.items():
             log.debug("Adding task %s with specs %s", task_name, specs)
-            self.solver.add_jobs(specs, task_type)
+            with CapturedDescriptor(stream=sys.stderr, threaded=True) as captured:
+                self.solver.add_jobs(specs, task_type)
+            if captured.text:
+                log.debug("Solver.solve:\n%s", captured.text)
 
         # ## Run solver
-        solved = self.solver.solve()
+        with CapturedDescriptor(stream=sys.stderr, threaded=True) as captured:
+            solved = self.solver.solve()
+        if captured.text:
+            log.debug("Solver.solve:\n%s", captured.text)
+
         if solved:
             out_state.conflicts.clear(reason="Solution found")
             return solved
@@ -524,8 +571,11 @@ class LibMambaSolver2(Solver):
         import libmambapy as api
         from .libmamba_utils import to_package_record_from_subjson
 
-        transaction = api.Transaction(self.solver, api.MultiPackageCache(context.pkgs_dirs))
-        (names_to_add, names_to_remove), to_link, to_unlink = transaction.to_conda()
+        with CapturedDescriptor(stream=sys.stderr, threaded=True) as captured:
+            transaction = api.Transaction(self.solver, api.MultiPackageCache(context.pkgs_dirs))
+            (names_to_add, names_to_remove), to_link, to_unlink = transaction.to_conda()
+        if captured.text:
+            log.debug("Solver.solve:\n%s", captured.text)
 
         if not context.json and not context.quiet and os.environ.get("EXTRA_DEBUG_TO_STDOUT"):
             print("TO_LINK", to_link, file=sys.stderr)
@@ -560,6 +610,11 @@ class LibMambaSolver2(Solver):
             out_state.records.set(
                 record.name, record, reason="Part of solution calculated by libmamba"
             )
+
+        with CapturedDescriptor(stream=sys.stderr, threaded=True) as captured:
+            del transaction
+        if captured.text:
+            log.debug("Solver.solve:\n%s", captured.text)
 
     def _reset(self):
         self.solver = None
