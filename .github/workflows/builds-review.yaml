@@ -42,7 +42,12 @@ jobs:
                 })
             }
 
+      # Clean checkout of specific git ref needed for package metadata version
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+          clean: true
+          fetch-depth: 0
 
       - name: Create and upload review build
         uses: conda/actions/canary-release@canary-release
