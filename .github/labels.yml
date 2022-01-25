@@ -1,8 +1,7 @@
 # Builds
-- name: build::canary
-  description: trigger a canary build for this PR
+- name: build::review
+  description: trigger a build for this PR
   color: "7B4052"
-  aliases: ["build::review"]
 
 # Types
 - name: type::installer
