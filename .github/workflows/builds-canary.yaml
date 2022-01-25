@@ -24,6 +24,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       # Clean checkout of specific git ref needed for package metadata version
+      # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
       - uses: actions/checkout@v2
         with:
           ref: ${{ github.ref }}
@@ -33,7 +34,6 @@ jobs:
       - name: Create and upload canary build
         uses: conda/actions/canary-release@canary-release
         with:
-          pr: ${{ github.event.number }}
           package-name: conda
           subdir: ${{ matrix.subdir }}
           anaconda-org-channel: conda-canary
