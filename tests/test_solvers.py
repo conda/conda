@@ -1224,13 +1224,13 @@ class SolverTests:
 class TestClassicSolver(SolverTests):
     @property
     def solver_class(self):
-        return conda.core.solve.classic.Solver
+        return conda.core.solve.Solver
 
 
 class TestLibMambaSolver(SolverTests):
     @property
     def solver_class(self):
-        return conda.core.solve.libmamba.LibMambaSolver
+        return conda.core.solve._get_solver_logic("libmamba")
 
     @property
     def tests_to_skip(self):
@@ -1254,7 +1254,8 @@ class TestLibMambaSolver(SolverTests):
             ],
         }
 
+
 class TestLibMambaSolver2(TestLibMambaSolver):
     @property
     def solver_class(self):
-        return conda.core.solve.libmamba2.LibMambaSolver2
+        return conda.core.solve._get_solver_logic("libmamba2")
