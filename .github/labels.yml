@@ -1,8 +1,15 @@
 # Builds
-- name: build::canary
-  description: trigger a canary build for this PR
+- name: build::review
+  description: trigger a build for this PR
   color: "7B4052"
-  aliases: ["build::review"]
+
+# Types
+- name: type::installer
+  description: indicates a request or issue pertaining to the installer
+  color: "fff2cc"
+- name: type::packaging
+  description: indicates a request regarding a package
+  color: "fff2cc"
 
 # Solver
 - name: solver
