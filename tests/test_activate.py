@@ -1776,7 +1776,8 @@ class InteractiveShell(object):
     init_command = None
     print_env_var = None
     from conda.utils import quote_for_shell
-    exe_quoted = quote_for_shell([sys.executable.replace('\\', '/') if on_win else sys.executable])
+
+    exe_quoted = quote_for_shell(sys.executable.replace("\\", "/") if on_win else sys.executable)
     shells = {
         'posix': {
             'activator': 'posix',
@@ -1893,10 +1894,17 @@ class InteractiveShell(object):
         shell_found = which(self.shell_name) or self.shell_name
         args = list(self.args) if hasattr(self, 'args') else list()
 
-        p = PopenSpawn(quote_for_shell([shell_found] + args, shell='cmd.exe' if on_win else 'bash'),
-                       timeout=12, maxread=5000, searchwindowsize=None,
-                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding='utf-8',
-                       codec_errors='strict')
+        p = PopenSpawn(
+            quote_for_shell(shell_found, *args),
+            timeout=12,
+            maxread=5000,
+            searchwindowsize=None,
+            logfile=sys.stdout,
+            cwd=os.getcwd(),
+            env=env,
+            encoding="utf-8",
+            codec_errors="strict",
+        )
 
         # set state for context
         joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
