@@ -45,7 +45,7 @@ except ImportError:
 # The default value will only work if we have installed conda in development mode!
 TEST_DATA_DIR = os.environ.get(
     "CONDA_TEST_DATA_DIR", 
-    abspath(join(dirname(__file__), "..", "tests", "data"))
+    abspath(join(dirname(__file__), "..", "..", "tests", "data"))
 )
 EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
