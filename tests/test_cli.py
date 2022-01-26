@@ -8,7 +8,7 @@ import pytest
 from conda.base.context import context
 from conda.common.io import captured
 from conda.gateways.disk.delete import rm_rf
-from tests.helpers import capture_json_with_argv, run_inprocess_conda_command
+from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
 from conda.common.compat import text_type
 
 import os

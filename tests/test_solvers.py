@@ -20,7 +20,7 @@ from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec
 
-from . import helpers
+from conda.testing import helpers
 
 
 @functools.lru_cache()

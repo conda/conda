@@ -26,7 +26,7 @@ from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
 from conda.models.version import VersionOrder
 from conda.resolve import MatchSpec
-from ..helpers import (
+from conda.testing.helpers import (
     add_subdir_to_iter,
     get_index_r_1,
     get_index_r_2,

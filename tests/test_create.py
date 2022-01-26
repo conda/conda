@@ -68,7 +68,7 @@ from conda.models.version import VersionOrder
 from conda.resolve import exactness_and_number_of_deps
 from conda.utils import massage_arguments
 
-from .cases import BaseTestCase
+from conda.testing.cases import BaseTestCase
 
 
 log = getLogger(__name__)

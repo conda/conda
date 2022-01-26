@@ -20,18 +20,18 @@ from pathlib import Path
 from time import time
 import collections
 
-from conda import cli
-from conda.auxlib.decorators import memoize
-from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems, itervalues, encode_arguments
-from conda.common.io import argv, captured, captured as common_io_captured, env_var
-from conda.core.subdir_data import SubdirData, make_feature_record
-from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.read import lexists
-from conda.gateways.logging import initialize_logging
-from conda.models.channel import Channel
-from conda.models.records import PackageRecord
-from conda.resolve import Resolve
+from .. import cli
+from ..auxlib.decorators import memoize
+from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from ..common.compat import iteritems, itervalues, encode_arguments
+from ..common.io import argv, captured, captured as common_io_captured, env_var
+from ..core.subdir_data import SubdirData, make_feature_record
+from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.read import lexists
+from ..gateways.logging import initialize_logging
+from ..models.channel import Channel
+from ..models.records import PackageRecord
+from ..resolve import Resolve
 
 import pytest
 
