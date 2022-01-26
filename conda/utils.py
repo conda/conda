@@ -321,8 +321,6 @@ def massage_arguments(arguments, errors='assert'):
 
 
 def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments):
-    if on_win:
-        ensure_comspec_set()
     arguments = massage_arguments(arguments)
     tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
@@ -330,7 +328,7 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
     if len(arguments) == 1 and '\n' in arguments[0]:
         multiline = True
     if on_win:
-        comspec = environ[str('COMSPEC')]
+        comspec = get_comspec()  # fail early with KeyError if undefined
         if dev_mode:
             from conda import CONDA_PACKAGE_ROOT
             conda_bat = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
@@ -431,13 +429,27 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
     return script_caller, command_args
 
 
-def ensure_comspec_set():
+def get_comspec():
+    """Returns COMSPEC from envvars.
+
+    Ensures COMSPEC envvar is set to cmd.exe, if not attempt to find it.
+
+    :raises KeyError: COMSPEC is undefined and cannot be found.
+    :returns: COMSPEC value.
+    :rtype: str
+    """
     if basename(environ.get("COMSPEC", "")).lower() != "cmd.exe":
-        cmd_exe = join(environ.get('SystemRoot'), 'System32', 'cmd.exe')
-        if not isfile(cmd_exe):
-            cmd_exe = join(environ.get('windir'), 'System32', 'cmd.exe')
-        if not isfile(cmd_exe):
-            log.warn("cmd.exe could not be found. "
-                     "Looked in SystemRoot and windir env vars.\n")
+        for comspec in (
+            # %SystemRoot%\System32\cmd.exe
+            environ.get("SystemRoot") and join(environ["SystemRoot"], "System32", "cmd.exe"),
+            # %windir%\System32\cmd.exe
+            environ.get("windir") and join(environ["windir"], "System32", "cmd.exe"),
+        ):
+            if comspec and isfile(comspec):
+                environ["COMSPEC"] = comspec
+                break
         else:
-            environ['COMSPEC'] = cmd_exe
+            log.warn("cmd.exe could not be found. Looked in SystemRoot and windir env vars.\n")
+
+    # fails with KeyError if still undefined
+    return environ["COMSPEC"]
