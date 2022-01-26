@@ -16,7 +16,6 @@ from .common.path import win_path_to_unix, which
 from .common.url import path_to_url
 from os.path import abspath, join, isfile, basename
 from os import environ
-from subprocess import list2cmdline
 
 log = logging.getLogger(__name__)
 
@@ -261,30 +260,35 @@ def sys_prefix_unfollowed():
     return unfollowed
 
 
-def quote_for_shell(arguments, shell=None):
-    if not shell:
-        shell = 'cmd.exe' if on_win else 'bash'
-    if shell == 'cmd.exe':
+def quote_for_shell(*arguments, shell=None):
+    # [backport] Support passing in a list of strings or args of string.
+    if len(arguments) == 1 and isiterable(arguments[0]):
+        arguments = arguments[0]
+
+    if (not shell and on_win) or shell == "cmd.exe":
+        # [note] `subprocess.list2cmdline` is not a public function.
+        from subprocess import list2cmdline
+
         return list2cmdline(arguments)
-    else:
-        # If any multiline argument gets mixed with any other argument (which is true if we've
-        # arrived in this function) then we just quote it. This assumes something like:
-        # ['python', '-c', 'a\nmultiline\nprogram\n']
-        # It may make sense to allow specifying a replacement character for '\n' too? e.g. ';'
-        quoted = []
-        # This could all be replaced with some regex wizardry but that is less readable and
-        # for code like this, readability is very important.
-        for arg in arguments:
-            if '"' in arg:
-                quote = "'"
-            elif "'" in arg:
-                quote = '"'
-            elif not any(_ in arg for _ in (' ', '\n')):
-                quote = ''
-            else:
-                quote = '"'
-            quoted.append(quote + arg + quote)
-        return ' '.join(quoted)
+
+    # If any multiline argument gets mixed with any other argument (which is true if we've
+    # arrived in this function) then we just quote it. This assumes something like:
+    #   ['python', '-c', 'a\nmultiline\nprogram\n']
+    # There is no way of knowing why newlines are included, must ensure they are escaped/quoted.
+    quoted = []
+    # This could all be replaced with some regex wizardry but that is less readable and
+    # for code like this, readability is very important.
+    for arg in arguments:
+        if '"' in arg:
+            quote = "'"
+        elif "'" in arg:
+            quote = '"'
+        elif not any(c in arg for c in (" ", "\n")):
+            quote = ""
+        else:
+            quote = '"'
+        quoted.append(f"{quote}{arg}{quote}")
+    return " ".join(quoted)
 
 
 # Ensures arguments are a tuple or a list. Strings are converted
@@ -372,16 +376,17 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                 # it needs doing for each line and the caller may as well do that.
                 fh.write("{0}\n".format(arguments[0]))
             else:
-                assert not any('\n' in arg for arg in arguments), \
-                    "Support for scripts where arguments contain newlines not implemented.\n"     \
-                    ".. requires writing the script to an external file and knowing how to "      \
-                    "transform the command-line (e.g. `python -c args` => `python file`) "        \
-                    "in a tool dependent way, or attempting something like:\n"                    \
-                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"         \
+                assert not any("\n" in arg for arg in arguments), (
+                    "Support for scripts where arguments contain newlines not implemented.\n"
+                    ".. requires writing the script to an external file and knowing how to "
+                    "transform the command-line (e.g. `python -c args` => `python file`) "
+                    "in a tool dependent way, or attempting something like:\n"
+                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
                     "requirements)"
-                fh.write("{0}{1}\n".format(silencer, quote_for_shell(arguments)))
+                )
+                fh.write("{0}{1}\n".format(silencer, quote_for_shell(*arguments)))
             fh.write("{}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n".format(silencer))
-            fh.write('{}chcp %_CONDA_OLD_CHCP%>NUL\n'.format(silencer))
+            fh.write("{}chcp %_CONDA_OLD_CHCP%>NUL\n".format(silencer))
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
     else:
@@ -403,25 +408,22 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
             if dev_mode:
                 from conda.core.initialize import CONDA_PACKAGE_ROOT
+
                 fh.write(">&2 export PYTHONPATH=" + dirname(CONDA_PACKAGE_ROOT) + "\n")
-            hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook'] + dev_args)
+            hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
             if debug_wrapper_scripts:
-                fh.write(">&2 echo '*** environment before ***'\n"
-                         ">&2 env\n")
-                fh.write(">&2 echo \"$({0})\"\n"
-                         .format(hook_quoted))
-            fh.write("eval \"$({0})\"\n"
-                     .format(hook_quoted))
-            fh.write("conda activate {0} {1}\n".format(dev_arg, quote_for_shell((prefix,))))
+                fh.write(">&2 echo '*** environment before ***'\n" ">&2 env\n")
+                fh.write('>&2 echo "$({0})"\n'.format(hook_quoted))
+            fh.write('eval "$({0})"\n'.format(hook_quoted))
+            fh.write("conda activate {0} {1}\n".format(dev_arg, quote_for_shell(prefix)))
             if debug_wrapper_scripts:
-                fh.write(">&2 echo '*** environment after ***'\n"
-                         ">&2 env\n")
+                fh.write(">&2 echo '*** environment after ***'\n" ">&2 env\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
-                fh.write("{0}\n".format(' '.join(arguments)))
+                fh.write("{0}\n".format(" ".join(arguments)))
             else:
-                fh.write("{0}\n".format(quote_for_shell(arguments)))
+                fh.write("{0}\n".format(quote_for_shell(*arguments)))
             script_caller = fh.name
         if debug_wrapper_scripts:
             command_args = [shell_path, "-x", script_caller]
