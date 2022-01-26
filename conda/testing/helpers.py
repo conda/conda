@@ -42,7 +42,11 @@ except ImportError:
     import mock
     from mock import patch
 
-TEST_DATA_DIR = abspath(join(dirname(__file__), "data"))
+# The default value will only work if we have installed conda in development mode!
+TEST_DATA_DIR = os.environ.get(
+    "CONDA_TEST_DATA_DIR", 
+    abspath(join(dirname(__file__), "..", "tests", "data"))
+)
 EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
 
@@ -274,7 +278,7 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
 
 @memoize
 def get_index_r_1(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index.json')) as fi:
+    with open(join(TEST_DATA_DIR, 'index.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -302,7 +306,7 @@ def get_index_r_1(subdir=context.subdir):
 
 @memoize
 def get_index_r_2(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index2.json')) as fi:
+    with open(join(TEST_DATA_DIR, 'index2.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -329,7 +333,7 @@ def get_index_r_2(subdir=context.subdir):
 
 @memoize
 def get_index_r_4(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index4.json')) as fi:
+    with open(join(TEST_DATA_DIR, 'index4.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -356,7 +360,7 @@ def get_index_r_4(subdir=context.subdir):
 
 @memoize
 def get_index_r_5(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index5.json')) as fi:
+    with open(join(TEST_DATA_DIR, 'index5.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -494,7 +498,7 @@ def get_index_must_unfreeze(subdir=context.subdir):
 
 # Do not memoize this get_index to allow different CUDA versions to be detected
 def get_index_cuda(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index.json')) as fi:
+    with open(join(TEST_DATA_DIR, 'index.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
