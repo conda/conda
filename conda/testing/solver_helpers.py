@@ -4,9 +4,17 @@ import collections
 import functools
 import json
 import pathlib
+import tempfile
+from typing import Type
 
+import pytest
+
+from ..exceptions import PackagesNotFoundError, ResolvePackageNotFound, UnsatisfiableError
 from ..base.context import context
+from ..core.solve import Solver
 from ..models.channel import Channel
+from ..models.records import PackageRecord
+from ..models.match_spec import MatchSpec
 from . import helpers
 
 
@@ -151,10 +159,10 @@ class SimpleEnvironment:
 
 
 class SolverTests:
-    """Tests for :py:class:`conda.core.solve.classic.Solver` implementations."""
+    """Tests for :py:class:`conda.core.solve.Solver` implementations."""
 
     @property
-    def solver_class(self) -> Type[conda.core.solve.classic.Solver]:
+    def solver_class(self) -> Type[Solver]:
         """Class under test."""
         raise NotImplementedError
 
