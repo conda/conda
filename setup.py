@@ -33,14 +33,9 @@ source.
 install_requires = [
     "pycosat >=0.6.3",
     "requests >=2.12.4",
+    "ruamel_yaml_conda >=0.11.14",
     "menuinst ; platform_system=='Windows'",
 ]
-
-if os.getenv('CONDA_BUILD', None) == '1':
-    install_requires.append("ruamel_yaml_conda >=0.11.14")
-else:
-    install_requires.append("ruamel_yaml_conda >=0.11.14")
-
 
 def package_files(*root_directories):
     return [
