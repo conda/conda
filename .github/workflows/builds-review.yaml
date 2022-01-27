@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Check current actor
         id: in_team
-        uses: conda/actions/user-in-team
+        uses: conda/actions/user-in-team@v22.1.2
         with:
           org: conda
           team: conda-core
@@ -60,7 +60,7 @@ jobs:
 
       - name: Create and upload review build
         if: steps.in_team.outputs.contains == 'true'
-        uses: conda/actions/canary-release
+        uses: conda/actions/canary-release@v22.1.2
         with:
           package-name: conda
           subdir: ${{ matrix.subdir }}

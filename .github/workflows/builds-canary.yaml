@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
 
       - name: Create and upload canary build
-        uses: conda/actions/canary-release
+        uses: conda/actions/canary-release@v22.1.2
         with:
           package-name: conda
           subdir: ${{ matrix.subdir }}
