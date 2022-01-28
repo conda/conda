@@ -16,8 +16,13 @@ from ..utils import wrap_subprocess_call
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
 from ..auxlib.ish import dals
-from ..common.compat import (ensure_binary, string_types, encode_arguments,
-                             on_win, encode_environment, isiterable)
+from ..common.compat import (
+    ensure_binary,
+    string_types,
+    encode_arguments,
+    encode_environment,
+    isiterable,
+)
 from ..gateways.disk.delete import rm_rf
 from ..base.context import context
 
@@ -39,11 +44,20 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
 
 def any_subprocess(args, prefix, env=None, cwd=None):
     script_caller, command_args = wrap_subprocess_call(
-        on_win, context.root_prefix, prefix, context.dev, context.verbosity >= 2, args)
-    process = Popen(command_args,
-                    cwd=cwd or prefix,
-                    universal_newlines=False,
-                    stdout=PIPE, stderr=PIPE, env=env)
+        context.root_prefix,
+        prefix,
+        context.dev,
+        context.verbosity >= 2,
+        args,
+    )
+    process = Popen(
+        command_args,
+        cwd=cwd or prefix,
+        universal_newlines=False,
+        stdout=PIPE,
+        stderr=PIPE,
+        env=env,
+    )
     stdout, stderr = process.communicate()
     if script_caller is not None:
         if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
