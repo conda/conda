@@ -110,8 +110,8 @@ def bash_unsupported_because():
     elif on_win:
         try:
             output = subprocess.check_output(bash + " -c " + '"uname -v"')
-        except subprocess.CalledProcessError:
-            reason = f"bash: something went wrong while running bash, output:\n{output}\n"
+        except subprocess.CalledProcessError as exc:
+            reason = f"bash: something went wrong while running bash, output:\n{exc.output}\n"
         else:
             if b"Microsoft" in output:
                 reason = "bash: WSL is not yet supported. Pull requests welcome."
