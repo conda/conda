@@ -10,6 +10,7 @@ from itertools import chain
 from logging import getLogger
 import os
 from os.path import dirname, isdir, join
+import subprocess
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
@@ -102,23 +103,28 @@ PKG_B_ENV_VARS = '''
 
 @memoize
 def bash_unsupported_because():
-    bash = which('bash')
-    reason = ''
+    bash = which("bash")
+    reason = ""
     if not bash:
-        reason = 'bash: was not found on PATH'
+        reason = "bash: was not found on PATH"
     elif on_win:
-        from subprocess import check_output
-        output = check_output(bash + ' -c ' + '"uname -v"')
-        if b'Microsoft' in output:
-            reason = 'bash: WSL is not yet supported. Pull requests welcome.'
+        try:
+            output = subprocess.check_output(bash + " -c " + '"uname -v"')
+        except subprocess.CalledProcessError:
+            reason = f"bash: something went wrong while running bash, output:\n{output}\n"
         else:
-            output = check_output(bash + ' --version')
-            if b'msys' not in output and b'cygwin' not in output:
-                reason = 'bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{}\n'.format(output)
-            elif bash.startswith(sys.prefix):
-                reason = ('bash: MSYS2 bash installed from m2-bash in prefix {}.\n'
-                          'This is unsupportable due to Git-for-Windows conflicts.\n'
-                          'Please use upstream MSYS2 and have it on PATH.  .'.format(sys.prefix))
+            if b"Microsoft" in output:
+                reason = "bash: WSL is not yet supported. Pull requests welcome."
+            else:
+                output = subprocess.check_output(bash + " --version")
+                if b"msys" not in output and b"cygwin" not in output:
+                    reason = f"bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{output}\n"
+                elif bash.startswith(sys.prefix):
+                    reason = (
+                        f"bash: MSYS2 bash installed from m2-bash in prefix {sys.prefix}.\n"
+                        "This is unsupportable due to Git-for-Windows conflicts.\n"
+                        "Please use upstream MSYS2 and have it on PATH.  ."
+                    )
     return reason
 
 
