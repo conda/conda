@@ -912,22 +912,22 @@ class CshActivator(_Activator):
     def _hook_preamble(self):
         if on_win:
             return dedent(
-                f"""\
+                f"""
                 setenv CONDA_EXE `cygpath {context.conda_exe}`
                 setenv _CONDA_ROOT `cygpath {context.conda_prefix}`
                 setenv _CONDA_EXE `cygpath {context.conda_exe}`
                 setenv CONDA_PYTHON_EXE `cygpath {sys.executable}`
                 """
-            )
+            ).strip()
         else:
             return dedent(
-                f"""\
+                f"""
                 setenv CONDA_EXE "{context.conda_exe}"
                 setenv _CONDA_ROOT "{context.conda_prefix}"
                 setenv _CONDA_EXE "{context.conda_exe}"
                 setenv CONDA_PYTHON_EXE "{sys.executable}"
                 """
-            )
+            ).strip()
 
 
 class XonshActivator(_Activator):
@@ -1020,22 +1020,22 @@ class FishActivator(_Activator):
     def _hook_preamble(self):
         if on_win:
             return dedent(
-                f"""\
+                f"""
                 set -gx CONDA_EXE (cygpath "{context.conda_exe}")
                 set _CONDA_ROOT (cygpath "{context.conda_prefix}")
                 set _CONDA_EXE (cygpath "{context.conda_exe}")
                 set -gx CONDA_PYTHON_EXE (cygpath "{sys.executable}")
                 """
-            )
+            ).strip()
         else:
             return dedent(
-                f"""\
+                f"""
                 set -gx CONDA_EXE "{context.conda_exe}"
                 set _CONDA_ROOT "{context.conda_prefix}"
                 set _CONDA_EXE "{context.conda_exe}"
                 set -gx CONDA_PYTHON_EXE "{sys.executable}"
                 """
-            )
+            ).strip()
 
 
 class PowerShellActivator(_Activator):
@@ -1060,7 +1060,7 @@ class PowerShellActivator(_Activator):
     def _hook_preamble(self):
         if context.dev:
             return dedent(
-                f"""\
+                f"""
                 $Env:PYTHONPATH = "{CONDA_SITE_PACKAGES}"
                 $Env:CONDA_EXE = "{sys.executable}"
                 $Env:_CE_M = "-m"
@@ -1069,10 +1069,10 @@ class PowerShellActivator(_Activator):
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
                 """
-            )
+            ).strip()
         else:
             return dedent(
-                f"""\
+                f"""
                 $Env:CONDA_EXE = "{context.conda_exe}"
                 $Env:_CE_M = ""
                 $Env:_CE_CONDA = ""
@@ -1080,7 +1080,7 @@ class PowerShellActivator(_Activator):
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
                 """
-            )
+            ).strip
 
     def _hook_postamble(self):
         return "Remove-Variable CondaModuleArgs"
