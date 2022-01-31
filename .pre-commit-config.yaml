@@ -40,3 +40,9 @@ repos:
         args: [--exit-zero]
         # ignore all tests, not just tests data
         exclude: ^tests/
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.1.11
+    hooks:
+      - id: insert-license
+        files: \.py$
+        args: [--license-filepath, .disclaimer.txt]
