@@ -11,7 +11,7 @@ from unittest import TestCase
 
 import pytest
 
-from conda import CONDA_PACKAGE_ROOT, CONDA_SITE_PACKAGES
+from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import stdout_json
@@ -576,7 +576,7 @@ class InitializeTests(TestCase):
                     initialize_dev(
                         "bash",
                         dev_env_prefix=conda_temp_prefix,
-                        conda_source_root=CONDA_SITE_PACKAGES,
+                        conda_source_root=CONDA_SOURCE_ROOT,
                     )
 
         print(c.stdout)
@@ -648,7 +648,7 @@ class InitializeTests(TestCase):
                     initialize_dev(
                         "cmd.exe",
                         dev_env_prefix=conda_temp_prefix,
-                        conda_source_root=CONDA_SITE_PACKAGES,
+                        conda_source_root=CONDA_SOURCE_ROOT,
                     )
 
         print(c.stdout)

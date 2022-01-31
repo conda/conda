@@ -348,12 +348,12 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             fh.write('{}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'.format(silencer))  # NOQA
             fh.write("{}chcp 65001 > NUL\n".format(silencer))
             if dev_mode:
-                from . import CONDA_SITE_PACKAGES
+                from . import CONDA_SOURCE_ROOT
                 fh.write("{}SET CONDA_DEV=1\n".format(silencer))
                 # In dev mode, conda is really:
                 # 'python -m conda'
                 # *with* PYTHONPATH set.
-                fh.write("{}SET PYTHONPATH={}\n".format(silencer, CONDA_SITE_PACKAGES))
+                fh.write("{}SET PYTHONPATH={}\n".format(silencer, CONDA_SOURCE_ROOT))
                 fh.write("{}SET CONDA_EXE={}\n".format(silencer, sys.executable))
                 fh.write("{}SET _CE_M=-m\n".format(silencer))
                 fh.write("{}SET _CE_CONDA=conda\n".format(silencer))
@@ -405,9 +405,9 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             dev_args = []
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
             if dev_mode:
-                from . import CONDA_SITE_PACKAGES
+                from . import CONDA_SOURCE_ROOT
 
-                fh.write(">&2 export PYTHONPATH=" + CONDA_SITE_PACKAGES + "\n")
+                fh.write(">&2 export PYTHONPATH=" + CONDA_SOURCE_ROOT + "\n")
             hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment before ***'\n" ">&2 env\n")

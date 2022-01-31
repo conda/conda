@@ -15,7 +15,7 @@ from textwrap import dedent
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
-from . import CONDA_PACKAGE_ROOT, CONDA_SITE_PACKAGES, CondaError
+from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT, CondaError
 from ._vendor.toolz import concatv, drop
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
@@ -1061,7 +1061,7 @@ class PowerShellActivator(_Activator):
         if context.dev:
             return dedent(
                 f"""
-                $Env:PYTHONPATH = "{CONDA_SITE_PACKAGES}"
+                $Env:PYTHONPATH = "{CONDA_SOURCE_ROOT}"
                 $Env:CONDA_EXE = "{sys.executable}"
                 $Env:_CE_M = "-m"
                 $Env:_CE_CONDA = "conda"
@@ -1080,7 +1080,7 @@ class PowerShellActivator(_Activator):
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
                 """
-            ).strip
+            ).strip()
 
     def _hook_postamble(self):
         return "Remove-Variable CondaModuleArgs"
@@ -1099,7 +1099,7 @@ class JSONFormatMixin(_Activator):
     def _hook_preamble(self):
         if context.dev:
             return {
-                "PYTHONPATH": CONDA_SITE_PACKAGES,
+                "PYTHONPATH": CONDA_SOURCE_ROOT,
                 "CONDA_EXE": sys.executable,
                 "_CE_M": "-m",
                 "_CE_CONDA": "conda",

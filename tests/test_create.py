@@ -37,7 +37,7 @@ from conda import (
     plan,
     __version__ as CONDA_VERSION,
     CONDA_PACKAGE_ROOT,
-    CONDA_SITE_PACKAGES,
+    CONDA_SOURCE_ROOT,
 )
 from conda.auxlib.entity import EntityEncoder
 from conda.auxlib.ish import dals
@@ -2657,7 +2657,7 @@ dependencies:
 
                 # When we run `conda run -p prefix python -m conda init` we are explicitly wishing to run the
                 # old Python 3.6.7 in prefix, but against the development sources of conda. Those are found
-                # via `workdir=CONDA_SITE_PACKAGES`.
+                # via `workdir=CONDA_SOURCE_ROOT`.
                 #
                 # This was beyond complicated to deal with and led to adding a new 'dev' flag which modifies
                 # what the script wrappers emit for `CONDA_EXE`.
@@ -2669,7 +2669,7 @@ dependencies:
                 #
 
                 '''
-                env_path_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', CONDA_SITE_PACKAGES, dedent("""
+                env_path_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', CONDA_SOURCE_ROOT, dedent("""
                     declare -f
                     env | sort
                     which conda
@@ -2687,20 +2687,20 @@ dependencies:
                     Commands.RUN,
                     prefix,
                     "--cwd",
-                    CONDA_SITE_PACKAGES,
+                    CONDA_SOURCE_ROOT,
                     sys.executable,
                     "-c",
                     "import conda, os, sys; " "sys.stdout.write(os.path.abspath(conda.__file__))",
                     dev=True,
                 )
-                assert dirname(dirname(conda__file__)) == CONDA_SITE_PACKAGES
+                assert dirname(dirname(conda__file__)) == CONDA_SOURCE_ROOT
 
                 # (and the same thing for Python)
                 python_v2, _, _ = run_command(
                     Commands.RUN,
                     prefix,
                     "--cwd",
-                    CONDA_SITE_PACKAGES,
+                    CONDA_SOURCE_ROOT,
                     "python",
                     "-c",
                     "import os, sys; "
@@ -2715,7 +2715,7 @@ dependencies:
                     Commands.RUN,
                     prefix,
                     "--cwd",
-                    CONDA_SITE_PACKAGES,
+                    CONDA_SOURCE_ROOT,
                     *args,
                     dev=True,
                 )
