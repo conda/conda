@@ -188,7 +188,7 @@ class SolverTests:
 
     @pytest.fixture()
     def env(self):
-        with tempfile.TemporaryDirectory(prefix="conda-test-repo-") as tmpdir:
+        with TemporaryDirectory(prefix="conda-test-repo-") as tmpdir:
             self.env = SimpleEnvironment(tmpdir, self.solver_class)
             yield self.env
             self.env = None
