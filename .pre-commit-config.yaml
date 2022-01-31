@@ -1,5 +1,17 @@
 # generally speaking we ignore all vendored code as well as tests data
-exclude: ^(conda/_vendor|tests/data/(conda_format_repo|env_metadata/.+|legacy_repodata|repodata|tar_traversal|corrupt))/
+exclude: |
+  (?x)^(
+    conda/_vendor |
+    conda/auxlib/_vendor |
+    tests/data/(
+      conda_format_repo |
+      env_metadata/.+ |
+      legacy_repodata |
+      repodata |
+      tar_traversal |
+      corrupt
+    )
+  )/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.1.0
@@ -15,6 +27,7 @@ repos:
       # catch git merge/rebase problems
       - id: check-merge-conflict
       - id: fix-encoding-pragma
+        exclude: ^conda/auxlib/
   - repo: https://github.com/akaihola/darker
     rev: github-action-v1.3.2-2
     hooks:
@@ -47,3 +60,4 @@ repos:
       - id: insert-license
         files: \.py$
         args: [--license-filepath, .disclaimer.txt]
+        exclude: ^conda/auxlib/
