@@ -42,6 +42,7 @@ if os.getenv('CONDA_ROOT') is None:
     os.environ[str('CONDA_ROOT')] = sys.prefix
 
 CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
+CONDA_SITE_PACKAGES = dirname(CONDA_PACKAGE_ROOT)
 
 def another_to_unicode(val):
     # ignore flake8 on this because it finds this as an error on py3 even though it is guarded

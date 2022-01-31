@@ -14,7 +14,7 @@ from uuid import uuid4
 import json
 
 from conda import __version__ as conda_version
-from conda import CONDA_PACKAGE_ROOT
+from conda import CONDA_PACKAGE_ROOT, CONDA_SITE_PACKAGES
 from conda.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
@@ -1914,9 +1914,9 @@ class InteractiveShell(object):
         )))
         self.original_path = PATH
         env = {
-            'CONDA_AUTO_ACTIVATE_BASE': 'false',
-            'PYTHONPATH': self.activator.path_conversion(dirname(CONDA_PACKAGE_ROOT)),
-            'PATH': PATH,
+            "CONDA_AUTO_ACTIVATE_BASE": "false",
+            "PYTHONPATH": self.activator.path_conversion(CONDA_SITE_PACKAGES),
+            "PATH": PATH,
         }
         for ev in ('CONDA_TEST_SAVE_TEMPS', 'CONDA_TEST_TMPDIR', 'CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE'):
             if ev in os.environ: env[ev] = os.environ[ev]
