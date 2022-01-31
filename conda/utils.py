@@ -324,7 +324,7 @@ def massage_arguments(arguments, errors='assert'):
     return arguments
 
 
-def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments):
+def wrap_subprocess_call(root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments):
     arguments = massage_arguments(arguments)
     tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
