@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-# (c) 2021 Anaconda, Inc.
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 import fileinput
 import os
 import requests
