@@ -2325,7 +2325,7 @@ dependencies:
                     "pip",
                     "install",
                     "-e",
-                    "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
+                    "git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
                 )
                 assert isfile(join(workdir, "src", "urllib3", "urllib3", "__init__.py"))
                 assert not isfile(join("src", "urllib3", "urllib3", "__init__.py"))

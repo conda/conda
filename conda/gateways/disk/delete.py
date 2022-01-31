@@ -50,10 +50,10 @@ def rmtree(path, *args, **kwargs):
                 from conda.utils import quote_for_shell
 
                 with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as batch_file:
-                    batch_file.write('RD /S {}\n'.format(quote_for_shell([path])))
-                    batch_file.write('chcp 65001\n')
-                    batch_file.write('RD /S {}\n'.format(quote_for_shell([path])))
-                    batch_file.write('EXIT 0\n')
+                    batch_file.write("RD /S {}\n".format(quote_for_shell(path)))
+                    batch_file.write("chcp 65001\n")
+                    batch_file.write("RD /S {}\n".format(quote_for_shell(path)))
+                    batch_file.write("EXIT 0\n")
                     name = batch_file.name
                 # If the above is bugged we can end up deleting hard-drives, so we check
                 # that 'path' appears in it. This is not bulletproof but it could save you (me).
