@@ -14,6 +14,7 @@ repos:
         exclude: ^(conda\.)?recipe/meta.yaml
       # catch git merge/rebase problems
       - id: check-merge-conflict
+      - id: fix-encoding-pragma
   - repo: https://github.com/akaihola/darker
     rev: github-action-v1.3.2-2
     hooks:
