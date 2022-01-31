@@ -9,6 +9,7 @@ from conda.base.context import context
 from conda.common.io import captured
 from conda.gateways.disk.delete import rm_rf
 from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
+from conda.testing.integration import make_temp_env, run_command, Commands, make_temp_prefix
 from conda.common.compat import text_type
 
 import os
@@ -144,9 +145,6 @@ class TestJson(unittest.TestCase):
 
     @pytest.mark.integration
     def test_search_2(self):
-        from tests.test_create import make_temp_env
-        from tests.test_create import run_command
-        from tests.test_create import Commands
         with make_temp_env() as prefix:
             stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "nose", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
@@ -155,9 +153,6 @@ class TestJson(unittest.TestCase):
 
     @pytest.mark.integration
     def test_search_3(self):
-        from tests.test_create import make_temp_env
-        from tests.test_create import run_command
-        from tests.test_create import Commands
         with make_temp_env() as prefix:
             stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "*/linux-64::nose==1.3.7[build=py37_2]", "--info", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
@@ -176,9 +171,6 @@ class TestJson(unittest.TestCase):
 
 class TestRun(object):
     def test_run_returns_int(self):
-        from tests.test_create import make_temp_env
-        from tests.test_create import make_temp_prefix
-
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
             stdout, stderr, result = run_inprocess_conda_command('conda run -p {} echo hi'.format(prefix))
@@ -186,9 +178,6 @@ class TestRun(object):
             assert isinstance(result, int)
 
     def test_run_returns_zero_errorlevel(self):
-        from tests.test_create import make_temp_env
-        from tests.test_create import make_temp_prefix
-
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
             stdout, stderr, result = run_inprocess_conda_command('conda run -p {} exit 0'.format(prefix))
@@ -196,9 +185,6 @@ class TestRun(object):
             assert result == 0
 
     def test_run_returns_nonzero_errorlevel(self):
-        from tests.test_create import make_temp_env
-        from tests.test_create import make_temp_prefix
-
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix) as prefix:
             stdout, stderr, result = run_inprocess_conda_command('conda run -p "{}" exit 5'.format(prefix))
@@ -206,9 +192,6 @@ class TestRun(object):
             assert result == 5
 
     def test_run_uncaptured(self, capfd):
-        from tests.test_create import make_temp_env
-        from tests.test_create import make_temp_prefix
-
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
             random_text = uuid.uuid4().hex
