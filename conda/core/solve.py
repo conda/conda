@@ -63,6 +63,7 @@ def _get_solver_logic(key=None):
                 exc.__class__.__name__,
                 exc,
             )
+            # TODO: Should we error out here instead of falling back?
             return Solver
 
     raise ValueError(f"Solver logic {key} not recognized!")

@@ -652,7 +652,7 @@ def test_cuda_glibc_unsat_constrain(tmpdir):
 
 
 @pytest.mark.skipif(
-    context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2),
+    context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA_DRAFT),
     reason="Features / nomkl involved. Not supported.",
 )
 def test_prune_1(tmpdir):
@@ -1324,7 +1324,10 @@ def test_conda_downgrade(tmpdir):
                     "channel-4::conda-build-3.12.1-py36_0",
                 )
             )
-            if context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2):
+            if context.solver_logic in (
+                SolverLogicChoice.LIBMAMBA,
+                SolverLogicChoice.LIBMAMBA_DRAFT,
+            ):
                 # We only check for conda itself and the explicit specs
                 # The other packages are slightly different;
                 # again libedit and ncurses are involved
@@ -1825,7 +1828,7 @@ def test_python2_update(tmpdir):
         )
         obtained_solution = convert_to_dist_str(final_state_2)
         pprint(obtained_solution)
-        if context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2):
+        if context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA_DRAFT):
             # libmamba has a different solution here (cryptography 2.3 instead of 2.2.2)
             # and cryptography-vectors (not present in regular conda)
             # they are essentially the same functional solution; the important part here
@@ -2075,7 +2078,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-3.6.4-hc3d631a_1",  # python is upgraded
             )
         )
-        if context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2):
+        if context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA_DRAFT):
             # We only check python was upgraded as expected
             assert add_subdir("channel-4::python-2.7.14-h89e7a4a_22") in convert_to_dist_str(
                 unlink_precs
@@ -2112,7 +2115,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-2.7.15-h1571d57_0",  # python is not upgraded
             )
         )
-        if context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2):
+        if context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA_DRAFT):
             # We only check sqlite was upgraded as expected
             assert add_subdir("channel-4::sqlite-3.21.0-h1bed415_2") in convert_to_dist_str(
                 unlink_precs
@@ -2524,7 +2527,7 @@ def test_timestamps_1(tmpdir):
 
 
 @pytest.mark.xfail(
-    context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2),
+    context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA_DRAFT),
     reason="Known bug: mamba prefers arch to noarch",
 )
 def test_channel_priority_churn_minimized(tmpdir):
@@ -2629,13 +2632,13 @@ def test_remove_with_constrained_dependencies(tmpdir):
 
 
 @pytest.mark.xfail(
-    context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2),
+    context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA_DRAFT),
     reason="channel priority is a bit different in libmamba; TODO",
 )
 def test_priority_1(tmpdir):
     priority = (
         "strict"
-        if context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2)
+        if context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA_DRAFT)
         else "flexible"
     )
     with env_var("CONDA_SUBDIR", "linux-64", stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -2729,7 +2732,7 @@ def test_priority_1(tmpdir):
 
 
 @pytest.mark.skipif(
-    context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2),
+    context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA_DRAFT),
     reason="libmamba does not support features",
 )
 def test_features_solve_1(tmpdir):
@@ -3088,7 +3091,10 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             )
             assert "- scikit-learn==0.13 -> python=2.7" in error_msg
             assert "Your python: python=2.6" in error_msg
-        elif context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2):
+        elif context.solver_logic in (
+            SolverLogicChoice.LIBMAMBA,
+            SolverLogicChoice.LIBMAMBA_DRAFT,
+        ):
             assert "Encountered problems while solving" in error_msg
             assert "package scikit-learn-0.13" in error_msg and "requires python 2.7*" in error_msg
         else:
@@ -3110,7 +3116,10 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             )
             assert "- unsatisfiable-with-py26 -> python=2.7" in error_msg
             assert "Your python: python=2.6" in error_msg
-        elif context.solver_logic in (SolverLogicChoice.LIBMAMBA, SolverLogicChoice.LIBMAMBA2):
+        elif context.solver_logic in (
+            SolverLogicChoice.LIBMAMBA,
+            SolverLogicChoice.LIBMAMBA_DRAFT,
+        ):
             assert "Encountered problems while solving" in error_msg
             assert "package unsatisfiable-with-py26-1.0-0 requires scikit-learn 0.13" in error_msg
             warnings.warn(
