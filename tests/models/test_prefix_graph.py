@@ -13,7 +13,7 @@ from conda.models.prefix_graph import PrefixGraph, GeneralGraph
 from conda.models.records import PackageRecord
 import pytest
 from tests.core.test_solve import get_solver_4, get_solver_5
-from tests.helpers import add_subdir_to_iter
+from conda.testing.helpers import add_subdir_to_iter
 
 try:
     from unittest.mock import Mock, patch

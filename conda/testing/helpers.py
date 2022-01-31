@@ -20,18 +20,18 @@ from pathlib import Path
 from time import time
 import collections
 
-from conda import cli
-from conda.auxlib.decorators import memoize
-from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems, itervalues, encode_arguments
-from conda.common.io import argv, captured, captured as common_io_captured, env_var
-from conda.core.subdir_data import SubdirData, make_feature_record
-from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.read import lexists
-from conda.gateways.logging import initialize_logging
-from conda.models.channel import Channel
-from conda.models.records import PackageRecord
-from conda.resolve import Resolve
+from .. import cli
+from ..auxlib.decorators import memoize
+from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from ..common.compat import iteritems, itervalues, encode_arguments
+from ..common.io import argv, captured, captured as common_io_captured, env_var
+from ..core.subdir_data import SubdirData, make_feature_record
+from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.read import lexists
+from ..gateways.logging import initialize_logging
+from ..models.channel import Channel
+from ..models.records import PackageRecord
+from ..resolve import Resolve
 
 import pytest
 
@@ -42,15 +42,21 @@ except ImportError:
     import mock
     from mock import patch
 
-TEST_DATA_DIR = abspath(join(dirname(__file__), "data"))
+# The default value will only work if we have installed conda in development mode!
+TEST_DATA_DIR = os.environ.get(
+    "CONDA_TEST_DATA_DIR", abspath(join(dirname(__file__), "..", "..", "tests", "data"))
+)
 EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
 
-expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
+expected_error_prefix = "Using Anaconda Cloud api site https://api.anaconda.org"
+
+
 def strip_expected(stderr):
     if expected_error_prefix and stderr.startswith(expected_error_prefix):
-        stderr = stderr[len(expected_error_prefix):].lstrip()
+        stderr = stderr[len(expected_error_prefix) :].lstrip()
     return stderr
+
 
 def raises(exception, func, string=None):
     try:
@@ -77,8 +83,8 @@ def captured(disallow_stderr=True):
 
 def capture_json_with_argv(command, disallow_stderr=True, ignore_stderr=False, **kwargs):
     stdout, stderr, exit_code = run_inprocess_conda_command(command, disallow_stderr)
-    if kwargs.get('relaxed'):
-        match = re.match(r'\A.*?({.*})', stdout, re.DOTALL)
+    if kwargs.get("relaxed"):
+        match = re.match(r"\A.*?({.*})", stdout, re.DOTALL)
         if match:
             stdout = match.groups()[0]
     elif stderr and not ignore_stderr:
@@ -96,7 +102,11 @@ def assert_equals(a, b, output=""):
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "%s %r should not be found in %r" % (output, a.lower(), b.lower())
+    assert a.lower() not in b.lower(), "%s %r should not be found in %r" % (
+        output,
+        a.lower(),
+        b.lower(),
+    )
 
 
 def assert_in(a, b, output=""):
@@ -119,14 +129,14 @@ def run_inprocess_conda_command(command, disallow_stderr=True):
 
 
 def add_subdir(dist_string):
-    channel_str, package_str = dist_string.split('::')
-    channel_str = channel_str + '/' +  context.subdir
-    return '::'.join([channel_str, package_str])
+    channel_str, package_str = dist_string.split("::")
+    channel_str = channel_str + "/" + context.subdir
+    return "::".join([channel_str, package_str])
 
 
 def add_subdir_to_iter(iterable):
     if isinstance(iterable, dict):
-        return {add_subdir(k) : v for k, v in iterable.items()}
+        return {add_subdir(k): v for k, v in iterable.items()}
     elif isinstance(iterable, list):
         return list(map(add_subdir, iterable))
     elif isinstance(iterable, set):
@@ -151,24 +161,26 @@ def tempdir():
 
 
 def supplement_index_with_repodata(index, repodata, channel, priority):
-    repodata_info = repodata['info']
-    arch = repodata_info.get('arch')
-    platform = repodata_info.get('platform')
-    subdir = repodata_info.get('subdir')
+    repodata_info = repodata["info"]
+    arch = repodata_info.get("arch")
+    platform = repodata_info.get("platform")
+    subdir = repodata_info.get("subdir")
     if not subdir:
-        subdir = "%s-%s" % (repodata_info['platform'], repodata_info['arch'])
+        subdir = "%s-%s" % (repodata_info["platform"], repodata_info["arch"])
     auth = channel.auth
-    for fn, info in iteritems(repodata['packages']):
-        rec = PackageRecord.from_objects(info,
-                                         fn=fn,
-                                         arch=arch,
-                                         platform=platform,
-                                         channel=channel,
-                                         subdir=subdir,
-                                         # schannel=schannel,
-                                         priority=priority,
-                                         # url=join_url(channel_url, fn),
-                                         auth=auth)
+    for fn, info in iteritems(repodata["packages"]):
+        rec = PackageRecord.from_objects(
+            info,
+            fn=fn,
+            arch=arch,
+            platform=platform,
+            channel=channel,
+            subdir=subdir,
+            # schannel=schannel,
+            priority=priority,
+            # url=join_url(channel_url, fn),
+            auth=auth,
+        )
         index[rec] = rec
 
 
@@ -205,16 +217,16 @@ def _export_subdir_data_to_repodata(subdir_data, index):
             del data["features"]
         packages[pkg.fn] = data
     return {
-            "_cache_control": state["_cache_control"],
-            "_etag": state["_etag"],
-            "_mod": state["_mod"],
-            "_url": state["_url"],
-            "_add_pip": state["_add_pip"],
-            "info": {
-                "subdir": context.subdir,
-            },
-            "packages": packages
-        }
+        "_cache_control": state["_cache_control"],
+        "_etag": state["_etag"],
+        "_mod": state["_mod"],
+        "_url": state["_url"],
+        "_add_pip": state["_add_pip"],
+        "info": {
+            "subdir": context.subdir,
+        },
+        "packages": packages,
+    }
 
 
 def _sync_channel_to_disk(channel, subdir_data, index):
@@ -250,8 +262,10 @@ def _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data=None)
         cache_key = Channel(name).url(with_credentials=True), "repodata.json"
         subdir_data = SubdirData._cache_.get(cache_key)
     if subdir_data:
-        local_proxy_channel = Channel(f'{EXPORTED_CHANNELS_DIR}/{name}')
-        SubdirData._cache_[(local_proxy_channel.url(with_credentials=True), "repodata.json")] = subdir_data
+        local_proxy_channel = Channel(f"{EXPORTED_CHANNELS_DIR}/{name}")
+        SubdirData._cache_[
+            (local_proxy_channel.url(with_credentials=True), "repodata.json")
+        ] = subdir_data
 
 
 def _patch_for_local_exports(name, subdir_data, channel, index):
@@ -274,7 +288,7 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
 
 @memoize
 def get_index_r_1(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index.json')) as fi:
+    with open(join(TEST_DATA_DIR, "index.json")) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -285,9 +299,11 @@ def get_index_r_1(subdir=context.subdir):
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
+    channel = Channel("https://conda.anaconda.org/channel-1/%s" % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -302,7 +318,7 @@ def get_index_r_1(subdir=context.subdir):
 
 @memoize
 def get_index_r_2(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index2.json')) as fi:
+    with open(join(TEST_DATA_DIR, "index2.json")) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -313,9 +329,11 @@ def get_index_r_2(subdir=context.subdir):
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-2/%s' % subdir)
+    channel = Channel("https://conda.anaconda.org/channel-2/%s" % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -329,7 +347,7 @@ def get_index_r_2(subdir=context.subdir):
 
 @memoize
 def get_index_r_4(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index4.json')) as fi:
+    with open(join(TEST_DATA_DIR, "index4.json")) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -340,9 +358,11 @@ def get_index_r_4(subdir=context.subdir):
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-4/%s' % subdir)
+    channel = Channel("https://conda.anaconda.org/channel-4/%s" % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -356,7 +376,7 @@ def get_index_r_4(subdir=context.subdir):
 
 @memoize
 def get_index_r_5(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index5.json')) as fi:
+    with open(join(TEST_DATA_DIR, "index5.json")) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -367,9 +387,11 @@ def get_index_r_5(subdir=context.subdir):
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-5/%s' % subdir)
+    channel = Channel("https://conda.anaconda.org/channel-5/%s" % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -393,27 +415,20 @@ def get_index_must_unfreeze(subdir=context.subdir):
             "foobar-1.0-0.tar.bz2": {
                 "build": "0",
                 "build_number": 0,
-                "depends": [
-                    "libbar 2.0.*",
-                    "libfoo 1.0.*"
-                ],
+                "depends": ["libbar 2.0.*", "libfoo 1.0.*"],
                 "md5": "11ec1194bcc56b9a53c127142a272772",
                 "name": "foobar",
                 "timestamp": 1562861325613,
-                "version": "1.0"
+                "version": "1.0",
             },
             "foobar-2.0-0.tar.bz2": {
                 "build": "0",
                 "build_number": 0,
-                "depends": [
-                    "libbar 2.0.*",
-                    "libfoo 2.0.*"
-                ],
+                "depends": ["libbar 2.0.*", "libfoo 2.0.*"],
                 "md5": "f8eb5a7fa1ff6dead4e360631a6cd048",
                 "name": "foobar",
-                "version": "2.0"
+                "version": "2.0",
             },
-
             "libbar-1.0-0.tar.bz2": {
                 "build": "0",
                 "build_number": 0,
@@ -421,7 +436,7 @@ def get_index_must_unfreeze(subdir=context.subdir):
                 "md5": "f51f4d48a541b7105b5e343704114f0f",
                 "name": "libbar",
                 "timestamp": 1562858881022,
-                "version": "1.0"
+                "version": "1.0",
             },
             "libbar-2.0-0.tar.bz2": {
                 "build": "0",
@@ -430,9 +445,8 @@ def get_index_must_unfreeze(subdir=context.subdir):
                 "md5": "27f4e717ed263f909074f64d9cbf935d",
                 "name": "libbar",
                 "timestamp": 1562858881748,
-                "version": "2.0"
+                "version": "2.0",
             },
-
             "libfoo-1.0-0.tar.bz2": {
                 "build": "0",
                 "build_number": 0,
@@ -440,7 +454,7 @@ def get_index_must_unfreeze(subdir=context.subdir):
                 "md5": "ad7c088566ffe2389958daedf8ff312c",
                 "name": "libfoo",
                 "timestamp": 1562858763881,
-                "version": "1.0"
+                "version": "1.0",
             },
             "libfoo-2.0-0.tar.bz2": {
                 "build": "0",
@@ -449,38 +463,33 @@ def get_index_must_unfreeze(subdir=context.subdir):
                 "md5": "daf7af7086d8f22be49ae11bdc41f332",
                 "name": "libfoo",
                 "timestamp": 1562858836924,
-                "version": "2.0"
+                "version": "2.0",
             },
-
             "qux-1.0-0.tar.bz2": {
                 "build": "0",
                 "build_number": 0,
-                "depends": [
-                    "libbar 2.0.*",
-                    "libfoo 1.0.*"
-                ],
+                "depends": ["libbar 2.0.*", "libfoo 1.0.*"],
                 "md5": "18604cbe4f789fe853232eef4babd4f9",
                 "name": "qux",
                 "timestamp": 1562861393808,
-                "version": "1.0"
+                "version": "1.0",
             },
             "qux-2.0-0.tar.bz2": {
                 "build": "0",
                 "build_number": 0,
-                "depends": [
-                    "libbar 1.0.*",
-                    "libfoo 2.0.*"
-                ],
+                "depends": ["libbar 1.0.*", "libfoo 2.0.*"],
                 "md5": "892aa4b9ec64b67045a46866ef1ea488",
                 "name": "qux",
                 "timestamp": 1562861394828,
-                "version": "2.0"
-            }
-        }
+                "version": "2.0",
+            },
+        },
     }
-    channel = Channel('https://conda.anaconda.org/channel-freeze/%s' % subdir)
+    channel = Channel("https://conda.anaconda.org/channel-freeze/%s" % subdir)
     sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
@@ -494,7 +503,7 @@ def get_index_must_unfreeze(subdir=context.subdir):
 
 # Do not memoize this get_index to allow different CUDA versions to be detected
 def get_index_cuda(subdir=context.subdir):
-    with open(join(dirname(__file__), 'data', 'index.json')) as fi:
+    with open(join(TEST_DATA_DIR, "index.json")) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -505,7 +514,7 @@ def get_index_cuda(subdir=context.subdir):
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
+    channel = Channel("https://conda.anaconda.org/channel-1/%s" % subdir)
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
@@ -521,7 +530,16 @@ def get_index_cuda(subdir=context.subdir):
     return index, r
 
 
-def record(name='a', version='1.0', depends=None, build='0', build_number=0, timestamp=0, channel=None, **kwargs):
+def record(
+    name="a",
+    version="1.0",
+    depends=None,
+    build="0",
+    build_number=0,
+    timestamp=0,
+    channel=None,
+    **kwargs,
+):
     return PackageRecord(
         name=name,
         version=version,

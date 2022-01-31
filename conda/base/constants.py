@@ -289,7 +289,7 @@ class SatSolverChoice(Enum):
 class SolverLogicChoice(Enum):
     CLASSIC = 'classic'
     LIBMAMBA = 'libmamba'
-    LIBMAMBA2 = 'libmamba2'
+    LIBMAMBA_DRAFT = 'libmamba-draft'
 
     def __str__(self):
         return self.value

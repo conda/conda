@@ -25,9 +25,8 @@ reset_context()  # initialize context when conda.exports is imported
 from . import plan  # NOQA
 plan = plan
 
-from .core.solve import Solver, LibMambaSolver  # NOQA
+from .core.solve import Solver  # NOQA
 Solver = Solver
-LibMambaSolver = LibMambaSolver
 
 from .cli.common import specs_from_args, spec_from_line, specs_from_url  # NOQA
 from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # NOQA

@@ -32,7 +32,7 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 import pytest
-from tests.helpers import tempdir
+from conda.testing.helpers import tempdir
 from tests.test_create import Commands, run_command
 from conda.auxlib.decorators import memoize
 from .test_create import SPACER_CHARACTER

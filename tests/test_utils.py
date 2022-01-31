@@ -1,6 +1,6 @@
 from conda import utils
 from conda.common.path import win_path_to_unix
-from .helpers import assert_equals
+from conda.testing.helpers import assert_equals
 
 from conda.activate import CmdExeActivator, PosixActivator
 from conda.common.path import which

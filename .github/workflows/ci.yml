@@ -16,38 +16,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9']
-        conda-subdir: ['win-64']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        test-splits: ['3']
-        conda-solver-logic: ['classic']
-        include:
-          - python-version: '3.9'
-            test-type: 'integration'
-            conda-solver-logic: 'libmamba2'
-            test-splits: '3'
-            test-group: '1'
-          - python-version: '3.9'
-            test-type: 'integration'
-            conda-solver-logic: 'libmamba2'
-            test-splits: '3'
-            test-group: '2'
-          - python-version: '3.9'
-            test-type: 'integration'
-            conda-solver-logic: 'libmamba2'
-            test-splits: '3'
-            test-group: '3'
-          - python-version: '3.9'
-            test-type: 'experimental-resolver'
-            conda-solver-logic: 'libmamba2'
+        python-version: ["3.7", "3.8", "3.9"]
+        conda-subdir: ["win-64"]
+        test-type: ["unit", "integration"]
+        test-group: ["1", "2", "3"]
     env:
       OS: "win-64"
       PYTHON: ${{ matrix.python-version }}
       CONDA_SUBDIR: ${{ matrix.conda-subdir }}
-      TEST_SPLITS: ${{ matrix.test-splits }}
+      TEST_SPLITS: "3"
       TEST_GROUP: ${{ matrix.test-group }}
-      CONDA_SOLVER_LOGIC: ${{ matrix.conda-solver-logic }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -84,39 +62,17 @@ jobs:
         python-version: ["3.7", "3.8", "3.9"]
         test-type: ["unit", "integration"]
         test-group: ["1", "2", "3"]
-        test-splits: ["3"]
-        conda-solver-logic: ["classic"]
-        include:
-          - python-version: "3.9"
-            test-type: "integration"
-            conda-solver-logic: "libmamba2"
-            test-splits: "3"
-            test-group: "1"
-          - python-version: "3.9"
-            test-type: "integration"
-            conda-solver-logic: "libmamba2"
-            test-splits: "3"
-            test-group: "2"
-          - python-version: "3.9"
-            test-type: "integration"
-            conda-solver-logic: "libmamba2"
-            test-splits: "3"
-            test-group: "3"
-          - python-version: "3.9"
-            test-type: "experimental-resolver"
-            conda-solver-logic: "libmamba2"
     env:
       OS: "linux"
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: ${{ matrix.test-splits }}
+      TEST_SPLITS: "3"
       TEST_GROUP: ${{ matrix.test-group }}
-      CONDA_SOLVER_LOGIC: ${{ matrix.conda-solver-logic }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} ${{ matrix.test_type }} tests, group ${{ matrix.test-group }}
+      - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
@@ -136,37 +92,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        test-splits: ['3']
-        conda-solver-logic: ['classic']
-        include:
-          - python-version: '3.9'
-            test-type: 'integration'
-            conda-solver-logic: 'libmamba2'
-            test-splits: '3'
-            test-group: '1'
-          - python-version: '3.9'
-            test-type: 'integration'
-            conda-solver-logic: 'libmamba2'
-            test-splits: '3'
-            test-group: '2'
-          - python-version: '3.9'
-            test-type: 'integration'
-            conda-solver-logic: 'libmamba2'
-            test-splits: '3'
-            test-group: '3'
-          - python-version: '3.9'
-            test-type: 'experimental-resolver'
-            conda-solver-logic: 'libmamba2'
+        python-version: ["3.9"]
+        test-type: ["unit", "integration"]
+        test-group: ["1", "2", "3"]
 
     env:
-      OS: 'macos'
+      OS: "macos"
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: ${{ matrix.test-splits }}
+      TEST_SPLITS: "3"
       TEST_GROUP: ${{ matrix.test-group }}
-      CONDA_SOLVER_LOGIC: ${{ matrix.conda-solver-logic }}
 
     steps:
       - uses: actions/checkout@v2
@@ -203,7 +137,7 @@ jobs:
 
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: bash -l {0}
-        run : |
+        run: |
           ./dev/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
