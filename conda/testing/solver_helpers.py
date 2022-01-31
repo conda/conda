@@ -4,7 +4,7 @@ import collections
 import functools
 import json
 import pathlib
-import tempfile
+from tempfile import TemporaryDirectory
 from typing import Type
 
 import pytest
@@ -156,6 +156,16 @@ class SimpleEnvironment:
                     }
                 )
             )
+
+
+def empty_prefix():
+    return TemporaryDirectory(prefix="conda-test-repo-")
+
+
+@pytest.fixture()
+def temp_simple_env(solver_class=Solver) -> SimpleEnvironment:
+    with empty_prefix() as prefix:
+        yield SimpleEnvironment(prefix, solver_class)
 
 
 class SolverTests:
