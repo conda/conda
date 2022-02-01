@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from os.path import exists, join
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from unittest import TestCase

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 #
 # conda documentation build configuration file, created by
 # sphinx-quickstart on Wed Aug 16 00:33:55 2017.
