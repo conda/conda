@@ -1,3 +1,8 @@
+"""
+These helpers were originally defined in tests/test_create.py,
+but were refactored here so downstream projects can benefit from
+them too.
+"""
 from __future__ import unicode_literals
 
 from contextlib import contextmanager

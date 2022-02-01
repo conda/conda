@@ -4,21 +4,15 @@ Helpers for the tests
 from __future__ import absolute_import, division, print_function
 
 from contextlib import contextmanager
-from functools import partial
 import json
 import os
 from os.path import dirname, join, abspath
 import re
-from shlex import split
 from conda.auxlib.compat import shlex_split_unicode
 import sys
 from tempfile import gettempdir, mkdtemp
-from unittest import mock
-from unittest.mock import patch
 from uuid import uuid4
 from pathlib import Path
-from time import time
-import collections
 
 from .. import cli
 from ..auxlib.decorators import memoize
@@ -33,7 +27,6 @@ from ..models.channel import Channel
 from ..models.records import PackageRecord
 from ..resolve import Resolve
 
-import pytest
 
 try:
     from unittest import mock
