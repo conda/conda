@@ -33,9 +33,8 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 import pytest
 from conda.testing.helpers import tempdir
-from tests.test_create import Commands, run_command
+from conda.testing.integration import Commands, run_command, SPACER_CHARACTER
 from conda.auxlib.decorators import memoize
-from .test_create import SPACER_CHARACTER
 
 try:
     from unittest.mock import patch

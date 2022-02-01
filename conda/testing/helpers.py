@@ -4,27 +4,30 @@ Helpers for the tests
 from __future__ import absolute_import, division, print_function
 
 from contextlib import contextmanager
-from functools import partial
 import json
 import os
 from os.path import dirname, join, abspath
 import re
-from shlex import split
 from conda.auxlib.compat import shlex_split_unicode
 import sys
 from tempfile import gettempdir, mkdtemp
-from unittest import mock
-from unittest.mock import patch
 from uuid import uuid4
 from pathlib import Path
-from time import time
-import collections
+
+# Some modules import from this one so they don't
+# have to try/except all the time.
+try:
+    from unittest import mock  # noqa: F401
+    from unittest.mock import patch  # noqa: F401
+except ImportError:
+    import mock  # noqa: F401
+    from mock import patch  # noqa: F401
 
 from .. import cli
 from ..auxlib.decorators import memoize
 from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from ..common.compat import iteritems, itervalues, encode_arguments
-from ..common.io import argv, captured, captured as common_io_captured, env_var
+from ..common.io import argv, captured as common_io_captured, env_var
 from ..core.subdir_data import SubdirData, make_feature_record
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
@@ -32,15 +35,6 @@ from ..gateways.logging import initialize_logging
 from ..models.channel import Channel
 from ..models.records import PackageRecord
 from ..resolve import Resolve
-
-import pytest
-
-try:
-    from unittest import mock
-    from unittest.mock import patch
-except ImportError:
-    import mock
-    from mock import patch
 
 # The default value will only work if we have installed conda in development mode!
 TEST_DATA_DIR = os.environ.get(
@@ -54,7 +48,7 @@ expected_error_prefix = "Using Anaconda Cloud api site https://api.anaconda.org"
 
 def strip_expected(stderr):
     if expected_error_prefix and stderr.startswith(expected_error_prefix):
-        stderr = stderr[len(expected_error_prefix) :].lstrip()
+        stderr = stderr[len(expected_error_prefix) :].lstrip()  # noqa
     return stderr
 
 

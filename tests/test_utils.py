@@ -131,7 +131,7 @@ def is_prefix_activated_PATHwise(prefix=sys.prefix, test_programs=()):
 # from conda.common.configuration import YamlRawParameter
 # from conda.common.serialize import yaml_safe_load
 # from conda.models.channel import Channel
-# from .test_create import make_temp_prefix
+# from conda.testing.integration import make_temp_prefix
 # from os.path import join
 # from shutil import rmtree
 # is what I ended up with instead.

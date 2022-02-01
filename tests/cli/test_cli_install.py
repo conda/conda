@@ -1,6 +1,5 @@
 import tempfile
 from unittest import TestCase
-from tests.test_create import run_command, Commands
 
 import pytest
 
@@ -9,6 +8,7 @@ from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.delete import rm_rf
 from conda.base.constants import SolverLogicChoice
 from conda.base.context import context
+from conda.testing.integration import run_command, Commands
 
 try:
     from unittest.mock import patch
