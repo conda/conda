@@ -9,7 +9,6 @@ from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, 
 from datetime import datetime
 import re
 import sys
-import os
 
 from .. import CondaError
 from ..auxlib.decorators import memoize

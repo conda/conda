@@ -110,7 +110,7 @@ def running_a_python_capable_of_unicode_subprocessing():
             if out.startswith("Hello World"):
                 return True
             return False
-        except Exception as _:
+        except Exception:
             return False
         finally:
             os.unlink(name)
@@ -156,7 +156,7 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
 
     try:
         link(src, dst)
-    except (IOError, OSError) as e:
+    except (IOError, OSError):
         print(
             "\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
             "           not on the same FS as `sys.prefix`:\n           {}\n"
@@ -340,7 +340,7 @@ def make_temp_env(*packages, **kwargs):
             run_command(Commands.CREATE, prefix, *packages, **kwargs)
             yield prefix
         finally:
-            if not "CONDA_TEST_SAVE_TEMPS" in os.environ:
+            if "CONDA_TEST_SAVE_TEMPS" not in os.environ:
                 rmtree(prefix, ignore_errors=True)
             else:
                 log.warning("CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {}".format(prefix))

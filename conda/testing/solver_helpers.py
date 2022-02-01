@@ -68,7 +68,8 @@ class SimpleEnvironment:
         self.subdirs = subdirs
         self.installed_packages = []
         # if repo_packages is a list, the packages will be put in a `test` channel
-        # if it is a dictionary, it the keys are the channel name and the value the channel packages
+        # if it is a dictionary, it the keys are the channel name and the value
+        # the channel packages
         self.repo_packages: list[str] | dict[str, list[str]] = []
 
     def solver(self, add, remove):
@@ -573,9 +574,9 @@ class SolverTests:
         )
 
     def test_nonexistent(self, env):
-        with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)) as exc_info:
+        with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)):
             env.install("notarealpackage 2.0*")
-        with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)) as exc_info:
+        with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)):
             env.install("numpy 1.5")
 
     def test_timestamps_and_deps(self, env):
@@ -603,11 +604,13 @@ class SolverTests:
         records_15 = env.install("libpng 1.5.*", "mypackage")
         assert "test::libpng-1.5.13-1" in records_15
         assert "test::mypackage-1.0-hash15_0" in records_15
-        # this is testing that previously installed reqs are not disrupted by newer timestamps.
-        #   regression test of sorts for https://github.com/conda/conda/issues/6271
+        # this is testing that previously installed reqs are not disrupted
+        # by newer timestamps. regression test of sorts for
+        #  https://github.com/conda/conda/issues/6271
         assert env.install("mypackage", *env.install("libpng 1.2.*", as_specs=True)) == records_12
         assert env.install("mypackage", *env.install("libpng 1.5.*", as_specs=True)) == records_15
-        # unspecified python version should maximize libpng (v1.5), even though it has a lower timestamp
+        # unspecified python version should maximize libpng (v1.5),
+        # even though it has a lower timestamp
         assert env.install("mypackage") == records_15
 
     def test_nonexistent_deps(self, env):
@@ -713,8 +716,9 @@ class SolverTests:
             "test::distribute-0.6.36-py33_1",
             "test::pip-1.3.1-py33_1",
         }
-        # XXX: We need UnsatisfiableError here because mamba does not have more granular exceptions yet.
-        with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)) as exc_info:
+        # TODO: We need UnsatisfiableError here because mamba does not
+        # have more granular exceptions yet.
+        with pytest.raises((ResolvePackageNotFound, UnsatisfiableError)):
             env.install("mypackage 1.1")
         assert env.install("anotherpackage 1.0") == {
             "test::anotherpackage-1.0-0",
@@ -1010,15 +1014,11 @@ class SolverTests:
         monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
         with pytest.raises(UnsatisfiableError) as exc_info:
             env.install("a", "b")
-        self.assert_unsatisfiable(
-            exc_info,
-            [
-                ("b", "c[version='>=2,<3']"),
-            ],
-        )
+        self.assert_unsatisfiable(exc_info, [("b", "c[version='>=2,<3']")])
 
     @pytest.mark.xfail(
-        reason="There is some weird global state making this test fail when the whole test suite is run"
+        reason="There is some weird global state making "
+        "this test fail when the whole test suite is run"
     )
     def test_remove(self, env):
         env.repo_packages = index_packages(1)
