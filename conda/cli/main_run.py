@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
@@ -8,7 +11,7 @@ import sys
 from ..base.context import context
 from ..utils import wrap_subprocess_call
 from ..gateways.disk.delete import rm_rf
-from ..common.compat import on_win, encode_environment
+from ..common.compat import encode_environment
 from ..gateways.subprocess import subprocess_call
 from .common import validate_prefix
 
@@ -16,7 +19,6 @@ from .common import validate_prefix
 def execute(args, parser):
     # create run script
     script, command = wrap_subprocess_call(
-        on_win,
         context.root_prefix,
         validate_prefix(context.target_prefix or os.getenv("CONDA_PREFIX") or context.root_prefix),
         args.dev,

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from glob import glob
@@ -41,9 +44,12 @@ import requests
 from conda import (
     CondaError,
     CondaMultiError,
+    plan,
     __version__ as CONDA_VERSION,
     CONDA_PACKAGE_ROOT,
+    CONDA_SOURCE_ROOT,
 )
+from conda.auxlib.entity import EntityEncoder
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_PACKAGE_EXTENSIONS,
@@ -1839,7 +1845,6 @@ dependencies:
             with make_temp_env(
                 "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
             ) as prefix:
-                conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
                 workdir = prefix
 
                 run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
@@ -2642,7 +2647,6 @@ dependencies:
             "--copy",
             name="_" + str(uuid4())[:8],
         ) as prefix:
-            conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
             # We cannot naively call $SOME_PREFIX/bin/conda and expect it to run the right conda because we
             # respect PATH (i.e. our conda shell script (in 4.5 days at least) has the following shebang:
             # `#!/usr/bin/env python`). Now it may be that `PYTHONPATH` or something was meant to account
@@ -2671,7 +2675,7 @@ dependencies:
 
                 # When we run `conda run -p prefix python -m conda init` we are explicitly wishing to run the
                 # old Python 3.6.7 in prefix, but against the development sources of conda. Those are found
-                # via `workdir=conda_dev_srcdir`.
+                # via `workdir=CONDA_SOURCE_ROOT`.
                 #
                 # This was beyond complicated to deal with and led to adding a new 'dev' flag which modifies
                 # what the script wrappers emit for `CONDA_EXE`.
@@ -2683,7 +2687,7 @@ dependencies:
                 #
 
                 '''
-                env_path_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir, dedent("""
+                env_path_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', CONDA_SOURCE_ROOT, dedent("""
                     declare -f
                     env | sort
                     which conda
@@ -2701,20 +2705,20 @@ dependencies:
                     Commands.RUN,
                     prefix,
                     "--cwd",
-                    conda_dev_srcdir,
+                    CONDA_SOURCE_ROOT,
                     sys.executable,
                     "-c",
                     "import conda, os, sys; " "sys.stdout.write(os.path.abspath(conda.__file__))",
                     dev=True,
                 )
-                assert dirname(dirname(conda__file__)) == conda_dev_srcdir
+                assert dirname(dirname(conda__file__)) == CONDA_SOURCE_ROOT
 
                 # (and the same thing for Python)
                 python_v2, _, _ = run_command(
                     Commands.RUN,
                     prefix,
                     "--cwd",
-                    conda_dev_srcdir,
+                    CONDA_SOURCE_ROOT,
                     "python",
                     "-c",
                     "import os, sys; "
@@ -2726,11 +2730,14 @@ dependencies:
                 assert python_v2 == python_v
 
                 # install a dev version with our current source checkout into prefix
-                args = ["python", "-m", "conda", "init"] + (
-                    ["cmd.exe", "--dev"] if on_win else ["--dev"]
-                )
+                args = ["python", "-m", "conda", "init", *(["cmd.exe"] if on_win else []), "--dev"]
                 result, stderr, _ = run_command(
-                    Commands.RUN, prefix, "--cwd", conda_dev_srcdir, *args, dev=True
+                    Commands.RUN,
+                    prefix,
+                    "--cwd",
+                    CONDA_SOURCE_ROOT,
+                    *args,
+                    dev=True,
                 )
 
                 result = subprocess_call_with_clean_env("%s --version" % conda_exe)

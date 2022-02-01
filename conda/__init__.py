@@ -41,7 +41,13 @@ __url__ = "https://github.com/conda/conda"
 if os.getenv('CONDA_ROOT') is None:
     os.environ[str('CONDA_ROOT')] = sys.prefix
 
+#: The conda package directory.
 CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
+#: The path within which to find the conda package.
+#:
+#: If `conda` is statically installed this is the site-packages. If `conda` is an editable install
+#: or otherwise uninstalled this is the git repo.
+CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
 
 def another_to_unicode(val):
     # ignore flake8 on this because it finds this as an error on py3 even though it is guarded

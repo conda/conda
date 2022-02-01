@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 import pytest
 from conda.lock import DirectoryLock, FileLock, LockError
 from os.path import basename, exists, isfile, join

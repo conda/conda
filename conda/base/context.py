@@ -57,7 +57,7 @@ from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..common.decorators import env_override
 
-from .. import CONDA_PACKAGE_ROOT
+from .. import CONDA_SOURCE_ROOT
 
 try:
     os.getcwd()
@@ -717,8 +717,9 @@ class Context(Configuration):
                     ("CONDA_EXE", sys.executable),
                     (
                         "PYTHONPATH",
-                        os.path.dirname(CONDA_PACKAGE_ROOT)
-                        + "{}{}".format(os.pathsep, os.environ.get("PYTHONPATH", "")),
+                        # [warning] Do not confuse with os.path.join, we are joining paths
+                        # with ; or : delimiters.
+                        os.pathsep.join((CONDA_SOURCE_ROOT, os.environ.get("PYTHONPATH", ""))),
                     ),
                     ("_CE_M", "-m"),
                     ("_CE_CONDA", "conda"),
