@@ -285,8 +285,9 @@ def quote_for_shell(*arguments):
             result.append(" ")
 
         needquote = (
+            not arg
             # redirects
-            ("<" in arg)
+            or ("<" in arg)
             or (">" in arg)
             # file descriptor
             or ("&" in arg)
@@ -295,7 +296,7 @@ def quote_for_shell(*arguments):
             # spacing
             or (" " in arg)
             or ("\t" in arg)
-            or not arg
+            or ("\n" in arg)
         )
         if needquote:
             result.append('"')
