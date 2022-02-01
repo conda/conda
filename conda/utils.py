@@ -263,11 +263,12 @@ def sys_prefix_unfollowed():
 def quote_for_shell(*arguments):
     """Properly quote arguments for command line passing.
 
-    Extends `subprocess.list2cmdline` (which handles standard quoting for arguments with spacing
-    and escaped characters) with proper handling for redirects, file descriptors, and pipes.
+    Copy of `subprocess.list2cmdline` (which handles standard quoting for arguments with
+    spacing and escaped characters) with additional checks for redirects, file descriptors, and
+    pipes.
 
     :param arguments: Arguments to quote.
-    :type arguments: list
+    :type arguments: list of str
     :return: Quoted arguments.
     :rtype: str
     """
@@ -280,7 +281,7 @@ def quote_for_shell(*arguments):
     for arg in map(fsdecode, arguments):
         bs_buf = []
 
-        # Add a space to separate this argument from the others
+        # Add a space to separate this argument from the others.
         if result:
             result.append(" ")
 
@@ -311,7 +312,7 @@ def quote_for_shell(*arguments):
                 bs_buf = []
                 result.append('\\"')
             else:
-                # Normal char
+                # Normal char.
                 if bs_buf:
                     result.extend(bs_buf)
                     bs_buf = []
