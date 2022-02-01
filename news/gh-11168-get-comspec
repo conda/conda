@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Refactored `ensure_comspec_set` into `get_comspec`.
+* Refactored `conda.utils.ensure_comspec_set` into `conda.utils.get_comspec`. (#11168)
 
 ### Bug fixes
 

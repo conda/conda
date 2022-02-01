@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Refactored `conda.cli.common.is_valid_prefix` into `conda.cli.common.validate_prefix`. (#11172)
+* Added `conda.CONDA_SOURCE_ROOT`. (#11182)
 
 ### Bug fixes
 
