@@ -14,6 +14,15 @@ from tempfile import gettempdir, mkdtemp
 from uuid import uuid4
 from pathlib import Path
 
+# Some modules import from this one so they don't
+# have to try/except all the time.
+try:
+    from unittest import mock  # noqa: F401
+    from unittest.mock import patch  # noqa: F401
+except ImportError:
+    import mock  # noqa: F401
+    from mock import patch  # noqa: F401
+
 from .. import cli
 from ..auxlib.decorators import memoize
 from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
