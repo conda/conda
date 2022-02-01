@@ -23,10 +23,17 @@ import sys
 from tempfile import gettempdir
 from uuid import uuid4
 from logging import getLogger
+import urllib
+
+try:
+    import urllib.parse as urlparse
+except:
+    from urlparse import urlparse
 
 import pytest
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.auxlib.decorators import memoize
 from conda.auxlib.entity import EntityEncoder
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
@@ -47,11 +54,13 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.exceptions import conda_exception_handler
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.link import link
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import DEBUG
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.utils import massage_arguments
+
 
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
@@ -81,9 +90,6 @@ log = getLogger(__name__)
 
 def escape_for_winpath(p):
     return p.replace("\\", "\\\\")
-
-
-from conda.auxlib.decorators import memoize
 
 
 @memoize
@@ -147,7 +153,6 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
     # sys.executable so instead use the pdb files.
     src = sys.executable.replace(".exe", ".pdb") if on_win else sys.executable
     dst = os.path.join(tmpdir, os.path.basename(sys.executable))
-    from conda.gateways.disk.link import link
 
     try:
         link(src, dst)
@@ -356,14 +361,6 @@ def make_temp_package_cache():
         rmtree(prefix, ignore_errors=True)
         if pkgs_dir in PackageCacheData._cache_:
             del PackageCacheData._cache_[pkgs_dir]
-
-
-import urllib
-
-try:
-    import urllib.parse as urlparse
-except:
-    from urlparse import urlparse
 
 
 def fixurl(url):
