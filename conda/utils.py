@@ -15,7 +15,7 @@ from .common.compat import on_win, isiterable
 from .common.path import win_path_to_unix, which
 from .common.url import path_to_url
 from os.path import abspath, join, isfile, basename
-from os import environ
+from os import environ, fsdecode
 
 log = logging.getLogger(__name__)
 
@@ -260,35 +260,71 @@ def sys_prefix_unfollowed():
     return unfollowed
 
 
-def quote_for_shell(*arguments, shell=None):
+def quote_for_shell(*arguments):
+    """Properly quote arguments for command line passing.
+
+    Extends `subprocess.list2cmdline` (which handles standard quoting for arguments with spacing
+    and escaped characters) with proper handling for redirects, file descriptors, and pipes.
+
+    :param arguments: Arguments to quote.
+    :type arguments: list
+    :return: Quoted arguments.
+    :rtype: str
+    """
     # [backport] Support passing in a list of strings or args of string.
     if len(arguments) == 1 and isiterable(arguments[0]):
         arguments = arguments[0]
 
-    if (not shell and on_win) or shell == "cmd.exe":
-        # [note] `subprocess.list2cmdline` is not a public function.
-        from subprocess import list2cmdline
+    result = []
+    needquote = False
+    for arg in map(fsdecode, arguments):
+        bs_buf = []
 
-        return list2cmdline(arguments)
+        # Add a space to separate this argument from the others
+        if result:
+            result.append(" ")
 
-    # If any multiline argument gets mixed with any other argument (which is true if we've
-    # arrived in this function) then we just quote it. This assumes something like:
-    #   ['python', '-c', 'a\nmultiline\nprogram\n']
-    # There is no way of knowing why newlines are included, must ensure they are escaped/quoted.
-    quoted = []
-    # This could all be replaced with some regex wizardry but that is less readable and
-    # for code like this, readability is very important.
-    for arg in arguments:
-        if '"' in arg:
-            quote = "'"
-        elif "'" in arg:
-            quote = '"'
-        elif not any(c in arg for c in (" ", "\n")):
-            quote = ""
-        else:
-            quote = '"'
-        quoted.append(f"{quote}{arg}{quote}")
-    return " ".join(quoted)
+        needquote = (
+            # redirects
+            ("<" in arg)
+            or (">" in arg)
+            # file descriptor
+            or ("&" in arg)
+            # pipes
+            or ("|" in arg)
+            # spacing
+            or (" " in arg)
+            or ("\t" in arg)
+            or not arg
+        )
+        if needquote:
+            result.append('"')
+
+        for c in arg:
+            if c == "\\":
+                # Don't know if we need to double yet.
+                bs_buf.append(c)
+            elif c == '"':
+                # Double backslashes.
+                result.append("\\" * len(bs_buf) * 2)
+                bs_buf = []
+                result.append('\\"')
+            else:
+                # Normal char
+                if bs_buf:
+                    result.extend(bs_buf)
+                    bs_buf = []
+                result.append(c)
+
+        # Add remaining backslashes, if any.
+        if bs_buf:
+            result.extend(bs_buf)
+
+        if needquote:
+            result.extend(bs_buf)
+            result.append('"')
+
+    return "".join(result)
 
 
 # Ensures arguments are a tuple or a list. Strings are converted
