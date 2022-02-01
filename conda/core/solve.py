@@ -27,6 +27,7 @@ from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
+    CondaImportError,
     PackagesNotFoundError,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -55,16 +56,12 @@ def _get_solver_logic(key=None):
 
             return get_solver_logic(key)
         except ImportError as exc:
-            log.error(
-                "You have chosen a non-default solver logic (%s) "
-                "but it could not be imported (%s: '%s'). "
-                "Falling back to the default solver logic!",
-                key,
-                exc.__class__.__name__,
-                exc,
+            raise CondaImportError(
+                f"You have chosen a non-default solver logic ({key}) "
+                f"but it could not be imported:\n\n"
+                f"  {exc.__class__.__name__}: {exc}\n\n"
+                f"Try (re)installing conda-libmamba-solver."
             )
-            # TODO: Should we error out here instead of falling back?
-            return Solver
 
     raise ValueError(f"Solver logic {key} not recognized!")
 
