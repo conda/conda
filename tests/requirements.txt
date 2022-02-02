@@ -32,3 +32,6 @@ pytest-xdist
 requests
 responses
 ruamel_yaml
+# needed for conda-libmamba-solver downstream tests
+conda-forge::mamba >=0.19.0
+conda-forge::libcurl
