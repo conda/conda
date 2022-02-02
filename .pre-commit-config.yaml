@@ -31,6 +31,11 @@ repos:
       - id: check-merge-conflict
       - id: fix-encoding-pragma
         exclude: ^conda/auxlib/
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.31.0
+    hooks:
+      - id: pyupgrade
+        args: ["--py36-plus"]
   - repo: https://github.com/akaihola/darker
     rev: github-action-v1.3.2-2
     hooks:
