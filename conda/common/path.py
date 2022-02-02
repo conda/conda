@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import reduce
 from logging import getLogger
@@ -91,7 +89,7 @@ def tokenized_startswith(test_iterable, startswith_iterable):
 
 
 def get_all_directories(files):
-    return sorted(set(tuple(f.split('/')[:-1]) for f in files) - {()})
+    return sorted({tuple(f.split("/")[:-1]) for f in files} - {()})
 
 
 def get_leaf_directories(files):
@@ -139,9 +137,8 @@ def pyc_path(py_path, python_major_minor_version):
     else:
         directory, py_file = split(py_path)
         basename_root, extension = splitext(py_file)
-        pyc_file = "__pycache__" + '/' + "%s.cpython-%s%sc" % (
-            basename_root, pyver_string, extension)
-        return "%s%s%s" % (directory, '/', pyc_file) if directory else pyc_file
+        pyc_file = "__pycache__" + "/" + f"{basename_root}.cpython-{pyver_string}{extension}c"
+        return "{}{}{}".format(directory, "/", pyc_file) if directory else pyc_file
 
 
 def missing_pyc_files(python_major_minor_version, files):
@@ -250,7 +247,7 @@ def ensure_pad(name, pad="_"):
     if not name or name[0] == name[-1] == pad:
         return name
     else:
-        return "%s%s%s" % (pad, name, pad)
+        return f"{pad}{name}{pad}"
 
 
 def is_private_env_name(env_name):

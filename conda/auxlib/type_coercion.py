@@ -29,10 +29,10 @@ class TypeCoercionError(AuxlibError, ValueError):
 
     def __init__(self, value, msg, *args, **kwargs):
         self.value = value
-        super(TypeCoercionError, self).__init__(msg, *args, **kwargs)
+        super().__init__(msg, *args, **kwargs)
 
 
-class _Regex(object):
+class _Regex:
 
     @memoizedproperty
     def BOOLEAN_TRUE(self):
@@ -123,7 +123,7 @@ def numberify(value):
     candidate = _REGEX.convert_number(value)
     if candidate is not NO_MATCH:
         return candidate
-    raise TypeCoercionError(value, "Cannot convert {0} to a number.".format(value))
+    raise TypeCoercionError(value, f"Cannot convert {value} to a number.")
 
 
 def boolify(value, nullable=False, return_string=False):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Auxlib is an auxiliary library to the python standard library.
 
 The aim is to provide core generic features for app development in python. Auxlib fills in some
@@ -24,7 +23,6 @@ Major areas addressed include:
 popularity and is no longer actively maintained. Consequently it was decided to absorb, refactor,
 and replace auxlib. As a first step of this process we moved conda._vendor.auxlib to conda.auxlib.
 """
-from __future__ import absolute_import, division, print_function
 
 # don't mess up logging for library users
 from logging import getLogger, Handler
@@ -51,7 +49,7 @@ __copyright__ = "(c) 2015 Kale Franz. All rights reserved."
 __summary__ = """auxiliary library to the python standard library"""
 
 
-class _Null(object):
+class _Null:
     """
     Examples:
         >>> len(_Null())

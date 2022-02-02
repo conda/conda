@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """wrapper around PyCrypto cryptography library
 
 Information sources:

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, division, print_function
 try:
     from collections.abc import Hashable
 except ImportError:
@@ -306,7 +305,8 @@ def memoizedproperty(func):
 #
 #     return property(fget_memoized)
 
-class classproperty(object):  # pylint: disable=C0103
+
+class classproperty:  # pylint: disable=C0103
     # from celery.five
 
     def __init__(self, getter=None, setter=None):

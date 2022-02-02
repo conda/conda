@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -28,7 +27,6 @@ execution of each individual operation.  The docstring for `run_plan_elevated()`
 how that strategy is implemented.
 
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from difflib import unified_diff
 from errno import ENOENT
@@ -197,7 +195,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     if shell == "bash":
         builder = []
         builder += ["unset %s" % unset_env_var for unset_env_var in unset_env_vars]
-        builder += ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
+        builder += [f"export {key}='{env_vars[key]}'" for key in sorted(env_vars)]
         sys_executable = abspath(sys.executable)
         if on_win:
             sys_executable = "$(cygpath '%s')" % sys_executable
@@ -215,13 +213,14 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder += ["@IF NOT \"%CONDA_PROMPT_MODIFIER%\" == \"\" @CALL "
                     "SET \"PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%\""]
         builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
-        builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
+        builder += [f'@SET "{key}={env_vars[key]}"' for key in sorted(env_vars)]
         builder += [
-            '@CALL \"%s\" %s' % (join(dev_env_prefix, 'condabin', 'conda_hook.bat'), dev_arg),
-            '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
-            '@CALL \"%s\" activate %s \"%s\"' % (join(dev_env_prefix, 'condabin', 'conda.bat'),
-                                                 dev_arg, dev_env_prefix),
-            '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
+            '@CALL "{}" {}'.format(join(dev_env_prefix, "condabin", "conda_hook.bat"), dev_arg),
+            "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
+            '@CALL "{}" activate {} "{}"'.format(
+                join(dev_env_prefix, "condabin", "conda.bat"), dev_arg, dev_env_prefix
+            ),
+            "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
         ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
@@ -241,7 +240,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
 def make_install_plan(conda_prefix):
     try:
         python_exe, python_version, site_packages_dir = _get_python_info(conda_prefix)
-    except EnvironmentError:
+    except OSError:
         python_exe, python_version, site_packages_dir = None, None, None  # NOQA
 
     plan = []
@@ -637,7 +636,7 @@ def run_plan(plan):
             continue
         try:
             result = globals()[step['function']](*step.get('args', ()), **step.get('kwargs', {}))
-        except EnvironmentError as e:
+        except OSError as e:
             log.info("%s: %r", step['function'], e, exc_info=True)
             result = Result.NEEDS_SUDO
         step['result'] = result
@@ -813,9 +812,11 @@ def install_anaconda_prompt(target_path, conda_prefix, reverse):
     target = join(os.environ["HOMEPATH"], "Desktop", "Anaconda Prompt.lnk")
 
     args = (
-        '/K',
-        '""%s" && "%s""' % (join(conda_prefix, 'condabin', 'conda_hook.bat'),
-                            join(conda_prefix, 'condabin', 'conda_auto_activate.bat')),
+        "/K",
+        '""{}" && "{}""'.format(
+            join(conda_prefix, "condabin", "conda_hook.bat"),
+            join(conda_prefix, "condabin", "conda_auto_activate.bat"),
+        ),
     )
     # The API for the call to 'create_shortcut' has 3
     # required arguments (path, description, filename)
@@ -1029,7 +1030,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
     if reverse:
         # uncomment any lines that were commented by prior conda init run
         rc_content = re.sub(
-            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            fr"#\s(.*?)\s*{conda_init_comment}",
             r"\1",
             rc_content,
             flags=re.MULTILINE,
@@ -1047,7 +1048,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
             rc_content = re.sub(
                 r"^[ \t]*?(set -gx PATH ([\'\"]?).*?%s\/bin\2 [^\n]*?\$PATH)"
                 r"" % basename(conda_prefix),
-                r"# \1  {}".format(conda_init_comment),
+                fr"# \1  {conda_init_comment}",
                 rc_content,
                 flags=re.MULTILINE,
             )
@@ -1061,7 +1062,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
         )
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conda\.d\/conda\.fish.*?)$",
-            r"# \1  {}".format(conda_init_comment),
+            fr"# \1  {conda_init_comment}",
             rc_content,
             flags=re.MULTILINE,
         )
@@ -1137,7 +1138,7 @@ def init_xonsh_user(target_path, conda_prefix, reverse):
     if reverse:
         # uncomment any lines that were commented by prior conda init run
         rc_content = re.sub(
-            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            fr"#\s(.*?)\s*{conda_init_comment}",
             r"\1",
             rc_content,
             flags=re.MULTILINE,
@@ -1162,7 +1163,7 @@ def init_xonsh_user(target_path, conda_prefix, reverse):
         rc_content = rc_content.replace(replace_str, conda_initialize_content)
 
         if "# >>> conda initialize >>>" not in rc_content:
-            rc_content += '\n{0}\n'.format(conda_initialize_content)
+            rc_content += f"\n{conda_initialize_content}\n"
 
     if rc_content != rc_original_content:
         if context.verbosity:
@@ -1256,7 +1257,7 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
     if reverse:
         # uncomment any lines that were commented by prior conda init run
         rc_content = re.sub(
-            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            fr"#\s(.*?)\s*{conda_init_comment}",
             r"\1",
             rc_content,
             flags=re.MULTILINE,
@@ -1274,7 +1275,7 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
             rc_content = re.sub(
                 r"^[ \t]*?(export PATH=[\'\"].*?%s\/bin:\$PATH[\'\"])"
                 r"" % basename(conda_prefix),
-                r"# \1  {}".format(conda_init_comment),
+                fr"# \1  {conda_init_comment}",
                 rc_content,
                 flags=re.MULTILINE,
             )
@@ -1288,7 +1289,7 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
         )
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)$",
-            r"# \1  {}".format(conda_init_comment),
+            fr"# \1  {conda_init_comment}",
             rc_content,
             flags=re.MULTILINE,
         )
@@ -1374,7 +1375,7 @@ def _read_windows_registry(target_path):  # pragma: no cover
 
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_READ)
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno != ENOENT:
             raise
         return None, None
@@ -1400,7 +1401,7 @@ def _write_windows_registry(target_path, value_value, value_type):  # pragma: no
     main_key = getattr(winreg, main_key)
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_WRITE)
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno != ENOENT:
             raise
         key = winreg.CreateKey(main_key, subkey_str)
@@ -1537,7 +1538,7 @@ def init_powershell_user(target_path, conda_prefix, reverse):
         conda_initialize_content = _powershell_profile_content(conda_prefix)
 
         if "#region conda initialize" not in profile_content:
-            profile_content += "\n{}\n".format(conda_initialize_content)
+            profile_content += f"\n{conda_initialize_content}\n"
         else:
             profile_content = re.sub(CONDA_INITIALIZE_PS_RE_BLOCK,
                                      "__CONDA_REPLACE_ME_123__",

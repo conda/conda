@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -70,7 +69,7 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda config --get use_pip --json')
         self.assertJsonSuccess(res)
 
-    from mock import patch
+    from unittest.mock import patch
 
     @pytest.mark.integration
     @patch("conda.core.envs_manager.get_user_environments_txt_file", return_value=os.devnull)
@@ -178,14 +177,14 @@ class TestJson(unittest.TestCase):
     def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
 
-class TestRun(object):
+class TestRun:
     def test_run_returns_int(self):
         from tests.test_create import make_temp_env
         from tests.test_create import make_temp_prefix
 
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
-            stdout, stderr, result = run_inprocess_conda_command('conda run -p {} echo hi'.format(prefix))
+            stdout, stderr, result = run_inprocess_conda_command(f"conda run -p {prefix} echo hi")
 
             assert isinstance(result, int)
 
@@ -195,7 +194,7 @@ class TestRun(object):
 
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
-            stdout, stderr, result = run_inprocess_conda_command('conda run -p {} exit 0'.format(prefix))
+            stdout, stderr, result = run_inprocess_conda_command(f"conda run -p {prefix} exit 0")
 
             assert result == 0
 
@@ -205,7 +204,7 @@ class TestRun(object):
 
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix) as prefix:
-            stdout, stderr, result = run_inprocess_conda_command('conda run -p "{}" exit 5'.format(prefix))
+            stdout, stderr, result = run_inprocess_conda_command(f'conda run -p "{prefix}" exit 5')
 
             assert result == 5
 
@@ -216,7 +215,9 @@ class TestRun(object):
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix):
             random_text = uuid.uuid4().hex
-            stdout, stderr, result = run_inprocess_conda_command('conda run -p {} --no-capture-output echo {}'.format(prefix, random_text))
+            stdout, stderr, result = run_inprocess_conda_command(
+                f"conda run -p {prefix} --no-capture-output echo {random_text}"
+            )
 
             assert result == 0
             # Output is not captured

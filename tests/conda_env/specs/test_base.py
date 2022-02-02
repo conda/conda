@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,7 +8,7 @@ import unittest
 try:
     from unittest import mock
 except ImportError:
-    import mock
+    from unittest import mock
 
 from conda_env import specs
 from conda_env.exceptions import SpecNotFound

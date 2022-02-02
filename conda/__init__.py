@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """OS-agnostic, system-level binary package manager."""
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 from os.path import abspath, dirname
@@ -38,8 +36,8 @@ __copyright__ = "Copyright (c) 2012, Anaconda, Inc."
 __summary__ = __doc__
 __url__ = "https://github.com/conda/conda"
 
-if os.getenv('CONDA_ROOT') is None:
-    os.environ[str('CONDA_ROOT')] = sys.prefix
+if os.getenv("CONDA_ROOT") is None:
+    os.environ["CONDA_ROOT"] = sys.prefix
 
 #: The conda package directory.
 CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
@@ -63,13 +61,14 @@ class CondaError(Exception):
         self.message = message
         self._kwargs = kwargs
         self._caused_by = caused_by
-        super(CondaError, self).__init__(message)
+        super().__init__(message)
 
 # If we add __unicode__ to CondaError then we must also add it to all classes that
 # inherit from it if they have their own __repr__ (and maybe __str__) function.
     if sys.version_info[0] > 2:
         def __repr__(self):
-            return '%s: %s' % (self.__class__.__name__, text_type(self))
+            return f"{self.__class__.__name__}: {text_type(self)}"
+
     else:
 
         # We must return unicode here.
@@ -82,7 +81,7 @@ class CondaError(Exception):
             return res
 
         def __repr__(self):
-            return '%s: %s' % (self.__class__.__name__, self.__unicode__())
+            return f"{self.__class__.__name__}: {self.__unicode__()}"
 
     def __str__(self):
 
@@ -104,13 +103,15 @@ class CondaError(Exception):
             raise
 
     def dump_map(self):
-        result = dict((k, v) for k, v in vars(self).items() if not k.startswith('_'))
-        result.update(exception_type=text_type(type(self)),
-                      exception_name=self.__class__.__name__,
-                      message=text_type(self),
-                      error=repr(self),
-                      caused_by=repr(self._caused_by),
-                      **self._kwargs)
+        result = {k: v for k, v in vars(self).items() if not k.startswith("_")}
+        result.update(
+            exception_type=text_type(type(self)),
+            exception_name=self.__class__.__name__,
+            message=text_type(self),
+            error=repr(self),
+            caused_by=repr(self._caused_by),
+            **self._kwargs,
+        )
         return result
 
 
@@ -118,7 +119,7 @@ class CondaMultiError(CondaError):
 
     def __init__(self, errors):
         self.errors = errors
-        super(CondaMultiError, self).__init__(None)
+        super().__init__(None)
 
     if sys.version_info[0] > 2:
         def __repr__(self):
@@ -149,10 +150,10 @@ class CondaMultiError(CondaError):
             return res
 
         def __repr__(self):
-            return '%s: %s' % (self.__class__.__name__, self.__unicode__())
+            return f"{self.__class__.__name__}: {self.__unicode__()}"
 
     def __str__(self):
-        return str('\n').join(str(e) for e in self.errors) + str('\n')
+        return "\n".join(str(e) for e in self.errors) + "\n"
 
     def dump_map(self):
         return dict(exception_type=text_type(type(self)),

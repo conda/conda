@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import re
@@ -187,7 +185,7 @@ def _supplement_index_with_system(index):
         if not (libc_family and libc_version):
             # Default to glibc when using CONDA_SUBDIR var
             libc_family = "glibc"
-        libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
+        libc_version = os.getenv(f"CONDA_OVERRIDE_{libc_family.upper()}", libc_version)
         if libc_version:
             rec = _make_virtual_package('__' + libc_family, libc_version)
             index[rec] = rec

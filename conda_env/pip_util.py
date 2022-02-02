@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -6,7 +5,6 @@ Functions related to core conda functionality that relates to pip
 
 NOTE: This modules used to in conda, as conda/pip.py
 """
-from __future__ import absolute_import, print_function
 
 import json
 from logging import getLogger
@@ -66,9 +64,9 @@ def get_pip_version(prefix):
 
 class PipPackage(dict):
     def __str__(self):
-        if 'path' in self:
-            return '%s (%s)-%s-<pip>' % (self['name'], self['path'], self['version'])
-        return '%s-%s-<pip>' % (self['name'], self['version'])
+        if "path" in self:
+            return "{} ({})-{}-<pip>".format(self["name"], self["path"], self["version"])
+        return "{}-{}-<pip>".format(self["name"], self["version"])
 
 
 def installed(prefix, output=True):
@@ -81,7 +79,7 @@ def installed(prefix, output=True):
     if pip_major_version >= 9:
         args += ['--format', 'json']
     else:
-        env[str('PIP_FORMAT')] = str('legacy')
+        env["PIP_FORMAT"] = "legacy"
 
     try:
         pip_stdout, stderr = pip_subprocess(args, prefix=prefix, env=env)

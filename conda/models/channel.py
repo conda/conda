@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import copy
 from itertools import chain
@@ -44,11 +42,11 @@ class ChannelType(type):
                                  for _kwargs in kwargs['channels'])
                 return MultiChannel(name, channels)
             else:
-                return super(ChannelType, cls).__call__(*args, **kwargs)
+                return super().__call__(*args, **kwargs)
 
 
 @with_metaclass(ChannelType)
-class Channel(object):
+class Channel:
     """
     Channel:
     scheme <> auth <> location <> token <> channel <> subchannel <> platform <> package_filename
@@ -165,8 +163,9 @@ class Channel(object):
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
-            cn = self.__canonical_name = "%s://%s" % (self.scheme,
-                                                      join_url(self.location, self.name))
+            cn = self.__canonical_name = "{}://{}".format(
+                self.scheme, join_url(self.location, self.name)
+            )
             return cn
         else:
             cn = self.__canonical_name = join_url(self.location, self.name).lstrip('/')
@@ -193,15 +192,14 @@ class Channel(object):
                 if self.platform != 'noarch':
                     yield 'noarch'
             else:
-                for subdir in subdirs:
-                    yield subdir
+                yield from subdirs
 
         bases = (join_url(base, p) for p in _platforms())
 
         if with_credentials and self.auth:
-            return ["%s://%s@%s" % (self.scheme, self.auth, b) for b in bases]
+            return [f"{self.scheme}://{self.auth}@{b}" for b in bases]
         else:
-            return ["%s://%s" % (self.scheme, b) for b in bases]
+            return [f"{self.scheme}://{b}" for b in bases]
 
     def url(self, with_credentials=False):
         if self.canonical_name == UNKNOWN_CHANNEL:
@@ -222,15 +220,15 @@ class Channel(object):
         base = join_url(*base)
 
         if with_credentials and self.auth:
-            return "%s://%s@%s" % (self.scheme, self.auth, base)
+            return f"{self.scheme}://{self.auth}@{base}"
         else:
-            return "%s://%s" % (self.scheme, base)
+            return f"{self.scheme}://{base}"
 
     @property
     def base_url(self):
         if self.canonical_name == UNKNOWN_CHANNEL:
             return None
-        return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+        return f"{self.scheme}://{join_url(self.location, self.name)}"
 
     @property
     def base_urls(self):

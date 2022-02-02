@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 import os
@@ -149,7 +147,7 @@ def install(args, parser, command='install'):
             if hasattr(args, "mkdir") and args.mkdir:
                 try:
                     mkdir_p(prefix)
-                except EnvironmentError as e:
+                except OSError as e:
                     raise CondaOSError("Could not create directory: %s" % prefix, caused_by=e)
             else:
                 raise EnvironmentLocationNotFound(prefix)

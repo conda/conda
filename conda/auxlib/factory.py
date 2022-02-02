@@ -1,7 +1,6 @@
 """A python implementation of the factory design pattern.  It's designed for use as a base class
 for various types of data gateways.
 """
-from __future__ import absolute_import, division, print_function
 
 from .compat import with_metaclass
 from .exceptions import InitializationError
@@ -9,7 +8,7 @@ from .exceptions import InitializationError
 __all__ = ['Factory']
 
 
-class FactoryBase(object):
+class FactoryBase:
 
     @classmethod
     def initialize(cls, context, default_provider):
@@ -17,8 +16,10 @@ class FactoryBase(object):
         cls._default_provider = (default_provider.__name__ if isinstance(default_provider, type)
                                  else str(default_provider))
         if not cls.is_registered_provider(cls._default_provider):
-            raise RuntimeError("{0} is not a registered provider for "
-                               "{1}".format(cls._default_provider, cls.__name__))
+            raise RuntimeError(
+                "{} is not a registered provider for "
+                "{}".format(cls._default_provider, cls.__name__)
+            )
 
     @classmethod
     def get_instance(cls, provider=None):
@@ -45,7 +46,7 @@ class FactoryBase(object):
 class FactoryType(type):
 
     def __init__(cls, name, bases, attr):
-        super(FactoryType, cls).__init__(name, bases, attr)
+        super().__init__(name, bases, attr)
         if 'skip_registration' in cls.__dict__ and cls.skip_registration:
             pass  # we don't even care  # pragma: no cover
         elif cls.factory is None:
@@ -66,18 +67,18 @@ class FactoryType(type):
                 return cls.factory.get_instance()
         else:
             if not getattr(cls, 'do_cache', False):
-                return super(FactoryType, cls).__call__(*args)
-            cache_id = "{0}".format(cls.__name__)
+                return super().__call__(*args)
+            cache_id = f"{cls.__name__}"
             try:
                 return cls.factory.cache[cache_id]
             except KeyError:
-                instance = super(FactoryType, cls).__call__(*args)
+                instance = super().__call__(*args)
                 cls.factory.cache[cache_id] = instance
                 return instance
 
 
 @with_metaclass(FactoryType)
-class Factory(object):
+class Factory:
     skip_registration = True
     factory = None
 

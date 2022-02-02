@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -169,11 +168,11 @@ def run_conda_command(command, prefix, *arguments):
     if arguments:
         arguments = list(map(escape_for_winpath, arguments))
     if command is Commands.INFO:    # INFO
-        command_line = "{0} {1}".format(command, " ".join(arguments))
+        command_line = "{} {}".format(command, " ".join(arguments))
     elif command is Commands.LIST:  # LIST
-        command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
+        command_line = "{} -n {} {}".format(command, prefix, " ".join(arguments))
     else:  # CREATE
-        command_line = "{0} -y -q -n {1} {2}".format(command, prefix, " ".join(arguments))
+        command_line = "{} -y -q -n {} {}".format(command, prefix, " ".join(arguments))
 
     from conda.auxlib.compat import shlex_split_unicode
     commands = shlex_split_unicode(command_line)
@@ -203,7 +202,7 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, test_env_name_42)
         run_env_command(Commands.ENV_REMOVE, test_env_name_pip)
         for env_nb in range(1, 6):
-            run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
+            run_env_command(Commands.ENV_REMOVE, f"envjson-{env_nb}")
 
     def tearDown(self):
         rm_rf("environment.yml")
@@ -211,7 +210,7 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, test_env_name_42)
         run_env_command(Commands.ENV_REMOVE, test_env_name_pip)
         for env_nb in range(1, 6):
-             run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
+            run_env_command(Commands.ENV_REMOVE, f"envjson-{env_nb}")
 
     def test_conda_env_create_no_file(self):
         '''

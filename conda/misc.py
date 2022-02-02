@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
 # this module contains miscellaneous stuff which enventually could be moved
 # into other places
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 import os
@@ -279,7 +277,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         try:
             with open(src, 'rb') as fi:
                 data = fi.read()
-        except IOError:
+        except OSError:
             continue
 
         try:

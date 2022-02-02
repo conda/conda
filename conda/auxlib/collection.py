@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 """Common collection classes."""
-from __future__ import print_function, division, absolute_import
 from functools import reduce
 try:
     from collections.abc import Mapping, Set
@@ -42,7 +40,7 @@ class AttrDict(dict):
         (2, 2)
     """
     def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__dict__ = self
 
 

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
 from collections import defaultdict
@@ -55,13 +53,13 @@ class PackageCacheType(type):
         elif pkgs_dir in PackageCacheData._cache_:
             return PackageCacheData._cache_[pkgs_dir]
         else:
-            package_cache_instance = super(PackageCacheType, cls).__call__(pkgs_dir)
+            package_cache_instance = super().__call__(pkgs_dir)
             PackageCacheData._cache_[pkgs_dir] = package_cache_instance
             return package_cache_instance
 
 
 @with_metaclass(PackageCacheType)
-class PackageCacheData(object):
+class PackageCacheData:
     _cache_ = {}
 
     def __init__(self, pkgs_dir):
@@ -285,8 +283,8 @@ class PackageCacheData(object):
         return self._package_cache_records.values()
 
     def __repr__(self):
-        args = ('%s=%r' % (key, getattr(self, key)) for key in ('pkgs_dir',))
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+        args = (f"{key}={getattr(self, key)!r}" for key in ("pkgs_dir",))
+        return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
     def _make_single_record(self, package_filename):
         # delay-load this to help make sure libarchive can be found
@@ -305,7 +303,7 @@ class PackageCacheData(object):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (EnvironmentError, JSONDecodeError, ValueError, FileNotFoundError) as e:
+        except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
             # EnvironmentError if info/repodata_record.json doesn't exists
             # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
             #   python 2.7 raises ValueError instead of JsonDecodeError
@@ -316,7 +314,7 @@ class PackageCacheData(object):
             # try reading info/index.json
             try:
                 raw_json_record = read_index_json(extracted_package_dir)
-            except (EnvironmentError, JSONDecodeError, ValueError, FileNotFoundError) as e:
+            except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
                 # EnvironmentError if info/index.json doesn't exist
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
                 #   python 2.7 raises ValueError instead of JsonDecodeError
@@ -338,7 +336,7 @@ class PackageCacheData(object):
                             rm_rf(extracted_package_dir)
                         try:
                             extract_tarball(package_tarball_full_path, extracted_package_dir)
-                        except (EnvironmentError, InvalidArchiveError) as e:
+                        except (OSError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
                                 # FileNotFoundError(2, 'No such file or directory')
                                 # At this point, we can assume the package tarball is bad.
@@ -349,7 +347,7 @@ class PackageCacheData(object):
                                 return None
                         try:
                             raw_json_record = read_index_json(extracted_package_dir)
-                        except (IOError, OSError, JSONDecodeError, FileNotFoundError):
+                        except (OSError, JSONDecodeError, FileNotFoundError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
                             rm_rf(package_tarball_full_path)
@@ -390,7 +388,7 @@ class PackageCacheData(object):
                 repodata_record_path = join(extracted_package_dir, 'info', 'repodata_record.json')
                 try:
                     write_as_json_to_file(repodata_record_path, repodata_record)
-                except (IOError, OSError) as e:
+                except OSError as e:
                     if e.errno in (EACCES, EPERM, EROFS) and isdir(dirname(repodata_record_path)):
                         raise NotWritableError(repodata_record_path, e.errno, caused_by=e)
                     else:
@@ -421,7 +419,7 @@ class PackageCacheData(object):
         ))
 
 
-class UrlsData(object):
+class UrlsData:
     # this is a class to manage urls.txt
     # it should basically be thought of as a sequence
     # in this class I'm breaking the rule that all disk access goes through conda.gateways
@@ -466,7 +464,8 @@ class UrlsData(object):
 # downloading
 # ##############################
 
-class ProgressiveFetchExtract(object):
+
+class ProgressiveFetchExtract:
 
     @staticmethod
     def make_actions_for_record(pref_or_spec):
@@ -648,7 +647,7 @@ class ProgressiveFetchExtract(object):
             for prec_or_spec, prec_actions in iteritems(self.paired_actions):
                 exc = self._execute_actions(prec_or_spec, prec_actions)
                 if exc:
-                    log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                    log.debug(b"%r", exc, exc_info=True)
                     exceptions.append(exc)
 
         if exceptions:
@@ -663,9 +662,9 @@ class ProgressiveFetchExtract(object):
 
         desc = ''
         if prec_or_spec.name and prec_or_spec.version:
-            desc = "%s-%s" % (prec_or_spec.name or '', prec_or_spec.version or '')
-        size = getattr(prec_or_spec, 'size', None)
-        size_str = size and human_bytes(size) or ''
+            desc = "{}-{}".format(prec_or_spec.name or "", prec_or_spec.version or "")
+        size = getattr(prec_or_spec, "size", None)
+        size_str = size and human_bytes(size) or ""
         if len(desc) > 0:
             desc = "%-20.20s | " % desc
         if len(size_str) > 0:

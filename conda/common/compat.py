@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Try to keep compat small because it's imported by everything
@@ -6,7 +5,6 @@
 # If a piece of code is "general" and used in multiple modules, it goes here.
 # If it's only used in one module, keep it in that module, preferably near the top.
 # This module should contain ONLY stdlib imports.
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
 from operator import methodcaller
@@ -181,7 +179,7 @@ def open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None,
                        closefd=closefd)
 
 
-def with_metaclass(Type, skip_attrs=set(('__dict__', '__weakref__'))):
+def with_metaclass(Type, skip_attrs={"__dict__", "__weakref__"}):
     """Class decorator to set metaclass.
 
     Works with both Python 2 and Python 3 and it does not add
@@ -191,8 +189,7 @@ def with_metaclass(Type, skip_attrs=set(('__dict__', '__weakref__'))):
     """
 
     def _clone_with_metaclass(Class):
-        attrs = dict((key, value) for key, value in iteritems(vars(Class))
-                     if key not in skip_attrs)
+        attrs = {key: value for key, value in iteritems(vars(Class)) if key not in skip_attrs}
         return Type(Class.__name__, Class.__bases__, attrs)
 
     return _clone_with_metaclass
@@ -211,7 +208,8 @@ def six_with_metaclass(meta, *bases):
         @classmethod
         def __prepare__(cls, name, this_bases):
             return meta.__prepare__(name, bases)
-    return type.__new__(metaclass, str('temporary_class'), (), {})
+
+    return type.__new__(metaclass, "temporary_class", (), {})
 
 
 NoneType = type(None)

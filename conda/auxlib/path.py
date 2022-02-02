@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function, division, absolute_import
 from distutils.sysconfig import get_python_lib
 from logging import getLogger
 from os import chdir, getcwd
@@ -27,7 +25,7 @@ def site_packages_paths():
         return tuple(get_python_lib(), )  # pragma: no cover
 
 
-class PackageFile(object):
+class PackageFile:
 
     def __init__(self, file_path, package_name):
         self.file_path = file_path
@@ -41,12 +39,12 @@ class PackageFile(object):
         self.file_handle.close()
 
 
-class ChangePath(object):
+class ChangePath:
 
     def __init__(self, path):
         self.dirpath = dirname(path) if isfile(path) else path
         if not isdir(self.dirpath):
-            raise IOError('File or directory not found: {0}'.format(path))
+            raise OSError(f"File or directory not found: {path}")
 
     def __enter__(self):
         self.cwd = getcwd()
@@ -62,13 +60,13 @@ def open_package_file(file_path, package_name):
 
     # look for file at relative path
     if exists(file_path):
-        log.info("found real file {0}".format(file_path))
+        log.info(f"found real file {file_path}")
         return open(file_path)
 
     # look for file in package resources
     if (package_name and pkg_resources is not None and
             pkg_resources.resource_exists(package_name, file_path)):
-        log.info("found package resource file {0} for package {1}".format(file_path, package_name))
+        log.info(f"found package resource file {file_path} for package {package_name}")
         return pkg_resources.resource_stream(package_name, file_path)
 
     # look for file in site-packages
@@ -76,9 +74,9 @@ def open_package_file(file_path, package_name):
     if package_path:
         return open(package_path)  # pragma: no cover
 
-    msg = "file for module [{0}] cannot be found at path {1}".format(package_name, file_path)
+    msg = f"file for module [{package_name}] cannot be found at path {file_path}"
     log.error(msg)
-    raise IOError(msg)
+    raise OSError(msg)
 
 
 def find_file_in_site_packages(file_path, package_name):
@@ -86,10 +84,10 @@ def find_file_in_site_packages(file_path, package_name):
     for site_packages_path in site_packages_paths():
         test_path = join(site_packages_path, package_path, file_path)
         if exists(test_path):
-            log.info("found site-package file {0} for package {1}".format(file_path, package_name))
+            log.info(f"found site-package file {file_path} for package {package_name}")
             return test_path
         else:
-            log.error("No file found at {0}.".format(test_path))
+            log.error(f"No file found at {test_path}.")
     return None
 
 

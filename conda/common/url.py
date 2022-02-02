@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
 from getpass import getpass
@@ -169,7 +167,7 @@ def is_ipv4_address(string_ip):
     """
     try:
         socket.inet_aton(string_ip)
-    except socket.error:
+    except OSError:
         return False
     return string_ip.count('.') == 3
 
@@ -188,7 +186,7 @@ def is_ipv6_address(string_ip):
         return is_ipv6_address_win_py27(string_ip)
     try:
         inet_pton(socket.AF_INET6, string_ip)
-    except socket.error:
+    except OSError:
         return False
     return True
 

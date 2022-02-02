@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from conda.common.io import env_var, env_vars
 
@@ -288,7 +286,7 @@ class ConfigurationTests(TestCase):
 
     def test_env_var_config(self):
         def make_key(appname, key):
-            return "{0}_{1}".format(appname.upper(), key.upper())
+            return f"{appname.upper()}_{key.upper()}"
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'always_yes')] = 'yes'
@@ -305,7 +303,7 @@ class ConfigurationTests(TestCase):
 
     def test_env_var_config_alias(self):
         def make_key(appname, key):
-            return "{0}_{1}".format(appname.upper(), key.upper())
+            return f"{appname.upper()}_{key.upper()}"
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'yes')] = 'yes'
@@ -322,7 +320,7 @@ class ConfigurationTests(TestCase):
 
     def test_env_var_config_split_sequence(self):
         def make_key(appname, key):
-            return "{0}_{1}".format(appname.upper(), key.upper())
+            return f"{appname.upper()}_{key.upper()}"
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'channels')] = 'channel1,channel2'
@@ -337,7 +335,7 @@ class ConfigurationTests(TestCase):
 
     def test_env_var_config_no_split_sequence(self):
         def make_key(appname, key):
-            return "{0}_{1}".format(appname.upper(), key.upper())
+            return f"{appname.upper()}_{key.upper()}"
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'channels')] = 'channel1'
@@ -352,7 +350,7 @@ class ConfigurationTests(TestCase):
 
     def test_env_var_config_empty_sequence(self):
         def make_key(appname, key):
-            return "{0}_{1}".format(appname.upper(), key.upper())
+            return f"{appname.upper()}_{key.upper()}"
         appname = "myapp"
         test_dict = {}
         test_dict[make_key(appname, 'channels')] = ''

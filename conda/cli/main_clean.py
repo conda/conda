@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 import fnmatch
@@ -78,9 +76,9 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
                 else:
                     if verbose:
                         print("WARNING: cannot remove, file permissions: %s" % fn)
-            except (IOError, OSError) as e:
+            except OSError as e:
                 if verbose:
-                    print("WARNING: cannot remove, file permissions: %s\n%r" % (fn, e))
+                    print(f"WARNING: cannot remove, file permissions: {fn}\n{e!r}")
                 else:
                     log.info("%r", e)
 
@@ -96,7 +94,7 @@ def find_pkgs():
     for pkgs_dir in context.pkgs_dirs:
         if not exists(pkgs_dir):
             if not context.json:
-                print("WARNING: {0} does not exist".format(pkgs_dir))
+                print(f"WARNING: {pkgs_dir} does not exist")
             continue
         pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i, 'info'))]
         for pkg in pkgs:
@@ -213,7 +211,7 @@ def clean_tmp_files(path=None):
                 file_path = join(root, fn)
                 try:
                     unlink(file_path)
-                except EnvironmentError:
+                except OSError:
                     log.warn("File at {} could not be cleaned up.  "
                              "It's probably still in-use.".format(file_path))
 

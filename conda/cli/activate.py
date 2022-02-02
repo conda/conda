@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 from os.path import abspath, isdir
@@ -164,13 +162,17 @@ def main():
     elif sys_argv[1] == '..deactivate.path':
         activation_path = get_activate_path(sys_argv[3], shell, False)
 
-        if os.getenv('_CONDA_HOLD'):
-            new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path),
-                                 r'CONDA_PATH_PLACEHOLDER\1',
-                                 os.environ[str('PATH')], 1)
+        if os.getenv("_CONDA_HOLD"):
+            new_path = regex.sub(
+                r"%s(:?)" % regex.escape(activation_path),
+                r"CONDA_PATH_PLACEHOLDER\1",
+                os.environ["PATH"],
+                1,
+            )
         else:
-            new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path), r'',
-                                 os.environ[str('PATH')], 1)
+            new_path = regex.sub(
+                r"%s(:?)" % regex.escape(activation_path), r"", os.environ["PATH"], 1
+            )
 
         new_path = shells[shell]['path_to'](new_path)
         print(new_path)

@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
 # This is just here so that tests is a package, so that dotted relative
 # imports work.
-from __future__ import print_function
 from conda.gateways.logging import initialize_logging
 import pytest
 import sys
@@ -116,10 +114,11 @@ def conda_check_versions_aligned():
     # it if it disagrees.
 
     import conda
-    version_file = normpath(join(dirname(conda.__file__), '.version'))
-    version_from_file = open(version_file, 'rt').read().split('\n')[0] if isfile(version_file) else None
 
-    git_exe = 'git.exe' if sys.platform == 'win32' else 'git'
+    version_file = normpath(join(dirname(conda.__file__), ".version"))
+    version_from_file = open(version_file).read().split("\n")[0] if isfile(version_file) else None
+
+    git_exe = "git.exe" if sys.platform == "win32" else "git"
     version_from_git = None
     for pe in os.environ.get('PATH', '').split(os.pathsep):
         if isfile(join(pe, git_exe)):

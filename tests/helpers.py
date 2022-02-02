@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
 Helpers for the tests
 """
-from __future__ import absolute_import, division, print_function
 
 from contextlib import contextmanager
 from functools import partial
@@ -40,8 +38,8 @@ try:
     from unittest import mock
     from unittest.mock import patch
 except ImportError:
-    import mock
-    from mock import patch
+    from unittest import mock
+    from unittest.mock import patch
 
 TEST_DATA_DIR = abspath(join(dirname(__file__), "data"))
 
@@ -90,16 +88,18 @@ def capture_json_with_argv(command, disallow_stderr=True, ignore_stderr=False, *
 
 
 def assert_equals(a, b, output=""):
-    output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
+    output = f"{a.lower()!r} != {b.lower()!r}" + "\n\n" + output
     assert a.lower() == b.lower(), output
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "%s %r should not be found in %r" % (output, a.lower(), b.lower())
+    assert (
+        a.lower() not in b.lower()
+    ), f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
 
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
+    assert a.lower() in b.lower(), f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
 
 
 def run_inprocess_conda_command(command, disallow_stderr=True):
@@ -155,7 +155,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
     platform = repodata_info.get('platform')
     subdir = repodata_info.get('subdir')
     if not subdir:
-        subdir = "%s-%s" % (repodata_info['platform'], repodata_info['arch'])
+        subdir = "{}-{}".format(repodata_info["platform"], repodata_info["arch"])
     auth = channel.auth
     for fn, info in iteritems(repodata['packages']):
         rec = PackageRecord.from_objects(info,

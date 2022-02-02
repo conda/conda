@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
-
 from inspect import isbuiltin
 from logging import getLogger
 import sys
@@ -15,11 +12,11 @@ def deprecated(func):
     when the function is used."""
     if callable(func):
         def new_func(*args, **kwargs):
-            warnings.simplefilter('always', DeprecationWarning)  # turn off filter
-            warnings.warn("Call to deprecated {0}.".format(func.__name__),
-                          category=DeprecationWarning,
-                          stacklevel=2)
-            warnings.simplefilter('default', DeprecationWarning)  # reset filter
+            warnings.simplefilter("always", DeprecationWarning)  # turn off filter
+            warnings.warn(
+                f"Call to deprecated {func.__name__}.", category=DeprecationWarning, stacklevel=2
+            )
+            warnings.simplefilter("default", DeprecationWarning)  # reset filter
             return func(*args, **kwargs)
         new_func.__name__ = func.__name__
         new_func.__doc__ = func.__doc__
@@ -30,10 +27,9 @@ def deprecated(func):
 
 
 def deprecated_import(module_name):
-    warnings.simplefilter('always', ImportWarning)  # turn off filter
-    warnings.warn("Import of deprecated module {0}.".format(module_name),
-                  category=ImportWarning)
-    warnings.simplefilter('default', ImportWarning)  # reset filter
+    warnings.simplefilter("always", ImportWarning)  # turn off filter
+    warnings.warn(f"Import of deprecated module {module_name}.", category=ImportWarning)
+    warnings.simplefilter("default", ImportWarning)  # reset filter
 
 
 def import_and_wrap_deprecated(module_name, module_dict, warn_import=True):
@@ -59,7 +55,7 @@ def deprecate_module_with_proxy(module_name, module_dict, deprecated_attributes=
     def _ModuleProxy(module, depr):
         """Return a wrapped object that warns about deprecated accesses"""
         # http://stackoverflow.com/a/922693/2127762
-        class Wrapper(object):
+        class Wrapper:
             def __getattr__(self, attr):
                 if depr is None or attr in depr:
                     warnings.warn("Property %s is deprecated" % attr)

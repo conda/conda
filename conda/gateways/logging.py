@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import partial
 import logging  # lgtm [py/import-and-import-from]
@@ -72,7 +70,7 @@ class StdStreamHandler(StreamHandler):
         Args:
             sys_stream: stream name, either "stdout" or "stderr" (attribute of module sys)
         """
-        super(StdStreamHandler, self).__init__(getattr(sys, sys_stream))
+        super().__init__(getattr(sys, sys_stream))
         self.sys_stream = sys_stream
         del self.stream
 
@@ -80,7 +78,7 @@ class StdStreamHandler(StreamHandler):
         # always get current sys.stdout/sys.stderr, unless self.stream has been set explicitly
         if attr == 'stream':
             return getattr(sys, self.sys_stream)
-        return super(StdStreamHandler, self).__getattribute__(attr)
+        return super().__getattribute__(attr)
 
     '''
     def emit(self, record):
@@ -127,9 +125,8 @@ class StdStreamHandler(StreamHandler):
                 stream.write(fs % msg)
             else:
                 try:
-                    if (isinstance(msg, unicode) and  # NOQA
-                            getattr(stream, 'encoding', None)):
-                        ufs = u'%s'
+                    if isinstance(msg, unicode) and getattr(stream, "encoding", None):  # NOQA
+                        ufs = "%s"
                         try:
                             stream.write(ufs % msg)
                         except UnicodeEncodeError:

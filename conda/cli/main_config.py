@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
 import json
@@ -48,7 +46,7 @@ def format_dict(d):
             else:
                 lines.append("%s: []" % k)
         else:
-            lines.append("%s: %s" % (k, v if v is not None else "None"))
+            lines.append("{}: {}".format(k, v if v is not None else "None"))
     return lines
 
 
@@ -60,11 +58,14 @@ def parameter_description_builder(name):
     element_types = details['element_types']
     default_value_str = json.dumps(details['default_value'], cls=EntityEncoder)
 
-    if details['parameter_type'] == 'primitive':
-        builder.append("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
+    if details["parameter_type"] == "primitive":
+        builder.append("{} ({})".format(name, ", ".join(sorted({et for et in element_types}))))
     else:
-        builder.append("%s (%s: %s)" % (name, details['parameter_type'],
-                                        ', '.join(sorted(set(et for et in element_types)))))
+        builder.append(
+            "{} ({}: {})".format(
+                name, details["parameter_type"], ", ".join(sorted({et for et in element_types}))
+            )
+        )
 
     if aliases:
         builder.append("  aliases: %s" % ', '.join(aliases))
@@ -89,14 +90,13 @@ def describe_all_parameters():
     for category, parameter_names in iteritems(context.category_map):
         if category in skip_categories:
             continue
-        builder.append('# ######################################################')
-        builder.append('# ## {:^48} ##'.format(category))
-        builder.append('# ######################################################')
-        builder.append('')
-        builder.extend(concat(parameter_description_builder(name)
-                              for name in parameter_names))
-        builder.append('')
-    return '\n'.join(builder)
+        builder.append("# ######################################################")
+        builder.append(f"# ## {category:^48} ##")
+        builder.append("# ######################################################")
+        builder.append("")
+        builder.extend(concat(parameter_description_builder(name) for name in parameter_names))
+        builder.append("")
+    return "\n".join(builder)
 
 
 def print_config_item(key, value):
@@ -163,7 +163,7 @@ def execute_config(args, parser):
             # Add in custom formatting
             if 'custom_channels' in d:
                 d['custom_channels'] = {
-                    channel.name: "%s://%s" % (channel.scheme, channel.location)
+                    channel.name: f"{channel.scheme}://{channel.location}"
                     for channel in itervalues(d['custom_channels'])
                 }
             if 'custom_multichannels' in d:
@@ -244,12 +244,12 @@ def execute_config(args, parser):
 
     # read existing condarc
     if os.path.exists(rc_path):
-        with open(rc_path, 'r') as fh:
+        with open(rc_path) as fh:
             # round trip load required because... we need to round trip
             rc_config = yaml_round_trip_load(fh) or {}
     elif os.path.exists(sys_rc_path):
         # In case the considered rc file doesn't exist, fall back to the system rc
-        with open(sys_rc_path, 'r') as fh:
+        with open(sys_rc_path) as fh:
             rc_config = yaml_round_trip_load(fh) or {}
     else:
         rc_config = {}
@@ -323,11 +323,11 @@ def execute_config(args, parser):
                     isinstance(arglist, string_types)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
-                raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
+                raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
             if item in arglist:
                 message_key = key + "." + subkey if subkey is not None else key
                 # Right now, all list keys should not contain duplicates
-                message = "Warning: '%s' already in '%s' list, moving to the %s" % (
+                message = "Warning: '{}' already in '{}' list, moving to the {}".format(
                     item, message_key, "top" if prepend else "bottom")
                 if subkey is None:
                     arglist = rc_config[key] = [p for p in arglist if p != item]
@@ -395,7 +395,7 @@ def execute_config(args, parser):
         try:
             with open(rc_path, 'w') as rc:
                 rc.write(yaml_round_trip_dump(rc_config))
-        except (IOError, OSError) as e:
+        except OSError as e:
             raise CondaError('Cannot write to condarc file at %s\n'
                              'Caused by %r' % (rc_path, e))
 

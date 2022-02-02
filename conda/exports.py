@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 # Do not use python stdlib imports from this module in other projects. You may be broken
 # without warning.
@@ -153,7 +151,7 @@ CondaHTTPError, LockError = CondaHTTPError, LockError
 UnsatisfiableError = UnsatisfiableError
 
 
-class Completer(object):  # pragma: no cover
+class Completer:  # pragma: no cover
     def get_items(self):
         return self._get_items()
 
@@ -164,11 +162,11 @@ class Completer(object):  # pragma: no cover
         return iter(self.get_items())
 
 
-class InstalledPackages(object):
+class InstalledPackages:
     pass
 
 
-class memoized(object):  # pragma: no cover
+class memoized:  # pragma: no cover
     """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned
     (not reevaluated).
@@ -259,7 +257,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 def package_cache():
     from .core.package_cache_data import PackageCacheData
 
-    class package_cache(object):
+    class package_cache:
 
         def __contains__(self, dist):
             return bool(PackageCacheData.first_writable().get(Dist(dist).to_package_ref(), None))
@@ -305,7 +303,7 @@ def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
             # if they're in use, they won't be killed.  Skip making new symlink.
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
-        except (IOError, OSError) as e:
+        except OSError as e:
             if (os.path.lexists(prefix_file) and (e.errno in (
                     errno.EPERM, errno.EACCES, errno.EROFS, errno.EEXIST
             ))):
@@ -378,7 +376,7 @@ def linked(prefix, ignore_channels=False):
     from .models.enums import PackageType
     conda_package_types = PackageType.conda_package_types()
     ld = iteritems(linked_data(prefix, ignore_channels=ignore_channels))
-    return set(dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types)
+    return {dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types}
 
 
 # exports

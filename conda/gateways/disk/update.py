@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EINVAL, EXDEV, EPERM
 from logging import getLogger
@@ -57,7 +55,7 @@ def rename(source_path, destination_path, force=False):
         log.trace("renaming %s => %s", source_path, destination_path)
         try:
             os.rename(source_path, destination_path)
-        except EnvironmentError as e:
+        except OSError as e:
             if (on_win and dirname(source_path) == dirname(destination_path)
                     and os.path.isfile(source_path)):
                 condabin_dir = join(context.conda_prefix, "condabin")
@@ -123,5 +121,5 @@ def touch(path, mkdir=False, sudo_safe=False):
             #     log.trace("chowning %s:%s %s", uid, gid, path)
             #     os.chown(path, uid, gid)
             return False
-    except (IOError, OSError) as e:
+    except OSError as e:
         raise NotWritableError(path, e.errno, caused_by=e)

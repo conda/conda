@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from re import escape
 from collections import OrderedDict
@@ -43,7 +41,7 @@ from .test_create import SPACER_CHARACTER
 try:
     from unittest.mock import patch
 except ImportError:
-    from mock import patch
+    from unittest.mock import patch
 
 log = getLogger(__name__)
 
@@ -111,9 +109,9 @@ def bash_unsupported_because():
         if b'Microsoft' in output:
             reason = 'bash: WSL is not yet supported. Pull requests welcome.'
         else:
-            output = check_output(bash + ' --version')
-            if b'msys' not in output and b'cygwin' not in output:
-                reason = 'bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{}\n'.format(output)
+            output = check_output(bash + " --version")
+            if b"msys" not in output and b"cygwin" not in output:
+                reason = f"bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{output}\n"
             elif bash.startswith(sys.prefix):
                 reason = ('bash: MSYS2 bash installed from m2-bash in prefix {}.\n'
                           'This is unsupportable due to Git-for-Windows conflicts.\n'
@@ -1665,9 +1663,9 @@ class ShellWrapperUnitTests(TestCase):
             }
 
     def test_unicode(self):
-        shell = 'shell.posix'
-        prompt = 'PS1'
-        prompt_value = u'%{\xc2\xbb'.encode(sys.getfilesystemencoding())
+        shell = "shell.posix"
+        prompt = "PS1"
+        prompt_value = "%{\xc2\xbb".encode(sys.getfilesystemencoding())
         with env_vars({prompt: prompt_value}):
             # use a file as output stream to simulate PY2 default stdout
             with tempdir() as td:
@@ -1774,7 +1772,7 @@ class ShellWrapperUnitTests(TestCase):
             assert json.loads(deactivate_data) == e_deactivate_data
 
 
-class InteractiveShell(object):
+class InteractiveShell:
     activator = None
     init_command = None
     print_env_var = None
@@ -1801,10 +1799,11 @@ class InteractiveShell(object):
         'dash': {
             'base_shell': 'posix',  # inheritance implemented in __init__
         },
-        'zsh': {
-            'base_shell': 'posix',  # inheritance implemented in __init__
-            'init_command': ('env | sort && eval "$({0} -m conda shell.zsh hook {1})"'
-                             .format(exe_quoted, dev_arg)),
+        "zsh": {
+            "base_shell": "posix",  # inheritance implemented in __init__
+            "init_command": (
+                f'env | sort && eval "$({exe_quoted} -m conda shell.zsh hook {dev_arg})"'
+            ),
         },
         # It should be noted here that we use the latest hook with whatever conda.exe is installed
         # in sys.prefix (and we will activate all of those PATH entries).  We will set PYTHONPATH
@@ -1845,10 +1844,10 @@ class InteractiveShell(object):
         'tcsh': {
             'base_shell': 'csh',
         },
-        'fish': {
-            'activator': 'fish',
-            'init_command': 'eval ({0} -m conda shell.fish hook {1})'.format(exe_quoted, dev_arg),
-            'print_env_var': 'echo $%s',
+        "fish": {
+            "activator": "fish",
+            "init_command": f"eval ({exe_quoted} -m conda shell.fish hook {dev_arg})",
+            "print_env_var": "echo $%s",
         },
         # We don't know if the PowerShell executable is called
         # powershell, pwsh, or pwsh-preview.
@@ -1934,7 +1933,7 @@ class InteractiveShell(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Exception encountered: {}".format(exc_val))
+            print(f"Exception encountered: {exc_val}")
         if self.p:
             if self.exit_cmd:
                 self.sendline(self.exit_cmd)
@@ -1970,7 +1969,7 @@ class InteractiveShell(object):
             self.sendline(self.print_env_var % env_var)
             # The \r\n\( is the newline after the env var and the start of the prompt.
             # If we knew the active env we could add that in as well as the closing )
-            self.expect(r'\$Env:{}\r\n([^\r]*)(\r\n).*'.format(env_var))
+            self.expect(fr"\$Env:{env_var}\r\n([^\r]*)(\r\n).*")
             value = self.p.match.groups()[0]
         else:
             self.sendline('echo get_var_start')
@@ -2055,9 +2054,9 @@ class ShellWrapperIntegrationTests(TestCase):
         else:
             conda_is_a_function = 'conda is a function'
 
-        activate = ' activate {0} '.format(dev_arg)
-        deactivate = ' deactivate {0} '.format(dev_arg)
-        install = ' install {0} '.format(dev_arg)
+        activate = f" activate {dev_arg} "
+        deactivate = f" deactivate {dev_arg} "
+        install = f" install {dev_arg} "
 
         activator = PosixActivator()
         num_paths_added = len(tuple(activator._get_path_dirs(self.prefix)))
@@ -2084,7 +2083,7 @@ class ShellWrapperIntegrationTests(TestCase):
         # whether it should be here at all too.
         if PATH0.startswith(activator.path_conversion(sys.prefix) + ':'):
             PATH0=PATH0[len(activator.path_conversion(sys.prefix))+1:]
-            shell.sendline('export PATH="{}"'.format(PATH0))
+            shell.sendline(f'export PATH="{PATH0}"')
             PATH0 = shell.get_env_var('PATH', '')
         shell.sendline("type conda")
         shell.expect(conda_is_a_function)
@@ -2178,8 +2177,8 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline("type conda")
         shell.expect(conda_is_a_function)
 
-        shell.sendline('conda run {} h5stat --version'.format(dev_arg))
-        shell.expect(r'.*h5stat: Version 1.10.2.*')
+        shell.sendline(f"conda run {dev_arg} h5stat --version")
+        shell.expect(r".*h5stat: Version 1.10.2.*")
 
         # regression test for #6840
         shell.sendline('conda' + install + '--blah')
@@ -2354,7 +2353,7 @@ class ShellWrapperIntegrationTests(TestCase):
         charizard = join(self.prefix, 'envs', 'charizard')
         venusaur = join(self.prefix, 'envs', 'venusaur')
         posh_kind, posh_path = which_powershell()
-        print('## [PowerShell integration] Using {}.'.format(posh_path))
+        print(f"## [PowerShell integration] Using {posh_path}.")
         with InteractiveShell(posh_kind) as shell:
             print('## [PowerShell integration] Starting test.')
             shell.sendline('(Get-Command conda).CommandType')
@@ -2394,9 +2393,9 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.expect(r'.*h5stat: Version 1.10.2.*')
 
             # conda run integration test
-            print('## [PowerShell integration] Checking conda run.')
-            shell.sendline('conda run {} h5stat --version'.format(dev_arg))
-            shell.expect(r'.*h5stat: Version 1.10.2.*')
+            print("## [PowerShell integration] Checking conda run.")
+            shell.sendline(f"conda run {dev_arg} h5stat --version")
+            shell.expect(r".*h5stat: Version 1.10.2.*")
 
             print('## [PowerShell integration] Deactivating')
             shell.sendline('conda deactivate')
@@ -2411,7 +2410,7 @@ class ShellWrapperIntegrationTests(TestCase):
                         reason="Windows, Python != 2 (needs dynamic OpenSSL), PowerShell specific test")
     def test_powershell_PATH_management(self):
         posh_kind, posh_path = which_powershell()
-        print('## [PowerShell activation PATH management] Using {}.'.format(posh_path))
+        print(f"## [PowerShell activation PATH management] Using {posh_path}.")
         with InteractiveShell(posh_kind) as shell:
             prefix = join(self.prefix, 'envs', 'test')
             print('## [PowerShell activation PATH management] Starting test.')
@@ -2426,10 +2425,10 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline('conda deactivate')
 
             PATH0 = shell.get_env_var('PATH', '')
-            print("PATH is {}".format(PATH0.split(os.pathsep)))
+            print(f"PATH is {PATH0.split(os.pathsep)}")
             shell.sendline('(Get-Command conda).CommandType')
             shell.p.expect_exact('Alias')
-            shell.sendline('conda create -yqp "{}" bzip2'.format(prefix))
+            shell.sendline(f'conda create -yqp "{prefix}" bzip2')
             shell.expect('Executing transaction: ...working... done.*\n')
 
 
@@ -2498,7 +2497,7 @@ class ShellWrapperIntegrationTests(TestCase):
                 shell.expect(r'.*h5stat: Version 1.10.2.*')
 
                 # conda run integration test
-                shell.sendline('conda run {} h5stat --version'.format(dev_arg))
+                shell.sendline(f"conda run {dev_arg} h5stat --version")
 
                 shell.expect(r'.*h5stat: Version 1.10.2.*')
 
@@ -2554,7 +2553,7 @@ class ShellWrapperIntegrationTests(TestCase):
             prefix2_p = activator.path_conversion(self.prefix2)
             prefix3_p = activator.path_conversion(self.prefix3)
             shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT_p)
-            shell.sendline('source "${_CONDA_ROOT}/bin/activate" %s "%s"' % (dev_arg, prefix2_p))
+            shell.sendline(f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix2_p}"')
             PATH0 = shell.get_env_var("PATH")
             assert 'charizard' in PATH0
 
@@ -2564,7 +2563,7 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline("conda --version")
             shell.p.expect_exact("conda " + conda_version)
 
-            shell.sendline('source "${_CONDA_ROOT}/bin/activate" %s "%s"' % (dev_arg, prefix3_p))
+            shell.sendline(f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix3_p}"')
 
             PATH1 = shell.get_env_var("PATH")
             assert 'venusaur' in PATH1

@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
 import os
@@ -38,7 +36,7 @@ from conda.common.compat import iteritems, on_win
 try:
     from unittest.mock import Mock, patch
 except ImportError:
-    from mock import Mock, patch
+    from unittest.mock import Mock, patch
 
 CHANNEL_DIR = abspath(join(dirname(__file__), '..', 'data', 'conda_format_repo'))
 

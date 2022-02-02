@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, lexists, getsize
@@ -49,10 +47,6 @@ def load_python_file(py_file_full_path):
     if PY2:
         import imp
         return imp.load_compiled("module.name", py_file_full_path)
-    elif sys.version_info < (3, 5):
-        raise ParseError("this doesn't work for .pyc files")
-        from importlib.machinery import SourceFileLoader
-        return SourceFileLoader("module.name", py_file_full_path).load_module()
     else:
         import importlib.util
         spec = importlib.util.spec_from_file_location("module.name", py_file_full_path)
@@ -218,9 +212,9 @@ class PathActionsTests(TestCase):
         command, module, func = parse_entry_point_def('command1=some.module:main')
         assert command == 'command1'
         if on_win:
-            target_short_path = "%s\\%s-script.py" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}-script.py"
         else:
-            target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}/{command}"
         assert py_ep_axn.target_full_path == join(self.prefix, target_short_path)
         assert py_ep_axn.module == module == 'some.module'
         assert py_ep_axn.func == func == 'main'
@@ -244,7 +238,7 @@ class PathActionsTests(TestCase):
 
         if on_win:
             windows_exe_axn = windows_exe_axns[0]
-            target_short_path = "%s\\%s.exe" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}.exe"
             assert windows_exe_axn.target_full_path == join(self.prefix, target_short_path)
 
             mkdir_p(dirname(windows_exe_axn.target_full_path))

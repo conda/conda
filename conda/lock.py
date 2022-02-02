@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -12,7 +11,6 @@ globally (such as downloading packages).
 
 We don't raise an error if the lock is named with the current PID
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from glob import glob
 import logging
@@ -47,12 +45,12 @@ def touch(file_name, times=None):
     try:
         with open(file_name, 'a'):
             os.utime(file_name, times)
-    except (OSError, IOError) as e:
+    except OSError as e:
         log.warn("Failed to create lock, do not run conda in parallel processes [errno %d]",
                  e.errno)
 
 
-class FileLock(object):
+class FileLock:
     """Lock a path (file or directory) with the lock file sitting *beside* path.
 
     :param path_to_lock: the path to be locked
@@ -63,10 +61,10 @@ class FileLock(object):
         """
         self.path_to_lock = abspath(path_to_lock)
         self.retries = retries
-        self.lock_file_path = "%s.pid{0}.%s" % (self.path_to_lock, LOCK_EXTENSION)
+        self.lock_file_path = f"{self.path_to_lock}.pid{{0}}.{LOCK_EXTENSION}"
         # e.g. if locking path `/conda`, lock file will be `/conda.pidXXXX.conda_lock`
-        self.lock_file_glob_str = "%s.pid*.%s" % (self.path_to_lock, LOCK_EXTENSION)
-        assert isdir(dirname(self.path_to_lock)), "{0} doesn't exist".format(self.path_to_lock)
+        self.lock_file_glob_str = f"{self.path_to_lock}.pid*.{LOCK_EXTENSION}"
+        assert isdir(dirname(self.path_to_lock)), f"{self.path_to_lock} doesn't exist"
         assert "::" not in self.path_to_lock, self.path_to_lock
 
     def __enter__(self):
@@ -112,16 +110,16 @@ class DirectoryLock(FileLock):  # lgtm [py/missing-call-to-init]
         directory_name = basename(self.directory_path)
         self.retries = retries
         lock_path_pre = join(self.directory_path, directory_name)
-        self.lock_file_path = "%s.pid{0}.%s" % (lock_path_pre, LOCK_EXTENSION)
+        self.lock_file_path = f"{lock_path_pre}.pid{{0}}.{LOCK_EXTENSION}"
         # e.g. if locking directory `/conda`, lock file will be `/conda/conda.pidXXXX.conda_lock`
-        self.lock_file_glob_str = "%s.pid*.%s" % (lock_path_pre, LOCK_EXTENSION)
+        self.lock_file_glob_str = f"{lock_path_pre}.pid*.{LOCK_EXTENSION}"
         # make sure '/' exists
-        assert isdir(dirname(self.directory_path)), "{0} doesn't exist".format(self.directory_path)
+        assert isdir(dirname(self.directory_path)), f"{self.directory_path} doesn't exist"
         if not isdir(self.directory_path):
             try:
                 os.makedirs(self.directory_path)
                 log.debug("forced to create %s", self.directory_path)
-            except (OSError, IOError) as e:
+            except OSError as e:
                 log.warn("Failed to create directory %s [errno %d]", self.directory_path, e.errno)
 
 

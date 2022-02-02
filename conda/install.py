@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """ This module contains:
@@ -17,7 +16,6 @@ These API functions have argument names referring to:
                  but is otherwise something like '/opt/anaconda/envs/foo',
                  or even any prefix, e.g. '/home/joe/myenv'
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EACCES, EEXIST, ENOENT, EPERM, EROFS
 import functools
@@ -44,7 +42,7 @@ prefix_placeholder = PREFIX_PLACEHOLDER
 
 # backwards compatibility for conda-build
 def package_cache():
-    class package_cache(object):
+    class package_cache:
 
         def __contains__(self, dist):
             return bool(PackageCacheData.first_writable().get(Dist(dist).to_package_ref(), None))
@@ -136,16 +134,23 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
             # if they're in use, they won't be killed.  Skip making new symlink.
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
-        except (IOError, OSError) as e:
+        except OSError as e:
             if os.path.lexists(prefix_file) and (e.errno in (EPERM, EACCES, EROFS, EEXIST)):
-                log.debug("Cannot symlink {0} to {1}. Ignoring since link already exists."
-                          .format(root_file, prefix_file))
+                log.debug(
+                    "Cannot symlink {} to {}. Ignoring since link already exists.".format(
+                        root_file, prefix_file
+                    )
+                )
             elif e.errno == ENOENT:
-                log.debug("Problem with symlink management {0} {1}. File may have been removed by "
-                          "another concurrent process." .format(root_file, prefix_file))
+                log.debug(
+                    "Problem with symlink management {} {}. File may have been removed by "
+                    "another concurrent process.".format(root_file, prefix_file)
+                )
             elif e.errno == EEXIST:
-                log.debug("Problem with symlink management {0} {1}. File may have been created by "
-                          "another concurrent process." .format(root_file, prefix_file))
+                log.debug(
+                    "Problem with symlink management {} {}. File may have been created by "
+                    "another concurrent process.".format(root_file, prefix_file)
+                )
             else:
                 raise
 
@@ -166,7 +171,7 @@ def linked(prefix, ignore_channels=False):
     """
     conda_package_types = PackageType.conda_package_types()
     ld = iteritems(linked_data(prefix, ignore_channels=ignore_channels))
-    return set(dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types)
+    return {dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types}
 
 
 # exports

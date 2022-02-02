@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
 from unittest import TestCase
@@ -26,7 +24,7 @@ from conda.exceptions import BasicClobberError, BinaryPrefixReplacementError, Co
 try:
     from unittest.mock import Mock, patch
 except ImportError:
-    from mock import Mock, patch
+    from unittest.mock import Mock, patch
 
 
 def _raise_helper(exception):

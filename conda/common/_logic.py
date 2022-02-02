@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 
 from array import array
@@ -24,7 +22,7 @@ TRUE = _BIG_NUMBER
 FALSE = -TRUE
 
 
-class _ClauseList(object):
+class _ClauseList:
     """Storage for the CNF clauses, represented as a list of tuples of ints."""
     def __init__(self):
         self._clause_list = []
@@ -69,7 +67,7 @@ class _ClauseList(object):
         return clause_array
 
 
-class _ClauseArray(object):
+class _ClauseArray:
     """
     Storage for the CNF clauses, represented as a flat int array.
     Each clause is terminated by int(0).
@@ -131,7 +129,7 @@ class _ClauseArray(object):
         return self._clause_array
 
 
-class _SatSolver(object):
+class _SatSolver:
     """
     Simple wrapper to call a SAT solver given a _ClauseList/_ClauseArray instance.
     """
@@ -263,7 +261,7 @@ _sat_solver_cls_to_str = {cls: string for string, cls in _sat_solver_str_to_cls.
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
 # SAT," Eén and Sörensson).
-class Clauses(object):
+class Clauses:
     def __init__(self, m=0, sat_solver_str=_sat_solver_cls_to_str[_PycoSatSolver]):
         self.unsat = False
         self.m = m
@@ -271,7 +269,7 @@ class Clauses(object):
         try:
             sat_solver_cls = _sat_solver_str_to_cls[sat_solver_str]
         except KeyError:
-            raise NotImplementedError("Unknown SAT solver: {}".format(sat_solver_str))
+            raise NotImplementedError(f"Unknown SAT solver: {sat_solver_str}")
         self._sat_solver = sat_solver_cls()
 
         # Bind some methods of _sat_solver to reduce lookups and call overhead.

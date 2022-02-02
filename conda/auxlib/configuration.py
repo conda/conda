@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """A specialized map implementation to manage configuration and context information.
 
 Features:
@@ -24,7 +23,6 @@ Notes:
   * Keys are case-insensitive.
 
 """
-from __future__ import absolute_import, division, print_function
 
 import inspect
 import logging
@@ -45,17 +43,17 @@ log = logging.getLogger(__name__)
 def make_env_key(app_name, key):
     """Creates an environment key-equivalent for the given key"""
     key = key.replace('-', '_').replace(' ', '_')
-    return str("_".join((x.upper() for x in (app_name, key))))
+    return str("_".join(x.upper() for x in (app_name, key)))
 
 
 @memoize
 def reverse_env_key(app_name, key):
     app = app_name.upper() + '_'
-    assert key.startswith(app), "{0} is not a(n) {1} environment key".format(key, app)
+    assert key.startswith(app), f"{key} is not a(n) {app} environment key"
     return key[len(app):].lower()
 
 
-class Configuration(object):
+class Configuration:
     """A map implementation to manage configuration and context information. Values
     can be accessed (read, not assigned) as either a dict lookup (e.g. `config[key]`) or as an
     attribute (e.g. `config.key`).
@@ -187,8 +185,7 @@ class Configuration(object):
         raise AssignmentError()
 
     def __iter__(self):
-        for key in self._registered_env_keys | set(self._config_map.keys()):
-            yield key
+        yield from self._registered_env_keys | set(self._config_map.keys())
 
     def items(self):
         for key in self:
@@ -231,9 +228,11 @@ class Configuration(object):
         available_keys = self._registered_env_keys | set(self._config_map.keys())
         missing_keys = self._required_keys - available_keys
         if missing_keys:
-            raise EnvironmentError("Required key(s) not found in environment\n"
-                                   "  or configuration sources.\n"
-                                   "  Missing Keys: {0}".format(list(missing_keys)))
+            raise OSError(
+                "Required key(s) not found in environment\n"
+                "  or configuration sources.\n"
+                "  Missing Keys: {}".format(list(missing_keys))
+            )
 
     def _clear_memoization(self):
         self.__dict__.pop('_memoized_results', None)
@@ -249,7 +248,7 @@ class Configuration(object):
         signal.signal(signal.SIGHUP, sighup_handler)
 
 
-class Source(object):
+class Source:
     _items = None
     _provides = None
     _parent_source = None
@@ -301,7 +300,7 @@ class YamlSource(Source):
             if self.provides is None:
                 return contents
             else:
-                return dict((key, contents[key]) for key in self.provides)
+                return {key: contents[key] for key in self.provides}
 
 
 class EnvironmentMappedSource(Source):

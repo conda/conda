@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from argparse import (ArgumentParser as ArgumentParserBase, REMAINDER, RawDescriptionHelpFormatter,
                       SUPPRESS, _CountAction, _HelpAction)
@@ -98,7 +96,7 @@ class ArgumentParser(ArgumentParserBase):
             kwargs['add_help'] = False
         else:
             add_custom_help = False
-        super(ArgumentParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if add_custom_help:
             add_parser_help(self)
@@ -149,10 +147,10 @@ class ArgumentParser(ArgumentParserBase):
                         args.extend(sys.argv[2:])
                         _exec(args, os.environ)
 
-        super(ArgumentParser, self).error(message)
+        super().error(message)
 
     def print_help(self):
-        super(ArgumentParser, self).print_help()
+        super().print_help()
 
         if sys.argv[1:] in ([], [''], ['help'], ['-h'], ['--help']):
             from .find_commands import find_commands
