@@ -29,8 +29,6 @@ repos:
         exclude: ^(conda\.)?recipe/meta.yaml
       # catch git merge/rebase problems
       - id: check-merge-conflict
-      - id: fix-encoding-pragma
-        exclude: ^conda/auxlib/
   - repo: https://github.com/asottile/pyupgrade
     rev: v2.31.0
     hooks:
