@@ -12,6 +12,7 @@ from os.path import abspath, basename, expanduser, isdir, isfile, join, split as
 import platform
 import sys
 import struct
+from contextlib import contextmanager
 
 from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
@@ -1367,6 +1368,19 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     Channel._reset_state()
     # need to import here to avoid circular dependency
     return context
+
+
+@contextmanager
+def fresh_context(env=None, search_path=SEARCH_PATH, argparse_args=None, **kwargs):
+    if env or kwargs:
+        old_env = os.environ.copy()
+        os.environ.update(env or {})
+        os.environ.update(kwargs)
+    yield reset_context(search_path=search_path, argparse_args=argparse_args)
+    if env or kwargs:
+        os.environ.clear()
+        os.environ.update(old_env)
+        reset_context()
 
 
 class ContextStackObject(object):
