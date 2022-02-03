@@ -687,6 +687,7 @@ Your installed version is: {ref}
 ''')}
 
         msg = ""
+        self.unsatisfiable = []
         if len(bad_deps) == 0:
             msg += '''
 Did not find conflicting dependencies. If you would like to know which
@@ -712,6 +713,7 @@ conda config --set unsatisfiable_hints True
                             if len(chain) > 1:
                                 msg += "\n\nPackage %s conflicts for:\n" % dep
                                 msg += "\n".join([" -> ".join([str(i) for i in c]) for c in chain])
+                                self.unsatisfiable += [tuple(entries) for entries in chain]
                     else:
                         for dep_chain, installed_blocker in dep_class:
                             # Remove any target values from the MatchSpecs, convert to strings
@@ -729,6 +731,15 @@ conda config --set unsatisfiable_hints True
                     'packages required for satisfiability.')
 
         super(UnsatisfiableError, self).__init__(msg)
+
+
+class RawStrUnsatisfiableError(UnsatisfiableError):
+    """An exception to report unsatisfiable dependencies.
+    The error message is passed directly as a str.
+    """
+
+    def __init__(self, message, **kwargs):
+        super(UnsatisfiableError, self).__init__(str(message))
 
 
 class InstallError(CondaError):
