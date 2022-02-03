@@ -16,6 +16,8 @@ from unittest import TestCase
 from uuid import uuid4
 import json
 
+import pytest
+
 from conda import __version__ as conda_version
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
@@ -34,11 +36,10 @@ from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFoun
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
-import pytest
-from tests.helpers import tempdir
-from tests.test_create import Commands, run_command
+
+from conda.testing.helpers import tempdir
+from conda.testing.integration import Commands, run_command, SPACER_CHARACTER
 from conda.auxlib.decorators import memoize
-from .test_create import SPACER_CHARACTER
 
 try:
     from unittest.mock import patch

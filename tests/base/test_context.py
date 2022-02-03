@@ -32,7 +32,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
-from ..helpers import tempdir
+from conda.testing.helpers import tempdir
 
 
 class ContextCustomRcTests(TestCase):

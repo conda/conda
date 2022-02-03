@@ -24,7 +24,7 @@ import sys
 import tempfile
 import unittest
 
-from .helpers import mock
+from conda.testing.helpers import mock
 
 patch = mock.patch if mock else None
 

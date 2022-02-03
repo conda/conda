@@ -20,7 +20,8 @@ from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
-from .helpers import TEST_DATA_DIR, add_subdir, add_subdir_to_iter, get_index_r_1, get_index_r_4, raises
+from conda.testing.helpers import TEST_DATA_DIR, add_subdir, add_subdir_to_iter, \
+    get_index_r_1, get_index_r_4, raises
 
 index, r, = get_index_r_1()
 f_mkl = set(['mkl'])

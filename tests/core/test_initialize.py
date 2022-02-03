@@ -28,7 +28,7 @@ from conda.core.initialize import Result, _get_python_info, init_sh_system, init
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
-from tests.helpers import tempdir
+from conda.testing.helpers import tempdir
 
 try:
     from unittest.mock import Mock, patch

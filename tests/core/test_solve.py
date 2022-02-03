@@ -4,153 +4,33 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from contextlib import contextmanager
-import os
 from pprint import pprint
 import platform
 import sys
-from textwrap import dedent
 import copy
-from unittest import TestCase
-
-from os.path import join, abspath, dirname
 
 import pytest
 
 from conda.auxlib.ish import dals
-from conda.base.context import context, Context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_linux
-from conda.common.io import env_var, env_vars, stderr_log_level, captured
-from conda.core.prefix_data import PrefixData
-from conda.core.solve import DepsModifier, _get_solver_logic, UpdateModifier, Resolve
-from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
-from conda.gateways.disk.create import TemporaryDirectory
-from conda.history import History
+from conda.common.io import env_var, env_vars
+from conda.core.solve import DepsModifier, _get_solver_logic, UpdateModifier
+from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
 from conda.resolve import MatchSpec
-from ..helpers import add_subdir_to_iter, get_index_r_1, get_index_r_2, get_index_r_4, \
-    get_index_r_5, get_index_cuda, get_index_must_unfreeze
-
-from conda.common.compat import iteritems, on_win
+from conda.testing.helpers import add_subdir_to_iter, get_solver, get_solver_2, get_solver_4, \
+    get_solver_aggregate_1, get_solver_aggregate_2, get_solver_cuda, get_solver_must_unfreeze, \
+    convert_to_dist_str, CHANNEL_DIR
 
 try:
     from unittest.mock import Mock, patch
 except ImportError:
     from mock import Mock, patch
 
-CHANNEL_DIR = abspath(join(dirname(__file__), '..', 'data', 'conda_format_repo'))
 Solver = _get_solver_logic()
-
-@contextmanager
-def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_1(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-2'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_4(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-4'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_5(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-5'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    get_index_r_4(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-2'), Channel('channel-4'), ),
-                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    get_index_r_4(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-4'), Channel('channel-2')),
-                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_must_unfreeze(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-freeze'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_cuda(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-def convert_to_dist_str(solution):
-    return tuple(prec.dist_str() for prec in solution)
 
 
 def test_solve_1(tmpdir):

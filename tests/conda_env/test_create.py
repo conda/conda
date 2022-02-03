@@ -19,10 +19,11 @@ from conda.core.prefix_data import PrefixData
 from conda.install import on_win
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
+from conda.testing.integration import run_command as run_conda_command, \
+    Commands as CondaCommands
+
 from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
-from ..test_create import run_command as run_conda_command, \
-    Commands as CondaCommands
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 from tests.test_utils import is_prefix_activated_PATHwise
