@@ -21,13 +21,6 @@ jobs:
             subdir: win-64
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Check current actor
-        id: in_team
-        uses: conda/actions/user-in-team@v22.1.2
-        with:
-          org: conda
-          team: conda-core
-          user: ${{ github.actor }}
 
       - name: Remove build label
         uses: actions/github-script@v5
@@ -59,7 +52,6 @@ jobs:
           fetch-depth: 0
 
       - name: Create and upload review build
-        if: steps.in_team.outputs.contains == 'true'
         uses: conda/actions/canary-release@v22.1.2
         with:
           package-name: conda
