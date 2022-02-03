@@ -84,6 +84,7 @@ class SubdirDataType(type):
         assert not channel.package_filename
         assert type(channel) is Channel
         now = time()
+        repodata_fn = repodata_fn or REPODATA_FN
         cache_key = channel.url(with_credentials=True), repodata_fn
         if cache_key in SubdirData._cache_:
             cache_entry = SubdirData._cache_[cache_key]
