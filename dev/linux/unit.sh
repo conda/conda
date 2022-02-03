@@ -7,6 +7,7 @@ TEST_GROUP="${TEST_GROUP:-1}"
 
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 conda info
+mamba --version
 # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
 sudo rm -rf /opt/conda/pkgs/*-*-*
 pytest -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}

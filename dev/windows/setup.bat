@@ -1,9 +1,17 @@
 @ECHO ON
-pushd %TEMP% || goto :error
+:: Obtain abs path to the conda source root
+pushd "%~dp0"
+    set "TWO_DIRS_UP=..\..\"
+    set "CONDA_SRC_PATH="
+    pushd %TWO_DIRS_UP% || goto :error
+        set "CONDA_SRC_PATH=%CD%"
+    popd || goto :error
+popd || goto :error
 
+pushd %TEMP% || goto :error
 set CONDA=C:\Miniconda || goto :error
 mklink /J \conda_bin %CONDA% || goto :error
-mklink /J \conda_src %GITHUB_WORKSPACE% || goto :error
+mklink /J \conda_src "%CONDA_SRC_PATH%" || goto :error
 
 cd \conda_src || goto :error
 CALL \conda_bin\scripts\activate.bat || goto :error
