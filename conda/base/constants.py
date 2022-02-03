@@ -286,6 +286,15 @@ class SatSolverChoice(Enum):
         return self.value
 
 
+class SolverLogicChoice(Enum):
+    CLASSIC = 'classic'
+    LIBMAMBA = 'libmamba'
+    LIBMAMBA_DRAFT = 'libmamba-draft'
+
+    def __str__(self):
+        return self.value
+
+
 # Magic files for permissions determination
 PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
 PREFIX_MAGIC_FILE = join('conda-meta', 'history')

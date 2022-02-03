@@ -445,7 +445,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     }, stack_callback=stack_context_default):
         from os.path import basename
         from ._vendor.boltons.setutils import IndexedSet
-        from .core.solve import Solver
+        from .core.solve import _get_solver_logic
         from .models.channel import Channel
         from .models.dist import Dist
         if channel_priority_map:
@@ -468,7 +468,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         from .core.prefix_data import PrefixData
         PrefixData._cache_.clear()
 
-        solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
+        solver = _get_solver_logic()(prefix, channels, subdirs, specs_to_add=specs)
         if index:
             solver._index = {prec: prec for prec in itervalues(index)}
         txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)

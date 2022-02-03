@@ -22,7 +22,7 @@ from conda.base.context import context, Context, reset_context, conda_tests_ctxt
 from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
-from conda.core.solve import DepsModifier, Solver, UpdateModifier, Resolve
+from conda.core.solve import DepsModifier, _get_solver_logic, UpdateModifier, Resolve
 from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
 from conda.gateways.disk.create import TemporaryDirectory
 from conda.history import History
@@ -41,7 +41,7 @@ except ImportError:
     from mock import Mock, patch
 
 CHANNEL_DIR = abspath(join(dirname(__file__), '..', 'data', 'conda_format_repo'))
-
+Solver = _get_solver_logic()
 
 @contextmanager
 def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):

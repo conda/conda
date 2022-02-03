@@ -25,7 +25,8 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError
+from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
+                          UnsatisfiableError, CondaImportError)
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -35,6 +36,29 @@ from ..models.version import VersionOrder
 from ..resolve import Resolve
 
 log = getLogger(__name__)
+
+
+def _get_solver_logic(key=None):
+    key = (key or context.solver_logic.value).lower()
+
+    # These keys match conda.base.constants.SolverLogicChoice
+    if key == "classic":
+        return Solver
+
+    if key.startswith("libmamba"):
+        try:
+            from conda_libmamba_solver import get_solver_logic
+
+            return get_solver_logic(key)
+        except ImportError as exc:
+            raise CondaImportError(
+                f"You have chosen a non-default solver logic ({key}) "
+                f"but it could not be imported:\n\n"
+                f"  {exc.__class__.__name__}: {exc}\n\n"
+                f"Try (re)installing conda-libmamba-solver."
+            )
+
+    raise ValueError(f"Solver logic {key} not recognized!")
 
 
 class Solver(object):
@@ -66,7 +90,8 @@ class Solver(object):
 
         """
         self.prefix = prefix
-        self.channels = IndexedSet(Channel(c) for c in channels or context.channels)
+        self._channels = channels or context.channels
+        self.channels = IndexedSet(Channel(c) for c in self._channels)
         self.subdirs = tuple(s for s in subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
