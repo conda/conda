@@ -805,6 +805,22 @@ class Context(Configuration):
             builder.append("%s/%s" % self.libc_family_version)
         return " ".join(builder)
 
+    @contextmanager
+    def override(self, key, value):
+        """
+        TODO: This might be broken in some ways. Unsure what happens if the `old`
+        value is a property and gets set to a new value. Or if the new value
+        overrides the validation logic on the underlying ParameterLoader instance.
+
+        Investigate and implement in a safer way.
+        """
+        old = getattr(self, key)
+        setattr(self, key, value)
+        try:
+            yield
+        finally:
+            setattr(self, key, old)
+
     @memoizedproperty
     def requests_version(self):
         try:
