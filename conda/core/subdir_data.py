@@ -413,7 +413,7 @@ class SubdirData(object):
     def _pickle_me(self):
         try:
             log.debug("Saving pickled state for %s at %s", self.url_w_repodata_fn,
-                      self.cache_path_json)
+                      self.cache_path_pickle)
             with open(self.cache_path_pickle, 'wb') as fh:
                 pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
         except Exception:
