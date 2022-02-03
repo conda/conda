@@ -13,6 +13,7 @@ import platform
 import sys
 import struct
 from contextlib import contextmanager
+from datetime import datetime
 
 from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
@@ -536,6 +537,21 @@ class Context(Configuration):
         from ..gateways.disk.create import mkdir_p
         mkdir_p(trash_dir)
         return trash_dir
+
+    @memoizedproperty
+    def _logfile_path(self):
+        # TODO: This property is only temporary during libmamba experimental release phase
+        # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
+        from ..core.package_cache_data import PackageCacheData
+
+        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
+        logs = join(pkgs_dir, ".logs")
+        from ..gateways.disk.create import mkdir_p
+
+        mkdir_p(logs)
+
+        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
+        return os.path.join(logs, f"{timestamp}.log")
 
     @property
     def default_prefix(self):
