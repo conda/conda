@@ -424,7 +424,7 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
-        logr.setLevel(logging.NOTSET)
+        logr.setLevel(NOTSET)
         logr.propagate = propagate
 
 

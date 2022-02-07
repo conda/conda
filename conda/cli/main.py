@@ -67,7 +67,6 @@ def init_loggers(context=None):
             set_file_logging(logger_name="conda", level=DEBUG, path=context._logfile_path)
 
 
-
 def _main(*args, **kwargs):
     if len(args) == 1:
         args = args + ('-h',)

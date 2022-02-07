@@ -49,7 +49,8 @@ class Solver(object):
                 The set of package specs to remove from the prefix.
 
         """
-        self._internal = _get_solver_logic()(prefix, channels, subdirs, specs_to_add, specs_to_remove)
+        SolverType = _get_solver_logic()
+        self._internal = SolverType(prefix, channels, subdirs, specs_to_add, specs_to_remove)
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
                           ignore_pinned=NULL, force_remove=NULL):

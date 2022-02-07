@@ -44,7 +44,7 @@ def conda_ensure_sys_python_is_base_env_python():
 
     if 'CONDA_PYTHON_EXE' in os.environ:
         if os.path.normpath(os.environ['CONDA_PYTHON_EXE']) != sys.executable:
-            print("ERROR :: Running tests from a non-base Python interpreter.  Tests requires installing" \
+            print("ERROR :: Running tests from a non-base Python interpreter.  Tests requires installing"
                   "         menuinst and that causes stderr output when activated.", file=sys.stderr)
             sys.exit(-1)
 

@@ -29,7 +29,6 @@ except ImportError:
 
 from .. import cli
 from ..auxlib.decorators import memoize
-from ..base.context import context, conda_tests_ctxt_mgmt_def_pol
 from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from ..common.compat import iteritems, itervalues, encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
@@ -41,7 +40,6 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..gateways.logging import initialize_logging
 from ..history import History
-from ..models.channel import Channel
 from ..models.channel import Channel
 from ..models.records import PackageRecord
 from ..models.records import PrefixRecord
