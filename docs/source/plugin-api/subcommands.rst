@@ -28,12 +28,13 @@ Example
 .. code-block:: python
 
    def example_command(args):
-       print('Example command!')
+       print("Example command!")
+
 
    @conda.plugins.hookimp
    def conda_cli_register_subcommands(self):
        yield plugins.CondaSubcommand(
-           name='example',
-           summary='example command',
+           name="example",
+           summary="example command",
            action=example_command,
        )

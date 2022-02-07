@@ -18,9 +18,10 @@ Example:
 
    import conda.plugins
 
+
    @conda.plugins.hookimpl
    def conda_cli_register_subcommands():
-      ...
+       ...
 
 
 .. code-block:: python
@@ -29,10 +30,10 @@ Example:
    from setuptools import setup
 
    setup(
-      name='my-conda-plugin',
-      install_requires='conda',
-      entry_points={'eggsample': ['my_conda_plugin = my_plugin']},
-      py_modules=['my_plugin'],
+       name="my-conda-plugin",
+       install_requires="conda",
+       entry_points={"eggsample": ["my_conda_plugin = my_plugin"]},
+       py_modules=["my_plugin"],
    )
 
 
