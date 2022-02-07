@@ -5,7 +5,7 @@
 import unittest
 from conda_env import env
 from conda_env.specs.notebook import NotebookSpec
-from ..utils import support_file
+from .. import support_file
 
 
 class TestNotebookSpec(unittest.TestCase):
