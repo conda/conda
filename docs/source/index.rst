@@ -57,6 +57,7 @@ that approach may not be as up to date.
    configuration
    api/index
    commands
+   plugin-api/index
    glossary
    dev-guide/index
    release-notes
