@@ -19,7 +19,7 @@ from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODA
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
                         ERROR_UPLOAD_URL, KNOWN_SUBDIRS, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, SolverLogicChoice,
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, ExperimentalSolverChoice,
                         UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
@@ -308,7 +308,7 @@ class Context(Configuration):
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
     solver_ignore_timestamps = ParameterLoader(PrimitiveParameter(False))
-    solver_logic = ParameterLoader(PrimitiveParameter(SolverLogicChoice.CLASSIC))
+    experimental_solver = ParameterLoader(PrimitiveParameter(ExperimentalSolverChoice.CLASSIC))
 
     # # CLI-only
     # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
@@ -939,7 +939,7 @@ class Context(Configuration):
                 'pinned_packages',
                 'pip_interop_enabled',
                 'track_features',
-                'solver_logic',
+                'experimental_solver',
             )),
             ('Package Linking and Install-time Configuration', (
                 'allow_softlinks',
@@ -1377,7 +1377,7 @@ class Context(Configuration):
                 fastest (but perhaps not the most complete). The higher this number, the
                 longer the generation of the unsat hint will take. Defaults to 3.
                 """),
-            "solver_logic": dals("""
+            "experimental_solver": dals("""
                 A string to choose between the different solver logics implemented in
                 conda. A solver logic takes care of turning your requested packages into a
                 list of specs to add and/or remove from a given environment, based on their

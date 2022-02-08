@@ -10,7 +10,7 @@ from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.constants import UpdateModifier
 from conda.base.context import context
 from conda.common.constants import NULL
-from conda.core.solve import _get_solver_logic
+from conda.core.solve import _get_solver_class
 from conda.exceptions import UnsatisfiableError
 from conda.models.channel import Channel, prioritize_channels
 
@@ -28,7 +28,7 @@ def _solve(prefix, specs, args, env, *_, **kwargs):
     channels = IndexedSet(Channel(url) for url in _channel_priority_map)
     subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
 
-    solver = _get_solver_logic()(prefix, channels, subdirs, specs_to_add=specs)
+    solver = _get_solver_class()(prefix, channels, subdirs, specs_to_add=specs)
     return solver
 
 

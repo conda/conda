@@ -38,18 +38,18 @@ from ..resolve import Resolve
 log = getLogger(__name__)
 
 
-def _get_solver_logic(key=None):
-    key = (key or context.solver_logic.value).lower()
+def _get_solver_class(key=None):
+    key = (key or context.experimental_solver.value).lower()
 
-    # These keys match conda.base.constants.SolverLogicChoice
+    # These keys match conda.base.constants.ExperimentalSolverChoice
     if key == "classic":
         return Solver
 
     if key.startswith("libmamba"):
         try:
-            from conda_libmamba_solver import get_solver_logic
+            from conda_libmamba_solver import get_solver_class
 
-            return get_solver_logic(key)
+            return get_solver_class(key)
         except ImportError as exc:
             raise CondaImportError(
                 f"You have chosen a non-default solver logic ({key}) "

@@ -286,7 +286,7 @@ class SatSolverChoice(Enum):
         return self.value
 
 
-class SolverLogicChoice(Enum):
+class ExperimentalSolverChoice(Enum):
     CLASSIC = 'classic'
     LIBMAMBA = 'libmamba'
     LIBMAMBA_DRAFT = 'libmamba-draft'
