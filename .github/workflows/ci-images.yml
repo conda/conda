@@ -54,6 +54,4 @@ jobs:
           build-args: python_version=${{ matrix.python }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
-          # push: ${{ github.ref == 'refs/heads/master' }}
-          # TODO: REVERT before merge
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' }}
