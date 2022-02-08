@@ -276,9 +276,53 @@ def quote_for_shell(*arguments):
     if len(arguments) == 1 and isiterable(arguments[0]):
         arguments = arguments[0]
 
+    if on_win:
+        return _args2cmd_ansible(arguments)
+    return _args2sh(arguments)
+
+
+def _args2sh(args):
+    import shlex
+
+    return shlex.join(args)
+
+
+def _args2cmd_ansible(args):
+    # these are the metachars that have a special meaning in cmd that we want to escape when
+    # quoting
+    _find_unsafe = re.compile(r"[\s\(\)\%\!^\"\<\>\&\|]").search
+
+    def quote(s):
+        # cmd does not support single quotes that the shlex_quote uses. We need to override the
+        # quoting behaviour to better match cmd.exe.
+        # https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
+
+        # Return an empty argument
+        if not s:
+            return '""'
+
+        if _find_unsafe(s) is None:
+            return s
+
+        # Escape the metachars as we are quoting the string to stop cmd from interpreting that
+        # metachar. For example 'file &whoami.exe' would result in 'file $(whoami.exe)' instead of
+        # the literal string
+        # https://stackoverflow.com/questions/3411771/multiple-character-replace-with-python
+        for c in '^()%!"<>&|':  # '^' must be the first char that we scan and replace
+            if c in s:
+                # I can't find any docs that explicitly say this but to escape ", it needs to be
+                # prefixed with \^.
+                s = s.replace(c, ("\\^" if c == '"' else "^") + c)
+
+        return '^"' + s + '^"'
+
+    return " ".join(map(quote, args))
+
+
+def _args2cmd_boltons(args):
     result = []
     needquote = False
-    for arg in map(fsdecode, arguments):
+    for arg in map(fsdecode, args):
         bs_buf = []
 
         # Add a space to separate this argument from the others.
@@ -298,6 +342,12 @@ def quote_for_shell(*arguments):
             or (" " in arg)
             or ("\t" in arg)
             or ("\n" in arg)
+            # others (?)
+            # or ("(" in arg)
+            # or (")" in arg)
+            # or ("%" in arg)
+            # or ("!" in arg)
+            # or ("^" in arg)
         )
         if needquote:
             result.append('"')

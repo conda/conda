@@ -14,6 +14,9 @@ from os.path import dirname, join
 import sys
 from conda.common.compat import on_win
 
+import pytest
+import subprocess
+
 
 SOME_PREFIX = "/some/prefix"
 SOME_FILES = ["a", "b", "c"]
@@ -124,6 +127,70 @@ def is_prefix_activated_PATHwise(prefix=sys.prefix, test_programs=()):
     if found_in and found_in == prefix:
         return True
     return False
+
+
+@pytest.mark.parametrize(
+    ["args", "joined"],
+    [
+        # python -c "import sys\nprint(sys.prefix)"
+        pytest.param(
+            ["\n"],
+            '^"\n^"' if on_win else "'\n'",
+            id="newline",
+        ),
+        pytest.param(
+            ["pip", "install", "numpy<1.22"],
+            'pip install ^"numpy^<1.22^"' if on_win else "pip install 'numpy<1.22'",
+            id="less than",
+        ),
+        pytest.param(
+            ["pip", "install", "numpy>=1.0"],
+            'pip install ^"numpy^>=1.0^"' if on_win else "pip install 'numpy>=1.0'",
+            id="greater than or equal to",
+        ),
+        pytest.param(
+            ["echo", "one|two"],
+            'echo ^"one^|two^"' if on_win else "echo 'one|two'",
+            id="or",
+        ),
+        pytest.param(
+            ["some", "error", ">", "/dev/null"],
+            'some error ^"^>^" /dev/null' if on_win else "some error '>' /dev/null",
+            id="redirect to null",
+        ),
+        pytest.param(
+            ["some", "error", "1>", "/dev/null"],
+            'some error ^"1^>^" /dev/null' if on_win else "some error '1>' /dev/null",
+            id="redirect stdout to null",
+        ),
+        pytest.param(
+            ["some", "error", "2>", "/dev/null"],
+            'some error ^"2^>^" /dev/null' if on_win else "some error '2>' /dev/null",
+            id="redirect stderr to null",
+        ),
+        pytest.param(
+            ["some", "error", "2>&1"],
+            'some error ^"2^>^&1^"' if on_win else "some error '2>&1'",
+            id="redirect stderr to stdout",
+        ),
+    ],
+)
+def test_quote_for_shell(args, joined):
+    quoted = utils.quote_for_shell(args)
+    assert quoted == joined
+
+    # check echo, note double quoting
+    assert (
+        subprocess.run(
+            f"echo {utils.quote_for_shell(quoted)}",
+            shell=True,
+            check=True,
+            capture_output=True,
+        )
+        .stdout.decode()
+        .strip()
+        == joined
+    )
 
 
 # Some stuff I was playing with, env_unmodified(conda_tests_ctxt_mgmt_def_pol)
