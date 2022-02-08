@@ -806,7 +806,7 @@ class Context(Configuration):
         return " ".join(builder)
 
     @contextmanager
-    def override(self, key, value):
+    def _override(self, key, value):
         """
         TODO: This might be broken in some ways. Unsure what happens if the `old`
         value is a property and gets set to a new value. Or if the new value
