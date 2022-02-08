@@ -733,15 +733,6 @@ conda config --set unsatisfiable_hints True
         super(UnsatisfiableError, self).__init__(msg)
 
 
-class RawStrUnsatisfiableError(UnsatisfiableError):
-    """An exception to report unsatisfiable dependencies.
-    The error message is passed directly as a str.
-    """
-
-    def __init__(self, message, **kwargs):
-        super(UnsatisfiableError, self).__init__(str(message))
-
-
 class InstallError(CondaError):
     def __init__(self, message):
         msg = '%s' % message
