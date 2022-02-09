@@ -1611,10 +1611,9 @@ def add_parser_experimental_solver(p):
     p.add_argument(
         "--experimental-solver",
         dest="experimental_solver",
-        type=ExperimentalSolverChoice,
-        choices=ExperimentalSolverChoice,
-        default=ExperimentalSolverChoice.CLASSIC.value,
-        help="EXPERIMENTAL. Choose which solver backend to use."
+        choices=[v.value for v in ExperimentalSolverChoice.__members__.values()],
+        help="EXPERIMENTAL. Choose which solver backend to use.",
+        default=NULL,
     )
 
 
