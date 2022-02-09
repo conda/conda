@@ -15,7 +15,7 @@ from .common.compat import on_win, isiterable
 from .common.path import win_path_to_unix, which
 from .common.url import path_to_url
 from os.path import abspath, join, isfile, basename
-from os import environ, fsdecode
+from os import environ
 
 log = logging.getLogger(__name__)
 
@@ -263,9 +263,9 @@ def sys_prefix_unfollowed():
 def quote_for_shell(*arguments):
     """Properly quote arguments for command line passing.
 
-    Copy of `subprocess.list2cmdline` (which handles standard quoting for arguments with
-    spacing and escaped characters) with additional checks for redirects, file descriptors, and
-    pipes.
+    For POSIX uses `shlex.join`, for Windows uses an implementation derived from `shlex.join` and
+    guided by
+    https://docs.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way#a-better-method-of-quoting.
 
     :param arguments: Arguments to quote.
     :type arguments: list of str
@@ -276,107 +276,44 @@ def quote_for_shell(*arguments):
     if len(arguments) == 1 and isiterable(arguments[0]):
         arguments = arguments[0]
 
-    if on_win:
-        return _args2cmd_ansible(arguments)
-    return _args2sh(arguments)
+    return _args_join(arguments)
 
 
-def _args2sh(args):
-    import shlex
+if on_win:
+    # cmd metachars
+    _CMD_ESCAPE_METACHARS = "()%!^<>&|"
+    _CMD_DBLESCAPE_METACHARS = '"'
 
-    return shlex.join(args)
+    _CMD_UNSAFE_RE = re.compile(fr"[\s{_CMD_ESCAPE_METACHARS}{_CMD_DBLESCAPE_METACHARS}]")
 
+    _CMD_ESCAPE_RE = re.compile(fr"([{_CMD_ESCAPE_METACHARS}])")
+    _CMD_DBLESCAPE_RE = re.compile(fr"([{_CMD_DBLESCAPE_METACHARS}])")
 
-def _args2cmd_ansible(args):
-    # these are the metachars that have a special meaning in cmd that we want to escape when
-    # quoting
-    _find_unsafe = re.compile(r"[\s\(\)\%\!^\"\<\>\&\|]").search
+    def _args_join(args):
+        """Return a shell-escaped string from a list of arguments.
 
-    def quote(s):
-        # cmd does not support single quotes that the shlex_quote uses. We need to override the
-        # quoting behaviour to better match cmd.exe.
-        # https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
+        Inspired by `subprocess.join`.
+        """
+        return " ".join(map(_cmd_quote, args))
 
-        # Return an empty argument
+    def _cmd_quote(s):
+        """Return a shell-escaped version of the string.
+
+        Inspired by `subprocess.quote`.
+        """
         if not s:
             return '""'
-
-        if _find_unsafe(s) is None:
+        if not _CMD_UNSAFE_RE.search(s):
             return s
-
-        # Escape the metachars as we are quoting the string to stop cmd from interpreting that
-        # metachar. For example 'file &whoami.exe' would result in 'file $(whoami.exe)' instead of
-        # the literal string
-        # https://stackoverflow.com/questions/3411771/multiple-character-replace-with-python
-        for c in '^()%!"<>&|':  # '^' must be the first char that we scan and replace
-            if c in s:
-                # I can't find any docs that explicitly say this but to escape ", it needs to be
-                # prefixed with \^.
-                s = s.replace(c, ("\\^" if c == '"' else "^") + c)
-
-        return '^"' + s + '^"'
-
-    return " ".join(map(quote, args))
+        # escape (^) metacharacters
+        s = _CMD_ESCAPE_RE.sub(r"^\1", s)
+        # doubly escape (\\^) metacharacters to avoid case of, e.g., quotes inside quoted arg
+        s = _CMD_DBLESCAPE_RE.sub(r"\\^\1", s)
+        return f'^"{s}^"'
 
 
-def _args2cmd_boltons(args):
-    result = []
-    needquote = False
-    for arg in map(fsdecode, args):
-        bs_buf = []
-
-        # Add a space to separate this argument from the others.
-        if result:
-            result.append(" ")
-
-        needquote = (
-            not arg
-            # redirects
-            or ("<" in arg)
-            or (">" in arg)
-            # file descriptor
-            or ("&" in arg)
-            # pipes
-            or ("|" in arg)
-            # spacing
-            or (" " in arg)
-            or ("\t" in arg)
-            or ("\n" in arg)
-            # others (?)
-            # or ("(" in arg)
-            # or (")" in arg)
-            # or ("%" in arg)
-            # or ("!" in arg)
-            # or ("^" in arg)
-        )
-        if needquote:
-            result.append('"')
-
-        for c in arg:
-            if c == "\\":
-                # Don't know if we need to double yet.
-                bs_buf.append(c)
-            elif c == '"':
-                # Double backslashes.
-                result.append("\\" * len(bs_buf) * 2)
-                bs_buf = []
-                result.append('\\"')
-            else:
-                # Normal char.
-                if bs_buf:
-                    result.extend(bs_buf)
-                    bs_buf = []
-                result.append(c)
-
-        # Add remaining backslashes, if any.
-        if bs_buf:
-            result.extend(bs_buf)
-
-        if needquote:
-            result.extend(bs_buf)
-            result.append('"')
-
-    return "".join(result)
+else:
+    from shlex import join as _args_join
 
 
 # Ensures arguments are a tuple or a list. Strings are converted

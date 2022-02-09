@@ -129,68 +129,57 @@ def is_prefix_activated_PATHwise(prefix=sys.prefix, test_programs=()):
     return False
 
 
+mark_posix_only = pytest.mark.skipif(on_win, reason="POSIX only")
+mark_win_only = pytest.mark.skipif(not on_win, reason="Windows only")
+
+
 @pytest.mark.parametrize(
-    ["args", "joined"],
+    ["args", "expected"],
     [
-        # python -c "import sys\nprint(sys.prefix)"
         pytest.param(
-            ["\n"],
-            '^"\n^"' if on_win else "'\n'",
-            id="newline",
+            ["python", "-c", "import sys\nprint(sys.prefix)"],
+            "python -c 'import sys\nprint(sys.prefix)'",
+            marks=mark_posix_only,
         ),
         pytest.param(
-            ["pip", "install", "numpy<1.22"],
-            'pip install ^"numpy^<1.22^"' if on_win else "pip install 'numpy<1.22'",
-            id="less than",
+            ["pip", "install", "numpy<1.22"], "pip install 'numpy<1.22'", marks=mark_posix_only
         ),
         pytest.param(
-            ["pip", "install", "numpy>=1.0"],
-            'pip install ^"numpy^>=1.0^"' if on_win else "pip install 'numpy>=1.0'",
-            id="greater than or equal to",
+            ["pip", "install", "numpy>=1.0"], "pip install 'numpy>=1.0'", marks=mark_posix_only
         ),
+        pytest.param(["echo", "one|two"], "echo 'one|two'", marks=mark_posix_only),
         pytest.param(
-            ["echo", "one|two"],
-            'echo ^"one^|two^"' if on_win else "echo 'one|two'",
-            id="or",
-        ),
-        pytest.param(
-            ["some", "error", ">", "/dev/null"],
-            'some error ^"^>^" /dev/null' if on_win else "some error '>' /dev/null",
-            id="redirect to null",
+            ["some", "error", ">", "/dev/null"], "some error '>' /dev/null", marks=mark_posix_only
         ),
         pytest.param(
             ["some", "error", "1>", "/dev/null"],
-            'some error ^"1^>^" /dev/null' if on_win else "some error '1>' /dev/null",
-            id="redirect stdout to null",
+            "some error '1>' /dev/null",
+            marks=mark_posix_only,
         ),
         pytest.param(
             ["some", "error", "2>", "/dev/null"],
-            'some error ^"2^>^" /dev/null' if on_win else "some error '2>' /dev/null",
-            id="redirect stderr to null",
+            "some error '2>' /dev/null",
+            marks=mark_posix_only,
+        ),
+        pytest.param(["some", "error", "2>&1"], "some error '2>&1'", marks=mark_posix_only),
+        pytest.param("arg1", "arg1", marks=mark_win_only),
+        pytest.param(None, '""', marks=mark_win_only),
+        pytest.param("arg1 and 2", '^"arg1 and 2^"', marks=mark_win_only),
+        pytest.param(
+            'malicious argument\\"&whoami',
+            '^"malicious argument\\\\^"^&whoami^"',
+            marks=mark_win_only,
         ),
         pytest.param(
-            ["some", "error", "2>&1"],
-            'some error ^"2^>^&1^"' if on_win else "some error '2>&1'",
-            id="redirect stderr to stdout",
+            "C:\\temp\\some ^%file% > nul",
+            '^"C:\\temp\\some ^^^%file^% ^> nul^"',
+            marks=mark_win_only,
         ),
     ],
 )
-def test_quote_for_shell(args, joined):
+def test_quote_for_shell(args, expected):
     quoted = utils.quote_for_shell(args)
-    assert quoted == joined
-
-    # check echo, note double quoting
-    assert (
-        subprocess.run(
-            f"echo {utils.quote_for_shell(quoted)}",
-            shell=True,
-            check=True,
-            capture_output=True,
-        )
-        .stdout.decode()
-        .strip()
-        == joined
-    )
+    assert quoted == expected
 
 
 # Some stuff I was playing with, env_unmodified(conda_tests_ctxt_mgmt_def_pol)
