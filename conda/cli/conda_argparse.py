@@ -13,7 +13,8 @@ import sys
 from textwrap import dedent
 
 from .. import __version__
-from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, UpdateModifier
+from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
+    UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -537,6 +538,7 @@ def configure_parser_create(sub_parsers):
     )
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
     add_parser_default_packages(solver_mode_options)
+    add_parser_experimental_solver(solver_mode_options)
     p.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -743,6 +745,7 @@ def configure_parser_install(sub_parsers):
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
+    add_parser_experimental_solver(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -1008,6 +1011,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
         help="Ignore pinned file.",
     )
     add_parser_prune(solver_mode_options)
+    add_parser_experimental_solver(solver_mode_options)
 
     add_parser_networking(p)
     add_output_and_prompt_options(p)
@@ -1260,6 +1264,7 @@ def configure_parser_update(sub_parsers, name='update'):
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
+    add_parser_experimental_solver(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -1599,6 +1604,17 @@ def add_parser_prune(p):
         action="store_true",
         default=NULL,
         help=SUPPRESS,
+    )
+
+
+def add_parser_experimental_solver(p):
+    p.add_argument(
+        "--experimental-solver",
+        dest="experimental_solver",
+        type=ExperimentalSolverChoice,
+        choices=ExperimentalSolverChoice,
+        default=ExperimentalSolverChoice.CLASSIC.value,
+        help="EXPERIMENTAL. Choose which solver backend to use."
     )
 
 
