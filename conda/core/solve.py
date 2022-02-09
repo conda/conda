@@ -58,7 +58,7 @@ def _get_solver_class(key=None):
                 f"Try (re)installing conda-libmamba-solver."
             )
 
-    raise ValueError(f"Solver logic {key} not recognized!")
+    raise ValueError(f"Solver {key} not recognized!")
 
 
 class Solver(object):
