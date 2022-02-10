@@ -292,14 +292,14 @@ if on_win:
     def _args_join(args):
         """Return a shell-escaped string from a list of arguments.
 
-        Inspired by `subprocess.join`.
+        Inspired by `shlex.join`.
         """
         return " ".join(map(_cmd_quote, args))
 
     def _cmd_quote(s):
         """Return a shell-escaped version of the string.
 
-        Inspired by `subprocess.quote`.
+        Inspired by `shlex.quote`.
         """
         if not s:
             return '""'
@@ -313,7 +313,15 @@ if on_win:
 
 
 else:
-    from shlex import join as _args_join
+    try:
+        from shlex import join as _args_join
+    except ImportError:
+        # [backport] Python <3.8
+        def _args_join(args):
+            """Return a shell-escaped string from *args*."""
+            from shlex import quote
+
+            return " ".join(quote(arg) for arg in args)
 
 
 # Ensures arguments are a tuple or a list. Strings are converted
