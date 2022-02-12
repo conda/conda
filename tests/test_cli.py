@@ -225,3 +225,21 @@ class TestRun(object):
             # Check that the expected output is somewhere between the conda logs
             captured = capfd.readouterr()
             assert random_text in captured.out
+
+    def test_run_readonly_env(self):
+        from tests.test_create import make_temp_env
+        from tests.test_create import make_temp_prefix
+        import stat
+
+        prefix = make_temp_prefix(name='test')
+        with make_temp_env(prefix=prefix) as prefix:
+            # Remove write permissions
+            current = stat.S_IMODE(os.lstat(prefix).st_mode)
+            os.chmod(prefix, current & ~stat.S_IWRITE)
+
+            stdout, stderr, result = run_inprocess_conda_command('conda run -p {} exit 0'.format(prefix))
+
+            # Reset permissions
+            os.chmod(prefix, current)
+
+            assert result == 0
