@@ -6,7 +6,7 @@
 > how the solver works. For that, refer to {ref}`deep_dive_install` and {ref}`deep_dive_solvers`.
 
 The `Solver` API will pass a collection of `MatchSpec` objects (from now on, we will refer to
-them as `specs`)  to the underlying SAT solver. How this list is built from the prefix state
+them as `specs`) to the underlying SAT solver. How this list is built from the prefix state
 and context options is not a straightforward process, but an elaborate logic. This is better
 understood if we examine the _ingredients_ that participate in the construction of `specs`. We
 will label them like this:
@@ -40,22 +40,22 @@ do participate in the `specs` collection:
 * Specs added by command-line modifiers. The specs here present aren't new (they are already in
   other categories), but they might end up in the `specs` list only when a flag is added. For
   example, `update --all` will add all the installed packages to the `specs` list, with no
-  version constrain. Without this flag, the installed packages will still end up in the `specs`
+  version constraint. Without this flag, the installed packages will still end up in the `specs`
   list, but with full constrains (`--freeze-installed` defaults for the first attempt) unless:
     * Frozen attempt failed.
     * `--update-specs` (or any other `UpdateModifier`) was passed, overriding `--freeze-installed`.
 
-See? It gets involved. We will also use this vocabulary to help precise the type of change
+See? It gets involved. We will also use this vocabulary to help narrow down the type of change
 being done:
 
 Types of `spec` objects:
 
-* `specs`: map of package name to its currently corresponding `MatchSpec` instance
-* `spec`: specific instance of a `MatchSpec` object
+* `specs`: map of package name to its currently corresponding `MatchSpec` instance.
+* `spec`: specific instance of a `MatchSpec` object.
 * exact or frozen `spec`: a `spec` where both the `version` and `build` fields are constrained
   with `==` operators (exact match).
 * fully constrained or tight `spec`: a `spec` where both `version` and `build` are populated,
-  but not necessarily with equality operators. It can also be inequalities (`>`, `<`, etc) and
+  but not necessarily with equality operators. It can also be inequalities (`>`, `<`, etc.) and
   fuzzy matches (`*something*`).
 * version-only `spec`: a `spec` where _only_ the `version` field is populated. The `build`
   is not.
@@ -68,7 +68,7 @@ Types of `spec` objects:
     > spec.name is being modified by inclusion in specs_to_add, we don't set `target`, since we
     > *want* the solver to modify/update that package.
     >
-    > TLDR: when working with MatchSpec objects,
+    > TL;DR: when working with MatchSpec objects,
     >  - to minimize the version change, set MatchSpec(name=name, target=prec.dist_str())
     >  - to freeze the package, set all the components of MatchSpec individually
 * if the `spec` object does not have an adjective, it should be assumed it's being added to the
@@ -78,14 +78,14 @@ Pools (collections of `PackageRecord` objects):
 * Installed pool: The installed packages, grouped by name. Each group should only contain one record!
 * Explicit pool: The full index, but reduced for the specs in `requested`.
 
-The following sections will get dry and to-the-point. They will state what output to expect from
+The following sections will get dry and to the point. They will state what output to expect from
 a given set of initial conditions. At least we'll try. Take into account that the `specs` list
 is kept around across attempts! In other words, the `specs` list is only really empty in the first
 attempt; if this fails, the subsequent attempts will only overwrite (update) the existing one. In
 practice, this should only affect how constrained packages are. The names should be the same.
 
-It will also depend on whether we are adding (`conda install|create|update`) or removing (
-`conda remove`) packages. There's a common initialization part for both, but after that the
+It will also depend on whether we are adding (`conda install|create|update`) or removing
+(`conda remove`) packages. There's a common initialization part for both, but after that the
 logic is separate.
 
 <!--
@@ -106,7 +106,7 @@ This happens regardless the type of command we are using (`install`, `update`, `
     * A package with that name is _not_ installed.
 3. Add `virtual` packages as unconstrained `specs`.
 4. Add all those installed packages, as unconstrained `specs`, that satisfy any of these conditions:
-    * The history is empty (in that case all installed packages are added)
+    * The history is empty (in that case, all installed packages are added)
     * The package name is part of `aggresive_updates`
     * The package was no installed by `conda`, but by pip or other PyPI tools.
 
@@ -138,15 +138,16 @@ collection is used to determine how to reduce the index.
 ## Refine `specs` that match installed records
 
 1. Check that each of `specs` match a single installed package or none! Otherwise (two or more
-   matches), it means that environment is in bad shape and basically broken. If the `spec` matches
-   one installed package, let's call it _installed match_, we will modify the original spec.
+   matches), it means that the environment is in bad shape and basically broken. If the `spec`
+   matches one installed package, let's call it _installed match_, we will modify the original
+   `spec`.
 2. We will turn the `spec` into an _exact_ (frozen) spec if:
-    1. If the installed match is unmanageable (installed by pip, virtual, etc)
+    1. The installed match is unmanageable (installed by pip, virtual, etc.)
     2. There's no history, we are not in `--freeze-installed` mode, and:
         * The spec is not a potential conflict, _and_
-        * The package name _cannot_ be found in the explicit pool index or,  if it is, the
+        * The package name _cannot_ be found in the explicit pool index or, if it is, the
           installed match can be found in that explicit pool (to guarantee it will be found
-          instead of creating one more conflict _because_).
+          instead of creating one more conflict _just because_).
 3. We relax the `spec` to a name-only `spec` if it's part of the aggressive updates list.
 4. We turn it into a targetted `spec` if:
     1. The spec is in `history`. In that case, we take its _historic_ spec counterpart and set the
@@ -156,4 +157,9 @@ collection is used to determine how to reduce the index.
        already present in the `specs`.
 
 ## Handle pinned specs
+
+<!-- WIP -->
+
 # Processing specs for `conda remove`
+
+<!-- WIP -->

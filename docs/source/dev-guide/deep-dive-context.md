@@ -63,7 +63,7 @@ It's a bit confusing, but the delegation happens like this:
 
 The merging policy depends on the `(Loaded)Parameter` subtype. These are available:
 
-* `PrimitiveParameter`: holds a single scalar value of type `str`, `int`, `flaot`, `complex`, `bool`
+* `PrimitiveParameter`: holds a single scalar value of type `str`, `int`, `float`, `complex`, `bool`
   or `NoneType`.
 * `SequenceParameter`: holds an iterable (`list`) of other `Parameter` objects.
 * `MapParameter`: holds a mapping (`dict`) of other `Parameter` objects.
@@ -94,7 +94,7 @@ this will redefine the value after passing through the validation machinery, but
 You will simply overwrite it entirely with the raw value and that's probably not what you want.
 
 Instead, consider the `context` object immutable. If you need to change a setting at runtime, it is
-probably A Bad Idea (tm). The only situation where this is acceptable is during testing.
+probably _A Bad Idea_. The only situation where this is acceptable is during testing.
 ```
 
 ## Setting values in the different origins
@@ -118,16 +118,16 @@ final `Configuration` object might not be obvious at first. This is different fo
     * `PrimitiveParameter` is the easy one. The environment variable string is parsed as the
       expected type. Booleans are a bit different since several strings are recognized as such, and
       in a case-insensitive way:
-        * `True` can be set with `true`, `yes`, `on` and `y`
+        * `True` can be set with `true`, `yes`, `on` and `y`.
         * `False` can be set with `false`, `off`, `n`, `no`, `non`, `none` and `""` (empty string).
-    * `SequenceParameter` can specify their own delimiter (e.g. `,`) so the environment variable
+    * `SequenceParameter` can specify their own delimiter (e.g. `,`), so the environment variable
       string is processed into a list.
     * `MapParameter` and `ObjectParameter` do not seem to support beign set with environment
       variables.
 * `ArgParseRawParameter`: These are a bit different because there is no automated mechanism that
   ties a given command line flag to the context object. This means that if you add a new setting
   to the `Context` class and you want that available in the CLI as a command-line flag, you have
-  to added yourself. If that's the case, refer to `conda.cli.conda_argparse` and make sure that
+  to add it yourself. If that's the case, refer to `conda.cli.conda_argparse` and make sure that
   the `dest` value of your `argparse.Argument` matches the attribute name in `Context`. This way,
   `Configuration.__init__` can take the `argparse.Namespace` object, turn it into a dictionary,
   and make it pass through the loading machinery.

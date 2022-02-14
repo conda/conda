@@ -11,13 +11,13 @@ environment lived under `envs/` in that root environment. The root environment w
 _base_, but the code still distinguishes between base and target using the old terminology:
 
 * `context.root_prefix`: the path where the `base` conda installation is located.
-* `context.target_prefix`: the environment `conda` is running a command on. Usually, defaults to the
+* `context.target_prefix`: the environment `conda` is running a command on. Usually defaults to the
   activated environment, unless `-n` (name) or `-p` (prefix) is specified in the command line. Note
-  that if you are operating on the `base` environment, the target prefix can have the same value
+  that if you are operating on the `base` environment, the target prefix will have the same value
   as the root prefix.
 ```
 
-When you type `conda` in your terminal, your shell will try find either:
+When you type `conda` in your terminal, your shell will try to find either:
 * a shell function named `conda`
 * an executable file named `conda` in your `PATH` directories
 
@@ -27,7 +27,7 @@ case. That's why initialization is there to begin with!
 
 ## Conda initialization
 
-Why is initialization needed at all, to begin with? There are several reasons:
+Why is initialization needed at all to begin with? There are several reasons:
 
 * Activation requires interacting with the shell context very closely
 * It does not pollute `PATH` unnecesarily
@@ -43,16 +43,16 @@ However, it will intercept two very specific subcommands:
 * `conda activate`
 * `conda deactivate`
 
-This interception is needed because (de)activation requires exporting (or unsetting) enviroment
-variables back to the shell session (and not just temporarily in the Python process). This will
-be discussed in the next section.
+This interception is needed because activation/deactivation requires exporting (or unsetting)
+enviroment variables back to the shell session (and not just temporarily in the Python
+process). This will be discussed in the next section.
 
 So how is initialization performed? This is the job of the `conda init` subcommand, driven by
 the `conda.cli.main_init` module, which depends direcly on the `conda.core.initialize` module. Let's
 see how this is implemented.
 
 `conda init` will initialize a shell permanently by writing some shell code in the relevant
-startup scripts of your shell (e.g. `~/.bashrc). This is done through different functions defined
+startup scripts of your shell (e.g. `~/.bashrc`). This is done through different functions defined
 in `conda.core.initialize`, namely:
 
 * `init_sh_user`: initializes a Posix shell (like Bash) for the current user.
@@ -83,7 +83,7 @@ corresponding activators
 * `fish`: `FishActivator`.
 * `powershell`: `PowerShellActivator`.
 
-You can all all these classes through the `conda shell.<key>` command, where `key` is
+You can add all these classes through the `conda shell.<key>` command, where `key` is
 any of the names in the list above. These CLI interface offers several subcommands, connected
 directly to methods of the same name:
 
@@ -93,7 +93,7 @@ directly to methods of the same name:
 * `commands`: writes the shell code needed for autocompletion engines.
 * `reactivate`: writes the shell code for deactivation followed by activation.
 
-Pay attention we are saying these functions only _write_ shell code. They do _not_ execute it! This
+To be clear, we are saying these functions only _write_ shell code. They do _not_ execute it! This
 needs to be done by the shell itself! That's why we need a `conda` shell function, so these shell
 strings can be `eval`'d or `source`'d in-session.
 
@@ -121,13 +121,13 @@ actually run it:
 $ eval "$(conda shell.bash activate)"
 ```
 
-And this is what essentially `conda activate` does: it calls the registered shell activator to
+And this is essentially what `conda activate` does: it calls the registered shell activator to
 obtain the required shell code and then it `eval`s it. In some shells with no `eval` equivalent,
 a temporary script is written and sourced or called. The final effect is the same.
 
-Ok, but what is that shell code doing? Mainly setting your `PATH` right so the executables of
+Ok, but what is that shell code doing? Mainly setting your `PATH` correctly so the executables of
 your `base` enviroment can be found (like `python`). It also sets some extra variables to keep
-a reference to the path of the currently activate environment, the shell prompt modifiers and
+a reference to the path of the currently active environment, the shell prompt modifiers and
 other information for `conda` internals.
 
 This command can also generate the code for any other environment you want, not just `base`. Just
@@ -152,13 +152,14 @@ Now the paths are different, as well as some numbers (e.g. `CONDA_SHLVL`). This 
 keep track of what was activated before, so when you deactivate the last one, you can get back to
 the previous one seamlessly.
 
-## (De)activation scripts
+## Activation/deactivation scripts
 
-The (de)activation code can also include calls to (de)activation scripts. If present if the
-appropriate directories for your shell (e.g. `CONDA_PREFIX/etc/conda/activate.d/`), they will be
-called before deactivation or after activation, respectively. For example, compilers usually set up
-some environment variables to help configure the default flags. This is what happens when you
-activate an environment that contains Clang and Gfortran:
+The activation/deactivation code can also include calls to activation/deactivation scripts. If
+present in the appropriate directories for your shell (e.g.
+`CONDA_PREFIX/etc/conda/activate.d/`), they will be called before deactivation or after
+activation, respectively. For example, compilers usually set up some environment variables to
+help configure the default flags. This is what happens when you activate an environment that
+contains Clang and Gfortran:
 
 ```shell
 $ conda shell.bash activate compilers
