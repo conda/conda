@@ -30,7 +30,7 @@ case. That's why initialization is there to begin with!
 Why is initialization needed at all to begin with? There are several reasons:
 
 * Activation requires interacting with the shell context very closely
-* It does not pollute `PATH` unnecesarily
+* It does not pollute `PATH` unnecessarily
 * Improves performance in certain operations
 
 The main idea behind initialization is to provide a `conda` shell function that allows the Python
@@ -180,7 +180,7 @@ export CONDA_PREFIX_1='/Users/username/.local/anaconda'
 ```
 
 Those three lines are sourcing the relevant scripts. Similarly, for deactivation, notice how the
-deactivation scripts are executed first this time.
+deactivation scripts are executed first this time:
 
 ```shell
 $ conda shell.bash deactivate

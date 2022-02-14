@@ -29,7 +29,7 @@ involved.
 `conda.base.context.Context` is an app-specific subclass of the application-agnostic
 `conda.common.configuration.Configuration` class. This class implements the precedence order
 for the instantiation of each defined attribute, as well as the overall validation logic and help
-message reporting. But that's it, it's merely an storage of `ParameterLoader` objects which, in
+message reporting. But that's it, it's merely a storage of `ParameterLoader` objects which, in
 turn, instantiate the relevant `Parameter` subclasses in each attribute. Roughly:
 
 ```python
@@ -61,7 +61,8 @@ It's a bit confusing, but the delegation happens like this:
    in the raw data, loading them as `LoadedParameter` objects and merging them with the adequate
    precedence order.
 
-The merging policy depends on the `(Loaded)Parameter` subtype. These are available:
+The merging policy depends on the `(Loaded)Parameter` subtype. Below is a list of available
+subtypes:
 
 * `PrimitiveParameter`: holds a single scalar value of type `str`, `int`, `float`, `complex`, `bool`
   or `NoneType`.
@@ -122,8 +123,7 @@ final `Configuration` object might not be obvious at first. This is different fo
         * `False` can be set with `false`, `off`, `n`, `no`, `non`, `none` and `""` (empty string).
     * `SequenceParameter` can specify their own delimiter (e.g. `,`), so the environment variable
       string is processed into a list.
-    * `MapParameter` and `ObjectParameter` do not seem to support beign set with environment
-      variables.
+    * `MapParameter` and `ObjectParameter` do not support being set with environment variables.
 * `ArgParseRawParameter`: These are a bit different because there is no automated mechanism that
   ties a given command line flag to the context object. This means that if you add a new setting
   to the `Context` class and you want that available in the CLI as a command-line flag, you have
