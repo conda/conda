@@ -3,7 +3,7 @@
 # Deep dive: solvers
 
 The guide {ref}`deep_dive_install` didn't go into details of the solver black box. It did mention
-the high-level `Solver` API and how `conda` expects a Transaction out of it, but we never got to
+the high-level `Solver` API and how `conda` expects a transaction out of it, but we never got to
 learn what happens _inside_ the solver itself. We only covered these three steps:
 
 > The details are complicated, but in essence, the solver will:
@@ -11,7 +11,6 @@ learn what happens _inside_ the solver itself. We only covered these three steps
 > 1. Express the requested packages, command line options and prefix state as `MatchSpec` objects
 > 2. Query the index for the best possible match that satisfy those constrains
 > 3. Return a list of `PackageRecord` objects.
-
 
 How do we transform the prefix state and configurations into a list of `MatchSpec` objects? How
 are those turned into a list of `PackageRecord` objects? Where are those `PackageRecord`
@@ -49,11 +48,11 @@ between three types, all of them useful:
   tarball path in disk and its extracted directory.
 * `PrefixRecord`: A record installed in a prefix. Same as above, plus fields for the files that
   make the package and how they were linked in the prefix. It can also host information about which
-  `MatchSpec` string resulted into this record being installed.
+  `MatchSpec` string resulted in this record being installed.
 
 ## Remote state: the index
 
-So the solver takes `MatchSpec` objects, query the index for the best match and returns
+So the solver takes `MatchSpec` objects, queries the index for the best match and returns
 `PackageRecord` objects. Perfect. What's the index? It's the result of aggregating the
 requested conda channels in a single entity. For more information, check
 {ref}`deep_dive_install_index`.
@@ -85,10 +84,10 @@ these are the ingredients of the solver request.
    `conda install numpy`) and sometimes a bit implicit (e.g. `conda update --all` is telling the
    solver to add all installed packages to the update list).
 
-All of those sources of information produce a number a of `MatchSpec` objects which are then
+All of those sources of information produce a number a of `MatchSpec` objects, which are then
 combined and modified in very specific ways depending on the command-line flags and their origin
 (e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
-explicitly). This logic is intricate will be covered in the next sections. A more technical
+explicitly). This logic is intricate and will be covered in the next sections. A more technical
 description is also available in {ref}`solver_state_specification`.
 
 ## The high-level logic in `conda.cli.install`
@@ -101,7 +100,7 @@ way up in the `conda.cli.install` module. Here, some important decisions are alr
     * The user requested to roll back to a history checkpoint
     * We are just creating a copy of an existing environment (cloning)
 * Which `repodata` source to use (see {ref}`here <index_reduction_tricks>`). It not only depends on
-  depends on the current configuration (via `.condarc` or command line flags), but also on the value
+  the current configuration (via `.condarc` or command line flags), but also on the value
   of `use_only_tar_bz2`.
 * Whether the solver should start by freezing all installed packages (default for
   `conda install` and `conda remove` in existing environments).
@@ -130,7 +129,7 @@ else:
 handle_txn(transaction)
 ```
 
-We have, then, two reasons to re-run the full Solver logic:
+We have, then, two reasons to re-run the full solver logic:
 
 * Freezing the installed packages didn't work, so we try without freezing again.
 * Using `current_repodata` did not work, so we try with full `repodata`.
@@ -156,6 +155,7 @@ override the default behaviour with these flags in your `conda install` commands
 
 Then, the `Solver` class has its own internal logic, which also features some retry loops. This
 will be discussed later and summarized.
+
 ## Early exit tasks
 
 Some tasks do not involve the solver at all. Let's enumerate them:
@@ -231,7 +231,7 @@ state as is. If not, we proceed for the full solve.
 
 ## Details of `Solver.solve_final_state()`
 
-This is were most of the intricacies of the `conda` logic are defined. In this step, the
+This is where most of the intricacies of the `conda` logic are defined. In this step, the
 configuration, command line flags, user-requested specs and prefix state are aggregated to query
 the current index for the best match.
 
@@ -287,7 +287,7 @@ other things before actually solving the SAT problem:
   `numpy >=1.19` becomes just `numpy`). Then, `Resolve.get_conflicting_specs()` is called again,
   and the loop continues until convergence: the list of conflicts cannot be reduced further, either
   because there are no conflicts left or because the existing conflicts cannot be resolved by
-  constrain relaxation.
+  constraint relaxation.
 * Now, the SAT solver is called. This happens via `Resolve.solve()`. More on this below.
 * If the solver failed, then `UnsatisfiableError` is raised. Depending on which attempt we are on,
   `conda` will try again with non-frozen installed packages or a different repodata, or it will give
@@ -295,7 +295,7 @@ other things before actually solving the SAT problem:
 * If the solver succeeded, some bookkeeping needs to be done:
   * Neutered specs that happened to be in the history are annotated as such.
   * Inconsistent packages are added back to the solution, including potential orphans.
-  * Constrain analysis is run via `Solver.get_constrained_packages()` and
+  * Constraint analysis is run via `Solver.get_constrained_packages()` and
     `Solver.determine_constricting_specs()` to help the user understand why some packages were not
     updated.
 
@@ -356,7 +356,7 @@ The main methods in this class are:
 
 ```{admonition} Disabling conflict analysis
 Conflict analysis can be disabled through the `context.unsatisfiable_hints` options, but
-unfortunately that gets in the way of conda's iterative logic. It will shortcut earlt on the chain
+unfortunately that gets in the way of conda's iterative logic. It will shortcut early in the chain
 of attempts and prevent the solver from trying less constrained specs. This is a part of the logic
 that should be improved.
 ```
@@ -372,7 +372,7 @@ actions:
     go straight to `find_conflicts()` to understand what's wrong.
 2.  Instantiate a new `Resolve` object with the reduced index to generate the `Clauses` object
     via `gen_clauses()`. This method relies on `push_MatchSpec()` to turn the `MatchSpec` object
-    into a SAT clause inside the `Clauses` object (referred to as `C`).
+    into an SAT clause inside the `Clauses` object (referred to as `C`).
 3.  Run `Clauses.sat()` to solve the SAT problem. If a solution cannot be found, deal with the
     error in the usual way: raise early to trigger another attempt or call `find_conflicts()` to
     try explaining why.
@@ -381,7 +381,7 @@ actions:
     1.  Minimize the amount of removed packages. The SAT clauses are generated via
         `Resolve.generate_removal_count()` and then `Clauses.minimize()` will use it to optimize the
         current solution.
-    2.  Maximize how well each record in the solution matches the spec.The SAT clauses are now
+    2.  Maximize how well each record in the solution matches the spec. The SAT clauses are now
         generated in `Resolve.generate_version_metrics()`. This returns five sets of clauses:
         channel, version, build, arch or noarch, and timestamp. At this point, only channels and
         versions are optimized.
@@ -394,7 +394,7 @@ actions:
     6.  We also want to include as many _optional_ specs in the solution as possible. Optimize for
         that thanks to the clauses generated by `Resolve.generate_install_count()`.
     7.  At the same time, we will minimize the number of necessary updates if keeping the installed
-        versions also satisfy the request. Clauses generated with `Resolve.generate_update_count()`.
+        versions also satisfies the request. Clauses generated with `Resolve.generate_update_count()`.
     8.  Steps (2) and (5) are also applied to indirect dependencies.
     9.  Minimize the number of packages in the solution. This is done by removing unnecessary
         packages.
