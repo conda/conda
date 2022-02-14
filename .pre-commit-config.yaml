@@ -32,7 +32,7 @@ repos:
       - id: fix-encoding-pragma
         exclude: ^conda/auxlib/
   - repo: https://github.com/akaihola/darker
-    rev: github-action-v1.3.2-2
+    rev: 1.4.0
     hooks:
       - id: darker
         additional_dependencies: [black==21.9b0]
@@ -58,7 +58,7 @@ repos:
         # ignore all tests, not just tests data
         exclude: ^tests/
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.11
+    rev: v1.1.12
     hooks:
       - id: insert-license
         files: \.py$
