@@ -179,7 +179,7 @@ class TestJson(unittest.TestCase):
     def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
 
-class TestRun(object):
+class TestRun(unittest.TestCase):
     def test_run_returns_int(self):
         from tests.test_create import make_temp_env
         from tests.test_create import make_temp_prefix
