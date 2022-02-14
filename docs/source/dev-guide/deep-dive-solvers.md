@@ -114,17 +114,17 @@ if operation in (explicit, rollback, clone):
     transaction = handle_without_solver()
 else:
     repodatas = from_config or ("current_repodata.json", "repodata.json")
-    freeze_installed = (is_install or is_remove) and (env exists) and (update_modifier not in argv)
+    freeze = (is_install or is_remove) and env_exists and update_modifier not in argv
     for repodata in repodatas:
         try:
             transaction = solve_for_transaction(...)
         except:
             if repodata is last:
                 raise
-            elif freeze_installed:
-                transaction = solve_for_transaction(freeze_installed = False)
+            elif freeze:
+                transaction = solve_for_transaction(freeze_installed=False)
             else:
-                try with next repodata
+                continue  # try next repodata
 
 handle_txn(transaction)
 ```
