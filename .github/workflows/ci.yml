@@ -65,17 +65,17 @@ jobs:
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
 
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: ${{ matrix.test-type }}
-          env_vars: OS,PYTHON
-
       - name: ngrok session if tests fail
         if: failure()
         uses: luchihoratiu/debug-via-ssh@main
         with:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
           SSH_PASS: ${{ secrets.SSH_PASS }}
+
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: ${{ matrix.test-type }}
+          env_vars: OS,PYTHON
 
   linux:
     runs-on: ubuntu-latest
