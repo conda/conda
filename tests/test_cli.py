@@ -16,6 +16,7 @@ from tests.helpers import capture_json_with_argv, run_inprocess_conda_command
 from conda.common.compat import text_type
 
 import os
+import stat
 
 @pytest.mark.usefixtures("tmpdir")
 class TestJson(unittest.TestCase):
@@ -229,13 +230,15 @@ class TestRun(object):
     def test_run_readonly_env(self):
         from tests.test_create import make_temp_env
         from tests.test_create import make_temp_prefix
-        import stat
 
         prefix = make_temp_prefix(name='test')
         with make_temp_env(prefix=prefix) as prefix:
             # Remove write permissions
             current = stat.S_IMODE(os.lstat(prefix).st_mode)
             os.chmod(prefix, current & ~stat.S_IWRITE)
+
+            # Confirm that we do not have write access to this directory.
+            self.assertRaises(PermissionError, open, os.path.join(prefix, 'test.txt'), 'w+')
 
             stdout, stderr, result = run_inprocess_conda_command('conda run -p {} exit 0'.format(prefix))
 
