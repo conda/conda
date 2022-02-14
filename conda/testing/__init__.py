@@ -39,13 +39,15 @@ def conda_ensure_sys_python_is_base_env_python():
     # Exit if we try to run tests from a non-base env. The tests end up installing
     # menuinst into the env they are called with and that breaks non-base env activation
     # as it emits a message to stderr:
-    # WARNING menuinst_win32:<module>(157): menuinst called from non-root env C:\opt\conda\envs\py27
+    # WARNING menuinst_win32:<module>(157): menuinst called from non-root env
+    # C:\opt\conda\envs\py27
     # So lets just sys.exit on that.
 
     if 'CONDA_PYTHON_EXE' in os.environ:
         if os.path.normpath(os.environ['CONDA_PYTHON_EXE']) != sys.executable:
-            print("ERROR :: Running tests from a non-base Python interpreter.  Tests requires installing"
-                  "         menuinst and that causes stderr output when activated.", file=sys.stderr)
+            print("ERROR :: Running tests from a non-base Python interpreter. "
+                  " Tests requires installing menuinst and that causes stderr "
+                  " output when activated.", file=sys.stderr)
             sys.exit(-1)
 
 
@@ -81,8 +83,9 @@ def conda_move_to_front_of_PATH():
                 if not found_condabin:
                     found_condabin = True
                     if join(sys.prefix, 'condabin') != pe:
-                        print("Incorrect condabin, swapping {} to {}".format(pe, join(sys.prefix, 'condabin')))
-                        new_p.append(join(sys.prefix, 'condabin'))
+                        condabin_path = join(sys.prefix, 'condabin')
+                        print("Incorrect condabin, swapping {} to {}".format(pe, condabin_path))
+                        new_p.append(condabin_path)
                     else:
                         new_p.append(pe)
             else:
@@ -109,14 +112,18 @@ def conda_check_versions_aligned():
 
     import conda
     version_file = normpath(join(dirname(conda.__file__), '.version'))
-    version_from_file = open(version_file, 'rt').read().split('\n')[0] if isfile(version_file) else None
+    if isfile(version_file):
+        version_from_file = open(version_file, 'rt').read().split('\n')[0]
+    else:
+        version_from_file = None
 
     git_exe = 'git.exe' if sys.platform == 'win32' else 'git'
     version_from_git = None
     for pe in os.environ.get('PATH', '').split(os.pathsep):
         if isfile(join(pe, git_exe)):
             try:
-                version_from_git = check_output(join(pe, git_exe) + ' describe --tags --long').decode('utf-8').split('\n')[0]
+                cmd = join(pe, git_exe) + ' describe --tags --long'
+                version_from_git = check_output(cmd).decode('utf-8').split('\n')[0]
                 from conda.auxlib.packaging import _get_version_from_git_tag
                 version_from_git = _get_version_from_git_tag(version_from_git)
                 break
@@ -126,7 +133,7 @@ def conda_check_versions_aligned():
         print("WARNING :: Could not check versions.")
 
     if version_from_git and version_from_git != version_from_file:
-        print("WARNING :: conda/.version ({}) and git describe ({}) disagree, rewriting .version".format(
-            version_from_git, version_from_file))
+        print("WARNING :: conda/.version ({}) and git describe ({}) "
+              "disagree, rewriting .version".format(version_from_git, version_from_file))
         with open(version_file, 'w') as fh:
             fh.write(version_from_git)
