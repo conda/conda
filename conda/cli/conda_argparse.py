@@ -1608,10 +1608,17 @@ def add_parser_prune(p):
 
 
 def add_parser_experimental_solver(p):
+    """
+    Add a command-line flag for alternative solver backends.
+
+    See ``context.experimental_solver`` for more info.
+
+    TODO: This will be replaced by a proper plugin mechanism in the future.
+    """
     p.add_argument(
         "--experimental-solver",
         dest="experimental_solver",
-        choices=[v.value for v in ExperimentalSolverChoice.__members__.values()],
+        choices=[v.value for v in ExperimentalSolverChoice],
         help="EXPERIMENTAL. Choose which solver backend to use.",
         default=NULL,
     )

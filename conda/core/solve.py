@@ -19,7 +19,8 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN
+from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
+                              ExperimentalSolverChoice)
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
@@ -39,6 +40,14 @@ log = getLogger(__name__)
 
 
 def _get_solver_class(key=None):
+    """
+    Temporary function to load the correct solver backend.
+
+    See ``context.experimental_solver`` and
+    ``base.constants.ExperimentalSolverChoice`` for more details.
+
+    TODO: This should be replaced by the plugin mechanism in the future.
+    """
     key = (key or context.experimental_solver.value).lower()
 
     # These keys match conda.base.constants.ExperimentalSolverChoice
@@ -52,13 +61,17 @@ def _get_solver_class(key=None):
             return get_solver_class(key)
         except ImportError as exc:
             raise CondaImportError(
-                f"You have chosen a non-default solver logic ({key}) "
+                f"You have chosen a non-default solver backend ({key}) "
                 f"but it could not be imported:\n\n"
                 f"  {exc.__class__.__name__}: {exc}\n\n"
                 f"Try (re)installing conda-libmamba-solver."
             )
 
-    raise ValueError(f"Solver {key} not recognized!")
+    raise ValueError(
+        f"You have chosen a non-default solver backend ({key}) "
+        f"but it was not recognized. Choose one of "
+        f"{[v.value for v in ExperimentalSolverChoice]}"
+    )
 
 
 class Solver(object):
