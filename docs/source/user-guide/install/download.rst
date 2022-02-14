@@ -43,7 +43,7 @@ Choose Anaconda if you:
 * Do not want to individually install each of the packages you
   want to use.
 
-* Wish to use a curated and vetted set of packages.
+* Wish to use a set of packages curated and vetted for interoperability and usability.
 
 Choose Miniconda if you:
 
