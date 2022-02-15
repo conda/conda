@@ -77,16 +77,17 @@ generators, initialize the context and loggers, and, eventually, pass the argume
 the corresponding command function. These four steps are implemented in four functions/classes:
 
 1. [`conda.cli.conda_argparse:generate_parser()`][conda.cli.conda_argparse:generate_parser]:
-  This uses `argparse` to generate the CLI. Each subcommand is initialized in separate functions.
-  Note that the command line options are not generated dynamically from the `Context` object, but
-  annotated manually. If this is needed (e.g. `--repodata-fn` is exposed in `Context.repodata_fn`),
-  the `dest` variable of each CLI option should
-  [match the target attribute in the context object][context_match].
-2. [`conda.base.context.Context`][context_init]:
-  Initialized taking into account, among other things, the parsed arguments from step above. This is
-  covered in more detail in a separate deep dive: {ref}`deep_dive_context`.
+   This uses `argparse` to generate the CLI. Each subcommand is initialized in separate functions.
+   Note that the command line options are not generated dynamically from the `Context` object, but
+   annotated manually. If this is needed (e.g. `--repodata-fn` is exposed in `Context.repodata_fn`),
+   the `dest` variable of each CLI option should
+   [match the target attribute in the context object][context_match].
+2. [`conda.base.context.Context`][context_init]: This object stores the configuration options
+   in `conda` and will be initialized taking into account, among other things, the arguments
+   parsed in the step above. This is covered in more detail in a separate deep dive:
+   {ref}`deep_dive_context`.
 3. [`conda.gateways.logging:initialize_logging()`][initialize_logging]:
-  Not too exciting and easy to follow. This part of the code base is more or less self-explanatory.
+   Not too exciting and easy to follow. This part of the code base is more or less self-explanatory.
 4. [`conda.cli.conda_argparse:do_call()`][conda.cli.conda_argparse:do_call]: The argument parsing
    will populate a `func` value that contains the import path to the function responsible for that
    subcommand. For example, `conda install` is [taken care of][conda_install_delegation] by
@@ -366,26 +367,25 @@ deletion, files are not copied over, but instead they are linked (usually via a 
 why these two tasks are separated in the transaction logic: you don't need to download and extract
 packages that are already in the cache; you only need to link them!
 
-```{admonition} Transactions also drive reports
+````{admonition} Transactions also drive reports
 
 The type and number of actions can also be calculated by `_make_legacy_action_groups()`, which
 returns a list of _action groups_ (one per `PrefixSetup`). Each action group is a just a dictionary
 following this specification:
 
-  ```
-  {
-    "FETCH": Iterable[PackageRecord],  # estimated by `ProgressiveFetchExtract`
-    "PREFIX": str,
-    "UNLINK": Iterable[PackageRecord],
-    "LINK: Iterable[PackageRecord],
-  }
-  ```
-
+```
+{
+  "FETCH": Iterable[PackageRecord],  # estimated by `ProgressiveFetchExtract`
+  "PREFIX": str,
+  "UNLINK": Iterable[PackageRecord],
+  "LINK: Iterable[PackageRecord],
+}
+```
 
 These simpler action groups are only used for reporting, either via a processed text report
 (via `print_transaction_summary`) or just the raw JSON (via `stdout_json_success`). As you can see,
 they do not know anything about other types of tasks.
-```
+````
 
 ## Download and extraction
 
@@ -495,7 +495,7 @@ three different actions:
 3. Copying the file
 
 The difference between soft links and hard links is subtle, but important. You can find more info on
-the differences elsewhere (e.g. here), but for our purposes it means that:
+the differences elsewhere (e.g. [here][hardlinks_vs_softlinks]), but for our purposes it means that:
 
 * Hard links are cheaper to resolve, behave like a real file, but can only link files in the same
   mount point.
@@ -643,3 +643,4 @@ initially thought, but it all boils down to only some steps. TL;DR:
 [pr3301]: https://github.com/conda/conda/pull/3301
 [pr3571]: https://github.com/conda/conda/pull/3571
 [transaction_PR]: https://github.com/conda/conda/pull/3833
+[hardlinks_vs_softlinks]: https://askubuntu.com/questions/108771/what-is-the-difference-between-a-hard-link-and-a-symbolic-link
