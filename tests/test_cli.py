@@ -179,7 +179,7 @@ class TestJson(unittest.TestCase):
     def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
 
-class TestRun(unittest.TestCase):
+class TestRun(object):
     def test_run_returns_int(self):
         from tests.test_create import make_temp_env
         from tests.test_create import make_temp_prefix
@@ -237,8 +237,14 @@ class TestRun(unittest.TestCase):
             current = stat.S_IMODE(os.lstat(prefix).st_mode)
             os.chmod(prefix, current & ~stat.S_IWRITE)
 
-            # Confirm that we do not have write access to this directory.
-            self.assertRaises(PermissionError, open, os.path.join(prefix, 'test.txt'), 'w+')
+            # Confirm we do not have write access.
+            raise_ok = False
+            try:
+                _ = open(os.path.join(prefix, 'test.txt'), 'w+')
+            except PermissionError:
+                raise_ok = True
+
+            assert raise_ok
 
             stdout, stderr, result = run_inprocess_conda_command('conda run -p {} exit 0'.format(prefix))
 
