@@ -64,7 +64,7 @@ Types of `spec` objects:
 * Targeted `spec`: a `spec` with the `target` field populated. Extracted from the comments in
   the solver logic:
     > `target` is a reference to the package currently existing in the environment. Setting
-    > target instructs the solver to not disturb that package if it's not necessary. If the
+    > `target` instructs the solver to not disturb that package if it's not necessary. If the
     > spec.name is being modified by inclusion in `specs_to_add`, we don't set `target`, since we
     > *want* the solver to modify/update that package.
     >
