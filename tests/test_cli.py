@@ -14,6 +14,7 @@ from conda.common.io import captured
 from conda.gateways.disk.delete import rm_rf
 from tests.helpers import capture_json_with_argv, run_inprocess_conda_command
 from conda.common.compat import text_type
+from conda.utils import on_win
 
 import os
 import stat
@@ -227,6 +228,7 @@ class TestRun(object):
             captured = capfd.readouterr()
             assert random_text in captured.out
 
+    @pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
     def test_run_readonly_env(self):
         from tests.test_create import make_temp_env
         from tests.test_create import make_temp_prefix
