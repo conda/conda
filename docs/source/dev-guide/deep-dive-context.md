@@ -1,6 +1,6 @@
 (deep_dive_context)=
 
-# Deep dive: conda config and Context
+# Deep dive: `conda` config and Context
 
 The `context` object is central to many parts of the `conda` codebase. It serves as a centralized
 repository of settings. You normally import the singleton and access its (many) attributes directly:
@@ -126,7 +126,7 @@ final `Configuration` object might not be obvious at first. This is different fo
     * `MapParameter` and `ObjectParameter` do not support being set with environment variables.
 * `ArgParseRawParameter`: These are a bit different because there is no automated mechanism that
   ties a given command line flag to the context object. This means that if you add a new setting
-  to the `Context` class and you want that available in the CLI as a command-line flag, you have
+  to the `Context` class and you want that available in the CLI as a command line flag, you have
   to add it yourself. If that's the case, refer to `conda.cli.conda_argparse` and make sure that
   the `dest` value of your `argparse.Argument` matches the attribute name in `Context`. This way,
   `Configuration.__init__` can take the `argparse.Namespace` object, turn it into a dictionary,

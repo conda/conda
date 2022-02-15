@@ -31,7 +31,7 @@ $ (base) ~/: conda list
 
 Ok, so... what happens when you run `conda install numpy`? Roughly, these steps:
 
-1. Command-line interface
+1. Command line interface
     * `argparse` parsers
     * Environment variables
     * Configuration files
@@ -52,13 +52,13 @@ Ok, so... what happens when you run `conda install numpy`? Roughly, these steps:
 8. Post-linking and post-activation tasks
 
 
-## Command-line interface
+## Command line interface
 
 <!-- This might be better in a separate deep-dive for the command line alone -->
 
 First, a quick note on an implementation detail that might be not obvious.
 
-When you type `conda install numpy` in your terminal, Bash takes those three words and looked for a
+When you type `conda install numpy` in your terminal, Bash takes those three words and looks for a
 `conda` command to pass a list of arguments `['conda', 'install', 'numpy']`. Before finding the
 `conda` executable located at `CONDA_HOME/condabin`, it probably finds the shell function
 defined [here][conda_shell_function]. This shell function runs the activation/deactivation
@@ -68,7 +68,7 @@ This part of the logic can be found in [`conda.shell`][conda.shell].
 Once we are running the Python entry-point, we are in the [`conda.cli`][conda.cli]
 realm. The function called by the entry point is [`conda.cli.main:main()`][conda.cli.main:main].
 Here, another check is done for `shell.*` subcommands, which generate the shell initializers you see
-in `~/.bashrc` and others. If you are curious where his happens, it's
+in `~/.bashrc` and others. If you are curious where this happens, it's
 [`conda.activate`][conda.activate].
 
 Since our command is `conda install ...`, we still need to arrive somewhere else. You will notice
@@ -78,7 +78,7 @@ the corresponding command function. These four steps are implemented in four fun
 
 1. [`conda.cli.conda_argparse:generate_parser()`][conda.cli.conda_argparse:generate_parser]:
   This uses `argparse` to generate the CLI. Each subcommand is initialized in separate functions.
-  Note that the command-line options are not generated dynamically from the `Context` object, but
+  Note that the command line options are not generated dynamically from the `Context` object, but
   annotated manually. If this is needed (e.g. `--repodata-fn` is exposed in `Context.repodata_fn`),
   the `dest` variable of each CLI option should
   [match the target attribute in the context object][context_match].
@@ -103,7 +103,7 @@ If you go and read that function, you will see there are several lines of code h
 situations (new environments, clones, etc.) before we arrive to the next section. We will not discuss
 them here, but feel free to explore [that section][conda_cli_install_presolve_logic].
 It's mostly ensuring that the destination prefix exists, whether we are creating a new environment
-and massaging some command-line flags that would allow us to skip the solver (e.g. `--clone`).
+and massaging some command line flags that would allow us to skip the solver (e.g. `--clone`).
 
 ```{admonition} More information on environments
 Check the concepts for {ref}`concepts-conda-environments`.
@@ -115,8 +115,8 @@ Check the concepts for {ref}`concepts-conda-environments`.
 
 ## Fetching the index
 
-At this point, we are ready to start doing some work! All the previous code was telling us what to
-do, and now we know. We want `conda` to _install_  `numpy` on our `base` environment. First thing
+At this point, we are ready to start doing some work! All of the previous code was telling us what to
+do, and now we know. We want `conda` to _install_  `numpy` on our `base` environment. The first thing
 we need to know is where we can find packages with the name `numpy`. The answer is... the channels!
 
 Users download packages from `conda` channels. These are normally hosted at `anaconda.org`. A
@@ -164,16 +164,15 @@ The important bits are:
   {ref}`concept-conda-package`, {ref}`package_metadata` and/or [Package naming
   conventions][conda_build_package_names] for more details.
 
-Additionally, the channel main directory might contain a `channeldata.json` file, with channel-wide
-metadata (this is, not specific per platform). Not all channels include this and, actually, it's not
-really used these days. <!-- TODO: Check why and reasons for this file to exist -->
+Additionally, the channel's main directory might contain a `channeldata.json` file, with channel-wide
+metadata (this is not specific per platform). Not all channels include this, and in general it is not currently something that is commonly utilized. <!-- TODO: Check why and reasons for this file to exist -->
 
 Since conda's philosophy is to keep all packages ever published around for reproducibility,
 `repodata.json` is always growing, which presents a problem both for the download itself and the
 solver engine. To reduce download times and bandwidth usage, `repodata.json` is also served as a
 BZIP2 compressed file, `repodata.json.bz2`. This is what most `conda` clients end up downloading.
 
-```{admonition} Note on current_repodata.json
+```{admonition} Note on `current_repodata.json`
 More _repodatas_ variations can be found in some channels, but they are always reduced versions
 of the main one for the sake of performance. For example, `current_repodata.json` only contains
 the most recent version of each package, plus their dependencies. The rationale behind this
@@ -236,7 +235,7 @@ queries, use `SubdirData.iter_records()`.
 ```{admonition} Tricks to reduce the size of the index
 
 `conda` supports the notion of trying with different versions of the index in an effort to minimize
-the solution space. A smaller index means a faster search after all! The default logic starts with
+the solution space. A smaller index means a faster search, after all! The default logic starts with
 `current_repodata.json` files in the channel, which contain only the latest versions of each package
 plus their dependencies. If that fails, then the full `repodata.json` is used. This happens _before_
 the `Solver` is even invoked.
@@ -271,14 +270,14 @@ to solve and causes less problems down the line. Check more details
 
 At this point, we can start asking the solver things. After all, we have loaded the
 channels into our index, building the catalog of available packages and versions we can
-install. We also have the command-line instructions and configurations needed to customize the
+install. We also have the command line instructions and configurations needed to customize the
 solver request. So, let's just do it: "Solver, please install numpy on this prefix using these
 channels as package sources".
 
 The details are complicated, but in essence, the `Solver` will:
 
 1. Express the requested packages, command line options and prefix state as `MatchSpec` objects
-2. Query the index for the best possible match that satisfy those constrains
+2. Query the index for the best possible match that satisfy those constraints
 3. Return a list of `PackageRecord` objects.
 
 The full details are covered in {ref}`deep_dive_solvers` if you are curious. Just keep in mind that
@@ -495,7 +494,7 @@ three different actions:
 2. Creating a hard link
 3. Copying the file
 
-The difference between softlinks and hardlinks is subtle, but important. You can find more info on
+The difference between soft links and hard links is subtle, but important. You can find more info on
 the differences elsewhere (e.g. here), but for our purposes it means that:
 
 * Hard links are cheaper to resolve, behave like a real file, but can only link files in the same
@@ -503,7 +502,7 @@ the differences elsewhere (e.g. here), but for our purposes it means that:
 * Soft links can link files across mount points, but they don't behave exactly like files (more like
   forwarders), so it's possible that they break assumptions made in certain pieces of code.
 
-Most of the time, `conda` will try to hardlink files and, if that fails, it will copy them over.
+Most of the time, `conda` will try to hard link files and, if that fails, it will copy them over.
 Copying a file is an expensive disk operation, both in terms of time and space, so it should be
 the last option. However, sometimes it's the only way. Especially, when the file needs to be
 modified to be used in the target prefix.
@@ -511,12 +510,12 @@ modified to be used in the target prefix.
 Ummm... what? Why would `conda` modify a file to install it? This has to do with relocatability.
 When a `conda` package is created, `conda-build` creates up to three temporary environments:
 
-* Build environment: where compilers and other build tools are installed to, separate from the
+* Build environment: where compilers and other build tools are installed, separate from the
   host environment to support cross-compilation.
-* Host environment: where build-time dependencies are installed to, together with the package you
+* Host environment: where build-time dependencies are installed, together with the package you
   are building.
 * Test environment: where run-time dependencies are installed, together with the package you just
-  build. It simulates what will happen when a user installs the package so you can run arbitrary
+  built. It simulates what will happen when a user installs the package so you can run arbitrary
   checks on your package.
 
 When you are building a package, references to the build-time paths can leak into the content of
@@ -540,10 +539,10 @@ of this is determined in the preparation routines contained in
 Note that the (un)linking actions also include the execution of pre-(un)link and post-(un)link
 scripts, if listed.
 
-## Action groups and actions, in detal
+## Action groups and actions, in detail
 
 Once the old packages have been removed and the new ones have been linked through the appropriate
-means, we are done, right? Well, not there yet! There's one step left: the post-linking logic.
+means, we are done, right? Not yet! There's one step left: the post-linking logic.
 
 It turns out that there's a number of smaller tasks that need to happen to make `conda` as
 convenient as it is. You can find all of them listed a few paragraphs above, but we'll cover
