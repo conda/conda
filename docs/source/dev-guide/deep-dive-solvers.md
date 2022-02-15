@@ -9,7 +9,7 @@ learn what happens _inside_ the solver itself. We only covered these three steps
 > The details are complicated, but in essence, the solver will:
 >
 > 1. Express the requested packages, command line options and prefix state as `MatchSpec` objects
-> 2. Query the index for the best possible match that satisfy those constrains
+> 2. Query the index for the best possible match that satisfy those constraints
 > 3. Return a list of `PackageRecord` objects.
 
 How do we transform the prefix state and configurations into a list of `MatchSpec` objects? How
@@ -29,12 +29,12 @@ First, let's define what each object does:
   like `numpy>=1.19`, `python=3.*` or `pytorch=1.8.*=*cuda*`, into instances of this class.
   This query language has its own syntax and rules, detailed [here][conda_package_spec]. The
   most important fields of a `MatchSpec` object are:
-  * `name`: the name of the package (e.g. `pytorch`), always expected.
-  * `version`: the version constrains (e.g. `1.8.*`), can be empty but if `build` is set, set it to
+  * `name`: the name of the package (e.g. `pytorch`); always expected.
+  * `version`: the version constraints (e.g. `1.8.*`); can be empty but if `build` is set, set it to
     `*` to avoid issues with the `.conda_build_form()` method.
-  * `build`: the build string constrains (e.g. `*cuda*`), can be empty.
+  * `build`: the build string constraints (e.g. `*cuda*`); can be empty.
 
-```{tip} Create a MatchSpec from a PackageRecord
+```{tip} Create a `MatchSpec` from a PackageRecord
 
 You can create a `MatchSpec` object from a `PackageRecord` instance using the `.to_match_spec()`
 method. This will create a `MatchSpec` object with its fields set to exactly match the originating
@@ -64,7 +64,7 @@ When you do `conda install numpy`, do you think the solver will just see somethi
 `specs=[MatchSpec("numpy")]`? Well, not that quick. The explicit instructions given by the user
 are only one part of the request we will send to the solver. Other pieces of implicit state are
 taken into account to build the final request. Namely, the state of your prefix. In total,
-these are the ingredients of the solver request.
+these are the ingredients of the solver request:
 
 1. Packages already present in your environment, if you are not _creating_ a new one. This is
    exposed through the `conda.core.prefix_data.PrefixData` class, which provides an iterator method
@@ -85,7 +85,7 @@ these are the ingredients of the solver request.
    solver to add all installed packages to the update list).
 
 All of those sources of information produce a number a of `MatchSpec` objects, which are then
-combined and modified in very specific ways depending on the command-line flags and their origin
+combined and modified in very specific ways depending on the command line flags and their origin
 (e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
 explicitly). This logic is intricate and will be covered in the next sections. A more technical
 description is also available in {ref}`solver_state_specification`.
@@ -225,7 +225,7 @@ already found in the `PrefixData` list after filtering out the ones that should 
 This is also [implemented][conda.core.solve:satisfied_skip_solve] at the `Solver` level,
 because we also need a `PrefixData` instance. It essentially checks if all of the passed `MatchSpec`
 objects can match a `PackageRecord` already in prefix. If that's the case, we return the installed
-state as is. If not, we proceed for the full solve.
+state as-is. If not, we proceed for the full solve.
 
 (details_solve_final_state)=
 
@@ -237,7 +237,7 @@ the current index for the best match.
 
 The aggregation of all those state bits will result in a list of `MatchSpec` objects. While it's
 easy to establish which package names will make it to the list, deciding which version and build
-string constrains the specs carry is a bit more involved.
+string constraints the specs carry is a bit more involved.
 
 This is currently implemented in the `conda.core.solve.Solver` class. Its main goal is to
 populate the `specs_map` dictionary, which maps package names (`str`) to `MatchSpec` objects.
@@ -331,7 +331,7 @@ The `Resolve` object will mostly receive two arguments:
 * The fetched `index`, as processed by `conda.index.get_index()`.
 * The configured `channels`, so _channel priority_ can be sorted out.
 
-It will also hold certain state:
+It will also hold certain states:
 
 * The `index` will be grouped by name under a `.groups` dictionary (`str`, `[PackageRecord]`). Each
   group is later sorted so newer packages are listed first, helping reduce the index better.
@@ -376,7 +376,7 @@ actions:
 3.  Run `Clauses.sat()` to solve the SAT problem. If a solution cannot be found, deal with the
     error in the usual way: raise early to trigger another attempt or call `find_conflicts()` to
     try explaining why.
-4.  If no errors are found, then we have one or more solutions available. And we need to
+4.  If no errors are found, then we have one or more solutions available, and we need to
     post-process them to find the _best_ one. This is done in several steps:
     1.  Minimize the amount of removed packages. The SAT clauses are generated via
         `Resolve.generate_removal_count()` and then `Clauses.minimize()` will use it to optimize the
@@ -408,7 +408,7 @@ actions:
 ### The `Clauses` object wraps the SAT solver using several layers
 
 The `Resolve` class exposes the solving logic, but when it comes to interacting with the SAT solver
-engine, that's done through the `Clauses` object tree. And we say tree because the actual engines
+engine, that's done through the `Clauses` object tree. And we say "tree" because the actual engines
 are wrapped in several layers:
 
 * `Resolve` generates `conda.common.logic.Clauses` objects as needed.
