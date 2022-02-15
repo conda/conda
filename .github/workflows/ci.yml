@@ -49,7 +49,6 @@ jobs:
           fetch-depth: 0
 
       - name: Set temp dirs correctly
-        shell: bash -l {0}
         # https://github.com/actions/virtual-environments/issues/712
         run: |
           echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
