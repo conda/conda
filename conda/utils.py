@@ -304,7 +304,7 @@ if on_win:
             s = _CMD_ESCAPE_RE.sub(r"^\1", s)
             # doubly escape (\\^) metacharacters to avoid case of, e.g., quotes inside quoted arg
             s = _CMD_DBLESCAPE_RE.sub(r"\\^\1", s)
-            return f'^"{s}^"'
+            return f'"{s}"'
 
         return " ".join(quote(arg) for arg in args)
 else:
