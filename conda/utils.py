@@ -263,9 +263,8 @@ def sys_prefix_unfollowed():
 def quote_for_shell(*arguments):
     """Properly quote arguments for command line passing.
 
-    For POSIX uses `shlex.join`, for Windows uses an implementation derived from `shlex.join` and
-    guided by
-    https://docs.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way#a-better-method-of-quoting.
+    For POSIX uses `shlex.join`, for Windows uses a custom implementation to properly escape
+    metacharacters.
 
     :param arguments: Arguments to quote.
     :type arguments: list of str
@@ -280,6 +279,9 @@ def quote_for_shell(*arguments):
 
 
 if on_win:
+    # https://ss64.com/nt/syntax-esc.html
+    # https://docs.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
+
     # cmd metachars
     _CMD_ESCAPE_METACHARS = "()%!^<>&|"
     _CMD_DBLESCAPE_METACHARS = '"'
@@ -290,28 +292,21 @@ if on_win:
     _CMD_DBLESCAPE_RE = re.compile(fr"([{_CMD_DBLESCAPE_METACHARS}])")
 
     def _args_join(args):
-        """Return a shell-escaped string from a list of arguments.
+        """Return a shell-escaped string from *args*."""
 
-        Inspired by `shlex.join`.
-        """
-        return " ".join(map(_cmd_quote, args))
+        def quote(s):
+            # derived from shlex.quote
+            if not s:
+                return '""'
+            if not _CMD_UNSAFE_RE.search(s):
+                return s
+            # escape (^) metacharacters
+            s = _CMD_ESCAPE_RE.sub(r"^\1", s)
+            # doubly escape (\\^) metacharacters to avoid case of, e.g., quotes inside quoted arg
+            s = _CMD_DBLESCAPE_RE.sub(r"\\^\1", s)
+            return f'^"{s}^"'
 
-    def _cmd_quote(s):
-        """Return a shell-escaped version of the string.
-
-        Inspired by `shlex.quote`.
-        """
-        if not s:
-            return '""'
-        if not _CMD_UNSAFE_RE.search(s):
-            return s
-        # escape (^) metacharacters
-        s = _CMD_ESCAPE_RE.sub(r"^\1", s)
-        # doubly escape (\\^) metacharacters to avoid case of, e.g., quotes inside quoted arg
-        s = _CMD_DBLESCAPE_RE.sub(r"\\^\1", s)
-        return f'^"{s}^"'
-
-
+        return " ".join(quote(arg) for arg in args)
 else:
     try:
         from shlex import join as _args_join
