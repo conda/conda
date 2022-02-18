@@ -2,9 +2,23 @@
 # NOTE: This script should be sourced! The shebang is only here to help syntax highlighters.
 
 if ! (return 0 2> /dev/null); then
-    echo "ERROR: Source this script: . '$0'." >&2
+    echo "ERROR: Source this script: source '$0'." >&2
     exit 1
 fi
+
+cleanup() {
+    unset _BASEEXE
+    unset _DEVENV
+    unset _DRYRUN
+    unset _ENV
+    unset _ENVEXE
+    unset _NAME
+    unset _PYTHON
+    unset _SRC
+    unset _UPDATE
+    unset _UPDATED
+}
+cleanup
 
 # parse args
 while [[ $# -gt 0 ]]; do
@@ -30,16 +44,21 @@ while [[ $# -gt 0 ]]; do
         --devenv=*)
             _DEVENV="${1#*=}"
             shift
+            ;;
+        -n|--dry-run)
+            _DRYRUN=0
             shift
             ;;
         -h|--help)
-            echo "Usage: $0 [-p|--python VERSION] [-u|--update] [-d|--devenv PATH] [-h|--help]"
+            echo "Usage: source $0 [options]"
             echo ""
             echo "Options:"
-            echo "  -p, --python  VERSION  Specify the Python version for the devenv (default: 3.8)"
-            echo "  -u, --update           Force update packages (default: update every 24 hours)"
-            echo "  -d, --devenv  PATH     Provide the desired devenv path (default: devenv/$(uname))"
-            echo "  -h, --help             Display this"
+            echo "  -p, --python  VERSION  Python version for the env to activate. (default: 3.8)"
+            echo "  -u, --update           Force update packages. (default: update every 24 hours)"
+            echo "  -d, --devenv  PATH     Path to base env install, can also be defined in ~/.condarc."
+            echo "                         Path is appended with $(uname). (default: devenv)"
+            echo "  -n, --dry-run          Display env to activate. (default: false)"
+            echo "  -h, --help             Display this."
             return 0
             ;;
         *)
@@ -48,94 +67,118 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
-_DEVENV="${_DEVENV:-$(pwd)/devenv/$(uname)}"
+
+# get source path
+# since zsh is MacOS standard fallback to $0 if not in bash
+_SRC="$(cd "$(dirname "$(dirname "${BASH_SOURCE:-$0}")")" 2>&1 > /dev/null; pwd -P)"
+
+# read devenv key from ~/.condarc
+_DEVENV="${_DEVENV:-$(grep "^devenv:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
+# fallback to devenv in source default
+_DEVENV="${_DEVENV:-${_SRC}/devenv}"
+# tilde expansion
+_DEVENV="${_DEVENV/#\~/${HOME}}"
+# include OS
+_DEVENV="${_DEVENV}/$(uname)"
+# ensure exists and absolute path
 mkdir -p "${_DEVENV}"
 _DEVENV="$( cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
+
+# fallback to default values
 _PYTHON="${_PYTHON:-3.8}"
 _UPDATE="${_UPDATE:-1}"
+_DRYRUN="${_DRYRUN:-1}"
+
+# other environment values
+_NAME="devenv-${_PYTHON}-c"
+_ENV="${_DEVENV}/envs/${_NAME}"
+_UPDATED="${_ENV}/.devenv-updated"
+case "$(uname)" in
+    Darwin|Linux) _BASEEXE="${_DEVENV}/bin/conda" ; _ENVEXE="${_ENV}/bin/conda" ;;
+               *) _BASEEXE="${_DEVENV}/Scripts/conda" ; _ENVEXE="${_ENV}/Scripts/conda" ;;
+esac
+
+# dryrun printout
+if [ ${_DRYRUN} = 0 ]; then
+    echo "Python: ${_PYTHON}"
+    echo "Updating: $([ ${_UPDATE} = 0 ] && echo "yes" || echo "pending")"
+    echo "Devenv: ${_DEVENV}"
+    echo ""
+    echo "Name: ${_NAME}"
+    echo "Path: ${_ENV}"
+    echo ""
+    echo "Source: ${_SRC}"
+    return 0
+fi
 
 # deactivate any prior envs
-if ! [ "${CONDA_SHLVL:-0}" = "0" ]; then
-    echo "Deactivating ${CONDA_SHLVL} environments..."
-    while ! [ "${CONDA_SHLVL:-0}" = "0" ]; do
+if ! [ ${CONDA_SHLVL:-0} = 0 ]; then
+    echo "Deactivating ${CONDA_SHLVL} environment(s)..."
+    while ! [ ${CONDA_SHLVL:-0} = 0 ]; do
         if ! conda deactivate; then
-            echo "Error: failed to deactivate environment" 1>&2
+            echo "Error: failed to deactivate environment(s)" 1>&2
             return 1
         fi
     done
 fi
 
-# get/set variables
-_STUB="devenv-${_PYTHON}"
-_ENV="${_DEVENV}/envs/${_STUB}"
-_UPDATED="${_ENV}/.devenv-updated"
-case "$(uname)" in
-    Darwin|Linux) _CONDA_EXE="${_DEVENV}/bin/conda" ; _ENV_EXE="${_ENV}/bin/conda" ;;
-               *) _CONDA_EXE="${_DEVENV}/Scripts/conda" ; _ENV_EXE="${_ENV}/Scripts/conda" ;;
-esac
-
-# does conda install exist?
+# does miniconda install exist?
 if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
-    # downloading conda
+    # downloading miniconda
     if ! [[ "$(uname)" == "Darwin" && -f "${_DEVENV}/miniconda.sh" ]] && \
         ! [[ "$(uname)" == "Linux" && -f "${_DEVENV}/miniconda.sh" ]] && \
         ! [[ -f "${_DEVENV}/miniconda.exe" ]]; then
-        echo "Downloading conda..."
+        echo "Downloading miniconda..."
         case "$(uname)" in
             Darwin) curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh" -o "${_DEVENV}/miniconda.sh" ;;
              Linux) curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -o "${_DEVENV}/miniconda.sh" ;;
                  *) powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_DEVENV}/miniconda.exe' | Out-Null" ;;
         esac
         if ! [ $? = 0 ]; then
-            echo "Error: failed to download conda" 1>&2
+            echo "Error: failed to download miniconda" 1>&2
             return 1
         fi
     fi
 
-    # installing conda
-    echo "Installing conda..."
+    # installing miniconda
+    echo "Installing miniconda..."
     case "$(uname)" in
         Darwin|Linux) bash "${_DEVENV}/miniconda.sh" -bfp "${_DEVENV}" > /dev/null ;;
                    *) cmd.exe /c "start /wait \"\" \"${_DEVENV}\miniconda.exe\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
     esac
     if ! [ $? = 0 ]; then
-        echo "Error: failed to install conda" 1>&2
+        echo "Error: failed to install miniconda" 1>&2
         return 1
     fi
 fi
 
 # create empty env if it doesn't exist
 if ! [ -d "${_ENV}" ]; then
-    echo "Creating ${_STUB}..."
-    if ! "${_CONDA_EXE}" create -yq -p "${_ENV}" > /dev/null; then
-        echo "Error: failed to create ${_STUB}" 1>&2
+    echo "Creating ${_NAME}..."
+    if ! "${_BASEEXE}" create -yq --prefix "${_ENV}" > /dev/null; then
+        echo "Error: failed to create ${_NAME}" 1>&2
         return 1
     fi
 fi
 
 # check if explicitly updating or if 24 hrs since last update
-if [ "${_UPDATE}" = 0 ] || ! [ -f "${_UPDATED}" ] || (( $(( $(date +%s) - $(date -r "${_UPDATED}" +%s) )) >= 86400 )); then
-    echo "Updating ${_STUB}..."
+if [ ${_UPDATE} = 0 ] || ! [ -f "${_UPDATED}" ] || (( $(( $(date +%s) - $(date -r "${_UPDATED}" +%s) )) >= 86400 )); then
+    echo "Updating ${_NAME}..."
 
-    case "$(uname)" in
-        Linux) _EXTRA="patchelf" ;;
-            *) _EXTRA="" ;;
-    esac
-
-    if ! "${_CONDA_EXE}" update -yq --all > /dev/null; then
-        echo "Error: failed to update conda" 1>&2
+    if ! "${_BASEEXE}" update -yq --all > /dev/null; then
+        echo "Error: failed to update miniconda" 1>&2
         return 1
     fi
 
-    if ! "${_CONDA_EXE}" install \
+    if ! "${_BASEEXE}" install \
         -yq \
-        -p "${_ENV}" \
+        --prefix "${_ENV}" \
         --override-channels \
         -c defaults \
-        --file tests/requirements.txt \
-        ${_EXTRA} \
+        --file "${_SRC}/tests/requirements.txt" \
+        $([ "$(uname)" = "Linux" ] && echo "patchelf") \
         "python=${_PYTHON}" > /dev/null; then
-        echo "Error: failed to update ${_STUB}" 1>&2
+        echo "Error: failed to update ${_NAME}" 1>&2
         return 1
     fi
 
@@ -144,21 +187,21 @@ if [ "${_UPDATE}" = 0 ] || ! [ -f "${_UPDATED}" ] || (( $(( $(date +%s) - $(date
 fi
 
 # initialize conda command
-echo "Initializing conda..."
-eval "$("${_CONDA_EXE}" init --dev bash)" > /dev/null
+echo "Initializing shell integration..."
+eval "$(cd "${_SRC}" ; "${_BASEEXE}" init --dev bash)" > /dev/null
 if ! [ $? = 0 ]; then
-    echo "Error: failed to initialize conda" 1>&2
+    echo "Error: failed to initialize shell integration" 1>&2
     return 1
 fi
 
-# activate dev env
-echo "Activating ${_STUB}..."
+# activate env
+echo "Activating ${_NAME}..."
 if ! conda activate "${_ENV}" > /dev/null; then
-    echo "Error: failed to activate ${_STUB}" 1>&2
+    echo "Error: failed to activate ${_NAME}" 1>&2
     return 1
 fi
-export CONDA_EXE="${_ENV_EXE}"
-export PYTHONPATH="$(pwd):${PYTHONPATH}"
+export CONDA_EXE="${_ENVEXE}"
+export PYTHONPATH="${_SRC}:${PYTHONPATH}"
 
-# cleanup
-unset _DEVENV _PYTHON _STUB _ENV _UPDATED _CONDA_EXE _ENV_EXE _EXTRA
+cleanup
+unset -f cleanup
