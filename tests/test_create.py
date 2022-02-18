@@ -1256,40 +1256,40 @@ dependencies:
             assert not package_is_installed(prefix, 'flask')
 
     def test_install_update_deps_flag(self):
-        with make_temp_env("flask=0.12", "jinja2=2.9") as prefix:
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12")
-            assert package_is_installed(prefix, "jinja2=2.9")
+        with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.1")
+            assert package_is_installed(prefix, "jinja2=3.0.1")
 
             run_command(Commands.INSTALL, prefix, "flask", "--update-deps")
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask>0.12")
-            assert package_is_installed(prefix, "jinja2>2.9")
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask>2.0.1")
+            assert package_is_installed(prefix, "jinja2>3.0.1")
 
     def test_install_only_deps_flag(self):
-        with make_temp_env("flask=0.12.2", "jinja2=2.9") as prefix:
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12.2")
-            assert package_is_installed(prefix, "jinja2=2.9")
+        with make_temp_env("flask=2.0.2", "jinja2=3.0.2") as prefix:
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.2")
+            assert package_is_installed(prefix, "jinja2=3.0.2")
 
             run_command(Commands.INSTALL, prefix, "flask", "--only-deps")
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12.2")
-            assert package_is_installed(prefix, "jinja2=2.9")
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.2")
+            assert package_is_installed(prefix, "jinja2=3.0.2")
 
-        with make_temp_env("flask==0.12.2", "--only-deps") as prefix:
+        with make_temp_env("flask==2.0.2", "--only-deps") as prefix:
             assert not package_is_installed(prefix, "flask")
 
     def test_install_update_deps_only_deps_flags(self):
-        with make_temp_env("flask=0.12.2", "jinja2=2.9") as prefix:
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12.2")
-            assert package_is_installed(prefix, "jinja2=2.9")
+        with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.1")
+            assert package_is_installed(prefix, "jinja2=3.0.1")
 
-            run_command(Commands.INSTALL, prefix, "flask", "python=3.6", "--update-deps", "--only-deps")
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12.2")
-            assert package_is_installed(prefix, "jinja2>2.9")
+            run_command(Commands.INSTALL, prefix, "flask", "python=3.9", "--update-deps", "--only-deps")
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.1")
+            assert package_is_installed(prefix, "jinja2>3.0.1")
 
 
     @pytest.mark.xfail(on_win, reason="nomkl not present on windows",
