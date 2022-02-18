@@ -15,6 +15,7 @@ cleanup() {
     unset _ENVEXE
     unset _NAME
     unset _PYTHON
+    unset _PYTHONEXE
     unset _SRC
     unset _UPDATE
     unset _UPDATED
@@ -98,8 +99,8 @@ _NAME="devenv-${_PYTHON}-c"
 _ENV="${_DEVENV}/envs/${_NAME}"
 _UPDATED="${_ENV}/.devenv-updated"
 case "$(uname)" in
-    Darwin|Linux) _BASEEXE="${_DEVENV}/bin/conda" ; _ENVEXE="${_ENV}/bin/conda" ;;
-               *) _BASEEXE="${_DEVENV}/Scripts/conda" ; _ENVEXE="${_ENV}/Scripts/conda" ;;
+    Darwin|Linux) _BASEEXE="${_DEVENV}/bin/conda" ; _ENVEXE="${_ENV}/bin/conda" ; _PYTHONEXE="${_ENV}/bin/python" ;;
+               *) _BASEEXE="${_DEVENV}/Scripts/conda.exe" ; _ENVEXE="${_ENV}/Scripts/conda.exe" ; _PYTHONEXE="${_ENV}/Scripts/python.exe" ;;
 esac
 
 # dryrun printout
@@ -206,6 +207,7 @@ if ! conda activate "${_ENV}" > /dev/null; then
     return 1
 fi
 export CONDA_EXE="${_ENVEXE}"
+export CONDA_PYTHON_EXE="${_PYTHONEXE}"
 export PYTHONPATH="${_SRC}:${PYTHONPATH}"
 
 cleanup

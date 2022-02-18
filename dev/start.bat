@@ -73,6 +73,7 @@
 @SET "_UPDATED=%_ENV%\.devenv-updated"
 @SET "_BASEEXE=%_DEVENV%\Scripts\conda.exe"
 @SET "_ENVEXE=%_ENV%\Scripts\conda.exe"
+@SET "_PYTHONEXE=%_ENV%\python.exe"
 @SET "_CONDABAT=%_ENV%\condabin\conda.bat"
 
 @REM dryrun printout
@@ -200,6 +201,7 @@
     @EXIT /B 1
 )
 @SET "CONDA_EXE=%_ENVEXE%"
+@SET "CONDA_PYTHON_EXE=%_PYTHONEXE%"
 @SET "CONDA_BAT=%_CONDABAT%"
 @DOSKEY conda="%CONDA_BAT%" $*
 
@@ -214,6 +216,7 @@
 @SET _NAME=
 @SET _PATH=
 @SET _PYTHON=
+@SET _PYTHONEXE=
 @SET _SCRIPT=
 @SET _SRC=
 @SET _UPDATE=
