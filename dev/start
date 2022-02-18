@@ -105,11 +105,11 @@ esac
 # dryrun printout
 if [ ${_DRYRUN} = 0 ]; then
     echo "Python: ${_PYTHON}"
-    echo "Updating: $([ ${_UPDATE} = 0 ] && echo "yes" || echo "pending")"
-    echo "Devenv: ${_DEVENV}"
+    echo "Updating: $([ ${_UPDATE} = 0 ] && echo "[yes]" || echo "[pending]")"
+    echo "Devenv: ${_DEVENV} $([ -e "${_DEVENV}" ] && echo "[exists]" || echo "[pending]")"
     echo ""
     echo "Name: ${_NAME}"
-    echo "Path: ${_ENV}"
+    echo "Path: ${_ENV} $([ -e "${_ENV}" ] && echo "[exists]" || echo "[pending]")"
     echo ""
     echo "Source: ${_SRC}"
     return 0

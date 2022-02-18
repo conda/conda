@@ -79,14 +79,22 @@
 @IF %_DRYRUN%==0 (
     @ECHO Python: %_PYTHON%
     @IF %_UPDATE%==0 (
-        @ECHO Updating: yes
+        @ECHO Updating: [yes]
     ) ELSE (
-        @ECHO Updating: pending
+        @ECHO Updating: [pending]
     )
-    @ECHO Devenv: %_DEVENV%
+    @IF EXIST "%_DEVENV%" (
+        @ECHO Devenv: %_DEVENV% [exists]
+    ) ELSE (
+        @ECHO Devenv: %_DEVENV% [pending]
+    )
     @ECHO.
     @ECHO Name: %_NAME%
-    @ECHO Path: %_ENV%
+    @IF EXIST "%_ENV%" (
+        @ECHO Path: %_ENV% [exists]
+    ) ELSE (
+        @ECHO Path: %_ENV% [pending]
+    )
     @ECHO.
     @ECHO Source: %_SRC%
     @EXIT /B 0
