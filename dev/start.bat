@@ -128,10 +128,10 @@
 :DOWNLOADED
 
 @REM installing miniconda
-@ECHO Installing miniconda...
+@ECHO Installing development environment...
 @START /wait "" "%_DEVENV%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% > NUL
 @IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to install miniconda 1>&2
+    @ECHO Error: failed to install development environment 1>&2
     @EXIT /B 1
 )
 @REM Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
@@ -160,7 +160,7 @@
 
 @CALL :CONDA update -yq --all > NUL
 @IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to update miniconda 1>&2
+    @ECHO Error: failed to update development environment 1>&2
     @EXIT /B 1
 )
 

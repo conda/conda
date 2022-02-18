@@ -146,13 +146,13 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     fi
 
     # installing miniconda
-    echo "Installing miniconda..."
+    echo "Installing development environment..."
     case "$(uname)" in
         Darwin|Linux) bash "${_DEVENV}/miniconda.sh" -bfp "${_DEVENV}" > /dev/null ;;
                    *) cmd.exe /c "start /wait \"\" \"${_DEVENV}\miniconda.exe\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
     esac
     if ! [ $? = 0 ]; then
-        echo "Error: failed to install miniconda" 1>&2
+        echo "Error: failed to install development environment" 1>&2
         return 1
     fi
 fi
@@ -171,7 +171,7 @@ if [ ${_UPDATE} = 0 ] || ! [ -f "${_UPDATED}" ] || (( $(( $(date +%s) - $(date -
     echo "Updating ${_NAME}..."
 
     if ! "${_BASEEXE}" update -yq --all > /dev/null; then
-        echo "Error: failed to update miniconda" 1>&2
+        echo "Error: failed to update development environment" 1>&2
         return 1
     fi
 
