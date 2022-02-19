@@ -132,54 +132,71 @@ def is_prefix_activated_PATHwise(prefix=sys.prefix, test_programs=()):
 mark_posix_only = pytest.mark.skipif(on_win, reason="POSIX only")
 mark_win_only = pytest.mark.skipif(not on_win, reason="Windows only")
 
+_posix_quotes = "'{}'".format
+_win_quotes = '"{}"'.format
+_quotes = _win_quotes if on_win else _posix_quotes
 
 @pytest.mark.parametrize(
     ["args", "expected"],
     [
-        pytest.param(
-            ["python", "-c", "import sys\nprint(sys.prefix)"],
-            "python -c 'import sys\nprint(sys.prefix)'",
-            marks=mark_posix_only,
-        ),
-        pytest.param(
-            ["pip", "install", "numpy<1.22"], "pip install 'numpy<1.22'", marks=mark_posix_only
-        ),
-        pytest.param(
-            ["pip", "install", "numpy>=1.0"], "pip install 'numpy>=1.0'", marks=mark_posix_only
-        ),
-        pytest.param(["echo", "one|two"], "echo 'one|two'", marks=mark_posix_only),
-        pytest.param(
-            ["some", "error", ">", "/dev/null"], "some error '>' /dev/null", marks=mark_posix_only
-        ),
-        pytest.param(
-            ["some", "error", "1>", "/dev/null"],
-            "some error '1>' /dev/null",
-            marks=mark_posix_only,
-        ),
-        pytest.param(
-            ["some", "error", "2>", "/dev/null"],
-            "some error '2>' /dev/null",
-            marks=mark_posix_only,
-        ),
-        pytest.param(["some", "error", "2>&1"], "some error '2>&1'", marks=mark_posix_only),
-        pytest.param("arg1", "arg1", marks=mark_win_only),
-        pytest.param(None, '""', marks=mark_win_only),
-        pytest.param("arg1 and 2", '^"arg1 and 2^"', marks=mark_win_only),
+        pytest.param("arg1", "arg1"),
+        pytest.param("arg1 and 2", _quotes("arg1 and 2")),
+        pytest.param("arg1\nand\n2", _quotes("arg1\nand\n2")),
+        pytest.param("numpy<1.22", _quotes("numpy<1.22")),
+        pytest.param("numpy>=1.0", _quotes("numpy>=1.0")),
+        pytest.param("one|two", _quotes("one|two")),
+        pytest.param(">/dev/null", _quotes(">/dev/null")),
+        pytest.param(">NUL", _quotes(">NUL")),
+        pytest.param("1>/dev/null", _quotes("1>/dev/null")),
+        pytest.param("1>NUL", _quotes("1>NUL")),
+        pytest.param("2>/dev/null", _quotes("2>/dev/null")),
+        pytest.param("2>NUL", _quotes("2>NUL")),
+        pytest.param("2>&1", _quotes("2>&1")),
+        pytest.param(None, _quotes("")),
         pytest.param(
             'malicious argument\\"&whoami',
-            '^"malicious argument\\\\^"^&whoami^"',
+            '"malicious argument\\""&whoami"',
             marks=mark_win_only,
         ),
         pytest.param(
-            "C:\\temp\\some ^%file% > nul",
-            '^"C:\\temp\\some ^^^%file^% ^> nul^"',
+            "C:\\temp\\some ^%file^% > nul",
+            '"C:\\temp\\some ^%%file^%% > nul"',
             marks=mark_win_only,
         ),
+        pytest.param("!", "!" if on_win else "'!'"),
+        pytest.param("#", "#" if on_win else "'#'"),
+        pytest.param("$", "$" if on_win else "'$'"),
+        pytest.param("%", '"%%"' if on_win else "%"),
+        pytest.param("&", '"&"' if on_win else "'&'"),
+        pytest.param("'", "'" if on_win else "''\"'\"''"),
+        pytest.param("(", "(" if on_win else "'('"),
+        pytest.param(")", ")" if on_win else "')'"),
+        pytest.param("*", "*" if on_win else "'*'"),
+        pytest.param("+", "+"),
+        pytest.param(",", ","),
+        pytest.param("-", "-"),
+        pytest.param(".", "."),
+        pytest.param("/", "/"),
+        pytest.param(":", ":"),
+        pytest.param(";", ";" if on_win else "';'"),
+        pytest.param("<", '"<"' if on_win else "'<'"),
+        pytest.param("=", "="),
+        pytest.param(">", '">"' if on_win else "'>'"),
+        pytest.param("?", "?" if on_win else "'?'"),
+        pytest.param("@", "@"),
+        pytest.param("[", "[" if on_win else "'['"),
+        pytest.param("\\", "\\" if on_win else "'\\'"),
+        pytest.param("]", "]" if on_win else "']'"),
+        pytest.param("^", '"^"' if on_win else "'^'"),
+        pytest.param("{", "{" if on_win else "'{'"),
+        pytest.param("|", '"|"' if on_win else "'|'"),
+        pytest.param("}", "}" if on_win else "'}'"),
+        pytest.param("~", "~" if on_win else "'~'"),
+        pytest.param('"', '""""' if on_win else "'\"'"),
     ],
 )
 def test_quote_for_shell(args, expected):
-    quoted = utils.quote_for_shell(args)
-    assert quoted == expected
+    assert utils.quote_for_shell(args) == expected
 
 
 # Some stuff I was playing with, env_unmodified(conda_tests_ctxt_mgmt_def_pol)

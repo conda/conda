@@ -282,14 +282,8 @@ if on_win:
     # https://ss64.com/nt/syntax-esc.html
     # https://docs.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
 
-    # cmd metachars
-    _CMD_ESCAPE_METACHARS = "()%!^<>&|"
-    _CMD_DBLESCAPE_METACHARS = '"'
-
-    _CMD_UNSAFE_RE = re.compile(fr"[\s{_CMD_ESCAPE_METACHARS}{_CMD_DBLESCAPE_METACHARS}]")
-
-    _CMD_ESCAPE_RE = re.compile(fr"([{_CMD_ESCAPE_METACHARS}])")
-    _CMD_DBLESCAPE_RE = re.compile(fr"([{_CMD_DBLESCAPE_METACHARS}])")
+    _RE_UNSAFE = re.compile(r'["%\s^<>&|]')
+    _RE_DBL = re.compile(r'(["%])')
 
     def _args_join(args):
         """Return a shell-escaped string from *args*."""
@@ -298,12 +292,12 @@ if on_win:
             # derived from shlex.quote
             if not s:
                 return '""'
-            if not _CMD_UNSAFE_RE.search(s):
+            # if any unsafe chars are present we must quote
+            if not _RE_UNSAFE.search(s):
                 return s
-            # escape (^) metacharacters
-            s = _CMD_ESCAPE_RE.sub(r"^\1", s)
-            # doubly escape (\\^) metacharacters to avoid case of, e.g., quotes inside quoted arg
-            s = _CMD_DBLESCAPE_RE.sub(r"\\^\1", s)
+            # double escape (" -> "")
+            s = _RE_DBL.sub(r"\1\1", s)
+            # quote entire string
             return f'"{s}"'
 
         return " ".join(quote(arg) for arg in args)
