@@ -152,7 +152,7 @@ to a target directory when creating the environment. For example,
 the following command will create a new environment in a subdirectory
 of the current working directory called ``envs``::
 
-  conda create --prefix ./envs jupyterlab=0.35 matplotlib=3.1 numpy=1.16
+  conda create --prefix ./envs jupyterlab=3.2 matplotlib=3.5 numpy=1.21
 
 You then activate an environment created with a prefix using the same
 command used to activate environments created by name::
