@@ -626,7 +626,7 @@ Once you have set an environment variable, you have to reactivate your environme
 ``conda activate test-env``.
 
 To check if the environment variable has been set, run
-``echo my_var`` or ``conda env config vars list``.
+``echo $my_var`` (``echo %my_var%`` on Windows)  or ``conda env config vars list``.
 
 When you deactivate your environment, you can use those same commands to see that
 the environment variable goes away.
