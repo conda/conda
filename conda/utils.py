@@ -260,35 +260,57 @@ def sys_prefix_unfollowed():
     return unfollowed
 
 
-def quote_for_shell(*arguments, shell=None):
+def quote_for_shell(*arguments):
+    """Properly quote arguments for command line passing.
+
+    For POSIX uses `shlex.join`, for Windows uses a custom implementation to properly escape
+    metacharacters.
+
+    :param arguments: Arguments to quote.
+    :type arguments: list of str
+    :return: Quoted arguments.
+    :rtype: str
+    """
     # [backport] Support passing in a list of strings or args of string.
     if len(arguments) == 1 and isiterable(arguments[0]):
         arguments = arguments[0]
 
-    if (not shell and on_win) or shell == "cmd.exe":
-        # [note] `subprocess.list2cmdline` is not a public function.
-        from subprocess import list2cmdline
+    return _args_join(arguments)
 
-        return list2cmdline(arguments)
 
-    # If any multiline argument gets mixed with any other argument (which is true if we've
-    # arrived in this function) then we just quote it. This assumes something like:
-    #   ['python', '-c', 'a\nmultiline\nprogram\n']
-    # There is no way of knowing why newlines are included, must ensure they are escaped/quoted.
-    quoted = []
-    # This could all be replaced with some regex wizardry but that is less readable and
-    # for code like this, readability is very important.
-    for arg in arguments:
-        if '"' in arg:
-            quote = "'"
-        elif "'" in arg:
-            quote = '"'
-        elif not any(c in arg for c in (" ", "\n")):
-            quote = ""
-        else:
-            quote = '"'
-        quoted.append(f"{quote}{arg}{quote}")
-    return " ".join(quoted)
+if on_win:
+    # https://ss64.com/nt/syntax-esc.html
+    # https://docs.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
+
+    _RE_UNSAFE = re.compile(r'["%\s^<>&|]')
+    _RE_DBL = re.compile(r'(["%])')
+
+    def _args_join(args):
+        """Return a shell-escaped string from *args*."""
+
+        def quote(s):
+            # derived from shlex.quote
+            if not s:
+                return '""'
+            # if any unsafe chars are present we must quote
+            if not _RE_UNSAFE.search(s):
+                return s
+            # double escape (" -> "")
+            s = _RE_DBL.sub(r"\1\1", s)
+            # quote entire string
+            return f'"{s}"'
+
+        return " ".join(quote(arg) for arg in args)
+else:
+    try:
+        from shlex import join as _args_join
+    except ImportError:
+        # [backport] Python <3.8
+        def _args_join(args):
+            """Return a shell-escaped string from *args*."""
+            from shlex import quote
+
+            return " ".join(quote(arg) for arg in args)
 
 
 # Ensures arguments are a tuple or a list. Strings are converted
