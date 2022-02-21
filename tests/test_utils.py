@@ -15,7 +15,6 @@ import sys
 from conda.common.compat import on_win
 
 import pytest
-import subprocess
 
 
 SOME_PREFIX = "/some/prefix"
@@ -167,7 +166,7 @@ _quotes = _win_quotes if on_win else _posix_quotes
         pytest.param("#", "#" if on_win else "'#'"),
         pytest.param("$", "$" if on_win else "'$'"),
         pytest.param("%", '"%%"' if on_win else "%"),
-        pytest.param("&", '"&"' if on_win else "'&'"),
+        pytest.param("&", _quotes("&")),
         pytest.param("'", "'" if on_win else "''\"'\"''"),
         pytest.param("(", "(" if on_win else "'('"),
         pytest.param(")", ")" if on_win else "')'"),
@@ -179,17 +178,17 @@ _quotes = _win_quotes if on_win else _posix_quotes
         pytest.param("/", "/"),
         pytest.param(":", ":"),
         pytest.param(";", ";" if on_win else "';'"),
-        pytest.param("<", '"<"' if on_win else "'<'"),
+        pytest.param("<", _quotes("<")),
         pytest.param("=", "="),
-        pytest.param(">", '">"' if on_win else "'>'"),
+        pytest.param(">", _quotes(">")),
         pytest.param("?", "?" if on_win else "'?'"),
         pytest.param("@", "@"),
         pytest.param("[", "[" if on_win else "'['"),
         pytest.param("\\", "\\" if on_win else "'\\'"),
         pytest.param("]", "]" if on_win else "']'"),
-        pytest.param("^", '"^"' if on_win else "'^'"),
+        pytest.param("^", _quotes("^")),
         pytest.param("{", "{" if on_win else "'{'"),
-        pytest.param("|", '"|"' if on_win else "'|'"),
+        pytest.param("|", _quotes("|")),
         pytest.param("}", "}" if on_win else "'}'"),
         pytest.param("~", "~" if on_win else "'~'"),
         pytest.param('"', '""""' if on_win else "'\"'"),
