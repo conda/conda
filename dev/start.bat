@@ -60,7 +60,9 @@
 @REM include OS
 @SET "_DEVENV=%_DEVENV%\Windows"
 @REM ensure exists
-@IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
+@IF %_DRYRUN%==1 (
+    @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
+)
 
 @REM fallback to default values
 @IF "%_PYTHON%"=="" @SET "_PYTHON=3.8"

@@ -86,8 +86,10 @@ _DEVENV="${_DEVENV/#\~/${HOME}}"
 # include OS
 _DEVENV="${_DEVENV}/$(uname)"
 # ensure exists and absolute path
-mkdir -p "${_DEVENV}"
-_DEVENV="$( cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
+if [ ${_DRYRUN} = 1 ]; then
+    mkdir -p "${_DEVENV}"
+    _DEVENV="$( cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
+fi
 
 # fallback to default values
 _PYTHON="${_PYTHON:-3.8}"
