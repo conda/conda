@@ -152,7 +152,7 @@ to a target directory when creating the environment. For example,
 the following command will create a new environment in a subdirectory
 of the current working directory called ``envs``::
 
-  conda create --prefix ./envs jupyterlab=0.35 matplotlib=3.1 numpy=1.16
+  conda create --prefix ./envs jupyterlab=3.2 matplotlib=3.5 numpy=1.21
 
 You then activate an environment created with a prefix using the same
 command used to activate environments created by name::
@@ -626,7 +626,7 @@ Once you have set an environment variable, you have to reactivate your environme
 ``conda activate test-env``.
 
 To check if the environment variable has been set, run
-``echo my_var`` or ``conda env config vars list``.
+``echo $my_var`` (``echo %my_var%`` on Windows)  or ``conda env config vars list``.
 
 When you deactivate your environment, you can use those same commands to see that
 the environment variable goes away.
