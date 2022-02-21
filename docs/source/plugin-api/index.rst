@@ -54,3 +54,4 @@ Hooks
    subcommands
 
 .. _pluggy: https://pluggy.readthedocs.io/en/stable/
+.. _`Python package entrypoints`: https://packaging.python.org/en/latest/specifications/entry-points/
