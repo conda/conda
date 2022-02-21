@@ -53,6 +53,11 @@
 @EXIT /B 1
 :ARGS_END
 
+@REM fallback to default values
+@IF "%_PYTHON%"=="" @SET "_PYTHON=3.8"
+@IF "%_UPDATE%"=="" @SET "_UPDATE=1"
+@IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
+
 @REM read devenv from ~\.condarc
 @IF "%_DEVENV%"=="" @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',$Env:UserProfile"`) DO @SET "_DEVENV=%%~fI"
 @REM fallback to devenv in source default
@@ -60,12 +65,9 @@
 @REM include OS
 @SET "_DEVENV=%_DEVENV%\Windows"
 @REM ensure exists
-@IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
-
-@REM fallback to default values
-@IF "%_PYTHON%"=="" @SET "_PYTHON=3.8"
-@IF "%_UPDATE%"=="" @SET "_UPDATE=1"
-@IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
+@IF %_DRYRUN%==1 (
+    @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
+)
 
 @REM other environment variables
 @SET "_NAME=devenv-%_PYTHON%-c"
