@@ -71,6 +71,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+# fallback to default values
+_PYTHON="${_PYTHON:-3.8}"
+_UPDATE="${_UPDATE:-1}"
+_DRYRUN="${_DRYRUN:-1}"
+
 # get source path
 # since zsh is MacOS standard fallback to $0 if not in bash
 _SRC="$(cd "$(dirname "$(dirname "${BASH_SOURCE:-$0}")")" 2>&1 > /dev/null; pwd -P)"
@@ -90,11 +95,6 @@ if [ ${_DRYRUN} = 1 ]; then
     mkdir -p "${_DEVENV}"
     _DEVENV="$( cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
 fi
-
-# fallback to default values
-_PYTHON="${_PYTHON:-3.8}"
-_UPDATE="${_UPDATE:-1}"
-_DRYRUN="${_DRYRUN:-1}"
 
 # other environment values
 _NAME="devenv-${_PYTHON}-c"
