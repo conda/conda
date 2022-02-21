@@ -32,7 +32,7 @@ repos:
       - id: fix-encoding-pragma
         exclude: ^conda/auxlib/
   - repo: https://github.com/akaihola/darker
-    rev: 1.4.0
+    rev: 1.4.1
     hooks:
       - id: darker
         additional_dependencies: [black==21.9b0]
