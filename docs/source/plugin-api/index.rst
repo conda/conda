@@ -6,9 +6,10 @@ As of X.Y, Conda has support for user plugins, enabling them to extend and/or
 change some of its functionality.
 
 Plugins are implemented via pluggy_ and discovered using
-`Python package entrypoints`_. You may refeer to pluggy_'s documentation for a full description of
-its features, but in summary, you will want to define the hooks you want to
-register and register your plugin under the ``conda`` entrypoint namespace.
+`Python package entrypoints`_. You may refeer to pluggy_'s documentation
+for a full description of its features, but in summary, you will want to define
+the hooks you want to register and register your plugin under the ``conda``
+entrypoint namespace.
 
 Example:
 
