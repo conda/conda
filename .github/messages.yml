@@ -1,0 +1,65 @@
+stale-issue: |
+  Hi there, thank you for your contribution to Conda!
+
+  This issue has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
+
+  If you would like this issue to remain open please:
+
+    1. Verify that you can still reproduce the issue in the latest version of Conda
+    2. Comment that the issue is still reproducible and include:
+      - What version of Conda you reproduced the issue on
+      - What OS and version you reproduced the issue on
+      - What steps you followed to reproduce the issue
+    3. It would also be helpful to have the output of the following commands available:
+      - `conda info`
+      - `conda config --show-sources`
+      - `conda list --show-channel-urls`
+
+  **NOTE:** If this issue was closed prematurely, please leave a comment.
+
+  In case this issue was originally about a project that is covered by the [Anaconda issue tracker](https://github.com/ContinuumIO/anaconda-issues/issues) (e.g. Anaconda, Miniconda, packages built by Anaconda, Inc. like Anaconda Navigator etc), please reopen the issue there.
+
+  Thanks!
+close-issue: |
+  Hi again!
+
+  This issue has been closed since it has not had recent activity.
+
+  **NOTE:** If this issue was closed prematurely, please leave a comment.
+
+  Thanks!
+lock-issue: |
+  Hi there, thank you for your contribution to Conda!
+
+  This issue has been automatically locked since it has not had recent activity after it was closed.
+
+  Please open a new issue if needed.
+
+stale-pr: |
+  Hi there, thank you for your contribution to Conda!
+
+  This pull request has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
+
+  If you would like this pull request to remain open please:
+
+    1. Update the pull request with the latest code in the main branch
+    2. Verify that the pull request change is still working and update it if needed
+    3. Leave a comment with the current status of the pull request
+
+  **NOTE:** If this pull request was closed prematurely, please leave a comment.
+
+  Thanks!
+close-pr: |
+  Hi again!
+
+  This pull request has been closed since it has not had recent activity.
+
+  **NOTE:** If this issue was closed prematurely, please leave a comment.
+
+  Thanks!
+lock-pr: |
+  Hi there, thank you for your contribution to Conda!
+
+  This pull request has been automatically locked since it has not had recent activity after it was closed.
+
+  Please open a new issue or pull request if needed.
