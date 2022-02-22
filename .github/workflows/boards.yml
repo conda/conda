@@ -19,12 +19,20 @@ env:
 jobs:
   # new -> Triaging[New]
   to_triaging:
-    # if new issue and not [backlog] or [sprint]
+    # if new issue (or old issue marked as [stale::recovered]) and not [backlog] or [sprint]
     if: >-
       !github.event.repository.fork
-      && github.event.sender.login != 'conda-bot'
       && github.event_name == 'issues'
-      && github.event.action == 'opened'
+      && (
+        (
+          github.event.sender.login != 'conda-bot'
+          && github.event.action == 'opened'
+        )
+        || (
+          github.event.action == 'labeled'
+          && github.event.label.name == 'stale::recovered'
+        )
+      )
       && !contains(github.event.issue.labels.*.name, 'backlog')
       && !contains(github.event.issue.labels.*.name, 'sprint')
     runs-on: ubuntu-latest
