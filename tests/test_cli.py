@@ -6,6 +6,9 @@ import json
 import unittest
 import uuid
 from mock import patch
+import os
+import stat
+from textwrap import dedent
 
 from conda.auxlib.ish import dals
 import pytest
@@ -17,8 +20,6 @@ from tests.helpers import capture_json_with_argv, run_inprocess_conda_command
 from conda.common.compat import text_type
 from conda.utils import on_win
 
-import os
-import stat
 
 from .test_create import make_temp_env, make_temp_prefix, run_command, Commands
 
@@ -234,6 +235,41 @@ def test_run_returns_nonzero_errorlevel():
         )
 
         assert result == 5
+
+
+def test_conda_run_base_env_removed_from_path():
+    """
+    Tests that base environment components are removed from the PATH
+    enviroment variable when using conda run.
+
+    Reproducer from the ticket https://github.com/conda/conda/issues/11174:
+
+    (base) $ conda create -n py39 python=3.9
+    (base) $ conda run -n py39 python -c 'import os; print(os.environ["PATH"]);'
+    ${CONDA_ROOT}/envs/py39/bin:${CONDA_ROOT}/bin:${CONDA_ROOT}/condabin:${HOME}/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+    (base) $ conda activate py39
+    (py39) $ python -c 'import os; print(os.environ["PATH"]);'
+    ${CONDA_ROOT}/envs/py39/bin:${CONDA_ROOT}/condabin:${HOME}/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+
+    (Note that ${CONDA_ROOT}/bin gets removed from $PATH in the activated environment, but not when using conda run.)
+    """
+    with make_temp_env("python=3.9") as prefix:
+        print_path_py = os.path.join(prefix, "print-path.py")
+        with open(print_path_py, "w") as print_path:
+            print_path.write(
+                dedent(
+                    """
+                    import os
+                    print(os.environ["PATH"])
+                    """
+                )
+            )
+        from conda.cli.python_api import run_command
+
+        stdout, _, _ = run_command(Commands.RUN, "python", print_path_py)
+        CONDA_ROOT = os.environ["CONDA_ROOT"]
+        root_bin = f"{CONDA_ROOT}/bin"
+        assert root_bin not in stdout
 
 
 def test_run_uncaptured(capfd):
