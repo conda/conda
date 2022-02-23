@@ -7,12 +7,14 @@ if ! (return 0 2> /dev/null); then
 fi
 
 cleanup() {
+    unset _AUTOBASE
     unset _BASEEXE
     unset _CMD
     unset _DEVENV
     unset _DRYRUN
     unset _ENV
     unset _ENVEXE
+    unset _EXPORTED
     unset _NAME
     unset _PYTHON
     unset _PYTHONEXE
@@ -196,7 +198,17 @@ fi
 
 # initialize conda command
 echo "Initializing shell integration..."
+_AUTOBASE="${CONDA_AUTO_ACTIVATE_BASE:-undefined}"
+_EXPORTED="$(export -p | grep CONDA_AUTO_ACTIVATE_BASE)"
+export CONDA_AUTO_ACTIVATE_BASE=false
 eval "$(cd "${_SRC}" ; "${_BASEEXE}" init --dev bash)" > /dev/null
+if [ "${_AUTOBASE}" = "undefined" ]; then
+    unset CONDA_AUTO_ACTIVATE_BASE
+elif [ -n ${_EXPORTED+x} ]; then
+    export CONDA_AUTO_ACTIVATE_BASE="${_AUTOBASE}"
+else
+    CONDA_AUTO_ACTIVATE_BASE="${_AUTOBASE}"
+fi
 if ! [ $? = 0 ]; then
     echo "Error: failed to initialize shell integration" 1>&2
     return 1
