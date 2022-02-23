@@ -1,28 +1,20 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from functools import reduce
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
+from typing import Iterator
+from urllib.parse import urlsplit
 
 from .compat import on_win, string_types
 from .. import CondaError
 from ..auxlib.decorators import memoize
 from .._vendor.toolz import accumulate, concat
 from distutils.spawn import find_executable
-
-try:
-    # Python 3
-    from urllib.parse import unquote, urlsplit
-except ImportError:  # pragma: no cover
-    # Python 2
-    from urllib import unquote  # NOQA
-    from urlparse import urlsplit  # NOQA
 
 log = getLogger(__name__)
 
@@ -60,6 +52,7 @@ def paths_equal(path1, path2):
         return normcase(abspath(path1)) == normcase(abspath(path2))
     else:
         return abspath(path1) == abspath(path2)
+
 
 @memoize
 def url_to_path(url):
@@ -370,3 +363,18 @@ def is_package_file(path):
     # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
     #       import rules and to avoid a global lookup.
     return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"
+
+
+def get_path_dirs(prefix: str, sep: str = os.sep) -> Iterator[str]:
+    """
+    Yields the directories that conda expects to be on PATH.
+    """
+    if on_win:
+        yield prefix.rstrip("\\")
+        yield sep.join((prefix, 'Library', 'mingw-w64', 'bin'))
+        yield sep.join((prefix, 'Library', 'usr', 'bin'))
+        yield sep.join((prefix, 'Library', 'bin'))
+        yield sep.join((prefix, 'Scripts'))
+        yield sep.join((prefix, 'bin'))
+    else:
+        yield sep.join((prefix, 'bin'))

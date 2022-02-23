@@ -352,6 +352,7 @@ def wrap_subprocess_call(
         dev_mode,
         debug_wrapper_scripts,
         arguments,
+        path=None,
         use_system_tmp_path=False):
     arguments = massage_arguments(arguments)
     if not use_system_tmp_path:
@@ -378,6 +379,8 @@ def wrap_subprocess_call(
             fh.write("{}SET PYTHONUTF8=1\n".format(silencer))
             fh.write('{}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'.format(silencer))  # NOQA
             fh.write("{}chcp 65001 > NUL\n".format(silencer))
+            if path:
+                fh.write(f'{silencer}SET "PATH={path}"\n')
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
                 fh.write("{}SET CONDA_DEV=1\n".format(silencer))
@@ -435,6 +438,8 @@ def wrap_subprocess_call(
             dev_arg = ''
             dev_args = []
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
+            if path:
+                fh.write(f">&2 export PATH='{path}'\n")
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
 

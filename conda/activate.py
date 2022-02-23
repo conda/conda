@@ -22,7 +22,7 @@ from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_V
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import (FILESYSTEM_ENCODING, PY2, iteritems, on_win,
                             scandir, string_types, text_type)
-from .common.path import paths_equal
+from .common.path import get_path_dirs, paths_equal
 
 
 class _Activator(object):
@@ -560,16 +560,8 @@ class _Activator(object):
             path_split = path_split[1:]
         return path_split
 
-    def _get_path_dirs(self, prefix, extra_library_bin=False):
-        if on_win:  # pragma: unix no cover
-            yield prefix.rstrip("\\")
-            yield self.sep.join((prefix, 'Library', 'mingw-w64', 'bin'))
-            yield self.sep.join((prefix, 'Library', 'usr', 'bin'))
-            yield self.sep.join((prefix, 'Library', 'bin'))
-            yield self.sep.join((prefix, 'Scripts'))
-            yield self.sep.join((prefix, 'bin'))
-        else:
-            yield self.sep.join((prefix, 'bin'))
+    def _get_path_dirs(self, prefix):
+        yield from get_path_dirs(prefix, sep=self.sep)
 
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
         prefix = self.path_conversion(prefix)
