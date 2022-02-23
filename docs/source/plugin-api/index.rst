@@ -33,7 +33,7 @@ Example:
    setup(
        name="my-conda-plugin",
        install_requires="conda",
-       entry_points={"eggsample": ["my_conda_plugin = my_plugin"]},
+       entry_points={"conda": ["my-conda-plugin = my_plugin"]},
        py_modules=["my_plugin"],
    )
 
