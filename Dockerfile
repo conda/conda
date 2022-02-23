@@ -14,7 +14,6 @@ RUN wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \
 FROM --platform=linux/amd64 debian:buster-slim
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
-ENV PATH /opt/conda/bin:$PATH
 
 COPY dev/linux/setup.sh /tmp
 RUN bash /tmp/setup.sh
