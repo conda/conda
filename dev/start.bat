@@ -159,8 +159,19 @@
 
 @REM initialize conda command
 @ECHO Initializing shell integration...
+@IF "%CONDA_AUTO_ACTIVATE_BASE%"=="" (
+    @SET "_AUTOBASE=undefined"
+) ELSE (
+    @SET "_AUTOBASE=%CONDA_AUTO_ACTIVATE_BASE%"
+)
+@SET "CONDA_AUTO_ACTIVATE_BASE=false"
 @CALL :CONDA init --dev cmd.exe > NUL
 @CALL dev-init.bat > NUL
+@IF "%_AUTOBASE%"=="undefined" (
+    @SET CONDA_AUTO_ACTIVATE_BASE=
+) ELSE (
+    @SET "CONDA_AUTO_ACTIVATE_BASE=%_AUTOBASE%"
+)
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to initialize shell integration 1>&2
     @EXIT /B 1
@@ -181,6 +192,7 @@
 
 :CLEANUP
 @SET _ARG=
+@SET _AUTOBASE=
 @SET _BASEEXE=
 @SET _CONDABAT=
 @SET _DEVENV=
