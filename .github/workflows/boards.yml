@@ -1,6 +1,8 @@
 name: Automate Boards
 
 on:
+  # NOTE: github.event context is issues payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#issues
   issues:
     types: [opened, labeled, unlabeled]
 
