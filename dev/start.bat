@@ -59,15 +59,13 @@
 @IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
 
 @REM read devenv from ~\.condarc
-@IF "%_DEVENV%"=="" @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',$Env:UserProfile"`) DO @SET "_DEVENV=%%~fI"
+@IF "%_DEVENV%"=="" @CALL :CONDARC
 @REM fallback to devenv in source default
 @IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
 @REM include OS
 @SET "_DEVENV=%_DEVENV%\Windows"
 @REM ensure exists
-@IF %_DRYRUN%==1 (
-    @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
-)
+@IF %_DRYRUN%==1 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
 
 @REM other environment variables
 @SET "_NAME=devenv-%_PYTHON%-c"
@@ -78,30 +76,8 @@
 @SET "_PYTHONEXE=%_ENV%\python.exe"
 @SET "_CONDABAT=%_ENV%\condabin\conda.bat"
 
-@REM dryrun printout
-@IF %_DRYRUN%==0 (
-    @ECHO Python: %_PYTHON%
-    @IF %_UPDATE%==0 (
-        @ECHO Updating: [yes]
-    ) ELSE (
-        @ECHO Updating: [pending]
-    )
-    @IF EXIST "%_DEVENV%" (
-        @ECHO Devenv: %_DEVENV% [exists]
-    ) ELSE (
-        @ECHO Devenv: %_DEVENV% [pending]
-    )
-    @ECHO.
-    @ECHO Name: %_NAME%
-    @IF EXIST "%_ENV%" (
-        @ECHO Path: %_ENV% [exists]
-    ) ELSE (
-        @ECHO Path: %_ENV% [pending]
-    )
-    @ECHO.
-    @ECHO Source: %_SRC%
-    @EXIT /B 0
-)
+@REM dry-run printout
+@IF %_DRYRUN%==0 @GOTO :DRYRUN
 
 @REM deactivate any prior envs
 @IF "%CONDA_SHLVL%"=="" @GOTO DEACTIVATED
@@ -123,7 +99,7 @@
 @REM downloading miniconda
 @IF EXIST "%_DEVENV%\miniconda.exe" @GOTO DOWNLOADED
 @ECHO Downloading miniconda...
-@powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_DEVENV%\miniconda.exe' | Out-Null"
+@powershell.exe "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_DEVENV%\miniconda.exe' | Out-Null"
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to download miniconda 1>&2
     @EXIT /B 1
@@ -153,12 +129,8 @@
 :ENVEXISTS
 
 @REM check if explicitly updating or if 24 hrs since last update
-@IF %_UPDATE%==1 (
-    @IF EXIST "%_UPDATED%" (
-        @powershell.exe -Command "exit (Get-Item '"%_UPDATED%"').LastWriteTime -lt (Get-Date).AddHours(-24)"
-        @IF %ErrorLevel%==0 @GOTO UPTODATE
-    )
-)
+@CALL :UPDATING
+@IF NOT %ErrorLevel%==0 @GOTO UPTODATE
 @ECHO Updating %_NAME%...
 
 @CALL :CONDA update -yq --all > NUL
@@ -236,5 +208,47 @@
 @REM restore %PATH%
 @SET "PATH=%_PATH%"
 @SET _PATH=
-
 @GOTO :EOF
+
+:CONDARC
+@REM read devenv from ~\.condarc
+@REM check if ~\.condarc exists
+@IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 2
+@REM check if devenv key is defined
+@FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" > NUL
+@IF NOT %ErrorLevel%==0 @EXIT /B 1
+@REM read devenv key
+@FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
+@GOTO :EOF
+
+:UPDATING
+@REM check if explicitly updating or if 24 hrs since last update
+@IF %_UPDATE%==0 @EXIT /B 0
+@IF NOT EXIST "%_UPDATED%" @EXIT /B 0
+@powershell.exe "Exit (Get-Item '"%_UPDATED%"').LastWriteTime -ge (Get-Date).AddHours(-24)"
+@EXIT /B %ErrorLevel%
+
+:DRYRUN
+@REM dry-run printout
+@ECHO Python: %_PYTHON%
+@CALL :UPDATING
+@IF %ErrorLevel%==0 (
+    @ECHO Updating: [yes]
+) ELSE (
+    @ECHO Updating: [no]
+)
+@IF EXIST "%_DEVENV%" (
+    @ECHO Devenv: %_DEVENV% [exists]
+) ELSE (
+    @ECHO Devenv: %_DEVENV% [pending]
+)
+@ECHO.
+@ECHO Name: %_NAME%
+@IF EXIST "%_ENV%" (
+    @ECHO Path: %_ENV% [exists]
+) ELSE (
+    @ECHO Path: %_ENV% [pending]
+)
+@ECHO.
+@ECHO Source: %_SRC%
+@EXIT /B 0
