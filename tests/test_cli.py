@@ -6,11 +6,11 @@ import json
 import unittest
 import uuid
 import os
+import stat
 from mock import patch
 
 import pytest
 
-from conda.auxlib.ish import dals
 from conda.base.constants import on_win
 from conda.base.context import context
 from conda.common.io import captured
@@ -255,8 +255,8 @@ def test_run_readonly_env(request):
     prefix = make_temp_prefix(name="test")
     with make_temp_env(prefix=prefix) as prefix:
         # Remove write permissions
-        current = os.stat.S_IMODE(os.lstat(prefix).st_mode)
-        os.chmod(prefix, current & ~os.stat.S_IWRITE)
+        current = stat.S_IMODE(os.lstat(prefix).st_mode)
+        os.chmod(prefix, current & ~stat.S_IWRITE)
 
         # reset permissions in case something goes wrong
         def reset_permissions():
