@@ -243,7 +243,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         if errfile is not None:
             sys.stderr = errfile
     c = CapturedText()
-    log.info("overtaking stderr and stdout")
+    log.debug("overtaking stderr and stdout")
     try:
         yield c
     finally:
@@ -258,7 +258,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         else:
             c.stderr = errfile
         sys.stdout, sys.stderr = saved_stdout, saved_stderr
-        log.info("stderr and stdout yielding back")
+        log.debug("stderr and stdout yielding back")
 
 
 @contextmanager
