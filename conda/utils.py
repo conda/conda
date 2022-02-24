@@ -487,7 +487,7 @@ def get_comspec():
                 environ["COMSPEC"] = comspec
                 break
         else:
-            log.warn("cmd.exe could not be found. Looked in SystemRoot and windir env vars.\n")
+            log.warning("cmd.exe could not be found. Looked in SystemRoot and windir env vars.\n")
 
     # fails with KeyError if still undefined
     return environ["COMSPEC"]
