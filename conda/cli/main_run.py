@@ -11,7 +11,7 @@ import sys
 from ..base.context import context
 from ..utils import wrap_subprocess_call
 from ..gateways.disk.delete import rm_rf
-from ..common.compat import encode_environment, on_win
+from ..common.compat import encode_environment
 from ..gateways.subprocess import subprocess_call
 from .common import validate_prefix
 from ..common.path import get_path_dirs
