@@ -264,12 +264,9 @@ def test_conda_run_base_env_removed_from_path():
                     """
                 )
             )
-        from conda.cli.python_api import run_command
-
         stdout, _, _ = run_command(Commands.RUN, "python", print_path_py)
         CONDA_ROOT = os.environ["CONDA_ROOT"]
-        root_bin = f"{CONDA_ROOT}/bin"
-        assert root_bin not in stdout
+        assert f"{CONDA_ROOT}/bin" not in stdout
 
 
 def test_run_uncaptured(capfd):
