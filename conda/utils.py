@@ -439,7 +439,7 @@ def wrap_subprocess_call(
             dev_args = []
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
             if path:
-                fh.write(f">&2 export PATH='{path}'\n")
+                fh.write(f'>&2 export PATH="{path}"\n')
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
 
