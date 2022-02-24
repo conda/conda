@@ -264,7 +264,7 @@ def test_conda_run_base_env_removed_from_path():
                     """
                 )
             )
-        stdout, _, _ = run_command(Commands.RUN, "python", print_path_py)
+        stdout, _, _ = run_command(Commands.RUN, prefix, "python", print_path_py)
         CONDA_ROOT = os.environ["CONDA_ROOT"]
         assert f"{CONDA_ROOT}/bin" not in stdout
 
