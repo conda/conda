@@ -852,23 +852,25 @@ dependencies:
 
     def test_install_update_deps_flag(self):
         with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
-            assert package_is_installed(prefix, "python=3.9")
+            python = join(prefix, PYTHON_BINARY)
+            result_before = subprocess_call_with_clean_env([python, "--version"])
             assert package_is_installed(prefix, "flask=2.0.1")
             assert package_is_installed(prefix, "jinja2=3.0.1")
-
             run_command(Commands.INSTALL, prefix, "flask", "--update-deps")
-            assert package_is_installed(prefix, "python=3.9")
+            result_after = subprocess_call_with_clean_env([python, "--version"])
+            assert result_before == result_after
             assert package_is_installed(prefix, "flask>2.0.1")
             assert package_is_installed(prefix, "jinja2>3.0.1")
 
     def test_install_only_deps_flag(self):
         with make_temp_env("flask=2.0.2", "jinja2=3.0.2") as prefix:
-            assert package_is_installed(prefix, "python=3.9")
+            python = join(prefix, PYTHON_BINARY)
+            result_before = subprocess_call_with_clean_env([python, "--version"])
             assert package_is_installed(prefix, "flask=2.0.2")
             assert package_is_installed(prefix, "jinja2=3.0.2")
-
             run_command(Commands.INSTALL, prefix, "flask", "--only-deps")
-            assert package_is_installed(prefix, "python=3.9")
+            result_after = subprocess_call_with_clean_env([python, "--version"])
+            assert result_before == result_after
             assert package_is_installed(prefix, "flask=2.0.2")
             assert package_is_installed(prefix, "jinja2=3.0.2")
 
@@ -877,12 +879,13 @@ dependencies:
 
     def test_install_update_deps_only_deps_flags(self):
         with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
-            assert package_is_installed(prefix, "python=3.9")
+            python = join(prefix, PYTHON_BINARY)
+            result_before = subprocess_call_with_clean_env([python, "--version"])
             assert package_is_installed(prefix, "flask=2.0.1")
             assert package_is_installed(prefix, "jinja2=3.0.1")
-
             run_command(Commands.INSTALL, prefix, "flask", "python=3.9", "--update-deps", "--only-deps")
-            assert package_is_installed(prefix, "python=3.9")
+            result_after = subprocess_call_with_clean_env([python, "--version"])
+            assert result_before == result_after
             assert package_is_installed(prefix, "flask=2.0.1")
             assert package_is_installed(prefix, "jinja2>3.0.1")
 
