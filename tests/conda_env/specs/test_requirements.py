@@ -4,7 +4,7 @@
 
 import unittest
 
-from .. import utils
+from .. import support_file
 
 from conda_env import env
 from conda_env.specs.requirements import RequirementsSpec
@@ -16,15 +16,15 @@ class TestRequiremets(unittest.TestCase):
         self.assertEqual(spec.can_handle(), False)
 
     def test_no_name(self):
-        spec = RequirementsSpec(filename=utils.support_file('requirements.txt'))
+        spec = RequirementsSpec(filename=support_file('requirements.txt'))
         self.assertEqual(spec.can_handle(), False)
 
     def test_req_file_and_name(self):
-        spec = RequirementsSpec(filename=utils.support_file('requirements.txt'), name='env')
+        spec = RequirementsSpec(filename=support_file('requirements.txt'), name='env')
         self.assertTrue(spec.can_handle())
 
     def test_environment(self):
-        spec = RequirementsSpec(filename=utils.support_file('requirements.txt'), name='env')
+        spec = RequirementsSpec(filename=support_file('requirements.txt'), name='env')
         self.assertIsInstance(spec.environment, env.Environment)
         self.assertEqual(
             spec.environment.dependencies['conda'][0],

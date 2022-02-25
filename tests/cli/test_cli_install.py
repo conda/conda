@@ -4,7 +4,7 @@
 
 import tempfile
 from unittest import TestCase
-from tests.test_create import run_command, Commands
+from conda.testing.integration import run_command, Commands
 
 import pytest
 

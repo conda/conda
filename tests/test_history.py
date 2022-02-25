@@ -6,10 +6,10 @@ from os.path import dirname
 from pprint import pprint
 import unittest
 
-from .cases import BaseTestCase
-from .decorators import skip_if_no_mock
-from .helpers import mock
-from .test_create import make_temp_prefix
+from conda.testing.cases import BaseTestCase
+from conda.testing.decorators import skip_if_no_mock
+from conda.testing.helpers import mock
+from conda.testing.integration import make_temp_prefix
 
 from conda.history import History
 from conda.common.compat import text_type

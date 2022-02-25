@@ -20,7 +20,7 @@ from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
 from conda.models.records import PackageRecord
-from tests.test_create import make_temp_package_cache
+from conda.testing.integration import make_temp_package_cache
 from conda.common.compat import on_win
 import datetime
 

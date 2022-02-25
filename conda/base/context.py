@@ -12,12 +12,15 @@ from os.path import abspath, basename, expanduser, isdir, isfile, join, split as
 import platform
 import sys
 import struct
+from contextlib import contextmanager
+from datetime import datetime
 
 from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
                         ERROR_UPLOAD_URL, KNOWN_SUBDIRS, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, UpdateModifier)
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice,
+                        ExperimentalSolverChoice, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from ..auxlib.decorators import memoize, memoizedproperty
@@ -305,6 +308,7 @@ class Context(Configuration):
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
     solver_ignore_timestamps = ParameterLoader(PrimitiveParameter(False))
+    experimental_solver = ParameterLoader(PrimitiveParameter(ExperimentalSolverChoice.CLASSIC))
 
     # # CLI-only
     # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
@@ -533,6 +537,21 @@ class Context(Configuration):
         from ..gateways.disk.create import mkdir_p
         mkdir_p(trash_dir)
         return trash_dir
+
+    @memoizedproperty
+    def _logfile_path(self):
+        # TODO: This property is only temporary during libmamba experimental release phase
+        # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
+        from ..core.package_cache_data import PackageCacheData
+
+        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
+        logs = join(pkgs_dir, ".logs")
+        from ..gateways.disk.create import mkdir_p
+
+        mkdir_p(logs)
+
+        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
+        return os.path.join(logs, f"{timestamp}.log")
 
     @property
     def default_prefix(self):
@@ -786,6 +805,22 @@ class Context(Configuration):
             builder.append("%s/%s" % self.libc_family_version)
         return " ".join(builder)
 
+    @contextmanager
+    def _override(self, key, value):
+        """
+        TODO: This might be broken in some ways. Unsure what happens if the `old`
+        value is a property and gets set to a new value. Or if the new value
+        overrides the validation logic on the underlying ParameterLoader instance.
+
+        Investigate and implement in a safer way.
+        """
+        old = getattr(self, key)
+        setattr(self, key, value)
+        try:
+            yield
+        finally:
+            setattr(self, key, old)
+
     @memoizedproperty
     def requests_version(self):
         try:
@@ -904,6 +939,7 @@ class Context(Configuration):
                 'pinned_packages',
                 'pip_interop_enabled',
                 'track_features',
+                'experimental_solver',
             )),
             ('Package Linking and Install-time Configuration', (
                 'allow_softlinks',
@@ -1341,7 +1377,12 @@ class Context(Configuration):
                 fastest (but perhaps not the most complete). The higher this number, the
                 longer the generation of the unsat hint will take. Defaults to 3.
                 """),
-
+            "experimental_solver": dals("""
+                A string to choose between the different solver logics implemented in
+                conda. A solver logic takes care of turning your requested packages into a
+                list of specs to add and/or remove from a given environment, based on their
+                dependencies and specified constraints.
+                """),
         })
 
 
@@ -1359,6 +1400,19 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     Channel._reset_state()
     # need to import here to avoid circular dependency
     return context
+
+
+@contextmanager
+def fresh_context(env=None, search_path=SEARCH_PATH, argparse_args=None, **kwargs):
+    if env or kwargs:
+        old_env = os.environ.copy()
+        os.environ.update(env or {})
+        os.environ.update(kwargs)
+    yield reset_context(search_path=search_path, argparse_args=argparse_args)
+    if env or kwargs:
+        os.environ.clear()
+        os.environ.update(old_env)
+        reset_context()
 
 
 class ContextStackObject(object):

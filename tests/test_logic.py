@@ -8,7 +8,7 @@ import pytest
 
 from conda.common.compat import iteritems, string_types
 from conda.common.logic import Clauses, FALSE, TRUE, minimal_unsatisfiable_subset
-from tests.helpers import raises
+from conda.testing.helpers import raises
 
 
 # These routines implement logical tests with short-circuiting

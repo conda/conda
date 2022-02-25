@@ -265,7 +265,15 @@ class IntegrationTests(unittest.TestCase):
         o, e = run_env_command(Commands.ENV_CREATE, None, '--dry-run')
         self.assertFalse(env_is_created(test_env_name_1))
 
-        output = yaml.safe_load('\n'.join(o.splitlines()[2:]))
+        # Find line where the YAML output starts (stdout might change if plugins involved)
+        lines = o.splitlines()
+        for lineno, line in enumerate(lines):
+            if line.startswith("name:"):
+                break
+        else:
+            pytest.fail("Didn't find YAML data in output")
+
+        output = yaml.safe_load('\n'.join(lines[lineno:]))
         assert output['name'] == 'env-1'
         assert len(output['dependencies']) > 0
 

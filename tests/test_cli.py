@@ -5,22 +5,19 @@
 import json
 import unittest
 import uuid
+import os
+import stat
 from mock import patch
 
-from conda.auxlib.ish import dals
 import pytest
 
+from conda.base.constants import on_win
 from conda.base.context import context
 from conda.common.io import captured
 from conda.gateways.disk.delete import rm_rf
-from tests.helpers import capture_json_with_argv, run_inprocess_conda_command
 from conda.common.compat import text_type
-from conda.utils import on_win
-
-import os
-import stat
-
-from .test_create import make_temp_env, make_temp_prefix, run_command, Commands
+from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
+from conda.testing.integration import Commands, run_command, make_temp_env, make_temp_prefix
 
 
 @pytest.mark.usefixtures("tmpdir")

@@ -6,7 +6,8 @@ import os
 import sys
 import textwrap
 
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, \
+    add_parser_experimental_solver
 from conda.core.prefix_data import PrefixData
 from conda.misc import touch_nonadmin
 from .common import get_prefix, print_result, get_filename
@@ -57,6 +58,7 @@ def configure_parser(sub_parsers):
         nargs='?'
     )
     add_parser_json(p)
+    add_parser_experimental_solver(p)
     p.set_defaults(func='.main_update.execute')
 
 

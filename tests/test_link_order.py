@@ -11,7 +11,7 @@ import os
 import shutil
 import tempfile
 
-from .test_create import run_command, Commands
+from conda.testing.integration import run_command, Commands
 
 try:
     from unittest.mock import patch

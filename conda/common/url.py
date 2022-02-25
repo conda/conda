@@ -17,14 +17,16 @@ from .._vendor.urllib3.util.url import Url, parse_url
 
 try:  # pragma: py2 no cover
     # Python 3
-    from urllib.parse import (quote, quote_plus, unquote, unquote_plus)
+    from urllib.parse import (quote, quote_plus, unquote, unquote_plus,  # NOQA
+                              urlparse as _urlparse, urlunparse as _urlunparse)
 except ImportError:  # pragma: py3 no cover
     # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus)  # NOQA
+    from urllib import (quote, quote_plus, unquote, unquote_plus,  # NOQA
+                        urlparse as _urlparse, urlunparse as _urlunparse)
 
 
 def hex_octal_to_int(ho):
-    ho = ord(ho)
+    ho = ord(ho.upper())
     o0 = ord('0')
     o9 = ord('9')
     oA = ord('A')
@@ -40,7 +42,7 @@ def percent_decode(path):
     if '%' not in path:
         return path
     ranges = []
-    for m in re.finditer(r'(%[0-9A-F]{2})', path):
+    for m in re.finditer(r'(%[0-9A-F]{2})', path, flags=re.IGNORECASE):
         ranges.append((m.start(), m.end()))
     if not len(ranges):
         return path
@@ -378,6 +380,29 @@ def remove_auth(url):
     if url_parts['auth']:
         del url_parts['auth']
     return Url(**url_parts).url
+
+
+def escape_channel_url(channel):
+    if channel.startswith("file:"):
+        if "%" in channel:  # it's escaped already
+            return channel
+        if on_win:
+            channel = channel.replace("\\", "/")
+    parts = _urlparse(channel)
+    if parts.scheme:
+        components = parts.path.split("/")
+        if on_win:
+            if len(parts.netloc) == 2 and parts.netloc[1] == ":":
+                # with absolute paths (e.g. C:/something), C:, D:, etc might get parsed as netloc
+                path = "/".join([parts.netloc] + [quote(p) for p in components])
+                parts = parts._replace(netloc="")
+            else:
+                path = "/".join(components[:2] + [quote(p) for p in components[2:]])
+        else:
+            path = "/".join([quote(p) for p in components])
+        parts = parts._replace(path=path)
+        return _urlunparse(parts)
+    return channel
 
 
 if __name__ == "__main__":

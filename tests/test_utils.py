@@ -4,7 +4,7 @@
 
 from conda import utils
 from conda.common.path import win_path_to_unix
-from .helpers import assert_equals
+from conda.testing.helpers import assert_equals
 
 from conda.activate import CmdExeActivator, PosixActivator
 from conda.common.path import which
@@ -207,7 +207,7 @@ def test_quote_for_shell(args, expected):
 # from conda.common.configuration import YamlRawParameter
 # from conda.common.serialize import yaml_safe_load
 # from conda.models.channel import Channel
-# from .test_create import make_temp_prefix
+# from conda.testing.integration import make_temp_prefix
 # from os.path import join
 # from shutil import rmtree
 # is what I ended up with instead.

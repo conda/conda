@@ -31,6 +31,9 @@ RUN /opt/conda/bin/conda install --update-all -y -c defaults \
     --file /tmp/requirements.txt && \
     /opt/conda/bin/conda clean --all --yes
 
+# Make /opt/conda world-writable to allow hardlinks during tests
+RUN chmod -R o+w /opt/conda/pkgs/*-*-*
+
 USER test_user
 
 WORKDIR /opt/conda-src
