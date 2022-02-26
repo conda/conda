@@ -11,7 +11,7 @@ from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, drop
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
+from ..common.compat import ensure_text_type, isiterable, iteritems, odict
 from ..common.path import is_package_file, is_path, win_path_backout
 from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
                           split_conda_url_easy_parts, split_platform, split_scheme_auth_token,
@@ -47,8 +47,7 @@ class ChannelType(type):
                 return super(ChannelType, cls).__call__(*args, **kwargs)
 
 
-@with_metaclass(ChannelType)
-class Channel(object):
+class Channel(metaclass=ChannelType):
     """
     Channel:
     scheme <> auth <> location <> token <> channel <> subchannel <> platform <> package_filename

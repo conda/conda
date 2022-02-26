@@ -21,8 +21,7 @@ from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
-                             with_metaclass)
+from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type)
 from ..common.io import dashlist
 from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
@@ -69,8 +68,7 @@ class MatchSpecType(type):
             return super(MatchSpecType, cls).__call__(**kwargs)
 
 
-@with_metaclass(MatchSpecType)
-class MatchSpec(object):
+class MatchSpec(metaclass=MatchSpecType):
     """
     :class:`MatchSpec` is, fundamentally, a query language for conda packages.  Any of the fields
     that comprise a :class:`PackageRecord` can be used to compose a :class:`MatchSpec`.
@@ -735,8 +733,7 @@ def _parse_spec_str(spec_str):
     return components
 
 
-@with_metaclass(ABCMeta)
-class MatchInterface(object):
+class MatchInterface(metaclass=ABCMeta):
     def __init__(self, value):
         self._raw_value = value
 

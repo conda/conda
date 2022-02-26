@@ -15,7 +15,7 @@ from ..anaconda_client import read_binstar_tokens
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
-from ...common.compat import iteritems, with_metaclass
+from ...common.compat import iteritems
 from ...common.url import (add_username_and_password, get_proxy_username_and_pass,
                            split_anaconda_token, urlparse)
 from ...exceptions import ProxyError
@@ -63,8 +63,7 @@ class CondaSessionType(type):
             return session
 
 
-@with_metaclass(CondaSessionType)
-class CondaSession(Session):
+class CondaSession(Session, metaclass=CondaSessionType):
 
     def __init__(self):
         super(CondaSession, self).__init__()

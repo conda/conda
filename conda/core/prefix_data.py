@@ -14,7 +14,7 @@ from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, itervalues, odict, scandir,
-                             string_types, with_metaclass)
+                             string_types)
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -49,8 +49,7 @@ class PrefixDataType(type):
             return prefix_data_instance
 
 
-@with_metaclass(PrefixDataType)
-class PrefixData(object):
+class PrefixData(metaclass=PrefixDataType):
     _cache_ = {}
 
     def __init__(self, prefix_path, pip_interop_enabled=None):

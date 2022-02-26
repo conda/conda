@@ -252,7 +252,7 @@ from . import NULL
 from ._vendor.boltons.timeutils import isoparse
 from .collection import AttrDict, frozendict, make_immutable
 from .compat import (integer_types, isiterable, iteritems, itervalues, odict, string_types,
-                     text_type, with_metaclass)
+                     text_type)
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
@@ -733,8 +733,7 @@ class EntityType(type):
         return cls.__fields__.keys()
 
 
-@with_metaclass(EntityType)
-class Entity(object):
+class Entity(metaclass=EntityType):
     __fields__ = odict()
     _lazy_validate = False
 
