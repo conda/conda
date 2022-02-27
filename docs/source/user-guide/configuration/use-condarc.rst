@@ -53,7 +53,7 @@ file, open Anaconda Prompt or a terminal and enter the
 ``conda config`` command.
 
 The ``.condarc`` configuration file follows simple
-`YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
+`YAML syntax <https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html>`_.
 
 EXAMPLE:
 
