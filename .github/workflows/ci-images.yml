@@ -3,16 +3,25 @@ name: CI images
 on:
   schedule:
     - cron:  '0 0 * * 0'
+
+  # NOTE: github.event context is pull_request payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
     paths:
       - 'Dockerfile'
       - '.github/workflows/ci-images.yml'
       - 'tests/requirements.txt'
+
+  # NOTE: github.event context is push payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   push:
     paths:
       - 'Dockerfile'
       - '.github/workflows/ci-images.yml'
       - 'tests/requirements.txt'
+
+  # NOTE: github.event context is workflow_dispatch payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:
 
 env:
@@ -21,6 +30,7 @@ env:
 
 jobs:
   linux:
+    if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     permissions:
       contents: read
