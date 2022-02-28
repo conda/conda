@@ -36,3 +36,16 @@ def conda_cli_register_subcommands() -> Iterable[CondaSubcommand]:
 
     :return: An iterable of subcommand entries.
     """
+
+
+class CondaVirtualPackage(NamedTuple):
+    name: str
+    version: Optional[str]
+
+
+@_hookspec
+def conda_cli_register_virtual_packages() -> Iterable[CondaVirtualPackage]:
+    """Register virtual packages in Conda.
+
+    :return: An iterable of virtual package entries.
+    """
