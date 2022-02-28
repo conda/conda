@@ -1,23 +1,35 @@
-name: 'Lock Threads'
+name: Lock
 
 on:
+  # NOTE: github.event is workflow_dispatch payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:
+    # inputs:
+    #   dryrun:
+    #     description: "dryrun: Preview locking issues/prs without marking them (true|false)"
+    #     required: true
+    #     default: "true"
+
   schedule:
-    - cron: '0 6 * * *'
+    - cron: 0 6 * * *
 
 permissions:
   issues: write
   pull-requests: write
 
 jobs:
-  action:
+  lock:
+    if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     steps:
+      - id: read_yaml
+        uses: conda/actions/read-yaml@v22.2.1
+        with:
+          path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
       - uses: dessant/lock-threads@v2
-        id: lock-threads
         with:
           # Number of days of inactivity before a closed issue is locked
-          issue-lock-inactive-days: '365'
+          issue-lock-inactive-days: 365
           # Do not lock issues created before a given timestamp, value must follow ISO 8601
           issue-exclude-created-before: ''
           # Do not lock issues with these labels, value must be a comma separated list of labels or ''
@@ -25,17 +37,12 @@ jobs:
           # Labels to add before locking an issue, value must be a comma separated list of labels or ''
           issue-lock-labels: 'locked'
           # Comment to post before locking an issue
-          issue-lock-comment: |
-            Hi there, thank you for your contribution to Conda!
-
-            This issue has been automatically locked since it has not had recent activity after it was closed.
-
-            Please open a new issue if needed.
+          issue-lock-comment: ${{ fromJSON(steps.read_yaml.outputs.value)['lock-issue'] }}
           # Reason for locking an issue, value must be one of resolved, off-topic, too heated, spam or ''
           issue-lock-reason: 'resolved'
 
           # Number of days of inactivity before a closed pull request is locked
-          pr-lock-inactive-days: '365'
+          pr-lock-inactive-days: 365
           # Do not lock pull requests created before a given timestamp, value must follow ISO 8601
           pr-exclude-created-before: ''
           # Do not lock pull requests with these labels, value must be a comma separated list of labels or ''
@@ -43,12 +50,7 @@ jobs:
           # Labels to add before locking a pull request, value must be a comma separated list of labels or ''
           pr-lock-labels: 'locked'
           # Comment to post before locking a pull request
-          pr-lock-comment: |
-            Hi there, thank you for your contribution to Conda!
-
-            This pull request has been automatically locked since it has not had recent activity after it was closed.
-
-            Please open a new issue or pull request if needed.
+          pr-lock-comment: ${{ fromJSON(steps.read_yaml.outputs.value)['lock-pr'] }}
           # Reason for locking a pull request, value must be one of resolved, off-topic, too heated, spam or ''
           pr-lock-reason: 'resolved'
 
