@@ -10,6 +10,7 @@ from glob import glob
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda._vendor.toolz.itertoolz import groupby
 from conda.gateways.disk.permissions import make_read_only
+from conda.gateways.disk.create import compile_multiple_pyc
 from conda.models.channel import Channel
 from conda.resolve import Resolve
 
@@ -1029,46 +1030,48 @@ dependencies:
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
 
 
-    def _test_compile_pyc(self, use_sys_python=False, use_dll_search_modifiction=False):
+    def _test_compile_pyc(self, use_sys_python=False):
         evs = {}
-        if use_dll_search_modifiction:
-            evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
         with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             packages = []
             if use_sys_python:
-                py_ver = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
+                py_ver = f"{sys.version_info[0]}.{sys.version_info[1]}"
             else:
                 # We force the use of 'the other' Python on Windows so that Windows
                 # runtime / DLL incompatibilities will be readily apparent.
-                py_ver = '3.7' if sys.version_info[0] == 3 else '2.7'
+                py_ver = '3.7'
                 packages.append('python=' + py_ver)
-            with make_temp_env(*packages, use_restricted_unicode=True
-                               if py_ver.startswith('2') else False) as prefix:
+
+            with make_temp_env(*packages, use_restricted_unicode=False) as prefix:
                 if use_sys_python:
                     python_binary = sys.executable
                 else:
                     python_binary = join(prefix, 'python.exe' if on_win else 'bin/python')
                 assert os.path.isfile(python_binary), "Cannot even find Python"
-                spdir = join('Lib', 'site-packages') if on_win else join('lib', 'python', py_ver)
-                # Bad pun on itsdangerous.
-                py_full_paths = (join(prefix, spdir, 'isitsafe.py'),)
-                pyc_full_paths = [pyc_path(py_path, py_ver) for py_path in py_full_paths]
-                from os import makedirs
-                try:
-                    makedirs(dirname(py_full_paths[0]))
-                except:
-                    pass
-                try:
-                    makedirs(dirname(pyc_full_paths[0]))
-                except:
-                    pass
-                with open(py_full_paths[0], 'w') as fpy:
+
+                if on_win:
+                    site_packages = join('Lib', 'site-packages')
+                else:
+                    site_packages = join('lib', 'python', py_ver)
+
+                test_py_path = join(prefix, site_packages, 'test_compile.py')
+                test_pyc_path = pyc_path(test_py_path, py_ver)
+
+                os.makedirs(dirname(test_py_path), exist_ok=True)
+                os.makedirs(dirname(test_pyc_path), exist_ok=True)
+
+                with open(test_py_path, 'w') as fpy:
                     fpy.write("__version__ = 1.0")
                     fpy.close()
-                from conda.gateways.disk.create import compile_multiple_pyc
-                compile_multiple_pyc(python_binary, py_full_paths, pyc_full_paths, prefix, py_ver)
-                assert isfile(pyc_full_paths[0]), "Failed to generate expected .pyc file {}".format(pyc_full_paths[0])
 
+                compile_multiple_pyc(
+                    python_binary,
+                    (test_py_path,),
+                    (test_pyc_path,),
+                    prefix,
+                    py_ver,
+                )
+                assert isfile(test_pyc_path), f"Failed to generate expected .pyc file {test_pyc_path}"
 
     def test_compile_pyc_sys_python(self):
         return self._test_compile_pyc(use_sys_python=True)
