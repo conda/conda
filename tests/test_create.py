@@ -1055,14 +1055,13 @@ dependencies:
                     site_packages = join('lib', 'python', py_ver)
 
                 test_py_path = join(prefix, site_packages, 'test_compile.py')
-                test_pyc_path = pyc_path(test_py_path, py_ver)
+                test_pyc_path = pyc_path(test_py_path, py_ver).replace('/', os.sep)
 
                 os.makedirs(dirname(test_py_path), exist_ok=True)
                 os.makedirs(dirname(test_pyc_path), exist_ok=True)
 
-                with open(test_py_path, 'w') as fpy:
-                    fpy.write("__version__ = 1.0")
-                    fpy.close()
+                with open(test_py_path, 'w') as test_py_file:
+                    test_py_file.write("__version__ = 1.0")
 
                 compile_multiple_pyc(
                     python_binary,
