@@ -134,11 +134,14 @@ def pyc_path(py_path, python_major_minor_version):
     to the result of comparisons with the contents of them.
     '''
     pyver_string = python_major_minor_version.replace('.', '')
-    directory, py_file = split(py_path)
-    basename_root, extension = splitext(py_file)
-    pyc_file = "__pycache__" + '/' + "%s.cpython-%s%sc" % (
-        basename_root, pyver_string, extension)
-    return "%s%s%s" % (directory, '/', pyc_file) if directory else pyc_file
+    if pyver_string.startswith('2'):
+        return py_path + 'c'
+    else:
+        directory, py_file = split(py_path)
+        basename_root, extension = splitext(py_file)
+        pyc_file = "__pycache__" + '/' + "%s.cpython-%s%sc" % (
+            basename_root, pyver_string, extension)
+        return "%s%s%s" % (directory, '/', pyc_file) if directory else pyc_file
 
 
 def missing_pyc_files(python_major_minor_version, files):
