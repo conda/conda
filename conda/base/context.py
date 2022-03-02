@@ -1540,7 +1540,7 @@ class Context(Configuration):
             ),
             experimental_solver_confirmation=dals(
                 """
-                Boolean whether to display experimental solver confirmation.
+                A boolean whether to display experimental solver confirmation.
                 """
             ),
         )
