@@ -1,3 +1,6 @@
+# NOTE: jobs in this workflow are required checks (see https://github.com/conda/conda/settings/branch_protection_rules/773550)
+# remember to mirror changes here in ci-skip.yml to circumvent skipped required checks issue
+# https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
 name: CI tests
 
 on:
