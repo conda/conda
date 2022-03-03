@@ -45,7 +45,7 @@ body:
     attributes:
       label: Conda info
       description: |
-        Let's get the info on your Conda setup. Run the following command from your command line and paste the output
+        Let's get the info on your conda setup. Run the following command from your command line and paste the output
 
         ```bash
         conda info
@@ -56,7 +56,7 @@ body:
     attributes:
       label: Conda config
       description: |
-        Let's see what your Conda config looks like. Run the following command from your command line and paste the output
+        Let's see what your conda config looks like. Run the following command from your command line and paste the output
 
         ```bash
         conda config --show-sources
@@ -67,7 +67,7 @@ body:
     attributes:
       label: Conda list
       description: |
-        These are the packages installed in your Conda environment and the Conda channels used. They tell us where you are pulling packages from. Make sure you are in the environment where \n you are seeing the issues. Run the following command from your command line and paste the output
+        These are the packages installed in your conda environment and the conda channels used. They tell us where you are pulling packages from. Make sure you are in the environment where \n you are seeing the issues. Run the following command from your command line and paste the output
 
         ```bash
         conda list --show-channel-urls
