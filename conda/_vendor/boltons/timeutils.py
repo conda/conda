@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# source: https://raw.githubusercontent.com/mahmoud/boltons/18.0.0/boltons/timeutils.py
-# version: 18.0.0
-# date: 2018-07-11
 """Python's :mod:`datetime` module provides some of the most complex
 and powerful primitives in the Python standard library. Time is
 nontrivial, but thankfully its support is first-class in

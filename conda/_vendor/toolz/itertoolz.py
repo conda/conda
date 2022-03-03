@@ -4,8 +4,9 @@ import collections
 import operator
 from functools import partial
 from random import Random
-from .compatibility import map, filterfalse, zip, zip_longest, iteritems, filter
-from .utils import no_default
+from conda._vendor.toolz.compatibility import (map, filterfalse, zip, zip_longest, iteritems,
+                                 filter)
+from conda._vendor.toolz.utils import no_default
 
 
 __all__ = ('remove', 'accumulate', 'groupby', 'merge_sorted', 'interleave',
@@ -519,8 +520,9 @@ def interpose(el, seq):
     >>> list(interpose("a", [1, 2, 3]))
     [1, 'a', 2, 'a', 3]
     """
-    combined = zip(itertools.repeat(el), seq)
-    return drop(1, concat(combined))
+    inposed = concat(zip(itertools.repeat(el), seq))
+    next(inposed)
+    return inposed
 
 
 def frequencies(seq):

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
 from collections import namedtuple
 
 from ..exceptions import LocationParseError
