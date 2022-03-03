@@ -18,9 +18,10 @@ from ..common.serialize import json_dump
 from ..models.match_spec import MatchSpec
 from ..exceptions import EnvironmentLocationNotFound, DirectoryNotACondaEnvironmentError
 
-def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
+
+def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
     assert default in choices, default
-    if context.dry_run:
+    if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
 
@@ -49,14 +50,13 @@ def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
 
 
 def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
-    dry_run = context.dry_run if dry_run is NULL else dry_run
-    if dry_run:
+    if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
     if context.always_yes:
         return True
     try:
-        choice = confirm(message=message, choices=('yes', 'no'), default=default)
+        choice = confirm(message=message, choices=("yes", "no"), default=default, dry_run=dry_run)
     except KeyboardInterrupt:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.")
