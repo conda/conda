@@ -22,6 +22,13 @@ cleanup() {
     unset _UPDATE
     unset _UPDATED
 }
+updating() {
+    # check if explicitly updating or if 24 hrs since last update
+    [ ${_UPDATE} = 0 ] && return 0
+    [ -f "${_UPDATED}" ] || return 0
+    return $(( $(( $(date +%s) - $(date -r "${_UPDATED}" +%s) )) < 86400 ))
+}
+
 cleanup
 
 # parse args
@@ -110,7 +117,7 @@ esac
 # dryrun printout
 if [ ${_DRYRUN} = 0 ]; then
     echo "Python: ${_PYTHON}"
-    echo "Updating: $([ ${_UPDATE} = 0 ] && echo "[yes]" || echo "[pending]")"
+    echo "Updating: $(updating && echo "[yes]" || echo "[no]")"
     echo "Devenv: ${_DEVENV} $([ -e "${_DEVENV}" ] && echo "[exists]" || echo "[pending]")"
     echo ""
     echo "Name: ${_NAME}"
@@ -172,7 +179,7 @@ if ! [ -d "${_ENV}" ]; then
 fi
 
 # check if explicitly updating or if 24 hrs since last update
-if [ ${_UPDATE} = 0 ] || ! [ -f "${_UPDATED}" ] || (( $(( $(date +%s) - $(date -r "${_UPDATED}" +%s) )) >= 86400 )); then
+if updating; then
     echo "Updating ${_NAME}..."
 
     if ! "${_BASEEXE}" update -yq --all > /dev/null; then
@@ -226,3 +233,4 @@ export PYTHONPATH="${_SRC}:${PYTHONPATH}"
 
 cleanup
 unset -f cleanup
+unset -f updating
