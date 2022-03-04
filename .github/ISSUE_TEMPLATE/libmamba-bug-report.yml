@@ -73,14 +73,12 @@ body:
         conda list --show-channel-urls
         ```
       render: shell
-  - type: textarea
-    id: context
-    attributes:
-      label: Additional Context
-      description: Add any additional context information or screenshots you think are useful.
       
-  - type: markdown
+  - type: textarea
     attributes:
-      value: |
-       ## Important: 
-       Please attach the log files in a comment to this issue after you have used the `Submit new issue` button. The log files should be found on your computer at `<install path of anaconda>\envs\libmamba\pkgs\.logs\`. You will also see this exact path as it relates to your system on the command line after running anything with `--experimental-solver=libmamba`. 
+      label: Log file
+      description: |
+        Please attach the associated log file (drag and drop the file into the textbox
+        below). The log file can be found at `$CONDA_PREFIX\pkgs\.logs\`. `$CONDA_PREFIX` is the path to the libmamba environment. The
+        exact path is also printed to the command line when running commands with
+        `--experimental-solver=libmamba`.
