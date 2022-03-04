@@ -1903,3 +1903,5 @@
   github: bfis
 - name: pre-commit CI
   email: 66853113+pre-commit-ci[bot]@users.noreply.github.com
+  aliases:
+    - pre-commit-ci[bot]
