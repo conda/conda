@@ -6,10 +6,9 @@ from itertools import chain
 import os
 import sys
 
-from ._vendor.five import WhateverIO as StringIO, with_metaclass
 from ._vendor.six import (PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types,
                           text_type, wraps)
-StringIO, with_metaclass = StringIO, with_metaclass
+
 PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types = PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types  # NOQA
 text_type, wraps = text_type, wraps
 from shlex import split

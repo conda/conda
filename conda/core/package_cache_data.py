@@ -20,7 +20,7 @@ from ..base.constants import (CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_EXTENSION_
                               CONDA_PACKAGE_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, scandir,
-                             string_types, text_type, with_metaclass)
+                             string_types, text_type)
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path
@@ -60,8 +60,7 @@ class PackageCacheType(type):
             return package_cache_instance
 
 
-@with_metaclass(PackageCacheType)
-class PackageCacheData(object):
+class PackageCacheData(metaclass=PackageCacheType):
     _cache_ = {}
 
     def __init__(self, pkgs_dir):

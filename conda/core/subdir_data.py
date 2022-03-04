@@ -30,7 +30,7 @@ from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REP
 from ..base.constants import INITIAL_TRUST_ROOT    # Where root.json is currently.
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
-                             string_types, text_type, with_metaclass)
+                             string_types, text_type)
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
@@ -101,8 +101,7 @@ class SubdirDataType(type):
         return subdir_data_instance
 
 
-@with_metaclass(SubdirDataType)
-class SubdirData(object):
+class SubdirData(metaclass=SubdirDataType):
     _cache_ = {}
 
     @classmethod

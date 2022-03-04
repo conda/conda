@@ -3,7 +3,6 @@ for various types of data gateways.
 """
 from __future__ import absolute_import, division, print_function
 
-from .compat import with_metaclass
 from .exceptions import InitializationError
 
 __all__ = ['Factory']
@@ -76,8 +75,7 @@ class FactoryType(type):
                 return instance
 
 
-@with_metaclass(FactoryType)
-class Factory(object):
+class Factory(metaclass=FactoryType):
     skip_registration = True
     factory = None
 

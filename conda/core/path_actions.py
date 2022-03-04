@@ -14,7 +14,6 @@ from .envs_manager import get_user_environments_txt_file, register_env, unregist
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 from .. import CondaError
-from ..auxlib.compat import with_metaclass
 from ..auxlib.ish import dals
 from .._vendor.toolz import concat
 from ..base.constants import CONDA_TEMP_EXTENSION
@@ -57,8 +56,7 @@ REPR_IGNORE_KWARGS = (
     'hold_path',
 )
 
-@with_metaclass(ABCMeta)
-class PathAction(object):
+class PathAction(metaclass=ABCMeta):
 
     _verified = False
 
@@ -95,8 +93,7 @@ class PathAction(object):
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
 
-@with_metaclass(ABCMeta)
-class MultiPathAction(object):
+class MultiPathAction(metaclass=ABCMeta):
 
     _verified = False
 
@@ -133,8 +130,7 @@ class MultiPathAction(object):
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
 
-@with_metaclass(ABCMeta)
-class PrefixPathAction(PathAction):
+class PrefixPathAction(PathAction, metaclass=ABCMeta):
 
     def __init__(self, transaction_context, target_prefix, target_short_path):
         self.transaction_context = transaction_context
@@ -158,8 +154,7 @@ class PrefixPathAction(PathAction):
 #  Creation of Paths within a Prefix
 # ######################################################
 
-@with_metaclass(ABCMeta)
-class CreateInPrefixPathAction(PrefixPathAction):
+class CreateInPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
     # All CreatePathAction subclasses must create a SINGLE new path
     #   the short/in-prefix version of that path must be returned by execute()
 
@@ -983,8 +978,7 @@ class RegisterEnvironmentLocationAction(PathAction):
 #  Removal of Paths within a Prefix
 # ######################################################
 
-@with_metaclass(ABCMeta)
-class RemoveFromPrefixPathAction(PrefixPathAction):
+class RemoveFromPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
 
     def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path):
         super(RemoveFromPrefixPathAction, self).__init__(transaction_context,

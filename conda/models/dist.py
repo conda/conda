@@ -14,7 +14,7 @@ from .. import CondaError
 from ..auxlib.entity import Entity, EntityType, IntegerField, StringField
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import ensure_text_type, text_type, with_metaclass
+from ..common.compat import ensure_text_type, text_type
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
 
@@ -64,8 +64,7 @@ def split_extension(original_dist):
     return stripped, original_dist[len(stripped):]
 
 
-@with_metaclass(DistType)
-class Dist(Entity):
+class Dist(Entity, metaclass=DistType):
     _cache_ = {}
     _lazy_validate = True
 

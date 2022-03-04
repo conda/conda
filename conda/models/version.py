@@ -7,7 +7,7 @@ import operator as op
 import re
 
 from .._vendor.toolz import excepts
-from ..common.compat import string_types, zip, zip_longest, text_type, with_metaclass
+from ..common.compat import string_types, zip, zip_longest, text_type
 from ..exceptions import InvalidVersionSpec
 
 log = getLogger(__name__)
@@ -43,8 +43,7 @@ class SingleStrArgCachingType(type):
             return super(SingleStrArgCachingType, cls).__call__(arg)
 
 
-@with_metaclass(SingleStrArgCachingType)
-class VersionOrder(object):
+class VersionOrder(metaclass=SingleStrArgCachingType):
     """
     This class implements an order relation between version strings.
     Version strings can contain the usual alphanumeric characters
@@ -489,8 +488,7 @@ class BaseSpec(object):
         return True
 
 
-@with_metaclass(SingleStrArgCachingType)
-class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
+class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/missing-equals]
     _cache_ = {}
 
     def __init__(self, vspec):
@@ -600,8 +598,7 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
 VersionMatch = VersionSpec
 
 
-@with_metaclass(SingleStrArgCachingType)
-class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
+class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/missing-equals]
     _cache_ = {}
 
     def __init__(self, vspec):

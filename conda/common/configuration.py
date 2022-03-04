@@ -31,7 +31,7 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 from .compat import (binary_type, isiterable, iteritems, itervalues, odict, primitive_types,
-                     scandir, string_types, text_type, with_metaclass)
+                     scandir, string_types, text_type)
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -177,8 +177,7 @@ class ParameterFlag(Enum):
             return None
 
 
-@with_metaclass(ABCMeta)
-class RawParameter(object):
+class RawParameter(metaclass=ABCMeta):
 
     def __init__(self, source, key, raw_value):
         self.source = source
@@ -468,8 +467,7 @@ def load_file_configs(search_path):
     return raw_data
 
 
-@with_metaclass(ABCMeta)
-class LoadedParameter(object):
+class LoadedParameter(metaclass=ABCMeta):
     # (type) describes the type of parameter
     _type = None
     # (Parameter or type) if the LoadedParameter holds a collection, describes the element held in
@@ -871,8 +869,7 @@ class ConfigurationObject(object):
     pass
 
 
-@with_metaclass(ABCMeta)
-class Parameter(object):
+class Parameter(metaclass=ABCMeta):
     # (type) describes the type of parameter
     _type = None
     # (Parameter or type) if the Parameter is holds a collection, describes the element held in
@@ -1259,8 +1256,7 @@ class ConfigurationType(type):
                                     if isinstance(p, ParameterLoader))
 
 
-@with_metaclass(ConfigurationType)
-class Configuration(object):
+class Configuration(metaclass=ConfigurationType):
 
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
         # Currently, __init__ does a **full** disk reload of all files.
