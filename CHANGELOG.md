@@ -15,36 +15,36 @@
 
   1. Activate your conda base environment:
 
-    ```
-    conda activate base
-    ```
+     ```
+     conda activate base
+     ```
 
-    Then install the conda-libmamba-solver package:
+     Then install the conda-libmamba-solver package:
 
-    ```
-    conda install conda-libmamba-solver
-    ```
+     ```
+     conda install conda-libmamba-solver
+     ```
 
-    Deactivate your base environment again
+     Deactivate your base environment again
 
-    ```
-    conda deactivate
-    ```
+     ```
+     conda deactivate
+     ```
 
   2. Try out the solver using the `--experimental-solver=libmamba` command line option.
 
-    E.g. with a dry-run to install the ``scipy`` pacakge:
+     E.g. with a dry-run to install the ``scipy`` pacakge:
 
-    ```
-    conda create -n demo scipy --dry-run --experimental-solver=libmamba
-    ```
+     ```
+     conda create -n demo scipy --dry-run --experimental-solver=libmamba
+     ```
 
-    Or install in an activated conda environment:
+     Or install in an activated conda environment:
 
-    ```
-    conda activate my-environment
-    conda install scipy --experimental-solver=libmamba
-    ```
+     ```
+     conda activate my-environment
+     conda install scipy --experimental-solver=libmamba
+     ```
 
 * Make sure that conda env update -f sets env vars from the referenced yaml file. (#10652)
 * Improve command line argument quoting. (#11189)
