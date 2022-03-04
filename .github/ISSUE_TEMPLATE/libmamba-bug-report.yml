@@ -11,7 +11,7 @@ body:
         ```bash
         $ conda remove conda-libmamba-solver
         ```
-        
+
         Going through bugs and issues takes up a lot of time, so please be so kind and take a few minutes to fill out all the areas to the best of your ability.
 
         There will always be more issues than there is time to do them, and so we will need to selectively close issues that don't provide enough information, so we can focus our time on helping people like you who fill out the issue form completely. Thank you for your collaboration!
@@ -73,7 +73,7 @@ body:
         conda list --show-channel-urls
         ```
       render: shell
-      
+
   - type: textarea
     attributes:
       label: Log file
