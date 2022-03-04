@@ -53,6 +53,7 @@ Authors are sorted alphabetically.
 * Bruno Oliveira
 * Bryan Van de Ven
 * Casper da Costa-Luis
+* Chawye Hsu
 * Cheng H. Lee
 * Chris Burr
 * Chris Granade
@@ -73,6 +74,7 @@ Authors are sorted alphabetically.
 * Dan Blanchard
 * Dan Meador
 * Daniel Bast
+* Daniel Holth
 * Daniel Wehner
 * Daniel Zeng
 * Darren Dale
@@ -96,6 +98,7 @@ Authors are sorted alphabetically.
 * Eric Prestat
 * Ernst Reissner
 * Eugene Van den Bulke
+* Faustin Carter
 * Flavio Martins
 * Floris Bruynooghe
 * Forrest Waters
@@ -148,6 +151,7 @@ Authors are sorted alphabetically.
 * Joel Kim
 * Johan Carlin
 * John Ayad
+* John Flavin
 * John Kirkham
 * Jonas Haag
 * Jonathan J. Helmus
@@ -220,6 +224,7 @@ Authors are sorted alphabetically.
 * Morgan Parry
 * Morten Enemark Lund
 * Murray Read
+* NaincyKumariKnoldus
 * Nate Coraor
 * Nehal J Wani
 * Nelson Liu
@@ -274,6 +279,7 @@ Authors are sorted alphabetically.
 * Sebastien Awwad
 * Shannon Green
 * Shaun Walbridge
+* Simon Li
 * Skipper Seabold
 * Sophia Castellarin
 * Stan Seibert
@@ -316,16 +322,21 @@ Authors are sorted alphabetically.
 * Wolfgang Ulmer
 * Yaroslav Dmytryk
 * Yuval Reches
+* Yuvi Panda
 * Zach Heaton
 * Zahari
 * Zhiwei Liang
 * Zongyuan Zuo
 * albertmichaelj
+* autotmp
+* avalon (they/them)
+* bfis
 * bgobbi
 * blindgaenger
 * bryanv@continuum.io
 * christopher
 * codepage949
+* conda-bot
 * csoja
 * dan-hook
 * distro-bot@anaconda.com
@@ -356,6 +367,7 @@ Authors are sorted alphabetically.
 * oinizan
 * ovz
 * peter1000
+* pre-commit CI
 * psthomas
 * rulerofthehuns
 * santi
