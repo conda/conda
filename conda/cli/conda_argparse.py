@@ -1037,16 +1037,13 @@ def configure_parser_remove(sub_parsers, name='remove'):
 
 
 def configure_parser_run(sub_parsers):
-    help = "Run an executable in a conda environment. [Experimental]"
+    help = "Run an executable in a conda environment."
     descr = help + dedent("""
 
-    Use '--' (double dash) to separate CLI flags for 'conda run' from CLI flags sent to
-    the process being launched.
+    Example usage::
 
-    Example usage:
-
-        $ conda create -y -n my-python-2-env python=2
-        $ conda run -n my-python-2-env python --version
+        $ conda create -y -n my-python-env python=3
+        $ conda run -n my-python-env python --version
     """)
 
     epilog = dedent("""
@@ -1470,7 +1467,7 @@ def add_parser_channels(p):
         or channels from .condarc are searched (unless --override-channels is given).  You can use
         'defaults' to get the default packages for conda.  You can also use any name and the
         .condarc channel_alias value will be prepended.  The default channel_alias
-        is http://conda.anaconda.org/.""",
+        is https://conda.anaconda.org/.""",
     )
     channel_customization_options.add_argument(
         "--use-local",
