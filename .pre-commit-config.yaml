@@ -51,7 +51,7 @@ repos:
       - id: pylint
         args: [--exit-zero]
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.3
+    rev: 1.7.4
     hooks:
       - id: bandit
         args: [--exit-zero]
