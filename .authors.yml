@@ -38,9 +38,11 @@
   first_commit: 2018-05-25 02:12:04
 - name: Juan Luis Cano Rodríguez
   email: juanlu001@gmail.com
-  num_commits: 3
+  num_commits: 4
   first_commit: 2013-07-22 01:02:30
   github: Juanlu001
+  alternate_emails:
+  - juanlu@orchest.io
 - name: Tim Gates
   email: tim.gates@iress.com
   num_commits: 1
@@ -405,9 +407,11 @@
   first_commit: 2016-06-16 19:44:13
 - name: Dan Meador
   email: danmeador33@gmail.com
-  num_commits: 3
+  num_commits: 4
   first_commit: 2021-08-26 19:24:11
   github: LtDan33
+  alternate_emails:
+  - dmeador@anaconda.com
 - name: Armin Burgmeier
   email: aburgmeier@bloomberg.net
   num_commits: 26
@@ -740,7 +744,7 @@
   email: marcelotrevisani@users.noreply.github.com
   alternate_emails:
   - marceloduartetrevisani@gmail.com
-  num_commits: 2
+  num_commits: 3
   first_commit: 2018-04-08 02:04:13
   github: marcelotrevisani
 - name: Martin Prüsse
@@ -1001,7 +1005,7 @@
   first_commit: 2016-06-09 22:08:15
 - name: Eli Rykoff
   email: erykoff@stanford.edu
-  num_commits: 4
+  num_commits: 5
   first_commit: 2020-10-01 00:25:41
   github: erykoff
 - name: Benjamin Wilhelm
@@ -1440,7 +1444,7 @@
   github: tartansandal
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 53
+  num_commits: 58
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -1848,7 +1852,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: ken.odegard@gmail.com
-  num_commits: 61
+  num_commits: 62
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -1913,7 +1917,7 @@
   email: 66853113+pre-commit-ci[bot]@users.noreply.github.com
   aliases:
   - pre-commit-ci[bot]
-  num_commits: 9
+  num_commits: 10
   first_commit: 2021-11-16 10:37:29
 - name: Yuvi Panda
   email: yuvipanda@gmail.com
