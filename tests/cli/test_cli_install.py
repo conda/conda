@@ -35,7 +35,7 @@ def test_pre_link_message(fix_cli_install, conda_build_recipes):
         stdout, _, _ = run_command(
             Commands.INSTALL, prefix, "pre_link_messages_package", "--use-local"
         )
-        assert "Lorem ipsum dolor sit amet, consectetur adipiscing elit." in stdout
+        assert "Lorem ipsum dolor sit amet" in stdout
 
 
 @pytest.mark.integration
