@@ -260,15 +260,15 @@ class UnlinkLinkTransaction(object):
             prelink_msg_dir = (
                 Path(act.pkg_data.extracted_package_dir) / "info" / "prelink_messages"
             )
-            # breakpoint()
             all_msg_subdir = list(item for item in prelink_msg_dir.glob("**/*") if item.is_file())
             if prelink_msg_dir.is_dir() and all_msg_subdir:
-                print("\nThe following PRELINK MESSAGES are included:")
+                print("\n\nThe following PRELINK MESSAGES are included:\n\n")
                 flag_pre_link = True
 
                 for msg_file in all_msg_subdir:
-                    print(f"\n  File {msg_file.name}:\n")
+                    print(f"  File {msg_file.name}:\n")
                     print(indent(msg_file.read_text(), "  "))
+                    print("")
         if flag_pre_link:
             confirm_yn()
 

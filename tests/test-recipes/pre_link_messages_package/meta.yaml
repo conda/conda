@@ -7,4 +7,6 @@ build:
 
 about:
   summary: Package to test prelink_message
-  prelink_message: message-from-pkg.txt
+  prelink_message:
+    - message-from-pkg.txt
+    - message-from-pkg2.txt
