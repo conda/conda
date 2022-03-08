@@ -47,7 +47,8 @@
      ```
 
 * Make sure that conda env update -f sets env vars from the referenced yaml file. (#10652)
-* Improve command line argument quoting. (#11189)
+* Improve command line argument quoting, especially for conda run. (#11189)
+* Add support for prelink_message. (#11123)
 
 ### Bug fixes
 
@@ -67,17 +68,18 @@
 * Fixed link in docs. (#11268)
 * Update profile examples. (#11278)
 * Fix typos. (#11070)
+* Document conda run command. (#11299)
 
 ### Other
 
 * Added macOS to continuous integration. (#10875)
 * Added ability to build per-pullrequest review builds. (#11135)
-* Improved subprocess handling on Windows (#11179)
+* Improved subprocess handling on Windows. (#11179)
 * Add `CONDA_SOURCE_ROOT` env var. (#11182)
 * Automatically check copyright/license disclaimer & encoding pragma. (#11183)
 * Development environment per Python version. (#11233)
 * Add concurrency group to cancel GHA runs on repeated pushes to branch/PR. (#11258)
-* Only run GHAs on non-forks (#11265)
+* Only run GHAs on non-forks. (#11265)
 
 ### Contributors
 
@@ -94,6 +96,8 @@
 * @NaincyKumariKnoldus
 * @autotmp
 * @yuvipanda
+* @Juanlu001
+* @marcelotrevisani
 
 ## 4.11.0 (2021-11-22)
 
