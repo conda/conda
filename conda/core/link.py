@@ -11,6 +11,7 @@ from os.path import basename, dirname, isdir, join
 import sys
 from pathlib import Path
 from traceback import format_exception_only
+from textwrap import indent
 import warnings
 
 from .package_cache_data import PackageCacheData
@@ -231,14 +232,15 @@ class UnlinkLinkTransaction(object):
             self._verified = True
             return
 
-        with Spinner("Verifying transaction", not context.verbosity and not context.quiet,
-                     context.json):
+        with Spinner(
+            "Verifying transaction", not context.verbosity and not context.quiet, context.json
+        ):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    rm_rf(self.transaction_context['temp_dir'])
+                    rm_rf(self.transaction_context["temp_dir"])
                     raise
                 log.info(exceptions)
         try:
@@ -248,7 +250,7 @@ class UnlinkLinkTransaction(object):
                 )
             )
         except CondaSystemExit:
-            rm_rf(self.transaction_context['temp_dir'])
+            rm_rf(self.transaction_context["temp_dir"])
             raise
         self._verified = True
 
@@ -256,18 +258,19 @@ class UnlinkLinkTransaction(object):
         flag_pre_link = False
         for act in all_link_groups:
             prelink_msg_dir = (
-                    Path(act.pkg_data.extracted_package_dir) / "info" / "prelink_messages"
+                Path(act.pkg_data.extracted_package_dir) / "info" / "prelink_messages"
             )
-            all_msg_subdir = list(prelink_msg_dir.glob("**/*"))
+            # breakpoint()
+            all_msg_subdir = list(item for item in prelink_msg_dir.glob("**/*") if item.is_file())
             if prelink_msg_dir.is_dir() and all_msg_subdir:
-                log.info(f"\nPre-link message from {act.pkg_data.repodata_record}:")
+                print("\nThe following PRELINK MESSAGES are included:")
                 flag_pre_link = True
 
                 for msg_file in all_msg_subdir:
-                    if msg_file.is_file():
-                        log.info(f"File {msg_file.name};\n\nMessage:\n{msg_file.read_text()}")
+                    print(f"\n  File {msg_file.name}:\n")
+                    print(indent(msg_file.read_text(), "  "))
         if flag_pre_link:
-            confirm_yn("Do you AGREE with ALL pre-link message")
+            confirm_yn()
 
     def execute(self):
         if not self._verified:

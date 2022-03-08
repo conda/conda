@@ -32,7 +32,7 @@ def fix_cli_install(tmpdir):
 def test_pre_link_message(fix_cli_install, conda_build_recipes):
     prefix = fix_cli_install[0]
     with patch("conda.cli.common.confirm_yn", return_value=True):
-        stdout, stderr, _ = run_command(
+        stdout, _, _ = run_command(
             Commands.INSTALL, prefix, "pre_link_messages_package", "--use-local"
         )
         assert "Lorem ipsum dolor sit amet, consectetur adipiscing elit." in stdout
