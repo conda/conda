@@ -1,5 +1,104 @@
 [//]: # (current developments)
 
+## 4.12.0 (2022-03-08)
+
+### Enhancements
+
+* Add support for libmamba integrations. (#11193)
+
+  This is a new **experimental and opt-in** feature that allows use of the
+  new [conda-libmamba-solver](https://github.com/conda-incubator/conda-libmamba-solver)
+  for an improved user experience, based on the libmamba community project -
+  the library version of the [mamba package manager](https://github.com/mamba-org/mamba).
+
+  This is an  which means you'll need to follow these steps:
+
+  1. Activate your conda base environment:
+
+     ```
+     conda activate base
+     ```
+
+     Then install the conda-libmamba-solver package:
+
+     ```
+     conda install conda-libmamba-solver
+     ```
+
+     Deactivate your base environment again
+
+     ```
+     conda deactivate
+     ```
+
+  2. Try out the solver using the `--experimental-solver=libmamba` command line option.
+
+     E.g. with a dry-run to install the ``scipy`` pacakge:
+
+     ```
+     conda create -n demo scipy --dry-run --experimental-solver=libmamba
+     ```
+
+     Or install in an activated conda environment:
+
+     ```
+     conda activate my-environment
+     conda install scipy --experimental-solver=libmamba
+     ```
+
+* Make sure that `conda env update -f` sets env vars from the referenced yaml file. (#10652)
+* Improve command line argument quoting, especially for `conda run`. (#11189)
+* Allow `conda run` to work in read-only environments. (#11215)
+* Add support for prelink_message. (#11123)
+* Added `conda.CONDA_SOURCE_ROOT`. (#11182)
+
+### Bug fixes
+
+* Refactored `conda.utils.ensure_comspec_set` into `conda.utils.get_comspec`. (#11168)
+* Refactored `conda.cli.common.is_valid_prefix` into `conda.cli.common.validate_prefix`. (#11172)
+* Instantiate separate S3 session for thread-safety. (#11038)
+* Change overly verbose info log to debug. (#11260)
+* Remove five.py and update metaclass definitions. (#11267)
+* Remove unnecessary conditional in setup.py (#11013)
+
+### Docs
+
+* Clarify on AIE messaging in download.rst. (#11221)
+* Fix conda environment variable echo, update example versions. (#11237)
+* Fixed link in docs. (#11268)
+* Update profile examples. (#11278)
+* Fix typos. (#11070)
+* Document conda run command. (#11299)
+
+### Other
+
+* Added macOS to continuous integration. (#10875)
+* Added ability to build per-pullrequest review builds. (#11135)
+* Improved subprocess handling on Windows. (#11179)
+* Add `CONDA_SOURCE_ROOT` env var. (#11182)
+* Automatically check copyright/license disclaimer & encoding pragma. (#11183)
+* Development environment per Python version. (#11233)
+* Add concurrency group to cancel GHA runs on repeated pushes to branch/PR. (#11258)
+* Only run GHAs on non-forks. (#11265)
+
+### Contributors
+
+* @opoplawski
+* @FaustinCarter
+* @jaimergp
+* @rhoule-anaconda
+* @jezdez
+* @hajapy
+* @erykoff
+* @uwuvalon
+* @kenodegard
+* @manics
+* @NaincyKumariKnoldus
+* @autotmp
+* @yuvipanda
+* @Juanlu001
+* @marcelotrevisani
+
 ## 4.11.0 (2021-11-22)
 
 ### Enhancements
