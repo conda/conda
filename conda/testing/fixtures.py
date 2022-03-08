@@ -1,27 +1,24 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import warnings
 import py
 import pytest
 
-from conda.common.compat import PY3
 from conda.gateways.disk.create import TemporaryDirectory
 from conda.core.subdir_data import SubdirData
 
 
 @pytest.fixture(autouse=True)
 def suppress_resource_warning():
-    '''
+    """
     Suppress `Unclosed Socket Warning`
 
     It seems urllib3 keeps a socket open to avoid costly recreation costs.
 
     xref: https://github.com/kennethreitz/requests/issues/1882
-    '''
-    if PY3:
-        warnings.filterwarnings("ignore", category=ResourceWarning)
+    """
+    warnings.filterwarnings("ignore", category=ResourceWarning)
 
 
 @pytest.fixture(scope='function')

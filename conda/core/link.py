@@ -3,12 +3,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import itertools
 from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, join
 import sys
+from pathlib import Path
 from traceback import format_exception_only
+from textwrap import indent
 import warnings
 
 from .package_cache_data import PackageCacheData
@@ -24,6 +27,7 @@ from ..auxlib.ish import dals
 from .._vendor.toolz import concat, concatv, interleave
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
+from ..cli.common import confirm_yn
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
@@ -32,7 +36,8 @@ from ..common.path import (explode_directories, get_all_directories, get_major_m
 from ..common.signals import signal_handler
 from ..exceptions import (DisallowedPackageError, EnvironmentNotWritableError,
                           KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
+                          CondaSystemExit)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -227,25 +232,51 @@ class UnlinkLinkTransaction(object):
             self._verified = True
             return
 
-        with Spinner("Verifying transaction", not context.verbosity and not context.quiet,
-                     context.json):
+        with Spinner(
+            "Verifying transaction", not context.verbosity and not context.quiet, context.json
+        ):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    rm_rf(self.transaction_context['temp_dir'])
+                    rm_rf(self.transaction_context["temp_dir"])
                     raise
                 log.info(exceptions)
-
+        try:
+            self._verify_pre_link_message(
+                itertools.chain(
+                    *(act.link_action_groups for act in self.prefix_action_groups.values())
+                )
+            )
+        except CondaSystemExit:
+            rm_rf(self.transaction_context["temp_dir"])
+            raise
         self._verified = True
+
+    def _verify_pre_link_message(self, all_link_groups):
+        flag_pre_link = False
+        for act in all_link_groups:
+            prelink_msg_dir = (
+                Path(act.pkg_data.extracted_package_dir) / "info" / "prelink_messages"
+            )
+            all_msg_subdir = list(item for item in prelink_msg_dir.glob("**/*") if item.is_file())
+            if prelink_msg_dir.is_dir() and all_msg_subdir:
+                print("\n\nThe following PRELINK MESSAGES are INCLUDED:\n\n")
+                flag_pre_link = True
+
+                for msg_file in all_msg_subdir:
+                    print(f"  File {msg_file.name}:\n")
+                    print(indent(msg_file.read_text(), "  "))
+                    print("")
+        if flag_pre_link:
+            confirm_yn()
 
     def execute(self):
         if not self._verified:
             self.verify()
 
         assert not context.dry_run
-
         try:
             self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
         finally:

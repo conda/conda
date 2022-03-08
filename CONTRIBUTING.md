@@ -243,7 +243,8 @@ to do it manually in other modes:
 
 ```bash
 $ conda install conda-build
-$ conda-build tests/test-recipes/activate_deactivate_package
+$ conda-build tests/test-recipes/activate_deactivate_package tests/test-recipes/pre_link_messages_package
+
 ```
 
 Check `dev/linux/integration.sh` and `dev\windows\integration.bat` for more details.

@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+from pathlib import Path
+import subprocess
 import sys
+
+import pytest
 
 from conda.testing.fixtures import (
     suppress_resource_warning,
@@ -24,3 +27,13 @@ def pytest_addoption(parser):
 def pytest_generate_tests(metafunc):
     if 'shell' in metafunc.fixturenames:
         metafunc.parametrize("shell", metafunc.config.option.shell)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def conda_build_recipes():
+    test_recipes = Path(__file__).resolve().parent / "test-recipes"
+    recipes_to_build = ["activate_deactivate_package", "pre_link_messages_package"]
+    packages = [str(test_recipes / pkg) for pkg in recipes_to_build]
+    cmd = ["conda-build"]
+    cmd.extend(packages)
+    subprocess.run(cmd, check=True)
