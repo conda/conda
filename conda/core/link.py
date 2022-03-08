@@ -262,7 +262,7 @@ class UnlinkLinkTransaction(object):
             )
             all_msg_subdir = list(item for item in prelink_msg_dir.glob("**/*") if item.is_file())
             if prelink_msg_dir.is_dir() and all_msg_subdir:
-                print("\n\nThe following PRELINK MESSAGES are included:\n\n")
+                print("\n\nThe following PRELINK MESSAGES are INCLUDED:\n\n")
                 flag_pre_link = True
 
                 for msg_file in all_msg_subdir:
