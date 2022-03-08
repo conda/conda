@@ -311,7 +311,6 @@ class Context(Configuration):
     experimental_solver = ParameterLoader(
         PrimitiveParameter(ExperimentalSolverChoice.CLASSIC, element_type=ExperimentalSolverChoice)
     )
-    experimental_solver_confirmation = ParameterLoader(PrimitiveParameter(True, element_type=bool))
 
     # # CLI-only
     # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
@@ -943,7 +942,6 @@ class Context(Configuration):
                 "pip_interop_enabled",
                 "track_features",
                 "experimental_solver",
-                "experimental_solver_confirmation",
             ),
             "Package Linking and Install-time Configuration": (
                 "allow_softlinks",
@@ -1536,11 +1534,6 @@ class Context(Configuration):
                 conda. A solver logic takes care of turning your requested packages into a
                 list of specs to add and/or remove from a given environment, based on their
                 dependencies and specified constraints.
-                """
-            ),
-            experimental_solver_confirmation=dals(
-                """
-                A boolean whether to display experimental solver confirmation.
                 """
             ),
         )
