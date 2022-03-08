@@ -6,30 +6,15 @@
 
 * Add support for libmamba integrations. (#11193)
 
-  This is a new **experimental and opt-in** feature that allows use of the
-  new [conda-libmamba-solver](https://github.com/conda-incubator/conda-libmamba-solver)
+  This is a new **experimental and opt-in** feature that allows use of the new
+  [conda-libmamba-solver](https://github.com/conda-incubator/conda-libmamba-solver)
   for an improved user experience, based on the libmamba community project -
   the library version of the [mamba package manager](https://github.com/mamba-org/mamba).
 
-  This is an  which means you'll need to follow these steps:
+  Please follow these steps to try out the new libmamba solver integration:
 
-  1. Activate your conda base environment:
-
-     ```
-     conda activate base
-     ```
-
-     Then install the conda-libmamba-solver package:
-
-     ```
-     conda install conda-libmamba-solver
-     ```
-
-     Deactivate your base environment again
-
-     ```
-     conda deactivate
-     ```
+  1. Make sure you have [conda-libmamba-solver](https://github.com/conda-incubator/conda-libmamba-solver)
+     installed in your conda base environment.
 
   2. Try out the solver using the `--experimental-solver=libmamba` command line option.
 
