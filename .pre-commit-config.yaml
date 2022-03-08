@@ -5,7 +5,6 @@ ci:
 exclude: |
   (?x)^(
     conda/_vendor |
-    conda/auxlib/_vendor |
     tests/data/(
       conda_format_repo |
       env_metadata/.+ |
