@@ -46,17 +46,17 @@
      conda install scipy --experimental-solver=libmamba
      ```
 
-* Make sure that conda env update -f sets env vars from the referenced yaml file. (#10652)
-* Improve command line argument quoting, especially for conda run. (#11189)
+* Make sure that `conda env update -f` sets env vars from the referenced yaml file. (#10652)
+* Improve command line argument quoting, especially for `conda run`. (#11189)
+* Allow `conda run` to work in read-only environments. (#11215)
 * Add support for prelink_message. (#11123)
+* Added `conda.CONDA_SOURCE_ROOT`. (#11182)
 
 ### Bug fixes
 
 * Refactored `conda.utils.ensure_comspec_set` into `conda.utils.get_comspec`. (#11168)
 * Refactored `conda.cli.common.is_valid_prefix` into `conda.cli.common.validate_prefix`. (#11172)
-* Added `conda.CONDA_SOURCE_ROOT`. (#11182)
 * Instantiate separate S3 session for thread-safety. (#11038)
-* Allow conda run to work in read-only environments. (#11215)
 * Change overly verbose info log to debug. (#11260)
 * Remove five.py and update metaclass definitions. (#11267)
 * Remove unnecessary conditional in setup.py (#11013)
