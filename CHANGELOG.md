@@ -1,6 +1,6 @@
 [//]: # (current developments)
 
-## 4.12.0 (2022-03-XX)
+## 4.12.0 (2022-03-08)
 
 ### Enhancements
 
