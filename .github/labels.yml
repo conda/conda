@@ -120,9 +120,6 @@
   aliases: []
 
 # Deprecated
-- name: epic
-  description: "[deprecated] use milestones"
-  color: "888888"
 - name: priority-high
   description: "[deprecated] use severity::*"
   color: "888888"
