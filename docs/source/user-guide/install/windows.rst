@@ -44,8 +44,8 @@ argument. The following optional arguments are supported:
 * ``/AddToPath=[0|1]``---Default is ``0``
 * ``/RegisterPython=[0|1]``---Make this the system's default
   Python.
-  ``0`` indicates Python won't be registered as system's default. ``1``
-  indicates Python will be registered as system's default.
+  ``0`` indicates Python won't be registered as the system's default. ``1``
+  indicates Python will be registered as the system's default.
 * ``/S``---Install in silent mode.
 * ``/D=<installation path>``---Destination installation path.
   Must be the last argument. Do not wrap in quotation marks.
