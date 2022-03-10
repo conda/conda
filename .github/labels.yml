@@ -89,10 +89,7 @@
   color: "386BAF"
   aliases: [tag-config]
 - name: plugins::activate
-  description: pertains to conda-activate
-  color: "386BAF"
-- name: plugins::deactivate
-  description: pertains to conda-deactivate
+  description: pertains to conda-activate or conda-deactivate
   color: "386BAF"
 - name: plugins::init
   description: pertains to conda-init
