@@ -15,7 +15,7 @@ from conda.exceptions import CondaHTTPError
 from conda.models.match_spec import MatchSpec
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_round_trip_load
-from conda.install import on_win
+from conda.common.compat import on_win
 
 from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
