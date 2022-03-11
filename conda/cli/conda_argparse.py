@@ -59,7 +59,6 @@ def generate_parser():
     configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
     configure_parser_create(sub_parsers)
-    configure_parser_help(sub_parsers)
     configure_parser_info(sub_parsers)
     configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
@@ -678,24 +677,6 @@ def configure_parser_init(sub_parsers):
         help="Only display what would have been done.",
     )
     p.set_defaults(func='.main_init.execute')
-
-
-def configure_parser_help(sub_parsers):
-    descr = "Displays a list of available conda commands and their help strings."
-
-    p = sub_parsers.add_parser(
-        'help',
-        description=descr,
-        help=descr,
-    )
-    p.add_argument(
-        'command',
-        metavar='COMMAND',
-        action="store",
-        nargs='?',
-        help="Print help information for COMMAND (same as: conda COMMAND --help).",
-    )
-    p.set_defaults(func='.main_help.execute')
 
 
 def configure_parser_install(sub_parsers):
