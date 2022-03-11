@@ -23,7 +23,6 @@ class Commands:
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
-    HELP = "help"
     LIST = "list"
     REMOVE = "remove"
     SEARCH = "search"
