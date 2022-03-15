@@ -213,25 +213,6 @@ def user_log_dir(appname, appauthor=None, version=None, opinion=True):
         path = os.path.join(path, version)
     return path
 
-class EnvAppDirs(object):
-    def __init__(self, appname, appauthor, root_path):
-        self.appname = appname
-        self.appauthor = appauthor
-        self.root_path = root_path
-    @property
-    def user_data_dir(self):
-        return os.path.join(self.root_path, 'data')
-    @property
-    def site_data_dir(self):
-        return os.path.join(self.root_path, 'data')
-    @property
-    def user_cache_dir(self):
-        return os.path.join(self.root_path, 'cache')
-
-    @property
-    def user_log_dir(self):
-        return os.path.join(self.root_path, 'log')
-
 
 class AppDirs(object):
     """Convenience wrapper for getting application dirs."""
