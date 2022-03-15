@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         # The issues labeled "support" have a more aggressive stale/close timeline from the rest
-        only-issue-labels: ['type::support', null]
+        only-issue-labels: ['type::support', '']
     steps:
       - id: read_yaml
         uses: conda/actions/read-yaml@v22.2.1
@@ -30,9 +30,9 @@ jobs:
         id: stale
         with:
           # Idle number of days before marking issues stale (default: 60)
-          days-before-issue-stale: ${{ matrix.only-issue-labels == "type::support" && 21 || 365 }}
+          days-before-issue-stale: ${{ matrix.only-issue-labels && 21 || 365 }}
           # Idle number of days before closing stale issues/PRs (default: 7)
-          days-before-issue-close: ${{ matrix.only-issue-labels == "type::support" && 7 || 90 }}
+          days-before-issue-close: ${{ matrix.only-issue-labels && 7 || 90 }}
           # Idle number of days before marking PRs stale (default: 60)
           days-before-pr-stale: 365
           # Idle number of days before closing stale PRs (default: 7)
@@ -56,9 +56,9 @@ jobs:
           close-pr-label: 'stale::closed'
 
           # Issues with these labels will never be considered stale
-          exempt-issue-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,Epic,priority-high'
+          exempt-issue-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,epic,priority-high'
           # Issues with these labels will never be considered stale
-          exempt-pr-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,Epic,priority-high'
+          exempt-pr-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,epic,priority-high'
           # Only issues with these labels are checked whether they are stale
           only-issue-labels: ${{ matrix.only-issue-labels }}
 
