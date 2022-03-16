@@ -5,7 +5,6 @@ ci:
 exclude: |
   (?x)^(
     conda/_vendor |
-    conda/auxlib/_vendor |
     tests/data/(
       conda_format_repo |
       env_metadata/.+ |
@@ -13,7 +12,8 @@ exclude: |
       repodata |
       tar_traversal |
       corrupt
-    )
+    ) |
+    tools/vendoring/patches
   )/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks

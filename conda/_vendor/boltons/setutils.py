@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# source: https://raw.githubusercontent.com/mahmoud/boltons/18.0.0/boltons/setutils.py
-# version: 18.0.0
-# date: 2018-07-11
 """\
 
 The :class:`set` type brings the practical expressiveness of
@@ -17,10 +14,7 @@ from __future__ import print_function
 
 from bisect import bisect_left
 from itertools import chain, islice
-try:
-    from collections.abc import MutableSet
-except ImportError:
-    from collections import MutableSet
+from collections import MutableSet
 import operator
 
 try:

@@ -1,5 +1,14 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
-from logging import getLogger
+from __future__ import absolute_import
+from .url import (
+    get_host,
+    parse_url,
+    split_first,
+    Url,
+)
 
-log = getLogger(__name__)
+__all__ = (
+    'Url',
+    'get_host',
+    'parse_url',
+    'split_first',
+)

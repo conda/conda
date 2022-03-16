@@ -6,8 +6,17 @@ from itertools import chain
 import os
 import sys
 
-from ._vendor.six import (PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types,
-                          text_type, wraps)
+from .._vendor.six import (
+    PY2,
+    PY3,
+    integer_types,
+    iteritems,
+    iterkeys,
+    itervalues,
+    string_types,
+    text_type,
+    wraps,
+)
 
 PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types = PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types  # NOQA
 text_type, wraps = text_type, wraps
