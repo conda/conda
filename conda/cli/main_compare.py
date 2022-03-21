@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import os
+from os.path import abspath, expanduser, expandvars
 
 from .common import stdout_json
 from ..base.context import context
@@ -12,7 +13,6 @@ from ..common.compat import text_type
 from ..core.prefix_data import PrefixData
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import is_conda_environment
-from ..auxlib.path import expand
 from conda_env import exceptions, specs
 from ..models.match_spec import MatchSpec
 
@@ -66,7 +66,7 @@ def execute(args, parser):
         if url_scheme in CONDA_SESSION_SCHEMES:
             filename = args.file
         else:
-            filename = expand(args.file)
+            filename = abspath(expanduser(expandvars(args.file)))
 
         spec = specs.detect(name=args.name, filename=filename, directory=os.getcwd())
         env = spec.environment
