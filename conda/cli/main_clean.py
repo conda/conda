@@ -31,7 +31,7 @@ def find_tarballs():
                 pkgs_dirs.setdefault(pkgs_dir, []).append(fn)
                 total_size += getsize(join(root, fn))
 
-    return pkgs_dirs, total_size
+    return {"pkgs_dirs": pkgs_dirs, "total_size": total_size}
 
 
 def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
@@ -132,7 +132,12 @@ def find_pkgs():
                     pkgsize += size
             pkg_sizes.setdefault(pkgs_dir, {})[pkg] = pkgsize
 
-    return pkgs_dirs, warnings, total_size, pkg_sizes
+    return {
+        "pkgs_dirs": pkgs_dirs,
+        "total_size": total_size,
+        "warnings": warnings,
+        "pkg_sizes": pkg_sizes,
+    }
 
 
 def rm_pkgs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
@@ -239,9 +244,8 @@ def _execute(args, parser):
         raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
 
     if args.tarballs or args.all:
-        pkgs_dirs, total_size = find_tarballs()
-        json_result["tarballs"] = {"pkgs_dirs": pkgs_dirs, "total_size": total_size}
-        rm_tarballs(args, pkgs_dirs, total_size, verbose=not (context.json or context.quiet))
+        json_result["tarballs"] = tars = find_tarballs()
+        rm_tarballs(args, **tars, verbose=not (context.json or context.quiet))
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
@@ -250,21 +254,8 @@ def _execute(args, parser):
         rm_index_cache()
 
     if args.packages or args.all:
-        pkgs_dirs, warnings, total_size, pkg_sizes = find_pkgs()
-        json_result["packages"] = {
-            "pkgs_dirs": pkgs_dirs,
-            "total_size": total_size,
-            "warnings": warnings,
-            "pkg_sizes": pkg_sizes,
-        }
-        rm_pkgs(
-            args,
-            pkgs_dirs,
-            warnings,
-            total_size,
-            pkg_sizes,
-            verbose=not (context.json or context.quiet),
-        )
+        json_result["packages"] = pkgs = find_pkgs()
+        rm_pkgs(args, **pkgs, verbose=not (context.json or context.quiet))
 
     if args.all:
         clean_tmp_files(sys.prefix)
