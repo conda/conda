@@ -218,10 +218,7 @@ def clean_tmp_files(path=None):
                              "It's probably still in-use.".format(file_path))
 
 def _execute(args, parser):
-    json_result = {
-        'success': True
-    }
-    one_target_ran = False
+    json_result = {"success": True}
 
     if args.source_cache:
         print("WARNING: 'conda clean --source-cache' is deprecated.\n"
@@ -236,6 +233,11 @@ def _execute(args, parser):
         # package caches
         return json_result
 
+    if not (args.all or args.tarballs or args.index_cache or args.packages or args.tempfiles):
+        from ..exceptions import ArgumentError
+
+        raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
+
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
@@ -246,14 +248,12 @@ def _execute(args, parser):
             'total_size': totalsize
         }
         rm_tarballs(args, pkgs_dirs, totalsize, verbose=not (context.json or context.quiet))
-        one_target_ran = True
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
             'files': [join(context.pkgs_dirs[0], 'cache')]
         }
         rm_index_cache()
-        one_target_ran = True
 
     if args.packages or args.all:
         pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
@@ -268,17 +268,12 @@ def _execute(args, parser):
         }
         rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
                 verbose=not (context.json or context.quiet))
-        one_target_ran = True
 
     if args.all:
         clean_tmp_files(sys.prefix)
     elif args.tempfiles:
         for path in args.tempfiles:
             clean_tmp_files(path)
-
-    if not one_target_ran:
-        from ..exceptions import ArgumentError
-        raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
 
     return json_result
 
