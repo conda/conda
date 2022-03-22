@@ -19,7 +19,7 @@ def find_tarballs():
     from ..core.package_cache_data import PackageCacheData
 
     pkgs_dirs = {}
-    totalsize = 0
+    total_size = 0
     part_ext = tuple(e + '.part' for e in CONDA_PACKAGE_EXTENSIONS)
     for package_cache in PackageCacheData.writable_caches(context.pkgs_dirs):
         pkgs_dir = package_cache.pkgs_dir
@@ -29,12 +29,12 @@ def find_tarballs():
         for fn in filenames:
             if fn.endswith(CONDA_PACKAGE_EXTENSIONS) or fn.endswith(part_ext):
                 pkgs_dirs.setdefault(pkgs_dir, []).append(fn)
-                totalsize += getsize(join(root, fn))
+                total_size += getsize(join(root, fn))
 
-    return pkgs_dirs, totalsize
+    return pkgs_dirs, total_size
 
 
-def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
+def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
@@ -59,10 +59,10 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
             for fn in pkgs_dirs[pkgs_dir]:
                 size = getsize(join(pkgs_dir, fn))
                 print(fmt % (fn, human_bytes(size)))
-            print('')
-        print('-' * 51)  # From 40 + 1 + 10 in fmt
-        print(fmt % ('Total:', human_bytes(totalsize)))
-        print('')
+            print("")
+        print("-" * 51)  # From 40 + 1 + 10 in fmt
+        print(fmt % ("Total:", human_bytes(total_size)))
+        print("")
 
     if not context.json or not context.always_yes:
         confirm_yn()
@@ -118,7 +118,7 @@ def find_pkgs():
             else:
                 pkgs_dirs.setdefault(pkgs_dir, []).append(pkg)
 
-    totalsize = 0
+    total_size = 0
     pkg_sizes = {}
     for pkgs_dir in pkgs_dirs:
         for pkg in pkgs_dirs[pkgs_dir]:
@@ -128,14 +128,14 @@ def find_pkgs():
                     # We don't have to worry about counting things twice:  by
                     # definition these files all have a link count of 1!
                     size = lstat(join(root, fn)).st_size
-                    totalsize += size
+                    total_size += size
                     pkgsize += size
             pkg_sizes.setdefault(pkgs_dir, {})[pkg] = pkgsize
 
-    return pkgs_dirs, warnings, totalsize, pkg_sizes
+    return pkgs_dirs, warnings, total_size, pkg_sizes
 
 
-def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkg_sizes, verbose=True):
+def rm_pkgs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
@@ -159,10 +159,10 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkg_sizes, verbose=True):
             fmt = "%-40s %10s"
             for pkg, pkgsize in pkgs.items():
                 print(fmt % (pkg, human_bytes(pkgsize)))
-            print('')
-        print('-' * 51)  # 40 + 1 + 10 in fmt
-        print(fmt % ('Total:', human_bytes(totalsize)))
-        print('')
+            print("")
+        print("-" * 51)  # 40 + 1 + 10 in fmt
+        print(fmt % ("Total:", human_bytes(total_size)))
+        print("")
 
     if not context.json or not context.always_yes:
         confirm_yn()
@@ -239,9 +239,9 @@ def _execute(args, parser):
         raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
 
     if args.tarballs or args.all:
-        pkgs_dirs, totalsize = find_tarballs()
-        json_result["tarballs"] = {"pkgs_dirs": pkgs_dirs, "total_size": totalsize}
-        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not (context.json or context.quiet))
+        pkgs_dirs, total_size = find_tarballs()
+        json_result["tarballs"] = {"pkgs_dirs": pkgs_dirs, "total_size": total_size}
+        rm_tarballs(args, pkgs_dirs, total_size, verbose=not (context.json or context.quiet))
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
@@ -250,10 +250,10 @@ def _execute(args, parser):
         rm_index_cache()
 
     if args.packages or args.all:
-        pkgs_dirs, warnings, totalsize, pkg_sizes = find_pkgs()
+        pkgs_dirs, warnings, total_size, pkg_sizes = find_pkgs()
         json_result["packages"] = {
             "pkgs_dirs": pkgs_dirs,
-            "total_size": totalsize,
+            "total_size": total_size,
             "warnings": warnings,
             "pkg_sizes": pkg_sizes,
         }
@@ -261,7 +261,7 @@ def _execute(args, parser):
             args,
             pkgs_dirs,
             warnings,
-            totalsize,
+            total_size,
             pkg_sizes,
             verbose=not (context.json or context.quiet),
         )
