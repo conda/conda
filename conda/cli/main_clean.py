@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
 import fnmatch
 from logging import getLogger
 from os import listdir, lstat, unlink, walk
@@ -18,7 +17,8 @@ log = getLogger(__name__)
 
 def find_tarballs():
     from ..core.package_cache_data import PackageCacheData
-    pkgs_dirs = defaultdict(list)
+
+    pkgs_dirs = {}
     totalsize = 0
     part_ext = tuple(e + '.part' for e in CONDA_PACKAGE_EXTENSIONS)
     for package_cache in PackageCacheData.writable_caches(context.pkgs_dirs):
@@ -28,7 +28,7 @@ def find_tarballs():
         root, _, filenames = next(walk(pkgs_dir))
         for fn in filenames:
             if fn.endswith(CONDA_PACKAGE_EXTENSIONS) or fn.endswith(part_ext):
-                pkgs_dirs[pkgs_dir].append(fn)
+                pkgs_dirs.setdefault(pkgs_dir, []).append(fn)
                 totalsize += getsize(join(root, fn))
 
     return pkgs_dirs, totalsize
@@ -92,7 +92,7 @@ def find_pkgs():
 
     from ..gateways.disk.link import CrossPlatformStLink
     cross_platform_st_nlink = CrossPlatformStLink()
-    pkgs_dirs = defaultdict(list)
+    pkgs_dirs = {}
     for pkgs_dir in context.pkgs_dirs:
         if not exists(pkgs_dir):
             if not context.json:
@@ -116,10 +116,10 @@ def find_pkgs():
                 if breakit:
                     break
             else:
-                pkgs_dirs[pkgs_dir].append(pkg)
+                pkgs_dirs.setdefault(pkgs_dir, []).append(pkg)
 
     totalsize = 0
-    pkgsizes = defaultdict(list)
+    pkgsizes = {}
     for pkgs_dir in pkgs_dirs:
         for pkg in pkgs_dirs[pkgs_dir]:
             pkgsize = 0
@@ -130,7 +130,7 @@ def find_pkgs():
                     size = lstat(join(root, fn)).st_size
                     totalsize += size
                     pkgsize += size
-            pkgsizes[pkgs_dir].append(pkgsize)
+            pkgsizes.setdefault(pkgs_dir, []).append(pkgsize)
 
     return pkgs_dirs, warnings, totalsize, pkgsizes
 
