@@ -119,7 +119,7 @@ def find_pkgs():
                 pkgs_dirs.setdefault(pkgs_dir, []).append(pkg)
 
     totalsize = 0
-    pkgsizes = {}
+    pkg_sizes = {}
     for pkgs_dir in pkgs_dirs:
         for pkg in pkgs_dirs[pkgs_dir]:
             pkgsize = 0
@@ -130,12 +130,12 @@ def find_pkgs():
                     size = lstat(join(root, fn)).st_size
                     totalsize += size
                     pkgsize += size
-            pkgsizes.setdefault(pkgs_dir, []).append(pkgsize)
+            pkg_sizes.setdefault(pkgs_dir, {})[pkg] = pkgsize
 
-    return pkgs_dirs, warnings, totalsize, pkgsizes
+    return pkgs_dirs, warnings, totalsize, pkg_sizes
 
 
-def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
+def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkg_sizes, verbose=True):
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
@@ -152,12 +152,12 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
 
     if verbose:
         print("Will remove the following packages:")
-        for pkgs_dir in pkgs_dirs:
+        for pkgs_dir, pkgs in pkg_sizes.items():
             print(pkgs_dir)
             print('-' * len(pkgs_dir))
             print('')
             fmt = "%-40s %10s"
-            for pkg, pkgsize in zip(pkgs_dirs[pkgs_dir], pkgsizes[pkgs_dir]):
+            for pkg, pkgsize in pkgs.items():
                 print(fmt % (pkg, human_bytes(pkgsize)))
             print('')
         print('-' * 51)  # 40 + 1 + 10 in fmt
@@ -240,10 +240,7 @@ def _execute(args, parser):
 
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
-        json_result['tarballs'] = {
-            'pkgs_dirs': dict(pkgs_dirs),
-            'total_size': totalsize
-        }
+        json_result["tarballs"] = {"pkgs_dirs": pkgs_dirs, "total_size": totalsize}
         rm_tarballs(args, pkgs_dirs, totalsize, verbose=not (context.json or context.quiet))
 
     if args.index_cache or args.all:
@@ -253,15 +250,21 @@ def _execute(args, parser):
         rm_index_cache()
 
     if args.packages or args.all:
-        pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
-        json_result['packages'] = {
-            'pkgs_dirs': dict(pkgs_dirs),
-            'total_size': totalsize,
-            'warnings': warnings,
-            'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},
+        pkgs_dirs, warnings, totalsize, pkg_sizes = find_pkgs()
+        json_result["packages"] = {
+            "pkgs_dirs": pkgs_dirs,
+            "total_size": totalsize,
+            "warnings": warnings,
+            "pkg_sizes": pkg_sizes,
         }
-        rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
-                verbose=not (context.json or context.quiet))
+        rm_pkgs(
+            args,
+            pkgs_dirs,
+            warnings,
+            totalsize,
+            pkg_sizes,
+            verbose=not (context.json or context.quiet),
+        )
 
     if args.all:
         clean_tmp_files(sys.prefix)
