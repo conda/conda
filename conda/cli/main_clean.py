@@ -240,11 +240,8 @@ def _execute(args, parser):
 
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
-        first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['tarballs'] = {
-            'pkgs_dir': first,  # Backwards compatibility
             'pkgs_dirs': dict(pkgs_dirs),
-            'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
         }
         rm_tarballs(args, pkgs_dirs, totalsize, verbose=not (context.json or context.quiet))
@@ -257,11 +254,8 @@ def _execute(args, parser):
 
     if args.packages or args.all:
         pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
-        first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['packages'] = {
-            'pkgs_dir': first,  # Backwards compatibility
             'pkgs_dirs': dict(pkgs_dirs),
-            'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize,
             'warnings': warnings,
             'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},
