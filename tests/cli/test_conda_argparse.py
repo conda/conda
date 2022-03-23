@@ -15,12 +15,7 @@ from conda.exceptions import CommandNotFoundError, EnvironmentLocationNotFound
 log = getLogger(__name__)
 
 
-def test_help_through_python_api():
-    stdout, stderr, rc = run_command(Commands.HELP)
-    assert rc == 0
-    assert not stderr
-    assert "\n    install" in stdout
-
+def test_list_through_python_api():
     with pytest.raises(EnvironmentLocationNotFound):
         run_command(Commands.LIST, "-p", "not-a-real-path")
 
