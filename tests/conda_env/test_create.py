@@ -16,7 +16,8 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import dashlist, env_var, env_vars
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
-from conda.install import on_win
+from conda.common.compat import on_win
+
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import run_command as run_conda_command, \

@@ -12,13 +12,12 @@ import tarfile
 import tempfile
 
 from ..auxlib.entity import EntityEncoder
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, PREFIX_PLACEHOLDER
 from ..base.context import context
 from ..common.compat import PY3
 from ..common.path import paths_equal
 from ..core.prefix_data import PrefixData
 from ..gateways.disk.delete import rmtree
-from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
 
 
