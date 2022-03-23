@@ -201,29 +201,6 @@ NoneType = type(None)
 primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool, NoneType)))
 
 
-def _init_stream_encoding(stream):
-    # PY2 compat: Initialize encoding for an IO stream.
-    # Python 2 sets the encoding of stdout/stderr to None if not run in a
-    # terminal context and thus falls back to ASCII.
-    if not PY2 or not isinstance(stream, file) or stream.encoding:
-        return stream
-    from codecs import getwriter
-    from locale import getpreferredencoding
-    # No no no.
-    encoding = getpreferredencoding()
-    # encoding = 'UTF-8'
-    try:
-        writer_class = getwriter(encoding)
-    except LookupError:
-        writer_class = getwriter("UTF-8")
-    return writer_class(stream)
-
-
-def init_std_stream_encoding():
-    sys.stdout = _init_stream_encoding(sys.stdout)
-    sys.stderr = _init_stream_encoding(sys.stderr)
-
-
 def ensure_binary(value):
     try:
         return value.encode('utf-8')

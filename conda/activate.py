@@ -15,13 +15,12 @@ from textwrap import dedent
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
-from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT, CondaError
+from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from ._vendor.toolz import concatv, drop
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import (FILESYSTEM_ENCODING, PY2, iteritems, on_win,
-                            scandir, string_types, text_type)
+from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, scandir, string_types
 from .common.path import paths_equal
 
 
@@ -1199,35 +1198,3 @@ def _build_activator_cls(shell):
 
     cls = type(str('Activator'), tuple(bases), {})
     return cls
-
-
-def main(argv=None):
-    from .common.compat import init_std_stream_encoding
-
-    context.__init__()  # On import, context does not include SEARCH_PATH. This line fixes that.
-
-    init_std_stream_encoding()
-    argv = argv or sys.argv
-    assert len(argv) >= 2
-    assert argv[1].startswith('shell.')
-    shell = argv[1].replace('shell.', '', 1)
-    activator_args = argv[2:]
-    try:
-        activator_cls = _build_activator_cls(shell)
-    except KeyError:
-        raise CondaError("%s is not a supported shell." % shell)
-
-    activator = activator_cls(activator_args)
-    try:
-        print(activator.execute(), end='')
-        return 0
-    except Exception as e:
-        if isinstance(e, CondaError):
-            print(text_type(e), file=sys.stderr)
-            return e.return_code
-        else:
-            raise
-
-
-if __name__ == '__main__':
-    sys.exit(main())

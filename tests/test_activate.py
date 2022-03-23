@@ -23,12 +23,25 @@ from conda import __version__ as conda_version
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
-from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
-    PowerShellActivator, XonshActivator, activator_map, _build_activator_cls, \
-    main as activate_main, native_path_to_unix
-from conda.base.constants import ROOT_ENV_NAME, PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, \
-    CONDA_ENV_VARS_UNSET_VAR
+from conda.activate import (
+    CmdExeActivator,
+    CshActivator,
+    FishActivator,
+    PosixActivator,
+    PowerShellActivator,
+    XonshActivator,
+    activator_map,
+    _build_activator_cls,
+    native_path_to_unix,
+)
+from conda.base.constants import (
+    ROOT_ENV_NAME,
+    PREFIX_STATE_FILE,
+    PACKAGE_ENV_VARS_DIR,
+    CONDA_ENV_VARS_UNSET_VAR,
+)
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.cli.main import main_sourced
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
     string_types
 from conda.common.io import captured, env_var, env_vars
@@ -1144,7 +1157,7 @@ class ShellWrapperUnitTests(TestCase):
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(['', 'shell.posix'] + activate_args + [self.prefix])
+            rc = main_sourced("shell.posix", *activate_args, self.prefix)
         assert not c.stderr
         assert rc == 0
         activate_data = c.stdout
@@ -1181,7 +1194,7 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = PosixActivator()
             with captured() as c:
-                rc = activate_main(['', 'shell.posix'] + reactivate_args)
+                rc = main_sourced("shell.posix", *reactivate_args)
             assert not c.stderr
             assert rc == 0
             reactivate_data = c.stdout
@@ -1204,7 +1217,7 @@ class ShellWrapperUnitTests(TestCase):
             assert reactivate_data == re.sub(r'\n\n+', '\n', e_reactivate_data)
 
             with captured() as c:
-                rc = activate_main(['', 'shell.posix'] + deactivate_args)
+                rc = main_sourced("shell.posix", *deactivate_args)
             assert not c.stderr
             assert rc == 0
             deactivate_data = c.stdout
@@ -1239,7 +1252,7 @@ class ShellWrapperUnitTests(TestCase):
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(['', 'shell.cmd.exe', 'activate', self.prefix])
+            rc = main_sourced("shell.cmd.exe", "activate", self.prefix)
         assert not c.stderr
         assert rc == 0
         activate_result = c.stdout
@@ -1276,7 +1289,7 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = CmdExeActivator()
             with captured() as c:
-                assert activate_main(['', 'shell.cmd.exe', 'reactivate']) == 0
+                assert main_sourced("shell.cmd.exe", "reactivate") == 0
             assert not c.stderr
             reactivate_result = c.stdout
 
@@ -1299,7 +1312,7 @@ class ShellWrapperUnitTests(TestCase):
             }
 
             with captured() as c:
-                assert activate_main(['', 'shell.cmd.exe', 'deactivate']) == 0
+                assert main_sourced("shell.cmd.exe", "deactivate") == 0
             assert not c.stderr
             deactivate_result = c.stdout
 
@@ -1328,7 +1341,7 @@ class ShellWrapperUnitTests(TestCase):
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(['', 'shell.csh'] + activate_args + [self.prefix])
+            rc = main_sourced("shell.csh", *activate_args, self.prefix)
         assert not c.stderr
         assert rc == 0
         activate_data = c.stdout
@@ -1363,7 +1376,7 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = CshActivator()
             with captured() as c:
-                rc = activate_main(['', 'shell.csh'] + reactivate_args)
+                rc = main_sourced("shell.csh", *reactivate_args)
             assert not c.stderr
             assert rc == 0
             reactivate_data = c.stdout
@@ -1385,7 +1398,7 @@ class ShellWrapperUnitTests(TestCase):
             }
             assert reactivate_data == e_reactivate_data
             with captured() as c:
-                rc = activate_main(['', 'shell.csh'] + deactivate_args)
+                rc = main_sourced("shell.csh", *deactivate_args)
             assert not c.stderr
             assert rc == 0
             deactivate_data = c.stdout
@@ -1417,7 +1430,7 @@ class ShellWrapperUnitTests(TestCase):
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(['', 'shell.xonsh'] + activate_args + [self.prefix])
+            rc = main_sourced("shell.xonsh", *activate_args, self.prefix)
         assert not c.stderr
         assert rc == 0
         activate_data = c.stdout
@@ -1456,7 +1469,7 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = XonshActivator()
             with captured() as c:
-                rc = activate_main(['', 'shell.xonsh'] + reactivate_args)
+                rc = main_sourced("shell.xonsh", *reactivate_args)
             assert not c.stderr
             assert rc == 0
             reactivate_data = c.stdout
@@ -1485,7 +1498,7 @@ class ShellWrapperUnitTests(TestCase):
             assert reactivate_data == e_reactivate_data
 
             with captured() as c:
-                rc = activate_main(['', 'shell.xonsh'] + deactivate_args)
+                rc = main_sourced("shell.xonsh", *deactivate_args)
             assert not c.stderr
             assert rc == 0
             deactivate_data = c.stdout
@@ -1519,7 +1532,7 @@ class ShellWrapperUnitTests(TestCase):
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(['', 'shell.fish'] + activate_args + [self.prefix])
+            rc = main_sourced("shell.fish", *activate_args, self.prefix)
         assert not c.stderr
         assert rc == 0
         activate_data = c.stdout
@@ -1551,7 +1564,7 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = FishActivator()
             with captured() as c:
-                rc = activate_main(['', 'shell.fish'] + reactivate_args)
+                rc = main_sourced("shell.fish", *reactivate_args)
             assert not c.stderr
             assert rc == 0
             reactivate_data = c.stdout
@@ -1572,7 +1585,7 @@ class ShellWrapperUnitTests(TestCase):
             assert reactivate_data == e_reactivate_data
 
             with captured() as c:
-                rc = activate_main(['', 'shell.fish'] + deactivate_args)
+                rc = main_sourced("shell.fish", *deactivate_args)
             assert not c.stderr
             assert rc == 0
             deactivate_data = c.stdout
@@ -1599,7 +1612,7 @@ class ShellWrapperUnitTests(TestCase):
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(['', 'shell.powershell'] + activate_args + [self.prefix])
+            rc = main_sourced("shell.powershell", *activate_args, self.prefix)
         assert not c.stderr
         assert rc == 0
         activate_data = c.stdout
@@ -1630,7 +1643,7 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = PowerShellActivator()
             with captured() as c:
-                rc = activate_main(['', 'shell.powershell'] + reactivate_args)
+                rc = main_sourced("shell.powershell", *reactivate_args)
             assert not c.stderr
             assert rc == 0
             reactivate_data = c.stdout
@@ -1650,7 +1663,7 @@ class ShellWrapperUnitTests(TestCase):
             }
 
             with captured() as c:
-                rc = activate_main(['', 'shell.powershell'] + deactivate_args)
+                rc = main_sourced("shell.powershell", *deactivate_args)
             assert not c.stderr
             assert rc == 0
             deactivate_data = c.stdout
@@ -1680,14 +1693,14 @@ class ShellWrapperUnitTests(TestCase):
             with tempdir() as td:
                 with open(join(td, "stdout"), "wt") as stdout:
                     with captured(stdout=stdout) as c:
-                        rc = activate_main(['', shell] + activate_args + [self.prefix])
+                        rc = main_sourced(shell, *activate_args, self.prefix)
 
     def test_json_basic(self):
         activator = _build_activator_cls('posix+json')()
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(['', 'shell.posix+json'] + activate_args + [self.prefix])
+            rc = main_sourced("shell.posix+json", *activate_args, self.prefix)
         assert not c.stderr
         assert rc == 0
         activate_data = c.stdout
@@ -1727,7 +1740,7 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = _build_activator_cls('posix+json')()
             with captured() as c:
-                rc = activate_main(['', 'shell.posix+json'] + reactivate_args)
+                rc = main_sourced("shell.posix+json", *reactivate_args)
             assert not c.stderr
             assert rc == 0
             reactivate_data = c.stdout
@@ -1755,7 +1768,7 @@ class ShellWrapperUnitTests(TestCase):
             assert json.loads(reactivate_data) == e_reactivate_data
 
             with captured() as c:
-                rc = activate_main(['', 'shell.posix+json'] + deactivate_args)
+                rc = main_sourced("shell.posix+json", *deactivate_args)
             assert not c.stderr
             assert rc == 0
             deactivate_data = c.stdout
