@@ -2668,7 +2668,7 @@ class ActivationIntegrationTests(TestCase):
             ),
         ],
     )
-    def test_activate_deactivate_modify_path(self, shell):
+    def test_activate_deactivate_modify_path(self, shell, activate_deactivate_package):
         original_path = os.environ.get("PATH")
         run_command(Commands.INSTALL, self.prefix2, "activate_deactivate_package", "--use-local")
 

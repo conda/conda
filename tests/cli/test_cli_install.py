@@ -29,7 +29,7 @@ def fix_cli_install(tmpdir):
 
 
 @pytest.mark.integration
-def test_pre_link_message(fix_cli_install, conda_build_recipes):
+def test_pre_link_message(fix_cli_install, pre_link_messages_package):
     prefix = fix_cli_install[0]
     with patch("conda.cli.common.confirm_yn", return_value=True):
         stdout, _, _ = run_command(

@@ -29,11 +29,22 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("shell", metafunc.config.option.shell)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def conda_build_recipes():
-    test_recipes = Path(__file__).resolve().parent / "test-recipes"
-    recipes_to_build = ["activate_deactivate_package", "pre_link_messages_package"]
-    packages = [str(test_recipes / pkg) for pkg in recipes_to_build]
-    cmd = ["conda-build"]
-    cmd.extend(packages)
-    subprocess.run(cmd, check=True)
+def _conda_build_recipe(pkg):
+    subprocess.run(
+        ["conda-build", Path(__file__).resolve().parent / "test-recipes" / pkg],
+        check=True,
+    )
+
+
+@pytest.fixture(scope="session")
+def activate_deactivate_package():
+    pkg = "activate_deactivate_package"
+    _conda_build_recipe(pkg)
+    return pkg
+
+
+@pytest.fixture(scope="session")
+def pre_link_messages_package():
+    pkg = "pre_link_messages_package"
+    _conda_build_recipe(pkg)
+    return pkg
