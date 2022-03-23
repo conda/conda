@@ -2620,9 +2620,9 @@ class ShellWrapperIntegrationTests(TestCase):
         with InteractiveShell("cmd.exe") as shell:
             tmp = shell.get_env_var("TMP")
             tmp_with_space = join(tmp, "with space")
-            shell.sendline("SET TMP={}".format(tmp_with_space))
+            shell.sendline(f"SET TMP={tmp_with_space}")
 
-            shell.sendline("activate {}".format(dev_arg))
+            shell.sendline(f"activate {dev_arg}")
 
             conda_shlvl = shell.get_env_var("CONDA_SHLVL")
             assert conda_shlvl == "1", conda_shlvl
