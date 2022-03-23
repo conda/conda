@@ -2655,24 +2655,27 @@ class ActivationIntegrationTests(TestCase):
         rm_rf(self.prefix)
         rm_rf(self.prefix2)
 
-    def activate_deactivate_modify_path(self, shell):
-        activate_deactivate_package = "activate_deactivate_package"
-        activate_deactivate_package_path_string = "teststringfromactivate/bin/test"
+    @pytest.mark.parametrize(
+        ["shell"],
+        [
+            pytest.param(
+                "bash",
+                marks=pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because()),
+            ),
+            pytest.param(
+                "cmd.exe",
+                marks=pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed"),
+            ),
+        ],
+    )
+    def test_activate_deactivate_modify_path(self, shell):
         original_path = os.environ.get("PATH")
-        run_command(Commands.INSTALL, self.prefix2, activate_deactivate_package, "--use-local")
+        run_command(Commands.INSTALL, self.prefix2, "activate_deactivate_package", "--use-local")
 
         with InteractiveShell(shell) as shell:
             shell.sendline('conda activate "%s"' % self.prefix2)
             activated_env_path = shell.get_env_var("PATH")
             shell.sendline('conda deactivate')
 
-        assert activate_deactivate_package_path_string in activated_env_path
+        assert "teststringfromactivate/bin/test" in activated_env_path
         assert original_path == os.environ.get("PATH")
-
-    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
-    def test_activate_deactivate_modify_path_bash(self):
-        self.activate_deactivate_modify_path("bash")
-
-    @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
-    def test_activate_deactivate_modify_path(self):
-        self.activate_deactivate_modify_path("cmd.exe")
