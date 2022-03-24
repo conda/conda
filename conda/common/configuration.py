@@ -1378,7 +1378,7 @@ class Configuration(metaclass=ConfigurationType):
         validation_errors = odict()
         for source in self.raw_data:
             typed_values[source], validation_errors[source] = self.check_source(source)
-        raise_errors(tuple(chain.from_iterable(validation_errors.values()))))
+        raise_errors(tuple(chain.from_iterable(validation_errors.values())))
         return odict((k, v) for k, v in typed_values.items() if v)
 
     def describe_parameter(self, parameter_name):
