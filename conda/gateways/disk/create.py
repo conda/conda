@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import codecs
 from errno import EACCES, EPERM, EROFS
 from io import open
-from logging import getLogger, warning
+from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat

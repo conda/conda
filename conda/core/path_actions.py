@@ -449,13 +449,18 @@ class MakeMenuAction(CreateInPrefixPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        if context.shortcuts:
+        shortcut_enabled = (
+            context.shortcuts and (
+                not context.shortcuts_only
+                or (context.shortcuts_only and package_info.name in context.shortcuts_only)
+            )
+        )
+        if shortcut_enabled:
             MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
             actions = []
             for spi in package_info.paths_data.paths:
                 if bool(MENU_RE.match(spi.path)):
-                    if not context.shortcuts_only or (context.shortcuts_only and package_info.name in context.shortcuts_only):
-                        actions.append(cls(transaction_context, package_info, target_prefix, spi.path))
+                    actions.append(cls(transaction_context, package_info, target_prefix, spi.path))
             return tuple(actions)
         else:
             return ()
@@ -1025,8 +1030,11 @@ class RemoveMenuAction(RemoveFromPrefixPathAction):
     @classmethod
     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
         MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-        return tuple(cls(transaction_context, linked_package_data, target_prefix, trgt)
-                        for trgt in linked_package_data.files if bool(MENU_RE.match(trgt)))
+        return tuple(
+            cls(transaction_context, linked_package_data, target_prefix, trgt)
+            for trgt in linked_package_data.files
+            if bool(MENU_RE.match(trgt))
+        )
 
     def __init__(self, transaction_context, linked_package_data,
                  target_prefix, target_short_path):

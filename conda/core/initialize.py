@@ -76,7 +76,6 @@ if on_win:
         from menuinst.winshortcut import create_shortcut
 
 
-
 log = getLogger(__name__)
 
 CONDA_INITIALIZE_RE_BLOCK = (
