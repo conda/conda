@@ -2647,6 +2647,7 @@ def prefix():
 
     rm_rf(root)
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     ["shell"],
     [
