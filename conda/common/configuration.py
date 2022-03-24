@@ -30,8 +30,7 @@ from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
-from .compat import (binary_type, isiterable, iteritems, itervalues, odict, primitive_types,
-                     scandir)
+from .compat import isiterable, iteritems, itervalues, odict, primitive_types, scandir
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -71,10 +70,11 @@ def pretty_map(dictionary, padding='  '):
 
 
 def expand_environment_variables(unexpanded):
-    if isinstance(unexpanded, str) or isinstance(unexpanded, binary_type):
+    if isinstance(unexpanded, (str, bytes)):
         return expandvars(unexpanded)
     else:
         return unexpanded
+
 
 class ConfigurationError(CondaError):
     pass

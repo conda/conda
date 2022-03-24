@@ -53,7 +53,6 @@ def encode_arguments(arguments):
 # equivalent commands
 # #############################
 
-binary_type = bytes
 input = input
 range = range
 
