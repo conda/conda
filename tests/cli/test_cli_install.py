@@ -19,7 +19,7 @@ except ImportError:
 
 
 @pytest.fixture
-def fix_cli_install(tmpdir):
+def prefix(tmpdir):
     prefix = tmpdir.mkdir("cli_install_prefix")
     test_env = tmpdir.mkdir("cli_install_test_env")
     run_command(Commands.CREATE, str(prefix), 'python=3.7')
@@ -29,18 +29,18 @@ def fix_cli_install(tmpdir):
 
 
 @pytest.mark.integration
-def test_pre_link_message(fix_cli_install, pre_link_messages_package):
-    prefix = fix_cli_install[0]
+def test_pre_link_message(prefix, pre_link_messages_package):
+    prefix, _ = prefix
     with patch("conda.cli.common.confirm_yn", return_value=True):
         stdout, _, _ = run_command(
-            Commands.INSTALL, prefix, "pre_link_messages_package", "--use-local"
+            Commands.INSTALL, prefix, pre_link_messages_package, "--use-local"
         )
         assert "Lorem ipsum dolor sit amet" in stdout
 
 
 @pytest.mark.integration
-def test_find_conflicts_called_once(fix_cli_install):
-    prefix, test_env = fix_cli_install
+def test_find_conflicts_called_once(prefix):
+    prefix, test_env = prefix
     bad_deps = {'python': {((MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")), 'python=3')}}
 
     with patch(

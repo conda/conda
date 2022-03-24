@@ -7,22 +7,19 @@ import subprocess
 import pytest
 
 
-def _conda_build_recipe(pkg):
+def _conda_build_recipe(recipe):
     subprocess.run(
-        ["conda-build", Path(__file__).resolve().parent / "test-recipes" / pkg],
+        ["conda-build", Path(__file__).resolve().parent / "test-recipes" / recipe],
         check=True,
     )
+    return recipe
 
 
 @pytest.fixture(scope="session")
 def activate_deactivate_package():
-    pkg = "activate_deactivate_package"
-    _conda_build_recipe(pkg)
-    return pkg
+    return _conda_build_recipe("activate_deactivate_package")
 
 
 @pytest.fixture(scope="session")
 def pre_link_messages_package():
-    pkg = "pre_link_messages_package"
-    _conda_build_recipe(pkg)
-    return pkg
+    return _conda_build_recipe("pre_link_messages_package")
