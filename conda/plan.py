@@ -20,7 +20,7 @@ from ._vendor.boltons.setutils import IndexedSet
 from ._vendor.toolz import concatv
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, stack_context_default
-from .common.compat import itervalues, text_type
+from .common.compat import itervalues
 from .common.io import env_vars, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
@@ -61,11 +61,11 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         builder.append('')
     if specs_to_remove:
         builder.append('  removed specs: %s'
-                       % dashlist(sorted(text_type(s) for s in specs_to_remove), indent=4))
+                       % dashlist(sorted(str(s) for s in specs_to_remove), indent=4))
         builder.append('')
     if specs_to_add:
         builder.append('  added / updated specs: %s'
-                       % dashlist(sorted(text_type(s) for s in specs_to_add), indent=4))
+                       % dashlist(sorted(str(s) for s in specs_to_add), indent=4))
         builder.append('')
     print('\n'.join(builder))
 

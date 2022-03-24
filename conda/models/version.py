@@ -7,7 +7,7 @@ import operator as op
 import re
 
 from .._vendor.toolz import excepts
-from ..common.compat import zip, zip_longest, text_type
+from ..common.compat import zip, zip_longest
 from ..exceptions import InvalidVersionSpec
 
 log = getLogger(__name__)
@@ -403,7 +403,7 @@ def untreeify(spec, _inand=False, depth=0):
 
 
 def compatible_release_operator(x, y):
-    return op.__ge__(x, y) and x.startswith(VersionOrder(".".join(text_type(y).split(".")[:-1])))
+    return op.__ge__(x, y) and x.startswith(VersionOrder(".".join(str(y).split(".")[:-1])))
 
 
 # This RE matches the operators '==', '!=', '<=', '>=', '<', '>'
@@ -473,7 +473,7 @@ class BaseSpec(object):
         return bool(self.regex.match(spec_str))
 
     def operator_match(self, spec_str):
-        return self.operator_func(VersionOrder(text_type(spec_str)), self.matcher_vo)
+        return self.operator_func(VersionOrder(str(spec_str)), self.matcher_vo)
 
     def any_match(self, spec_str):
         return any(s.match(spec_str) for s in self.tup)
@@ -510,7 +510,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/miss
             is_exact = False
             return vspec_str, matcher, is_exact
 
-        vspec_str = text_type(vspec).strip()
+        vspec_str = str(vspec).strip()
         if vspec_str[0] == '^' or vspec_str[-1] == '$':
             if vspec_str[0] != '^' or vspec_str[-1] != '$':
                 raise InvalidVersionSpec(vspec_str, "regex specs must start "
@@ -615,7 +615,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py
             is_exact = True
             return vspec, matcher, is_exact
 
-        vspec_str = text_type(vspec).strip()
+        vspec_str = str(vspec).strip()
         if vspec_str == '*':
             matcher = self.always_true_match
             is_exact = False
@@ -662,7 +662,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py
         return excepts(ValueError, int(self.raw_value))
 
     def __str__(self):
-        return text_type(self.spec)
+        return str(self.spec)
 
     def __repr__(self):
-        return text_type(self.spec)
+        return str(self.spec)

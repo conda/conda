@@ -32,7 +32,7 @@ from ..auxlib.entity import (
 )
 from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
-from ..common.compat import isiterable, itervalues, text_type
+from ..common.compat import isiterable, itervalues, str
 from ..exceptions import PathNotFoundError
 
 
@@ -126,10 +126,10 @@ class ChannelField(ComposableField):
 
     def dump(self, instance, instance_type, val):
         if val:
-            return text_type(val)
+            return str(val)
         else:
             val = instance.channel  # call __get__
-            return text_type(val)
+            return str(val)
 
     def __get__(self, instance, instance_type):
         try:

@@ -17,8 +17,7 @@ from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
                               UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalues,
-                             text_type)
+from ..common.compat import Mapping, Sequence, isiterable, iteritems, itervalues
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
@@ -105,7 +104,7 @@ def print_config_item(key, value):
         for k, v in value.items():
             print_config_item(key + "." + k, v)
     elif isinstance(value, (bool, int, str)):
-        stdout_write(" ".join(("--set", key, text_type(value))))
+        stdout_write(" ".join(("--set", key, str(value))))
     elif isinstance(value, (list, tuple)):
         # Note, since `conda config --add` prepends, print `--add` commands in
         # reverse order (using repr), so that entering them in this order will

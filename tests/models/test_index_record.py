@@ -7,7 +7,6 @@ from logging import getLogger
 from unittest import TestCase
 
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import text_type
 from conda.common.io import env_unmodified
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord, PrefixRecord
@@ -34,7 +33,7 @@ class PrefixRecordTests(TestCase):
             assert pr.channel.canonical_name == 'defaults'
             assert pr.subdir == "win-32"
             assert pr.fn == "austin-1.2.3-py34_2.tar.bz2"
-            channel_str = text_type(Channel("https://repo.anaconda.com/pkgs/main/win-32/austin-1.2.3-py34_2.tar.bz2"))
+            channel_str = str(Channel("https://repo.anaconda.com/pkgs/main/win-32/austin-1.2.3-py34_2.tar.bz2"))
             assert channel_str == "https://repo.anaconda.com/pkgs/main/win-32"
             assert dict(pr.dump()) == dict(
                 name='austin',

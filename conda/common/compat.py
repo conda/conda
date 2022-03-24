@@ -53,9 +53,6 @@ def encode_arguments(arguments):
 # equivalent commands
 # #############################
 
-integer_types = int,
-class_types = type,
-text_type = str
 binary_type = bytes
 input = input
 range = range
@@ -157,7 +154,7 @@ def ensure_text_type(value):
         encoding = detect(value).get('encoding') or 'utf-8'
         return value.decode(encoding, errors='replace')
     except UnicodeEncodeError:  # pragma: no cover
-        # it's already text_type, so ignore?
+        # it's already str, so ignore?
         # not sure, surfaced with tests/models/test_match_spec.py test_tarball_match_specs
         # using py27
         return value

@@ -28,7 +28,7 @@ from .._vendor.toolz import concat, concatv, interleave
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
 from ..cli.common import confirm_yn
-from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
+from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
@@ -969,12 +969,12 @@ class UnlinkLinkTransaction(object):
         builder.append('')
         if change_report.specs_to_remove:
             builder.append('  removed specs:%s'
-                           % dashlist(sorted(text_type(s) for s in change_report.specs_to_remove),
+                           % dashlist(sorted(str(s) for s in change_report.specs_to_remove),
                                       indent=4))
             builder.append('')
         if change_report.specs_to_add:
             builder.append('  added / updated specs:%s'
-                           % dashlist(sorted(text_type(s) for s in change_report.specs_to_add),
+                           % dashlist(sorted(str(s) for s in change_report.specs_to_add),
                                       indent=4))
             builder.append('')
 
@@ -1010,7 +1010,7 @@ class UnlinkLinkTransaction(object):
                 size = prec.size
                 extra = '%15s' % human_bytes(size)
                 total_download_bytes += size
-                schannel = channel_filt(text_type(prec.channel.canonical_name))
+                schannel = channel_filt(str(prec.channel.canonical_name))
                 if schannel:
                     extra += '  ' + schannel
                 disp_lst.append((prec, extra))

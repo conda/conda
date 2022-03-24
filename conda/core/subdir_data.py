@@ -708,7 +708,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         raise ProxyError()   # see #3962
 
     except InvalidSchema as e:
-        if 'SOCKS' in text_type(e):
+        if 'SOCKS' in str(e):
             message = dals("""
             Requests has identified that your current working environment is configured
             to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your

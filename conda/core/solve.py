@@ -22,7 +22,7 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
                               ExperimentalSolverChoice)
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, text_type
+from ..common.compat import iteritems, itervalues, odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
@@ -247,11 +247,11 @@ class Solver(object):
         if update_modifier is NULL:
             update_modifier = context.update_modifier
         else:
-            update_modifier = UpdateModifier(text_type(update_modifier).lower())
+            update_modifier = UpdateModifier(str(update_modifier).lower())
         if deps_modifier is NULL:
             deps_modifier = context.deps_modifier
         else:
-            deps_modifier = DepsModifier(text_type(deps_modifier).lower())
+            deps_modifier = DepsModifier(str(deps_modifier).lower())
         ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
         force_remove = context.force_remove if force_remove is NULL else force_remove
 
@@ -620,7 +620,7 @@ class Solver(object):
                       spec: %s
                       matches_for_spec: %s
                     """) % (pkg_name, spec,
-                            dashlist((text_type(s) for s in matches_for_spec), indent=4)))
+                            dashlist((str(s) for s in matches_for_spec), indent=4)))
                 target_prec = matches_for_spec[0]
                 if target_prec.is_unmanageable:
                     ssc.specs_map[pkg_name] = target_prec.to_match_spec()
@@ -846,7 +846,7 @@ class Solver(object):
         # Finally! We get to call SAT.
         if log.isEnabledFor(DEBUG):
             log.debug("final specs to add: %s",
-                      dashlist(sorted(text_type(s) for s in final_environment_specs)))
+                      dashlist(sorted(str(s) for s in final_environment_specs)))
 
         # this will raise for unsatisfiable stuff.  We can
         if not conflicting_specs or context.unsatisfiable_hints:
@@ -1199,14 +1199,14 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #     #       change iterkeys to itervalues
 #
 #     if solved_linked_dists and specs_to_remove:
-#         solved_linked_dists = r.remove(tuple(text_type(s) for s in specs_to_remove),
+#         solved_linked_dists = r.remove(tuple(str(s) for s in specs_to_remove),
 #                                        solved_linked_dists)
 #
 #     specs_from_history = _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add)
 #     augmented_specs_to_add = augment_specs(prefix, concatv(specs_from_history, specs_to_add))
 #
 #     log.debug("final specs to add:\n    %s\n",
-#               "\n    ".join(text_type(s) for s in augmented_specs_to_add))
+#               "\n    ".join(str(s) for s in augmented_specs_to_add))
 #     solved_linked_dists = r.install(augmented_specs_to_add,
 #                                     solved_linked_dists,
 #                                     update_deps=context.update_dependencies)
@@ -1222,7 +1222,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #     log.debug("solved prefix %s\n"
 #               "  solved_linked_dists:\n"
 #               "    %s\n",
-#               prefix, "\n    ".join(text_type(d) for d in solved_linked_dists))
+#               prefix, "\n    ".join(str(d) for d in solved_linked_dists))
 #
 #     return solved_linked_dists, specs_to_add
 

@@ -13,7 +13,7 @@ from ._vendor.toolz import concat, groupby
 from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, on_win, text_type
+from .common.compat import iteritems, iterkeys, itervalues, on_win
 from .common.io import time_recorder
 from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolver, TRUE,
                            minimal_unsatisfiable_subset)
@@ -571,7 +571,7 @@ class Resolve(object):
 
         if log.isEnabledFor(DEBUG):
             log.debug('Retrieving packages for: %s', dashlist(
-                sorted(text_type(s) for s in explicit_specs)))
+                sorted(str(s) for s in explicit_specs)))
 
         explicit_specs, features = self.verify_specs(explicit_specs)
         filter_out = {prec: False if val else "feature not enabled"
@@ -843,7 +843,7 @@ class Resolve(object):
         if isinstance(val, PackageRecord):
             return val.dist_str()
         elif isinstance(val, MatchSpec):
-            return '@s@' + text_type(val) + ('?' if val.optional else '')
+            return '@s@' + str(val) + ('?' if val.optional else '')
         else:
             raise NotImplementedError()
 
@@ -1249,7 +1249,7 @@ class Resolve(object):
 
         specs = set(specs)
         if log.isEnabledFor(DEBUG):
-            dlist = dashlist(text_type(
+            dlist = dashlist(str(
                 '%i: %s target=%s optional=%s' % (i, s, s.target, s.optional))
                 for i, s in enumerate(specs))
             log.debug('Solving for: %s', dlist)
@@ -1338,10 +1338,10 @@ class Resolve(object):
         speca.extend(MatchSpec(s) for s in specm)
 
         if log.isEnabledFor(DEBUG):
-            log.debug('Requested specs: %s', dashlist(sorted(text_type(s) for s in specr)))
-            log.debug('Optional specs: %s', dashlist(sorted(text_type(s) for s in speco)))
-            log.debug('All other specs: %s', dashlist(sorted(text_type(s) for s in speca)))
-            log.debug('missing specs: %s', dashlist(sorted(text_type(s) for s in specm)))
+            log.debug('Requested specs: %s', dashlist(sorted(str(s) for s in specr)))
+            log.debug('Optional specs: %s', dashlist(sorted(str(s) for s in speco)))
+            log.debug('All other specs: %s', dashlist(sorted(str(s) for s in speca)))
+            log.debug('missing specs: %s', dashlist(sorted(str(s) for s in specm)))
 
         # Removed packages: minimize count
         log.debug("Solve: minimize removed packages")

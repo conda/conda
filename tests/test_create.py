@@ -41,7 +41,7 @@ from conda import (
 from conda.auxlib.ish import dals
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, SafetyChecks, PREFIX_MAGIC_FILE
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import ensure_text_type, iteritems, text_type, on_win, on_mac
+from conda.common.compat import ensure_text_type, iteritems, on_win, on_mac
 from conda.common.io import env_var, stderr_log_level, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -193,7 +193,7 @@ class IntegrationTests(BaseTestCase):
             with pytest.raises(CondaMultiError) as exc:
                 run_command(Commands.INSTALL, prefix, '-c', 'conda-test', 'spiffy-test-app=0.5')
 
-            error_message = text_type(exc.value)
+            error_message = str(exc.value)
             message1 = dals("""
             The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
             has an incorrect size.
@@ -1383,7 +1383,7 @@ dependencies:
         with make_temp_env() as prefix:
             with pytest.raises(PackagesNotFoundError) as exc:
                 run_command(Commands.INSTALL, prefix, "not-a-real-package")
-            assert "not-a-real-package" in text_type(exc.value)
+            assert "not-a-real-package" in str(exc.value)
 
             _, error, _ = run_command(Commands.INSTALL, prefix, "not-a-real-package",
                                    use_exception_handler=True)
@@ -1709,7 +1709,7 @@ dependencies:
             stdout, stderr = p.communicate()
             rc = p.returncode
             assert int(rc) != 0
-            stderr = stderr.decode('utf-8', errors='replace') if hasattr(stderr, 'decode') else text_type(stderr)
+            stderr = stderr.decode('utf-8', errors='replace') if hasattr(stderr, 'decode') else str(stderr)
             assert "Cannot uninstall" in stderr
 
             run_command(Commands.REMOVE, prefix, "six")

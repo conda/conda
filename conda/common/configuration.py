@@ -31,7 +31,7 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 from .compat import (binary_type, isiterable, iteritems, itervalues, odict, primitive_types,
-                     scandir, text_type)
+                     scandir)
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -189,7 +189,7 @@ class RawParameter(metaclass=ABCMeta):
             self._raw_value = raw_value
 
     def __repr__(self):
-        return text_type(vars(self))
+        return str(vars(self))
 
     @abstractmethod
     def value(self, parameter_obj):
@@ -568,9 +568,7 @@ class LoadedParameter(metaclass=ABCMeta):
         try:
             return LoadedParameter._typify_data_structure(self.value, source, element_type)
         except TypeCoercionError as e:
-            # if name is None:
-            #     name = self.name
-            msg = text_type(e)
+            msg = str(e)
             if issubclass(element_type, Enum):
                 choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
                 msg += "\nValid choices for {}: {}".format(self._name, choices)
@@ -938,9 +936,7 @@ class Parameter(metaclass=ABCMeta):
         try:
             return typify_data_structure(value, element_type)
         except TypeCoercionError as e:
-            # if name is None:
-            #     name = self.name
-            msg = text_type(e)
+            msg = str(e)
             if issubclass(element_type, Enum):
                 choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
                 msg += "\nValid choices for {}: {}".format(name, choices)

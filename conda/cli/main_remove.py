@@ -128,7 +128,7 @@ def execute(args, parser):
     #         actions = get_blank_actions(pfx)
     #         actions['UNLINK'].extend(dists_for_unlinking)
     #         actions['LINK'].extend(dists_for_linking)
-    #         actions['SPECS'].extend(text_type(s) for s in specs_to_remove)
+    #         actions['SPECS'].extend(str(s) for s in specs_to_remove)
     #         actions['ACTION'] = 'REMOVE'
     #         action_groups.append((actions, r.index))
     #     action_groups = tuple(action_groups)

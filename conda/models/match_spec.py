@@ -21,7 +21,7 @@ from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from ..common.compat import isiterable, iteritems, itervalues, text_type
+from ..common.compat import isiterable, iteritems, itervalues
 from ..common.io import dashlist
 from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
@@ -289,9 +289,9 @@ class MatchSpec(metaclass=MatchSpecType):
 
         channel_matcher = self._match_components.get('channel')
         if channel_matcher and channel_matcher.exact_value:
-            builder.append(text_type(channel_matcher))
+            builder.append(str(channel_matcher))
         elif channel_matcher and not channel_matcher.matches_all:
-            brackets.append("channel=%s" % text_type(channel_matcher))
+            brackets.append("channel=%s" % str(channel_matcher))
 
         subdir_matcher = self._match_components.get('subdir')
         if subdir_matcher:
@@ -307,7 +307,7 @@ class MatchSpec(metaclass=MatchSpecType):
         build = self._match_components.get('build')
         version_exact = False
         if version:
-            version = text_type(version)
+            version = str(version)
             if any(s in version for s in "><$^|,"):
                 brackets.append("version='%s'" % version)
             elif version[:2] in ("!=", "~="):
@@ -327,7 +327,7 @@ class MatchSpec(metaclass=MatchSpecType):
                 version_exact = True
 
         if build:
-            build = text_type(build)
+            build = str(build)
             if any(s in build for s in '><$^|,'):
                 brackets.append("build='%s'" % build)
             elif '*' in build:
@@ -345,7 +345,7 @@ class MatchSpec(metaclass=MatchSpecType):
                 if key == 'url' and channel_matcher:
                     # skip url in canonical str if channel already included
                     continue
-                value = text_type(self._match_components[key])
+                value = str(self._match_components[key])
                 if any(s in value for s in ', ='):
                     brackets.append("%s='%s'" % (key, value))
                 else:
@@ -414,7 +414,7 @@ class MatchSpec(metaclass=MatchSpecType):
         if field_name in _implementors:
             matcher = _implementors[field_name](value)
         else:
-            matcher = ExactStrMatch(text_type(value))
+            matcher = ExactStrMatch(str(value))
         _MATCHER_CACHE[(field_name, value)] = matcher
         return field_name, matcher
 
@@ -795,7 +795,7 @@ class ExactStrMatch(_StrMatchMixin, MatchInterface):
         try:
             _other_val = other._raw_value
         except AttributeError:
-            _other_val = text_type(other)
+            _other_val = str(other)
         return self._raw_value == _other_val
 
 
@@ -808,7 +808,7 @@ class ExactLowerStrMatch(ExactStrMatch):
         try:
             _other_val = other._raw_value
         except AttributeError:
-            _other_val = text_type(other)
+            _other_val = str(other)
         return self._raw_value == _other_val.lower()
 
 
@@ -829,7 +829,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):  # lgtm [py/missing-equals]
         try:
             _other_val = other._raw_value
         except AttributeError:
-            _other_val = text_type(other)
+            _other_val = str(other)
 
         if self._re_match:
             return self._re_match(_other_val)
@@ -974,7 +974,7 @@ class CaseInsensitiveStrMatch(GlobLowerStrMatch):
         try:
             _other_val = other._raw_value
         except AttributeError:
-            _other_val = text_type(other)
+            _other_val = str(other)
 
         _other_val = _other_val.lower()
         if self._re_match:
