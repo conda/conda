@@ -22,7 +22,7 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
                               ExperimentalSolverChoice)
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict
+from ..common.compat import iteritems, odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
@@ -457,7 +457,7 @@ class Solver(object):
         prepared_specs = set(concatv(
             self.specs_to_remove,
             self.specs_to_add,
-            itervalues(ssc.specs_from_history_map),
+            ssc.specs_from_history_map.values(),
         ))
 
         index, r = self._prepare(prepared_specs)
@@ -474,7 +474,7 @@ class Solver(object):
             _track_fts_specs = (spec for spec in self.specs_to_remove if 'track_features' in spec)
             feature_names = set(concat(spec.get_raw_value('track_features')
                                        for spec in _track_fts_specs))
-            graph = PrefixGraph(ssc.solution_precs, itervalues(ssc.specs_map))
+            graph = PrefixGraph(ssc.solution_precs, ssc.specs_map.values())
 
             all_removed_records = []
             no_removed_records_specs = []
@@ -775,7 +775,7 @@ class Solver(object):
     @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
         final_environment_specs = IndexedSet(concatv(
-            itervalues(ssc.specs_map),
+            ssc.specs_map.values(),
             ssc.track_features_specs,
             # pinned specs removed here - added to specs_map in _add_specs instead
         ))
@@ -806,7 +806,7 @@ class Solver(object):
 
             # Are all conflicting specs in specs_map? If not, that means they're in
             # track_features_specs or pinned_specs, which we should raise an error on.
-            specs_map_set = set(itervalues(ssc.specs_map))
+            specs_map_set = set(ssc.specs_map.values())
             grouped_specs = groupby(lambda s: s in specs_map_set, conflicting_specs)
             # force optional to true. This is what it is originally in
             # pinned_specs, but we override that in _add_specs to make it
@@ -968,7 +968,7 @@ class Solver(object):
                 py_ver = ".".join(python_rec.version.split(".")[:2]) + ".*"
                 specs_map["python"] = MatchSpec(name="python", version=py_ver)
             specs_map.update({spec.name: spec for spec in self.specs_to_add})
-            new_specs_to_add = tuple(itervalues(specs_map))
+            new_specs_to_add = tuple(specs_map.values())
 
             # It feels wrong/unsafe to modify this instance, but I guess let's go with it for now.
             self.specs_to_add = new_specs_to_add
@@ -1342,7 +1342,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #                                                   always_copy, pinned, update_deps,
 #                                                   prune, channel_priority_map, is_update)
 #
-#         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
+#         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(env_add_map.values()))
 #         required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
 #                                               specs_to_remove=root_specs_to_remove,
 #                                               specs_to_add=requested_root_specs_to_add,

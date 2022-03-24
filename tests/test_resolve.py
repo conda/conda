@@ -12,7 +12,7 @@ import unittest
 import pytest
 
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems, itervalues
+from conda.common.compat import iteritems
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.read import read_python_record
@@ -907,7 +907,7 @@ def test_unintentional_feature_downgrade():
     # will be selected for install instead of a later
     # build of scipy 0.11.0.
     good_rec_match = MatchSpec("channel-1::scipy==0.11.0=np17py33_3")
-    good_rec = next(prec for prec in itervalues(index) if good_rec_match.match(prec))
+    good_rec = next(prec for prec in index.values() if good_rec_match.match(prec))
     bad_deps = tuple(d for d in good_rec.depends
                      if not d.startswith('numpy'))
     bad_rec = PackageRecord.from_objects(good_rec,

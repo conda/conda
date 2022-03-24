@@ -44,7 +44,7 @@ from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from .._vendor.toolz import concat, concatv, unique
-from ..common.compat import NoneType, iteritems, itervalues, odict, on_win
+from ..common.compat import NoneType, iteritems, odict, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
                                     ValidationError)
@@ -736,7 +736,7 @@ class Context(Configuration):
         custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
                            for name, url in iteritems(self._custom_channels))
         channels_from_multichannels = concat(channel for channel
-                                             in itervalues(self.custom_multichannels))
+                                             in self.custom_multichannels.values())
         all_channels = odict((x.name, x) for x in (ch for ch in concatv(
             channels_from_multichannels,
             custom_channels,

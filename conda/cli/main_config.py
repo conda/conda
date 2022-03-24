@@ -17,7 +17,7 @@ from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
                               UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import Mapping, Sequence, isiterable, iteritems, itervalues
+from ..common.compat import Mapping, Sequence, isiterable, iteritems
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
@@ -163,7 +163,7 @@ def execute_config(args, parser):
             if 'custom_channels' in d:
                 d['custom_channels'] = {
                     channel.name: "%s://%s" % (channel.scheme, channel.location)
-                    for channel in itervalues(d['custom_channels'])
+                    for channel in d['custom_channels'].values()
                 }
             if 'custom_multichannels' in d:
                 from ..common.io import dashlist

@@ -10,7 +10,7 @@ from .enums import NoarchType
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, on_win
+from ..common.compat import iteritems, odict, on_win
 from ..exceptions import CyclicalDependencyError
 
 log = getLogger(__name__)
@@ -225,7 +225,7 @@ class PrefixGraph(object):
                 yield node
                 graph.pop(node, None)
 
-            for parents in itervalues(graph):
+            for parents in graph.values():
                 parents -= no_parent_nodes
 
         if len(graph) != 0:
@@ -238,7 +238,7 @@ class PrefixGraph(object):
             v.discard(k)
 
         # disconnected nodes go first
-        nodes_that_are_parents = set(node for parents in itervalues(graph) for node in parents)
+        nodes_that_are_parents = set(node for parents in graph.values() for node in parents)
         nodes_without_parents = (node for node in graph if not graph[node])
         disconnected_nodes = sorted(
             (node for node in nodes_without_parents if node not in nodes_that_are_parents),
@@ -277,7 +277,7 @@ class PrefixGraph(object):
         )[0][2]
         graph.pop(node_with_fewest_parents)
 
-        for parents in itervalues(graph):
+        for parents in graph.values():
             parents.discard(node_with_fewest_parents)
 
         return node_with_fewest_parents
@@ -381,6 +381,7 @@ class PrefixGraph(object):
 #             browser = webbrowser.get()
 #         browser.open_new_tab(path_to_url(location))
 
+
 class GeneralGraph(PrefixGraph):
     """
     Compared with PrefixGraph, this class takes in more than one record of a given name,
@@ -435,12 +436,3 @@ class GeneralGraph(PrefixGraph):
                     new_path = list(path)
                     new_path.append(adj)
                     queue.append(new_path)
-
-
-# if __name__ == "__main__":
-#     from ..core.prefix_data import PrefixData
-#     from ..history import History
-#     prefix = sys.argv[1]
-#     records = PrefixData(prefix).iter_records()
-#     specs = itervalues(History(prefix).get_requested_specs_map())
-#     PrefixDag(records, specs).open_url()

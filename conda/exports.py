@@ -34,7 +34,7 @@ ArgumentParser = ArgumentParser
 
 from .common import compat as _compat  # NOQA
 compat = _compat
-from .common.compat import StringIO, iteritems, on_win, itervalues # NOQA
+from .common.compat import StringIO, iteritems, on_win # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
 CondaSession = CondaSession
 from .gateways.disk.create import TemporaryDirectory  # NOQA
@@ -228,7 +228,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         actions['LINK'] = [index[d] for d in actions['LINK']]
     if 'UNLINK' in actions:
         actions['UNLINK'] = [index[d] for d in actions['UNLINK']]
-    index = {prec: prec for prec in itervalues(index)}
+    index = {prec: prec for prec in index.values()}
     return _display_actions(actions, index, show_channel_urls, specs_to_remove, specs_to_add)
 
 
@@ -240,12 +240,12 @@ dist_str_in_index = dist_str_in_index
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
     index = _get_index(channel_urls, prepend, platform, use_local, use_cache, unknown, prefix)
-    return {Dist(prec): prec for prec in itervalues(index)}
+    return {Dist(prec): prec for prec in index.values()}
 
 
 def fetch_index(channel_urls, use_cache=False, index=None):
     index = _fetch_index(channel_urls, use_cache, index)
-    return {Dist(prec): prec for prec in itervalues(index)}
+    return {Dist(prec): prec for prec in index.values()}
 
 
 def package_cache():
@@ -257,7 +257,7 @@ def package_cache():
             return bool(PackageCacheData.first_writable().get(Dist(dist).to_package_ref(), None))
 
         def keys(self):
-            return (Dist(v) for v in itervalues(PackageCacheData.first_writable()))
+            return (Dist(v) for v in PackageCacheData.first_writable().values())
 
         def __delitem__(self, dist):
             PackageCacheData.first_writable().remove(Dist(dist).to_package_ref())
@@ -360,7 +360,7 @@ def linked_data(prefix, ignore_channels=False):
     from .core.prefix_data import PrefixData
     from .models.dist import Dist
     pd = PrefixData(prefix)
-    return {Dist(prefix_record): prefix_record for prefix_record in itervalues(pd._prefix_records)}
+    return {Dist(prefix_record): prefix_record for prefix_record in pd._prefix_records.values()}
 
 
 def linked(prefix, ignore_channels=False):

@@ -14,7 +14,7 @@ from enum import Enum, EnumMeta
 from os.path import join
 import struct
 
-from ..common.compat import itervalues, on_win, six_with_metaclass
+from ..common.compat import on_win, six_with_metaclass
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -327,7 +327,7 @@ NAMESPACES_MAP = {  # base package name, namespace
 }
 
 NAMESPACE_PACKAGE_NAMES = frozenset(NAMESPACES_MAP)
-NAMESPACES = frozenset(itervalues(NAMESPACES_MAP))
+NAMESPACES = frozenset(NAMESPACES_MAP.values())
 
 # Namespace arbiters of uniqueness
 #  global: some repository established by Anaconda, Inc. and conda-forge

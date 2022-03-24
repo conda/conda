@@ -30,7 +30,7 @@ except ImportError:
 from .. import cli
 from ..auxlib.decorators import memoize
 from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from ..common.compat import iteritems, itervalues, encode_arguments
+from ..common.compat import iteritems, encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
 from ..core.prefix_data import PrefixData
 from ..core.solve import _get_solver_class
@@ -193,7 +193,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
 
 def add_feature_records_legacy(index):
     all_features = set()
-    for rec in itervalues(index):
+    for rec in index.values():
         if rec.track_features:
             all_features.update(rec.track_features)
 

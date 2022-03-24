@@ -13,7 +13,7 @@ from ._vendor.toolz import concat, groupby
 from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
-from .common.compat import iteritems, itervalues, on_win
+from .common.compat import iteritems, on_win
 from .common.io import time_recorder
 from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolver, TRUE,
                            minimal_unsatisfiable_subset)
@@ -101,7 +101,7 @@ class Resolve(object):
         self._channel_priority = context.channel_priority
         self._solver_ignore_timestamps = context.solver_ignore_timestamps
 
-        groups = groupby("name", itervalues(index))
+        groups = groupby("name", index.values())
         trackers = defaultdict(list)
 
         for name in groups:
@@ -783,7 +783,7 @@ class Resolve(object):
                 self.trackers.get(feature_name, ()) for feature_name in feature_names
             )
         else:
-            candidate_precs = itervalues(self.index)
+            candidate_precs = self.index.values()
 
         res = tuple(p for p in candidate_precs if spec.match(p))
         self._cached_find_matches[spec] = res
@@ -907,7 +907,7 @@ class Resolve(object):
             C.Require(C.ExactlyOne, group + [C.Not(m)])
 
         # If a package is installed, its dependencies must be as well
-        for prec in itervalues(self.index):
+        for prec in self.index.values():
             nkey = C.Not(self.to_sat_name(prec))
             for ms in self.ms_depends(prec):
                 # Virtual packages can't be installed, we ignore them
@@ -1123,7 +1123,7 @@ class Resolve(object):
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
-        new_index = {prec: prec for prec in itervalues(sat_name_map)}
+        new_index = {prec: prec for prec in sat_name_map.values()}
         name_map = {p.name: p for p in new_index}
         if 'python' in name_map and 'pip' not in name_map:
             python_prec = new_index[name_map['python']]
@@ -1452,7 +1452,7 @@ class Resolve(object):
         # def stripfeat(sol):
         #     return sol.split('[')[0]
 
-        new_index = {self.to_sat_name(prec): prec for prec in itervalues(self.index)}
+        new_index = {self.to_sat_name(prec): prec for prec in self.index.values()}
 
         if returnall:
             if len(psolutions) > 1:

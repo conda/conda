@@ -21,7 +21,7 @@ from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from ..common.compat import isiterable, iteritems, itervalues
+from ..common.compat import isiterable, iteritems
 from ..common.io import dashlist
 from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
@@ -466,8 +466,8 @@ class MatchSpec(metaclass=MatchSpecType):
 
         merged_specs = []
         mergeable_groups = tuple(concat(
-            itervalues(groupby(lambda s: s.optional, group))
-            for group in itervalues(name_groups)
+            groupby(lambda s: s.optional, group).values()
+            for group in name_groups.values()
         ))
         for group in mergeable_groups:
             target_groups = groupby(attrgetter('target'), group)

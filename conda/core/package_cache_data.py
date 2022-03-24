@@ -20,7 +20,7 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_EXTENSION_V1,
                               CONDA_PACKAGE_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, scandir
+from ..common.compat import iteritems, odict, scandir
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path
@@ -43,6 +43,7 @@ try:
     FileNotFoundError
 except NameError:
     FileNotFoundError = IOError
+
 
 class PackageCacheType(type):
     """
@@ -122,11 +123,12 @@ class PackageCacheData(metaclass=PackageCacheType):
         if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
-            return (pcrec for pcrec in itervalues(self._package_cache_records)
+            return (pcrec for pcrec in self._package_cache_records.values()
                     if param.match(pcrec))
         else:
             assert isinstance(param, PackageRecord)
-            return (pcrec for pcrec in itervalues(self._package_cache_records) if pcrec == param)
+            return (pcrec for pcrec in self._package_cache_records.values()
+                    if pcrec == param)
 
     def iter_records(self):
         return iter(self._package_cache_records)
@@ -192,7 +194,7 @@ class PackageCacheData(metaclass=PackageCacheType):
     @classmethod
     def get_all_extracted_entries(cls):
         package_caches = (cls(pd) for pd in context.pkgs_dirs)
-        return tuple(pc_entry for pc_entry in concat(map(itervalues, package_caches))
+        return tuple(pc_entry for pc_entry in concat((package_cache.values() for package_cache in package_caches))
                      if pc_entry.is_extracted)
 
     @classmethod
@@ -231,7 +233,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         tarball_full_path, md5sum = self._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
         tarball_basename = basename(tarball_full_path)
         pc_entry = first(
-            (pc_entry for pc_entry in itervalues(self)),
+            (pc_entry for pc_entry in self.values()),
             key=lambda pce: pce.tarball_basename == tarball_basename and pce.md5 == md5sum
         )
         return pc_entry
@@ -613,11 +615,11 @@ class ProgressiveFetchExtract(object):
 
     @property
     def cache_actions(self):
-        return tuple(axns[0] for axns in itervalues(self.paired_actions) if axns[0])
+        return tuple(axns[0] for axns in self.paired_actions.values() if axns[0])
 
     @property
     def extract_actions(self):
-        return tuple(axns[1] for axns in itervalues(self.paired_actions) if axns[1])
+        return tuple(axns[1] for axns in self.paired_actions.values() if axns[1])
 
     def execute(self):
         if self._executed:

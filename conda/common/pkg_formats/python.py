@@ -18,7 +18,7 @@ import sys
 import warnings
 
 from ... import CondaError
-from ..compat import StringIO, itervalues, odict, open, scandir
+from ..compat import StringIO, odict, open, scandir
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )
@@ -329,7 +329,7 @@ class PythonDistribution(object):
             "python_version": self.python_version,
         }
         depends.update(
-            pyspec_to_norm_req(pyspec) for pyspec in concat(itervalues(marker_groups))
+            pyspec_to_norm_req(pyspec) for pyspec in concat(marker_groups.values())
             if interpret(pyspec.marker, execution_context)
         )
         constrains = set(pyspec_to_norm_req(pyspec) for pyspec in extras if pyspec.constraints)

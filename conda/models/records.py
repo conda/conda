@@ -32,7 +32,7 @@ from ..auxlib.entity import (
 )
 from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
-from ..common.compat import isiterable, itervalues, str
+from ..common.compat import isiterable, str
 from ..exceptions import PathNotFoundError
 
 
@@ -341,7 +341,7 @@ class PackageRecord(DictSafeMixin, Entity):
         for spec in (self.constrains or ()):
             ms = MatchSpec(spec)
             result[ms.name] = MatchSpec(ms, optional=(ms.name not in result))
-        return tuple(itervalues(result))
+        return tuple(result.values())
 
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
     # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)

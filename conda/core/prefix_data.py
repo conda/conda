@@ -13,7 +13,7 @@ from ..base.constants import PREFIX_STATE_FILE
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import itervalues, odict, scandir
+from ..common.compat import odict, scandir
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -135,7 +135,7 @@ class PrefixData(metaclass=PrefixDataType):
                 raise
 
     def iter_records(self):
-        return itervalues(self._prefix_records)
+        return self._prefix_records.values()
 
     def iter_records_sorted(self):
         prefix_graph = PrefixGraph(self.iter_records())
@@ -143,7 +143,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def all_subdir_urls(self):
         subdir_urls = set()
-        for prefix_record in itervalues(self._prefix_records):
+        for prefix_record in self.iter_records():
             subdir_url = prefix_record.channel.subdir_url
             if subdir_url and subdir_url not in subdir_urls:
                 log.debug("adding subdir url %s for %s", subdir_url, prefix_record)
@@ -212,7 +212,7 @@ class PrefixData(metaclass=PrefixDataType):
     def _python_pkg_record(self):
         """Return the prefix record for the package python."""
         return next(
-            (prefix_record for prefix_record in itervalues(self.__prefix_records)
+            (prefix_record for prefix_record in self.__prefix_records.values()
              if prefix_record.name == 'python'),
             None
         )

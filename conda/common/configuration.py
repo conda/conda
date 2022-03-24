@@ -30,7 +30,7 @@ from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
-from .compat import isiterable, iteritems, itervalues, odict, primitive_types, scandir
+from .compat import isiterable, iteritems, odict, primitive_types, scandir
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -1232,7 +1232,7 @@ class ParameterLoader(object):
         if numkeys == 0:
             return None, None
         elif numkeys == 1:
-            return next(itervalues(matches)), None
+            return next(matches.values()), None
         elif name in keys:
             return matches[name], MultipleKeysError(
                 raw_parameters[next(iter(keys))].source, keys, name)
@@ -1381,7 +1381,7 @@ class Configuration(metaclass=ConfigurationType):
         validation_errors = odict()
         for source in self.raw_data:
             typed_values[source], validation_errors[source] = self.check_source(source)
-        raise_errors(tuple(chain.from_iterable(itervalues(validation_errors))))
+        raise_errors(tuple(chain.from_iterable(validation_errors.values()))))
         return odict((k, v) for k, v in iteritems(typed_values) if v)
 
     def describe_parameter(self, parameter_name):
