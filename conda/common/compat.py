@@ -92,7 +92,7 @@ def six_with_metaclass(meta, *bases):
 
 
 NoneType = type(None)
-primitive_types = tuple(str, int, float, complex, bool, NoneType)
+primitive_types = (str, int, float, complex, bool, NoneType)
 
 
 def ensure_binary(value):
