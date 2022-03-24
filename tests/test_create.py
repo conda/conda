@@ -41,7 +41,7 @@ from conda import (
 from conda.auxlib.ish import dals
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, SafetyChecks, PREFIX_MAGIC_FILE
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import ensure_text_type, iteritems, on_win, on_mac
+from conda.common.compat import ensure_text_type, on_win, on_mac
 from conda.common.io import env_var, stderr_log_level, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -451,10 +451,10 @@ class IntegrationTests(BaseTestCase):
             reduced_index = r.get_reduced_index(specs)
             channel_name_groups = {
                 name: {prec.channel.name for prec in group}
-                for name, group in iteritems(groupby("name", reduced_index))
+                for name, group in groupby("name", reduced_index).items()
             }
             channel_name_groups = {
-                name: channel_names for name, channel_names in iteritems(channel_name_groups)
+                name: channel_names for name, channel_names in channel_name_groups.items()
                 if len(channel_names) > 1
             }
             assert {} == channel_name_groups
@@ -925,7 +925,7 @@ dependencies:
             assert not stderr
             skip_categories = ('CLI-only', 'Hidden and Undocumented')
             documented_parameter_names = chain.from_iterable((
-                parameter_names for category, parameter_names in iteritems(context.category_map)
+                parameter_names for category, parameter_names in context.category_map.items()
                 if category not in skip_categories
             ))
 
@@ -2481,7 +2481,7 @@ class PrivateEnvIntegrationTests(TestCase):
     def tearDown(self):
         rm_rf(self.prefix)
 
-        for key, value in iteritems(self.saved_values):
+        for key, value in self.saved_values.items():
             if value is not None:
                 os.environ[key] = value
             else:

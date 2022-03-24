@@ -28,7 +28,7 @@ from .._vendor.toolz import concat, concatv, interleave
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
 from ..cli.common import confirm_yn
-from ..common.compat import ensure_text_type, iteritems, odict, on_win
+from ..common.compat import ensure_text_type, odict, on_win
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
@@ -517,7 +517,7 @@ class UnlinkLinkTransaction(object):
                             ))
 
         # Verification 2. there's only a single instance of each path
-        for path, axns in iteritems(link_paths_dict):
+        for path, axns in link_paths_dict.items():
             if len(axns) > 1:
                 error_results.append(SharedLinkPathClobberError(
                     path,
@@ -625,7 +625,7 @@ class UnlinkLinkTransaction(object):
                 exceptions.extend(exc)
         for exc in self.verify_executor.map(
                 UnlinkLinkTransaction._verify_prefix_level,
-                iteritems(prefix_action_groups)):
+                prefix_action_groups.items()):
             if exc:
                 exceptions.extend(exc)
         return exceptions
@@ -927,7 +927,7 @@ class UnlinkLinkTransaction(object):
         if self._pfe is None:
             self._get_pfe()
 
-        for q, (prefix, setup) in enumerate(iteritems(self.prefix_setups)):
+        for q, (prefix, setup) in enumerate(self.prefix_setups.items()):
             actions = defaultdict(list)
             if q == 0:
                 self._pfe.prepare()
@@ -953,7 +953,7 @@ class UnlinkLinkTransaction(object):
 
         download_urls = set(axn.url for axn in self._pfe.cache_actions)
 
-        for actions, (prefix, stp) in zip(legacy_action_groups, iteritems(self.prefix_setups)):
+        for actions, (prefix, stp) in zip(legacy_action_groups, self.prefix_setups.items()):
             change_report = self._calculate_change_report(prefix, stp.unlink_precs, stp.link_precs,
                                                           download_urls, stp.remove_specs,
                                                           stp.update_specs)

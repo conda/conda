@@ -41,7 +41,7 @@ from conda.base.constants import (
 )
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.main import main_sourced
-from conda.common.compat import ensure_text_type, iteritems, on_win
+from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
 from conda.common.path import which
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
@@ -1886,7 +1886,7 @@ class InteractiveShell(object):
         base_shell = self.shells[shell_name].get('base_shell')
         shell_vals = self.shells.get(base_shell, {}).copy()
         shell_vals.update(self.shells[shell_name])
-        for key, value in iteritems(shell_vals):
+        for key, value in shell_vals.items():
             setattr(self, key, value)
         self.activator = activator_map[shell_vals['activator']]()
         self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
@@ -1898,7 +1898,7 @@ class InteractiveShell(object):
         # this ensures that PATH is shared with any msys2 bash shell, rather than starting fresh
         os.environ["MSYS2_PATH_TYPE"] = "inherit"
         os.environ["CHERE_INVOKING"] = "1"
-        env = {str(k): str(v) for k, v in iteritems(os.environ)}
+        env = {str(k): str(v) for k, v in os.environ.items()}
         remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
         for var_name in remove_these:
             del env[var_name]
@@ -1937,7 +1937,7 @@ class InteractiveShell(object):
         for ev in ('CONDA_TEST_SAVE_TEMPS', 'CONDA_TEST_TMPDIR', 'CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE'):
             if ev in os.environ: env[ev] = os.environ[ev]
 
-        for name, val in iteritems(env):
+        for name, val in env.items():
             p.sendline(self.activator.export_var_tmpl % (name, val))
 
         if self.init_command:

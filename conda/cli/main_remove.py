@@ -116,7 +116,7 @@ def execute(args, parser):
     #     specs = specs_from_args(args.package_names)
     #     env_spec_map = groupby(get_env, specs)
     #     action_groups = []
-    #     for env_name, spcs in iteritems(env_spec_map):
+    #     for env_name, spcs in env_spec_map.items():
     #         pfx = ed.to_prefix(env_name)
     #         r = get_resolve_object(index.copy(), pfx)
     #         specs_to_remove = tuple(MatchSpec(s) for s in spcs)

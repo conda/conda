@@ -30,7 +30,7 @@ except ImportError:
 from .. import cli
 from ..auxlib.decorators import memoize
 from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from ..common.compat import iteritems, encode_arguments
+from ..common.compat import encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
 from ..core.prefix_data import PrefixData
 from ..core.solve import _get_solver_class
@@ -175,7 +175,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
     if not subdir:
         subdir = "%s-%s" % (repodata_info["platform"], repodata_info["arch"])
     auth = channel.auth
-    for fn, info in iteritems(repodata["packages"]):
+    for fn, info in repodata["packages"].items():
         rec = PackageRecord.from_objects(
             info,
             fn=fn,

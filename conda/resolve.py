@@ -13,7 +13,7 @@ from ._vendor.toolz import concat, groupby
 from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
-from .common.compat import iteritems, on_win
+from .common.compat import on_win
 from .common.io import time_recorder
 from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolver, TRUE,
                            minimal_unsatisfiable_subset)
@@ -554,7 +554,7 @@ class Resolve(object):
         else:
             pool = self.get_reduced_index(specs)
             grouped_pool = groupby(lambda x: x.name, pool)
-            pool = {k: set(v) for k, v in iteritems(grouped_pool)}
+            pool = {k: set(v) for k, v in grouped_pool.items()}
             self._pool_cache[specs] = pool
         return pool
 
@@ -575,7 +575,7 @@ class Resolve(object):
 
         explicit_specs, features = self.verify_specs(explicit_specs)
         filter_out = {prec: False if val else "feature not enabled"
-                      for prec, val in iteritems(self.default_filter(features))}
+                      for prec, val in self.default_filter(features).items()}
         snames = set()
         top_level_spec = None
         cp_filter_applied = set()  # values are package names
@@ -894,7 +894,7 @@ class Resolve(object):
     @time_recorder(module_name=__name__)
     def gen_clauses(self):
         C = Clauses(sat_solver=_get_sat_solver_cls(context.sat_solver))
-        for name, group in iteritems(self.groups):
+        for name, group in self.groups.items():
             group = [self.to_sat_name(prec) for prec in group]
             # Create one variable for each package
             for sat_name in group:
@@ -944,7 +944,7 @@ class Resolve(object):
         # - The prec does NOT require the feature
         # - At least one package in the group DOES require the feature
         # - A package that tracks the feature is installed
-        for name, group in iteritems(self.groups):
+        for name, group in self.groups.items():
             prec_feats = {self.to_sat_name(prec): set(prec.features) for prec in group}
             active_feats = set.union(*prec_feats.values()).intersection(self.trackers)
             for feat in active_feats:
@@ -987,7 +987,7 @@ class Resolve(object):
             #         if self.index[dist].get('priority', 0) < MAX_CHANNEL_PRIORITY:
             #             rec.append(dist)
 
-        for name, targets in iteritems(sdict):
+        for name, targets in sdict.items():
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
             pkey = None
             # keep in mind that pkgs is already sorted according to version_key (a tuple,
@@ -1037,7 +1037,7 @@ class Resolve(object):
         assert isinstance(must_have, dict)
 
         digraph = {}  # Dict[package_name, Set[dependent_package_names]]
-        for package_name, prec in iteritems(must_have):
+        for package_name, prec in must_have.items():
             if prec in self.index:
                 digraph[package_name] = set(ms.name for ms in self.ms_depends(prec))
 
@@ -1054,7 +1054,7 @@ class Resolve(object):
         #    See issue #6057.
 
         if on_win and 'conda' in digraph:
-            for package_name, dist in iteritems(must_have):
+            for package_name, dist in must_have.items():
                 record = self.index.get(prec)
                 if hasattr(record, 'noarch') and record.noarch == NoarchType.python:
                     digraph[package_name].add('conda')
@@ -1157,7 +1157,7 @@ class Resolve(object):
                 get_(MatchSpec(spec).name, snames)
             if len(snames) < len(sat_name_map):
                 limit = snames
-                xtra = [rec for sat_name, rec in iteritems(sat_name_map)
+                xtra = [rec for sat_name, rec in sat_name_map.items()
                         if rec['name'] not in snames]
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:

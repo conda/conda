@@ -12,7 +12,6 @@ import unittest
 import pytest
 
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.read import read_python_record
@@ -140,10 +139,10 @@ def test_generate_eq_1():
     # - a package that only has one version should not appear, unless
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
-    eqc = {key: value for key, value in iteritems(eqc)}
-    eqv = {key: value for key, value in iteritems(eqv)}
-    eqb = {key: value for key, value in iteritems(eqb)}
-    eqt = {key: value for key, value in iteritems(eqt)}
+    eqc = {key: value for key, value in eqc.items()}
+    eqv = {key: value for key, value in eqv.items()}
+    eqb = {key: value for key, value in eqb.items()}
+    eqt = {key: value for key, value in eqt.items()}
     assert eqc == {}
     assert eqv == add_subdir_to_iter({
         'channel-1::anaconda-1.4.0-np15py27_0': 1,
@@ -574,7 +573,7 @@ def test_timestamps_and_deps():
     # it will force unnecessary changes to dependencies. Timestamp maximization needs
     # to be done at low priority so that conda is free to consider packages with the
     # same version and build that are most compatible with the installed environment.
-    index2 = {key: value for key, value in iteritems(index)}
+    index2 = {key: value for key, value in index.items()}
     mypackage1 = PackageRecord(**{
         'build': 'hash12_0',
         'build_number': 0,
@@ -664,7 +663,7 @@ def test_nonexistent_deps():
         'version': '2.0',
     })
     index2.update({p1: p1, p2: p2, p3: p3, p4: p4})
-    index2 = {key: value for key, value in iteritems(index2)}
+    index2 = {key: value for key, value in index2.items()}
     r = Resolve(index2)
 
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('mypackage'))) == add_subdir_to_iter({
@@ -790,7 +789,7 @@ def test_nonexistent_deps():
         'version': '2.0',
     })
     index3.update({p5: p5, p6: p6, p7: p7, p8: p8})
-    index3 = {key: value for key, value in iteritems(index3)}
+    index3 = {key: value for key, value in index3.items()}
     r = Resolve(index3)
 
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('mypackage'))) == add_subdir_to_iter({
@@ -894,7 +893,7 @@ def test_install_package_with_feature():
         'track_features': 'feature',
     })
     index2.update({p1: p1, p2: p2})
-    index2 = {key: value for key, value in iteritems(index2)}
+    index2 = {key: value for key, value in index2.items()}
     r = Resolve(index2)
 
     # It should not raise
@@ -951,7 +950,7 @@ def test_circular_dependencies():
         'version': '1.0',
     })
     index2[package2] = package2
-    index2 = {key: value for key, value in iteritems(index2)}
+    index2 = {key: value for key, value in index2.items()}
     r = Resolve(index2)
 
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == add_subdir_to_iter({
@@ -1009,7 +1008,7 @@ def test_optional_dependencies():
         'version': '2.0',
     })
     index2.update({p1: p1, p2: p2, p3: p3})
-    index2 = {key: value for key, value in iteritems(index2)}
+    index2 = {key: value for key, value in index2.items()}
     r = Resolve(index2)
 
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == add_subdir_to_iter({
@@ -1129,7 +1128,7 @@ def test_no_features():
         })
     index2[numpy] = numpy
 
-    index2 = {key: value for key, value in iteritems(index2)}
+    index2 = {key: value for key, value in index2.items()}
     r2 = Resolve(index2)
 
     # This should not pick any mkl packages (the difference here is that none
@@ -1351,7 +1350,7 @@ def test_channel_priority_2():
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
         eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
-        eqc = {key: value for key, value in iteritems(eqc)}
+        eqc = {key: value for key, value in eqc.items()}
         pprint(eqc)
         assert eqc == add_subdir_to_iter({
             'channel-4::mkl-2017.0.4-h4c4d0af_0': 1,
@@ -1503,7 +1502,7 @@ def test_channel_priority_2():
         C = r2.gen_clauses()
 
         eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
-        eqc = {key: value for key, value in iteritems(eqc)}
+        eqc = {key: value for key, value in eqc.items()}
         assert eqc == {}, eqc
         installed_w_strict = [prec.dist_str() for prec in this_r.install(spec)]
         assert installed_w_strict == add_subdir_to_iter([
@@ -1527,7 +1526,7 @@ def test_channel_priority_2():
         r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
         eqc, eqv, eqb, eqa, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
-        eqc = {key: value for key, value in iteritems(eqc)}
+        eqc = {key: value for key, value in eqc.items()}
         pprint(eqc)
         assert eqc == add_subdir_to_iter({
             'channel-1::dateutil-1.5-py27_0': 1,
@@ -2138,7 +2137,7 @@ def test_arch_preferred_when_otherwise_identical_dependencies():
         'version': '1.0',
     })
     index2[package1_linux64] = package1_linux64
-    index2 = {key: value for key, value in iteritems(index2)}
+    index2 = {key: value for key, value in index2.items()}
     r = Resolve(index2)
 
     matches = r.find_matches(MatchSpec('package1'))

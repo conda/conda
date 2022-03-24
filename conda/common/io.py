@@ -22,7 +22,7 @@ import signal
 from threading import Event, Thread, Lock
 from time import sleep, time
 
-from .compat import StringIO, iteritems, on_win, encode_environment
+from .compat import StringIO, on_win, encode_environment
 from .constants import NULL
 from .path import expand
 from ..auxlib.decorators import memoizemethod
@@ -122,7 +122,7 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
 
     new_var_map = encode_environment(var_map)
     saved_vars = {}
-    for name, value in iteritems(new_var_map):
+    for name, value in new_var_map.items():
         saved_vars[name] = os.environ.get(name, NULL)
         os.environ[name] = value
     try:
@@ -132,7 +132,7 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
             stack_callback(True)
         yield
     finally:
-        for name, value in iteritems(saved_vars):
+        for name, value in saved_vars.items():
             if value is NULL:
                 del os.environ[name]
             else:

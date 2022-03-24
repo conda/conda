@@ -21,7 +21,7 @@ from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from ..common.compat import isiterable, iteritems
+from ..common.compat import isiterable
 from ..common.io import dashlist
 from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
@@ -244,7 +244,7 @@ class MatchSpec(metaclass=MatchSpecType):
             # TODO: consider AttrDict instead of PackageRecord
             from .records import PackageRecord
             rec = PackageRecord.from_objects(rec)
-        for field_name, v in iteritems(self._match_components):
+        for field_name, v in self._match_components.items():
             if not self._match_individual(rec, field_name, v):
                 return False
         return True
@@ -398,7 +398,7 @@ class MatchSpec(metaclass=MatchSpecType):
             raise InvalidMatchSpec(self._original_spec_str,
                                    'Cannot match on field(s): %s' % not_fields)
         _make_component = MatchSpec._make_component
-        return frozendict(_make_component(key, value) for key, value in iteritems(kwargs))
+        return frozendict(_make_component(key, value) for key, value in kwargs.items())
 
     @staticmethod
     def _make_component(field_name, value):

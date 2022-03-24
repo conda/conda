@@ -20,7 +20,7 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_EXTENSION_V1,
                               CONDA_PACKAGE_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
-from ..common.compat import iteritems, odict, scandir
+from ..common.compat import odict, scandir
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path
@@ -646,7 +646,7 @@ class ProgressiveFetchExtract(object):
 
         exceptions = []
         with signal_handler(conda_signal_handler), time_recorder("fetch_extract_execute"):
-            for prec_or_spec, prec_actions in iteritems(self.paired_actions):
+            for prec_or_spec, prec_actions in self.paired_actions.items():
                 exc = self._execute_actions(prec_or_spec, prec_actions)
                 if exc:
                     log.debug('%r'.encode('utf-8'), exc, exc_info=True)

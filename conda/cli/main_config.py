@@ -17,7 +17,7 @@ from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
                               UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import Mapping, Sequence, isiterable, iteritems
+from ..common.compat import Mapping, Sequence, isiterable
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
@@ -33,7 +33,7 @@ def execute(args, parser):
 
 def format_dict(d):
     lines = []
-    for k, v in iteritems(d):
+    for k, v in d.items():
         if isinstance(v, Mapping):
             if v:
                 lines.append("%s:" % k)
@@ -85,7 +85,7 @@ def parameter_description_builder(name):
 def describe_all_parameters():
     builder = []
     skip_categories = ('CLI-only', 'Hidden and Undocumented')
-    for category, parameter_names in iteritems(context.category_map):
+    for category, parameter_names in context.category_map.items():
         if category in skip_categories:
             continue
         builder.append('# ######################################################')
@@ -134,7 +134,7 @@ def execute_config(args, parser):
             ))
         else:
             lines = []
-            for source, reprs in iteritems(context.collect_all()):
+            for source, reprs in context.collect_all().items():
                 lines.append("==> %s <==" % source)
                 lines.extend(format_dict(reprs))
                 lines.append('')
@@ -169,7 +169,7 @@ def execute_config(args, parser):
                 from ..common.io import dashlist
                 d['custom_multichannels'] = {
                     multichannel_name: dashlist(channels, indent=4)
-                    for multichannel_name, channels in iteritems(d['custom_multichannels'])
+                    for multichannel_name, channels in d['custom_multichannels'].items()
                 }
 
             stdout_write('\n'.join(format_dict(d)))

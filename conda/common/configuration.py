@@ -30,7 +30,7 @@ from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
-from .compat import isiterable, iteritems, odict, primitive_types, scandir
+from .compat import isiterable, odict, primitive_types, scandir
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -66,7 +66,7 @@ def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
 
 
 def pretty_map(dictionary, padding='  '):
-    return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
+    return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in dictionary.items())
 
 
 def expand_environment_variables(unexpanded):
@@ -245,7 +245,7 @@ class EnvRawParameter(RawParameter):
     def make_raw_parameters(cls, appname):
         keystart = "{0}_".format(appname.upper())
         raw_env = dict((k.replace(keystart, '', 1).lower(), v)
-                       for k, v in iteritems(environ) if k.startswith(keystart))
+                       for k, v in environ.items() if k.startswith(keystart))
         return super(EnvRawParameter, cls).make_raw_parameters(EnvRawParameter.source, raw_env)
 
 
@@ -294,7 +294,7 @@ class YamlRawParameter(RawParameter):
         elif isinstance(self._raw_value, CommentedMap):
             value_comments = self._get_yaml_map_comments(self._raw_value)
             self._value_flags = dict((k, ParameterFlag.from_string(v))
-                                     for k, v in iteritems(value_comments) if v is not None)
+                                     for k, v in value_comments.items() if v is not None)
             children_values = {}
             for k, v in self._raw_value.items():
                 children_values[k] = YamlRawParameter(self.source, self.key, v, value_comments[k])
@@ -530,7 +530,7 @@ class LoadedParameter(metaclass=ABCMeta):
         # This is similar to conda.auxlib.type_coercion.typify_data_structure
         # It could be DRY-er but that would break SRP.
         if isinstance(self.value, Mapping):
-            new_value = type(self.value)((k, v.expand()) for k, v in iteritems(self.value))
+            new_value = type(self.value)((k, v.expand()) for k, v in self.value.items())
         elif isiterable(self.value):
             new_value = type(self.value)(v.expand() for v in self.value)
         elif isinstance(self.value, ConfigurationObject):
@@ -577,7 +577,7 @@ class LoadedParameter(metaclass=ABCMeta):
     @staticmethod
     def _typify_data_structure(value, source, type_hint=None):
         if isinstance(value, Mapping):
-            return type(value)((k, v.typify(source)) for k, v in iteritems(value))
+            return type(value)((k, v.typify(source)) for k, v in value.items())
         elif isiterable(value):
             return type(value)(v.typify(source) for v in value)
         elif isinstance(value, ConfigurationObject):
@@ -665,7 +665,7 @@ class MapLoadedParameter(LoadedParameter):
 
         # recursively validate the values in the map
         if isinstance(self.value, Mapping):
-            for key, value in iteritems(self.value):
+            for key, value in self.value.items():
                 errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
@@ -685,7 +685,7 @@ class MapLoadedParameter(LoadedParameter):
         def key_is_important(match, key):
             return match.value_flags.get(key) == ParameterFlag.final
         important_maps = tuple(dict((k, v)
-                                    for k, v in iteritems(match_value)
+                                    for k, v in match_value.items()
                                     if key_is_important(match, k))
                                for match, match_value in relevant_matches_and_values)
 
@@ -831,7 +831,7 @@ class ObjectLoadedParameter(LoadedParameter):
         def key_is_important(match, key):
             return match.value_flags.get(key) == ParameterFlag.final
         important_maps = tuple(dict((k, v)
-                                    for k, v in iteritems(match_value)
+                                    for k, v in match_value.items()
                                     if key_is_important(match, k))
                                for match, match_value in relevant_matches_and_values)
 
@@ -909,7 +909,7 @@ class Parameter(metaclass=ABCMeta):
         """
         matches = []
         multikey_exceptions = []
-        for filepath, raw_parameters in iteritems(instance.raw_data):
+        for filepath, raw_parameters in instance.raw_data.items():
             match, error = ParameterLoader.raw_parameters_from_single_source(
                 name, names, raw_parameters)
             if match is not None:
@@ -1248,7 +1248,7 @@ class ConfigurationType(type):
         super(ConfigurationType, cls).__init__(name, bases, attr)
 
         # call _set_name for each parameter
-        cls.parameter_names = tuple(p._set_name(name) for name, p in iteritems(cls.__dict__)
+        cls.parameter_names = tuple(p._set_name(name) for name, p in cls.__dict__.items()
                                     if isinstance(p, ParameterLoader))
 
 
@@ -1286,7 +1286,7 @@ class Configuration(metaclass=ConfigurationType):
         if hasattr(argparse_args, '__dict__'):
             # the argparse_args from argparse will be an object with a __dict__ attribute
             #   and not a mapping type like this method will turn it into
-            self._argparse_args = AttrDict((k, v) for k, v, in iteritems(vars(argparse_args))
+            self._argparse_args = AttrDict((k, v) for k, v, in vars(argparse_args).items()
                                            if v is not NULL)
         elif not argparse_args:
             # argparse_args can be initialized as `None`
@@ -1294,7 +1294,7 @@ class Configuration(metaclass=ConfigurationType):
         else:
             # we're calling this method with argparse_args that are a mapping type, likely
             #   already having been processed by this method before
-            self._argparse_args = AttrDict((k, v) for k, v, in iteritems(argparse_args)
+            self._argparse_args = AttrDict((k, v) for k, v, in argparse_args.items()
                                            if v is not NULL)
 
         source = ArgParseRawParameter.source
@@ -1382,7 +1382,7 @@ class Configuration(metaclass=ConfigurationType):
         for source in self.raw_data:
             typed_values[source], validation_errors[source] = self.check_source(source)
         raise_errors(tuple(chain.from_iterable(validation_errors.values()))))
-        return odict((k, v) for k, v in iteritems(typed_values) if v)
+        return odict((k, v) for k, v in typed_values.items() if v)
 
     def describe_parameter(self, parameter_name):
         # TODO, in Parameter base class, rename element_type to value_type

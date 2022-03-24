@@ -11,7 +11,7 @@ import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems, on_win, on_mac, on_linux
+from conda.common.compat import on_win, on_mac, on_linux
 from conda.common.io import env_vars
 from conda.core.index import check_whitelist, get_index, get_reduced_index, _supplement_index_with_system
 from conda.exceptions import ChannelNotAllowed
@@ -107,19 +107,19 @@ class GetIndexIntegrationTests(TestCase):
     def test_get_index_linux64_platform(self):
         linux64 = 'linux-64'
         index = get_index(platform=linux64)
-        for dist, record in iteritems(index):
+        for dist, record in index.items():
             assert platform_in_record(linux64, record), (linux64, record.url)
 
     def test_get_index_osx64_platform(self):
         osx64 = 'osx-64'
         index = get_index(platform=osx64)
-        for dist, record in iteritems(index):
+        for dist, record in index.items():
             assert platform_in_record(osx64, record), (osx64, record.url)
 
     def test_get_index_win64_platform(self):
         win64 = 'win-64'
         index = get_index(platform=win64)
-        for dist, record in iteritems(index):
+        for dist, record in index.items():
             assert platform_in_record(win64, record), (win64, record.url)
 
 

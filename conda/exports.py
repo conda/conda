@@ -34,7 +34,7 @@ ArgumentParser = ArgumentParser
 
 from .common import compat as _compat  # NOQA
 compat = _compat
-from .common.compat import StringIO, iteritems, on_win # NOQA
+from .common.compat import StringIO, on_win # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
 CondaSession = CondaSession
 from .gateways.disk.create import TemporaryDirectory  # NOQA
@@ -369,7 +369,7 @@ def linked(prefix, ignore_channels=False):
     """
     from .models.enums import PackageType
     conda_package_types = PackageType.conda_package_types()
-    ld = iteritems(linked_data(prefix, ignore_channels=ignore_channels))
+    ld = linked_data(prefix, ignore_channels=ignore_channels).items()
     return set(dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types)
 
 

@@ -29,7 +29,7 @@ from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.constants import INITIAL_TRUST_ROOT    # Where root.json is currently.
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode,
                              text_type)
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
@@ -554,7 +554,7 @@ class SubdirData(metaclass=SubdirDataType):
             verify_metadata_signatures = False
 
         for group, copy_legacy_md5 in (
-                (iteritems(conda_packages), True),
+                (conda_packages.items(), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
             for fn, info in group:
 

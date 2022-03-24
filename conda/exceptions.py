@@ -25,7 +25,7 @@ from .auxlib.logz import stringify
 from .auxlib.type_coercion import boolify
 from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
-from .common.compat import ensure_text_type, iteritems, on_win
+from .common.compat import ensure_text_type, on_win
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
 
@@ -653,14 +653,14 @@ class UnsatisfiableError(CondaError):
             key = (dep[0],) + tuple(v[0] for v in dep1)
             vals = ('',) + tuple(v[2] for v in dep1)
             found = False
-            for key2, csets in iteritems(chains):
+            for key2, csets in chains.items():
                 if key2[:len(key)] == key:
                     for cset, val in zip(csets, vals):
                         cset.add(val)
                     found = True
             if not found:
                 chains[key] = [{val} for val in vals]
-        for key, csets in iteritems(chains):
+        for key, csets in chains.items():
             deps = []
             for name, cset in zip(key, csets):
                 if '' not in cset:

@@ -22,7 +22,7 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
                               ExperimentalSolverChoice)
 from ..base.context import context
-from ..common.compat import iteritems, odict
+from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
@@ -607,7 +607,7 @@ class Solver(object):
         ) or tuple()
         conflict_specs = set(_.name for _ in conflict_specs)
 
-        for pkg_name, spec in iteritems(ssc.specs_map):
+        for pkg_name, spec in ssc.specs_map.items():
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
             if matches_for_spec:
                 if len(matches_for_spec) != 1:
@@ -866,7 +866,7 @@ class Solver(object):
 
         # add back inconsistent packages to solution
         if ssc.add_back_map:
-            for name, (prec, spec) in iteritems(ssc.add_back_map):
+            for name, (prec, spec) in ssc.add_back_map.items():
                 # spec here will only be set if the conflicting prec was in the original specs_map
                 #    if it isn't there, then we restore the conflict.  If it is there, though,
                 #    we keep the new, consistent solution
@@ -1353,7 +1353,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #         # first handle pulling back requested specs to root
 #         forced_root_specs_to_add = set()
 #         pruned_env_add_map = defaultdict(list)
-#         for env_name, specs in iteritems(env_add_map):
+#         for env_name, specs in env_add_map.items():
 #             for spec in specs:
 #                 spec_name = MatchSpec(spec).name
 #                 if spec_name in required_root_package_names:
@@ -1364,7 +1364,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #
 #         # second handle pulling back registered specs to root
 #         env_remove_map = defaultdict(list)
-#         for env_name, registered_package_entries in iteritems(registered_packages):
+#         for env_name, registered_package_entries in registered_packages.items():
 #             for rpe in registered_package_entries:
 #                 if rpe['package_name'] in required_root_package_names:
 #                     # ANY registered packages in this environment need to be pulled back
@@ -1405,7 +1405,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #                                tuple(specs))
 #
 #         txn_args = tuple(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
-#                          for env_name, oink in iteritems(unlink_link_map))
+#                          for env_name, oink in unlink_link_map.items())
 #         txn = UnlinkLinkTransaction(*txn_args)
 #         return txn
 #

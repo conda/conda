@@ -19,7 +19,7 @@ from ..auxlib.ish import dals
 from .._vendor.toolz import concat
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
-from ..common.compat import iteritems, on_win
+from ..common.compat import on_win
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
@@ -89,7 +89,7 @@ class PathAction(metaclass=ABCMeta):
         return self._verified
 
     def __repr__(self):
-        args = ('%s=%r' % (key, value) for key, value in iteritems(vars(self))
+        args = ('%s=%r' % (key, value) for key, value in vars(self).items()
                 if key not in REPR_IGNORE_KWARGS)
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
@@ -126,7 +126,7 @@ class MultiPathAction(metaclass=ABCMeta):
         return self._verified
 
     def __repr__(self):
-        args = ('%s=%r' % (key, value) for key, value in iteritems(vars(self))
+        args = ('%s=%r' % (key, value) for key, value in vars(self).items()
                 if key not in REPR_IGNORE_KWARGS)
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 

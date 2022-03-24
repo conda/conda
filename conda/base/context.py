@@ -44,7 +44,7 @@ from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from .._vendor.toolz import concat, concatv, unique
-from ..common.compat import NoneType, iteritems, odict, on_win
+from ..common.compat import NoneType, odict, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
                                     ValidationError)
@@ -714,19 +714,19 @@ class Context(Configuration):
         reserved_multichannels = odict(
             (name, tuple(
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls)
-             ) for name, urls in iteritems(reserved_multichannel_urls)
+             ) for name, urls in reserved_multichannel_urls.items()
         )
         custom_multichannels = odict(
             (name, tuple(
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls)
-             ) for name, urls in iteritems(self._custom_multichannels)
+             ) for name, urls in self._custom_multichannels.items()
         )
         all_multichannels = odict(
             (name, channels)
-            for name, channels in concat(map(iteritems, (
-                custom_multichannels,
-                reserved_multichannels,  # reserved comes last, so reserved overrides custom
-            )))
+            for name, channels in concat(
+                custom_multichannels.items(),
+                reserved_multichannels.items(),  # reserved comes last, so reserved overrides custom
+            )
         )
         return all_multichannels
 
@@ -734,7 +734,7 @@ class Context(Configuration):
     def custom_channels(self):
         from ..models.channel import Channel
         custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
-                           for name, url in iteritems(self._custom_channels))
+                           for name, url in self._custom_channels.items())
         channels_from_multichannels = concat(channel for channel
                                              in self.custom_multichannels.values())
         all_channels = odict((x.name, x) for x in (ch for ch in concatv(

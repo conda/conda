@@ -6,7 +6,6 @@ from itertools import chain, combinations, permutations, product
 
 import pytest
 
-from conda.common.compat import iteritems
 from conda.common.logic import Clauses, FALSE, TRUE, minimal_unsatisfiable_subset
 from conda.testing.helpers import raises
 
@@ -239,7 +238,7 @@ def test_LinearBound():
                 C.name_var(k, nm)
                 Cpos.name_var(k, nm)
                 Cneg.name_var(k, nm)
-            eq2 = [(v, C.from_name(c)) for c, v in iteritems(eq)]
+            eq2 = [(v, C.from_name(c)) for c, v in eq.items()]
         else:
             eq2 = eq
         x = C.LinearBound(eq, rhs[0], rhs[1])

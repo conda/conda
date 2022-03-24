@@ -20,8 +20,7 @@ from ._vendor.toolz import concatv, drop
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import (FILESYSTEM_ENCODING, iteritems, on_win,
-                            scandir)
+from .common.compat import FILESYSTEM_ENCODING, on_win, scandir
 from .common.path import paths_equal
 
 
@@ -273,7 +272,7 @@ class _Activator(object):
         self.command = command
 
     def _yield_commands(self, cmds_dict):
-        for key, value in sorted(iteritems(cmds_dict.get('export_path', {}))):
+        for key, value in sorted(cmds_dict.get('export_path', {}).items()):
             yield self.export_var_tmpl % (key, value)
 
         for script in cmds_dict.get('deactivate_scripts', ()):
@@ -282,10 +281,10 @@ class _Activator(object):
         for key in cmds_dict.get('unset_vars', ()):
             yield self.unset_var_tmpl % key
 
-        for key, value in iteritems(cmds_dict.get('set_vars', {})):
+        for key, value in cmds_dict.get('set_vars', {}).items():
             yield self.set_var_tmpl % (key, value)
 
-        for key, value in iteritems(cmds_dict.get('export_vars', {})):
+        for key, value in cmds_dict.get('export_vars', {}).items():
             yield self.export_var_tmpl % (key, value)
 
         for script in cmds_dict.get('activate_scripts', ()):

@@ -39,7 +39,7 @@ def encode_for_env_var(value) -> bytes:
 
 def encode_environment(env):
     if ENCODE_ENVIRONMENT:
-        env = {encode_for_env_var(k): encode_for_env_var(v) for k, v in iteritems(env)}
+        env = {encode_for_env_var(k): encode_for_env_var(v) for k, v in env.items()}
     return env
 
 
@@ -61,9 +61,6 @@ from os import scandir
 # #############################
 # equivalent functions
 # #############################
-
-def iteritems(d, **kw):
-    return iter(d.items(**kw))
 
 viewkeys = methodcaller("keys")
 viewvalues = methodcaller("values")
