@@ -13,8 +13,7 @@ from ..base.constants import PREFIX_STATE_FILE
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import (JSONDecodeError, itervalues, odict, scandir,
-                             string_types)
+from ..common.compat import itervalues, odict, scandir, string_types
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -172,7 +171,7 @@ class PrefixData(metaclass=PrefixDataType):
         with open(prefix_record_json_path) as fh:
             try:
                 json_data = json_load(fh.read())
-            except (UnicodeDecodeError, JSONDecodeError):
+            except (UnicodeDecodeError, json.JSONDecodeError):
                 # UnicodeDecodeError: catch horribly corrupt files
                 # JSONDecodeError: catch bad json format files
                 raise CorruptedEnvironmentError(self.prefix_path, prefix_record_json_path)

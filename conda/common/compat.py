@@ -70,7 +70,6 @@ from collections.abc import Mapping, Sequence
 from io import StringIO
 from itertools import zip_longest
 from os import scandir
-from json import JSONDecodeError
 
 Mapping = Mapping
 Sequence = Sequence
