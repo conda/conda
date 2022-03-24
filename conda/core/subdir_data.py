@@ -30,7 +30,7 @@ from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REP
 from ..base.constants import INITIAL_TRUST_ROOT    # Where root.json is currently.
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
-                             string_types, text_type)
+                             text_type)
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
@@ -144,7 +144,7 @@ class SubdirData(metaclass=SubdirDataType):
         if not self._loaded:
             self.load()
         param = package_ref_or_match_spec
-        if isinstance(param, string_types):
+        if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             if param.get_exact_value('name'):

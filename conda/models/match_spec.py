@@ -21,7 +21,7 @@ from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type)
+from ..common.compat import isiterable, iteritems, itervalues, text_type
 from ..common.io import dashlist
 from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
@@ -43,7 +43,7 @@ class MatchSpecType(type):
                 new_kwargs['_original_spec_str'] = spec_arg.original_spec_str
                 new_kwargs.update(**kwargs)
                 return super(MatchSpecType, cls).__call__(**new_kwargs)
-            elif isinstance(spec_arg, string_types):
+            elif isinstance(spec_arg, str):
                 parsed = _parse_spec_str(spec_arg)
                 if kwargs:
                     parsed = dict(parsed, **kwargs)
@@ -901,7 +901,7 @@ class FeatureMatch(MatchInterface):
     def _convert(self, value):
         if not value:
             return frozenset()
-        elif isinstance(value, string_types):
+        elif isinstance(value, str):
             return frozenset(f for f in (
                 ff.strip() for ff in value.replace(' ', ',').split(',')
             ) if f)
@@ -934,7 +934,7 @@ class ChannelMatch(GlobStrMatch):
     def __init__(self, value):
         self._re_match = None
 
-        if isinstance(value, string_types):
+        if isinstance(value, str):
             if value.startswith('^') and value.endswith('$'):
                 self._re_match = re.compile(value).match
             elif '*' in value:

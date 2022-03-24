@@ -7,7 +7,7 @@ import operator as op
 import re
 
 from .._vendor.toolz import excepts
-from ..common.compat import string_types, zip, zip_longest, text_type
+from ..common.compat import zip, zip_longest, text_type
 from ..exceptions import InvalidVersionSpec
 
 log = getLogger(__name__)
@@ -33,7 +33,7 @@ class SingleStrArgCachingType(type):
     def __call__(cls, arg):
         if isinstance(arg, cls):
             return arg
-        elif isinstance(arg, string_types):
+        elif isinstance(arg, str):
             try:
                 return cls._cache_[arg]
             except KeyError:
@@ -270,8 +270,8 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
             return False
         c1 = self.fillvalue if len(v1) <= nt else v1[nt]
         c2 = v2[nt]
-        if isinstance(c2, string_types):
-            return isinstance(c1, string_types) and c1.startswith(c2)
+        if isinstance(c2, str):
+            return isinstance(c1, str) and c1.startswith(c2)
         return c1 == c2
 
     def __ne__(self, other):
@@ -283,11 +283,11 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
                 for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
                     if c1 == c2:
                         continue
-                    elif isinstance(c1, string_types):
-                        if not isinstance(c2, string_types):
+                    elif isinstance(c1, str):
+                        if not isinstance(c2, str):
                             # str < int
                             return True
-                    elif isinstance(c2, string_types):
+                    elif isinstance(c2, str):
                         # not (int < str)
                         return False
                     # c1 and c2 have the same type
@@ -329,7 +329,7 @@ def treeify(spec_str):
     """
     # Converts a VersionSpec expression string into a tuple-based
     # expression tree.
-    assert isinstance(spec_str, string_types)
+    assert isinstance(spec_str, str)
     tokens = re.findall(VSPEC_TOKENS, '(%s)' % spec_str)
     output = []
     stack = []
@@ -497,7 +497,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/miss
 
     def get_matcher(self, vspec):
 
-        if isinstance(vspec, string_types) and regex_split_re.match(vspec):
+        if isinstance(vspec, str) and regex_split_re.match(vspec):
             vspec = treeify(vspec)
 
         if isinstance(vspec, tuple):

@@ -31,7 +31,7 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 from .compat import (binary_type, isiterable, iteritems, itervalues, odict, primitive_types,
-                     scandir, string_types, text_type)
+                     scandir, text_type)
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -71,7 +71,7 @@ def pretty_map(dictionary, padding='  '):
 
 
 def expand_environment_variables(unexpanded):
-    if isinstance(unexpanded, string_types) or isinstance(unexpanded, binary_type):
+    if isinstance(unexpanded, str) or isinstance(unexpanded, binary_type):
         return expandvars(unexpanded)
     else:
         return unexpanded
@@ -217,7 +217,7 @@ class EnvRawParameter(RawParameter):
         # note: this assumes that EnvRawParameters will only have flat configuration of either
         # primitive or sequential type
         if hasattr(parameter_obj, 'string_delimiter'):
-            assert isinstance(self._raw_value, string_types)
+            assert isinstance(self._raw_value, str)
             string_delimiter = getattr(parameter_obj, 'string_delimiter')
             # TODO: add stripping of !important, !top, and !bottom
             return tuple(EnvRawParameter(EnvRawParameter.source, self.key, v)
@@ -517,7 +517,7 @@ class LoadedParameter(metaclass=ABCMeta):
             result = self._validation(typed_value)
             if result is False:
                 errors.append(ValidationError(self._name, typed_value, source))
-            elif isinstance(result, string_types):
+            elif isinstance(result, str):
                 errors.append(CustomValidationError(self._name, typed_value, source, result))
         return errors
 
@@ -587,8 +587,8 @@ class LoadedParameter(metaclass=ABCMeta):
                 if isinstance(attr_value, LoadedParameter):
                     value.__setattr__(attr_name, attr_value.typify(source))
             return value
-        elif (isinstance(value, string_types)
-              and isinstance(type_hint, type) and issubclass(type_hint, string_types)):
+        elif (isinstance(value, str)
+              and isinstance(type_hint, type) and issubclass(type_hint, str)):
             # This block is necessary because if we fall through to typify(), we end up calling
             # .strip() on the str, when sometimes we want to preserve preceding and trailing
             # whitespace.

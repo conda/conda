@@ -34,7 +34,7 @@ ArgumentParser = ArgumentParser
 
 from .common import compat as _compat  # NOQA
 compat = _compat
-from .common.compat import StringIO, input, iteritems, on_win, string_types, text_type, itervalues # NOQA
+from .common.compat import StringIO, input, iteritems, on_win, text_type, itervalues # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
 CondaSession = CondaSession
 from .gateways.disk.create import TemporaryDirectory  # NOQA

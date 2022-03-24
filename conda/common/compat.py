@@ -53,7 +53,6 @@ def encode_arguments(arguments):
 # equivalent commands
 # #############################
 
-string_types = str,
 integer_types = int,
 class_types = type,
 text_type = str
@@ -66,17 +65,10 @@ range = range
 # equivalent imports
 # #############################
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from io import StringIO
 from itertools import zip_longest
 from os import scandir
-
-Mapping = Mapping
-Sequence = Sequence
-StringIO = StringIO
-zip = zip
-zip_longest = zip_longest
-
 
 # #############################
 # equivalent functions
@@ -95,9 +87,8 @@ viewkeys = methodcaller("keys")
 viewvalues = methodcaller("values")
 viewitems = methodcaller("items")
 
-from collections.abc import Iterable
 def isiterable(obj):
-    return not isinstance(obj, string_types) and isinstance(obj, Iterable)
+    return not isinstance(obj, str) and isinstance(obj, Iterable)
 
 
 # #############################
@@ -136,7 +127,7 @@ def six_with_metaclass(meta, *bases):
 
 
 NoneType = type(None)
-primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool, NoneType)))
+primitive_types = tuple(str, int, float, complex, bool, NoneType)
 
 
 def ensure_binary(value):

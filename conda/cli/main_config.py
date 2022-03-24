@@ -17,7 +17,7 @@ from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
                               UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalues, string_types,
+from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalues,
                              text_type)
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
@@ -104,7 +104,7 @@ def print_config_item(key, value):
     if isinstance(value, (dict,)):
         for k, v in value.items():
             print_config_item(key + "." + k, v)
-    elif isinstance(value, (bool, int, string_types)):
+    elif isinstance(value, (bool, int, str)):
         stdout_write(" ".join(("--set", key, text_type(value))))
     elif isinstance(value, (list, tuple)):
         # Note, since `conda config --add` prepends, print `--add` commands in
@@ -320,7 +320,7 @@ def execute_config(args, parser):
                 from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
             if not (isinstance(arglist, Sequence) and not
-                    isinstance(arglist, string_types)):
+                    isinstance(arglist, str)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))

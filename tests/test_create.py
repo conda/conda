@@ -41,8 +41,7 @@ from conda import (
 from conda.auxlib.ish import dals
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, SafetyChecks, PREFIX_MAGIC_FILE
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import (ensure_text_type, iteritems, string_types, text_type,
-                                 on_win, on_mac)
+from conda.common.compat import ensure_text_type, iteritems, text_type, on_win, on_mac
 from conda.common.io import env_var, stderr_log_level, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -419,7 +418,7 @@ class IntegrationTests(BaseTestCase):
             stdout = revision_output[0]
             stderr = revision_output[1]
             assert stderr == ''
-            self.assertIsInstance(stdout, string_types)
+            self.assertIsInstance(stdout, str)
 
     @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
     def test_strict_channel_priority(self):
@@ -2371,7 +2370,7 @@ dependencies:
     def test_conda_list_json(self):
         def pkg_info(s):
             # function from nb_conda/envmanager.py
-            if hasattr(s, 'rsplit'):  # proxy for isinstance(s, six.string_types)
+            if isinstance(s, str):
                 name, version, build = s.rsplit('-', 2)
                 return {
                     'name': name,

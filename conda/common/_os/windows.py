@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from enum import IntEnum
 from logging import getLogger
 
-from ..compat import ensure_binary, on_win, string_types
+from ..compat import ensure_binary, on_win
 
 log = getLogger(__name__)
 
@@ -55,7 +55,7 @@ https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/ns-shellapi-_shell
             Structure.__init__(self)
             self.cbSize = sizeof(self)
             for field_name, field_value in kwargs.items():
-                if isinstance(field_value, string_types):
+                if isinstance(field_value, str):
                     field_value = ensure_binary(field_value)
                 setattr(self, field_name, field_value)
 

@@ -13,7 +13,7 @@ from ._vendor.toolz import concat, groupby
 from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
+from .common.compat import iteritems, iterkeys, itervalues, on_win, text_type
 from .common.io import time_recorder
 from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolver, TRUE,
                            minimal_unsatisfiable_subset)
@@ -33,11 +33,11 @@ stdoutlog = getLogger('conda.stdoutlog')
 Unsatisfiable = UnsatisfiableError
 ResolvePackageNotFound = ResolvePackageNotFound
 
-_sat_solvers = odict([
-    (SatSolverChoice.PYCOSAT, PycoSatSolver),
-    (SatSolverChoice.PYCRYPTOSAT, PyCryptoSatSolver),
-    (SatSolverChoice.PYSAT, PySatSolver),
-])
+_sat_solvers = {
+    SatSolverChoice.PYCOSAT: PycoSatSolver,
+    SatSolverChoice.PYCRYPTOSAT: PyCryptoSatSolver,
+    SatSolverChoice.PYSAT: PySatSolver,
+}
 
 
 @memoize
@@ -818,7 +818,7 @@ class Resolve(object):
 
     @staticmethod
     def _make_channel_priorities(channels):
-        priorities_map = odict()
+        priorities_map = {}
         for priority_counter, chn in enumerate(concat(
             (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
             for c in (Channel(c) for c in channels)

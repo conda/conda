@@ -6,7 +6,7 @@ from itertools import chain, combinations, permutations, product
 
 import pytest
 
-from conda.common.compat import iteritems, string_types
+from conda.common.compat import iteritems
 from conda.common.logic import Clauses, FALSE, TRUE, minimal_unsatisfiable_subset
 from conda.testing.helpers import raises
 
@@ -28,7 +28,7 @@ from conda.testing.helpers import raises
 def my_NOT(x):
     if isinstance(x, int):
         return -x
-    if isinstance(x, string_types):
+    if isinstance(x, str):
         return x[1:] if x[0] == '!' else '!' + x
     return None
 
@@ -36,7 +36,7 @@ def my_NOT(x):
 def my_ABS(x):
     if isinstance(x, int):
         return abs(x)
-    if isinstance(x, string_types):
+    if isinstance(x, str):
         return x[1:] if x[0] == '!' else x
     return None
 

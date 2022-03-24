@@ -21,7 +21,7 @@ from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import (FILESYSTEM_ENCODING, iteritems, on_win,
-                            scandir, string_types)
+                            scandir)
 from .common.path import paths_equal
 
 
@@ -779,7 +779,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     command = os.path.join(dirname(bash), 'cygpath') if bash else 'cygpath'
     command += ' --path -f -'
 
-    single_path = isinstance(paths, string_types)
+    single_path = isinstance(paths, str)
     joined = paths if single_path else ("%s" % os.pathsep).join(paths)
 
     if hasattr(joined, 'encode'):
@@ -816,7 +816,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
 
 
 def path_identity(paths):
-    if isinstance(paths, string_types):
+    if isinstance(paths, str):
         return os.path.normpath(paths)
     elif paths is None:
         return None
@@ -931,7 +931,7 @@ class XonshActivator(_Activator):
     def path_conversion(paths):
         if not on_win:
             return path_identity(paths)
-        elif isinstance(paths, string_types):
+        elif isinstance(paths, str):
             return paths.replace('\\', '/')
         elif paths is None:
             return None

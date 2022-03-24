@@ -9,7 +9,7 @@ import re
 import sys
 
 from .auxlib.decorators import memoize
-from .auxlib.compat import shlex_split_unicode, string_types, Utf8NamedTemporaryFile
+from .auxlib.compat import shlex_split_unicode, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
 
 from .common.path import win_path_to_unix, which
@@ -328,7 +328,7 @@ def massage_arguments(arguments, errors='assert'):
     #    if not isinstance(arguments, list):
     #        arguments = list(map(escape_for_winpath, arguments))
 
-    if isinstance(arguments, string_types):
+    if isinstance(arguments, str):
         if errors == 'assert':
             # This should be something like 'conda programming bug', it is an assert
             assert False, 'Please ensure arguments are not strings'

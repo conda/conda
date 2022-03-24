@@ -44,7 +44,7 @@ from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from .._vendor.toolz import concat, concatv, unique
-from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
+from ..common.compat import NoneType, iteritems, itervalues, odict, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
                                     ValidationError)
@@ -136,7 +136,7 @@ def default_python_validation(value):
 
 
 def ssl_verify_validation(value):
-    if isinstance(value, string_types):
+    if isinstance(value, str):
         if not isfile(value) and not isdir(value):
             return ("ssl_verify value '%s' must be a boolean, a path to a "
                     "certificate bundle file, or a path to a directory containing "
@@ -159,10 +159,10 @@ class Context(Configuration):
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
     create_default_packages = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types)))
+        SequenceParameter(PrimitiveParameter("", element_type=str)))
     default_python = ParameterLoader(
         PrimitiveParameter(default_python_default(),
-                           element_type=string_types + (NoneType,),
+                           element_type=(str, NoneType),
                            validation=default_python_validation))
     download_only = ParameterLoader(PrimitiveParameter(False))
     enable_private_envs = ParameterLoader(PrimitiveParameter(False))
@@ -185,42 +185,42 @@ class Context(Configuration):
     # Safety & Security
     _aggressive_update_packages = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=string_types),
+            PrimitiveParameter("", element_type=str),
             DEFAULT_AGGRESSIVE_UPDATE_PACKAGES),
         aliases=('aggressive_update_packages',))
     safety_checks = ParameterLoader(PrimitiveParameter(SafetyChecks.warn))
     extra_safety_checks = ParameterLoader(PrimitiveParameter(False))
     _signing_metadata_url_base = ParameterLoader(
-        PrimitiveParameter(None, element_type=string_types + (NoneType,)),
+        PrimitiveParameter(None, element_type=(str, NoneType)),
         aliases=('signing_metadata_url_base',))
     path_conflict = ParameterLoader(PrimitiveParameter(PathConflict.clobber))
 
     pinned_packages = ParameterLoader(SequenceParameter(
-        PrimitiveParameter("", element_type=string_types),
+        PrimitiveParameter("", element_type=str),
         string_delimiter='&'))  # TODO: consider a different string delimiter  # NOQA
     disallowed_packages = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=string_types), string_delimiter='&'),
+            PrimitiveParameter("", element_type=str), string_delimiter='&'),
         aliases=('disallow',))
     rollback_enabled = ParameterLoader(PrimitiveParameter(True))
     track_features = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types)))
+        SequenceParameter(PrimitiveParameter("", element_type=str)))
     use_index_cache = ParameterLoader(PrimitiveParameter(False))
 
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
 
     _root_prefix = ParameterLoader(PrimitiveParameter(""), aliases=('root_dir', 'root_prefix'))
     _envs_dirs = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types),
+        SequenceParameter(PrimitiveParameter("", element_type=str),
                           string_delimiter=os.pathsep),
         aliases=('envs_dirs', 'envs_path'),
         expandvars=True)
-    _pkgs_dirs = ParameterLoader(SequenceParameter(PrimitiveParameter("", string_types)),
+    _pkgs_dirs = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)),
                                  aliases=('pkgs_dirs',),
                                  expandvars=True)
     _subdir = ParameterLoader(PrimitiveParameter(''), aliases=('subdir',))
     _subdirs = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", string_types)), aliases=('subdirs',))
+        SequenceParameter(PrimitiveParameter("", str)), aliases=('subdirs',))
 
     local_repodata_ttl = ParameterLoader(PrimitiveParameter(1, element_type=(bool, int)))
     # number of seconds to cache repodata locally
@@ -230,20 +230,20 @@ class Context(Configuration):
     # remote connection details
     ssl_verify = ParameterLoader(
         PrimitiveParameter(True,
-                           element_type=string_types + (bool,),
+                           element_type=(str, bool),
                            validation=ssl_verify_validation),
         aliases=('verify_ssl',),
         expandvars=True)
     client_ssl_cert = ParameterLoader(
-        PrimitiveParameter(None, element_type=string_types + (NoneType,)),
+        PrimitiveParameter(None, element_type=(str, NoneType)),
         aliases=('client_cert',),
         expandvars=True)
     client_ssl_cert_key = ParameterLoader(
-        PrimitiveParameter(None, element_type=string_types + (NoneType,)),
+        PrimitiveParameter(None, element_type=(str, NoneType)),
         aliases=('client_cert_key',),
         expandvars=True)
     proxy_servers = ParameterLoader(
-        MapParameter(PrimitiveParameter(None, string_types + (NoneType,))),
+        MapParameter(PrimitiveParameter(None, (str, NoneType))),
         expandvars=True)
     remote_connect_timeout_secs = ParameterLoader(PrimitiveParameter(9.15))
     remote_read_timeout_secs = ParameterLoader(PrimitiveParameter(60.))
@@ -264,37 +264,37 @@ class Context(Configuration):
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter(
-            "", element_type=string_types), default=(DEFAULTS_CHANNEL_NAME,)),
+            "", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)),
         aliases=('channels', 'channel',),
         expandvars=True)  # channel for args.channel
     _custom_channels = ParameterLoader(
-        MapParameter(PrimitiveParameter("", element_type=string_types), DEFAULT_CUSTOM_CHANNELS),
+        MapParameter(PrimitiveParameter("", element_type=str), DEFAULT_CUSTOM_CHANNELS),
         aliases=('custom_channels',),
         expandvars=True)
     _custom_multichannels = ParameterLoader(
-        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=string_types))),
+        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=str))),
         aliases=('custom_multichannels',),
         expandvars=True)
     _default_channels = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types), DEFAULT_CHANNELS),
+        SequenceParameter(PrimitiveParameter("", element_type=str), DEFAULT_CHANNELS),
         aliases=('default_channels',),
         expandvars=True)
     _migrated_channel_aliases = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types)),
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         aliases=('migrated_channel_aliases',))
     migrated_custom_channels = ParameterLoader(
-        MapParameter(PrimitiveParameter("", element_type=string_types)),
+        MapParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True)  # TODO: also take a list of strings
     override_channels_enabled = ParameterLoader(PrimitiveParameter(True))
     show_channel_urls = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     use_local = ParameterLoader(PrimitiveParameter(False))
     whitelist_channels = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types)),
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True)
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=string_types),
+            PrimitiveParameter("", element_type=str),
             ("current_repodata.json", REPODATA_FN)))
     _use_only_tar_bz2 = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)),
                                         aliases=('use_only_tar_bz2',))
@@ -352,7 +352,7 @@ class Context(Configuration):
         PrimitiveParameter(None, element_type=(bool, NoneType)), aliases=('binstar_upload',))
     _croot = ParameterLoader(PrimitiveParameter(''), aliases=('croot',))
     _conda_build = ParameterLoader(
-        MapParameter(PrimitiveParameter("", element_type=string_types)),
+        MapParameter(PrimitiveParameter("", element_type=str)),
         aliases=('conda-build', 'conda_build'))
 
     def __init__(self, search_path=None, argparse_args=None):

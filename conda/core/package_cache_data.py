@@ -20,8 +20,7 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_EXTENSION_V1,
                               CONDA_PACKAGE_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
-from ..common.compat import (iteritems, itervalues, odict, scandir,
-                             string_types, text_type)
+from ..common.compat import iteritems, itervalues, odict, scandir, text_type
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path
@@ -120,7 +119,7 @@ class PackageCacheData(metaclass=PackageCacheType):
     def query(self, package_ref_or_match_spec):
         # returns a generator
         param = package_ref_or_match_spec
-        if isinstance(param, string_types):
+        if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             return (pcrec for pcrec in itervalues(self._package_cache_records)

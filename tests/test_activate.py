@@ -41,8 +41,7 @@ from conda.base.constants import (
 )
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.main import main_sourced
-from conda.common.compat import ensure_text_type, iteritems, on_win, \
-    string_types
+from conda.common.compat import ensure_text_type, iteritems, on_win
 from conda.common.io import captured, env_var, env_vars
 from conda.common.path import which
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
@@ -214,7 +213,7 @@ class ActivatorUnitTests(TestCase):
         assert len(path_dirs) == 5
         test_prefix = '/usr/mytest/prefix'
         added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-        if isinstance(added_paths, string_types):
+        if isinstance(added_paths, str):
             added_paths = added_paths,
 
         new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
@@ -229,7 +228,7 @@ class ActivatorUnitTests(TestCase):
         assert len(path_dirs) == 3
         test_prefix = '/usr/mytest/prefix'
         added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-        if isinstance(added_paths, string_types):
+        if isinstance(added_paths, str):
             added_paths = added_paths,
 
         new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
@@ -270,7 +269,7 @@ class ActivatorUnitTests(TestCase):
         original_path = tuple(activator._get_starting_path_list())
         new_prefix = join(os.getcwd(), 'mytestpath-new')
         new_paths = activator.path_conversion(activator._get_path_dirs(new_prefix))
-        if isinstance(new_paths, string_types):
+        if isinstance(new_paths, str):
             new_paths = new_paths,
         keep_path = activator.path_conversion('/keep/this/path')
         final_path = (keep_path,) + new_paths + original_path

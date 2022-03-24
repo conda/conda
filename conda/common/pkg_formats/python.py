@@ -18,7 +18,7 @@ import sys
 import warnings
 
 from ... import CondaError
-from ..compat import StringIO, itervalues, odict, open, scandir, string_types
+from ..compat import StringIO, itervalues, odict, open, scandir
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )
@@ -1053,7 +1053,7 @@ STRING_CHUNK = re.compile(r'([\s\w\.{}()*+#:;,/?!~`@$%^&=|<>\[\]-]+)')
 
 
 def _is_literal(o):
-    if not isinstance(o, string_types) or not o:
+    if not isinstance(o, str) or not o:
         return False
     return o[0] in '\'"'
 
@@ -1083,7 +1083,7 @@ class Evaluator(object):
         Evaluate a marker expression returned by the :func:`parse_requirement`
         function in the specified context.
         """
-        if isinstance(expr, string_types):
+        if isinstance(expr, str):
             if expr[0] in '\'"':
                 result = expr[1:-1]
             else:

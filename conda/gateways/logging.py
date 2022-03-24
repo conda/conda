@@ -13,7 +13,6 @@ from datetime import datetime
 from .. import CondaError
 from ..auxlib.decorators import memoize
 from ..common.io import attach_stderr_handler, _FORMATTER
-from ..common.compat import string_types
 
 log = getLogger(__name__)
 TRACE = 5  # TRACE LOG LEVEL
@@ -47,7 +46,7 @@ class TokenURLFilter(Filter):
         record.msg = self.TOKEN_REPLACE(record.msg)
         if record.args:
             new_args = tuple(self.TOKEN_REPLACE(arg)
-                             if isinstance(arg, string_types) else arg
+                             if isinstance(arg, str) else arg
                              for arg in record.args)
             record.msg = record.msg % new_args
             record.args = None

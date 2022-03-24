@@ -13,7 +13,7 @@ from ..base.constants import PREFIX_STATE_FILE
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import itervalues, odict, scandir, string_types
+from ..common.compat import itervalues, odict, scandir
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -153,7 +153,7 @@ class PrefixData(metaclass=PrefixDataType):
     def query(self, package_ref_or_match_spec):
         # returns a generator
         param = package_ref_or_match_spec
-        if isinstance(param, string_types):
+        if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             return (prefix_rec for prefix_rec in self.iter_records()
