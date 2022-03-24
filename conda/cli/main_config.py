@@ -153,7 +153,7 @@ def execute_config(args, parser):
         else:
             paramater_names = context.list_parameters()
 
-        d = dict((key, getattr(context, key)) for key in paramater_names)
+        d = {key: getattr(context, key) for key in paramater_names}
         if context.json:
             stdout_write(json.dumps(
                 d, sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder
