@@ -9,7 +9,7 @@ import pytest
 
 def _conda_build_recipe(recipe):
     subprocess.run(
-        ["conda-build", Path(__file__).resolve().parent / "test-recipes" / recipe],
+        ["conda-build", str(Path(__file__).resolve().parent / "test-recipes" / recipe)],
         check=True,
     )
     return recipe

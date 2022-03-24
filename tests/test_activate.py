@@ -2661,7 +2661,6 @@ def prefix():
     ],
 )
 def test_activate_deactivate_modify_path(shell, prefix, activate_deactivate_package):
-    print(shell, activate_deactivate_package)
     original_path = os.environ.get("PATH")
     run_command(Commands.INSTALL, prefix, activate_deactivate_package, "--use-local")
 
