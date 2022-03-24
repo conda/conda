@@ -10,7 +10,7 @@ import sys
 
 from json import JSONEncoder
 
-from ._vendor.auxlib.packaging import get_version
+from .auxlib.packaging import get_version
 
 
 __all__ = (
