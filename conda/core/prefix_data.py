@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import OrderedDict
 import json
 from logging import getLogger
+import os
 from os.path import basename, isdir, isfile, join, lexists
 import re
 
@@ -13,7 +14,7 @@ from ..base.constants import PREFIX_STATE_FILE
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import odict, scandir
+from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -68,7 +69,7 @@ class PrefixData(metaclass=PrefixDataType):
         if lexists(_conda_meta_dir):
             conda_meta_json_paths = (
                 p for p in
-                (entry.path for entry in scandir(_conda_meta_dir))
+                (entry.path for entry in os.scandir(_conda_meta_dir))
                 if p[-5:] == ".json"
             )
             for meta_file in conda_meta_json_paths:

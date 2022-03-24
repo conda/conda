@@ -25,12 +25,12 @@ import copy
 from enum import Enum, EnumMeta
 from itertools import chain
 from logging import getLogger
-from os import environ, stat
+from os import environ, scandir, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
-from .compat import isiterable, odict, primitive_types, scandir
+from .compat import isiterable, odict, primitive_types
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load

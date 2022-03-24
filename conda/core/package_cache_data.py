@@ -8,6 +8,7 @@ from collections import defaultdict
 from errno import EACCES, ENOENT, EPERM, EROFS
 from json import JSONDecodeError
 from logging import getLogger
+from os import scandir
 from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
@@ -20,7 +21,7 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_EXTENSION_V1,
                               CONDA_PACKAGE_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
-from ..common.compat import odict, scandir
+from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path

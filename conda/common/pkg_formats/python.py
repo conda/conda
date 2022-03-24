@@ -9,7 +9,7 @@ from csv import reader as csv_reader
 from email.parser import HeaderParser
 from errno import ENOENT
 from logging import getLogger
-from os import name as os_name, strerror
+from os import name as os_name, scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
 import platform
 from posixpath import normpath as posix_normpath
@@ -18,7 +18,7 @@ import sys
 import warnings
 
 from ... import CondaError
-from ..compat import StringIO, odict, open, scandir
+from ..compat import StringIO, odict, open
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )

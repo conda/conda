@@ -6,10 +6,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import OrderedDict
 from genericpath import exists
 from logging import getLogger
+from os import scandir
 import sys
 
 from ...auxlib.decorators import memoize
-from ..compat import scandir
 
 
 log = getLogger(__name__)
