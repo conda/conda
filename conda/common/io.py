@@ -11,7 +11,7 @@ from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 import sys
-from io import BytesIO
+from io import BytesIO, StringIO
 from itertools import cycle
 import json
 import logging  # lgtm [py/import-and-import-from]
@@ -22,7 +22,7 @@ import signal
 from threading import Event, Thread, Lock
 from time import sleep, time
 
-from .compat import StringIO, on_win, encode_environment
+from .compat import on_win, encode_environment
 from .constants import NULL
 from .path import expand
 from ..auxlib.decorators import memoizemethod

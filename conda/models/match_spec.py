@@ -5,10 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 
-try:
-    from collections.abc import Mapping
-except ImportError:
-    from collections import Mapping
+from collections.abc import Mapping
 from functools import reduce
 from logging import getLogger
 from operator import attrgetter
@@ -29,6 +26,7 @@ from ..exceptions import CondaValueError, InvalidMatchSpec
 from ..base.context import context
 
 log = getLogger(__name__)
+
 
 class MatchSpecType(type):
 

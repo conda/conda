@@ -22,12 +22,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from base64 import b64decode
 import cgi
 import ftplib
-from io import BytesIO
+from io import BytesIO, StringIO
 from logging import getLogger
 import os
 
 from .. import BaseAdapter, Response, dispatch_hook
-from ....common.compat import StringIO
 from ....common.url import urlparse
 from ....exceptions import AuthenticationError
 

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import OrderedDict
+from collections.abc import Mapping, Sequence
 import json
 from logging import getLogger
 import os
@@ -17,7 +17,7 @@ from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
                               UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import Mapping, Sequence, isiterable
+from ..common.compat import isiterable
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
@@ -153,7 +153,7 @@ def execute_config(args, parser):
         else:
             paramater_names = context.list_parameters()
 
-        d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
+        d = dict((key, getattr(context, key)) for key in paramater_names)
         if context.json:
             stdout_write(json.dumps(
                 d, sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder

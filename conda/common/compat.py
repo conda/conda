@@ -20,8 +20,8 @@ on_linux = bool(sys.platform == "linux")
 FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
 # Control some tweakables that will be removed finally.
-ENCODE_ENVIRONMENT=True
-ENCODE_ARGS=False
+ENCODE_ENVIRONMENT = True
+ENCODE_ARGS = False
 
 
 def encode_for_env_var(value) -> bytes:
@@ -49,11 +49,7 @@ def encode_arguments(arguments):
     return arguments
 
 
-# #############################
-# equivalent imports
-# #############################
-
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable
 from io import StringIO
 
 def isiterable(obj):
