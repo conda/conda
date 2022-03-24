@@ -25,7 +25,7 @@ from .auxlib.logz import stringify
 from .auxlib.type_coercion import boolify
 from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
-from .common.compat import ensure_text_type, iteritems, iterkeys, on_win
+from .common.compat import ensure_text_type, iteritems, on_win
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
 
@@ -674,8 +674,7 @@ class UnsatisfiableError(CondaError):
                     name = 'feature:' + name[1:]
                 deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
             chains[key] = ' -> '.join(deps)
-        bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
-        return bad_deps
+        return [chains[key] for key in sorted(chains.keys())]
 
     def __init__(self, bad_deps, chains=True, strict=False):
         from .models.match_spec import MatchSpec

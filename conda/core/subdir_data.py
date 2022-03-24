@@ -29,7 +29,7 @@ from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.constants import INITIAL_TRUST_ROOT    # Where root.json is currently.
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
                              text_type)
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
@@ -533,8 +533,8 @@ class SubdirData(metaclass=SubdirDataType):
         conda_packages = {} if context.use_only_tar_bz2 else json_obj.get("packages.conda", {})
 
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
-        use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
-            k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
+        use_these_legacy_keys = set(legacy_packages.keys()) - set(
+            k[:-6] + _tar_bz2 for k in conda_packages.keys()
         )
 
         if context.extra_safety_checks:

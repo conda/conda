@@ -62,9 +62,6 @@ from os import scandir
 # equivalent functions
 # #############################
 
-def iterkeys(d, **kw):
-    return iter(d.keys(**kw))
-
 def itervalues(d, **kw):
     return iter(d.values(**kw))
 

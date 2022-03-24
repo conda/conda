@@ -13,7 +13,7 @@ from ._vendor.toolz import concat, groupby
 from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, on_win
+from .common.compat import iteritems, itervalues, on_win
 from .common.io import time_recorder
 from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolver, TRUE,
                            minimal_unsatisfiable_subset)
@@ -153,7 +153,7 @@ class Resolve(object):
         else:
             filter.clear()
 
-        filter.update({make_feature_record(fstr): False for fstr in iterkeys(self.trackers)})
+        filter.update({make_feature_record(fstr): False for fstr in self.trackers.keys()})
         if features:
             filter.update({make_feature_record(fstr): True for fstr in features})
         return filter
@@ -928,7 +928,7 @@ class Resolve(object):
 
     def generate_feature_count(self, C):
         result = {self.push_MatchSpec(C, MatchSpec(track_features=name)): 1
-                  for name in iterkeys(self.trackers)}
+                  for name in self.trackers.keys()}
         if log.isEnabledFor(DEBUG):
             log.debug(
                 "generate_feature_count returning with clause count: %d", C.get_clause_count())

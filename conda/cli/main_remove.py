@@ -105,7 +105,7 @@ def execute(args, parser):
     #                                     '       add -n NAME or -p PREFIX option')
     #     actions = defaultdict(list)
     #     actions[PREFIX] = prefix
-    #     for dist in sorted(iterkeys(index)):
+    #     for dist in sorted(iter(index.keys())):
     #         add_unlink(actions, dist)
     #     actions['ACTION'] = 'REMOVE_ALL'
     #     action_groups = (actions, index),

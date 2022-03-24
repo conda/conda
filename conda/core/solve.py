@@ -1194,9 +1194,9 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #               "  prune: %s", prefix, specs_to_remove, specs_to_add, prune)
 #
 #     # declare starting point
-#     solved_linked_dists = () if prune else tuple(iterkeys(linked_data(prefix)))
+#     solved_linked_dists = () if prune else tuple(linked_data(prefix).keys())
 #     # TODO: to change this whole function from working with dists to working with records, just
-#     #       change iterkeys to itervalues
+#     #       change keys() to values()
 #
 #     if solved_linked_dists and specs_to_remove:
 #         solved_linked_dists = r.remove(tuple(str(s) for s in specs_to_remove),
@@ -1283,7 +1283,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 
 # def sort_unlink_link_from_solve(prefix, solved_dists, remove_satisfied_specs):
 #     # solved_dists should be the return value of solve_prefix()
-#     old_linked_dists = IndexedSet(iterkeys(linked_data(prefix)))
+#     old_linked_dists = IndexedSet(linked_data(prefix).keys())
 #
 #     dists_for_unlinking = old_linked_dists - solved_dists
 #     dists_for_linking = solved_dists - old_linked_dists
