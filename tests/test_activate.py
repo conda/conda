@@ -6,7 +6,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from re import escape
 from collections import OrderedDict
-from itertools import chain
 from logging import getLogger
 import os
 from os.path import dirname, isdir, join
@@ -54,11 +53,6 @@ from conda.gateways.disk.update import touch
 from conda.testing.helpers import tempdir
 from conda.testing.integration import Commands, run_command, SPACER_CHARACTER
 from conda.auxlib.decorators import memoize
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
 
 log = getLogger(__name__)
 
@@ -2635,44 +2629,46 @@ class ShellWrapperIntegrationTests(TestCase):
             conda_shlvl = shell.get_env_var('CONDA_SHLVL')
             assert conda_shlvl == '0', conda_shlvl
 
+@pytest.fixture(scope="module")
+def prefix():
+    tempdirdir = gettempdir()
+
+    root_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
+    root = join(tempdirdir, root_dirname)
+    mkdir_p(join(root, "conda-meta"))
+    assert isdir(root)
+    touch(join(root, "conda-meta", "history"))
+
+    prefix = join(root, "envs", "charizard")
+    mkdir_p(join(prefix, "conda-meta"))
+    touch(join(prefix, "conda-meta", "history"))
+
+    yield prefix
+
+    rm_rf(root)
+
 @pytest.mark.integration
-class ActivationIntegrationTests(TestCase):
+@pytest.mark.parametrize(
+    ["shell"],
+    [
+        pytest.param(
+            "bash",
+            marks=pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because()),
+        ),
+        pytest.param(
+            "cmd.exe",
+            marks=pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed"),
+        ),
+    ],
+)
+def test_activate_deactivate_modify_path(shell, prefix, activate_deactivate_package):
+    original_path = os.environ.get("PATH")
+    run_command(Commands.INSTALL, prefix, activate_deactivate_package, "--use-local")
 
-    def setUp(self):
-        tempdirdir = gettempdir()
+    with InteractiveShell(shell) as sh:
+        sh.sendline('conda activate "%s"' % prefix)
+        activated_env_path = sh.get_env_var("PATH")
+        sh.sendline("conda deactivate")
 
-        prefix_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
-        self.prefix = join(tempdirdir, prefix_dirname)
-        mkdir_p(join(self.prefix, 'conda-meta'))
-        assert isdir(self.prefix)
-        touch(join(self.prefix, 'conda-meta', 'history'))
-
-        self.prefix2 = join(self.prefix, 'envs', 'charizard')
-        mkdir_p(join(self.prefix2, 'conda-meta'))
-        touch(join(self.prefix2, 'conda-meta', 'history'))
-
-    def tearDown(self):
-        rm_rf(self.prefix)
-        rm_rf(self.prefix2)
-
-    def activate_deactivate_modify_path(self, shell):
-        activate_deactivate_package = "activate_deactivate_package"
-        activate_deactivate_package_path_string = "teststringfromactivate/bin/test"
-        original_path = os.environ.get("PATH")
-        run_command(Commands.INSTALL, self.prefix2, activate_deactivate_package, "--use-local")
-
-        with InteractiveShell(shell) as shell:
-            shell.sendline('conda activate "%s"' % self.prefix2)
-            activated_env_path = shell.get_env_var("PATH")
-            shell.sendline('conda deactivate')
-
-        assert activate_deactivate_package_path_string in activated_env_path
-        assert original_path == os.environ.get("PATH")
-
-    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
-    def test_activate_deactivate_modify_path_bash(self):
-        self.activate_deactivate_modify_path("bash")
-
-    @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
-    def test_activate_deactivate_modify_path(self):
-        self.activate_deactivate_modify_path("cmd.exe")
+    assert "teststringfromactivate/bin/test" in activated_env_path
+    assert original_path == os.environ.get("PATH")
