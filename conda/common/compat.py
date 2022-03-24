@@ -56,14 +56,6 @@ def encode_arguments(arguments):
 from collections.abc import Iterable, Mapping, Sequence
 from io import StringIO
 
-# #############################
-# equivalent functions
-# #############################
-
-viewkeys = methodcaller("keys")
-viewvalues = methodcaller("values")
-viewitems = methodcaller("items")
-
 def isiterable(obj):
     return not isinstance(obj, str) and isinstance(obj, Iterable)
 
