@@ -55,7 +55,6 @@ def encode_arguments(arguments):
 
 from collections.abc import Iterable, Mapping, Sequence
 from io import StringIO
-from itertools import zip_longest
 
 # #############################
 # equivalent functions

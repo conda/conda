@@ -5,17 +5,20 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 import operator as op
 import re
+from itertools import zip_longest
 
 from .._vendor.toolz import excepts
-from ..common.compat import zip, zip_longest
 from ..exceptions import InvalidVersionSpec
 
 log = getLogger(__name__)
 
-# normalized_version() is needed by conda-env
-# It is currently being pulled from resolve instead, but
-# eventually it ought to come from here
+
 def normalized_version(version):
+    """
+    normalized_version() is needed by conda-env
+    It is currently being pulled from resolve instead, but
+    eventually it ought to come from here
+    """
     return VersionOrder(version)
 
 
