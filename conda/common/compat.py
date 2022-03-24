@@ -50,13 +50,6 @@ def encode_arguments(arguments):
 
 
 # #############################
-# equivalent commands
-# #############################
-
-range = range
-
-
-# #############################
 # equivalent imports
 # #############################
 
