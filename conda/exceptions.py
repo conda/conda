@@ -25,7 +25,7 @@ from .auxlib.logz import stringify
 from .auxlib.type_coercion import boolify
 from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
-from .common.compat import ensure_text_type, input, iteritems, iterkeys, on_win
+from .common.compat import ensure_text_type, iteritems, iterkeys, on_win
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
 

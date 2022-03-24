@@ -53,7 +53,6 @@ def encode_arguments(arguments):
 # equivalent commands
 # #############################
 
-input = input
 range = range
 
 
