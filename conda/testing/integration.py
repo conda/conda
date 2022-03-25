@@ -499,13 +499,18 @@ def get_shortcut_dir():
     assert on_win
     user_mode = "user" if exists(join(sys.prefix, ".nonadmin")) else "system"
     try:
-        from menuinst.win32 import dirs_src as win_locations
+        from menuinst._legacy.win32 import dirs_src as win_locations
 
         return win_locations[user_mode]["start"][0]
     except ImportError:
         try:
-            from menuinst.win32 import dirs as win_locations
+            from menuinst.win32 import dirs_src as win_locations
 
-            return win_locations[user_mode]["start"]
+            return win_locations[user_mode]["start"][0]
         except ImportError:
-            raise
+            try:
+                from menuinst.win32 import dirs as win_locations
+
+                return win_locations[user_mode]["start"]
+            except ImportError:
+                raise
