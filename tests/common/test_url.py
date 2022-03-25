@@ -7,8 +7,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from conda.common.compat import PY2, on_win
-from conda.common.url import add_username_and_password, is_ip_address, is_ipv6_address, is_url, \
-    maybe_add_auth
+from conda.common.url import (
+    add_username_and_password,
+    is_ip_address,
+    is_ipv6_address,
+    is_url,
+    maybe_add_auth,
+    split_scheme_auth_token,
+    urlparse,
+)
 
 log = getLogger(__name__)
 
@@ -66,3 +73,21 @@ def test_is_ip_address():
         assert is_ip_address('::1') is True
 
     assert is_ip_address('www.google.com') is False
+
+
+def test_urlparse():
+    """
+    This particular use case fails with urllib.parse.urlparse (it parses 192.168.1.1 incorrectly as "scheme").
+    Testing here to ensure it works.
+    """
+    answer = urlparse("192.168.1.1:8080/path/to/resource")
+
+    assert answer.hostname == "192.168.1.1"
+    assert answer.port == 8080
+    assert answer.path == "/path/to/resource"
+
+
+def test_split_scheme_auth_token():
+    answer = split_scheme_auth_token("https://u:p@conda.io/t/x1029384756/more/path")
+
+    assert answer == ("conda.io/more/path", "https", "u:p", "x1029384756")

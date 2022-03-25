@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
+from collections import namedtuple
 from getpass import getpass
 from os.path import abspath, expanduser
 import re
@@ -12,13 +13,18 @@ import socket
 from .compat import input, on_win
 from .path import split_filename, strip_pkg_extension
 from ..auxlib.decorators import memoize
-from .._vendor.urllib3.exceptions import LocationParseError
-from .._vendor.urllib3.util.url import Url, parse_url
 
 try:  # pragma: py2 no cover
     # Python 3
-    from urllib.parse import (quote, quote_plus, unquote, unquote_plus,  # NOQA
-                              urlparse as _urlparse, urlunparse as _urlunparse)
+    from urllib.parse import (
+        quote,
+        quote_plus,
+        unquote,
+        unquote_plus,  # NOQA
+        urlparse as _urlparse,
+        urlunparse as _urlunparse,
+        ParseResult,
+    )
 except ImportError:  # pragma: py3 no cover
     # Python 2
     from urllib import (quote, quote_plus, unquote, unquote_plus,  # NOQA
@@ -125,11 +131,120 @@ def path_to_url(path):
     return path
 
 
+url_attrs = (
+    "scheme",
+    "path",
+    "params",
+    "query",
+    "fragment",
+    "username",
+    "password",
+    "hostname",
+    "port",
+)
+
+
+class Url(namedtuple("Url", url_attrs)):
+    """
+    Object used to represent a Url. The string representation of this object is a url.
+    """
+
+    def __new__(
+        cls,
+        scheme="",
+        path="",
+        params="",
+        query="",
+        fragment="",
+        username="",
+        password="",
+        hostname="",
+        port="",
+    ):
+        if path and not path.startswith("/"):
+            path = "/" + path
+        if scheme:
+            scheme = scheme.lower()
+        if hostname:
+            hostname = hostname.lower()
+        return super(Url, cls).__new__(
+            cls, scheme, path, params, query, fragment, username, password, hostname, port
+        )
+
+    @property
+    def auth(self):
+        if self.username and self.password:
+            return f"{self.username}:{self.password}"
+        elif self.username:
+            return self.username
+
+    @property
+    def netloc(self):
+        if self.port:
+            return "%s:%d" % (self.hostname, self.port)
+        return self.hostname
+
+    def __str__(self):
+        scheme, path, params, query, fragment, username, password, hostname, port = self
+        url = ""
+
+        # We use "is not None" we want things to happen with empty strings (or 0 port)
+        if scheme:
+            url += scheme + "://"
+        if password and username:
+            url += f"{username}:{password}" + "@"
+        if hostname:
+            url += hostname
+        if port:
+            url += ":" + str(port)
+        if path:
+            url += path
+        if query:
+            url += "?" + query
+        if fragment:
+            url += "#" + fragment
+
+        return url
+
+    def as_dict(self) -> dict:
+        return {fld: getattr(self, fld) for fld in url_attrs}
+
+    def as_str(self) -> str:
+        return str(self)
+
+    def replace(self, **kwargs) -> "Url":
+        """
+        Allows for generating a new copy of a Url object.
+        This makes stripping username/password easier.
+
+        >>> u = Url(scheme='https', hostname='anaconda.com', path='/hello',
+        ...         username='user', password='pass')
+        >>> u1 = u.replace(username='', password='')
+        >>> str(u1)
+        'https://anaconda.com/hello'
+        """
+        new_kwargs = self.as_dict()
+        new_kwargs.update(kwargs)
+
+        return self.__class__(**new_kwargs)
+
+
+def parse_result_as_url_obj(parse_result: ParseResult) -> Url:
+    """
+    We use this to transform an urllib.parse.ParseResult object into a Url object
+    """
+    values = {fld: getattr(parse_result, fld, "") for fld in url_attrs}
+    return Url(**values)
+
+
 @memoize
-def urlparse(url):
+def urlparse(url: str) -> Url:
     if on_win and url.startswith('file:'):
         url.replace('\\', '/')
-    return parse_url(url)
+    # Allows us to pass in strings like 'example.com:8080/path/1' and have work.
+    if not has_scheme(url):
+        url = "//" + url
+    return parse_result_as_url_obj(_urlparse(url))
 
 
 def url_to_s3_info(url):
@@ -139,9 +254,9 @@ def url_to_s3_info(url):
         >>> url_to_s3_info("s3://bucket-name.bucket/here/is/the/key")
         ('bucket-name.bucket', '/here/is/the/key')
     """
-    parsed_url = parse_url(url)
+    parsed_url = urlparse(url)
     assert parsed_url.scheme == 's3', "You can only use s3: urls (not %r)" % url
-    bucket, key = parsed_url.host, parsed_url.path
+    bucket, key = parsed_url.hostname, parsed_url.path
     return bucket, key
 
 
@@ -156,8 +271,8 @@ def is_url(url):
     if not url:
         return False
     try:
-        return urlparse(url).scheme is not None
-    except LocationParseError:
+        return urlparse(url).scheme != ""
+    except ValueError:
         return False
 
 
@@ -317,9 +432,14 @@ def split_scheme_auth_token(url):
         return None, None, None, None
     cleaned_url, token = split_anaconda_token(url)
     url_parts = urlparse(cleaned_url)
-    remainder_url = Url(host=url_parts.host, port=url_parts.port, path=url_parts.path,
-                        query=url_parts.query).url
-    return remainder_url, url_parts.scheme, url_parts.auth, token
+    remainder_url = Url(
+        hostname=url_parts.hostname,
+        port=url_parts.port,
+        path=url_parts.path,
+        query=url_parts.query,
+    )
+
+    return join(remainder_url.netloc, remainder_url.path), url_parts.scheme, url_parts.auth, token
 
 
 def split_conda_url_easy_parts(known_subdirs, url):
@@ -330,11 +450,19 @@ def split_conda_url_easy_parts(known_subdirs, url):
     cleaned_url, package_filename = cleaned_url.rsplit('/', 1) if ext else (cleaned_url, None)
 
     # TODO: split out namespace using regex
-
     url_parts = urlparse(cleaned_url)
 
-    return (url_parts.scheme, url_parts.auth, token, platform, package_filename, url_parts.host,
-            url_parts.port, url_parts.path, url_parts.query)
+    return (
+        url_parts.scheme,
+        url_parts.auth,
+        token,
+        platform,
+        package_filename,
+        url_parts.hostname,
+        url_parts.port,
+        url_parts.path,
+        url_parts.query,
+    )
 
 
 @memoize
@@ -344,13 +472,19 @@ def get_proxy_username_and_pass(scheme):
     return username, passwd
 
 
-def add_username_and_password(url, username, password):
-    url_parts = parse_url(url)._asdict()
-    url_parts['auth'] = username + ':' + quote(password, '')
-    return Url(**url_parts).url
+def add_username_and_password(url: str, username: str, password: str) -> str:
+    """
+    Inserts `username` and `password` into provided `url`
+
+    >>> add_username_and_password('https://anaconda.org', 'TestUser', 'Password')
+    'https://TestUser:Password@anaconda.org'
+    """
+    url = urlparse(url)
+    url_with_auth = url.replace(username=username, password=quote(password, safe=""))
+    return str(url_with_auth)
 
 
-def maybe_add_auth(url, auth, force=False):
+def maybe_add_auth(url: str, auth: str, force=False) -> str:
     """Add auth if the url doesn't currently have it.
 
     By default, does not replace auth if it already exists.  Setting ``force`` to ``True``
@@ -364,22 +498,31 @@ def maybe_add_auth(url, auth, force=False):
     """
     if not auth:
         return url
-    url_parts = urlparse(url)._asdict()
-    if url_parts['auth'] and not force:
+
+    url_parts = urlparse(url)
+    if url_parts.username and url_parts.password and not force:
         return url
-    url_parts['auth'] = auth
-    return Url(**url_parts).url
+
+    auth_parts = auth.split(":")
+    if len(auth_parts) > 1:
+        url_parts = url_parts.replace(username=auth_parts[0], password=auth_parts[1])
+
+    return str(url_parts)
 
 
 def maybe_unquote(url):
     return unquote_plus(remove_auth(url)) if url else url
 
 
-def remove_auth(url):
-    url_parts = parse_url(url)._asdict()
-    if url_parts['auth']:
-        del url_parts['auth']
-    return Url(**url_parts).url
+def remove_auth(url: str) -> str:
+    """
+    >>> remove_auth('https://user:password@anaconda.com')
+    'https://anaconda.com'
+    """
+    url = urlparse(url)
+    url_no_auth = url.replace(username="", password="")
+
+    return str(url_no_auth)
 
 
 def escape_channel_url(channel):
@@ -388,20 +531,20 @@ def escape_channel_url(channel):
             return channel
         if on_win:
             channel = channel.replace("\\", "/")
-    parts = _urlparse(channel)
+    parts = urlparse(channel)
     if parts.scheme:
         components = parts.path.split("/")
         if on_win:
             if len(parts.netloc) == 2 and parts.netloc[1] == ":":
                 # with absolute paths (e.g. C:/something), C:, D:, etc might get parsed as netloc
                 path = "/".join([parts.netloc] + [quote(p) for p in components])
-                parts = parts._replace(netloc="")
+                parts = parts.replace(netloc="")
             else:
                 path = "/".join(components[:2] + [quote(p) for p in components[2:]])
         else:
             path = "/".join([quote(p) for p in components])
-        parts = parts._replace(path=path)
-        return _urlunparse(parts)
+        parts = parts.replace(path=path)
+        return str(parts)
     return channel
 
 
