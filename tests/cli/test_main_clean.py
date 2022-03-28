@@ -4,7 +4,7 @@
 
 from glob import glob
 from json import loads as json_loads
-from os import listdir, makedirs
+from os import listdir
 from os.path import basename, isdir, join, exists
 from shutil import copy
 import pytest
