@@ -190,7 +190,7 @@ class Url(namedtuple("Url", url_attrs)):
 
         if scheme:
             url += scheme + "://"
-        if password is not None and username is not None:
+        if password and username:
             url += f"{username}:{password}" + "@"
         if hostname:
             url += hostname
