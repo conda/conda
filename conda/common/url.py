@@ -151,15 +151,15 @@ class Url(namedtuple("Url", url_attrs)):
 
     def __new__(
         cls,
-        scheme="",
-        path="",
-        params="",
-        query="",
-        fragment="",
-        username="",
-        password="",
-        hostname="",
-        port="",
+        scheme=None,
+        path=None,
+        params=None,
+        query=None,
+        fragment=None,
+        username=None,
+        password=None,
+        hostname=None,
+        port=None,
     ):
         if path and not path.startswith("/"):
             path = "/" + path
@@ -188,10 +188,9 @@ class Url(namedtuple("Url", url_attrs)):
         scheme, path, params, query, fragment, username, password, hostname, port = self
         url = ""
 
-        # We use "is not None" we want things to happen with empty strings (or 0 port)
         if scheme:
             url += scheme + "://"
-        if password and username:
+        if password is not None and username is not None:
             url += f"{username}:{password}" + "@"
         if hostname:
             url += hostname
