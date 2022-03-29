@@ -134,7 +134,6 @@ def path_to_url(path):
 url_attrs = (
     "scheme",
     "path",
-    "params",
     "query",
     "fragment",
     "username",
@@ -146,14 +145,18 @@ url_attrs = (
 
 class Url(namedtuple("Url", url_attrs)):
     """
-    Object used to represent a Url. The string representation of this object is a url.
+    Object used to represent a Url. The string representation of this object is a url string.
+
+    This object was inspired by the urllib3 implementation as it gives you a way to construct
+    URLs from various parts. The motivation behind this object was making something that is
+    interoperable with built the `urllib.parse.urlparse` function and has more features than
+    the built-in `ParseResult` object.
     """
 
     def __new__(
         cls,
         scheme=None,
         path=None,
-        params=None,
         query=None,
         fragment=None,
         username=None,
@@ -168,7 +171,7 @@ class Url(namedtuple("Url", url_attrs)):
         if hostname:
             hostname = hostname.lower()
         return super(Url, cls).__new__(
-            cls, scheme, path, params, query, fragment, username, password, hostname, port
+            cls, scheme, path, query, fragment, username, password, hostname, port
         )
 
     @property
@@ -185,7 +188,7 @@ class Url(namedtuple("Url", url_attrs)):
         return self.hostname
 
     def __str__(self):
-        scheme, path, params, query, fragment, username, password, hostname, port = self
+        scheme, path, query, fragment, username, password, hostname, port = self
         url = ""
 
         if scheme:
@@ -207,9 +210,6 @@ class Url(namedtuple("Url", url_attrs)):
 
     def as_dict(self) -> dict:
         return {fld: getattr(self, fld) for fld in url_attrs}
-
-    def as_str(self) -> str:
-        return str(self)
 
     def replace(self, **kwargs) -> "Url":
         """
@@ -435,7 +435,7 @@ def split_scheme_auth_token(url):
         query=url_parts.query,
     )
 
-    return join(remainder_url.netloc, remainder_url.path), url_parts.scheme, url_parts.auth, token
+    return str(remainder_url), url_parts.scheme, url_parts.auth, token
 
 
 def split_conda_url_easy_parts(known_subdirs, url):

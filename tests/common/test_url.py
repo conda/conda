@@ -85,7 +85,6 @@ class UrlTest(NamedTuple):
 
     scheme: str = ""
     path: str = ""
-    params: str = ""
     query: str = ""
     fragment: str = ""
     username: str = None
