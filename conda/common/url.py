@@ -181,7 +181,7 @@ class Url(namedtuple("Url", url_attrs)):
     @property
     def netloc(self):
         if self.port:
-            return "%s:%d" % (self.hostname, self.port)
+            return f"{self.hostname}:{self.port}"
         return self.hostname
 
     def __str__(self):
@@ -189,19 +189,19 @@ class Url(namedtuple("Url", url_attrs)):
         url = ""
 
         if scheme:
-            url += scheme + "://"
+            url += f"{scheme}://"
         if password and username:
             url += f"{username}:{password}" + "@"
         if hostname:
             url += hostname
         if port:
-            url += ":" + str(port)
+            url += f":{port}"
         if path:
             url += path
         if query:
-            url += "?" + query
+            url += f"?{query}"
         if fragment:
-            url += "#" + fragment
+            url += f"#{fragment}"
 
         return url
 
@@ -227,13 +227,10 @@ class Url(namedtuple("Url", url_attrs)):
 
         return self.__class__(**new_kwargs)
 
-
-def parse_result_as_url_obj(parse_result: ParseResult) -> Url:
-    """
-    We use this to transform an urllib.parse.ParseResult object into a Url object
-    """
-    values = {fld: getattr(parse_result, fld, "") for fld in url_attrs}
-    return Url(**values)
+    @classmethod
+    def from_parse_result(cls, parse_result: ParseResult) -> "Url":
+        values = {fld: getattr(parse_result, fld, "") for fld in url_attrs}
+        return cls(**values)
 
 
 @memoize
@@ -243,7 +240,7 @@ def urlparse(url: str) -> Url:
     # Allows us to pass in strings like 'example.com:8080/path/1' and have work.
     if not has_scheme(url):
         url = "//" + url
-    return parse_result_as_url_obj(_urlparse(url))
+    return Url.from_parse_result(_urlparse(url))
 
 
 def url_to_s3_info(url):
