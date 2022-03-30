@@ -123,8 +123,6 @@ LinkError = LinkError
 CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 PathNotFoundError = CondaFileNotFoundError = PathNotFoundError
-from .gateways.disk.link import CrossPlatformStLink  # NOQA
-CrossPlatformStLink = CrossPlatformStLink
 
 from .models.enums import FileMode  # NOQA
 FileMode = FileMode

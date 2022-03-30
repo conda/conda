@@ -89,9 +89,6 @@ def find_pkgs():
     # TODO: This doesn't handle packages that have hard links to files within
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
     warnings = []
-
-    from ..gateways.disk.link import CrossPlatformStLink
-    cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = {}
     for pkgs_dir in context.pkgs_dirs:
         if not exists(pkgs_dir):
@@ -104,7 +101,7 @@ def find_pkgs():
             for root, dir, files in walk(join(pkgs_dir, pkg)):
                 for fn in files:
                     try:
-                        st_nlink = cross_platform_st_nlink(join(root, fn))
+                        st_nlink = lstat(join(root, fn)).st_nlink
                     except OSError as e:
                         warnings.append((fn, e))
                         continue
