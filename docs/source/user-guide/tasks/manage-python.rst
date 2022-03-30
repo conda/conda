@@ -66,13 +66,6 @@ Python version into it:
         package, such as ``numpy=1.19``, or :ref:`multiple packages
         <installing multiple packages>`.
 
-   * To create the new environment for Python 3.9, in your terminal window
-     or an Anaconda Prompt, run:
-
-     .. code-block:: bash
-
-        conda create -n py39 python=3.9 anaconda
-
 #. :ref:`Activate the new environment <activate-env>`.
 
 #. Verify that the new environment is your :ref:`current
