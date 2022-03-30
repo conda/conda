@@ -2,9 +2,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from glob import glob
 from json import loads as json_loads
-from os import listdir
+from os import walk
 from os.path import basename, isdir, join, exists
 from shutil import copy
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS
@@ -12,37 +11,33 @@ from conda.core.subdir_data import create_cache_dir
 from conda.testing.integration import make_temp_package_cache, run_command, Commands, make_temp_env
 
 
-def _get_contents(pkgs_dir):
-    return [join(pkgs_dir, d) for d in listdir(pkgs_dir)]
+def _get_pkgs(pkgs_dir):
+    _, dirs, _ = next(walk(pkgs_dir))
+    return [join(pkgs_dir, pkg) for pkg in dirs]
 
 
-def _get_pkgs(pkgs_dir=None, *, contents=None):
-    return [d for d in contents or _get_contents(pkgs_dir) if isdir(d)]
-
-
-def _get_tars(pkgs_dir=None, *, contents=None):
-    return [t for t in contents or _get_contents(pkgs_dir) if t.endswith((".tar.bz2", ".conda"))]
+def _get_tars(pkgs_dir):
+    _, _, files = next(walk(pkgs_dir))
+    return [join(pkgs_dir, file) for file in files if file.endswith(CONDA_PACKAGE_EXTENSIONS)]
 
 
 def _get_index_cache():
-    return glob(join(create_cache_dir(), "*.json"))
+    cache_dir = create_cache_dir()
+    _, _, files = next(walk(cache_dir))
+    return [join(cache_dir, file) for file in files if file.endswith(".json")]
 
 
-def _get_tempfiles(pkgs_dir=None, *, contents=None):
-    return [
-        t
-        for t in contents or _get_contents(pkgs_dir)
-        if t.endswith((".trash", CONDA_TEMP_EXTENSION))
-    ]
+def _get_tempfiles(pkgs_dir):
+    _, _, files = next(walk(pkgs_dir))
+    return [join(pkgs_dir, file) for file in files if file.endswith(CONDA_TEMP_EXTENSIONS)]
 
 
 def _get_all(pkgs_dir):
-    contents = _get_contents(pkgs_dir)
-    return _get_pkgs(contents=contents), _get_tars(contents=contents), _get_index_cache()
+    return _get_pkgs(pkgs_dir), _get_tars(pkgs_dir), _get_index_cache()
 
 
 def _any_pkg(name, contents):
-    return any(basename(c).startswith(f"{name}-") for c in contents)
+    return any(basename(content).startswith(f"{name}-") for content in contents)
 
 
 # conda clean --force-pkgs-dirs
