@@ -194,7 +194,7 @@ class Url(namedtuple("Url", url_attrs)):
         if scheme:
             url += f"{scheme}://"
         if password and username:
-            url += f"{username}:{password}" + "@"
+            url += f"{username}:{password}@"
         if hostname:
             url += hostname
         if port:
