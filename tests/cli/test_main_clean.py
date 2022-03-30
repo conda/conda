@@ -7,7 +7,7 @@ from json import loads as json_loads
 from os import listdir
 from os.path import basename, isdir, join, exists
 from shutil import copy
-from conda.base.constants import CONDA_TEMP_EXTENSION
+from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS
 from conda.core.subdir_data import create_cache_dir
 from conda.testing.integration import make_temp_package_cache, run_command, Commands, make_temp_env
 
@@ -159,12 +159,12 @@ def test_clean_tempfiles(clear_cache):
 
         with make_temp_env(pkg):
             # mimic tempfiles being created
-            path = _get_tars(contents=glob(join(pkgs_dir, f"{pkg}-*")))[0]
-            copy(path, f"{path}{CONDA_TEMP_EXTENSION}")
-            copy(path, f"{path}.trash")
+            path = _get_tars(pkgs_dir)[0]  # grab any tarball
+            for ext in CONDA_TEMP_EXTENSIONS:
+                copy(path, f"{path}{ext}")
 
             # tempfiles exist
-            assert len(_get_tempfiles(pkgs_dir)) == 2
+            assert len(_get_tempfiles(pkgs_dir)) == len(CONDA_TEMP_EXTENSIONS)
 
             # --json flag is regression test for #5451
             stdout, _, _ = run_command(
