@@ -13,6 +13,7 @@ from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSION
 from ..base.context import context
 
 log = getLogger(__name__)
+_EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
 
 
 def find_tarballs():
@@ -20,14 +21,13 @@ def find_tarballs():
 
     pkgs_dirs = {}
     total_size = 0
-    part_ext = tuple(e + '.part' for e in CONDA_PACKAGE_EXTENSIONS)
     for package_cache in PackageCacheData.writable_caches(context.pkgs_dirs):
         pkgs_dir = package_cache.pkgs_dir
         if not isdir(pkgs_dir):
             continue
         root, _, filenames = next(walk(pkgs_dir))
         for fn in filenames:
-            if fn.endswith(CONDA_PACKAGE_EXTENSIONS) or fn.endswith(part_ext):
+            if fn.endswith(_EXTS):
                 pkgs_dirs.setdefault(pkgs_dir, []).append(fn)
                 total_size += getsize(join(root, fn))
 
