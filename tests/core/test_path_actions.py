@@ -5,6 +5,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
+import os
 from os.path import basename, dirname, isdir, isfile, join, lexists, getsize
 import sys
 from tempfile import gettempdir
@@ -24,7 +25,7 @@ from conda.core.path_actions import CompileMultiPycAction, CreatePythonEntryPoin
 from conda.exceptions import ParseError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.link import islink, stat_nlink
+from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
 from conda.gateways.disk.test import softlink_supported
@@ -282,7 +283,7 @@ class PathActionsTests(TestCase):
         axn.execute()
         assert isfile(axn.target_full_path)
         assert not islink(axn.target_full_path)
-        assert stat_nlink(axn.target_full_path) == 2
+        assert os.lstat(axn.target_full_path).st_nlink == 2
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
@@ -313,7 +314,7 @@ class PathActionsTests(TestCase):
         axn.execute()
         assert isfile(axn.target_full_path)
         assert islink(axn.target_full_path)
-        assert stat_nlink(axn.target_full_path) == 1
+        assert os.lstat(axn.target_full_path).st_nlink == 1
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
@@ -358,7 +359,7 @@ class PathActionsTests(TestCase):
         axn.execute()
         assert isfile(axn.target_full_path)
         assert not islink(axn.target_full_path)
-        assert stat_nlink(axn.target_full_path) == 1
+        assert os.lstat(axn.target_full_path).st_nlink == 1
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
