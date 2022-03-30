@@ -209,23 +209,12 @@ class Url(namedtuple("Url", url_attrs)):
         return url
 
     def as_dict(self) -> dict:
-        return {fld: getattr(self, fld) for fld in url_attrs}
+        """Provide a public interface for namedtuple's _asdict"""
+        return self._asdict()
 
     def replace(self, **kwargs) -> "Url":
-        """
-        Allows for generating a new copy of a Url object.
-        This makes stripping username/password easier.
-
-        >>> u = Url(scheme='https', hostname='anaconda.com', path='/hello',
-        ...         username='user', password='pass')
-        >>> u1 = u.replace(username='', password='')
-        >>> str(u1)
-        'https://anaconda.com/hello'
-        """
-        new_kwargs = self.as_dict()
-        new_kwargs.update(kwargs)
-
-        return self.__class__(**new_kwargs)
+        """Provide a public interface for namedtuple's _replace"""
+        return self._replace(**kwargs)
 
     @classmethod
     def from_parse_result(cls, parse_result: ParseResult) -> "Url":
