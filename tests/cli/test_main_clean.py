@@ -7,9 +7,8 @@ from json import loads as json_loads
 from os import listdir
 from os.path import basename, isdir, join, exists
 from shutil import copy
-import pytest
 from conda.base.constants import CONDA_TEMP_EXTENSION
-from conda.core.subdir_data import create_cache_dir, SubdirData
+from conda.core.subdir_data import create_cache_dir
 from conda.testing.integration import make_temp_package_cache, run_command, Commands, make_temp_env
 
 
@@ -44,11 +43,6 @@ def _get_all(pkgs_dir):
 
 def _any_pkg(name, contents):
     return any(basename(c).startswith(f"{name}-") for c in contents)
-
-
-@pytest.fixture
-def clear_cache():
-    SubdirData._cache_.clear()
 
 
 # conda clean --force-pkgs-dirs

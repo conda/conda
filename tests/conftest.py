@@ -23,3 +23,10 @@ def activate_deactivate_package():
 @pytest.fixture(scope="session")
 def pre_link_messages_package():
     return _conda_build_recipe("pre_link_messages_package")
+
+
+@pytest.fixture
+def clear_cache():
+    from conda.core.subdir_data import SubdirData
+
+    SubdirData._cache_.clear()
