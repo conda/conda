@@ -1,0 +1,23 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Removed unused `conda.auxlib.configuration`. (#11349)
+* Removed unused `conda.auxlib.crypt`. (#11349)
+* Removed unused `conda.auxlib.deprecation`. (#11349)
+* Removed unused `conda.auxlib.factory`. (#11349)
+* Removed minimally used `conda.auxlib.path`. (#11349)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
