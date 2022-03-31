@@ -179,11 +179,7 @@ def find_tempfiles(paths: Iterable[str]) -> Tuple[str]:
     tempfiles = []
     for path in sorted(set(paths or [sys.prefix])):
         # tempfiles are files in path
-        for (
-            root,
-            _,
-            files,
-        ) in walk(path):
+        for root, _, files in walk(path):
             for file in files:
                 # tempfiles also end in .c~ or .trash
                 if not file.endswith(CONDA_TEMP_EXTENSIONS):
