@@ -256,7 +256,7 @@ def _execute(args, parser):
         rm_pkgs(args, **pkgs, verbose=verbose)
 
     if args.tempfiles or args.all:
-        tmps = find_tempfiles(args.tempfiles)
+        json_result["tempfiles"] = tmps = find_tempfiles(args.tempfiles)
         rm_items(args, tmps, verbose=verbose, name="tempfile(s)")
 
     return json_result
