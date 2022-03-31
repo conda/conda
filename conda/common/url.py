@@ -226,7 +226,7 @@ class Url(namedtuple("Url", url_attrs)):
 def urlparse(url: str) -> Url:
     if on_win and url.startswith('file:'):
         url.replace('\\', '/')
-    # Allows us to pass in strings like 'example.com:8080/path/1' and have work.
+    # Allows us to pass in strings like 'example.com:8080/path/1'.
     if not has_scheme(url):
         url = "//" + url
     return Url.from_parse_result(_urlparse(url))
