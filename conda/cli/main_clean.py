@@ -33,10 +33,6 @@ def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
     from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
 
-    if verbose:
-        for pkgs_dir in pkgs_dirs:
-            print('Cache location: %s' % pkgs_dir)
-
     if not any(pkgs_dirs[i] for i in pkgs_dirs):
         if verbose:
             print("There are no tarballs to remove")
@@ -129,11 +125,10 @@ def rm_pkgs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
-    if verbose:
-        for pkgs_dir in pkgs_dirs:
-            print('Cache location: %s' % pkgs_dir)
-            for fn, exception in warnings:
-                print(exception)
+
+    if verbose and warnings:
+        for fn, exception in warnings:
+            print(exception)
 
     if not any(pkgs_dirs[i] for i in pkgs_dirs):
         if verbose:
