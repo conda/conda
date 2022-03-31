@@ -123,7 +123,7 @@ def test_urlparse(test_url_str, exp_url_obj):
     """
     answer = urlparse(test_url_str)
 
-    for attr in iter(exp_url_obj.__annotations__.keys()):
+    for attr in exp_url_obj.__annotations__.keys():
         assert getattr(answer, attr) == getattr(exp_url_obj, attr)
 
     assert str(answer) == test_url_str
