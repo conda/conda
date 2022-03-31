@@ -17,7 +17,7 @@ from conda.resolve import Resolve
 from itertools import chain
 import json
 from json import loads as json_loads
-from logging import DEBUG, INFO, getLogger
+from logging import getLogger
 import os
 from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 import re
@@ -1892,19 +1892,6 @@ dependencies:
         finally:
             rmtree(prefix, ignore_errors=True)
 
-    def test_clean_index_cache(self):
-        prefix = ''
-
-        # make sure we have something in the index cache
-        stdout, stderr, _ = run_command(Commands.INFO, prefix, "bzip2", "--json")
-        assert "bzip2" in json_loads(stdout)
-        index_cache_dir = create_cache_dir()
-        assert glob(join(index_cache_dir, "*.json"))
-
-        # now clear it
-        run_command(Commands.CLEAN, prefix, "--index-cache")
-        assert not glob(join(index_cache_dir, "*.json"))
-
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
         from conda.core.subdir_data import SubdirData
@@ -2024,37 +2011,6 @@ dependencies:
                 # appeared again, we decided to re-download the package for some reason.
                 run_command(Commands.INSTALL, prefix, 'openssl', '--offline')
                 assert not pkgs_dir_has_tarball('openssl-')
-
-    def test_clean_tarballs_and_packages(self):
-        with make_temp_package_cache() as pkgs_dir:
-            filter_pkgs = lambda x: [f for f in x if (f.endswith('.tar.bz2') or f.endswith('.conda'))]
-            with make_temp_env("bzip2") as prefix:
-                pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-                pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-                pkgs_dir_tarballs = filter_pkgs(pkgs_dir_contents)
-                assert any(basename(d).startswith('bzip2-') for d in pkgs_dir_dirs)
-                assert any(basename(f).startswith('bzip2-') for f in pkgs_dir_tarballs)
-
-                # --json flag is regression test for #5451
-                run_command(Commands.CLEAN, prefix, "--packages", "--yes", "--json")
-
-                # --json flag is regression test for #5451
-                run_command(Commands.CLEAN, prefix, "--tarballs", "--yes", "--json")
-
-                pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-                pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-                pkgs_dir_tarballs = filter_pkgs(pkgs_dir_contents)
-
-                assert any(basename(d).startswith('bzip2-') for d in pkgs_dir_dirs)
-                assert not any(basename(f).startswith('bzip2-') for f in pkgs_dir_tarballs)
-
-                run_command(Commands.REMOVE, prefix, "bzip2", "--yes", "--json")
-
-            run_command(Commands.CLEAN, prefix, "--packages", "--yes")
-
-            pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-            pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-            assert not any(basename(d).startswith('bzip2-') for d in pkgs_dir_dirs)
 
     def test_install_mkdir(self):
         try:
