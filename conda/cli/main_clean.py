@@ -64,10 +64,10 @@ def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
         print(fmt % ("Total:", human_bytes(total_size)))
         print("")
 
+    if args.dry_run:
+        return
     if not context.json or not context.always_yes:
         confirm_yn()
-    if context.json and args.dry_run:
-        return
 
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
@@ -166,10 +166,10 @@ def rm_pkgs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
         print(fmt % ("Total:", human_bytes(total_size)))
         print("")
 
+    if args.dry_run:
+        return
     if not context.json or not context.always_yes:
         confirm_yn()
-    if context.json and args.dry_run:
-        return
 
     for pkgs_dir in pkgs_dirs:
         for pkg in pkgs_dirs[pkgs_dir]:
@@ -268,3 +268,7 @@ def execute(args, parser):
     json_result = _execute(args, parser)
     if context.json:
         stdout_json(json_result)
+    if args.dry_run:
+        from ..exceptions import DryRunExit
+
+        raise DryRunExit
