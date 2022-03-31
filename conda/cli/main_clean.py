@@ -4,9 +4,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import listdir, lstat, walk
-from os.path import getsize, isdir, join
-from typing import Iterable, List
+from os import lstat, walk
+from os.path import isdir, join
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 import sys
 
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS
@@ -16,20 +16,51 @@ log = getLogger(__name__)
 _EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
 
 
-def find_tarballs():
-    pkgs_dirs = {}
-    total_size = 0
+def _getsize(*parts: str, warnings: Optional[List[Tuple[str, Exception]]] = None) -> int:
+    path = join(*parts)
+    try:
+        stat = lstat(path)
+    except OSError as e:
+        if warnings is None:
+            raise
+        warnings.append((path, e))
+
+    # TODO: This doesn't handle packages that have hard links to files within
+    # themselves, like bin/python3.3 and bin/python3.3m in the Python package
+    if stat.st_nlink > 1:
+        raise NotImplementedError
+
+    return stat.st_size
+
+
+def find_tarballs() -> Dict[str, Any]:
+    warnings: List[Tuple[str, Exception]] = []
+    pkg_sizes: Dict[str, Dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
-        root, _, filenames = next(walk(pkgs_dir))
-        for fn in filenames:
-            if fn.endswith(_EXTS):
-                pkgs_dirs.setdefault(pkgs_dir, []).append(fn)
-                total_size += getsize(join(root, fn))
+        # tarballs are files in pkgs_dir
+        _, _, tars = next(walk(pkgs_dir))
+        for tar in tars:
+            # tarballs also end in .tar.bz2, .conda, .tar.bz2.part, or .conda.part
+            if not tar.endswith(_EXTS):
+                continue
 
-    return {"pkgs_dirs": pkgs_dirs, "total_size": total_size}
+            # get size
+            try:
+                size = _getsize(pkgs_dir, tar, warnings=warnings)
+            except NotImplementedError:
+                pass
+            else:
+                pkg_sizes.setdefault(pkgs_dir, {})[tar] = size
+
+    return {
+        "warnings": warnings,
+        "pkg_sizes": pkg_sizes,
+        "pkgs_dirs": {pkgs_dir: tuple(pkgs) for pkgs_dir, pkgs in pkg_sizes.items()},
+        "total_size": sum(sum(pkgs.values()) for pkgs in pkg_sizes.values()),
+    }
 
 
-def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
+def rm_tarballs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
@@ -43,12 +74,11 @@ def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
         print("Will remove the following tarballs:")
         print('')
 
-        for pkgs_dir in pkgs_dirs:
+        for pkgs_dir, pkgs in pkg_sizes.items():
             print(pkgs_dir)
             print('-'*len(pkgs_dir))
             fmt = "%-40s %10s"
-            for fn in pkgs_dirs[pkgs_dir]:
-                size = getsize(join(pkgs_dir, fn))
+            for fn, size in pkgs.items():
                 print(fmt % (fn, human_bytes(size)))
             print("")
         print("-" * 51)  # From 40 + 1 + 10 in fmt
@@ -76,51 +106,34 @@ def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
                     log.info("%r", e)
 
 
-def find_pkgs():
-    # TODO: This doesn't handle packages that have hard links to files within
-    # themselves, like bin/python3.3 and bin/python3.3m in the Python package
-    warnings = []
-    pkgs_dirs = {}
+def find_pkgs() -> Dict[str, Any]:
+    warnings: List[Tuple[str, Exception]] = []
+    pkg_sizes: Dict[str, Dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
-        pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i, 'info'))]
+        # pkgs are directories in pkgs_dir
+        _, pkgs, _ = next(walk(pkgs_dir))
         for pkg in pkgs:
-            breakit = False
-            for root, dir, files in walk(join(pkgs_dir, pkg)):
-                for fn in files:
-                    try:
-                        st_nlink = lstat(join(root, fn)).st_nlink
-                    except OSError as e:
-                        warnings.append((fn, e))
-                        continue
-                    if st_nlink > 1:
-                        # print('%s is installed: %s' % (pkg, join(root, fn)))
-                        breakit = True
-                        break
+            # pkgs also have an info directory
+            if not isdir(join(pkgs_dir, pkg, "info")):
+                continue
 
-                if breakit:
-                    break
+            # get size
+            try:
+                size = sum(
+                    _getsize(root, file, warnings=warnings)
+                    for root, _, files in walk(join(pkgs_dir, pkg))
+                    for file in files
+                )
+            except NotImplementedError:
+                pass
             else:
-                pkgs_dirs.setdefault(pkgs_dir, []).append(pkg)
-
-    total_size = 0
-    pkg_sizes = {}
-    for pkgs_dir in pkgs_dirs:
-        for pkg in pkgs_dirs[pkgs_dir]:
-            pkgsize = 0
-            for root, dir, files in walk(join(pkgs_dir, pkg)):
-                for fn in files:
-                    # We don't have to worry about counting things twice:  by
-                    # definition these files all have a link count of 1!
-                    size = lstat(join(root, fn)).st_size
-                    total_size += size
-                    pkgsize += size
-            pkg_sizes.setdefault(pkgs_dir, {})[pkg] = pkgsize
+                pkg_sizes.setdefault(pkgs_dir, {})[pkg] = size
 
     return {
-        "pkgs_dirs": pkgs_dirs,
-        "total_size": total_size,
         "warnings": warnings,
         "pkg_sizes": pkg_sizes,
+        "pkgs_dirs": {pkgs_dir: tuple(pkgs) for pkgs_dir, pkgs in pkg_sizes.items()},
+        "total_size": sum(sum(pkgs.values()) for pkgs in pkg_sizes.values()),
     }
 
 
