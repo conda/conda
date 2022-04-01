@@ -2,14 +2,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from datetime import datetime
 from json import loads as json_loads
 from os import walk
 from os.path import basename, isdir, join, exists
 from shutil import copy
-from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS
+from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS, CONDA_LOGS_DIR
 from conda.core.subdir_data import create_cache_dir
+from conda.gateways.disk.create import mkdir_p
 from conda.testing.integration import make_temp_package_cache, run_command, Commands, make_temp_env
-
 
 def _get_pkgs(pkgs_dir):
     _, dirs, _ = next(walk(pkgs_dir))
@@ -30,6 +31,11 @@ def _get_index_cache():
 def _get_tempfiles(pkgs_dir):
     _, _, files = next(walk(pkgs_dir))
     return [join(pkgs_dir, file) for file in files if file.endswith(CONDA_TEMP_EXTENSIONS)]
+
+
+def _get_logfiles(pkgs_dir):
+    root, _, files = next(walk(join(pkgs_dir, CONDA_LOGS_DIR)), [None, None, []])
+    return [join(root, file) for file in files]
 
 
 def _get_all(pkgs_dir):
@@ -176,6 +182,41 @@ def test_clean_tempfiles(clear_cache):
 
         # tempfiles still removed
         assert not _get_tempfiles(pkgs_dir)
+
+
+# conda clean --logfiles
+def test_clean_logfiles(clear_cache):
+    """Logfiles are found in pkgs_dir/.logs.
+
+    Since these log files are uniquely implemented for the experimental libmamba release we will
+    mock the log files.
+    """
+    pkg = "bzip2"
+
+    with make_temp_package_cache() as pkgs_dir:
+        # logfiles don't exist ahead of time
+        assert not _get_logfiles(pkgs_dir)
+
+        with make_temp_env(pkg):
+            # mimic logfiles being created
+            logs = join(pkgs_dir, CONDA_LOGS_DIR)
+            mkdir_p(logs)
+            path = join(logs, f"{datetime.utcnow():%Y%m%d-%H%M%S-%f}.log")
+            with open(path, "w"):
+                pass
+
+            # logfiles exist
+            assert path in _get_logfiles(pkgs_dir)
+
+            # --json flag is regression test for #5451
+            stdout, _, _ = run_command(Commands.CLEAN, "", "--logfiles", "--yes", "--json")
+            json_loads(stdout)  # assert valid json
+
+            # logfiles removed
+            assert not _get_logfiles(pkgs_dir)
+
+        # logfiles still removed
+        assert not _get_logfiles(pkgs_dir)
 
 
 # conda clean --all
