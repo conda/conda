@@ -1901,7 +1901,7 @@ dependencies:
         with make_temp_env(prefix=prefix, no_capture=True):
             # First, clear the index cache to make sure we start with an empty cache.
             index_cache_dir = create_cache_dir()
-            run_command(Commands.CLEAN, '', "--index-cache")
+            run_command(Commands.CLEAN, "", "--index-cache", "--yes")
             assert not glob(join(index_cache_dir, "*.json"))
 
             # Then, populate the index cache.
@@ -1945,7 +1945,7 @@ dependencies:
                     with make_temp_channel(['flask-0.12.2']) as channel:
                         # Clear the index cache.
                         index_cache_dir = create_cache_dir()
-                        run_command(Commands.CLEAN, '', "--index-cache")
+                        run_command(Commands.CLEAN, "", "--index-cache", "--yes")
                         assert not exists(index_cache_dir)
 
                         # Then attempt to install a package with --offline. The package (flask) is

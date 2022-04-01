@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import fnmatch
 from logging import getLogger
-from os import listdir, lstat, unlink, walk
-from os.path import exists, getsize, isdir, join
+from os import listdir, lstat, walk
+from os.path import getsize, isdir, join
+from typing import Iterable, List
 import sys
 
-from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSION
+from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS
 from ..base.context import context
 
 log = getLogger(__name__)
@@ -17,14 +17,9 @@ _EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSI
 
 
 def find_tarballs():
-    from ..core.package_cache_data import PackageCacheData
-
     pkgs_dirs = {}
     total_size = 0
-    for package_cache in PackageCacheData.writable_caches(context.pkgs_dirs):
-        pkgs_dir = package_cache.pkgs_dir
-        if not isdir(pkgs_dir):
-            continue
+    for pkgs_dir in find_pkgs_dirs():
         root, _, filenames = next(walk(pkgs_dir))
         for fn in filenames:
             if fn.endswith(_EXTS):
@@ -38,10 +33,6 @@ def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
-
-    if verbose:
-        for pkgs_dir in pkgs_dirs:
-            print('Cache location: %s' % pkgs_dir)
 
     if not any(pkgs_dirs[i] for i in pkgs_dirs):
         if verbose:
@@ -64,10 +55,10 @@ def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
         print(fmt % ("Total:", human_bytes(total_size)))
         print("")
 
+    if args.dry_run:
+        return
     if not context.json or not context.always_yes:
         confirm_yn()
-    if context.json and args.dry_run:
-        return
 
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
@@ -90,11 +81,7 @@ def find_pkgs():
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
     warnings = []
     pkgs_dirs = {}
-    for pkgs_dir in context.pkgs_dirs:
-        if not exists(pkgs_dir):
-            if not context.json:
-                print("WARNING: {0} does not exist".format(pkgs_dir))
-            continue
+    for pkgs_dir in find_pkgs_dirs():
         pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i, 'info'))]
         for pkg in pkgs:
             breakit = False
@@ -141,11 +128,10 @@ def rm_pkgs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
-    if verbose:
-        for pkgs_dir in pkgs_dirs:
-            print('Cache location: %s' % pkgs_dir)
-            for fn, exception in warnings:
-                print(exception)
+
+    if verbose and warnings:
+        for fn, exception in warnings:
+            print(exception)
 
     if not any(pkgs_dirs[i] for i in pkgs_dirs):
         if verbose:
@@ -166,10 +152,10 @@ def rm_pkgs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
         print(fmt % ("Total:", human_bytes(total_size)))
         print("")
 
+    if args.dry_run:
+        return
     if not context.json or not context.always_yes:
         confirm_yn()
-    if context.json and args.dry_run:
-        return
 
     for pkgs_dir in pkgs_dirs:
         for pkg in pkgs_dirs[pkgs_dir]:
@@ -178,58 +164,71 @@ def rm_pkgs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
             rm_rf(join(pkgs_dir, pkg))
 
 
-def rm_index_cache():
-    from ..gateways.disk.delete import rm_rf
+def find_index_cache() -> List[str]:
+    files = []
+    for pkgs_dir in find_pkgs_dirs():
+        # caches are directories in pkgs_dir
+        path = join(pkgs_dir, "cache")
+        if isdir(path):
+            files.append(path)
+    return files
+
+
+def find_pkgs_dirs() -> List[str]:
     from ..core.package_cache_data import PackageCacheData
-    for package_cache in PackageCacheData.writable_caches():
-        rm_rf(join(package_cache.pkgs_dir, 'cache'))
+
+    return [pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)]
 
 
-def rm_rf_pkgs_dirs():
+def find_tempfiles(paths: Iterable[str]) -> List[str]:
+    tempfiles = []
+    for path in sorted(set(paths or [sys.prefix])):
+        # tempfiles are files in path
+        for root, _, files in walk(path):
+            for file in files:
+                # tempfiles also end in .c~ or .trash
+                if not file.endswith(CONDA_TEMP_EXTENSIONS):
+                    continue
+
+                tempfiles.append(join(root, file))
+
+    return tempfiles
+
+
+def rm_items(args, items: List[str], verbose: bool, name: str) -> None:
     from .common import confirm_yn
-    from ..common.io import dashlist
     from ..gateways.disk.delete import rm_rf
-    from ..core.package_cache_data import PackageCacheData
 
-    writable_pkgs_dirs = tuple(
-        pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)
-    )
+    if not items:
+        if verbose:
+            print(f"There are no {name} to remove.")
+        return
+
+    if verbose:
+        if args.verbosity:
+            print(f"Will remove the following {name}:")
+            for item in items:
+                print(f"  - {item}")
+            print()
+        else:
+            print(f"Will remove {len(items)} {name}.")
+
+    if args.dry_run:
+        return
     if not context.json or not context.always_yes:
-        print("Remove all contents from the following package caches?%s"
-              % dashlist(writable_pkgs_dirs))
         confirm_yn()
 
-    for pkgs_dir in writable_pkgs_dirs:
-        rm_rf(pkgs_dir)
+    for item in items:
+        rm_rf(item)
 
-    return writable_pkgs_dirs
-
-
-def clean_tmp_files(path=None):
-    if not path:
-        path = sys.prefix
-    for root, dirs, fns in walk(path):
-        for fn in fns:
-            if (fnmatch.fnmatch(fn, "*.trash") or
-                    fnmatch.fnmatch(fn, "*" + CONDA_TEMP_EXTENSION)):
-                file_path = join(root, fn)
-                try:
-                    unlink(file_path)
-                except EnvironmentError:
-                    log.warn("File at {} could not be cleaned up.  "
-                             "It's probably still in-use.".format(file_path))
 
 def _execute(args, parser):
     json_result = {"success": True}
-
-    if args.source_cache:
-        print("WARNING: 'conda clean --source-cache' is deprecated.\n"
-              "    Use 'conda build purge-all' to remove source cache files.",
-              file=sys.stderr)
+    verbose = not (context.json or context.quiet)
 
     if args.force_pkgs_dirs:
-        writable_pkgs_dirs = rm_rf_pkgs_dirs()
-        json_result['pkgs_dirs'] = writable_pkgs_dirs
+        json_result["pkgs_dirs"] = pkgs_dirs = find_pkgs_dirs()
+        rm_items(args, pkgs_dirs, verbose=verbose, name="package cache(s)")
 
         # we return here because all other clean operations target individual parts of
         # package caches
@@ -242,23 +241,20 @@ def _execute(args, parser):
 
     if args.tarballs or args.all:
         json_result["tarballs"] = tars = find_tarballs()
-        rm_tarballs(args, **tars, verbose=not (context.json or context.quiet))
+        rm_tarballs(args, **tars, verbose=verbose)
 
     if args.index_cache or args.all:
-        json_result['index_cache'] = {
-            'files': [join(context.pkgs_dirs[0], 'cache')]
-        }
-        rm_index_cache()
+        cache = find_index_cache()
+        json_result["index_cache"] = {"files": cache}
+        rm_items(args, cache, verbose=verbose, name="index cache(s)")
 
     if args.packages or args.all:
         json_result["packages"] = pkgs = find_pkgs()
-        rm_pkgs(args, **pkgs, verbose=not (context.json or context.quiet))
+        rm_pkgs(args, **pkgs, verbose=verbose)
 
-    if args.all:
-        clean_tmp_files(sys.prefix)
-    elif args.tempfiles:
-        for path in args.tempfiles:
-            clean_tmp_files(path)
+    if args.tempfiles or args.all:
+        json_result["tempfiles"] = tmps = find_tempfiles(args.tempfiles)
+        rm_items(args, tmps, verbose=verbose, name="tempfile(s)")
 
     return json_result
 
@@ -268,3 +264,7 @@ def execute(args, parser):
     json_result = _execute(args, parser)
     if context.json:
         stdout_json(json_result)
+    if args.dry_run:
+        from ..exceptions import DryRunExit
+
+        raise DryRunExit
