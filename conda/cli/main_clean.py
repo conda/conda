@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 from os import listdir, lstat, walk
 from os.path import getsize, isdir, join
-from typing import Iterable, Tuple
+from typing import Iterable, List
 import sys
 
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS
@@ -27,6 +27,7 @@ def find_tarballs():
                 total_size += getsize(join(root, fn))
 
     return {"pkgs_dirs": pkgs_dirs, "total_size": total_size}
+
 
 def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
     from .common import confirm_yn
@@ -73,6 +74,7 @@ def rm_tarballs(args, pkgs_dirs, total_size, verbose=True):
                     print("WARNING: cannot remove, file permissions: %s\n%r" % (fn, e))
                 else:
                     log.info("%r", e)
+
 
 def find_pkgs():
     # TODO: This doesn't handle packages that have hard links to files within
@@ -121,6 +123,7 @@ def find_pkgs():
         "pkg_sizes": pkg_sizes,
     }
 
+
 def rm_pkgs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
@@ -160,7 +163,8 @@ def rm_pkgs(args, pkgs_dirs, warnings, total_size, pkg_sizes, verbose=True):
                 print("removing %s" % pkg)
             rm_rf(join(pkgs_dir, pkg))
 
-def find_index_cache() -> Tuple[str]:
+
+def find_index_cache() -> List[str]:
     files = []
     for pkgs_dir in find_pkgs_dirs():
         # caches are directories in pkgs_dir
@@ -169,13 +173,14 @@ def find_index_cache() -> Tuple[str]:
             files.append(path)
     return files
 
-def find_pkgs_dirs() -> Tuple[str]:
+
+def find_pkgs_dirs() -> List[str]:
     from ..core.package_cache_data import PackageCacheData
 
-    return tuple(pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir))
+    return [pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)]
 
 
-def find_tempfiles(paths: Iterable[str]) -> Tuple[str]:
+def find_tempfiles(paths: Iterable[str]) -> List[str]:
     tempfiles = []
     for path in sorted(set(paths or [sys.prefix])):
         # tempfiles are files in path
@@ -190,7 +195,7 @@ def find_tempfiles(paths: Iterable[str]) -> Tuple[str]:
     return tempfiles
 
 
-def rm_items(args, items: Tuple[str], verbose: bool, name: str) -> None:
+def rm_items(args, items: List[str], verbose: bool, name: str) -> None:
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
 
@@ -215,6 +220,7 @@ def rm_items(args, items: Tuple[str], verbose: bool, name: str) -> None:
 
     for item in items:
         rm_rf(item)
+
 
 def _execute(args, parser):
     json_result = {"success": True}
@@ -256,6 +262,7 @@ def _execute(args, parser):
         rm_items(args, tmps, verbose=verbose, name="tempfile(s)")
 
     return json_result
+
 
 def execute(args, parser):
     from .common import stdout_json
