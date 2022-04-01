@@ -226,11 +226,6 @@ def _execute(args, parser):
     json_result = {"success": True}
     verbose = not (context.json or context.quiet)
 
-    if verbose and args.source_cache:
-        print("WARNING: 'conda clean --source-cache' is deprecated.\n"
-              "    Use 'conda build purge-all' to remove source cache files.",
-              file=sys.stderr)
-
     if args.force_pkgs_dirs:
         json_result["pkgs_dirs"] = pkgs_dirs = find_pkgs_dirs()
         rm_items(args, pkgs_dirs, verbose=verbose, name="package cache(s)")
