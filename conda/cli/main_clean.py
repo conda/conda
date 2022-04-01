@@ -33,6 +33,14 @@ def _getsize(*parts: str, warnings: Optional[List[Tuple[str, Exception]]] = None
     return stat.st_size
 
 
+def _get_pkgs_dirs(pkg_sizes):
+    return {pkgs_dir: tuple(pkgs) for pkgs_dir, pkgs in pkg_sizes.items()}
+
+
+def _get_total_size(pkg_sizes):
+    return sum(sum(pkgs.values()) for pkgs in pkg_sizes.values())
+
+
 def find_tarballs() -> Dict[str, Any]:
     warnings: List[Tuple[str, Exception]] = []
     pkg_sizes: Dict[str, Dict[str, int]] = {}
@@ -55,8 +63,8 @@ def find_tarballs() -> Dict[str, Any]:
     return {
         "warnings": warnings,
         "pkg_sizes": pkg_sizes,
-        "pkgs_dirs": {pkgs_dir: tuple(pkgs) for pkgs_dir, pkgs in pkg_sizes.items()},
-        "total_size": sum(sum(pkgs.values()) for pkgs in pkg_sizes.values()),
+        "pkgs_dirs": _get_pkgs_dirs(pkg_sizes),
+        "total_size": _get_total_size(pkg_sizes),
     }
 
 
@@ -132,8 +140,8 @@ def find_pkgs() -> Dict[str, Any]:
     return {
         "warnings": warnings,
         "pkg_sizes": pkg_sizes,
-        "pkgs_dirs": {pkgs_dir: tuple(pkgs) for pkgs_dir, pkgs in pkg_sizes.items()},
-        "total_size": sum(sum(pkgs.values()) for pkgs in pkg_sizes.values()),
+        "pkgs_dirs": _get_pkgs_dirs(pkg_sizes),
+        "total_size": _get_total_size(pkg_sizes),
     }
 
 
