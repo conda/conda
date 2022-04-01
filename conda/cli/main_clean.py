@@ -16,7 +16,7 @@ log = getLogger(__name__)
 _EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
 
 
-def _getsize(*parts: str, warnings: Optional[List[Tuple[str, Exception]]] = None) -> int:
+def _get_size(*parts: str, warnings: Optional[List[Tuple[str, Exception]]] = None) -> int:
     path = join(*parts)
     try:
         stat = lstat(path)
@@ -54,7 +54,7 @@ def find_tarballs() -> Dict[str, Any]:
 
             # get size
             try:
-                size = _getsize(pkgs_dir, tar, warnings=warnings)
+                size = _get_size(pkgs_dir, tar, warnings=warnings)
             except NotImplementedError:
                 pass
             else:
@@ -128,7 +128,7 @@ def find_pkgs() -> Dict[str, Any]:
             # get size
             try:
                 size = sum(
-                    _getsize(root, file, warnings=warnings)
+                    _get_size(root, file, warnings=warnings)
                     for root, _, files in walk(join(pkgs_dir, pkg))
                     for file in files
                 )
