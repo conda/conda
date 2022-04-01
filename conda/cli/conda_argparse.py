@@ -9,7 +9,6 @@ from argparse import (
     RawDescriptionHelpFormatter,
     SUPPRESS,
     Action,
-    _copy_items,
     _CountAction,
     _HelpAction,
 )
@@ -232,7 +231,7 @@ class ExtendConstAction(Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         items = getattr(namespace, self.dest, None)
-        items = _copy_items(items)
+        items = [] if items is None else items[:]
         items.extend(values or [self.const])
         setattr(namespace, self.dest, items)
 
