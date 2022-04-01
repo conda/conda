@@ -153,6 +153,7 @@ CONDA_PACKAGE_EXTENSIONS = (
 CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build; remove this line  # NOQA
 CONDA_TEMP_EXTENSION = '.c~'
 CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
+CONDA_LOGS_DIR = ".logs"
 
 UNKNOWN_CHANNEL = "<unknown>"
 REPODATA_FN = 'repodata.json'
