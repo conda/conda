@@ -9,7 +9,7 @@ from os.path import isdir, join
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 import sys
 
-from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS
+from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS, CONDA_LOGS_DIR
 from ..base.context import context
 
 log = getLogger(__name__)
@@ -216,6 +216,21 @@ def find_tempfiles(paths: Iterable[str]) -> List[str]:
     return tempfiles
 
 
+def find_logfiles() -> List[str]:
+    files = []
+    for pkgs_dir in find_pkgs_dirs():
+        # .logs are directories in pkgs_dir
+        path = join(pkgs_dir, CONDA_LOGS_DIR)
+        if not isdir(path):
+            continue
+
+        # logfiles are files in .logs
+        _, _, logs = next(walk(path), [None, None, []])
+        files.extend([join(path, log) for log in logs])
+
+    return files
+
+
 def rm_items(args, items: List[str], verbose: bool, name: str) -> None:
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
@@ -255,7 +270,14 @@ def _execute(args, parser):
         # package caches
         return json_result
 
-    if not (args.all or args.tarballs or args.index_cache or args.packages or args.tempfiles):
+    if not (
+        args.all
+        or args.tarballs
+        or args.index_cache
+        or args.packages
+        or args.tempfiles
+        or args.logfiles
+    ):
         from ..exceptions import ArgumentError
 
         raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
@@ -276,6 +298,10 @@ def _execute(args, parser):
     if args.tempfiles or args.all:
         json_result["tempfiles"] = tmps = find_tempfiles(args.tempfiles)
         rm_items(args, tmps, verbose=verbose, name="tempfile(s)")
+
+    if args.logfiles or args.all:
+        json_result["logfiles"] = logs = find_logfiles()
+        rm_items(args, logs, verbose=verbose, name="logfile(s)")
 
     return json_result
 
