@@ -31,4 +31,4 @@
 
      Helpful links:
        - Conda Org COC:
-       - Contributing docs:  -->
+       - Contributing docs: https://github.com/conda/conda/blob/master/CONTRIBUTING.md -->
