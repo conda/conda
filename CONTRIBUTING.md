@@ -50,13 +50,6 @@ For even more information and documentation on everything related to Anaconda, h
 Before submitting an issue via any of these channels, make sure to document it
 as well as possible and follow the submission guidelines (this makes everyone's job a lot easier!).
 
-### Issue triaging
-
-Issue triaging is how we filter incoming issues and get them ready for active development.
-To see how this process works for this project, read "[The Triaging Process at conda][triaging]".
-
-*The project maintainers are currently not seeking help with issue triaging, but this may change in the future*
-
 ### Contributing your changes to conda
 
 Here are the steps you need to take to contribute to conda:
@@ -69,6 +62,13 @@ Here are the steps you need to take to contribute to conda:
    instructions.
 4. Work on your proposed solution. [Visit this page if you need help getting your development environment setup](development-environment)
 5. When you are ready to submit a change, create a new pull request so that we can merge your changes to our repository.
+
+### Issue triaging
+
+Issue triaging is how we filter incoming issues and get them ready for active development.
+To see how this process works for this project, read "[The Triaging Process at conda][triaging]".
+
+*The project maintainers are currently not seeking help with issue triaging, but this may change in the future*
 
 
 [conda cla]: https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement
