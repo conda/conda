@@ -1,7 +1,7 @@
 # Releasing
 
 Conda's releases may be performed via the [rever command](https://regro.github.io/rever-docs/).
-Rever is configured to perform the activities for a typical conda-build release.
+Rever is configured to perform the activities for a typical conda release.
 To cut a release, simply run `rever <X.Y.Z>` where `<X.Y.Z>` is the
 release number that you want bump to. For example, `rever 1.2.3`.
 
