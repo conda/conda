@@ -250,7 +250,8 @@ from enum import Enum
 
 from . import NULL
 from .._vendor.boltons.timeutils import isoparse
-from .collection import AttrDict, frozendict, make_immutable
+from .._vendor.frozendict import frozendict
+from .collection import AttrDict, make_immutable
 from .compat import (integer_types, isiterable, iteritems, itervalues, odict, string_types,
                      text_type)
 from .exceptions import Raise, ValidationError
