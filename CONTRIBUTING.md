@@ -55,6 +55,8 @@ as well as possible and follow the submission guidelines (this makes everyone's 
 Issue triaging is how we filter incoming issues and get them ready for active development.
 To see how this process works for this project, read "[The Triaging Process at conda][triaging]".
 
+*The project maintainers are currently not seeking help with issue triaging, but this may change in the future*
+
 ### Contributing your changes to conda
 
 Here are the steps you need to take to contribute to conda:
