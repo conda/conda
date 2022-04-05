@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 from os import lstat, walk
 from os.path import isdir, join
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 import sys
 
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS, CONDA_LOGS_DIR
@@ -16,7 +16,7 @@ log = getLogger(__name__)
 _EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
 
 
-def _get_size(*parts: str, warnings: Optional[List[Tuple[str, Exception]]] = None) -> int:
+def _get_size(*parts: str, warnings: List[Tuple[str, Exception]]) -> int:
     path = join(*parts)
     try:
         stat = lstat(path)
@@ -41,13 +41,13 @@ def _get_total_size(pkg_sizes: Dict[str, Dict[str, int]]) -> int:
     return sum(sum(pkgs.values()) for pkgs in pkg_sizes.values())
 
 
-def _rm_rf(args, *parts: str, verbose: bool) -> None:
+def _rm_rf(*parts: str, verbose: bool, verbosity: bool) -> None:
     from ..gateways.disk.delete import rm_rf
 
     path = join(*parts)
     try:
         if rm_rf(path):
-            if verbose and args.verbosity:
+            if verbose and verbosity:
                 print(f"Removed {path}")
         elif verbose:
             print(f"WARNING: cannot remove, file permissions: {path}")
@@ -116,12 +116,14 @@ def find_pkgs() -> Dict[str, Any]:
 
 
 def rm_pkgs(
-    args,
     pkgs_dirs: Dict[str, Tuple[str]],
     warnings: List[Tuple[str, Exception]],
     total_size: int,
     pkg_sizes: Dict[str, Dict[str, int]],
+    *,
     verbose: bool,
+    verbosity: bool,
+    dry_run: bool,
     name: str,
 ) -> None:
     from .common import confirm_yn
@@ -137,7 +139,7 @@ def rm_pkgs(
         return
 
     if verbose:
-        if args.verbosity:
+        if verbosity:
             print(f"Will remove the following {name}:")
             for pkgs_dir, pkgs in pkg_sizes.items():
                 print(f"  {pkgs_dir}")
@@ -152,14 +154,14 @@ def rm_pkgs(
             count = sum(len(pkgs) for pkgs in pkg_sizes.values())
             print(f"Will remove {count} ({human_bytes(total_size)}) {name}.")
 
-    if args.dry_run:
+    if dry_run:
         return
     if not context.json or not context.always_yes:
         confirm_yn()
 
     for pkgs_dir, pkgs in pkg_sizes.items():
         for pkg in pkgs:
-            _rm_rf(args, pkgs_dir, pkg, verbose=verbose)
+            _rm_rf(pkgs_dir, pkg, verbose=verbose, verbosity=verbosity)
 
 
 def find_index_cache() -> List[str]:
@@ -208,7 +210,14 @@ def find_logfiles() -> List[str]:
     return files
 
 
-def rm_items(args, items: List[str], verbose: bool, name: str) -> None:
+def rm_items(
+    items: List[str],
+    *,
+    verbose: bool,
+    verbosity: bool,
+    dry_run: bool,
+    name: str,
+) -> None:
     from .common import confirm_yn
 
     if not items:
@@ -217,7 +226,7 @@ def rm_items(args, items: List[str], verbose: bool, name: str) -> None:
         return
 
     if verbose:
-        if args.verbosity:
+        if verbosity:
             print(f"Will remove the following {name}:")
             for item in items:
                 print(f"  - {item}")
@@ -225,22 +234,26 @@ def rm_items(args, items: List[str], verbose: bool, name: str) -> None:
         else:
             print(f"Will remove {len(items)} {name}.")
 
-    if args.dry_run:
+    if dry_run:
         return
     if not context.json or not context.always_yes:
         confirm_yn()
 
     for item in items:
-        _rm_rf(args, item, verbose=verbose)
+        _rm_rf(item, verbose=verbose, verbosity=verbosity)
 
 
 def _execute(args, parser):
     json_result = {"success": True}
-    verbose = not (context.json or context.quiet)
+    kwargs = {
+        "verbose": not (context.json or context.quiet),
+        "verbosity": args.verbosity,
+        "dry_run": args.dry_run,
+    }
 
     if args.force_pkgs_dirs:
         json_result["pkgs_dirs"] = pkgs_dirs = find_pkgs_dirs()
-        rm_items(args, pkgs_dirs, verbose=verbose, name="package cache(s)")
+        rm_items(pkgs_dirs, **kwargs, name="package cache(s)")
 
         # we return here because all other clean operations target individual parts of
         # package caches
@@ -260,24 +273,24 @@ def _execute(args, parser):
 
     if args.tarballs or args.all:
         json_result["tarballs"] = tars = find_tarballs()
-        rm_pkgs(args, **tars, verbose=verbose, name="tarball(s)")
+        rm_pkgs(**tars, **kwargs, name="tarball(s)")
 
     if args.index_cache or args.all:
         cache = find_index_cache()
         json_result["index_cache"] = {"files": cache}
-        rm_items(args, cache, verbose=verbose, name="index cache(s)")
+        rm_items(cache, **kwargs, name="index cache(s)")
 
     if args.packages or args.all:
         json_result["packages"] = pkgs = find_pkgs()
-        rm_pkgs(args, **pkgs, verbose=verbose, name="package(s)")
+        rm_pkgs(**pkgs, **kwargs, name="package(s)")
 
     if args.tempfiles or args.all:
         json_result["tempfiles"] = tmps = find_tempfiles(args.tempfiles)
-        rm_items(args, tmps, verbose=verbose, name="tempfile(s)")
+        rm_items(tmps, **kwargs, name="tempfile(s)")
 
     if args.logfiles or args.all:
         json_result["logfiles"] = logs = find_logfiles()
-        rm_items(args, logs, verbose=verbose, name="logfile(s)")
+        rm_items(logs, **kwargs, name="logfile(s)")
 
     return json_result
 
