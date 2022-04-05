@@ -4,7 +4,7 @@ Thank you for your interest in improving conda! Below, we describe how our
 development process works and how you can be a part of it.
 
 *Already know how to contribute and need help setting up your development environment?
-[Read the development environment guide here](development-environment)*
+[Read the development environment guide here][development-environment]*
 
 ## Hosted on GitHub
 
@@ -80,3 +80,4 @@ To see how this process works for this project, read "[The Triaging Process at c
 [anaconda-support]: https://anaconda.cloud/support-center
 [anaconda-bug-report]: https://anaconda.org/contact/report
 [triaging]: https://github.com/conda/infra/blob/main/TRIAGING.md
+[development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/index.html
