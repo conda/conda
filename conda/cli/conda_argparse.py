@@ -295,6 +295,12 @@ def configure_parser_clean(sub_parsers):
         help=("Remove temporary files that could not be deleted earlier due to being in-use.  "
               "Argument is path(s) to prefix(es) where files should be found and removed."),
     )
+    removal_target_options.add_argument(
+        "-l",
+        "--logfiles",
+        action="store_true",
+        help="Remove log files.",
+    )
 
     add_output_and_prompt_options(p)
 

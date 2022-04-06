@@ -15,12 +15,28 @@ import struct
 from contextlib import contextmanager
 from datetime import datetime
 
-from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME, REPODATA_FN,
-                        DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
-                        DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
-                        ERROR_UPLOAD_URL, KNOWN_SUBDIRS, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice,
-                        ExperimentalSolverChoice, UpdateModifier)
+from .constants import (
+    APP_NAME,
+    ChannelPriority,
+    DEFAULTS_CHANNEL_NAME,
+    REPODATA_FN,
+    DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
+    DEFAULT_CHANNELS,
+    DEFAULT_CHANNEL_ALIAS,
+    DEFAULT_CUSTOM_CHANNELS,
+    DepsModifier,
+    ERROR_UPLOAD_URL,
+    KNOWN_SUBDIRS,
+    PREFIX_MAGIC_FILE,
+    PathConflict,
+    ROOT_ENV_NAME,
+    SEARCH_PATH,
+    SafetyChecks,
+    SatSolverChoice,
+    ExperimentalSolverChoice,
+    UpdateModifier,
+    CONDA_LOGS_DIR,
+)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from ..auxlib.decorators import memoize, memoizedproperty
@@ -547,7 +563,7 @@ class Context(Configuration):
         from ..core.package_cache_data import PackageCacheData
 
         pkgs_dir = PackageCacheData.first_writable().pkgs_dir
-        logs = join(pkgs_dir, ".logs")
+        logs = join(pkgs_dir, CONDA_LOGS_DIR)
         from ..gateways.disk.create import mkdir_p
 
         mkdir_p(logs)
