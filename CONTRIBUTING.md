@@ -80,4 +80,4 @@ To see how this process works for this project, read "[The Triaging Process at c
 [anaconda-support]: https://anaconda.cloud/support-center
 [anaconda-bug-report]: https://anaconda.org/contact/report
 [triaging]: https://github.com/conda/infra/blob/main/TRIAGING.md
-[development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/index.html
+[development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/development-environment.html
