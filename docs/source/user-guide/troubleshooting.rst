@@ -15,7 +15,7 @@ Unfortunately, this means it's a little complicated to use conda from other batc
 scripts from within batch scripts, you must prefix your command with ``CALL``. If you do not do this, your batch
 script that calls conda will exit immediately after the conda usage. In other words, if you write this in a .bat file:
 
-   .. code-block:: bash
+   .. code-block::
 
       conda create myenv python
       conda activate myenv
@@ -23,7 +23,7 @@ script that calls conda will exit immediately after the conda usage. In other wo
 
 Neither the activation, nor the echo will happen. You must write this in your batch script:
 
-   .. code-block:: bash
+   .. code-block::
 
       CALL conda create myenv python
       CALL conda activate myenv
@@ -346,7 +346,7 @@ prevent the group and other users from having access:
 
 #. Return the ``umask`` to the original setting:
 
-   .. code-block:: bash
+   .. code-block::
 
       umask 007
       conda install
@@ -391,7 +391,7 @@ for your operating system from the `Miniconda download page
 <https://docs.conda.io/en/latest/miniconda.html>`_ using the force option
 ``--force`` or ``-f``:
 
-.. code-block:: bash
+.. code-block::
 
     bash Miniconda3-latest-MacOSX-x86_64.sh -f
 
@@ -606,7 +606,7 @@ cause Terminal to use incorrect settings for your locale. The
 To use the correct language, add a line to your bash profile,
 which is typically ``~/.profile``:
 
-.. code-block:: bash
+.. code-block::
 
    export LANG=your-lang
 
@@ -833,13 +833,13 @@ Suppose you have a specific need to install the Python
 ``cx_freeze`` module with Python 3.4. A first step is to create a
 Python 3.4 environment:
 
-.. code-block:: bash
+.. code-block::
 
    conda create -n py34 python=3.4
 
 Using this environment you should first attempt:
 
-.. code-block:: bash
+.. code-block::
 
    conda install -n py34 cx_freeze
 
@@ -860,7 +860,7 @@ default package channels. However, there may be a
 community-created version available and you can search for it by
 running the following command:
 
-.. code-block:: bash
+.. code-block::
 
    $ anaconda search -t conda cx_freeze
    Using Anaconda Cloud api site https://api.anaconda.org
@@ -897,7 +897,7 @@ downloads, so you might choose to use their package. If so, you
 can add their organization's channel by specifying it on the
 command line:
 
-.. code-block:: bash
+.. code-block::
 
    $ conda create -c pyzo -n cxfreeze_py34 cx_freeze python=3.4
    Using Anaconda Cloud api site https://api.anaconda.org
@@ -968,7 +968,7 @@ Cause
 -----
 Downgrading conda from 4.6.1 to 4.5.x and then trying to ``conda install conda`` or  ``conda upgrade conda`` will produce a solving and upgrade error similar to the following:
 
-.. code-block:: bash
+.. code-block::
 
    Solving environment: failed
    CondaUpgradeError: This environment has previously been operated on by a conda version that's newer than the conda currently being used. A newer version of conda is required.

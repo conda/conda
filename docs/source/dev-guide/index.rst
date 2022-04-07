@@ -6,4 +6,6 @@ Developer guide
    :maxdepth: 2
 
    contributing
+   development-environment
+   releasing
    ../architecture
