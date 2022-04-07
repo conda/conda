@@ -60,7 +60,7 @@ Here are the steps you need to take to contribute to conda:
 3. Fork the conda repository to your personal GitHub account by clicking the
    "Fork" button on [https://github.com/conda/conda](https://github.com/conda/conda) and follow GitHub's
    instructions.
-4. Work on your proposed solution. [Visit this page if you need help getting your development environment setup](development-environment)
+4. Work on your proposed solution. [Visit this page if you need help getting your development environment setup][development-environment]
 5. When you are ready to submit a change, create a new pull request so that we can merge your changes to our repository.
 
 ### Issue triaging
@@ -80,4 +80,4 @@ To see how this process works for this project, read "[The Triaging Process at c
 [anaconda-support]: https://anaconda.cloud/support-center
 [anaconda-bug-report]: https://anaconda.org/contact/report
 [triaging]: https://github.com/conda/infra/blob/main/TRIAGING.md
-[development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/index.html
+[development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/development-environment.html

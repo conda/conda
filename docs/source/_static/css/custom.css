@@ -7,10 +7,6 @@ p {
   max-width: 80ch;
 }
 
-a:visited {
-  color: #2980b9;
-}
-
 .wy-nav-content {
     padding: 1.618em 3.236em;
     height: 100%;
