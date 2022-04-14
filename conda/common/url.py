@@ -520,7 +520,7 @@ def escape_channel_url(channel):
     if parts.scheme:
         components = parts.path.split("/")
         if on_win:
-            if len(parts.netloc) == 2 and parts.netloc[1] == ":":
+            if parts.netloc and len(parts.netloc) == 2 and parts.netloc[1] == ":":
                 # with absolute paths (e.g. C:/something), C:, D:, etc might get parsed as netloc
                 path = "/".join([parts.netloc] + [quote(p) for p in components])
                 parts = parts.replace(netloc="")
