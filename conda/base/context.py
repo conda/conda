@@ -822,6 +822,8 @@ class Context(Configuration):
         builder.append("%s/%s" % self.os_distribution_name_version)
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
+        if self.experimental_solver.value != "classic":
+            builder.append("solver/%s" % self.experimental_solver.value)
         return " ".join(builder)
 
     @contextmanager
