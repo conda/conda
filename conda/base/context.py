@@ -823,7 +823,14 @@ class Context(Configuration):
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
         if self.experimental_solver.value != "classic":
-            builder.append("solver/%s" % self.experimental_solver.value)
+            from ..core.solve import _get_solver_class
+
+            user_agent_str = "solver/%s" % self.experimental_solver.value
+            Solver = _get_solver_class()
+            if hasattr(Solver, "user_agent") and callable(Solver.user_agent):
+                # This has to be a static or class method
+                user_agent_str += f" {Solver.user_agent()}"
+            builder.append(user_agent_str)
         return " ".join(builder)
 
     @contextmanager
