@@ -8,7 +8,7 @@ import copy
 from logging import DEBUG, getLogger
 
 from .auxlib.decorators import memoize, memoizemethod
-from ._vendor.frozendict import frozendict
+from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from ._vendor.toolz import concat, groupby
 from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
