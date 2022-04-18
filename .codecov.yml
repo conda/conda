@@ -4,9 +4,11 @@ coverage:
   range: 60...100
   status:
     patch:
-      informational: true
+      default:
+        informational: true
     project:
-      informational: true
+      default:
+        informational: true
 
 ignore:
   - conda_env/.*
