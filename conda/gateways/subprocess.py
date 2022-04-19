@@ -17,7 +17,6 @@ from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
 from ..auxlib.ish import dals
 from ..common.compat import (
-    ensure_binary,
     string_types,
     encode_arguments,
     encode_environment,
@@ -73,7 +72,7 @@ def any_subprocess(args, prefix, env=None, cwd=None):
 
 
 def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True,
-                    capture_output=True, live_stream=False):
+                    capture_output=True):
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """
@@ -84,33 +83,33 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     command_str = command if isinstance(command, string_types) else ' '.join(command)
     log.debug("executing>> %s", command_str)
 
+    pipe = None
     if capture_output:
-        p = Popen(encode_arguments(command), cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                  env=env)
-        ACTIVE_SUBPROCESSES.add(p)
-        stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
-
-        if live_stream:
-            stdout, stderr = _realtime_output_for_subprocess(p)
-        else:
-            stdout, stderr = p.communicate(input=stdin)
-
-        if hasattr(stdout, "decode"):
-            stdout = stdout.decode('utf-8', errors='replace')
-        if hasattr(stderr, "decode"):
-            stderr = stderr.decode('utf-8', errors='replace')
-        rc = p.returncode
-        ACTIVE_SUBPROCESSES.remove(p)
+        pipe = PIPE
     elif stdin:
         raise ValueError("When passing stdin, output needs to be captured")
     else:
-        p = Popen(encode_arguments(command), cwd=cwd, env=env)
-        ACTIVE_SUBPROCESSES.add(p)
-        p.communicate()
-        rc = p.returncode
-        ACTIVE_SUBPROCESSES.remove(p)
-        stdout = None
-        stderr = None
+        stdin = None
+
+    # spawn subprocess
+    p = Popen(
+        encode_arguments(command),
+        cwd=cwd,
+        stdin=pipe,
+        stdout=pipe,
+        stderr=pipe,
+        env=env,
+    )
+    ACTIVE_SUBPROCESSES.add(p)
+
+    # decode output, if not PIPE, stdout/stderr will be None
+    stdout, stderr = p.communicate(input=stdin)
+    if hasattr(stdout, "decode"):
+        stdout = stdout.decode('utf-8', errors='replace')
+    if hasattr(stderr, "decode"):
+        stderr = stderr.decode('utf-8', errors='replace')
+    rc = p.returncode
+    ACTIVE_SUBPROCESSES.remove(p)
 
     if (raise_on_error and rc != 0) or log.isEnabledFor(TRACE):
         formatted_output = _format_output(command_str, cwd, rc, stdout, stderr)
