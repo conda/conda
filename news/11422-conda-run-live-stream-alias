@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* `conda run --live-stream` aliases `conda run --no-capture-output`. (#11422)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
