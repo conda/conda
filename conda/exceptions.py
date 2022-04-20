@@ -55,15 +55,6 @@ class ArgumentError(CondaError):
         super(ArgumentError, self).__init__(message, **kwargs)
 
 
-class CommandArgumentError(ArgumentError):
-    # TODO: Consolidate with ArgumentError.
-    return_code = 2
-
-    def __init__(self, message, **kwargs):
-        command = ' '.join(ensure_text_type(s) for s in sys.argv)
-        super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
-
-
 class Help(CondaError):
     pass
 
