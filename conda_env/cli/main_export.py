@@ -8,11 +8,10 @@ import os
 import textwrap
 
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.exceptions import CondaEnvException
 
-# conda env import
 from .common import get_prefix, stdout_json
 from ..env import from_environment
-from ..exceptions import CondaEnvException
 
 description = """
 Export a given environment
