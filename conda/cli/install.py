@@ -285,6 +285,10 @@ def install(args, parser, command='install'):
                     raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
         except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+            if not getattr(e, "allow_retry", True):
+                # TODO: This is a temporary workaround to allow downstream libraries 
+                # to inject this attribute set to False and skip the retry logic
+                raise e
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
             if not hasattr(args, 'update_modifier'):
                 if repodata_fn == repodata_fns[-1]:
