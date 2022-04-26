@@ -32,7 +32,7 @@ repos:
       - id: fix-encoding-pragma
         exclude: ^conda/auxlib/
   - repo: https://github.com/akaihola/darker
-    rev: 1.4.2
+    rev: 1.5.0
     hooks:
       - id: darker
         additional_dependencies: [black==21.9b0]
@@ -46,7 +46,7 @@ repos:
     hooks:
       - id: flake8
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.13.5
+    rev: v2.13.7
     hooks:
       - id: pylint
         args: [--exit-zero]
