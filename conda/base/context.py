@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 
+import functools
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
@@ -154,6 +155,7 @@ def ssl_verify_validation(value):
     return True
 
 
+@functools.lru_cache(maxsize=None)  # TODO: Replace w/ functools.cache when 3.8 is dropped
 def get_plugin_manager():
     pm = pluggy.PluginManager('conda')
     pm.add_hookspecs(plugins)
