@@ -7,6 +7,7 @@ from datetime import timedelta
 from errno import ENOSPC
 from functools import partial
 import json
+from json.decoder import JSONDecodeError
 from logging import getLogger
 import os
 from os.path import join
@@ -21,7 +22,7 @@ from .auxlib.ish import dals
 from .auxlib.type_coercion import boolify
 from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
-from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
+from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
 
@@ -511,30 +512,60 @@ class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
         from .common.url import maybe_unquote
-        _message = dals("""
-        HTTP %(status_code)s %(reason)s for url <%(url)s>
-        Elapsed: %(elapsed_time)s
-        """)
-        cf_ray = getattr(response, 'headers', {}).get('CF-RAY')
-        _message += "CF-RAY: %s\n\n" % cf_ray if cf_ray else "\n"
-        message = _message + message
 
+        # if response includes a valid json body we prefer the reason/message defined there
+        try:
+            body = response.json()
+        except (AttributeError, JSONDecodeError):
+            body = {}
+        else:
+            reason = body.get("reason", None) or reason
+            message = body.get("message", None) or message
+
+        # standardize arguments
+        url = maybe_unquote(url)
         status_code = status_code or '000'
         reason = reason or 'CONNECTION FAILED'
+        if isinstance(reason, str):
+            reason = reason.upper()
         elapsed_time = elapsed_time or '-'
+        if isinstance(elapsed_time, timedelta):
+            elapsed_time = str(elapsed_time).split(":", 1)[-1]
+
+        # extract CF-RAY
+        try:
+            cf_ray = response.headers["CF-RAY"]
+        except (AttributeError, KeyError):
+            cf_ray = ""
+        else:
+            cf_ray = f"CF-RAY: {cf_ray}\n"
+
+        # compose message
+        message = (
+            dals(
+                f"""
+                HTTP {status_code} {reason} for url <{url}>
+                Elapsed: {elapsed_time}
+                {cf_ray}
+                """
+            )
+            # since message may include newlines don't include in f-string/dals above
+            + message
+        )
 
         from .auxlib.logz import stringify
         response_details = (stringify(response, content_max_len=1024) or '') if response else ''
 
-        url = maybe_unquote(url)
-        if isinstance(elapsed_time, timedelta):
-            elapsed_time = text_type(elapsed_time).split(':', 1)[-1]
-        if isinstance(reason, string_types):
-            reason = reason.upper()
-        super(CondaHTTPError, self).__init__(message, url=url, status_code=status_code,
-                                             reason=reason, elapsed_time=elapsed_time,
-                                             response_details=response_details,
-                                             caused_by=caused_by)
+        super().__init__(
+            message,
+            url=url,
+            status_code=status_code,
+            reason=reason,
+            elapsed_time=elapsed_time,
+            response_details=response_details,
+            json=body,
+            caused_by=caused_by,
+        )
 
 
 class AuthenticationError(CondaError):
