@@ -733,7 +733,11 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
                                       status_code, url + '/' + repodata_fn)
                     return None
                 else:
-                    raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)
+                    raise UnavailableInvalidChannel(
+                        Channel(dirname(url)),
+                        status_code,
+                        response=e.response,
+                    )
 
         elif status_code == 401:
             channel = Channel(url)

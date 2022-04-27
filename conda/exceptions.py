@@ -425,34 +425,77 @@ class ChannelNotAllowed(ChannelError):
 
 class UnavailableInvalidChannel(ChannelError):
 
-    def __init__(self, channel, error_code):
+    def __init__(self, channel, status_code, response=None):
         from .models.channel import Channel
         from .common.url import join_url, maybe_unquote
+
+        # parse channel
         channel = Channel(channel)
         channel_name = channel.name
         channel_url = maybe_unquote(channel.base_url)
-        message = dals("""
-        The channel is not accessible or is invalid.
-          channel name: %(channel_name)s
-          channel url: %(channel_url)s
-          error code: %(error_code)d
 
-        You will need to adjust your conda configuration to proceed.
-        Use `conda config --show channels` to view your configuration's current state,
-        and use `conda config --show-sources` to view config file locations.
-        """)
+        # define hardcoded/default reason/message
+        reason = getattr(response, "reason", None)
+        message = dals(
+            """
+            The channel is not accessible or is invalid.
 
-        if channel.scheme == 'file':
-            message += dedent("""
-            As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
-            associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-            empty. Use `conda index %s`, or create `noarch/repodata.json`
-            and associated `noarch/repodata.json.bz2`.
-            """) % join_url(channel.location, channel.name)
+            You will need to adjust your conda configuration to proceed.
+            Use `conda config --show channels` to view your configuration's current state,
+            and use `conda config --show-sources` to view config file locations.
+            """
+        )
+        if channel.scheme == "file":
+            url = join_url(channel.location, channel.name)
+            message += dedent(
+                f"""
+                As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
+                associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                empty. Use `conda index {url}`, or create `noarch/repodata.json`
+                and associated `noarch/repodata.json.bz2`.
+                """
+            )
 
-        super(UnavailableInvalidChannel, self).__init__(message, channel_url=channel_url,
-                                                        channel_name=channel_name,
-                                                        error_code=error_code)
+        # if response includes a valid json body we prefer the reason/message defined there
+        try:
+            body = response.json()
+        except (AttributeError, JSONDecodeError):
+            body = {}
+        else:
+            reason = body.get("reason", None) or reason
+            message = body.get("message", None) or message
+
+        # standardize arguments
+        status_code = status_code or "000"
+        reason = reason or "UNAVAILABLE OR INVALID"
+        if isinstance(reason, str):
+            reason = reason.upper()
+
+        # compose complete message
+        message = (
+            dals(
+                f"""
+                HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>
+
+                """
+            )
+            # since message may include newlines don't include in f-string/dals above
+            + message
+        )
+
+        from .auxlib.logz import stringify
+
+        response_details = (stringify(response, content_max_len=1024) or "") if response else ""
+
+        super().__init__(
+            message,
+            channel_name=channel_name,
+            channel_url=channel_url,
+            status_code=status_code,
+            reason=reason,
+            response_details=response_details,
+            json=body,
+        )
 
 
 class OperationNotAllowed(CondaError):
