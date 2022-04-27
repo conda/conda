@@ -1010,7 +1010,6 @@ class NoSpaceLeftError(CondaError):
         super(NoSpaceLeftError, self).__init__(message, caused_by=caused_by, **kwargs)
 
 
-<<<<<<< HEAD
 class CondaEnvException(CondaError):
     def __init__(self, message, *args, **kwargs):
         msg = "%s" % message
@@ -1049,10 +1048,10 @@ class EnvironmentFileNotDownloaded(CondaError):
 class SpecNotFound(CondaError):
     def __init__(self, msg, *args, **kwargs):
         super(SpecNotFound, self).__init__(msg, *args, **kwargs)
-=======
+
+
 class PluginError(CondaError):
     pass
->>>>>>> 8fbe43ccb (Add first pass of plugin mechanism)
 
 
 def maybe_raise(error, context):
