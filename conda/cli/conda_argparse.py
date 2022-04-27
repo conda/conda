@@ -12,6 +12,7 @@ from argparse import (
     _CountAction,
     _HelpAction,
 )
+import functools
 from logging import getLogger
 import itertools
 import operator
@@ -39,6 +40,7 @@ escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = abspath(join(sys.prefix, '.condarc')).replace("%", "%%")
 
 
+@functools.lru_cache(maxsize=None)  # TODO: Replace w/ functools.cache when 3.8 is dropped
 def generate_parser():
     p = ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
