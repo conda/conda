@@ -755,10 +755,11 @@ class Context(Configuration):
                 """))
             elif not (self._argparse_args and 'channel' in self._argparse_args
                       and self._argparse_args['channel']):
-                from ..exceptions import CommandArgumentError
-                raise CommandArgumentError(dals("""
-                At least one -c / --channel flag must be supplied when using --override-channels.
-                """))
+                from ..exceptions import ArgumentError
+                raise ArgumentError(
+                    "At least one -c / --channel flag must be supplied when using "
+                    "--override-channels."
+                )
             else:
                 return tuple(IndexedSet(concatv(local_add, self._argparse_args['channel'])))
 

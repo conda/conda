@@ -19,7 +19,7 @@ class BinstarSpec(object):
     spec.can_handle() # => True / False
     spec.environment # => YAML string
     spec.msg # => Error messages
-    :raises: EnvironmentFileDoesNotExist, EnvironmentFileNotDownloaded
+    :raises: EnvironmentFileNotDownloaded
     """
 
     _environment = None

@@ -55,15 +55,6 @@ class ArgumentError(CondaError):
         super(ArgumentError, self).__init__(message, **kwargs)
 
 
-class CommandArgumentError(ArgumentError):
-    # TODO: Consolidate with ArgumentError.
-    return_code = 2
-
-    def __init__(self, message, **kwargs):
-        command = ' '.join(ensure_text_type(s) for s in sys.argv)
-        super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
-
-
 class Help(CondaError):
     pass
 
@@ -140,17 +131,6 @@ class TooManyArgumentsError(ArgumentError):
         msg = ('%s Got %s argument%s (%s) but expected %s.' %
                (optional_message, received, suffix, ', '.join(offending_arguments), expected))
         super(TooManyArgumentsError, self).__init__(msg, *args)
-
-
-class TooFewArgumentsError(ArgumentError):
-    def __init__(self, expected, received, optional_message='', *args):
-        self.expected = expected
-        self.received = received
-        self.optional_message = optional_message
-
-        msg = ('%s Got %s arguments but expected %s.' %
-               (optional_message, received, expected))
-        super(TooFewArgumentsError, self).__init__(msg, *args)
 
 
 class ClobberError(CondaError):
@@ -557,12 +537,6 @@ class CondaHTTPError(CondaError):
                                              caused_by=caused_by)
 
 
-class CondaRevisionError(CondaError):
-    def __init__(self, message):
-        msg = "%s." % message
-        super(CondaRevisionError, self).__init__(msg)
-
-
 class AuthenticationError(CondaError):
     pass
 
@@ -733,12 +707,6 @@ conda config --set unsatisfiable_hints True
         super(UnsatisfiableError, self).__init__(msg)
 
 
-class InstallError(CondaError):
-    def __init__(self, message):
-        msg = '%s' % message
-        super(InstallError, self).__init__(msg)
-
-
 class RemoveError(CondaError):
     def __init__(self, message):
         msg = '%s' % message
@@ -785,12 +753,6 @@ class CondaValueError(CondaError, ValueError):
         super(CondaValueError, self).__init__(message, *args, **kwargs)
 
 
-class CondaTypeError(CondaError, TypeError):
-    def __init__(self, expected_type, received_type, optional_message):
-        msg = "Expected type '%s' and got type '%s'. %s"
-        super(CondaTypeError, self).__init__(msg)
-
-
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles, **kwargs):
         from .models.records import PackageRecord
@@ -830,21 +792,6 @@ class CondaUpgradeError(CondaError):
     def __init__(self, message):
         msg = "%s" % message
         super(CondaUpgradeError, self).__init__(msg)
-
-
-class CaseInsensitiveFileSystemError(CondaError):
-    def __init__(self, package_location, extract_location, **kwargs):
-        message = dals("""
-        Cannot extract package to a case-insensitive file system.
-          package location: %(package_location)s
-          extract location: %(extract_location)s
-        """)
-        super(CaseInsensitiveFileSystemError, self).__init__(
-            message,
-            package_location=package_location,
-            extract_location=extract_location,
-            **kwargs
-        )
 
 
 class CondaVerificationError(CondaError):
