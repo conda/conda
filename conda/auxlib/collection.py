@@ -7,7 +7,8 @@ try:
 except ImportError:
     from collections import Mapping, Set
 
-from .compat import isiterable, iteritems, odict, text_type
+from .compat import isiterable, iteritems, text_type
+from .._vendor.frozendict import frozendict
 
 
 def make_immutable(value):
@@ -44,23 +45,6 @@ class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
-
-
-class frozendict(odict):
-
-    def __key(self):
-        return tuple((k, self[k]) for k in sorted(self))
-
-    def __hash__(self):
-        return hash(self.__key())
-
-    def __eq__(self, other):
-        try:
-            return self.__key() == other.__key()
-        except AttributeError:
-            if isinstance(other, Mapping):
-                return self.__key() == frozendict(other).__key()
-            return False
 
 
 def first(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
