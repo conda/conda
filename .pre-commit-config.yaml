@@ -45,6 +45,8 @@ repos:
     rev: 4.0.1
     hooks:
       - id: flake8
+        additional_dependencies:
+          - flake8-variables-names
   - repo: https://github.com/PyCQA/pylint
     rev: v2.13.7
     hooks:
