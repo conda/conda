@@ -16,9 +16,12 @@ from textwrap import dedent
 from traceback import format_exception, format_exception_only
 import getpass
 
+from .models.channel import Channel
+from .common.url import join_url, maybe_unquote
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
+from .auxlib.logz import stringify
 from .auxlib.type_coercion import boolify
 from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
@@ -409,8 +412,6 @@ class ChannelError(CondaError):
 
 class ChannelNotAllowed(ChannelError):
     def __init__(self, channel):
-        from .models.channel import Channel
-        from .common.url import maybe_unquote
         channel = Channel(channel)
         channel_name = channel.name
         channel_url = maybe_unquote(channel.base_url)
@@ -426,8 +427,6 @@ class ChannelNotAllowed(ChannelError):
 class UnavailableInvalidChannel(ChannelError):
 
     def __init__(self, channel, status_code, response=None):
-        from .models.channel import Channel
-        from .common.url import join_url, maybe_unquote
 
         # parse channel
         channel = Channel(channel)
@@ -483,9 +482,9 @@ class UnavailableInvalidChannel(ChannelError):
             + message
         )
 
-        from .auxlib.logz import stringify
-
-        response_details = (stringify(response, content_max_len=1024) or "") if response else ""
+        response_details = (
+            (stringify(response, content_max_len=1024) or "") if response is not None else ""
+        )
 
         super().__init__(
             message,
@@ -531,7 +530,6 @@ class ChecksumMismatchError(CondaError):
           expected %(checksum_type)s: %(expected_checksum)s
           actual %(checksum_type)s: %(actual_checksum)s
         """)
-        from .common.url import maybe_unquote
         url = maybe_unquote(url)
         super(ChecksumMismatchError, self).__init__(
             message, url=url, target_full_path=target_full_path, checksum_type=checksum_type,
@@ -554,8 +552,6 @@ class PackageNotInstalledError(CondaError):
 class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
-        from .common.url import maybe_unquote
-
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
@@ -596,8 +592,9 @@ class CondaHTTPError(CondaError):
             + message
         )
 
-        from .auxlib.logz import stringify
-        response_details = (stringify(response, content_max_len=1024) or '') if response else ''
+        response_details = (
+            (stringify(response, content_max_len=1024) or "") if response is not None else ""
+        )
 
         super().__init__(
             message,
