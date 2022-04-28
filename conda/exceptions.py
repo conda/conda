@@ -470,8 +470,7 @@ class UnavailableInvalidChannel(ChannelError):
         if isinstance(reason, str):
             reason = reason.upper()
 
-        # compose complete message
-        message = (
+        super().__init__(
             dals(
                 f"""
                 HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>
@@ -479,20 +478,12 @@ class UnavailableInvalidChannel(ChannelError):
                 """
             )
             # since message may include newlines don't include in f-string/dals above
-            + message
-        )
-
-        response_details = (
-            (stringify(response, content_max_len=1024) or "") if response is not None else ""
-        )
-
-        super().__init__(
-            message,
+            + message,
             channel_name=channel_name,
             channel_url=channel_url,
             status_code=status_code,
             reason=reason,
-            response_details=response_details,
+            response_details=stringify(response, content_max_len=1024) or "",
             json=body,
         )
 
@@ -579,8 +570,7 @@ class CondaHTTPError(CondaError):
         else:
             cf_ray = f"CF-RAY: {cf_ray}\n"
 
-        # compose message
-        message = (
+        super().__init__(
             dals(
                 f"""
                 HTTP {status_code} {reason} for url <{url}>
@@ -589,20 +579,12 @@ class CondaHTTPError(CondaError):
                 """
             )
             # since message may include newlines don't include in f-string/dals above
-            + message
-        )
-
-        response_details = (
-            (stringify(response, content_max_len=1024) or "") if response is not None else ""
-        )
-
-        super().__init__(
-            message,
+            + message,
             url=url,
             status_code=status_code,
             reason=reason,
             elapsed_time=elapsed_time,
-            response_details=response_details,
+            response_details=stringify(response, content_max_len=1024) or "",
             json=body,
             caused_by=caused_by,
         )
