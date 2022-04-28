@@ -91,7 +91,7 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
         stdin = None
 
     # spawn subprocess
-    p = Popen(
+    process = Popen(
         encode_arguments(command),
         cwd=cwd,
         stdin=pipe,
@@ -99,16 +99,16 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
         stderr=pipe,
         env=env,
     )
-    ACTIVE_SUBPROCESSES.add(p)
+    ACTIVE_SUBPROCESSES.add(process)
 
     # decode output, if not PIPE, stdout/stderr will be None
-    stdout, stderr = p.communicate(input=stdin)
+    stdout, stderr = process.communicate(input=stdin)
     if hasattr(stdout, "decode"):
         stdout = stdout.decode('utf-8', errors='replace')
     if hasattr(stderr, "decode"):
         stderr = stderr.decode('utf-8', errors='replace')
-    rc = p.returncode
-    ACTIVE_SUBPROCESSES.remove(p)
+    rc = process.returncode
+    ACTIVE_SUBPROCESSES.remove(process)
 
     if (raise_on_error and rc != 0) or log.isEnabledFor(TRACE):
         formatted_output = _format_output(command_str, cwd, rc, stdout, stderr)
