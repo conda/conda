@@ -13,6 +13,7 @@ conda-verify
 cytoolz
 filelock
 flake8
+flake8-variables-names
 git
 mock
 nbformat
