@@ -11,6 +11,7 @@ from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
 from .adapters.ftp import FTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
+from .adapters import jlap
 from ..anaconda_client import read_binstar_tokens
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
@@ -90,6 +91,9 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.mount("https://", http_adapter)
             self.mount("ftp://", FTPAdapter())
             self.mount("s3://", S3Adapter())
+
+            # incremental repodata (experimental)
+            jlap.attach(self, http_adapter)
 
         self.mount("file://", LocalFSAdapter())
 
