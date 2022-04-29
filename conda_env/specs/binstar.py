@@ -4,9 +4,10 @@
 import importlib
 import re
 
+from conda.exceptions import EnvironmentFileNotDownloaded
 from conda.models.version import normalized_version
+
 from .. import env
-from ..exceptions import EnvironmentFileNotDownloaded
 
 
 ENVIRONMENT_TYPE = 'env'

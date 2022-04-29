@@ -9,10 +9,11 @@ import textwrap
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, \
     add_parser_experimental_solver
 from conda.core.prefix_data import PrefixData
+from conda.exceptions import CondaEnvException, SpecNotFound
 from conda.misc import touch_nonadmin
+
 from .common import get_prefix, print_result, get_filename
-from .. import exceptions, specs as install_specs
-from ..exceptions import CondaEnvException
+from .. import specs as install_specs
 from ..installers.base import InvalidInstaller, get_installer
 
 description = """
@@ -69,7 +70,7 @@ def execute(args, parser):
         spec = install_specs.detect(name=name, filename=get_filename(args.file),
                                     directory=os.getcwd())
         env = spec.environment
-    except exceptions.SpecNotFound:
+    except SpecNotFound:
         raise
 
     if not (args.name or args.prefix):
