@@ -1731,6 +1731,34 @@ def locate_prefix_by_name(name, envs_dirs=None):
     raise EnvironmentNameNotFound(name)
 
 
+PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
+
+
+def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:
+    """Run various validations to make sure prefix_name is valid"""
+    from ..exceptions import CondaValueError
+
+    if any(_ in prefix_name for _ in PREFIX_NAME_DISALLOWED_CHARS):
+
+        builder = [
+            "Invalid environment name: '" + prefix_name + "'",
+            "  Characters not allowed: {}".format(PREFIX_NAME_DISALLOWED_CHARS),
+        ]
+        raise CondaValueError("\n".join(builder))
+    if prefix_name in (ROOT_ENV_NAME, "root"):
+        if allow_base:
+            return ctx.root_prefix
+        else:
+            raise CondaValueError("Use of 'base' as environment name is not allowed here.")
+    else:
+        from ..exceptions import EnvironmentNameNotFound
+
+        try:
+            return locate_prefix_by_name(prefix_name)
+        except EnvironmentNameNotFound:
+            return join(_first_writable_envs_dir(), prefix_name)
+
+
 def determine_target_prefix(ctx, args=None):
     """Get the prefix to operate in.  The prefix may not yet exist.
 
@@ -1765,20 +1793,7 @@ def determine_target_prefix(ctx, args=None):
     elif prefix_path is not None:
         return expand(prefix_path)
     else:
-        disallowed_chars = ('/', ' ', ':', '#')
-        if any(_ in prefix_name for _ in disallowed_chars):
-            from ..exceptions import CondaValueError
-            builder = ["Invalid environment name: '" + prefix_name + "'"]
-            builder.append("  Characters not allowed: {}".format(disallowed_chars))
-            raise CondaValueError("\n".join(builder))
-        if prefix_name in (ROOT_ENV_NAME, 'root'):
-            return ctx.root_prefix
-        else:
-            from ..exceptions import EnvironmentNameNotFound
-            try:
-                return locate_prefix_by_name(prefix_name)
-            except EnvironmentNameNotFound:
-                return join(_first_writable_envs_dir(), prefix_name)
+        return validate_prefix_name(prefix_name, ctx=ctx)
 
 
 def _first_writable_envs_dir():

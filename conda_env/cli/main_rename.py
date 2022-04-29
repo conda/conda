@@ -2,18 +2,25 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
 from argparse import RawDescriptionHelpFormatter
 
-from conda.cli import conda_argparse as ca
+from conda.cli import common
+from conda.common.path import expand
+from conda.base.context import context, locate_prefix_by_name, validate_prefix_name
+from conda.cli import conda_argparse as c_arg, install
+from conda.gateways.disk.delete import rm_rf
 
 DESCRIPTION = """
-Renames an environment based
+Renames an existing environment
 """
 
 EXAMPLE = """
 examples:
     conda env rename -n test123 test321
     conda env rename --name test123 test321
+    conda env rename -p path/to/test123 test321
+    conda env rename --prefix path/to/test123 test321
 """
 
 
@@ -26,9 +33,9 @@ def configure_parser(sub_parsers) -> None:
         epilog=EXAMPLE,
     )
     # Add name and prefix args
-    ca.add_parser_prefix(p)
+    c_arg.add_parser_prefix(p)
 
-    p.add_argument("destination", nargs=1, help="New name for the conda environment")
+    p.add_argument("destination", help="New name for the conda environment")
     p.add_argument(
         "--force",
         help=(
@@ -48,6 +55,27 @@ def configure_parser(sub_parsers) -> None:
     p.set_defaults(func=".main_rename.execute")
 
 
-def execute(args, parser):
-    print(parser.destination)
-    print("hai")
+def validate_src(args) -> str:
+    """Validate that we are receiving at least one value for --name or --prefix"""
+    common.ensure_name_or_prefix(args, "env rename")
+    prefix = args.name if args.name else args.prefix
+
+    return locate_prefix_by_name(prefix)
+
+
+def validate_destination(dest: str) -> str:
+    """Ensure that our destination does not exist"""
+    if os.sep in dest:
+        return expand(dest)
+    else:
+        return validate_prefix_name(dest, ctx=context, allow_base=False)
+
+
+def execute(args, _):
+    """
+    Execute the command for renaming an existing environment
+    """
+    src = validate_src(args)
+    dest = validate_destination(args.destination)
+    install.clone(src, dest, quiet=context.quiet, json=context.json, use_context=False)
+    rm_rf(src)
