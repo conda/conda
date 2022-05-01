@@ -638,7 +638,7 @@ class _Activator(object):
         return tuple(path_list)
 
     def _build_activate_shell_custom(self, export_vars):
-        # A method that can be overriden by shell-specific implementations.
+        # A method that can be overridden by shell-specific implementations.
         # The signature of this method may change in the future.
         pass
 

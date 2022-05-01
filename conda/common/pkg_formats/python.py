@@ -588,7 +588,7 @@ class PythonDistributionMetadata(object):
         """
         Helper method to get multiple data values by keys.
 
-        Keys is an iterable including the prefered key in order, to include
+        Keys is an iterable including the preferred key in order, to include
         values of key that might have been replaced (deprecated), for example
         keys can be ['requires_dist', 'requires'], where the key 'requires' is
         deprecated and replaced by 'requires_dist'.
@@ -1066,7 +1066,7 @@ def _is_literal(o):
 
 class Evaluator(object):
     """
-    This class is used to evaluate marker expessions.
+    This class is used to evaluate marker expressions.
     """
 
     operations = {

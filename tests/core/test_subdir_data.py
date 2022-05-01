@@ -47,7 +47,7 @@ class GetRepodataIntegrationTests(TestCase):
                     for dist, record in iteritems(index):
                         assert platform_in_record(this_platform, record), (this_platform, record.url)
 
-        # When unknown=True (which is implicity engaged when context.offline is
+        # When unknown=True (which is implicitly engaged when context.offline is
         # True), there may be additional items in the cache that are included in
         # the index. But where those items coincide with entries already in the
         # cache, they must not change the record in any way. TODO: add one or

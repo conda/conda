@@ -12,7 +12,7 @@ from conda.testing.helpers import raises
 
 
 # These routines implement logical tests with short-circuiting
-# and propogation of unknown values:
+# and propagation of unknown values:
 #    - positive integers are variables
 #    - negative integers are negations of positive variables
 #    - lowercase True and False are fixed values
@@ -22,7 +22,7 @@ from conda.testing.helpers import raises
 #
 # To ensure correctness, the only logic functions we have implemented
 # directly are NOT and OR. The rest are implemented in terms of these.
-# Peformance is not an issue.
+# Performance is not an issue.
 
 
 def my_NOT(x):
