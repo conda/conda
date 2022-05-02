@@ -23,15 +23,6 @@ from subprocess import check_output
 def encode_for_env_var(value):
     if isinstance(value, str):
         return value
-    if sys.version_info[0] == 2:
-        _unicode = unicode
-    else:
-        _unicode = str
-    if isinstance(value, (str, _unicode)):
-        try:
-            return bytes(value, encoding='utf-8')
-        except:
-            return value.encode('utf-8')
     return str(value)
 
 
