@@ -827,9 +827,11 @@ class Context(Configuration):
 
             user_agent_str = "solver/%s" % self.experimental_solver.value
             Solver = _get_solver_class()
-            if hasattr(Solver, "user_agent") and callable(Solver.user_agent):
-                # This has to be a static or class method
+            try:
+                # Solver.user_agent has to be a static or class method
                 user_agent_str += f" {Solver.user_agent()}"
+            except (AttributeError, TypeError):
+                pass
             builder.append(user_agent_str)
         return " ".join(builder)
 
