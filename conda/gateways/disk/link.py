@@ -66,7 +66,7 @@ else:  # pragma: unix no cover
     symlink = win_soft_link
 
 
-if not (on_win and (PY2 or PYPY)):
+if not (on_win and PYPY):
     from os import readlink
     islink = os_islink
     lexists = os_lexists
@@ -128,7 +128,7 @@ else:  # pragma: no cover
     INVALID_HANDLE_VALUE = wintypes.HANDLE(-1).value
     GetFileAttributes = windll.kernel32.GetFileAttributesW
     GetFileAttributes.restype = wintypes.DWORD
-    GetFileAttributes.argtypes = wintypes.LPWSTR,
+    GetFileAttributes.argtypes = (wintypes.LPWSTR,)
 
     def handle_nonzero_success(result):
         if result == 0:

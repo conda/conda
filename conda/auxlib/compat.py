@@ -3,10 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 from itertools import chain
 import os
-
-from .._vendor.six import (
-    PY2,
-    PY3,
+from .._vendor.six import (  # noqa: F401
     integer_types,
     iteritems,
     iterkeys,
@@ -16,15 +13,13 @@ from .._vendor.six import (
     wraps,
 )
 
-PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types = PY2, PY3, integer_types, iteritems, iterkeys, itervalues, string_types  # NOQA
-text_type, wraps = text_type, wraps
 from shlex import split
 from tempfile import NamedTemporaryFile
 
 try:
-    from collections import OrderedDict as odict  # NOQA
+    from collections import OrderedDict as odict  # noqa: F401
 except ImportError:
-    from ordereddict import OrderedDict as odict  # NOQA
+    from ordereddict import OrderedDict as odict  # noqa: F401
 
 
 NoneType = type(None)
@@ -33,16 +28,11 @@ primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool
 
 def isiterable(obj):
     # and not a string
-    if PY2:
-        return (hasattr(obj, '__iter__')
-                and not isinstance(obj, string_types)
-                and type(obj) is not type)
-    else:
-        try:
-            from collections.abc import Iterable
-        except ImportError:
-            from collections import Iterable
-        return not isinstance(obj, string_types) and isinstance(obj, Iterable)
+    try:
+        from collections.abc import Iterable
+    except ImportError:
+        from collections import Iterable
+    return not isinstance(obj, string_types) and isinstance(obj, Iterable)
 
 
 # shlex.split() is a poor function to use for anything general purpose (like calling subprocess).
