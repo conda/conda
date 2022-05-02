@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+from collections import OrderedDict as odict  # noqa: F401
 from itertools import chain
 import os
+from shlex import split
+from tempfile import NamedTemporaryFile
+
 from .._vendor.six import (  # noqa: F401
     integer_types,
     iteritems,
@@ -12,15 +16,6 @@ from .._vendor.six import (  # noqa: F401
     text_type,
     wraps,
 )
-
-from shlex import split
-from tempfile import NamedTemporaryFile
-
-try:
-    from collections import OrderedDict as odict  # noqa: F401
-except ImportError:
-    from ordereddict import OrderedDict as odict  # noqa: F401
-
 
 NoneType = type(None)
 primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool, NoneType)))
