@@ -17,11 +17,23 @@ from conda.auxlib.ish import dals
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_win
 from conda.common.io import captured, env_var
-from conda.exceptions import BasicClobberError, BinaryPrefixReplacementError, CommandNotFoundError, \
-    CondaHTTPError, CondaKeyError, CondaRevisionError, DirectoryNotFoundError, \
-    KnownPackageClobberError, ChecksumMismatchError, PackagesNotFoundError, PathNotFoundError, \
-    SharedLinkPathClobberError, TooFewArgumentsError, TooManyArgumentsError, \
-    UnknownPackageClobberError, conda_exception_handler, ExceptionHandler
+from conda.exceptions import (
+    BasicClobberError,
+    BinaryPrefixReplacementError,
+    CommandNotFoundError,
+    CondaHTTPError,
+    CondaKeyError,
+    DirectoryNotFoundError,
+    KnownPackageClobberError,
+    ChecksumMismatchError,
+    PackagesNotFoundError,
+    PathNotFoundError,
+    SharedLinkPathClobberError,
+    TooManyArgumentsError,
+    UnknownPackageClobberError,
+    conda_exception_handler,
+    ExceptionHandler,
+)
 
 try:
     from unittest.mock import Mock, patch
@@ -68,30 +80,6 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == "TooManyArgumentsError:  Got 5 arguments (g, r, o, o, t) but expected 2."
-
-    def test_TooFewArgumentsError(self):
-        expected = 5
-        received = 2
-        exc = TooFewArgumentsError(expected, received)
-        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with captured() as c:
-                conda_exception_handler(_raise_helper, exc)
-
-        json_obj = json.loads(c.stdout)
-        assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.TooFewArgumentsError'>"
-        assert json_obj['exception_name'] == 'TooFewArgumentsError'
-        assert json_obj['message'] == text_type(exc)
-        assert json_obj['error'] == repr(exc)
-        assert json_obj['expected'] == 5
-        assert json_obj['received'] == 2
-
-        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with captured() as c:
-                conda_exception_handler(_raise_helper, exc)
-
-        assert not c.stdout
-        assert c.stderr.strip() == "TooFewArgumentsError:  Got 2 arguments but expected 5."
 
     def test_BasicClobberError(self):
         source_path = "some/path/on/goodwin.ave"
@@ -258,27 +246,6 @@ class ExceptionTests(TestCase):
         PackagesNotFoundError: The following packages are missing from the target environment:
           - Potato
         """).strip()
-
-    def test_CondaRevisionError(self):
-        message = "Potato"
-        exc = CondaRevisionError(message)
-        with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with captured() as c:
-                conda_exception_handler(_raise_helper, exc)
-
-        json_obj = json.loads(c.stdout)
-        assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.CondaRevisionError'>"
-        assert json_obj['exception_name'] == 'CondaRevisionError'
-        assert json_obj['message'] == text_type(exc)
-        assert json_obj['error'] == repr(exc)
-
-        with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with captured() as c:
-                conda_exception_handler(_raise_helper, exc)
-
-        assert not c.stdout
-        assert c.stderr.strip() == "CondaRevisionError: Potato."
 
     def test_CondaKeyError(self):
         key = "Potato"

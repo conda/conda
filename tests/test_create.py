@@ -51,7 +51,7 @@ from conda.core.index import get_reduced_index
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
-from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
+from conda.exceptions import ArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, PackageNotInstalledError, \
     DisallowedPackageError, DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound, \
     CondaValueError
@@ -392,7 +392,7 @@ class IntegrationTests(BaseTestCase):
                 with make_temp_env("--override-channels", "python") as prefix:
                     assert prefix
 
-        with pytest.raises(CommandArgumentError):
+        with pytest.raises(ArgumentError):
             with make_temp_env("--override-channels", "python") as prefix:
                 assert prefix
 

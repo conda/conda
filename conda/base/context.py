@@ -755,10 +755,11 @@ class Context(Configuration):
                 """))
             elif not (self._argparse_args and 'channel' in self._argparse_args
                       and self._argparse_args['channel']):
-                from ..exceptions import CommandArgumentError
-                raise CommandArgumentError(dals("""
-                At least one -c / --channel flag must be supplied when using --override-channels.
-                """))
+                from ..exceptions import ArgumentError
+                raise ArgumentError(
+                    "At least one -c / --channel flag must be supplied when using "
+                    "--override-channels."
+                )
             else:
                 return tuple(IndexedSet(concatv(local_add, self._argparse_args['channel'])))
 
@@ -825,10 +826,11 @@ class Context(Configuration):
             from ..core.solve import _get_solver_class
 
             user_agent_str = "solver/%s" % self.experimental_solver.value
-            Solver = _get_solver_class()
-            if hasattr(Solver, "user_agent") and callable(Solver.user_agent):
-                # This has to be a static or class method
-                user_agent_str += f" {Solver.user_agent()}"
+            try:
+                # Solver.user_agent has to be a static or class method
+                user_agent_str += f" {_get_solver_class().user_agent()}"
+            except (AttributeError, TypeError):
+                pass
             builder.append(user_agent_str)
         return " ".join(builder)
 

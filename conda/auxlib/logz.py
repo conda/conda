@@ -69,7 +69,10 @@ def jsondumps(obj):
 
 
 def fullname(obj):
-    return obj.__module__ + "." + obj.__class__.__name__
+    try:
+        return obj.__module__ + "." + obj.__class__.__name__
+    except AttributeError:
+        return obj.__class__.__name__
 
 
 request_header_sort_dict = {
