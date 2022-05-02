@@ -723,9 +723,9 @@ class Context(Configuration):
         )
         all_multichannels = odict(
             (name, channels)
-            for name, channels in concat(
+            for name, channels in concatv(
                 custom_multichannels.items(),
-                reserved_multichannels.items(),  # reserved comes last, so reserved overrides custom
+                reserved_multichannels.items(),  # order maters, reserved overrides custom
             )
         )
         return all_multichannels

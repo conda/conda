@@ -1229,7 +1229,7 @@ class ParameterLoader(object):
         if numkeys == 0:
             return None, None
         elif numkeys == 1:
-            return next(matches.values()), None
+            return next(iter(matches.values())), None
         elif name in keys:
             return matches[name], MultipleKeysError(
                 raw_parameters[next(iter(keys))].source, keys, name)
