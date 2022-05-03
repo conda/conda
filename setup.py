@@ -7,9 +7,11 @@ import sys
 
 from setuptools import setup
 
-if not sys.version_info[:2] >= (3, 6):
-    sys.exit("conda is only meant for Python 3.6 and up.  "
-             "current version: %d.%d" % sys.version_info[:2])
+if not sys.version_info[:2] >= (3, 7):
+    sys.exit(
+        f"conda is only meant for Python 3.7 and up. "
+        f"current version: {sys.version_info.major}.{sys.version_info.minor}"
+    )
 
 
 # When executing setup.py, we need to be able to import ourselves, this
