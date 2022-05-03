@@ -11,6 +11,9 @@ import sys
 import threading
 import warnings as _warnings
 
+# necessary for conda-build
+from ._vendor.six import PY3  # noqa: F401
+
 from . import CondaError  # noqa: F401
 from .base.context import reset_context
 
@@ -22,7 +25,7 @@ from .cli.common import specs_from_args, spec_from_line, specs_from_url  # noqa:
 from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # noqa: F401
 from .cli.conda_argparse import ArgumentParser  # noqa: F401
 from .common import compat  # noqa: F401
-from .common.compat import PY3, on_win  # noqa: F401
+from .common.compat import on_win  # noqa: F401
 from .gateways.connection.session import CondaSession  # noqa: F401
 from .gateways.disk.create import TemporaryDirectory  # noqa: F401
 from .common.toposort import _toposort  # noqa: F401
