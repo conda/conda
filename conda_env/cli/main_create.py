@@ -13,10 +13,11 @@ from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
     add_parser_prefix, add_parser_networking, add_parser_experimental_solver
 from conda.core.prefix_data import PrefixData
+from conda.exceptions import SpecNotFound
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 from .common import get_prefix, print_result, get_filename
-from .. import exceptions, specs
+from .. import specs
 from ..installers.base import InvalidInstaller, get_installer
 
 description = """
@@ -94,7 +95,7 @@ def execute(args, parser):
         if args.prefix is None and args.name is None:
             args.name = env.name
 
-    except exceptions.SpecNotFound:
+    except SpecNotFound:
         raise
 
     prefix = get_prefix(args, search=False)

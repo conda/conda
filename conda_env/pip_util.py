@@ -14,7 +14,7 @@ import os
 import re
 import sys
 
-from .exceptions import CondaEnvException
+from conda.exceptions import CondaEnvException
 from conda.gateways.subprocess import any_subprocess
 from conda.exports import on_win
 from conda.base.context import context

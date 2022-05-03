@@ -11,7 +11,7 @@ from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
-from conda.exceptions import CondaHTTPError
+from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
 from conda.models.match_spec import MatchSpec
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_round_trip_load
@@ -40,7 +40,6 @@ except ImportError:
 import pytest
 
 from conda_env import env
-from conda_env import exceptions
 
 
 class FakeStream(object):
@@ -330,11 +329,11 @@ class load_from_directory_trailing_slash_TestCase(DirectoryTestCase):
 
 class load_from_directory_TestCase(unittest.TestCase):
     def test_raises_when_unable_to_find(self):
-        with self.assertRaises(exceptions.EnvironmentFileNotFound):
+        with self.assertRaises(EnvironmentFileNotFound):
             env.load_from_directory('/path/to/unknown/env-spec')
 
     def test_raised_exception_has_environment_yml_as_file(self):
-        with self.assertRaises(exceptions.EnvironmentFileNotFound) as e:
+        with self.assertRaises(EnvironmentFileNotFound) as e:
             env.load_from_directory('/path/to/unknown/env-spec')
         self.assertEqual(e.exception.filename, 'environment.yml')
 

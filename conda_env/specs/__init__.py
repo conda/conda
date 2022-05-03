@@ -4,13 +4,17 @@
 
 import os
 
+from conda.exceptions import (
+    EnvironmentFileExtensionNotValid,
+    EnvironmentFileNotFound,
+    SpecNotFound,
+)
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
+
 from .binstar import BinstarSpec
 from .notebook import NotebookSpec
 from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
-from ..exceptions import (EnvironmentFileExtensionNotValid, EnvironmentFileNotFound,
-                          SpecNotFound)
 
 
 def detect(**kwargs):
