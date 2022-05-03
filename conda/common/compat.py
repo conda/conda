@@ -24,17 +24,13 @@ ENCODE_ENVIRONMENT = True
 ENCODE_ARGS = False
 
 
-def encode_for_env_var(value) -> bytes:
-    """Want bytes encoded as utf-8 for both names and values."""
-    if isinstance(value, bytes):
+def encode_for_env_var(value) -> str:
+    """Environment names and values need to be string."""
+    if isinstance(value, str):
         return value
-    elif isinstance(value, str):
-        try:
-            return bytes(value, encoding='utf-8')
-        except:
-            return value.encode('utf-8')
-    else:
-        return bytes(value)
+    elif isinstance(value, bytes):
+        return value.decode()
+    return str(value)
 
 
 def encode_environment(env):
