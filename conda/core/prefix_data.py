@@ -136,7 +136,7 @@ class PrefixData(metaclass=PrefixDataType):
                 raise
 
     def iter_records(self):
-        return self._prefix_records.values()
+        return iter(self._prefix_records.values())
 
     def iter_records_sorted(self):
         prefix_graph = PrefixGraph(self.iter_records())
