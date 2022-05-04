@@ -829,7 +829,7 @@ class Context(Configuration):
             try:
                 # Solver.user_agent has to be a static or class method
                 user_agent_str += f" {_get_solver_class().user_agent()}"
-            except (AttributeError, TypeError):
+            except (AttributeError, TypeError, ImportError):
                 pass
             builder.append(user_agent_str)
         return " ".join(builder)
