@@ -10,15 +10,8 @@ Managing Python
 Conda treats Python the same as any other package, so it is easy
 to manage and update multiple installations.
 
-Anaconda supports Python 2.7, 3.6, 3.7, and 3.8. The default is Python
-2.7 or 3.8, depending on which installer you used:
-
-* For the installers "Anaconda" and "Miniconda," the default is
-  2.7.
-
-* For the installers "Anaconda3" or "Miniconda3," the default is
-  3.8.
-
+Anaconda supports Python 3.7, 3.8, 3.9 and 3.10. The current default is
+Python 3.9.
 
 Viewing a list of available Python versions
 ===========================================

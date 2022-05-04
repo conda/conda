@@ -26,24 +26,21 @@ The .travis.yml file
 
 The following code sample shows how to modify the ``.travis.yml``
 file to use `Miniconda <https://conda.io/miniconda.html>`_ for a
-project that supports Python 2.7, 3.5, and 3.6:
+project that supports Python 3.7, 3.8, 3.9 and 3.10:
 
 .. code-block:: yaml
 
    language: python
    python:
      # We don't actually use the Travis Python, but this keeps it organized.
-     - "2.7"
-     - "3.5"
-     - "3.6"
+     - "3.7"
+     - "3.8"
+     - "3.9"
+     - "3.10"
    install:
      # We do this conditionally because it saves us some downloading if the
      # version is the same.
-     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-         wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-       else
-         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-       fi
+     - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
      - bash miniconda.sh -b -p $HOME/miniconda
      - source "$HOME/miniconda/etc/profile.d/conda.sh"
      - hash -r
@@ -110,44 +107,3 @@ recipe is tested as well.
 
       - conda build your-conda-recipe
       - conda install your-package --use-local
-
-
-AppVeyor
-========
-
-`AppVeyor <http://www.appveyor.com/>`_ is a continuous build
-service for Windows built on Azure and is an alternative to using
-Travis CI with conda.
-
-For an example project building conda packages on AppVeyor, see
-https://github.com/rmcgibbo/python-appveyor-conda-example.
-
-Bootstrap your environment
-==========================
-
-To bootstrap your environment, use the standalone conda
-approach in your ``appveyor.yml``:
-
-.. code-block:: yaml
-
-   # Config file for automatic testing at travis-ci.org
-
-   language: python
-   python:
-     - "2.7"
-     - "3.7"
-
-   install:
-     - wget https://repo.anaconda.com/pkgs/misc/conda-execs/conda-latest-linux-64.exe -O conda.exe
-     - chmod +x conda.exe
-     - export CONDA_ALWAYS_YES=1
-     # This is where you put any extra dependencies you may have.
-     - ./conda.exe create -p $HOME/miniconda python=$TRAVIS_PYTHON_VERSION conda conda-build pytest six pytest-cov pytest-mock
-     - export PATH="$HOME/miniconda/bin:$PATH"
-     - hash -r
-     # Install your code here.
-   script:
-     - pytest -v --color=yes --cov=cpr tests
-   after_success:
-     - conda install codecov
-     - codecov
