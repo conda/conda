@@ -195,8 +195,11 @@ class PackageCacheData(metaclass=PackageCacheType):
     @classmethod
     def get_all_extracted_entries(cls):
         package_caches = (cls(pd) for pd in context.pkgs_dirs)
-        return tuple(pc_entry for pc_entry in concat((package_cache.values() for package_cache in package_caches))
-                     if pc_entry.is_extracted)
+        return tuple(
+            pc_entry
+            for pc_entry in concat((package_cache.values() for package_cache in package_caches))
+            if pc_entry.is_extracted
+        )
 
     @classmethod
     def get_entry_to_link(cls, package_ref):

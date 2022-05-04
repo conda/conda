@@ -696,7 +696,9 @@ class _Activator(object):
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
-            paths = (entry.path for entry in os.scandir(join(prefix, 'etc', 'conda', 'activate.d')))
+            paths = (
+                entry.path for entry in os.scandir(join(prefix, "etc", "conda", "activate.d"))
+            )
         except EnvironmentError:
             return ()
         return self.path_conversion(sorted(
@@ -707,7 +709,9 @@ class _Activator(object):
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
-            paths = (entry.path for entry in os.scandir(join(prefix, 'etc', 'conda', 'deactivate.d')))
+            paths = (
+                entry.path for entry in os.scandir(join(prefix, "etc", "conda", "deactivate.d"))
+            )
         except EnvironmentError:
             return ()
         return self.path_conversion(sorted(
