@@ -40,7 +40,7 @@ project that supports Python 3.7, 3.8, 3.9 and 3.10:
    install:
      # We do this conditionally because it saves us some downloading if the
      # version is the same.
-     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+     - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
      - bash miniconda.sh -b -p $HOME/miniconda
      - source "$HOME/miniconda/etc/profile.d/conda.sh"
      - hash -r
