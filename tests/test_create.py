@@ -1038,7 +1038,8 @@ dependencies:
             else:
                 # We force the use of 'the other' Python on Windows so that Windows
                 # runtime / DLL incompatibilities will be readily apparent.
-                packages.append('python=3.7')
+                py_ver = "3.7"
+                packages.append(f"python={py_ver}")
             with make_temp_env(*packages, use_restricted_unicode=False) as prefix:
                 if use_sys_python:
                     python_binary = sys.executable
