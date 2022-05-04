@@ -36,7 +36,7 @@ function initSVG(xhr, panel) {
     svg.width(svg.width() * scale);
     svg.height(svg.height() * scale);
 
-    // intializing panzoom object
+    // initializing panzoom object
     var panzoom = Panzoom(svg.get(0), {
         duration: 50,
         minScale: 1,

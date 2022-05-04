@@ -357,7 +357,7 @@ class Field(object):
     """
     Fields are doing something very similar to boxing and unboxing
     of c#/java primitives.  __set__ should take a "primitive" or "raw" value and create a "boxed"
-    or "programatically useable" value of it.  While __get__ should return the boxed value,
+    or "programmatically usable" value of it.  While __get__ should return the boxed value,
     dump in turn should unbox the value into a primitive or raw value.
 
     Arguments:

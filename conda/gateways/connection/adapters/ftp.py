@@ -263,7 +263,7 @@ def build_response(request, data, code, encoding):
 
 
 def parse_multipart_files(request):
-    """Given a prepared reqest, return a file-like object containing the
+    """Given a prepared request, return a file-like object containing the
     original data. This is pretty hacky."""
     # Start by grabbing the pdict.
     _, pdict = cgi.parse_header(request.headers['Content-Type'])

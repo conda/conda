@@ -126,7 +126,7 @@ class Resolve(object):
             hasattr(_, 'package_type') and _.package_type == PackageType.VIRTUAL_SYSTEM)}
 
         # sorting these in reverse order is effectively prioritizing
-        # contstraint behavior from newer packages. It is applying broadening
+        # constraint behavior from newer packages. It is applying broadening
         # reduction based on the latest packages, which may reduce the space
         # more, because more modern packages utilize constraints in more sane
         # ways (for example, using run_exports in conda-build 3)
@@ -1205,7 +1205,7 @@ class Resolve(object):
         nspecs = []
         # There's an imperfect thing happening here. "specs" nominally contains
         # a list of package names or track_feature values to be removed. But
-        # because of add_defaults_to_specs it may also contain version contraints
+        # because of add_defaults_to_specs it may also contain version constraints
         # like "python 2.7*", which are *not* asking for python to be removed.
         # We need to separate these two kinds of specs here.
         for s in map(MatchSpec, specs):

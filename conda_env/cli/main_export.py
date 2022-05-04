@@ -96,7 +96,7 @@ def execute(args, parser):
             raise CondaEnvException(msg)
         if name:
             if os.sep in name:
-                # assume "names" with a path seperator are actually paths
+                # assume "names" with a path separator are actually paths
                 args.prefix = name
             else:
                 args.name = name

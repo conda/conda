@@ -50,7 +50,7 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
     (A-Za-z0-9), separated into components by dots and underscores. Empty
     segments (i.e. two consecutive dots, a leading/trailing underscore)
     are not permitted. An optional epoch number - an integer
-    followed by '!' - can preceed the actual version string
+    followed by '!' - can proceed the actual version string
     (this is useful to indicate a change in the versioning
     scheme itself). Version comparison is case-insensitive.
 

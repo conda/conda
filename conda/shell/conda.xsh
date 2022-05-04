@@ -128,7 +128,7 @@ def _get_envs_unfiltered():
     except ModuleNotFoundError:
         config = importlib.import_module('conda.config')
 
-    # create the list of envrionments
+    # create the list of environments
     env_list = []
     for envs_dir in config.envs_dirs:
         # skip non-existing environments directories

@@ -18,7 +18,7 @@
 
   2. Try out the solver using the `--experimental-solver=libmamba` command line option.
 
-     E.g. with a dry-run to install the ``scipy`` pacakge:
+     E.g. with a dry-run to install the ``scipy`` package:
 
      ```
      conda create -n demo scipy --dry-run --experimental-solver=libmamba
@@ -2300,7 +2300,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 
 ### Bug Fixes
 * fix #5367 conda info always shows 'unknown' for admin indicator on Windows (#5368)
-* fix #5248 drop plan description information that might not alwasy be accurate (#5373)
+* fix #5248 drop plan description information that might not always be accurate (#5373)
 * fix #5378 duplicate log messages (#5379)
 * fix #5298 record has 'build', not 'build_string' (#5382)
 * fix #5384 silence logging info to avoid interfering with JSON output (#5393)
@@ -3387,10 +3387,10 @@ will make sure that whenever conda is installed or changed in an environment, th
 * The solver has been retooled significantly. Performance
   should be improved in most circumstances, and a number of issues
   involving feature conflicts should be resolved.
-* `conda update <package>` now handles depedencies properly
+* `conda update <package>` now handles dependencies properly
   according to the setting of the "update_deps" configuration:
       --update-deps: conda will also update any dependencies as needed
-                     to install the latest verison of the requrested
+                     to install the latest version of the requested
                      packages.  The minimal set of changes required to
                      achieve this is sought.
       --no-update-deps: conda will update the packages *only* to the
@@ -3444,7 +3444,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 
 ## 3.18.9 (2015-12-10)
 
-* allow chaning default_channels (only applies to "system" condarc), from
+* allow chaining default_channels (only applies to "system" condarc), from
   from CLI, #1886
 * improve default for --show-channel-urls in conda list, #1900
 
@@ -3947,7 +3947,7 @@ will make sure that whenever conda is installed or changed in an environment, th
     called pinned to the environment's conda-meta directory with the specs to
     pin. Pinned specs are always kept installed, unless the --no-pin flag is
     used.
-  * fix keyboard interrupting of external commands. Now keyboard interupting
+  * fix keyboard interrupting of external commands. Now keyboard interrupting
     conda build correctly removes the lock file
   * add no_link ability to conda, see issue #678
 
@@ -4477,7 +4477,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 
 ## 1.4.4 (2013-03-09)
 
-  * use numpy 1.7 as default on all platfroms
+  * use numpy 1.7 as default on all platforms
 
 
 ## 1.4.3 (2013-03-09)

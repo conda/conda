@@ -1156,7 +1156,7 @@ class Context(Configuration):
             client_ssl_cert=dals(
                 """
                 A path to a single file containing a private key and certificate (e.g. .pem
-                file). Alternately, use client_ssl_cert_key in conjuction with client_ssl_cert
+                file). Alternately, use client_ssl_cert_key in conjunction with client_ssl_cert
                 for individual files.
                 """
             ),

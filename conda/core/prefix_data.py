@@ -53,7 +53,7 @@ class PrefixData(metaclass=PrefixDataType):
     _cache_ = {}
 
     def __init__(self, prefix_path, pip_interop_enabled=None):
-        # pip_interop_enabled is a temporary paramater; DO NOT USE
+        # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = prefix_path
         self.__prefix_records = None

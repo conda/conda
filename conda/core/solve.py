@@ -726,7 +726,7 @@ class Solver(object):
             if 'python' not in conflict_specs and freeze_installed:
                 ssc.specs_map['python'] = python_prefix_rec.to_match_spec()
             else:
-                # will our prefix record conflict with any explict spec?  If so, don't add
+                # will our prefix record conflict with any explicit spec?  If so, don't add
                 #     anything here - let python float when it hasn't been explicitly specified
                 python_spec = ssc.specs_map.get('python', MatchSpec('python'))
                 if not python_spec.get('version'):
@@ -1378,7 +1378,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #
 #         unlink_link_map = odict()
 #
-#         # solve all neede preferred_env prefixes
+#         # solve all needed preferred_env prefixes
 #         for env_name in set(concatv(env_add_map, env_remove_map)):
 #             specs_to_add = env_add_map[env_name]
 #             spec_to_remove = env_remove_map[env_name]
