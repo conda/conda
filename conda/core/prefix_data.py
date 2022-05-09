@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import OrderedDict
 import json
 from logging import getLogger
+import os
 from os.path import basename, isdir, isfile, join, lexists
 import re
 
@@ -13,8 +14,7 @@ from ..base.constants import PREFIX_STATE_FILE
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import (JSONDecodeError, itervalues, odict, scandir,
-                             string_types)
+from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -69,7 +69,7 @@ class PrefixData(metaclass=PrefixDataType):
         if lexists(_conda_meta_dir):
             conda_meta_json_paths = (
                 p for p in
-                (entry.path for entry in scandir(_conda_meta_dir))
+                (entry.path for entry in os.scandir(_conda_meta_dir))
                 if p[-5:] == ".json"
             )
             for meta_file in conda_meta_json_paths:
@@ -136,7 +136,7 @@ class PrefixData(metaclass=PrefixDataType):
                 raise
 
     def iter_records(self):
-        return itervalues(self._prefix_records)
+        return iter(self._prefix_records.values())
 
     def iter_records_sorted(self):
         prefix_graph = PrefixGraph(self.iter_records())
@@ -144,7 +144,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def all_subdir_urls(self):
         subdir_urls = set()
-        for prefix_record in itervalues(self._prefix_records):
+        for prefix_record in self.iter_records():
             subdir_url = prefix_record.channel.subdir_url
             if subdir_url and subdir_url not in subdir_urls:
                 log.debug("adding subdir url %s for %s", subdir_url, prefix_record)
@@ -154,7 +154,7 @@ class PrefixData(metaclass=PrefixDataType):
     def query(self, package_ref_or_match_spec):
         # returns a generator
         param = package_ref_or_match_spec
-        if isinstance(param, string_types):
+        if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             return (prefix_rec for prefix_rec in self.iter_records()
@@ -172,7 +172,7 @@ class PrefixData(metaclass=PrefixDataType):
         with open(prefix_record_json_path) as fh:
             try:
                 json_data = json_load(fh.read())
-            except (UnicodeDecodeError, JSONDecodeError):
+            except (UnicodeDecodeError, json.JSONDecodeError):
                 # UnicodeDecodeError: catch horribly corrupt files
                 # JSONDecodeError: catch bad json format files
                 raise CorruptedEnvironmentError(self.prefix_path, prefix_record_json_path)
@@ -213,7 +213,7 @@ class PrefixData(metaclass=PrefixDataType):
     def _python_pkg_record(self):
         """Return the prefix record for the package python."""
         return next(
-            (prefix_record for prefix_record in itervalues(self.__prefix_records)
+            (prefix_record for prefix_record in self.__prefix_records.values()
              if prefix_record.name == 'python'),
             None
         )

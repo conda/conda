@@ -20,18 +20,12 @@ from os.path import dirname, normpath, join, isfile
 from subprocess import check_output
 
 
-def encode_for_env_var(value):
+def encode_for_env_var(value) -> str:
+    """Environment names and values need to be string."""
     if isinstance(value, str):
         return value
-    if sys.version_info[0] == 2:
-        _unicode = unicode
-    else:
-        _unicode = str
-    if isinstance(value, (str, _unicode)):
-        try:
-            return bytes(value, encoding='utf-8')
-        except:
-            return value.encode('utf-8')
+    elif isinstance(value, bytes):
+        return value.decode()
     return str(value)
 
 

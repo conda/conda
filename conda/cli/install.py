@@ -13,7 +13,6 @@ from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME, DepsModifier, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
-from ..common.compat import scandir, text_type
 from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
@@ -42,7 +41,7 @@ def check_prefix(prefix, json=False):
     if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
-        if isdir(prefix) and 'conda-meta' not in tuple(entry.name for entry in scandir(prefix)):
+        if isdir(prefix) and 'conda-meta' not in tuple(entry.name for entry in os.scandir(prefix)):
             return None
         error = "prefix already exists: %s" % prefix
 
@@ -312,7 +311,7 @@ def install(args, parser, command='install'):
                 except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
                     # Unsatisfiable package specifications/no such revision/import error
                     if e.args and 'could not import' in e.args[0]:
-                        raise CondaImportError(text_type(e))
+                        raise CondaImportError(str(e))
                     # we want to fall through without raising if we're not at the end of the list
                     #    of fns.  That way, we fall to the next fn.
                     if repodata_fn == repodata_fns[-1]:
@@ -323,7 +322,7 @@ def install(args, parser, command='install'):
                 # end of the line.  Raise the exception
                 # Unsatisfiable package specifications/no such revision/import error
                 if e.args and 'could not import' in e.args[0]:
-                    raise CondaImportError(text_type(e))
+                    raise CondaImportError(str(e))
                 raise e
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 

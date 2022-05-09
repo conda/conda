@@ -41,8 +41,7 @@ from conda.base.constants import (
 )
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.main import main_sourced
-from conda.common.compat import ensure_text_type, iteritems, on_win, \
-    string_types
+from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
 from conda.common.path import which
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
@@ -214,7 +213,7 @@ class ActivatorUnitTests(TestCase):
         assert len(path_dirs) == 5
         test_prefix = '/usr/mytest/prefix'
         added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-        if isinstance(added_paths, string_types):
+        if isinstance(added_paths, str):
             added_paths = added_paths,
 
         new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
@@ -229,7 +228,7 @@ class ActivatorUnitTests(TestCase):
         assert len(path_dirs) == 3
         test_prefix = '/usr/mytest/prefix'
         added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-        if isinstance(added_paths, string_types):
+        if isinstance(added_paths, str):
             added_paths = added_paths,
 
         new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
@@ -270,7 +269,7 @@ class ActivatorUnitTests(TestCase):
         original_path = tuple(activator._get_starting_path_list())
         new_prefix = join(os.getcwd(), 'mytestpath-new')
         new_paths = activator.path_conversion(activator._get_path_dirs(new_prefix))
-        if isinstance(new_paths, string_types):
+        if isinstance(new_paths, str):
             new_paths = new_paths,
         keep_path = activator.path_conversion('/keep/this/path')
         final_path = (keep_path,) + new_paths + original_path
@@ -1887,7 +1886,7 @@ class InteractiveShell(object):
         base_shell = self.shells[shell_name].get('base_shell')
         shell_vals = self.shells.get(base_shell, {}).copy()
         shell_vals.update(self.shells[shell_name])
-        for key, value in iteritems(shell_vals):
+        for key, value in shell_vals.items():
             setattr(self, key, value)
         self.activator = activator_map[shell_vals['activator']]()
         self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
@@ -1899,7 +1898,7 @@ class InteractiveShell(object):
         # this ensures that PATH is shared with any msys2 bash shell, rather than starting fresh
         os.environ["MSYS2_PATH_TYPE"] = "inherit"
         os.environ["CHERE_INVOKING"] = "1"
-        env = {str(k): str(v) for k, v in iteritems(os.environ)}
+        env = {str(k): str(v) for k, v in os.environ.items()}
         remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
         for var_name in remove_these:
             del env[var_name]
@@ -1938,7 +1937,7 @@ class InteractiveShell(object):
         for ev in ('CONDA_TEST_SAVE_TEMPS', 'CONDA_TEST_TMPDIR', 'CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE'):
             if ev in os.environ: env[ev] = os.environ[ev]
 
-        for name, val in iteritems(env):
+        for name, val in env.items():
             p.sendline(self.activator.export_var_tmpl % (name, val))
 
         if self.init_command:
@@ -2421,8 +2420,8 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '0\r?')
 
 
-    @pytest.mark.skipif(not which_powershell() or not on_win or sys.version_info[0] == 2,
-                        reason="Windows, Python != 2 (needs dynamic OpenSSL), PowerShell specific test")
+    @pytest.mark.skipif(not which_powershell() or not on_win,
+                        reason="Windows, PowerShell specific test")
     def test_powershell_PATH_management(self):
         posh_kind, posh_path = which_powershell()
         print('## [PowerShell activation PATH management] Using {}.'.format(posh_path))

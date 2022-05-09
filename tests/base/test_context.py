@@ -17,7 +17,7 @@ from conda.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
 from conda.base.constants import PathConflict, ChannelPriority
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import odict, iteritems
+from conda.common.compat import odict
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
@@ -228,7 +228,7 @@ class ContextCustomRcTests(TestCase):
     def test_context_parameters_have_descriptions(self):
         skip_categories = ('CLI-only', 'Hidden and Undocumented')
         documented_parameter_names = chain.from_iterable((
-            parameter_names for category, parameter_names in iteritems(context.category_map)
+            parameter_names for category, parameter_names in context.category_map.items()
             if category not in skip_categories
         ))
 

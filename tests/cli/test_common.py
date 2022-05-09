@@ -5,6 +5,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+from io import StringIO
 from unittest import TestCase
 
 import pytest
@@ -13,7 +14,7 @@ from pytest import raises
 from conda.auxlib.collection import AttrDict
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.common import check_non_admin, confirm, confirm_yn
-from conda.common.compat import on_win, StringIO
+from conda.common.compat import on_win
 from conda.common.io import captured, env_var
 from conda.exceptions import CondaSystemExit, DryRunExit, OperationNotAllowed
 

@@ -15,7 +15,7 @@ import shutil
 import sys
 
 from .base.context import context
-from .common.compat import itervalues, on_win, open, scandir
+from .common.compat import on_win, open
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
@@ -136,7 +136,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
     binignore = {'conda', 'activate', 'deactivate'}
     if sys.platform == 'darwin':
         ignore.update({'python.app', 'Launcher.app'})
-    for fn in (entry.name for entry in scandir(prefix)):
+    for fn in (entry.name for entry in os.scandir(prefix)):
         if ignore_predefined_files and fn in ignore:
             continue
         if isfile(join(prefix, fn)):
@@ -216,7 +216,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         if not quiet:
             fh = sys.stderr if context.json else sys.stdout
             print('The following packages cannot be cloned out of the root environment:', file=fh)
-            for prec in itervalues(filter):
+            for prec in filter.values():
                 print(' - ' + prec.dist_str(), file=fh)
         drecs = {prec for prec in PrefixData(prefix1).iter_records() if prec['name'] not in filter}
     else:
@@ -232,7 +232,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
         for prec in unknowns:
             spec = MatchSpec(name=prec.name, version=prec.version, build=prec.build)
-            precs = tuple(prec for prec in itervalues(index) if spec.match(prec))
+            precs = tuple(prec for prec in index.values() if spec.match(prec))
             if not precs:
                 notfound.append(spec)
             elif len(precs) > 1:

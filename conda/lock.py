@@ -20,7 +20,6 @@ import os
 from os.path import abspath, basename, dirname, isdir, join
 import time
 
-from .common.compat import range
 from .exceptions import LockError
 
 LOCK_EXTENSION = 'conda_lock'

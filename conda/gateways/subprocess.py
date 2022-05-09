@@ -15,12 +15,7 @@ from ..utils import wrap_subprocess_call
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
 from ..auxlib.ish import dals
-from ..common.compat import (
-    string_types,
-    encode_arguments,
-    encode_environment,
-    isiterable,
-)
+from ..common.compat import encode_arguments, encode_environment, isiterable
 from ..gateways.disk.delete import rm_rf
 from ..base.context import context
 
@@ -79,7 +74,7 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     cwd = sys.prefix if path is None else abspath(path)
     if not isiterable(command):
         command = shlex_split_unicode(command)
-    command_str = command if isinstance(command, string_types) else ' '.join(command)
+    command_str = command if isinstance(command, str) else ' '.join(command)
     log.debug("executing>> %s", command_str)
 
     pipe = None

@@ -105,7 +105,7 @@ def execute(args, parser):
     #                                     '       add -n NAME or -p PREFIX option')
     #     actions = defaultdict(list)
     #     actions[PREFIX] = prefix
-    #     for dist in sorted(iterkeys(index)):
+    #     for dist in sorted(iter(index.keys())):
     #         add_unlink(actions, dist)
     #     actions['ACTION'] = 'REMOVE_ALL'
     #     action_groups = (actions, index),
@@ -116,7 +116,7 @@ def execute(args, parser):
     #     specs = specs_from_args(args.package_names)
     #     env_spec_map = groupby(get_env, specs)
     #     action_groups = []
-    #     for env_name, spcs in iteritems(env_spec_map):
+    #     for env_name, spcs in env_spec_map.items():
     #         pfx = ed.to_prefix(env_name)
     #         r = get_resolve_object(index.copy(), pfx)
     #         specs_to_remove = tuple(MatchSpec(s) for s in spcs)
@@ -128,7 +128,7 @@ def execute(args, parser):
     #         actions = get_blank_actions(pfx)
     #         actions['UNLINK'].extend(dists_for_unlinking)
     #         actions['LINK'].extend(dists_for_linking)
-    #         actions['SPECS'].extend(text_type(s) for s in specs_to_remove)
+    #         actions['SPECS'].extend(str(s) for s in specs_to_remove)
     #         actions['ACTION'] = 'REMOVE'
     #         action_groups.append((actions, r.index))
     #     action_groups = tuple(action_groups)

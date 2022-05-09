@@ -11,7 +11,7 @@ import re
 import socket
 import warnings
 
-from .compat import input, on_win
+from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 from ..auxlib.decorators import memoize
 

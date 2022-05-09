@@ -17,7 +17,6 @@ from ... import CondaError
 from ...auxlib.ish import dals
 from ...auxlib.logz import stringify
 from ...base.context import context
-from ...common.compat import text_type
 from ...common.io import time_recorder
 from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
                            ChecksumMismatchError, maybe_raise, ProxyError)
@@ -118,7 +117,7 @@ def download(
         raise ProxyError()  # see #3962
 
     except InvalidSchema as e:
-        if 'SOCKS' in text_type(e):
+        if 'SOCKS' in str(e):
             message = dals("""
                 Requests has identified that your current working environment is configured
                 to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your
@@ -156,7 +155,7 @@ def download_text(url):
     except RequestsProxyError:
         raise ProxyError()  # see #3962
     except InvalidSchema as e:
-        if 'SOCKS' in text_type(e):
+        if 'SOCKS' in str(e):
             message = dals("""
                 Requests has identified that your current working environment is configured
                 to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your
