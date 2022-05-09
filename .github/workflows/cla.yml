@@ -1,0 +1,31 @@
+name: CLA
+
+on:
+  issue_comment:
+    types:
+      - created
+  pull_request_target:
+    types:
+      - reopened
+      - opened
+      - synchronize
+
+jobs:
+  check:
+    if: >-
+      !github.event.repository.fork
+      && (
+        github.event.comment.body == '@conda-bot check'
+        || github.event_name == 'pull_request_target'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check CLA
+        uses: conda/actions/check-cla@v22.5.0
+        with:
+          # [required]
+          # label to add when actor has signed the CLA
+          label: cla-signed
+          # [required]
+          # the GitHub Personal Access Token to comment and label with
+          token: "${{ secrets.CLA_ACTION_TOKEN }}"
