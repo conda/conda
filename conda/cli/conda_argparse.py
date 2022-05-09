@@ -33,7 +33,7 @@ escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = abspath(join(sys.prefix, '.condarc')).replace("%", "%%")
 
 
-def generate_parser():
+def generate_parser() -> "ArgumentParser":
     p = ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
                     ' environments and packages.',
@@ -77,6 +77,7 @@ def generate_parser():
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers)
     configure_parser_update(sub_parsers, name='upgrade')
+    configure_parser_notices(sub_parsers)
 
     return p
 
@@ -1295,6 +1296,39 @@ def configure_parser_update(sub_parsers, name='update'):
              "and suppress related warnings.",
     )
     p.set_defaults(func='.main_update.execute')
+
+
+NOTICES_HELP = "Retrieves latest channel notifications."
+NOTICES_DESCRIPTION = dedent(
+    NOTICES_HELP
+    + """
+
+Conda channel maintainers have the option of setting messages that
+you users will see intermittently. Some of these notices are informational
+while others are messages concerning the stability of the channel.
+
+"""
+)
+
+
+def configure_parser_notices(sub_parsers, name="notices"):
+    example = dedent(
+        f"""
+    Examples:
+
+        conda {name}
+        conda {name} -c defaults
+
+    """
+    )
+    p = sub_parsers.add_parser(
+        name,
+        description=NOTICES_DESCRIPTION,
+        help=NOTICES_HELP,
+        epilog=example,
+    )
+    add_parser_channels(p)
+    p.set_defaults(func=".main_notices.execute")
 
 
 # #############################################################################################

@@ -11,6 +11,7 @@ from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, \
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaEnvException, SpecNotFound
 from conda.misc import touch_nonadmin
+from conda.notices import notifications
 
 from .common import get_prefix, print_result, get_filename
 from .. import specs as install_specs
@@ -63,6 +64,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func='.main_update.execute')
 
 
+@notifications
 def execute(args, parser):
     name = args.remote_definition or args.name
 

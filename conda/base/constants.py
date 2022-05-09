@@ -156,8 +156,8 @@ CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR = ".logs"
 
 UNKNOWN_CHANNEL = "<unknown>"
-REPODATA_FN = 'repodata.json'
-
+REPODATA_FN = "repodata.json"
+NOTICES_FN = "notices.json"
 
 # TODO: Determine whether conda.base is the right place for this data; it
 # should be a constant, but another module may be more appropriate.
