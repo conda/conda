@@ -4,11 +4,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
+from configparser import ConfigParser
 from csv import reader as csv_reader
 from email.parser import HeaderParser
 from errno import ENOENT
+from io import StringIO
 from logging import getLogger
-from os import name as os_name, strerror
+from os import name as os_name, scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
 import platform
 from posixpath import normpath as posix_normpath
@@ -17,18 +19,13 @@ import sys
 import warnings
 
 from ... import CondaError
-from ..compat import PY2, StringIO, itervalues, odict, open, scandir, string_types
+from ..compat import odict, open
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )
 from ...auxlib.decorators import memoizedproperty
 from ..._vendor.frozendict import frozendict
 from ..._vendor.toolz import concat, concatv, groupby
-
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
 
 log = getLogger(__name__)
 
@@ -264,8 +261,6 @@ class PythonDistribution(object):
                 return tuple(records)
 
             csv_delimiter = ','
-            if PY2:
-                csv_delimiter = csv_delimiter.encode('utf-8')
             with open(manifest_full_path) as csvfile:
                 record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                 # format of each record is (path, checksum, size)
@@ -335,7 +330,7 @@ class PythonDistribution(object):
             "python_version": self.python_version,
         }
         depends.update(
-            pyspec_to_norm_req(pyspec) for pyspec in concat(itervalues(marker_groups))
+            pyspec_to_norm_req(pyspec) for pyspec in concat(marker_groups.values())
             if interpret(pyspec.marker, execution_context)
         )
         constrains = set(pyspec_to_norm_req(pyspec) for pyspec in extras if pyspec.constraints)
@@ -1059,7 +1054,7 @@ STRING_CHUNK = re.compile(r'([\s\w\.{}()*+#:;,/?!~`@$%^&=|<>\[\]-]+)')
 
 
 def _is_literal(o):
-    if not isinstance(o, string_types) or not o:
+    if not isinstance(o, str) or not o:
         return False
     return o[0] in '\'"'
 
@@ -1089,7 +1084,7 @@ class Evaluator(object):
         Evaluate a marker expression returned by the :func:`parse_requirement`
         function in the specified context.
         """
-        if isinstance(expr, string_types):
+        if isinstance(expr, str):
             if expr[0] in '\'"':
                 result = expr[1:-1]
             else:

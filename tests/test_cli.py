@@ -15,7 +15,6 @@ from conda.base.constants import on_win
 from conda.base.context import context
 from conda.common.io import captured
 from conda.gateways.disk.delete import rm_rf
-from conda.common.compat import text_type
 from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
 from conda.testing.integration import Commands, run_command, make_temp_env, make_temp_prefix
 
@@ -28,7 +27,7 @@ class TestJson(unittest.TestCase):
         #         a warning about it.
         """
         # Slightly fancier, "works on my computer", using the last 3 dirs is probably a pytest-ism?
-        self.tmpdir = os.path.join('opt', 'conda.tmp', *(text_type(tmpdir).split(os.sep)[-3:]))
+        self.tmpdir = os.path.join('opt', 'conda.tmp', *(str(tmpdir).split(os.sep)[-3:]))
         try:
             try:
                 rm_rf(self.tmpdir)
@@ -36,9 +35,9 @@ class TestJson(unittest.TestCase):
                 pass
             os.makedirs(self.tmpdir)
         except:
-            self.tmpdir = text_type(tmpdir)
+            self.tmpdir = str(tmpdir)
         """
-        self.tmpdir = text_type(tmpdir)
+        self.tmpdir = str(tmpdir)
         return self.tmpdir
 
     def assertJsonSuccess(self, res):

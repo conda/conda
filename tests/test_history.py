@@ -12,7 +12,6 @@ from conda.testing.helpers import mock
 from conda.testing.integration import make_temp_prefix
 
 from conda.history import History
-from conda.common.compat import text_type
 
 
 class HistoryTestCase(BaseTestCase):
@@ -54,7 +53,7 @@ class HistoryTestCase(BaseTestCase):
     @skip_if_no_mock
     def test_parse_on_empty_env(self):
         with mock.patch.object(History, 'parse') as mock_parse:
-            with History(make_temp_prefix(name=text_type(self.tmpdir))) as h:
+            with History(make_temp_prefix(name=str(self.tmpdir))) as h:
                 self.assertEqual(mock_parse.call_count, 0)
                 self.assertEqual(len(h.parse()), 0)
         self.assertEqual(len(h.parse()), 1)

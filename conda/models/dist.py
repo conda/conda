@@ -14,7 +14,7 @@ from .. import CondaError
 from ..auxlib.entity import Entity, EntityType, IntegerField, StringField
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import ensure_text_type, text_type
+from ..common.compat import ensure_text_type
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
 
@@ -151,7 +151,7 @@ class Dist(Entity, metaclass=DistType):
 
     @classmethod
     def from_string(cls, string, channel_override=NULL):
-        string = text_type(string)
+        string = str(string)
 
         if is_url(string) and channel_override == NULL:
             return cls.from_url(string)
@@ -226,7 +226,7 @@ class Dist(Entity, metaclass=DistType):
             url_no_tarball = url.rsplit('::', 1)[0]
             platform = context.subdir
             base_url = url_no_tarball.split('::')[0]
-            channel = text_type(Channel(base_url))
+            channel = str(Channel(base_url))
         else:
             url_no_tarball = url.rsplit('/', 1)[0]
             platform = has_platform(url_no_tarball, context.known_subdirs)

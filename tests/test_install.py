@@ -7,7 +7,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from datetime import datetime
 
 from conda.base.context import context
-from conda.common.compat import text_type
 from conda.core.package_cache_data import download
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
 from conda.gateways.disk.delete import move_path_to_trash
@@ -519,14 +518,14 @@ def _make_lines_file(path):
         fh.write("line 4\n")
 
 def test_yield_lines(tmpdir):
-    tempfile = join(text_type(tmpdir), "testfile")
+    tempfile = join(str(tmpdir), "testfile")
     _make_lines_file(tempfile)
     lines = list(yield_lines(tempfile))
     assert lines == ['line 1', 'line 2', 'line 4']
 
 
 def test_read_no_link(tmpdir):
-    tempdir = text_type(tmpdir)
+    tempdir = str(tmpdir)
     no_link = join(tempdir, 'no_link')
     no_softlink = join(tempdir, 'no_softlink')
     _make_lines_file(no_link)

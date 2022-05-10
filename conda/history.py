@@ -21,7 +21,7 @@ from .auxlib.ish import dals
 from ._vendor.toolz import groupby, take
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .base.context import context
-from .common.compat import ensure_text_type, iteritems, open, text_type
+from .common.compat import ensure_text_type, open
 from .common.path import paths_equal
 from .core.prefix_data import PrefixData
 from .exceptions import CondaHistoryError, NotWritableError
@@ -287,7 +287,7 @@ class History(object):
         # environments.  If the package isn't installed in the current environment, then we
         # shouldn't try to force it here.
         prefix_recs = set(_.name for _ in PrefixData(self.prefix).iter_records())
-        return dict((name, spec) for name, spec in iteritems(spec_map) if name in prefix_recs)
+        return dict((name, spec) for name, spec in spec_map.items() if name in prefix_recs)
 
     def construct_states(self):
         """
@@ -389,9 +389,9 @@ class History(object):
                 fo.write('+%s\n' % fn)
 
     def write_specs(self, remove_specs=(), update_specs=(), neutered_specs=()):
-        remove_specs = [text_type(MatchSpec(s)) for s in remove_specs]
-        update_specs = [text_type(MatchSpec(s)) for s in update_specs]
-        neutered_specs = [text_type(MatchSpec(s)) for s in neutered_specs]
+        remove_specs = [str(MatchSpec(s)) for s in remove_specs]
+        update_specs = [str(MatchSpec(s)) for s in update_specs]
+        neutered_specs = [str(MatchSpec(s)) for s in neutered_specs]
         if any((update_specs, remove_specs, neutered_specs)):
             with codecs.open(self.path, mode='ab', encoding='utf-8') as fh:
                 if remove_specs:

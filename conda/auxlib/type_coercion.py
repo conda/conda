@@ -8,7 +8,7 @@ from re import IGNORECASE, compile
 
 from enum import Enum
 
-from .compat import NoneType, integer_types, isiterable, iteritems, string_types, text_type
+from .compat import NoneType, integer_types, isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
@@ -17,10 +17,10 @@ __all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
 BOOLISH_TRUE = ("true", "yes", "on", "y")
 BOOLISH_FALSE = ("false", "off", "n", "no", "non", "none", "")
 NULL_STRINGS = ("none", "~", "null", "\0")
-BOOL_COERCEABLE_TYPES = integer_types + (bool, float, complex, list, set, dict, tuple)
-NUMBER_TYPES = integer_types + (float, complex)
-NUMBER_TYPES_SET = set(NUMBER_TYPES)
-STRING_TYPES_SET = set(string_types)
+BOOL_COERCEABLE_TYPES = (*integer_types, bool, float, complex, list, set, dict, tuple)
+NUMBER_TYPES = (*integer_types, float, complex)
+NUMBER_TYPES_SET = {*NUMBER_TYPES}
+STRING_TYPES_SET = {str}
 
 NO_MATCH = object()
 
@@ -154,7 +154,7 @@ def boolify(value, nullable=False, return_string=False):
     if isinstance(value, BOOL_COERCEABLE_TYPES):
         return bool(value)
     # try to coerce string into number
-    val = text_type(value).strip().lower().replace('.', '', 1)
+    val = str(value).strip().lower().replace(".", "", 1)
     if val.isnumeric():
         return bool(float(val))
     elif val in BOOLISH_TRUE:
@@ -167,7 +167,7 @@ def boolify(value, nullable=False, return_string=False):
         try:
             return bool(complex(val))
         except ValueError:
-            if isinstance(value, string_types) and return_string:
+            if isinstance(value, str) and return_string:
                 return value
             raise TypeCoercionError(value, "The value %r cannot be boolified." % value)
 
@@ -176,7 +176,7 @@ def boolify_truthy_string_ok(value):
     try:
         return boolify(value)
     except ValueError:
-        assert isinstance(value, string_types), repr(value)
+        assert isinstance(value, str), repr(value)
         return True
 
 
@@ -211,7 +211,7 @@ def typify(value, type_hint=None):
 
     """
     # value must be a string, or there at least needs to be a type hint
-    if isinstance(value, string_types):
+    if isinstance(value, str):
         value = value.strip()
     elif type_hint is None:
         # can't do anything because value isn't a string and there's no type hint
@@ -227,21 +227,21 @@ def typify(value, type_hint=None):
                 try:
                     return type_hint[value]
                 except KeyError:
-                    raise TypeCoercionError(value, text_type(e))
+                    raise TypeCoercionError(value, str(e))
         type_hint = set(type_hint)
         if not (type_hint - NUMBER_TYPES_SET):
             return numberify(value)
         elif not (type_hint - STRING_TYPES_SET):
-            return text_type(value)
+            return str(value)
         elif not (type_hint - {bool, NoneType}):
             return boolify(value, nullable=True)
         elif not (type_hint - (STRING_TYPES_SET | {bool})):
             return boolify(value, return_string=True)
         elif not (type_hint - (STRING_TYPES_SET | {NoneType})):
-            value = text_type(value)
+            value = str(value)
             return None if value.lower() == 'none' else value
         elif not (type_hint - {bool, int}):
-            return typify_str_no_hint(text_type(value))
+            return typify_str_no_hint(str(value))
         else:
             raise NotImplementedError()
     elif type_hint is not None:
@@ -250,7 +250,7 @@ def typify(value, type_hint=None):
             return boolify(value) if type_hint == bool else type_hint(value)
         except ValueError as e:
             # ValueError: invalid literal for int() with base 10: 'nope'
-            raise TypeCoercionError(value, text_type(e))
+            raise TypeCoercionError(value, str(e))
     else:
         # no type hint, but we know value is a string, so try to match with the regex patterns
         #   if there's still no match, `typify_str_no_hint` will return `value`
@@ -259,11 +259,10 @@ def typify(value, type_hint=None):
 
 def typify_data_structure(value, type_hint=None):
     if isinstance(value, Mapping):
-        return type(value)((k, typify(v, type_hint)) for k, v in iteritems(value))
+        return type(value)((k, typify(v, type_hint)) for k, v in value.items())
     elif isiterable(value):
         return type(value)(typify(v, type_hint) for v in value)
-    elif (isinstance(value, string_types)
-          and isinstance(type_hint, type) and issubclass(type_hint, string_types)):
+    elif isinstance(value, str) and isinstance(type_hint, type) and issubclass(type_hint, str):
         # This block is necessary because if we fall through to typify(), we end up calling
         # .strip() on the str, when sometimes we want to preserve preceding and trailing
         # whitespace.

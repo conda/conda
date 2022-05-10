@@ -29,8 +29,7 @@ from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.constants import INITIAL_TRUST_ROOT    # Where root.json is currently.
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
-                             string_types, text_type)
+from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
@@ -144,7 +143,7 @@ class SubdirData(metaclass=SubdirDataType):
         if not self._loaded:
             self.load()
         param = package_ref_or_match_spec
-        if isinstance(param, string_types):
+        if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             if param.get_exact_value('name'):
@@ -533,8 +532,8 @@ class SubdirData(metaclass=SubdirDataType):
         conda_packages = {} if context.use_only_tar_bz2 else json_obj.get("packages.conda", {})
 
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
-        use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
-            k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
+        use_these_legacy_keys = set(legacy_packages.keys()) - set(
+            k[:-6] + _tar_bz2 for k in conda_packages.keys()
         )
 
         if context.extra_safety_checks:
@@ -554,7 +553,7 @@ class SubdirData(metaclass=SubdirDataType):
             verify_metadata_signatures = False
 
         for group, copy_legacy_md5 in (
-                (iteritems(conda_packages), True),
+                (conda_packages.items(), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
             for fn, info in group:
 
@@ -708,7 +707,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         raise ProxyError()   # see #3962
 
     except InvalidSchema as e:
-        if 'SOCKS' in text_type(e):
+        if 'SOCKS' in str(e):
             message = dals("""
             Requests has identified that your current working environment is configured
             to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your

@@ -13,7 +13,6 @@ from .delete import rm_rf
 from .link import islink, lexists
 from ...auxlib.decorators import memoize
 from ...base.constants import PREFIX_MAGIC_FILE
-from ...common.compat import text_type
 from ...common.path import expand
 from ...models.enums import LinkType
 
@@ -42,7 +41,7 @@ def file_path_is_writable(path):
 
 @memoize
 def hardlink_supported(source_file, dest_dir):
-    test_file = join(dest_dir, '.tmp.%s.%s' % (basename(source_file), text_type(uuid4())[:8]))
+    test_file = join(dest_dir, '.tmp.%s.%s' % (basename(source_file), str(uuid4())[:8]))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
     if lexists(test_file):

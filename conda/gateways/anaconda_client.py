@@ -11,7 +11,6 @@ from stat import S_IREAD, S_IWRITE
 
 from .disk.delete import rm_rf
 from .._vendor.appdirs import AppDirs
-from ..common.compat import scandir
 from ..common.url import quote_plus, unquote_plus
 
 log = getLogger(__name__)
@@ -59,7 +58,7 @@ def read_binstar_tokens():
     if not isdir(token_dir):
         return tokens
 
-    for tkn_entry in scandir(token_dir):
+    for tkn_entry in os.scandir(token_dir):
         if tkn_entry.name[-6:] != ".token":
             continue
         url = re.sub(r'\.token$', '', unquote_plus(tkn_entry.name))

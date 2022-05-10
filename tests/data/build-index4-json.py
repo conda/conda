@@ -6,7 +6,6 @@ import json
 from os.path import abspath, dirname, join
 from pprint import pprint
 
-from conda.common.compat import itervalues
 from conda.core.subdir_data import fetch_repodata_remote_request
 
 DATA_DIR = abspath(join(dirname(__file__), "repodata"))
@@ -575,7 +574,7 @@ def main():
         'r-zip',
 
     )
-    all_package_names = set(info['name'] for info in itervalues(keep))
+    all_package_names = set(info['name'] for info in keep.values())
     for fn, info in r4json['packages'].items():
         if info['name'] in keep_list:
             _keep[fn] = info
@@ -603,7 +602,7 @@ def main():
     keep_list = (
         'perl',
     )
-    all_package_names = set(info['name'] for info in itervalues(keep))
+    all_package_names = set(info['name'] for info in keep.values())
     for fn, info in r5json['packages'].items():
         if info['name'] in keep_list:
             _keep[fn] = info
@@ -680,7 +679,7 @@ def main():
         'perl-test-harness',
 
     )
-    all_package_names = set(info['name'] for info in itervalues(keep))
+    all_package_names = set(info['name'] for info in keep.values())
     for fn, info in r6json['packages'].items():
         if info['name'] in keep_list:
             _keep[fn] = info
@@ -882,12 +881,12 @@ def main():
 
 
 
-    all_package_names = set(info['name'] for info in itervalues(keep))
+    all_package_names = set(info['name'] for info in keep.values())
     ignore_names = {
         'nlopt',
     }
     missing = set()
-    for info in itervalues(keep):
+    for info in keep.values():
         for line in info['depends']:
             package_name = line.split(' ')[0]
             if package_name not in all_package_names and package_name not in ignore_names:
