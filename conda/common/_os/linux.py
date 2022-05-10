@@ -6,10 +6,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import OrderedDict
 from genericpath import exists
 from logging import getLogger
+from os import scandir
 import sys
 
 from ...auxlib.decorators import memoize
-from ..compat import iteritems, scandir
 
 
 log = getLogger(__name__)
@@ -33,7 +33,7 @@ def linux_get_libc_version():
                                           ('CS_GNU_LIBPTHREAD_VERSION', 3)])
 
     val = None
-    for k, v in iteritems(confstr_names_fallback):
+    for k, v in confstr_names_fallback.items():
         assert k not in confstr_names or confstr_names[k] == v, (
             "confstr_names_fallback for %s is %s yet in confstr_names it is %s"
             "" % (k, confstr_names_fallback[k], confstr_names[k])

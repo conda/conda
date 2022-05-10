@@ -32,7 +32,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 
 from ._logic import Clauses as _Clauses, FALSE, TRUE
-from .compat import iterkeys, itervalues
 
 
 # TODO: We may want to turn the user-facing {TRUE,FALSE} values into an Enum and
@@ -202,8 +201,8 @@ class Clauses(object):
         if not isinstance(equation, dict):
             # in case of duplicate literal -> coefficient mappings, always take the last one
             equation = {named_lit: coeff for coeff, named_lit in equation}
-        named_literals = list(iterkeys(equation))
-        coefficients = list(itervalues(equation))
+        named_literals = list(equation.keys())
+        coefficients = list(equation.values())
         return self._eval(
             self._clauses.LinearBound,
             (named_literals,), (coefficients, lo, hi, preprocess), polarity, name,

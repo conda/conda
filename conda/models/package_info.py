@@ -17,7 +17,6 @@ from ..auxlib.entity import (
     ListField,
     StringField,
 )
-from ..common.compat import string_types
 
 log = getLogger(__name__)
 
@@ -29,14 +28,14 @@ class NoarchField(EnumField):
 
 class Noarch(Entity):
     type = NoarchField(NoarchType)
-    entry_points = ListField(string_types, required=False, nullable=True, default=None,
+    entry_points = ListField(str, required=False, nullable=True, default=None,
                              default_in_dump=False)
 
 
 class PreferredEnv(Entity):
     name = StringField()
-    executable_paths = ListField(string_types, required=False, nullable=True)
-    softlink_paths = ListField(string_types, required=False, nullable=True)
+    executable_paths = ListField(str, required=False, nullable=True)
+    softlink_paths = ListField(str, required=False, nullable=True)
 
 
 class PackageMetadata(Entity):

@@ -10,7 +10,7 @@ from .enums import NoarchType
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, on_win
+from ..common.compat import odict, on_win
 from ..exceptions import CyclicalDependencyError
 
 log = getLogger(__name__)
@@ -94,7 +94,7 @@ class PrefixGraph(object):
             node: set(key for key in graph if node in graph[key])
             for node in graph
         }
-        youngest_nodes_with_specs = tuple(node for node, children in iteritems(inverted_graph)
+        youngest_nodes_with_specs = tuple(node for node, children in inverted_graph.items()
                                           if not children and node in spec_matches)
         removed_nodes = tuple(filter(
             lambda node: node in youngest_nodes_with_specs,
@@ -126,7 +126,7 @@ class PrefixGraph(object):
                 node: set(key for key in graph if node in graph[key])
                 for node in graph
             }
-            prunable_nodes = tuple(node for node, children in iteritems(inverted_graph)
+            prunable_nodes = tuple(node for node, children in inverted_graph.items()
                                    if not children and node not in spec_matches)
             if not prunable_nodes:
                 break
@@ -193,12 +193,12 @@ class PrefixGraph(object):
         graph.pop(node)
         self.spec_matches.pop(node, None)
 
-        for node, edges in iteritems(graph):
+        for node, edges in graph.items():
             if node in edges:
                 edges.remove(node)
 
     def _toposort(self):
-        graph_copy = odict((node, IndexedSet(parents)) for node, parents in iteritems(self.graph))
+        graph_copy = odict((node, IndexedSet(parents)) for node, parents in self.graph.items())
         self._toposort_prepare_graph(graph_copy)
         if context.allow_cycles:
             sorted_nodes = tuple(self._topo_sort_handle_cycles(graph_copy))
@@ -215,7 +215,7 @@ class PrefixGraph(object):
 
         while True:
             no_parent_nodes = IndexedSet(sorted(
-                (node for node, parents in iteritems(graph) if len(parents) == 0),
+                (node for node, parents in graph.items() if len(parents) == 0),
                 key=lambda x: x.name
             ))
             if not no_parent_nodes:
@@ -225,7 +225,7 @@ class PrefixGraph(object):
                 yield node
                 graph.pop(node, None)
 
-            for parents in itervalues(graph):
+            for parents in graph.values():
                 parents -= no_parent_nodes
 
         if len(graph) != 0:
@@ -234,11 +234,11 @@ class PrefixGraph(object):
     @classmethod
     def _topo_sort_handle_cycles(cls, graph):
         # remove edges that point directly back to the node
-        for k, v in iteritems(graph):
+        for k, v in graph.items():
             v.discard(k)
 
         # disconnected nodes go first
-        nodes_that_are_parents = set(node for parents in itervalues(graph) for node in parents)
+        nodes_that_are_parents = set(node for parents in graph.values() for node in parents)
         nodes_without_parents = (node for node in graph if not graph[node])
         disconnected_nodes = sorted(
             (node for node in nodes_without_parents if node not in nodes_that_are_parents),
@@ -273,11 +273,11 @@ class PrefixGraph(object):
         In the case of a tie, use the node with the alphabetically-first package name.
         """
         node_with_fewest_parents = sorted(
-            (len(parents), node.dist_str(), node) for node, parents in iteritems(graph)
+            (len(parents), node.dist_str(), node) for node, parents in graph.items()
         )[0][2]
         graph.pop(node_with_fewest_parents)
 
-        for parents in itervalues(graph):
+        for parents in graph.values():
             parents.discard(node_with_fewest_parents)
 
         return node_with_fewest_parents
@@ -306,7 +306,7 @@ class PrefixGraph(object):
                 # isn't a parent of menuinst
                 assert python_node is not None
                 menuinst_parents = graph[menuinst_node]
-                for node, parents in iteritems(graph):
+                for node, parents in graph.items():
                     if python_node in parents and node not in menuinst_parents:
                         parents.add(menuinst_node)
 
@@ -319,7 +319,7 @@ class PrefixGraph(object):
             if conda_node:
                 # add conda as a parent if python is a parent and node isn't a parent of conda
                 conda_parents = graph[conda_node]
-                for node, parents in iteritems(graph):
+                for node, parents in graph.items():
                     if (hasattr(node, 'noarch') and node.noarch == NoarchType.python
                             and node not in conda_parents):
                         parents.add(conda_node)
@@ -381,6 +381,7 @@ class PrefixGraph(object):
 #             browser = webbrowser.get()
 #         browser.open_new_tab(path_to_url(location))
 
+
 class GeneralGraph(PrefixGraph):
     """
     Compared with PrefixGraph, this class takes in more than one record of a given name,
@@ -435,12 +436,3 @@ class GeneralGraph(PrefixGraph):
                     new_path = list(path)
                     new_path.append(adj)
                     queue.append(new_path)
-
-
-# if __name__ == "__main__":
-#     from ..core.prefix_data import PrefixData
-#     from ..history import History
-#     prefix = sys.argv[1]
-#     records = PrefixData(prefix).iter_records()
-#     specs = itervalues(History(prefix).get_requested_specs_map())
-#     PrefixDag(records, specs).open_url()

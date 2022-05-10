@@ -9,7 +9,6 @@ from os.path import abspath, expanduser, expandvars
 
 from .common import stdout_json
 from ..base.context import context
-from ..common.compat import text_type
 from ..core.prefix_data import PrefixData
 from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -87,6 +86,6 @@ def execute(args, parser):
     if context.json:
         stdout_json(output)
     else:
-        print('\n'.join(map(text_type, output)))
+        print('\n'.join(map(str, output)))
 
     return exitcode

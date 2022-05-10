@@ -8,8 +8,6 @@ from logging import getLogger
 import signal
 import threading
 
-from .compat import iteritems
-
 log = getLogger(__name__)
 
 INTERRUPT_SIGNALS = (
@@ -28,7 +26,7 @@ def get_signal_name(signum):
         'SIGINT'
 
     """
-    return next((k for k, v in iteritems(signal.__dict__)
+    return next((k for k, v in signal.__dict__.items()
                  if v == signum and k.startswith('SIG') and not k.startswith('SIG_')),
                 None)
 

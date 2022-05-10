@@ -13,14 +13,7 @@ import sys
 log = getLogger(__name__)
 
 
-# maxsize transitions to type(long) on 2.7 64-bit machines and breaks int
-# type checks in logic.py
-if sys.version_info.major == 2:
-    _BIG_NUMBER = sys.maxint
-else:
-    _BIG_NUMBER = sys.maxsize
-
-TRUE = _BIG_NUMBER
+TRUE = sys.maxsize
 FALSE = -TRUE
 
 

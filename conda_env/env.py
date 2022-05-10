@@ -20,7 +20,6 @@ from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
-from . import compat
 from conda.history import History
 
 try:
@@ -258,10 +257,13 @@ class Environment(object):
 
     def to_yaml(self, stream=None):
         d = self.to_dict()
-        out = compat.u(yaml_safe_dump(d))
+        out = yaml_safe_dump(d)
         if stream is None:
             return out
-        stream.write(compat.b(out, encoding="utf-8"))
+        try:
+            stream.write(bytes(out, encoding="utf-8"))
+        except TypeError:
+            stream.write(out)
 
     def save(self):
         with open(self.filename, "wb") as fp:

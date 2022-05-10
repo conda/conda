@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from conda.common.io import env_var, env_vars
 
 from conda.auxlib.ish import dals
-from conda.common.compat import odict, string_types
+from conda.common.compat import odict
 from conda.common.configuration import (Configuration, ConfigurationObject, ObjectParameter,
                                         ParameterFlag, ParameterLoader, PrimitiveParameter,
                                         MapParameter, SequenceParameter, YamlRawParameter,
@@ -218,37 +218,37 @@ class DummyTestObject(ConfigurationObject):
 
     def __init__(self):
         self.int_field = PrimitiveParameter(0, element_type=int)
-        self.str_field = PrimitiveParameter("",element_type=string_types)
-        self.map_field = MapParameter(PrimitiveParameter("", element_type=string_types))
-        self.seq_field = SequenceParameter(PrimitiveParameter("", element_type=string_types))
+        self.str_field = PrimitiveParameter("",element_type=str)
+        self.map_field = MapParameter(PrimitiveParameter("", element_type=str))
+        self.seq_field = SequenceParameter(PrimitiveParameter("", element_type=str))
 
 
 class SampleConfiguration(Configuration):
     always_yes = ParameterLoader(PrimitiveParameter(False),
                                  aliases=('always_yes_altname1', 'yes', 'always_yes_altname2'))
     changeps1 = ParameterLoader(PrimitiveParameter(True))
-    proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=string_types)))
-    channels = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=string_types)),
+    proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=str)))
+    channels = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=str)),
                                aliases=('channels_altname',))
 
     always_an_int = ParameterLoader(PrimitiveParameter(0))
     boolean_map = ParameterLoader(MapParameter(PrimitiveParameter(False, element_type=bool)))
-    commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", string_types)))
+    commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", str)))
 
     env_var_map = ParameterLoader(
-        MapParameter(PrimitiveParameter("", string_types)),
+        MapParameter(PrimitiveParameter("", str)),
         expandvars=True)
     env_var_str = ParameterLoader(PrimitiveParameter(''), expandvars=True)
     env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool), expandvars=True)
     normal_str = ParameterLoader(PrimitiveParameter(''), expandvars=False)
     env_var_list = ParameterLoader(
-        SequenceParameter(PrimitiveParameter('', string_types)),
+        SequenceParameter(PrimitiveParameter('', str)),
         expandvars=True)
 
     nested_map = ParameterLoader(
-        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=string_types))))
+        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=str))))
     nested_seq = ParameterLoader(
-        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=string_types))))
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))))
 
     test_object = ParameterLoader(
         ObjectParameter(DummyTestObject()))

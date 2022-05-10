@@ -41,8 +41,7 @@ from conda import (
 from conda.auxlib.ish import dals
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, SafetyChecks, PREFIX_MAGIC_FILE
 from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import (ensure_text_type, iteritems, string_types, text_type,
-                                 on_win, on_mac)
+from conda.common.compat import ensure_text_type, on_win, on_mac
 from conda.common.io import env_var, stderr_log_level, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -194,7 +193,7 @@ class IntegrationTests(BaseTestCase):
             with pytest.raises(CondaMultiError) as exc:
                 run_command(Commands.INSTALL, prefix, '-c', 'conda-test', 'spiffy-test-app=0.5')
 
-            error_message = text_type(exc.value)
+            error_message = str(exc.value)
             message1 = dals("""
             The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
             has an incorrect size.
@@ -419,7 +418,7 @@ class IntegrationTests(BaseTestCase):
             stdout = revision_output[0]
             stderr = revision_output[1]
             assert stderr == ''
-            self.assertIsInstance(stdout, string_types)
+            self.assertIsInstance(stdout, str)
 
     @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
     def test_strict_channel_priority(self):
@@ -452,10 +451,10 @@ class IntegrationTests(BaseTestCase):
             reduced_index = r.get_reduced_index(specs)
             channel_name_groups = {
                 name: {prec.channel.name for prec in group}
-                for name, group in iteritems(groupby("name", reduced_index))
+                for name, group in groupby("name", reduced_index).items()
             }
             channel_name_groups = {
-                name: channel_names for name, channel_names in iteritems(channel_name_groups)
+                name: channel_names for name, channel_names in channel_name_groups.items()
                 if len(channel_names) > 1
             }
             assert {} == channel_name_groups
@@ -926,7 +925,7 @@ dependencies:
             assert not stderr
             skip_categories = ('CLI-only', 'Hidden and Undocumented')
             documented_parameter_names = chain.from_iterable((
-                parameter_names for category, parameter_names in iteritems(context.category_map)
+                parameter_names for category, parameter_names in context.category_map.items()
                 if category not in skip_categories
             ))
 
@@ -1039,9 +1038,8 @@ dependencies:
             else:
                 # We force the use of 'the other' Python on Windows so that Windows
                 # runtime / DLL incompatibilities will be readily apparent.
-                py_ver = '3.7'
-                packages.append('python=' + py_ver)
-
+                py_ver = "3.7"
+                packages.append(f"python={py_ver}")
             with make_temp_env(*packages, use_restricted_unicode=False) as prefix:
                 if use_sys_python:
                     python_binary = sys.executable
@@ -1386,7 +1384,7 @@ dependencies:
         with make_temp_env() as prefix:
             with pytest.raises(PackagesNotFoundError) as exc:
                 run_command(Commands.INSTALL, prefix, "not-a-real-package")
-            assert "not-a-real-package" in text_type(exc.value)
+            assert "not-a-real-package" in str(exc.value)
 
             _, error, _ = run_command(Commands.INSTALL, prefix, "not-a-real-package",
                                    use_exception_handler=True)
@@ -1712,7 +1710,7 @@ dependencies:
             stdout, stderr = p.communicate()
             rc = p.returncode
             assert int(rc) != 0
-            stderr = stderr.decode('utf-8', errors='replace') if hasattr(stderr, 'decode') else text_type(stderr)
+            stderr = stderr.decode('utf-8', errors='replace') if hasattr(stderr, 'decode') else str(stderr)
             assert "Cannot uninstall" in stderr
 
             run_command(Commands.REMOVE, prefix, "six")
@@ -1733,35 +1731,6 @@ dependencies:
             with pytest.raises(DryRunExit):
                 run_command(Commands.INSTALL, prefix, "-c", "https://repo.anaconda.com/pkgs/free",
                             "agate=1.6", "--dry-run")
-
-    @pytest.mark.skipif(sys.version_info.major == 2 and context.subdir == "win-32", reason="Incompatible DLLs with win-32 python 2.7 ")
-    def test_conda_recovery_of_pip_inconsistent_env(self):
-        with make_temp_env("pip=10", "python", "anaconda-client",
-                           use_restricted_unicode=on_win) as prefix:
-            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-            assert package_is_installed(prefix, "python")
-            assert package_is_installed(prefix, "anaconda-client>=1.7.2")
-
-            stdout, stderr, _ = run_command(Commands.REMOVE, prefix, 'requests', '--force')
-            assert not stderr
-
-            # this is incompatible with anaconda-client
-            python_binary = join(prefix, PYTHON_BINARY)
-            p = Popen([python_binary, '-m', 'pip', 'install', 'requests==2.8'],
-                      stdout=PIPE, stderr=PIPE, cwd=prefix, shell=False)
-            stdout, stderr = p.communicate()
-            rc = p.returncode
-            assert int(rc) == 0
-
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'imagesize', '--json')
-            assert json.loads(stdout)['success']
-            assert "The environment is inconsistent" in stderr
-
-            stdout, stderr, _ = run_command(Commands.LIST, prefix, '--json')
-            pkgs = json.loads(stdout)
-            for entry in pkgs:
-                if entry['name'] == "requests":
-                    assert VersionOrder(entry['version']) >= VersionOrder("2.9.1")
 
     def test_install_freezes_env_by_default(self):
         """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
@@ -2298,8 +2267,6 @@ dependencies:
                     assert result.rc == 1
                     assert "NoBaseEnvironmentError: This conda installation has no default base environment." in result.stderr
 
-    # This test *was* very flaky on Python 2 when using `py_ver = sys.version_info[0]`. Changing it to `py_ver = '3'`
-    # seems to work. I've done as much as I can to isolate this test.  It is a particularly tricky one.
     @pytest.mark.skip('Test is flaky')
     def test_conda_downgrade(self):
         # Create an environment with the current conda under test, but include an earlier
@@ -2310,7 +2277,6 @@ dependencies:
             "CONDA_ALLOW_CONDA_DOWNGRADES": "true",
             "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
         }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            # py_ver = str(sys.version_info[0])
             py_ver = "3"
             with make_temp_env("conda=4.6.14", "python=" + py_ver, "conda-package-handling", use_restricted_unicode=True,
                                name = '_' + str(uuid4())[:8]) as prefix:  # rev 0
@@ -2405,7 +2371,7 @@ dependencies:
     def test_conda_list_json(self):
         def pkg_info(s):
             # function from nb_conda/envmanager.py
-            if hasattr(s, 'rsplit'):  # proxy for isinstance(s, six.string_types)
+            if isinstance(s, str):
                 name, version, build = s.rsplit('-', 2)
                 return {
                     'name': name,
@@ -2516,7 +2482,7 @@ class PrivateEnvIntegrationTests(TestCase):
     def tearDown(self):
         rm_rf(self.prefix)
 
-        for key, value in iteritems(self.saved_values):
+        for key, value in self.saved_values.items():
             if value is not None:
                 os.environ[key] = value
             else:

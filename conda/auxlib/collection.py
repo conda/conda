@@ -7,7 +7,7 @@ try:
 except ImportError:
     from collections import Mapping, Set
 
-from .compat import isiterable, iteritems, text_type
+from .compat import isiterable
 from .._vendor.frozendict import frozendict
 
 
@@ -17,7 +17,7 @@ def make_immutable(value):
     if isinstance(value, Mapping):
         if isinstance(value, frozendict):
             return value
-        return frozendict((k, make_immutable(v)) for k, v in iteritems(value))
+        return frozendict((k, make_immutable(v)) for k, v in value.items())
     elif isinstance(value, Set):
         if isinstance(value, frozenset):
             return value
@@ -100,5 +100,5 @@ def call_each(seq):
     try:
         reduce(lambda _, y: y(), seq)
     except TypeError as e:
-        if text_type(e) != "reduce() of empty sequence with no initial value":
+        if str(e) != "reduce() of empty sequence with no initial value":
             raise

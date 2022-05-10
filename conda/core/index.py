@@ -16,7 +16,6 @@ from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv
 from ..base.context import context
-from ..common.compat import itervalues
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..gateways.logging import initialize_logging
@@ -86,7 +85,7 @@ def fetch_index(channel_urls, use_cache=False, index=None, repodata_fn=context.r
 
 def dist_str_in_index(index, dist_str):
     match_spec = MatchSpec.from_dist_str(dist_str)
-    return any(match_spec.match(prec) for prec in itervalues(index))
+    return any(match_spec.match(prec) for prec in index.values())
 
 
 def _supplement_index_with_prefix(index, prefix):
@@ -315,7 +314,7 @@ def get_reduced_index(prefix, channels, subdirs, specs, repodata_fn):
 
     # add feature records for the solver
     known_features = set()
-    for rec in itervalues(reduced_index):
+    for rec in reduced_index.values():
         known_features.update(concatv(rec.track_features, rec.features))
     known_features.update(context.track_features)
     for ftr_str in known_features:

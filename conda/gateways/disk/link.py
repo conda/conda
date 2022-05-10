@@ -11,7 +11,7 @@ from os import chmod as os_chmod
 from os.path import abspath, isdir, islink as os_islink, lexists as os_lexists
 import sys
 
-from ...common.compat import PY2, on_win
+from ...common.compat import on_win
 from ...exceptions import CondaOSError, ParseError
 
 __all__ = ("islink", "lchmod", "lexists", "link", "readlink", "symlink")
@@ -20,25 +20,15 @@ log = getLogger(__name__)
 PYPY = sys.implementation.name == 'pypy'
 
 
-if PY2:  # pragma: py3 no cover
+try:
+    from os import lchmod as os_lchmod
+    lchmod = os_lchmod
+except ImportError:
     def lchmod(path, mode):
-        try:
-            os_chmod(path, mode, follow_symlinks=False)
-        except (TypeError, NotImplementedError, SystemError):
-            # On systems that don't allow permissions on symbolic links, skip
-            # links entirely.
-            if not islink(path):
-                os_chmod(path, mode)
-else:  # pragma: py2 no cover
-    try:
-        from os import lchmod as os_lchmod
-        lchmod = os_lchmod
-    except ImportError:
-        def lchmod(path, mode):
-            # On systems that don't allow permissions on symbolic links, skip
-            # links entirely.
-            if not islink(path):
-                os_chmod(path, mode)
+        # On systems that don't allow permissions on symbolic links, skip
+        # links entirely.
+        if not islink(path):
+            os_chmod(path, mode)
 
 
 if not on_win:  # pragma: win no cover
@@ -76,7 +66,7 @@ else:  # pragma: unix no cover
     symlink = win_soft_link
 
 
-if not (on_win and (PY2 or PYPY)):
+if not (on_win and PYPY):
     from os import readlink
     islink = os_islink
     lexists = os_lexists
@@ -138,7 +128,7 @@ else:  # pragma: no cover
     INVALID_HANDLE_VALUE = wintypes.HANDLE(-1).value
     GetFileAttributes = windll.kernel32.GetFileAttributesW
     GetFileAttributes.restype = wintypes.DWORD
-    GetFileAttributes.argtypes = wintypes.LPWSTR,
+    GetFileAttributes.argtypes = (wintypes.LPWSTR,)
 
     def handle_nonzero_success(result):
         if result == 0:
@@ -186,10 +176,7 @@ else:  # pragma: no cover
             if value is None:
                 value = windll.kernel32.GetLastError()
             strerror = format_system_message(value)
-            if sys.version_info > (3, 3):
-                args = 0, strerror, None, value
-            else:
-                args = value, strerror
+            args = 0, strerror, None, value
             super(WindowsError, self).__init__(*args)
 
         @property
@@ -233,8 +220,6 @@ else:  # pragma: no cover
         '    3'
         """
         context = inspect.currentframe().f_back.f_locals
-        if sys.version_info < (3, 2):
-            return string.format(**context)
         return string.format_map(context)
 
     def is_symlink(path):
