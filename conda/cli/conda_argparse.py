@@ -121,9 +121,9 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
-        plugin_manager = context.get_plugin_manager()
+        pm = context.get_plugin_manager()
         self._subcommands = sorted(itertools.chain(
-            *plugin_manager.hook.conda_cli_register_subcommands()
+            *pm.hook.conda_cli_register_subcommands()
         ), key=operator.attrgetter('name'))
 
         # Check for conflicts
