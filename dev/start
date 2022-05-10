@@ -208,7 +208,7 @@ echo "Initializing shell integration..."
 _AUTOBASE="${CONDA_AUTO_ACTIVATE_BASE:-undefined}"
 _EXPORTED="$(export -p | grep CONDA_AUTO_ACTIVATE_BASE)"
 export CONDA_AUTO_ACTIVATE_BASE=false
-eval "$(cd "${_SRC}" ; "${_BASEEXE}" init --dev bash)" > /dev/null
+eval "$(cd "${_SRC}" ; "${_ENVEXE}" init --dev bash)" > /dev/null
 if [ "${_AUTOBASE}" = "undefined" ]; then
     unset CONDA_AUTO_ACTIVATE_BASE
 elif [ -n ${_EXPORTED+x} ]; then
@@ -227,8 +227,6 @@ if ! conda activate "${_ENV}" > /dev/null; then
     echo "Error: failed to activate ${_NAME}" 1>&2
     return 1
 fi
-export CONDA_EXE="${_ENVEXE}"
-export CONDA_PYTHON_EXE="${_PYTHONEXE}"
 export PYTHONPATH="${_SRC}:${PYTHONPATH}"
 
 cleanup
