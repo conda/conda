@@ -6,6 +6,7 @@ import logging
 import os.path
 import json
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone, timedelta
 from functools import wraps
 from typing import NamedTuple, Optional, Sequence, Tuple, Literal
 from urllib import parse
@@ -34,24 +35,27 @@ class ChannelNoticeResponse(NamedTuple):
                     channel_name=self.name,
                     message=msg.get("message"),
                     level=msg.get("level"),
-                    created_at=msg.get("create_at"),
+                    created_at=msg.get("created_at"),
                     expiry=msg.get("expiry"),
                     interval=msg.get("interval"),
                 )
                 for msg in self.json_data.get("notices", tuple())
             )
 
-    @staticmethod
-    def get_cache_key(cache_dir: str, name: str) -> str:
-        cache_filename = f"{name}-notices.json"
+    @classmethod
+    def get_cache_key(cls, cache_dir: str, url: str, name: str) -> str:
+        url_obj = parse.urlparse(url)
+        path = url_obj.path.replace("/", "-")
+        cache_filename = f"{name}{path}"
         cache_key = os.path.join(cache_dir, cache_filename)
 
         return cache_key
 
 
 class ChannelNotice(NamedTuple):
-    """Represents an individual notice"""
-
+    """
+    Represents an individual channel notice
+    """
     id: Optional[str]
     channel_name: Optional[str]
     message: Optional[str]
@@ -80,7 +84,7 @@ def cached_response(func):
 
         return_value = func(url, name)
         if return_value is not None:
-            write_notice_response_to_cache(name, return_value)
+            write_notice_response_to_cache(return_value)
         return return_value
 
     return wrapper
@@ -138,11 +142,41 @@ def get_channel_notice_response(url: str, name: str) -> Optional[ChannelNoticeRe
     try:
         if resp.status_code < 300:
             return ChannelNoticeResponse(url, name, json_data=resp.json())
-        # else:
-        #     logger.error(f'Received {resp.status_code} when trying to GET {url}')
+        else:
+            logger.error(f"Received {resp.status_code} when trying to GET {url}")
     except ValueError:
         logger.error(f"Unable able to parse JSON data for {url}")
         return ChannelNoticeResponse(url, name, json_data=None)
+
+
+def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeResponse) -> bool:
+    """
+    This checks the contents of the cache response to see if it is expired.
+
+    If for whatever reason we encounter an exception while parsing the individual
+    messages, we assume an invalid cache and return true.
+    """
+    now = datetime.now(timezone.utc)
+
+    def is_channel_notice_expired(created_at: str, expiry: int) -> bool:
+        try:
+            created_at_obj = datetime.fromisoformat(created_at)
+        except (ValueError, TypeError):
+            # If the value is somehow invalid or corrupted,
+            # we just invalidate the cache
+            return True
+
+        expires_at = created_at_obj + timedelta(seconds=expiry)
+        zero = timedelta(seconds=0)
+
+        return expires_at - now < zero
+
+    return any(
+        (
+            is_channel_notice_expired(chn.created_at, chn.expiry)
+            for chn in channel_notice_response.notices
+        )
+    )
 
 
 def get_notice_response_from_cache(url: str, name: str) -> Optional[ChannelNoticeResponse]:
@@ -150,25 +184,27 @@ def get_notice_response_from_cache(url: str, name: str) -> Optional[ChannelNotic
     Retrieves a notice response object from cache if it exists.
     """
     cache_dir = user_cache_dir(APP_NAME)
-    cache_key = ChannelNoticeResponse.get_cache_key(cache_dir, name)
+    cache_key = ChannelNoticeResponse.get_cache_key(cache_dir, url, name)
 
     if os.path.isfile(cache_key):
         with open(cache_key, "r") as fp:
             data = json.load(fp)
-        return ChannelNoticeResponse(url, name, data)
+        chn_ntc_resp = ChannelNoticeResponse(url, name, data)
+
+        if not is_notice_response_cache_expired(chn_ntc_resp):
+            return chn_ntc_resp
 
 
-def write_notice_response_to_cache(
-    name: str, channel_notice_response: ChannelNoticeResponse
-) -> None:
+def write_notice_response_to_cache(channel_notice_response: ChannelNoticeResponse) -> None:
     """
     Writes our notice data to our local cache location
     """
-    cache_dir = mkdir_p(
-        user_cache_dir(APP_NAME)
-    )  # TODO: Not sure this is the best place to call this.
+    # TODO: Not sure this is the best place to call this.
     #       It would be better to call once on start up.
-    cache_key = ChannelNoticeResponse.get_cache_key(cache_dir, name)
+    cache_dir = mkdir_p(user_cache_dir(APP_NAME))
+    cache_key = ChannelNoticeResponse.get_cache_key(
+        cache_dir, channel_notice_response.url, channel_notice_response.name
+    )
 
     with open(cache_key, "w") as fp:
         json.dump(channel_notice_response.json_data, fp)
