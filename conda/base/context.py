@@ -831,7 +831,8 @@ class Context(Configuration):
                 user_agent_str += f" {_get_solver_class().user_agent()}"
             except Exception as exc:
                 log.debug(
-                    f"User agent could not be fetched from solver class '{self.experimental_solver}'.",
+                    "User agent could not be fetched from solver class '%s'.",
+                    self.experimental_solver.value,
                     exc_info=exc
                 )
             builder.append(user_agent_str)
