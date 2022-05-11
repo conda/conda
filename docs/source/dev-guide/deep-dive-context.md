@@ -6,9 +6,9 @@ The `context` object is central to many parts of the `conda` codebase. It serves
 repository of settings. You normally import the singleton and access its (many) attributes directly:
 
 ```python
->>> from conda.base.context import context
->>> context.quiet
-False
+from conda.base.context import context
+context.quiet
+# False
 ```
 
 This singleton is initialized from a cascade of different possible sources. From lower to higher
