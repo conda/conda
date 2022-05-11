@@ -52,6 +52,13 @@ Ok, so... what happens when you run `conda install numpy`? Roughly, these steps:
 8. Post-linking and post-activation tasks
 
 
+```{figure} /img/conda-install-deep-dive.png
+:name: conda-install-figure
+
+This figure shows the different processes and objects involved in handling a simple `conda install`
+command.
+```
+
 ## Command line interface
 
 <!-- This might be better in a separate deep-dive for the command line alone -->
@@ -165,15 +172,19 @@ The important bits are:
   {ref}`concept-conda-package`, {ref}`package_metadata` and/or [Package naming
   conventions][conda_build_package_names] for more details.
 
+<!-- TODO: Check why and reasons for this file to exist -->
+
 Additionally, the channel's main directory might contain a `channeldata.json` file, with channel-wide
-metadata (this is not specific per platform). Not all channels include this, and in general it is not currently something that is commonly utilized. <!-- TODO: Check why and reasons for this file to exist -->
+metadata (this is not specific per platform). Not all channels include this, and in general
+it is not currently something that is commonly utilized.
 
 Since conda's philosophy is to keep all packages ever published around for reproducibility,
 `repodata.json` is always growing, which presents a problem both for the download itself and the
 solver engine. To reduce download times and bandwidth usage, `repodata.json` is also served as a
 BZIP2 compressed file, `repodata.json.bz2`. This is what most `conda` clients end up downloading.
 
-```{admonition} Note on `current_repodata.json`
+```{admonition} Note on 'current_repodata.json'
+
 More _repodatas_ variations can be found in some channels, but they are always reduced versions
 of the main one for the sake of performance. For example, `current_repodata.json` only contains
 the most recent version of each package, plus their dependencies. The rationale behind this
@@ -279,7 +290,7 @@ The details are complicated, but in essence, the `Solver` will:
 
 1. Express the requested packages, command line options and prefix state as `MatchSpec` objects
 2. Query the index for the best possible match that satisfy those constraints
-3. Return a list of `PackageRecord` objects.
+3. Return a list of `PackageRecord` objects
 
 The full details are covered in {ref}`deep_dive_solvers` if you are curious. Just keep in mind that
 point (1) is conda-specific, while (2) can be tackled, in principle, by any SAT solver.
@@ -323,9 +334,9 @@ can be changed through the following `context` settings:
 ```
 
 There's only one class of transaction in `conda`:
-[LinkUnlinkTransaction][conda.core.link:UnlinkLinkTransaction]. It only accepts one input parameter:
-a list of `PrefixSetup` objects, which are just `namedtuple` objects with these fields. These are
-populated by `Solver.solve_for_transaction` after running `.solve_for_diff`:
+[`LinkUnlinkTransaction`][conda.core.link:UnlinkLinkTransaction]. It only accepts one input parameter:
+a list of `PrefixSetup` objects, which are just `namedtuple` objects with the followiing fields.
+These are populated by `Solver.solve_for_transaction` after running `Solver.solve_for_diff`:
 
 * `target_prefix`: the environment path the command is running on.
 * `unlink_precs`: `PackageRecord` objects that need to be unlinked (removed).

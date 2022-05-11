@@ -1,3 +1,12 @@
+---
+orphan: true
+---
+
+
+```{admonition} Work in progress
+This page of the documentation is not yet finished and only contains a draft of the content.
+```
+
 (solver_state_specification)=
 
 # Technical specification: solver state

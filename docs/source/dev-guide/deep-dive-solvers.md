@@ -34,7 +34,8 @@ First, let's define what each object does:
     `*` to avoid issues with the `.conda_build_form()` method.
   * `build`: the build string constraints (e.g. `*cuda*`); can be empty.
 
-```{tip} Create a `MatchSpec` from a PackageRecord
+```{admonition} Create a MatchSpec object from a PackageRecord instance
+:class: tip
 
 You can create a `MatchSpec` object from a `PackageRecord` instance using the `.to_match_spec()`
 method. This will create a `MatchSpec` object with its fields set to exactly match the originating
@@ -58,6 +59,7 @@ requested conda channels in a single entity. For more information, check
 {ref}`deep_dive_install_index`.
 
 (deep_dive_solvers_local_state)=
+
 ## Local state: the prefix and context
 
 When you do `conda install numpy`, do you think the solver will just see something like
@@ -89,6 +91,43 @@ combined and modified in very specific ways depending on the command line flags 
 (e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
 explicitly). This logic is intricate and will be covered in the next sections. A more technical
 description is also available in {ref}`solver_state_specification`.
+
+```{figure} /img/solver-deep-dive-1.png
+:name: solver-local-variables
+
+Local variables affect the solving process explicitly and implicitly. As seen in
+{ref}`in the conda install deep dive <deep_dive_install>`, the main actor is the
+`conda.core.solve.Solver` class. Before invoking the SAT solver, we can describe nine steps:
+
+1.  Instantiate the `Solver` class with the user-requested packages and the active environment
+    (target prefix)
+2.  Call the `solve_for_transaction()` method on the instance, which calls `solve_for_diff()`.
+3.  Call `solve_final_state()`, which takes some more arguments from the CLI.
+4.  Under some circumstances, we can return early (e.g. the packages are already installed)
+5.  If we didn't return early, we collect all the local variables into a list of `MatchSpec`
+    objects.
+
+For steps six to nine, see {ref}`this figure <solver-remote-variables>`.
+```
+
+```{figure} /img/solver-deep-dive-2.png
+:name: solver-remote-variables
+
+The remote variables in a solve refer to, essentially, the package index (channels). This figure
+describes nine steps, focusing on 6-9. For steps 1-5, see
+{ref}`the previous figure <solver-local-variables>`.
+
+6. All the channels need to be fetched by now, but they have to be aggregated and reduced so the
+   solver only handles the relevant bits. This step transforms "channels" into a list of available
+   `PackageRecord` objects.
+7. This is where the SAT solver will act. It will use the list of `MatchSpec` objects to pick
+   a number of `PackageRecord` entries from the index, thus building the "final state of the
+   solved environment". This is detailed later in this deep dive guide, if you need more info.
+8. `solve_for_diff` takes the final state and compares it to the initial state, generating the
+   differences between them (e.g. package A was updated to version 1.2, package B was removed).
+9. `solve_for_transaction` takes the diff and some more metadata in the instance to generate the
+   `Transaction` object.
+```
 
 ## The high-level logic in `conda.cli.install`
 
@@ -128,6 +167,8 @@ else:
 
 handle_txn(transaction)
 ```
+
+Check {ref}`this other figure <conda-install-figure>` for a schematic representation of this pseudocode.
 
 We have, then, two reasons to re-run the full solver logic:
 
@@ -243,7 +284,7 @@ This is currently implemented in the `conda.core.solve.Solver` class. Its main g
 populate the `specs_map` dictionary, which maps package names (`str`) to `MatchSpec` objects.
 This happens at the beginning of the `.solve_final_state()` method. The full details of the
 `specs_map` population are covered in the
-{ref}`solver state technical specification <techspec_solver_state>`, but here's a little map
+{ref}`solver state technical specification <solver_state_specification>`, but here's a little map
 of what submethods are involved:
 
 1. Initialization of the `SolverStateContainer`: Often abbreviated as `ssc`, it's a helper
@@ -444,6 +485,24 @@ consider checking the following resources:
 * ["Understanding and Improving Conda's performance"][anaconda_performance_blog]
 * [All the talks regarding solvers from Packaging-Con 2021][packagingcon_youtube]. Check which talks
   belong to the [Solvers track][packagingcon_solvers] and enjoy!
+```
+
+```{figure} /img/solver-deep-dive-3.png
+:name: solver-and-resolve
+
+Here you can see how the high level Solver API interacts with the low-level Resolve and Clauses
+objects.
+
+The _Collecting metadata_ step in the CLI report only compiles the necessary information from the
+CLI arguments, the prefix state and the chosen channels, presenting the SAT solver adapters with
+two critical pieces of information:
+
+* The list of `MatchSpec` objects ("what the user wants in this environment")
+* The list of `PackageRecord` objects ("the packages available in the channels")
+
+So, in essence, the SAT solver takes the `MatchSpec` objects to select which `PackageRecord` objects
+satisfy the user request in the best way. The necessary computations are part of the "Solving
+environment..." step in the CLI report.
 ```
 
 

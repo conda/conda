@@ -1,15 +1,14 @@
 (deep_dive_context)=
 
-# Deep dive: `conda` config and Context
+# Deep dive: conda config and Context
 
 The `context` object is central to many parts of the `conda` codebase. It serves as a centralized
 repository of settings. You normally import the singleton and access its (many) attributes directly:
 
 ```python
-from conda.base.context import context
-
-context.quiet
-# False
+>>> from conda.base.context import context
+>>> context.quiet
+False
 ```
 
 This singleton is initialized from a cascade of different possible sources. From lower to higher
@@ -21,12 +20,12 @@ precedence:
 3. Values set by the corresponding command line arguments, if any.
 4. Values defined by their corresponding `CONDA_*` environment variables, if present.
 
-The mechanism implementing this behavior is an elaborate beast with several types of objects
+The mechanism implementing this behavior is an elaborate object with several types of objects
 involved.
 
-## Anatomy of the `Context`class
+## Anatomy of the `Context` class
 
-`conda.base.context.Context` is an app-specific subclass of the application-agnostic
+`conda.base.context.Context` is an conda-specific subclass of the application-agnostic
 `conda.common.configuration.Configuration` class. This class implements the precedence order
 for the instantiation of each defined attribute, as well as the overall validation logic and help
 message reporting. But that's it, it's merely a storage of `ParameterLoader` objects which, in
