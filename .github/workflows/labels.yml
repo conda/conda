@@ -1,0 +1,38 @@
+name: Sync Labels
+
+on:
+  workflow_dispatch:
+    inputs:
+      dryrun:
+        description: "dryrun: Preview changes to labels without editing them (true|false)"
+        required: true
+        default: "true"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      GLOBAL: https://raw.githubusercontent.com/conda/infra/main/.github/global.yml
+      LOCAL: .github/labels.yml
+    steps:
+      - uses: actions/checkout@v2
+      - id: has_local
+        uses: andstor/file-existence-action@v1.0.1
+        with:
+          files: ${{ env.LOCAL }}
+      - name: Global Only
+        uses: EndBug/label-sync@v2.1.0
+        if: steps.has_local.outputs.files_exists == 'false'
+        with:
+          config-file: ${{ env.GLOBAL }}
+          delete-other-labels: true
+          dry-run: ${{ github.event.inputs.dryrun }}
+      - name: Global & Local
+        uses: EndBug/label-sync@v2.1.0
+        if: steps.has_local.outputs.files_exists == 'true'
+        with:
+          config-file: |
+            ${{ env.GLOBAL }}
+            ${{ env.LOCAL }}
+          delete-other-labels: true
+          dry-run: ${{ github.event.inputs.dryrun }}

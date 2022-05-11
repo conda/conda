@@ -7,6 +7,7 @@ import sys
 import textwrap
 
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.core.prefix_data import PrefixData
 from conda.misc import touch_nonadmin
 from .common import get_prefix, print_result, get_filename
 from .. import exceptions, specs as install_specs
@@ -121,6 +122,10 @@ def execute(args, parser):
     for installer_type, specs in env.dependencies.items():
         installer = installers[installer_type]
         result[installer_type] = installer.install(prefix, specs, args, env)
+
+    if env.variables:
+        pd = PrefixData(prefix)
+        pd.set_environment_env_vars(env.variables)
 
     touch_nonadmin(prefix)
     print_result(args, prefix, result)

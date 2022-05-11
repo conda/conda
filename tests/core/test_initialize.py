@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from distutils.sysconfig import get_python_lib
@@ -11,7 +14,7 @@ from unittest import TestCase
 
 import pytest
 
-from conda import CONDA_PACKAGE_ROOT
+from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import stdout_json
@@ -573,7 +576,11 @@ class InitializeTests(TestCase):
                 mkdir_p(dirname(new_py))
                 create_link(abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink)
                 with captured() as c:
-                    initialize_dev('bash', dev_env_prefix=conda_temp_prefix, conda_source_root=dirname(CONDA_PACKAGE_ROOT))
+                    initialize_dev(
+                        "bash",
+                        dev_env_prefix=conda_temp_prefix,
+                        conda_source_root=CONDA_SOURCE_ROOT,
+                    )
 
         print(c.stdout)
         print(c.stderr, file=sys.stderr)
@@ -641,7 +648,11 @@ class InitializeTests(TestCase):
                 mkdir_p(dirname(new_py))
                 create_link(abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink)
                 with captured() as c:
-                    initialize_dev('cmd.exe', dev_env_prefix=conda_temp_prefix, conda_source_root=dirname(CONDA_PACKAGE_ROOT))
+                    initialize_dev(
+                        "cmd.exe",
+                        dev_env_prefix=conda_temp_prefix,
+                        conda_source_root=CONDA_SOURCE_ROOT,
+                    )
 
         print(c.stdout)
         print(c.stderr, file=sys.stderr)

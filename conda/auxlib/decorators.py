@@ -189,7 +189,7 @@ def memoizemethod(method):
 
 def clear_memoized_methods(obj, *method_names):
     """
-    Clear the memoized method or @memoizeproperty results for the given
+    Clear the memoized method or @memoizedproperty results for the given
     method names from the given object.
 
     >>> v = [0]
@@ -201,7 +201,7 @@ def clear_memoized_methods(obj, *method_names):
     ...    @memoizemethod
     ...    def foo(self):
     ...        return inc()
-    ...    @memoizeproperty
+    ...    @memoizedproperty
     ...    def g(self):
     ...       return inc()
     ...
@@ -343,6 +343,6 @@ class classproperty(object):  # pylint: disable=C0103
 #     staticproperty?
 # memoizefunction
 # memoizemethod
-# memoizeproperty
+# memoizedproperty
 #
 #

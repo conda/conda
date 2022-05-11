@@ -42,7 +42,7 @@ from ..models.enums import LinkType
 from ..models.enums import MetadataSignatureStatus
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
-from ..utils import ensure_comspec_set, human_bytes, wrap_subprocess_call
+from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 
 log = getLogger(__name__)
 
@@ -1171,15 +1171,18 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
 
     script_caller = None
     if on_win:
-        ensure_comspec_set()
         try:
-            comspec = os.environ[str('COMSPEC')]
+            comspec = get_comspec()  # fail early with KeyError if undefined
         except KeyError:
             log.info("failed to run %s for %s due to COMSPEC KeyError", action, prec.dist_str())
             return False
         if activate:
             script_caller, command_args = wrap_subprocess_call(
-                on_win, context.root_prefix, prefix, context.dev, False, ('@CALL', path)
+                context.root_prefix,
+                prefix,
+                context.dev,
+                False,
+                ("@CALL", path),
             )
         else:
             command_args = [comspec, '/d', '/c', path]
@@ -1187,7 +1190,11 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
         if activate:
             script_caller, command_args = wrap_subprocess_call(
-                on_win, context.root_prefix, prefix, context.dev, False, (".", path)
+                context.root_prefix,
+                prefix,
+                context.dev,
+                False,
+                (".", path),
             )
         else:
             shell_path = 'sh' if 'bsd' in sys.platform else 'bash'

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from re import escape
@@ -14,7 +17,7 @@ from uuid import uuid4
 import json
 
 from conda import __version__ as conda_version
-from conda import CONDA_PACKAGE_ROOT
+from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
@@ -1776,7 +1779,8 @@ class InteractiveShell(object):
     init_command = None
     print_env_var = None
     from conda.utils import quote_for_shell
-    exe_quoted = quote_for_shell([sys.executable.replace('\\', '/') if on_win else sys.executable])
+
+    exe_quoted = quote_for_shell(sys.executable.replace("\\", "/") if on_win else sys.executable)
     shells = {
         'posix': {
             'activator': 'posix',
@@ -1893,10 +1897,17 @@ class InteractiveShell(object):
         shell_found = which(self.shell_name) or self.shell_name
         args = list(self.args) if hasattr(self, 'args') else list()
 
-        p = PopenSpawn(quote_for_shell([shell_found] + args, shell='cmd.exe' if on_win else 'bash'),
-                       timeout=12, maxread=5000, searchwindowsize=None,
-                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding='utf-8',
-                       codec_errors='strict')
+        p = PopenSpawn(
+            quote_for_shell(shell_found, *args),
+            timeout=12,
+            maxread=5000,
+            searchwindowsize=None,
+            logfile=sys.stdout,
+            cwd=os.getcwd(),
+            env=env,
+            encoding="utf-8",
+            codec_errors="strict",
+        )
 
         # set state for context
         joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
@@ -1906,9 +1917,9 @@ class InteractiveShell(object):
         )))
         self.original_path = PATH
         env = {
-            'CONDA_AUTO_ACTIVATE_BASE': 'false',
-            'PYTHONPATH': self.activator.path_conversion(dirname(CONDA_PACKAGE_ROOT)),
-            'PATH': PATH,
+            "CONDA_AUTO_ACTIVATE_BASE": "false",
+            "PYTHONPATH": self.activator.path_conversion(CONDA_SOURCE_ROOT),
+            "PATH": PATH,
         }
         for ev in ('CONDA_TEST_SAVE_TEMPS', 'CONDA_TEST_TMPDIR', 'CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE'):
             if ev in os.environ: env[ev] = os.environ[ev]

@@ -1,0 +1,37 @@
+name: Automate Issues
+
+on:
+  issue_comment:
+    types: [created]
+
+env:
+  # labels
+  FEEDBACK_LBL: pending::feedback
+  SUPPORT_LBL: pending::support
+
+jobs:
+  # NOTE: doesn't catch cases where multiple users act as the author/reporter,
+  # this is just an effort to catch the majority of support cases
+  # TODO: create conda-triaging team and modify this to toggle label based on
+  # whether a non-triaging engineer commented
+  pending_support:
+    # if [pending::feedback] and the author responds
+    if: >-
+      github.event_name == 'issue_comment'
+      && github.event.action == 'created'
+      && !github.event.issue.pull_request
+      && contains(github.event.issue.labels.*.name, 'pending::feedback')
+      && github.event.issue.user.login == github.event.comment.user.login
+    runs-on: ubuntu-latest
+    steps:
+      # remove [pending::feedback]
+      - uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: ${{ env.FEEDBACK_LBL }}
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      # add [pending::feedback], if still open
+      - uses: actions-ecosystem/action-add-labels@v1.1.0
+        if: github.event.issue.state == 'open'
+        with:
+          labels: ${{ env.SUPPORT_LBL }}
+          github_token: ${{ secrets.PROJECT_TOKEN }}

@@ -220,9 +220,18 @@ def check_non_admin():
             on your system for non-privileged users.
         """))
 
-def is_valid_prefix(prefix):
+def validate_prefix(prefix):
+    """Verifies the prefix is a valid conda environment.
+
+    :raises EnvironmentLocationNotFound: Non-existent path or not a directory.
+    :raises DirectoryNotACondaEnvironmentError: Directory is not a conda environment.
+    :returns: Valid prefix.
+    :rtype: str
+    """
     if isdir(prefix):
         if not isfile(join(prefix, 'conda-meta', 'history')):
             raise DirectoryNotACondaEnvironmentError(prefix)
     else:
         raise EnvironmentLocationNotFound(prefix)
+
+    return prefix

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
@@ -31,8 +34,14 @@ from uuid import uuid4
 import pytest
 import requests
 
-from conda import CondaError, CondaMultiError, plan, __version__ as CONDA_VERSION, \
-    CONDA_PACKAGE_ROOT
+from conda import (
+    CondaError,
+    CondaMultiError,
+    plan,
+    __version__ as CONDA_VERSION,
+    CONDA_PACKAGE_ROOT,
+    CONDA_SOURCE_ROOT,
+)
 from conda.auxlib.entity import EntityEncoder
 from conda.auxlib.ish import dals
 from conda._vendor.toolz import concatv
@@ -42,7 +51,7 @@ from conda.base.context import Context, context, reset_context, conda_tests_ctxt
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import (ensure_text_type, iteritems, string_types, text_type,
-                                 encode_arguments)
+                                 encode_arguments, on_win, on_mac)
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -66,7 +75,7 @@ from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.models.version import VersionOrder
 from conda.resolve import exactness_and_number_of_deps
-from conda.utils import massage_arguments, on_win
+from conda.utils import massage_arguments
 
 from .cases import BaseTestCase
 
@@ -1247,40 +1256,40 @@ dependencies:
             assert not package_is_installed(prefix, 'flask')
 
     def test_install_update_deps_flag(self):
-        with make_temp_env("flask=0.12", "jinja2=2.9") as prefix:
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12")
-            assert package_is_installed(prefix, "jinja2=2.9")
+        with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.1")
+            assert package_is_installed(prefix, "jinja2=3.0.1")
 
             run_command(Commands.INSTALL, prefix, "flask", "--update-deps")
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask>0.12")
-            assert package_is_installed(prefix, "jinja2>2.9")
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask>2.0.1")
+            assert package_is_installed(prefix, "jinja2>3.0.1")
 
     def test_install_only_deps_flag(self):
-        with make_temp_env("flask=0.12.2", "jinja2=2.9") as prefix:
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12.2")
-            assert package_is_installed(prefix, "jinja2=2.9")
+        with make_temp_env("flask=2.0.2", "jinja2=3.0.2") as prefix:
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.2")
+            assert package_is_installed(prefix, "jinja2=3.0.2")
 
             run_command(Commands.INSTALL, prefix, "flask", "--only-deps")
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12.2")
-            assert package_is_installed(prefix, "jinja2=2.9")
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.2")
+            assert package_is_installed(prefix, "jinja2=3.0.2")
 
-        with make_temp_env("flask==0.12.2", "--only-deps") as prefix:
+        with make_temp_env("flask==2.0.2", "--only-deps") as prefix:
             assert not package_is_installed(prefix, "flask")
 
     def test_install_update_deps_only_deps_flags(self):
-        with make_temp_env("flask=0.12.2", "jinja2=2.9") as prefix:
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12.2")
-            assert package_is_installed(prefix, "jinja2=2.9")
+        with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.1")
+            assert package_is_installed(prefix, "jinja2=3.0.1")
 
-            run_command(Commands.INSTALL, prefix, "flask", "python=3.6", "--update-deps", "--only-deps")
-            assert package_is_installed(prefix, "python=3.6")
-            assert package_is_installed(prefix, "flask=0.12.2")
-            assert package_is_installed(prefix, "jinja2>2.9")
+            run_command(Commands.INSTALL, prefix, "flask", "python=3.9", "--update-deps", "--only-deps")
+            assert package_is_installed(prefix, "python=3.9")
+            assert package_is_installed(prefix, "flask=2.0.1")
+            assert package_is_installed(prefix, "jinja2>3.0.1")
 
 
     @pytest.mark.xfail(on_win, reason="nomkl not present on windows",
@@ -1982,7 +1991,6 @@ dependencies:
     def test_conda_pip_interop_conda_editable_package(self):
         with env_var('CONDA_RESTORE_FREE_CHANNEL', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
-                conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
                 workdir = prefix
 
                 run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
@@ -1991,7 +1999,7 @@ dependencies:
                 # install an "editable" urllib3 that cannot be managed
                 output, err, _ = run_command(Commands.RUN, prefix, '--cwd', workdir,
                                              "python", "-m", "pip", "install", "-e",
-                                             "git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
+                                             "git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
                 assert isfile(join(workdir, "src", "urllib3", "urllib3", "__init__.py"))
                 assert not isfile(join("src", "urllib3", "urllib3", "__init__.py"))
                 PrefixData._cache_.clear()
@@ -2607,6 +2615,7 @@ dependencies:
         assert env_which_etc
         assert not errs_etc
 
+    @pytest.mark.xfail(on_mac, reason="see #11128")
     def test_init_dev_and_NoBaseEnvironmentError(self):
         # This specific python version is named so that the test suite uses an
         # old python build that still hacks 'Library/bin' into PATH. Really, we
@@ -2629,7 +2638,6 @@ dependencies:
         with make_temp_env("conda="+conda_v, "python="+python_v, "git",
                            "conda-package-handling", "--copy",
                            name='_' + str(uuid4())[:8]) as prefix:
-            conda_dev_srcdir = dirname(CONDA_PACKAGE_ROOT)
             # We cannot naively call $SOME_PREFIX/bin/conda and expect it to run the right conda because we
             # respect PATH (i.e. our conda shell script (in 4.5 days at least) has the following shebang:
             # `#!/usr/bin/env python`). Now it may be that `PYTHONPATH` or something was meant to account
@@ -2652,7 +2660,7 @@ dependencies:
 
                 # When we run `conda run -p prefix python -m conda init` we are explicitly wishing to run the
                 # old Python 3.6.7 in prefix, but against the development sources of conda. Those are found
-                # via `workdir=conda_dev_srcdir`.
+                # via `workdir=CONDA_SOURCE_ROOT`.
                 #
                 # This was beyond complicated to deal with and led to adding a new 'dev' flag which modifies
                 # what the script wrappers emit for `CONDA_EXE`.
@@ -2664,7 +2672,7 @@ dependencies:
                 #
 
                 '''
-                env_path_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir, dedent("""
+                env_path_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', CONDA_SOURCE_ROOT, dedent("""
                     declare -f
                     env | sort
                     which conda
@@ -2678,16 +2686,26 @@ dependencies:
 
                 # Let us test that the conda we expect to be running in that scenario
                 # is the conda that actually runs:
-                conda__file__, stderr, _ = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir,
-                    sys.executable, "-c",
-                    "import conda, os, sys; "
-                    "sys.stdout.write(os.path.abspath(conda.__file__))",
-                    dev=True)
-                assert dirname(dirname(conda__file__)) == conda_dev_srcdir
+                conda__file__, stderr, _ = run_command(
+                    Commands.RUN,
+                    prefix,
+                    "--cwd",
+                    CONDA_SOURCE_ROOT,
+                    sys.executable,
+                    "-c",
+                    "import conda, os, sys; " "sys.stdout.write(os.path.abspath(conda.__file__))",
+                    dev=True,
+                )
+                assert dirname(dirname(conda__file__)) == CONDA_SOURCE_ROOT
 
                 # (and the same thing for Python)
-                python_v2, _, _ = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir,
-                    "python", "-c",
+                python_v2, _, _ = run_command(
+                    Commands.RUN,
+                    prefix,
+                    "--cwd",
+                    CONDA_SOURCE_ROOT,
+                    "python",
+                    "-c",
                     "import os, sys; "
                     "sys.stdout.write(str(sys.version_info[0]) + '.' + "
                     "                 str(sys.version_info[1]) + '.' + "
@@ -2695,9 +2713,15 @@ dependencies:
                 assert python_v2 == python_v
 
                 # install a dev version with our current source checkout into prefix
-                args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
-                result, stderr, _ = run_command(Commands.RUN, prefix, '--cwd', conda_dev_srcdir,
-                                              *args, dev=True)
+                args = ["python", "-m", "conda", "init", *(["cmd.exe"] if on_win else []), "--dev"]
+                result, stderr, _ = run_command(
+                    Commands.RUN,
+                    prefix,
+                    "--cwd",
+                    CONDA_SOURCE_ROOT,
+                    *args,
+                    dev=True,
+                )
 
                 result = subprocess_call_with_clean_env("%s --version" % conda_exe)
                 assert result.rc == 0
@@ -2787,6 +2811,7 @@ dependencies:
                 assert package_is_installed(prefix, 'openssl')
                 assert rs.call_count == 1
 
+    @pytest.mark.xfail(on_mac, reason="known broken; see #11127")
     def test_post_link_run_in_env(self):
         test_pkg = '_conda_test_env_activated_when_post_link_executed'
         # a non-unicode name must be provided here as activate.d scripts
