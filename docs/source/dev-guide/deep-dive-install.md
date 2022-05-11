@@ -19,16 +19,6 @@ we will consider the following situation:
 * The `base` environment is already preactivated for Bash. For more details on activation, check
   {ref}`deep_dive_activation`.
 
-So... here we are:
-
-```console
-$ (base) ~/: conda info
-... # TODO
-
-$ (base) ~/: conda list
-... # TODO
-```
-
 Ok, so... what happens when you run `conda install numpy`? Roughly, these steps:
 
 1. Command line interface
@@ -414,9 +404,7 @@ These two actions only take place _if_ the package is not in cache yet and if it
 extracted, respectively. They can also revert the changes if the transaction is aborted (either
 due to an error or because the user pressed Ctrl+C).
 
-```{admonition} Anatomy of the conda caches
-TODO
-```
+<!-- TODO: Add "Anatomy of the conda caches" admonition-->
 
 ## Populating the prefix
 
