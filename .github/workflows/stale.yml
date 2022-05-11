@@ -42,11 +42,11 @@ jobs:
           # Comment on the staled issues
           stale-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-issue'] }}
           # Comment on the staled issues while closed
-          close-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-issue'] }}
+          # close-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-issue'] }}
           # Comment on the staled PRs
           stale-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-pr'] }}
           # Comment on the staled PRs while closed
-          close-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-pr'] }}
+          # close-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-pr'] }}
           # Label to apply on staled issues
           stale-issue-label: 'stale'
           # Label to apply on closed issues
