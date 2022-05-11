@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Cached repodata with `.jlap` incremental diffs, implemented as a ConnectionAdapter.
 """
@@ -8,45 +12,43 @@ INTERCEPT_PATHS = ["https://conda.anaconda.org/conda-forge/", "https://repo.anac
 
 import logging
 
+from . import repodata_proxy, sync_jlap
+from ... import BaseAdapter
+
+
 log = logging.getLogger(__name__)
 
-try:
-    from . import repodata_proxy, sync_jlap
-    from ... import BaseAdapter
 
-    class JlapAdapter(BaseAdapter):
-        def __init__(self, base_adapter):
-            self.base_adapter = base_adapter
+class JlapAdapter(BaseAdapter):
+    def __init__(self, base_adapter):
+        self.base_adapter = base_adapter
 
-        def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
-            """Sends PreparedRequest object. Returns Response object.
+    def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
+        """Sends PreparedRequest object. Returns Response object.
 
-            :param request: The :class:`PreparedRequest <PreparedRequest>` being sent.
-            :param stream: (optional) Whether to stream the request content.
-            :param timeout: (optional) How long to wait for the server to send
-                data before giving up, as a float, or a :ref:`(connect timeout,
-                read timeout) <timeouts>` tuple.
-            :type timeout: float or tuple
-            :param verify: (optional) Either a boolean, in which case it controls whether we verify
-                the server's TLS certificate, or a string, in which case it must be a path
-                to a CA bundle to use
-            :param cert: (optional) Any user-provided SSL certificate to be trusted.
-            :param proxies: (optional) The proxies dictionary to apply to the request.
-            """
-            if not repodata_proxy.supported.match(request.url):
-                log.debug("Skip intercept %s", request.url)
-                return self.base_adapter.send(request, stream, timeout, verify, cert, proxies)
+        :param request: The :class:`PreparedRequest <PreparedRequest>` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) <timeouts>` tuple.
+        :type timeout: float or tuple
+        :param verify: (optional) Either a boolean, in which case it controls whether we verify
+            the server's TLS certificate, or a string, in which case it must be a path
+            to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        """
+        if not repodata_proxy.supported.match(request.url):
+            log.debug("Skip intercept %s", request.url)
+            return self.base_adapter.send(request, stream, timeout, verify, cert, proxies)
 
-            log.debug("Intercept %s", request.url)
-            return repodata_proxy.send(request, self.base_adapter)
+        log.debug("Intercept %s", request.url)
+        return repodata_proxy.send(request, self.base_adapter)
 
-    if True:
-        log.setLevel(logging.DEBUG)
-        repodata_proxy.log.setLevel(logging.DEBUG)
-        sync_jlap.log.setLevel(logging.DEBUG)
 
-except ImportError as e:
-    repodata_proxy = None
+log.setLevel(logging.DEBUG)
+repodata_proxy.log.setLevel(logging.DEBUG)
+sync_jlap.log.setLevel(logging.DEBUG)
 
 
 # Called several times. Would conda perform better with a persistent Session()?

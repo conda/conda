@@ -92,8 +92,9 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.mount("ftp://", FTPAdapter())
             self.mount("s3://", S3Adapter())
 
-            # incremental repodata (experimental)
-            jlap.attach(self, http_adapter)
+            if context.experimental_repodata:
+                # incremental repodata (experimental)
+                jlap.attach(self, http_adapter)
 
         self.mount("file://", LocalFSAdapter())
 

@@ -579,6 +579,7 @@ def configure_parser_create(sub_parsers):
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
     add_parser_default_packages(solver_mode_options)
     add_parser_experimental_solver(solver_mode_options)
+    add_parser_experimental_repodata(solver_mode_options)
     p.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -768,6 +769,7 @@ def configure_parser_install(sub_parsers):
 
     add_parser_prune(solver_mode_options)
     add_parser_experimental_solver(solver_mode_options)
+    add_parser_experimental_repodata(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -1235,6 +1237,7 @@ def configure_parser_search(sub_parsers):
     add_parser_channels(p)
     add_parser_networking(p)
     add_parser_json(p)
+    add_parser_experimental_repodata(p)
     p.set_defaults(func='.main_search.execute')
 
 
@@ -1278,6 +1281,7 @@ def configure_parser_update(sub_parsers, name='update'):
 
     add_parser_prune(solver_mode_options)
     add_parser_experimental_solver(solver_mode_options)
+    add_parser_experimental_repodata(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -1634,6 +1638,22 @@ def add_parser_experimental_solver(p):
         choices=[v.value for v in ExperimentalSolverChoice],
         help="EXPERIMENTAL. Choose which solver backend to use.",
         default=NULL,
+    )
+
+
+def add_parser_experimental_repodata(p):
+    """
+    Add a boolean flag for whether or not to use experimental repodata download.
+
+    See ``context.experimental_repodata`` for more info.
+
+    TODO: This is temporary flag
+    """
+    p.add_argument(
+        "--experimental-repodata",
+        action="store_true",
+        default=NULL,
+        help="EXPERIMENTAL. Choose whether or not to use new repodata cache.",
     )
 
 

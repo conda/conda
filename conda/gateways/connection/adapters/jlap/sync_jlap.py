@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Synchronize local patch files with repodata.fly.dev
 """
 
+import logging
 import os
-
 from pathlib import Path
+
 from requests_cache import CachedSession
 
 from .no_cache import discard_serializer
 from . import truncateable
-
-import logging
 
 log = logging.getLogger(__name__)
 

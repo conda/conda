@@ -1,4 +1,9 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from typing import Dict
+
 from requests_cache import (
     CachedResponse,
     SerializerPipeline,

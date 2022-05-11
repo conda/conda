@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Intercept requests for repodata.json, fulfill from cache or cache + patches
 """
@@ -12,15 +16,16 @@ import os.path
 import tempfile
 import time
 import hashlib
-import jsonpatch
-import appdirs
-import bottle
-import requests
-import requests_cache
 import re
-import io
 from urllib.parse import urlparse
-from bottle import HTTPError, HTTPResponse, parse_date, request, route, run
+from typing import Optional, NamedTuple
+
+import requests
+
+import jsonpatch
+import requests_cache
+
+from conda._vendor import appdirs
 
 from . import truncateable
 from . import sync_jlap
@@ -41,11 +46,11 @@ session = sync_jlap.make_session((CACHE_DIR / "jlap_cache.db"))
 sync = sync_jlap.SyncJlap(session, CACHE_DIR)
 
 
-def hf(hash):
+def hf(hash_val):
     """
     Abbreviate hash for formatting.
     """
-    return hash[:16] + "\N{HORIZONTAL ELLIPSIS}"
+    return hash_val[:16] + "\N{HORIZONTAL ELLIPSIS}"
 
 
 def make_session():
@@ -101,7 +106,8 @@ def apply_patches(data, patches, have, want):
     while apply:
         patch = apply.pop()
         log.info(
-            f"{hf(patch['from'])} \N{RIGHTWARDS ARROW} {hf(patch['to'])}, {len(patch['patch'])} steps"
+            f"{hf(patch['from'])} \N{RIGHTWARDS ARROW}"
+            f" {hf(patch['to'])}, {len(patch['patch'])} steps"
         )
         data = jsonpatch.JsonPatch(patch["patch"]).apply(data, in_place=True)
 
@@ -176,7 +182,8 @@ def patch_files(cache_path: Path, jlap_path: Path):
         original_hash == patch["from"] for patch in patches
     ):
         log.info(
-            f"Remove {cache_path} not found in patchset; {original_hash == meta['latest']} and not any 'from' hash"
+            f"Remove {cache_path} not found in patchset;"
+            f" {original_hash == meta['latest']} and not any 'from' hash"
         )
         cache_path.unlink()
 
@@ -243,9 +250,15 @@ def send(request: requests.PreparedRequest, base_adapter):
     return response
 
 
+class FileResponse(NamedTuple):
+    status_code: Optional[int]
+    body: Optional[str]
+    headers: Optional[dict]
+
+
 def static_file_headers(
     filename, root, mimetype="auto", download=False, charset="UTF-8"
-) -> bottle.BaseResponse:
+) -> FileResponse:
     """
     bottle.static_file_headers but without opening file
     """
@@ -255,11 +268,13 @@ def static_file_headers(
     headers = dict()
 
     if not filename.startswith(root):
-        return HTTPError(403, "Access denied.")
+        return FileResponse(status_code=403, body="Access denied.", headers=None)
     if not os.path.exists(filename) or not os.path.isfile(filename):
-        return HTTPError(404, "File does not exist.")
+        return FileResponse(status_code=404, body="File does not exist.", headers=None)
     if not os.access(filename, os.R_OK):
-        return HTTPError(403, "You do not have permission to access this file.")
+        return FileResponse(
+            status_code=403, body="You do not have permission to access this file.", headers=None
+        )
 
     if mimetype == "auto":
         mimetype, encoding = mimetypes.guess_type(filename)
@@ -267,26 +282,26 @@ def static_file_headers(
             headers["Content-Encoding"] = encoding
 
     if mimetype:
-        if mimetype[:5] == "text/" and charset and "charset" not in mimetype:
+        if mimetype.startswith("text/") and charset and "charset" not in mimetype:
             mimetype += "; charset=%s" % charset
         headers["Content-Type"] = mimetype
 
     if download:
-        download = os.path.basename(filename if download == True else download)
+        download = os.path.basename(filename if download is True else download)
         headers["Content-Disposition"] = 'attachment; filename="%s"' % download
 
     stats = os.stat(filename)
-    headers["Content-Length"] = clen = stats.st_size
+    headers["Content-Length"] = stats.st_size
     lm = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(stats.st_mtime))
     headers["Last-Modified"] = lm
 
-    ims = request.environ.get("HTTP_IF_MODIFIED_SINCE")
-    if ims:
-        ims = parse_date(ims.split(";")[0].strip())
-    if ims is not None and ims >= int(stats.st_mtime):
-        headers["Date"] = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-        return HTTPResponse(status=304, **headers)
+    # ims = request.environ.get("HTTP_IF_MODIFIED_SINCE")
+    # if ims:
+    #     ims = parse_date(ims.split(";")[0].strip())
+    # if ims is not None and ims >= int(stats.st_mtime):
+    #     headers["Date"] = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+    #     return FileResponse(status_code=304, headers=headers, body="")
 
     body = ""  # to be replaced
 
-    return HTTPResponse(body, **headers)
+    return FileResponse(body=body, headers=headers, status_code=200)

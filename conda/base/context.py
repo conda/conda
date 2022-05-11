@@ -316,6 +316,7 @@ class Context(Configuration):
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
+    experimental_repodata = ParameterLoader(PrimitiveParameter(False))
 
     # ######################################################
     # ##               Solver Configuration               ##
@@ -930,6 +931,7 @@ class Context(Configuration):
                 "repodata_fns",
                 "use_only_tar_bz2",
                 "repodata_threads",
+                "experimental_repodata",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1551,6 +1553,12 @@ class Context(Configuration):
                 conda. A solver logic takes care of turning your requested packages into a
                 list of specs to add and/or remove from a given environment, based on their
                 dependencies and specified constraints.
+                """
+            ),
+            experimental_repodata=dals(
+                """
+                This is a flag that when enabled, forces conda to read from the new type
+                of repodata.json file which is a stored and cached in smaller chunks.
                 """
             ),
         )
