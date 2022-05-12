@@ -10,6 +10,7 @@ Developer guide
    writing-tests/index.rst
    releasing
    ../architecture
+   plugin-api/index
    deep-dive-install
    deep-dive-activation
    deep-dive-context

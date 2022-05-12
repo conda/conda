@@ -14,7 +14,7 @@ else:
 
 
 _hookspec = pluggy.HookspecMarker('conda')
-hookimp = pluggy.HookimplMarker('conda')
+hookimpl = pluggy.HookimplMarker('conda')
 
 
 class CondaSubcommand(NamedTuple):
