@@ -4,12 +4,7 @@
 
 from typing import Dict
 
-from requests_cache import (
-    CachedResponse,
-    SerializerPipeline,
-    Stage,
-    json_serializer,
-)
+from requests_cache import CachedResponse, SerializerPipeline, Stage, json_serializer
 
 
 class DiscardContentStage(Stage):

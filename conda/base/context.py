@@ -14,6 +14,7 @@ import sys
 import struct
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Sequence, Tuple
 
 from .constants import (
     APP_NAME,
@@ -779,6 +780,15 @@ class Context(Configuration):
                                                 (DEFAULTS_CHANNEL_NAME,))))
 
         return tuple(IndexedSet(concatv(local_add, self._channels)))
+
+    @property
+    def channel_objs(self) -> Sequence[Tuple[str, str]]:
+        """
+        Returns a list of current channels as Channel objects
+        """
+        from ..models.channel import Channel
+
+        return tuple(Channel(chn) for chn in self.channels)
 
     @property
     def config_files(self):

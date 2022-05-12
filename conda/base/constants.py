@@ -12,8 +12,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from enum import Enum, EnumMeta
 from os.path import join
+from pathlib import Path
 import struct
 
+from conda._vendor.appdirs import user_cache_dir
 from ..common.compat import itervalues, on_win, six_with_metaclass, string_types
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
@@ -154,6 +156,18 @@ CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda
 CONDA_TEMP_EXTENSION = '.c~'
 CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR = ".logs"
+
+JLAP_CACHE_DB = "jlap_cache.db"
+JLAP_CHUNK_SIZE = 1 << 14
+JLAP_MIRROR_URL = "https://repodata.fly.dev"
+
+# User cache
+CACHE_DIR = Path(user_cache_dir(APP_NAME))  # TODO: not sure this is the best place for this.
+
+# Requests Cache
+CACHED_SESSION_EXPIRY = 30
+CACHED_SESSION_DB_PATH = CACHE_DIR.joinpath("http_cache.db")
+
 
 UNKNOWN_CHANNEL = "<unknown>"
 REPODATA_FN = 'repodata.json'

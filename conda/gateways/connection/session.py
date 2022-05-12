@@ -6,15 +6,26 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 from threading import local
 
-from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
-               extract_cookies_to_jar, get_auth_from_url, get_netrc_auth, Retry)
+from requests_cache import CachedSession
+
+from . import (
+    AuthBase,
+    BaseAdapter,
+    HTTPAdapter,
+    _basic_auth_str,
+    extract_cookies_to_jar,
+    get_auth_from_url,
+    get_netrc_auth,
+    Retry,
+)
+from .serializers import discard_serializer
 from .adapters.ftp import FTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
-from .adapters import jlap
+from .adapters.jlap import adapter as jlap
 from ..anaconda_client import read_binstar_tokens
 from ...auxlib.ish import dals
-from ...base.constants import CONDA_HOMEPAGE_URL
+from ...base.constants import CONDA_HOMEPAGE_URL, CACHED_SESSION_DB_PATH, CACHED_SESSION_EXPIRY
 from ...base.context import context
 from ...common.compat import iteritems
 from ...common.url import (add_username_and_password, get_proxy_username_and_pass,
@@ -24,7 +35,6 @@ from ...exceptions import ProxyError
 log = getLogger(__name__)
 RETRIES = 3
 
-
 CONDA_SESSION_SCHEMES = frozenset((
     "http",
     "https",
@@ -32,6 +42,7 @@ CONDA_SESSION_SCHEMES = frozenset((
     "s3",
     "file",
 ))
+
 
 class EnforceUnusedAdapter(BaseAdapter):
 
@@ -64,10 +75,23 @@ class CondaSessionType(type):
             return session
 
 
-class CondaSession(Session, metaclass=CondaSessionType):
+class CondaSession(CachedSession, metaclass=CondaSessionType):
+    """
+    CondaSession is a subclass of CachedSession provided by requests_cache
+    """
 
-    def __init__(self):
-        super(CondaSession, self).__init__()
+    def __init__(self, db_path: str = CACHED_SESSION_DB_PATH):
+        """
+        Initialize our cache settings
+        """
+        super().__init__(
+            db_path,
+            allowable_codes=[200, 206],
+            match_headers=["Accept", "Range"],
+            serializer=discard_serializer,  # TODO: change this serializer to something real
+            cache_control=True,
+            expire_after=CACHED_SESSION_EXPIRY,
+        )
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
 
@@ -86,15 +110,16 @@ class CondaSession(Session, metaclass=CondaSessionType):
                           backoff_factor=context.remote_backoff_factor,
                           status_forcelist=[413, 429, 500, 503],
                           raise_on_status=False)
-            http_adapter = HTTPAdapter(max_retries=retry)
+
+            if context.experimental_repodata:
+                http_adapter = jlap.JlapAdapter(max_retries=retry)
+            else:
+                http_adapter = HTTPAdapter(max_retries=retry)
+
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
             self.mount("ftp://", FTPAdapter())
             self.mount("s3://", S3Adapter())
-
-            if context.experimental_repodata:
-                # incremental repodata (experimental)
-                jlap.attach(self, http_adapter)
 
         self.mount("file://", LocalFSAdapter())
 

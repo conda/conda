@@ -7,43 +7,27 @@
 Intercept requests for repodata.json, fulfill from cache or cache + patches
 """
 
-import contextlib
 import gzip
 import json
 import logging
 import mimetypes
-import os.path
+import os
 import tempfile
 import time
 import hashlib
-import re
+from pathlib import Path
 from urllib.parse import urlparse
-from typing import Optional, NamedTuple
+from typing import Optional, NamedTuple, Tuple
 
 import requests
-
 import jsonpatch
-import requests_cache
 
-from conda._vendor import appdirs
+from conda.base import constants as consts
 
 from . import truncateable
-from . import sync_jlap
+
 
 log = logging.getLogger(__name__)
-
-from pathlib import Path
-
-CACHE_DIR = Path(appdirs.user_cache_dir("conda"))
-
-# Patches will eventually be hosted at main URL
-MIRROR_URL = "https://repodata.fly.dev"
-
-CHUNK_SIZE = 1 << 14
-
-session = sync_jlap.make_session((CACHE_DIR / "jlap_cache.db"))
-
-sync = sync_jlap.SyncJlap(session, CACHE_DIR)
 
 
 def hf(hash_val):
@@ -53,28 +37,13 @@ def hf(hash_val):
     return hash_val[:16] + "\N{HORIZONTAL ELLIPSIS}"
 
 
-def make_session():
-    session = requests_cache.CachedSession(
-        cache_control=True, allowable_codes=(200, 206), expire_after=300
-    )
-    session.headers["User-Agent"] = "update-conda-cache/0.0.1"
-    return session
-
-
-# mirrored on patch server
-# should match repodata.json and current_repodata.json
-# are ?= parameters ever used in conda?
-supported = re.compile(
-    r"https://((conda\.anaconda\.org/conda-forge|repo.anaconda.com/pkgs/main)/.*repodata.json)"
-)
-
-
-def hash_func(data: bytes = b""):
+def hash_func(data: bytes = b"") -> hashlib.blake2b:
     return hashlib.blake2b(data, digest_size=32)
 
 
 def conda_normalize_hash(data):
     """
+    TODO: Not used; need to remove
     Normalize raw_data in the same way as conda-build index.py, return hash.
     """
     # serialization options used by conda-build's index.py
@@ -114,49 +83,43 @@ def apply_patches(data, patches, have, want):
     return data
 
 
-@contextlib.contextmanager
-def timeme(message=""):
-    begin = time.time()
-    yield
-    end = time.time()
-    log.debug(f"{message}{end-begin:0.02f}s")
-
-
-def fetch_repodata_json(cache_path, upstream, session=requests):
+def fetch_repodata_json(cache_path: Path, repodata_url: str, ses=None) -> Tuple[Path, str]:
     """
-    Fetch new repodata.json; cache to a gzip'd file.
-
-    Return (path, digest)
+    Fetch new repodata.json; cache to a gzip'd file
     """
+    if ses is None:
+        ses = requests
 
-    with tempfile.NamedTemporaryFile(dir=CACHE_DIR, delete=False) as outfile:
-        compressed = gzip.open(outfile, "w")
-        response = session.get(upstream, stream=True)
-        response.raise_for_status()
-        hash = hash_func()
-        for chunk in response.iter_content(CHUNK_SIZE):
-            hash.update(chunk)
-            compressed.write(chunk)
+    with tempfile.NamedTemporaryFile(dir=consts.CACHE_DIR, delete=False) as outfile:
+        with gzip.open(outfile, "w") as compressed:
+            response = ses.get(repodata_url, stream=True)
+            response.raise_for_status()
+            hash_val = hash_func()
 
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
-        compressed.close()
+            for chunk in response.iter_content(consts.JLAP_CHUNK_SIZE):
+                hash_val.update(chunk)
+                compressed.write(chunk)
+
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # tmpdir -> cache_dir
         os.replace(outfile.name, cache_path)
 
-    return cache_path, hash.digest()
+    return cache_path, hash_val.digest()
 
 
-class DigestReader:
+class DigestReader(NamedTuple):
     """
     Read and hash at the same time.
     """
 
-    def __init__(self, fp):
-        self.fp = fp
-        self.hash = hash_func()
+    fp: gzip.GzipFile
+    hash: hashlib.blake2b
 
-    def read(self, bytes=None):
-        buf = self.fp.read(bytes)
+    def read(self, bytes_val=None):
+        buf = self.fp.read(bytes_val)
         self.hash.update(buf)
+
         return buf
 
 
@@ -164,15 +127,14 @@ def patch_files(cache_path: Path, jlap_path: Path):
     """
     Return patched version of cache_path, as a dict
     """
-    jlap_lines = []
     with jlap_path.open("rb") as fp:
         jlap = truncateable.JlapReader(fp)
-        jlap_lines = list(obj for obj, _ in jlap.readobjs())
+        jlap_lines = tuple(obj for obj, _ in jlap.read_objs())
         assert "latest" in jlap_lines[-1]
 
     meta = jlap_lines[-1]
     patches = jlap_lines[:-1]
-    digest_reader = DigestReader(gzip.open(cache_path))
+    digest_reader = DigestReader(gzip.open(cache_path), hash_func())
     original = json.load(digest_reader)
     assert digest_reader.read() == b""
     original_hash = digest_reader.hash.digest().hex()
@@ -182,7 +144,7 @@ def patch_files(cache_path: Path, jlap_path: Path):
         original_hash == patch["from"] for patch in patches
     ):
         log.info(
-            f"Remove {cache_path} not found in patchset;"
+            f"Removing {cache_path}; Not found in patchset;"
             f" {original_hash == meta['latest']} and not any 'from' hash"
         )
         cache_path.unlink()
@@ -191,63 +153,33 @@ def patch_files(cache_path: Path, jlap_path: Path):
     return patched
 
 
-def patched_json(url):
+class RepodataUrl:
     """
-    Return cached repodata.json with latest patches applied, as a Response()
+    Stores repodata url parts and some handy methods for creating cache keys
+    and jlap urls.
     """
-    parsed = urlparse(url)
-    path = parsed.path.lstrip("/")  # we don't need the leading /
-    server = parsed.hostname
 
-    assert path.endswith("repodata.json")
+    __slots__ = ("url", "url_obj", "path", "server")
 
-    jlap_url = f"{MIRROR_URL}/{server}/{path[:-len('.json')]}.jlap"
-    jlap_path = sync.update_url(jlap_url)
+    def __init__(self, repodata_url):
+        self.url = repodata_url
+        self.url_obj = urlparse(self.url)
+        self.path = self.url_obj.path.lstrip("/")
+        self.server = self.url_obj.hostname
 
-    cache_path = Path(CACHE_DIR / server / path).with_suffix(".json.gz")
-    if not cache_path.exists():
-        log.debug("Fetch complete %s", url)
-        cache_path, digest = fetch_repodata_json(cache_path, url)
-        assert digest  # check exists in patch file...
+    def get_cache_repodata_gzip_key(self) -> Path:
+        """Used to determine the place where this cache will be stored"""
+        return Path(consts.CACHE_DIR / self.server / self.path).with_suffix(".json.gz")
 
-    # headers based on last modified of patch file
-    response = static_file_headers(str(jlap_path.relative_to(CACHE_DIR)), root=CACHE_DIR)
-    del response.headers["Content-Length"]
+    def get_cache_repodata_jlap_key(self) -> Path:
+        """Used to determine the place where this cache will be stored"""
+        url = self.translate_to_jlap_url()
+        return Path(consts.CACHE_DIR, url.split("://", 1)[-1])
 
-    if response.status_code != 200:  # file not found?
-        return None
-
-    log.debug("Serve from %s", cache_path)
-
-    with timeme("Patch "):
-        new_data = patch_files(cache_path, jlap_path)
-
-    with timeme("Serialize "):
-        buf = json.dumps(new_data).encode("utf-8")
-
-    # TODO if cache is ok, read from here, skip patch, reserialize
-    patched_path = cache_path.with_suffix(".new.gz")
-    with gzip.open(patched_path, "wb", compresslevel=3) as out:
-        out.write(buf)
-
-    return {"body": gzip.open(patched_path), "headers": response.headers}
-
-
-def send(request: requests.PreparedRequest, base_adapter):
-    """
-    request: PreparedRequest for original URL
-    base_adapter: would accept the request, if we weren't
-    """
-    response_data = patched_json(request.url)
-    response = requests.Response()
-    response.request = request
-    response.url = request.url
-    response.status_code = 200
-    response.headers.update(response_data["headers"])
-    # a reader returning non-gzip'd bytes
-    # gzip'd responses must be decompressed in a different layer...
-    response.raw = response_data["body"]
-    return response
+    def translate_to_jlap_url(self) -> str:
+        """translates our repodata_url into a jlap one."""
+        assert self.path.endswith(consts.REPODATA_FN)  # TODO: remove the assert statement
+        return f"{consts.JLAP_MIRROR_URL}/{self.server}/{self.path[:-len('.json')]}.jlap"
 
 
 class FileResponse(NamedTuple):
@@ -257,23 +189,30 @@ class FileResponse(NamedTuple):
 
 
 def static_file_headers(
-    filename, root, mimetype="auto", download=False, charset="UTF-8"
+    filename: str,
+    root: str,
+    mimetype: str = "auto",
+    download: bool = False,
+    charset: str = "UTF-8",
 ) -> FileResponse:
     """
-    bottle.static_file_headers but without opening file
+    Returns a "FileResponse" response that is supposed to mimic an HTTP response
+    This is why these responses have headers and status codes.
     """
 
-    root = os.path.abspath(root) + os.sep
+    root = os.path.abspath(root) + os.path.sep
     filename = os.path.abspath(os.path.join(root, filename.strip("/\\")))
     headers = dict()
 
     if not filename.startswith(root):
-        return FileResponse(status_code=403, body="Access denied.", headers=None)
+        return FileResponse(status_code=403, body="Access denied.", headers=headers)
     if not os.path.exists(filename) or not os.path.isfile(filename):
-        return FileResponse(status_code=404, body="File does not exist.", headers=None)
+        return FileResponse(status_code=404, body="File does not exist.", headers=headers)
     if not os.access(filename, os.R_OK):
         return FileResponse(
-            status_code=403, body="You do not have permission to access this file.", headers=None
+            status_code=403,
+            body="You do not have permission to access this file.",
+            headers=headers,
         )
 
     if mimetype == "auto":
@@ -295,6 +234,7 @@ def static_file_headers(
     lm = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(stats.st_mtime))
     headers["Last-Modified"] = lm
 
+    # TODO: not sure what this is all all about. Need to ask dholth
     # ims = request.environ.get("HTTP_IF_MODIFIED_SINCE")
     # if ims:
     #     ims = parse_date(ims.split(";")[0].strip())
@@ -302,6 +242,6 @@ def static_file_headers(
     #     headers["Date"] = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     #     return FileResponse(status_code=304, headers=headers, body="")
 
-    body = ""  # to be replaced
+    body = ""  # TODO: to be replaced? Need to ask dholth
 
     return FileResponse(body=body, headers=headers, status_code=200)
