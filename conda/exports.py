@@ -3,12 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# Do not use python stdlib imports from this module in other projects. You may be broken
-# without warning.
-try:
-    from collections.abc import Hashable as _Hashable
-except ImportError:
-    from collections import Hashable as _Hashable
+from collections.abc import Hashable as _Hashable
 import errno
 import functools
 import os
@@ -16,89 +11,64 @@ import sys
 import threading
 import warnings as _warnings
 
-from . import CondaError  # NOQA
-CondaError = CondaError
+# necessary for conda-build
+from ._vendor.six import PY3, iteritems, string_types, text_type  # noqa: F401
+from io import StringIO  # noqa: F401
+from builtins import input  # noqa: F401
 
-from .base.context import reset_context  # NOQA
+from . import CondaError  # noqa: F401
+from .base.context import reset_context
+
 reset_context()  # initialize context when conda.exports is imported
 
-from . import plan  # NOQA
-plan = plan
+from . import plan  # noqa: F401
+from .core.solve import Solver  # noqa: F401
+from .cli.common import specs_from_args, spec_from_line, specs_from_url  # noqa: F401
+from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # noqa: F401
+from .cli.conda_argparse import ArgumentParser  # noqa: F401
+from .common import compat  # noqa: F401
+from .common.compat import on_win  # noqa: F401
+from .gateways.connection.session import CondaSession  # noqa: F401
+from .gateways.disk.create import TemporaryDirectory  # noqa: F401
+from .common.toposort import _toposort  # noqa: F401
+from .gateways.disk.link import lchmod  # noqa: F401
+from .gateways.connection.download import TmpDownload, download as _download  # noqa: F401
 
-from .core.solve import Solver  # NOQA
-Solver = Solver
-
-from .cli.common import specs_from_args, spec_from_line, specs_from_url  # NOQA
-from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # NOQA
-add_parser_channels, add_parser_prefix = add_parser_channels, add_parser_prefix
-specs_from_args, spec_from_line = specs_from_args, spec_from_line
-specs_from_url = specs_from_url
-
-from .cli.conda_argparse import ArgumentParser  # NOQA
-ArgumentParser = ArgumentParser
-
-from .common import compat as _compat  # NOQA
-compat = _compat
-from .common.compat import PY3, StringIO, input, iteritems, on_win, string_types, text_type, itervalues # NOQA
-PY3, StringIO,  input, iteritems, string_types, text_type, = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
-from .gateways.connection.session import CondaSession  # NOQA
-CondaSession = CondaSession
-from .gateways.disk.create import TemporaryDirectory  # NOQA
-TemporaryDirectory = TemporaryDirectory
-
-from .common.toposort import _toposort  # NOQA
-_toposort = _toposort
-
-from .gateways.disk.link import lchmod  # NOQA
-lchmod = lchmod
-
-from .gateways.connection.download import TmpDownload, download as _download  # NOQA
-
-TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: _warnings.warn("handle_proxy_407 is deprecated. "
                                                "Now handled by CondaSession.")
-from .core.package_cache_data import rm_fetched  # NOQA
-rm_fetched = rm_fetched
 
-from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
-delete_trash, move_to_trash = delete_trash, move_to_trash
+from .core.package_cache_data import rm_fetched  # noqa: F401
+from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
+from .misc import untracked, walk_prefix  # noqa: F401
+from .resolve import MatchSpec, ResolvePackageNotFound, Resolve, Unsatisfiable  # noqa: F401
 
-from .misc import untracked, walk_prefix  # NOQA
-untracked, walk_prefix = untracked, walk_prefix
-
-from .resolve import MatchSpec, ResolvePackageNotFound, Resolve, Unsatisfiable  # NOQA
-MatchSpec, Resolve = MatchSpec, Resolve
-Unsatisfiable = Unsatisfiable
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
-from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # NOQA
-from .common.path import win_path_to_unix  # NOQA
-hashsum_file, human_bytes = hashsum_file, human_bytes
-unix_path_to_win = unix_path_to_win
-win_path_to_unix, url_path = win_path_to_unix, url_path
+from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # noqa: F401
+from .common.path import win_path_to_unix  # noqa: F401
+from .gateways.disk.read import compute_md5sum
 
-from .gateways.disk.read import compute_md5sum  # NOQA
 md5_file = compute_md5sum
 
-from .models.version import VersionOrder, normalized_version  # NOQA
-VersionOrder, normalized_version = VersionOrder, normalized_version  # NOQA
+from .models.version import VersionOrder, normalized_version  # noqa: F401
+from .models.channel import Channel  # noqa: F401
+import conda.base.context
+from .base.context import get_prefix, non_x86_machines, reset_context, sys_rc_path  # noqa: F401
 
-from .models.channel import Channel  # NOQA
-Channel = Channel  # NOQA
+non_x86_linux_machines = non_x86_machines
 
-import conda.base.context  # NOQA
-from .base.context import get_prefix, non_x86_machines, reset_context, sys_rc_path  # NOQA
-non_x86_linux_machines, sys_rc_path = non_x86_machines, sys_rc_path
-get_prefix = get_prefix
-reset_context = reset_context
+from .auxlib.entity import EntityEncoder  # noqa: F401
+from .base.constants import (  # noqa: F401
+    DEFAULT_CHANNELS,
+    DEFAULT_CHANNELS_WIN,
+    DEFAULT_CHANNELS_UNIX,
+)
 
-from .auxlib.entity import EntityEncoder # NOQA
-EntityEncoder = EntityEncoder
-from .base.constants import DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
-DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX = DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
 get_default_urls = lambda: DEFAULT_CHANNELS
-from .base.constants import PREFIX_PLACEHOLDER as _PREFIX_PLACEHOLDER  # NOQA
-PREFIX_PLACEHOLDER = prefix_placeholder = _PREFIX_PLACEHOLDER
+
+from .base.constants import PREFIX_PLACEHOLDER
+
+_PREFIX_PLACEHOLDER = prefix_placeholder = PREFIX_PLACEHOLDER
 
 arch_name = conda.base.context.context.arch_name
 binstar_upload = conda.base.context.context.anaconda_upload
@@ -113,44 +83,32 @@ root_writable = conda.base.context.context.root_writable
 subdir = conda.base.context.context.subdir
 conda_private = conda.base.context.context.conda_private
 conda_build = conda.base.context.context.conda_build
+
 from .models.channel import get_conda_build_local_url  # NOQA
+
 get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
+
 from .exceptions import PaddingError, LinkError, CondaOSError, PathNotFoundError  # NOQA
+
 PaddingError = PaddingError
 LinkError = LinkError
 CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 PathNotFoundError = CondaFileNotFoundError = PathNotFoundError
-from .gateways.disk.link import CrossPlatformStLink  # NOQA
-CrossPlatformStLink = CrossPlatformStLink
 
-from .models.enums import FileMode  # NOQA
-FileMode = FileMode
-from .models.enums import PathType  # NOQA
-PathType = PathType
+from .models.enums import FileMode  # noqa: F401
+from .models.enums import PathType  # noqa: F401
+from .models.records import PackageRecord
 
-from .models.records import PackageRecord  # NOQA
-PackageRecord = IndexRecord = PackageRecord
+IndexRecord = PackageRecord
 
-from .models.dist import Dist  # NOQA
-Dist = Dist
-
-from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # NOQA
-ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
-
-from .core.subdir_data import cache_fn_url  # NOQA
-cache_fn_url = cache_fn_url
-
-from .core.package_cache_data import ProgressiveFetchExtract  # NOQA
-ProgressiveFetchExtract = ProgressiveFetchExtract
-
-
-from .exceptions import CondaHTTPError, LockError  # NOQA
-from .exceptions import UnsatisfiableError  # NOQA
-CondaHTTPError, LockError = CondaHTTPError, LockError
-UnsatisfiableError = UnsatisfiableError
+from .models.dist import Dist
+from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
+from .core.subdir_data import cache_fn_url  # noqa: F401
+from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
+from .exceptions import CondaHTTPError, LockError, UnsatisfiableError  # noqa: F401
 
 
 class Completer(object):  # pragma: no cover
@@ -200,8 +158,8 @@ class memoized(object):  # pragma: no cover
                 return value
 
 
-from .gateways.disk.delete import rm_rf as _rm_rf  # NOQA
-from .core.prefix_data import delete_prefix_from_linked_data  # NOQA
+from .gateways.disk.delete import rm_rf as _rm_rf
+from .core.prefix_data import delete_prefix_from_linked_data
 
 
 def rm_rf(path, max_retries=5, trash=True):
@@ -224,11 +182,15 @@ def verify(_):
     return False  # pragma: no cover
 
 
-from .plan import execute_actions, execute_instructions, execute_plan, install_actions  # NOQA
-execute_actions, execute_instructions = execute_actions, execute_instructions
-execute_plan, install_actions = execute_plan, install_actions
+from .plan import (  # noqa: F401
+    execute_actions,
+    execute_instructions,
+    execute_plan,
+    install_actions,
+)
+from .plan import display_actions as _display_actions
 
-from .plan import display_actions as _display_actions  # NOQA
+
 def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()):
     if 'FETCH' in actions:
         actions['FETCH'] = [index[d] for d in actions['FETCH']]
@@ -236,24 +198,26 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         actions['LINK'] = [index[d] for d in actions['LINK']]
     if 'UNLINK' in actions:
         actions['UNLINK'] = [index[d] for d in actions['UNLINK']]
-    index = {prec: prec for prec in itervalues(index)}
+    index = {prec: prec for prec in index.values()}
     return _display_actions(actions, index, show_channel_urls, specs_to_remove, specs_to_add)
 
 
-from .models.dist import Dist  # NOQA
-from .core.index import dist_str_in_index, fetch_index as _fetch_index, get_index as _get_index  # NOQA
-dist_str_in_index = dist_str_in_index
+from .core.index import (  # noqa: F401
+    dist_str_in_index,
+    fetch_index as _fetch_index,
+    get_index as _get_index,
+)
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
     index = _get_index(channel_urls, prepend, platform, use_local, use_cache, unknown, prefix)
-    return {Dist(prec): prec for prec in itervalues(index)}
+    return {Dist(prec): prec for prec in index.values()}
 
 
 def fetch_index(channel_urls, use_cache=False, index=None):
     index = _fetch_index(channel_urls, use_cache, index)
-    return {Dist(prec): prec for prec in itervalues(index)}
+    return {Dist(prec): prec for prec in index.values()}
 
 
 def package_cache():
@@ -265,7 +229,7 @@ def package_cache():
             return bool(PackageCacheData.first_writable().get(Dist(dist).to_package_ref(), None))
 
         def keys(self):
-            return (Dist(v) for v in itervalues(PackageCacheData.first_writable()))
+            return (Dist(v) for v in PackageCacheData.first_writable().values())
 
         def __delitem__(self, dist):
             PackageCacheData.first_writable().remove(Dist(dist).to_package_ref())
@@ -368,7 +332,7 @@ def linked_data(prefix, ignore_channels=False):
     from .core.prefix_data import PrefixData
     from .models.dist import Dist
     pd = PrefixData(prefix)
-    return {Dist(prefix_record): prefix_record for prefix_record in itervalues(pd._prefix_records)}
+    return {Dist(prefix_record): prefix_record for prefix_record in pd._prefix_records.values()}
 
 
 def linked(prefix, ignore_channels=False):
@@ -377,7 +341,7 @@ def linked(prefix, ignore_channels=False):
     """
     from .models.enums import PackageType
     conda_package_types = PackageType.conda_package_types()
-    ld = iteritems(linked_data(prefix, ignore_channels=ignore_channels))
+    ld = linked_data(prefix, ignore_channels=ignore_channels).items()
     return set(dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types)
 
 

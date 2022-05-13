@@ -5,17 +5,20 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 import operator as op
 import re
+from itertools import zip_longest
 
 from .._vendor.toolz import excepts
-from ..common.compat import string_types, zip, zip_longest, text_type, with_metaclass
 from ..exceptions import InvalidVersionSpec
 
 log = getLogger(__name__)
 
-# normalized_version() is needed by conda-env
-# It is currently being pulled from resolve instead, but
-# eventually it ought to come from here
+
 def normalized_version(version):
+    """
+    normalized_version() is needed by conda-env
+    It is currently being pulled from resolve instead, but
+    eventually it ought to come from here
+    """
     return VersionOrder(version)
 
 
@@ -33,7 +36,7 @@ class SingleStrArgCachingType(type):
     def __call__(cls, arg):
         if isinstance(arg, cls):
             return arg
-        elif isinstance(arg, string_types):
+        elif isinstance(arg, str):
             try:
                 return cls._cache_[arg]
             except KeyError:
@@ -43,15 +46,14 @@ class SingleStrArgCachingType(type):
             return super(SingleStrArgCachingType, cls).__call__(arg)
 
 
-@with_metaclass(SingleStrArgCachingType)
-class VersionOrder(object):
+class VersionOrder(metaclass=SingleStrArgCachingType):
     """
     This class implements an order relation between version strings.
     Version strings can contain the usual alphanumeric characters
     (A-Za-z0-9), separated into components by dots and underscores. Empty
     segments (i.e. two consecutive dots, a leading/trailing underscore)
     are not permitted. An optional epoch number - an integer
-    followed by '!' - can preceed the actual version string
+    followed by '!' - can proceed the actual version string
     (this is useful to indicate a change in the versioning
     scheme itself). Version comparison is case-insensitive.
 
@@ -271,8 +273,8 @@ class VersionOrder(object):
             return False
         c1 = self.fillvalue if len(v1) <= nt else v1[nt]
         c2 = v2[nt]
-        if isinstance(c2, string_types):
-            return isinstance(c1, string_types) and c1.startswith(c2)
+        if isinstance(c2, str):
+            return isinstance(c1, str) and c1.startswith(c2)
         return c1 == c2
 
     def __ne__(self, other):
@@ -284,11 +286,11 @@ class VersionOrder(object):
                 for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
                     if c1 == c2:
                         continue
-                    elif isinstance(c1, string_types):
-                        if not isinstance(c2, string_types):
+                    elif isinstance(c1, str):
+                        if not isinstance(c2, str):
                             # str < int
                             return True
-                    elif isinstance(c2, string_types):
+                    elif isinstance(c2, str):
                         # not (int < str)
                         return False
                     # c1 and c2 have the same type
@@ -330,7 +332,7 @@ def treeify(spec_str):
     """
     # Converts a VersionSpec expression string into a tuple-based
     # expression tree.
-    assert isinstance(spec_str, string_types)
+    assert isinstance(spec_str, str)
     tokens = re.findall(VSPEC_TOKENS, '(%s)' % spec_str)
     output = []
     stack = []
@@ -404,7 +406,7 @@ def untreeify(spec, _inand=False, depth=0):
 
 
 def compatible_release_operator(x, y):
-    return op.__ge__(x, y) and x.startswith(VersionOrder(".".join(text_type(y).split(".")[:-1])))
+    return op.__ge__(x, y) and x.startswith(VersionOrder(".".join(str(y).split(".")[:-1])))
 
 
 # This RE matches the operators '==', '!=', '<=', '>=', '<', '>'
@@ -474,7 +476,7 @@ class BaseSpec(object):
         return bool(self.regex.match(spec_str))
 
     def operator_match(self, spec_str):
-        return self.operator_func(VersionOrder(text_type(spec_str)), self.matcher_vo)
+        return self.operator_func(VersionOrder(str(spec_str)), self.matcher_vo)
 
     def any_match(self, spec_str):
         return any(s.match(spec_str) for s in self.tup)
@@ -489,8 +491,7 @@ class BaseSpec(object):
         return True
 
 
-@with_metaclass(SingleStrArgCachingType)
-class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
+class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/missing-equals]
     _cache_ = {}
 
     def __init__(self, vspec):
@@ -499,7 +500,7 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
 
     def get_matcher(self, vspec):
 
-        if isinstance(vspec, string_types) and regex_split_re.match(vspec):
+        if isinstance(vspec, str) and regex_split_re.match(vspec):
             vspec = treeify(vspec)
 
         if isinstance(vspec, tuple):
@@ -512,7 +513,7 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
             is_exact = False
             return vspec_str, matcher, is_exact
 
-        vspec_str = text_type(vspec).strip()
+        vspec_str = str(vspec).strip()
         if vspec_str[0] == '^' or vspec_str[-1] == '$':
             if vspec_str[0] != '^' or vspec_str[-1] != '$':
                 raise InvalidVersionSpec(vspec_str, "regex specs must start "
@@ -600,8 +601,7 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
 VersionMatch = VersionSpec
 
 
-@with_metaclass(SingleStrArgCachingType)
-class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
+class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/missing-equals]
     _cache_ = {}
 
     def __init__(self, vspec):
@@ -618,7 +618,7 @@ class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
             is_exact = True
             return vspec, matcher, is_exact
 
-        vspec_str = text_type(vspec).strip()
+        vspec_str = str(vspec).strip()
         if vspec_str == '*':
             matcher = self.always_true_match
             is_exact = False
@@ -665,7 +665,7 @@ class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
         return excepts(ValueError, int(self.raw_value))
 
     def __str__(self):
-        return text_type(self.spec)
+        return str(self.spec)
 
     def __repr__(self):
-        return text_type(self.spec)
+        return str(self.spec)

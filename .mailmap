@@ -62,6 +62,7 @@ Brian W. Hart <hartb@us.ibm.com>
 Bruno Oliveira <nicoddemus@gmail.com> Bruno Oliveira <bruno@esss.com.br>
 Bryan Van de Ven <bryanv@continuum.io> bryanv@continuum.io <bryan@ubuntu.(none)>
 Casper da Costa-Luis <casper.dcl@physics.org>
+Chawye Hsu <chawyehsu@hotmail.com>
 Cheng H. Lee <clee@anaconda.com> Cheng H. Lee <chenghlee@users.noreply.github.com>
 Chris Burr <christopher.burr@cern.ch> Chris Burr <chrisburr@users.noreply.github.com>
 Chris Granade <cgranade@gmail.com>
@@ -80,8 +81,9 @@ Cong <kongvc@gmail.com>
 Connor Martin <cmartin@anaconda.com> Connor Martin <connormartin7@gmail.com>
 Dainese Hsiao <daineseh@gmail.com>
 Dan Blanchard <dan.blanchard@gmail.com>
-Dan Meador <danmeador33@gmail.com>
+Dan Meador <danmeador33@gmail.com> Dan Meador <dmeador@anaconda.com>
 Daniel Bast <2790401+dbast@users.noreply.github.com>
+Daniel Holth <dholth@anaconda.com>
 Daniel Wehner <dawehner@users.noreply.github.com>
 Daniel Zeng <blackgear@users.noreply.github.com> Daniel.Zeng <blackgear@users.noreply.github.com>
 Darren Dale <dsdale24@gmail.com>
@@ -113,6 +115,7 @@ Eric Dill <edill@bnl.gov> Eric Dill <eric.dill@maxpoint.com>
 Eric Prestat <eric.prestat@gmail.com>
 Ernst Reissner <rei3ner@arcor.de>
 Eugene Van den Bulke <eugene.vandenbulke@gmail.com>
+Faustin Carter <faustin.carter@gmail.com>
 Flavio Martins <flaviomartins@acm.org>
 Floris Bruynooghe <flub@devork.be>
 Forrest Waters <fwaters@anaconda.com> Forrest Waters <fwaters@0609.lan>
@@ -168,11 +171,12 @@ Joe Jevnik <joe@quantopian.com>
 Joel Kim <kim.dohhyoung@gmail.com>
 Johan Carlin <johan.carlin@gmail.com>
 John Ayad <johnhany97@gmail.com>
+John Flavin <flavinj@gmail.com>
 John Kirkham <kirkhamj@janelia.hhmi.org>
 Jonas Haag <jonas@lophus.org>
 Jonathan J. Helmus <jjhelmus@gmail.com>
 Josh Mayer <jmayer@hbk.com>
-Juan Luis Cano Rodríguez <juanlu001@gmail.com>
+Juan Luis Cano Rodríguez <juanlu001@gmail.com> Juan Luis Cano Rodríguez <juanlu@orchest.io>
 Juan Nunez-Iglesias <juan.n@unimelb.edu.au>
 Julien Schueller <schueller@phimeca.com>
 Justyn Harriman <justyn@nextdoor.com>
@@ -247,6 +251,7 @@ Minh Phan <phanducnhatminh@gmail.com>
 Morgan Parry <mparry@users.noreply.github.com>
 Morten Enemark Lund <melund@gmail.com>
 Murray Read <read@ccdc.cam.ac.uk>
+NaincyKumariKnoldus <87004609+NaincyKumariKnoldus@users.noreply.github.com>
 Nate Coraor <nate@bx.psu.edu>
 Nehal J Wani <nehaljw.kkd1@gmail.com>
 Nelson Liu <nelson-liu@users.noreply.github.com>
@@ -303,6 +308,7 @@ Scott Evtuch <scott@evtuch.net>
 Sebastien Awwad <sebastien.awwad@gmail.com>
 Shannon Green <sgreen@cochlear.com>
 Shaun Walbridge <shaun.walbridge@gmail.com>
+Simon Li <orpheus+devel@gmail.com>
 Skipper Seabold <jsseabold@gmail.com> Skipper Seabold <sseabold@civisanalytics.com>
 Sophia Castellarin <scastellarin@continuum.io> Sophia Castellarin <scastellarin@anaconda.com>
 Sophia Castellarin <scastellarin@continuum.io> Sophia Castellarin <scastellarin95@gmail.com>
@@ -350,16 +356,21 @@ Winston Sebastian Pais <51374812+WinstonPais@users.noreply.github.com>
 Wolfgang Ulmer <wolfgang.ulmer@de.bosch.com> Wolfgang Ulmer <wulmer@web.de>
 Yaroslav Dmytryk <ydmytryk@anaconda.com>
 Yuval Reches <38044145+yuvalreches@users.noreply.github.com>
+Yuvi Panda <yuvipanda@gmail.com>
 Zach Heaton <zheaton@gmail.com>
 Zahari <zaharid@gmail.com>
 Zhiwei Liang <zhiwei.liang@asu.edu>
 Zongyuan Zuo <eternalphane@gmail.com>
 albertmichaelj <albertmichaelj@users.noreply.github.com>
+autotmp <shaun.b.thompson@gmail.com>
+avalon (they/them) <77029455+uwuvalon@users.noreply.github.com>
+bfis <b.fis@cern.ch>
 bgobbi <alberto.gobbi@gmx.de>
 blindgaenger <me@blindgaenger.net>
 bryanv@continuum.io <bryanv@filer.atx.continuum.io>
 christopher <cjwright4242@gmail.com>
 codepage949 <codepage949@gmail.com>
+conda-bot <ad-team+condabot@anaconda.com>
 csoja <crystal.soja@continuum.io> Crystal Soja <crystal.soja@continuum.io>
 dan-hook <dhgit@nym.hush.com>
 distro-bot@anaconda.com <Distro Bot>
@@ -390,6 +401,7 @@ nh3 <nh3@users.noreply.github.com> nh3 <ni.huang@sanger.ac.uk>
 oinizan <oinizan@gmail.com>
 ovz <ovz@yahoo.com>
 peter1000 <peter.margo@gmx.de>
+pre-commit CI <66853113+pre-commit-ci[bot]@users.noreply.github.com> pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>
 psthomas <pthomas.v3@gmail.com>
 rulerofthehuns <58312016+rulerofthehuns@users.noreply.github.com>
 santi <sdvillal@gmail.com>

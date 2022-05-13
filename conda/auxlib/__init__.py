@@ -76,6 +76,9 @@ class _Null(object):
     def __hash__(self):
         return hash(_Null)
 
+    def __str__(self):
+        return 'Null'
+
     def __json__(self):
         return 'null'
 

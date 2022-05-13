@@ -18,11 +18,15 @@ from conda.common.compat import odict
 from conda.common.io import captured
 from conda.common.serialize import yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
-from conda.exceptions import EnvironmentLocationNotFound
-from conda.install import rm_rf
+from conda.exceptions import (
+    EnvironmentLocationNotFound,
+    CondaEnvException,
+    EnvironmentFileExtensionNotValid,
+    EnvironmentFileNotFound,
+)
+from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
-from conda_env.exceptions import CondaEnvException, EnvironmentFileExtensionNotValid, EnvironmentFileNotFound
 
 environment_1 = '''
 name: env-1
@@ -265,7 +269,15 @@ class IntegrationTests(unittest.TestCase):
         o, e = run_env_command(Commands.ENV_CREATE, None, '--dry-run')
         self.assertFalse(env_is_created(test_env_name_1))
 
-        output = yaml.safe_load('\n'.join(o.splitlines()[2:]))
+        # Find line where the YAML output starts (stdout might change if plugins involved)
+        lines = o.splitlines()
+        for lineno, line in enumerate(lines):
+            if line.startswith("name:"):
+                break
+        else:
+            pytest.fail("Didn't find YAML data in output")
+
+        output = yaml.safe_load('\n'.join(lines[lineno:]))
         assert output['name'] == 'env-1'
         assert len(output['dependencies']) > 0
 

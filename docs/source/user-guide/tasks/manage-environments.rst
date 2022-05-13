@@ -56,7 +56,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
    .. code-block:: bash
 
-      conda create -n myenv python=3.6
+      conda create -n myenv python=3.9
 
 4. To create an environment with a specific package:
 
@@ -75,21 +75,21 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
    .. code-block:: bash
 
-      conda create -n myenv scipy=0.15.0
+      conda create -n myenv scipy=0.17.3
 
    OR:
 
    .. code-block:: bash
 
       conda create -n myenv python
-      conda install -n myenv scipy=0.15.0
+      conda install -n myenv scipy=0.17.3
 
 6. To create an environment with a specific version of Python and
    multiple packages:
 
   .. code-block:: bash
 
-     conda create -n myenv python=3.6 scipy=0.15.0 astroid babel
+     conda create -n myenv python=3.9 scipy=0.17.3 astroid babel
 
   .. tip::
      Install all the programs that you want in this environment
@@ -152,7 +152,7 @@ to a target directory when creating the environment. For example,
 the following command will create a new environment in a subdirectory
 of the current working directory called ``envs``::
 
-  conda create --prefix ./envs jupyterlab=0.35 matplotlib=3.1 numpy=1.16
+  conda create --prefix ./envs jupyterlab=3.2 matplotlib=3.5 numpy=1.21
 
 You then activate an environment created with a prefix using the same
 command used to activate environments created by name::
@@ -626,7 +626,7 @@ Once you have set an environment variable, you have to reactivate your environme
 ``conda activate test-env``.
 
 To check if the environment variable has been set, run
-``echo my_var`` or ``conda env config vars list``.
+``echo $my_var`` (``echo %my_var%`` on Windows)  or ``conda env config vars list``.
 
 When you deactivate your environment, you can use those same commands to see that
 the environment variable goes away.
@@ -840,10 +840,10 @@ EXAMPLE: A more complex environment file:
    channels:
      - javascript
    dependencies:
-     - python=3.6   # or 2.7
-     - bokeh=0.9.2
-     - numpy=1.9.*
-     - nodejs=0.10.*
+     - python=3.9
+     - bokeh=2.4.2
+     - numpy=1.21.*
+     - nodejs=16.13.*
      - flask
      - pip:
        - Flask-Testing

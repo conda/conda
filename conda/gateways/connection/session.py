@@ -15,7 +15,6 @@ from ..anaconda_client import read_binstar_tokens
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
-from ...common.compat import iteritems, with_metaclass
 from ...common.url import (add_username_and_password, get_proxy_username_and_pass,
                            split_anaconda_token, urlparse)
 from ...exceptions import ProxyError
@@ -63,8 +62,7 @@ class CondaSessionType(type):
             return session
 
 
-@with_metaclass(CondaSessionType)
-class CondaSession(Session):
+class CondaSession(Session, metaclass=CondaSessionType):
 
     def __init__(self):
         super(CondaSession, self).__init__()
@@ -132,7 +130,7 @@ class CondaHttpAuth(AuthBase):
     def add_binstar_token(url):
         clean_url, token = split_anaconda_token(url)
         if not token and context.add_anaconda_token:
-            for binstar_url, token in iteritems(read_binstar_tokens()):
+            for binstar_url, token in read_binstar_tokens().items():
                 if clean_url.startswith(binstar_url):
                     log.debug("Adding anaconda token for url <%s>", clean_url)
                     from ...models.channel import Channel

@@ -11,9 +11,7 @@ from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 import sys
-if sys.version_info[0] > 2:
-    # Not used at present.
-    from io import BytesIO
+from io import BytesIO, StringIO
 from itertools import cycle
 import json
 import logging  # lgtm [py/import-and-import-from]
@@ -24,7 +22,7 @@ import signal
 from threading import Event, Thread, Lock
 from time import sleep, time
 
-from .compat import StringIO, iteritems, on_win, encode_environment
+from .compat import on_win, encode_environment
 from .constants import NULL
 from .path import expand
 from ..auxlib.decorators import memoizemethod
@@ -124,7 +122,7 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
 
     new_var_map = encode_environment(var_map)
     saved_vars = {}
-    for name, value in iteritems(new_var_map):
+    for name, value in new_var_map.items():
         saved_vars[name] = os.environ.get(name, NULL)
         os.environ[name] = value
     try:
@@ -134,7 +132,7 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
             stack_callback(True)
         yield
     finally:
-        for name, value in iteritems(saved_vars):
+        for name, value in saved_vars.items():
             if value is NULL:
                 del os.environ[name]
             else:
@@ -144,10 +142,11 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
         if stack_callback:
             stack_callback(False)
 
+
 @contextmanager
 def env_var(name, value, callback=None, stack_callback=None):
     # Maybe, but in env_vars, not here:
-    #    from conda.compat import ensure_fs_path_encoding
+    #    from conda.common.compat import ensure_fs_path_encoding
     #    d = dict({name: ensure_fs_path_encoding(value)})
     d = {name: value}
     with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
@@ -198,14 +197,10 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         # This may have to deal with a *lot* of text.
         if hasattr(self, 'mode') and 'b' in self.mode:
             wanted = bytes
-        elif sys.version_info[0] == 3 and isinstance(self, BytesIO):
+        elif isinstance(self, BytesIO):
             wanted = bytes
         else:
-            # ignore flake8 on this because it finds an error on py3 even though it is guarded
-            if sys.version_info[0] == 2:
-                wanted = unicode  # NOQA
-            else:
-                wanted = str
+            wanted = str
         if not isinstance(to_write, wanted):
             if hasattr(to_write, 'decode'):
                 decoded = to_write.decode('utf-8')
@@ -243,7 +238,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         if errfile is not None:
             sys.stderr = errfile
     c = CapturedText()
-    log.info("overtaking stderr and stdout")
+    log.debug("overtaking stderr and stdout")
     try:
         yield c
     finally:
@@ -258,7 +253,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         else:
             c.stderr = errfile
         sys.stdout, sys.stderr = saved_stdout, saved_stderr
-        log.info("stderr and stdout yielding back")
+        log.debug("stderr and stdout yielding back")
 
 
 @contextmanager
@@ -328,7 +323,7 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
     # create new stderr logger
     new_stderr_handler = StreamHandler(sys.stderr)
     new_stderr_handler.name = 'stderr'
-    new_stderr_handler.setLevel(NOTSET)
+    new_stderr_handler.setLevel(level)
     new_stderr_handler.setFormatter(formatter or _FORMATTER)
 
     # do the switch
@@ -336,7 +331,7 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
-        logr.setLevel(level)
+        logr.setLevel(NOTSET)
         logr.propagate = propagate
 
 

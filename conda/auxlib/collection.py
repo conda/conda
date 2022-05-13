@@ -7,7 +7,8 @@ try:
 except ImportError:
     from collections import Mapping, Set
 
-from .compat import isiterable, iteritems, odict, text_type
+from .compat import isiterable
+from .._vendor.frozendict import frozendict
 
 
 def make_immutable(value):
@@ -16,7 +17,7 @@ def make_immutable(value):
     if isinstance(value, Mapping):
         if isinstance(value, frozendict):
             return value
-        return frozendict((k, make_immutable(v)) for k, v in iteritems(value))
+        return frozendict((k, make_immutable(v)) for k, v in value.items())
     elif isinstance(value, Set):
         if isinstance(value, frozenset):
             return value
@@ -44,23 +45,6 @@ class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
-
-
-class frozendict(odict):
-
-    def __key(self):
-        return tuple((k, self[k]) for k in sorted(self))
-
-    def __hash__(self):
-        return hash(self.__key())
-
-    def __eq__(self, other):
-        try:
-            return self.__key() == other.__key()
-        except AttributeError:
-            if isinstance(other, Mapping):
-                return self.__key() == frozendict(other).__key()
-            return False
 
 
 def first(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
@@ -116,5 +100,5 @@ def call_each(seq):
     try:
         reduce(lambda _, y: y(), seq)
     except TypeError as e:
-        if text_type(e) != "reduce() of empty sequence with no initial value":
+        if str(e) != "reduce() of empty sequence with no initial value":
             raise

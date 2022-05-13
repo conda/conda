@@ -5,7 +5,6 @@ ci:
 exclude: |
   (?x)^(
     conda/_vendor |
-    conda/auxlib/_vendor |
     tests/data/(
       conda_format_repo |
       env_metadata/.+ |
@@ -13,11 +12,12 @@ exclude: |
       repodata |
       tar_traversal |
       corrupt
-    )
+    ) |
+    tools/vendoring/patches
   )/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.2.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -32,7 +32,7 @@ repos:
       - id: fix-encoding-pragma
         exclude: ^conda/auxlib/
   - repo: https://github.com/akaihola/darker
-    rev: 1.4.0
+    rev: 1.5.0
     hooks:
       - id: darker
         additional_dependencies: [black==21.9b0]
@@ -46,19 +46,19 @@ repos:
     hooks:
       - id: flake8
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.12.2
+    rev: v2.13.8
     hooks:
       - id: pylint
         args: [--exit-zero]
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.2
+    rev: 1.7.4
     hooks:
       - id: bandit
         args: [--exit-zero]
         # ignore all tests, not just tests data
         exclude: ^tests/
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.12
+    rev: v1.1.13
     hooks:
       - id: insert-license
         files: \.py$

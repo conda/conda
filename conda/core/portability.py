@@ -92,8 +92,8 @@ def binary_replace(data, a, b):
             return data
 
     def replace(match):
-        occurances = match.group().count(a)
-        padding = (len(a) - len(b)) * occurances
+        occurrences = match.group().count(a)
+        padding = (len(a) - len(b)) * occurrences
         if padding < 0:
             raise _PaddingError
         return match.group().replace(a, b) + b'\0' * padding

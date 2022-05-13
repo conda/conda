@@ -12,13 +12,11 @@ import tarfile
 import tempfile
 
 from ..auxlib.entity import EntityEncoder
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import PY3
 from ..common.path import paths_equal
 from ..core.prefix_data import PrefixData
 from ..gateways.disk.delete import rmtree
-from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
 
 
@@ -152,7 +150,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
         h.update(b'\x00')
         if islink(path):
             link = os.readlink(path)
-            if PY3 and isinstance(link, str):
+            if isinstance(link, str):
                 h.update(bytes(link, 'utf-8'))
             else:
                 h.update(link)

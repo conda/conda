@@ -1,15 +1,17 @@
 name: Review builds
 
 on:
+  # NOTE: github.event context is pull_request payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
     types:
       - labeled
 
 jobs:
   build:
-    if: |
-      github.event_name == 'pull_request' &&
-      github.event.label.name == 'build::review'
+    if: >-
+      !github.event.repository.fork
+      && github.event.label.name == 'build::review'
     strategy:
       matrix:
         include:

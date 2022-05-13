@@ -3,12 +3,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import itertools
 from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, join
 import sys
+from pathlib import Path
 from traceback import format_exception_only
+from textwrap import indent
 import warnings
 
 from .package_cache_data import PackageCacheData
@@ -24,7 +27,8 @@ from ..auxlib.ish import dals
 from .._vendor.toolz import concat, concatv, interleave
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
-from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
+from ..cli.common import confirm_yn
+from ..common.compat import ensure_text_type, odict, on_win
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
@@ -32,7 +36,8 @@ from ..common.path import (explode_directories, get_all_directories, get_major_m
 from ..common.signals import signal_handler
 from ..exceptions import (DisallowedPackageError, EnvironmentNotWritableError,
                           KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
+                          CondaSystemExit)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -159,7 +164,7 @@ class UnlinkLinkTransaction(object):
         self.prefix_setups = odict((stp.target_prefix, stp) for stp in setups)
         self.prefix_action_groups = odict()
 
-        for stp in itervalues(self.prefix_setups):
+        for stp in self.prefix_setups.values():
             log.info("initializing UnlinkLinkTransaction with\n"
                      "  target_prefix: %s\n"
                      "  unlink_precs:\n"
@@ -183,9 +188,9 @@ class UnlinkLinkTransaction(object):
     @property
     def nothing_to_do(self):
         return (
-            not any((stp.unlink_precs or stp.link_precs) for stp in itervalues(self.prefix_setups))
+            not any((stp.unlink_precs or stp.link_precs) for stp in self.prefix_setups.values())
             and all(is_conda_environment(stp.target_prefix)
-                    for stp in itervalues(self.prefix_setups))
+                    for stp in self.prefix_setups.values())
         )
 
     def download_and_extract(self):
@@ -207,7 +212,7 @@ class UnlinkLinkTransaction(object):
 
         with Spinner("Preparing transaction", not context.verbosity and not context.quiet,
                      context.json):
-            for stp in itervalues(self.prefix_setups):
+            for stp in self.prefix_setups.values():
                 grps = self._prepare(self.transaction_context, stp.target_prefix,
                                      stp.unlink_precs, stp.link_precs,
                                      stp.remove_specs, stp.update_specs,
@@ -227,27 +232,53 @@ class UnlinkLinkTransaction(object):
             self._verified = True
             return
 
-        with Spinner("Verifying transaction", not context.verbosity and not context.quiet,
-                     context.json):
+        with Spinner(
+            "Verifying transaction", not context.verbosity and not context.quiet, context.json
+        ):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    rm_rf(self.transaction_context['temp_dir'])
+                    rm_rf(self.transaction_context["temp_dir"])
                     raise
                 log.info(exceptions)
-
+        try:
+            self._verify_pre_link_message(
+                itertools.chain(
+                    *(act.link_action_groups for act in self.prefix_action_groups.values())
+                )
+            )
+        except CondaSystemExit:
+            rm_rf(self.transaction_context["temp_dir"])
+            raise
         self._verified = True
+
+    def _verify_pre_link_message(self, all_link_groups):
+        flag_pre_link = False
+        for act in all_link_groups:
+            prelink_msg_dir = (
+                Path(act.pkg_data.extracted_package_dir) / "info" / "prelink_messages"
+            )
+            all_msg_subdir = list(item for item in prelink_msg_dir.glob("**/*") if item.is_file())
+            if prelink_msg_dir.is_dir() and all_msg_subdir:
+                print("\n\nThe following PRELINK MESSAGES are INCLUDED:\n\n")
+                flag_pre_link = True
+
+                for msg_file in all_msg_subdir:
+                    print(f"  File {msg_file.name}:\n")
+                    print(indent(msg_file.read_text(), "  "))
+                    print("")
+        if flag_pre_link:
+            confirm_yn()
 
     def execute(self):
         if not self._verified:
             self.verify()
 
         assert not context.dry_run
-
         try:
-            self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
+            self._execute(tuple(concat(interleave(self.prefix_action_groups.values()))))
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 
@@ -258,7 +289,7 @@ class UnlinkLinkTransaction(object):
         elif not self.prefix_setups:
             self._pfe = pfe = ProgressiveFetchExtract(())
         else:
-            link_precs = set(concat(stp.link_precs for stp in itervalues(self.prefix_setups)))
+            link_precs = set(concat(stp.link_precs for stp in self.prefix_setups.values()))
             self._pfe = pfe = ProgressiveFetchExtract(link_precs)
         return pfe
 
@@ -486,7 +517,7 @@ class UnlinkLinkTransaction(object):
                             ))
 
         # Verification 2. there's only a single instance of each path
-        for path, axns in iteritems(link_paths_dict):
+        for path, axns in link_paths_dict.items():
             if len(axns) > 1:
                 error_results.append(SharedLinkPathClobberError(
                     path,
@@ -505,7 +536,7 @@ class UnlinkLinkTransaction(object):
         # TODO: Verification 4
 
         conda_prefixes = (join(context.root_prefix, 'envs', '_conda_'), context.root_prefix)
-        conda_setups = tuple(setup for setup in itervalues(prefix_setups)
+        conda_setups = tuple(setup for setup in prefix_setups.values()
                              if setup.target_prefix in conda_prefixes)
 
         conda_unlinked = any(prec.name == 'conda'
@@ -557,13 +588,13 @@ class UnlinkLinkTransaction(object):
 
         # Verification 3. enforce disallowed_packages
         disallowed = tuple(MatchSpec(s) for s in context.disallowed_packages)
-        for prefix_setup in itervalues(prefix_setups):
+        for prefix_setup in prefix_setups.values():
             for prec in prefix_setup.link_precs:
                 if any(d.match(prec) for d in disallowed):
                     yield DisallowedPackageError(prec)
 
         # Verification 5. make sure conda-meta/history for each prefix is writable
-        for prefix_setup in itervalues(prefix_setups):
+        for prefix_setup in prefix_setups.values():
             test_path = join(prefix_setup.target_prefix, PREFIX_MAGIC_FILE)
             test_path_existed = lexists(test_path)
             dir_existed = None
@@ -589,12 +620,12 @@ class UnlinkLinkTransaction(object):
 
         exceptions = []
         for exc in self.verify_executor.map(UnlinkLinkTransaction._verify_individual_level,
-                                            itervalues(prefix_action_groups)):
+                                            prefix_action_groups.values()):
             if exc:
                 exceptions.extend(exc)
         for exc in self.verify_executor.map(
                 UnlinkLinkTransaction._verify_prefix_level,
-                iteritems(prefix_action_groups)):
+                prefix_action_groups.items()):
             if exc:
                 exceptions.extend(exc)
         return exceptions
@@ -896,7 +927,7 @@ class UnlinkLinkTransaction(object):
         if self._pfe is None:
             self._get_pfe()
 
-        for q, (prefix, setup) in enumerate(iteritems(self.prefix_setups)):
+        for q, (prefix, setup) in enumerate(self.prefix_setups.items()):
             actions = defaultdict(list)
             if q == 0:
                 self._pfe.prepare()
@@ -922,7 +953,7 @@ class UnlinkLinkTransaction(object):
 
         download_urls = set(axn.url for axn in self._pfe.cache_actions)
 
-        for actions, (prefix, stp) in zip(legacy_action_groups, iteritems(self.prefix_setups)):
+        for actions, (prefix, stp) in zip(legacy_action_groups, self.prefix_setups.items()):
             change_report = self._calculate_change_report(prefix, stp.unlink_precs, stp.link_precs,
                                                           download_urls, stp.remove_specs,
                                                           stp.update_specs)
@@ -938,12 +969,12 @@ class UnlinkLinkTransaction(object):
         builder.append('')
         if change_report.specs_to_remove:
             builder.append('  removed specs:%s'
-                           % dashlist(sorted(text_type(s) for s in change_report.specs_to_remove),
+                           % dashlist(sorted(str(s) for s in change_report.specs_to_remove),
                                       indent=4))
             builder.append('')
         if change_report.specs_to_add:
             builder.append('  added / updated specs:%s'
-                           % dashlist(sorted(text_type(s) for s in change_report.specs_to_add),
+                           % dashlist(sorted(str(s) for s in change_report.specs_to_add),
                                       indent=4))
             builder.append('')
 
@@ -979,7 +1010,7 @@ class UnlinkLinkTransaction(object):
                 size = prec.size
                 extra = '%15s' % human_bytes(size)
                 total_download_bytes += size
-                schannel = channel_filt(text_type(prec.channel.canonical_name))
+                schannel = channel_filt(str(prec.channel.canonical_name))
                 if schannel:
                     extra += '  ' + schannel
                 disp_lst.append((prec, extra))

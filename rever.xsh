@@ -1,9 +1,6 @@
 $ACTIVITIES = [
     "authors",
     "changelog",
-    "tag",
-    "push_tag",
-    "ghrelease",
 ]
 
 #

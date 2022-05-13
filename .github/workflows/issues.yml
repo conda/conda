@@ -1,11 +1,12 @@
 name: Automate Issues
 
 on:
+  # NOTE: github.event is issue_comment payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#issue_comment
   issue_comment:
     types: [created]
 
 env:
-  # labels
   FEEDBACK_LBL: pending::feedback
   SUPPORT_LBL: pending::support
 
@@ -17,7 +18,8 @@ jobs:
   pending_support:
     # if [pending::feedback] and the author responds
     if: >-
-      github.event_name == 'issue_comment'
+      !github.event.repository.fork
+      && github.event_name == 'issue_comment'
       && github.event.action == 'created'
       && !github.event.issue.pull_request
       && contains(github.event.issue.labels.*.name, 'pending::feedback')

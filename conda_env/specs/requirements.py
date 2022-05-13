@@ -8,7 +8,7 @@ from .. import env
 
 class RequirementsSpec(object):
     '''
-    Reads depedencies from a requirements.txt file
+    Reads dependencies from a requirements.txt file
     and returns an Environment object from it.
     '''
     msg = None

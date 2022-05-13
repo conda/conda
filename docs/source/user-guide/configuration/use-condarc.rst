@@ -53,7 +53,7 @@ file, open Anaconda Prompt or a terminal and enter the
 ``conda config`` command.
 
 The ``.condarc`` configuration file follows simple
-`YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
+`YAML syntax <https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html>`_.
 
 EXAMPLE:
 
@@ -163,7 +163,7 @@ Precedence
 
 The precedence by which the conda configuration is built out is shown below.
 Each new arrow takes precedence over the ones before it. For example, config
-files (by parse order) will be superceded by any of the other configuration
+files (by parse order) will be superseded by any of the other configuration
 options. Configuration environment variables (formatted like ``CONDA_<CONFIG NAME>``)
 will always take precedence over the other 3.
 

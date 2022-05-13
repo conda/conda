@@ -1,0 +1,24 @@
+name: Epic
+description: (for conda-core team only) A collection of smaller related tickets
+labels: [epic]
+body:
+  - type: textarea
+    attributes:
+      label: Summary
+      description: >-
+        Define the highlevel objectives accomplished in this epic. Include the
+        bigger picture of what is changing and/or the user story for why the
+        changes are desired/necessary.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Linked Issues & PRs
+      description: List all issues related to this epic.
+      value: |
+        - #
+        - #
+        - #
+        ...
+    validations:
+      required: true

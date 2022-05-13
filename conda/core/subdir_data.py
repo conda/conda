@@ -29,8 +29,7 @@ from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.constants import INITIAL_TRUST_ROOT    # Where root.json is currently.
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
-                             string_types, text_type, with_metaclass)
+from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
@@ -84,6 +83,7 @@ class SubdirDataType(type):
         assert not channel.package_filename
         assert type(channel) is Channel
         now = time()
+        repodata_fn = repodata_fn or REPODATA_FN
         cache_key = channel.url(with_credentials=True), repodata_fn
         if cache_key in SubdirData._cache_:
             cache_entry = SubdirData._cache_[cache_key]
@@ -100,8 +100,7 @@ class SubdirDataType(type):
         return subdir_data_instance
 
 
-@with_metaclass(SubdirDataType)
-class SubdirData(object):
+class SubdirData(metaclass=SubdirDataType):
     _cache_ = {}
 
     @classmethod
@@ -144,7 +143,7 @@ class SubdirData(object):
         if not self._loaded:
             self.load()
         param = package_ref_or_match_spec
-        if isinstance(param, string_types):
+        if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             if param.get_exact_value('name'):
@@ -412,7 +411,7 @@ class SubdirData(object):
     def _pickle_me(self):
         try:
             log.debug("Saving pickled state for %s at %s", self.url_w_repodata_fn,
-                      self.cache_path_json)
+                      self.cache_path_pickle)
             with open(self.cache_path_pickle, 'wb') as fh:
                 pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
         except Exception:
@@ -533,8 +532,8 @@ class SubdirData(object):
         conda_packages = {} if context.use_only_tar_bz2 else json_obj.get("packages.conda", {})
 
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
-        use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
-            k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
+        use_these_legacy_keys = set(legacy_packages.keys()) - set(
+            k[:-6] + _tar_bz2 for k in conda_packages.keys()
         )
 
         if context.extra_safety_checks:
@@ -554,7 +553,7 @@ class SubdirData(object):
             verify_metadata_signatures = False
 
         for group, copy_legacy_md5 in (
-                (iteritems(conda_packages), True),
+                (conda_packages.items(), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
             for fn, info in group:
 
@@ -650,7 +649,7 @@ def fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
         file_url = join_url(signing_data_url, filename)
 
-        # The `auth` arugment below looks a bit weird, but passing `None` seems
+        # The `auth` argument below looks a bit weird, but passing `None` seems
         # insufficient for suppressing modifying the URL to add an Anaconda
         # server token; for whatever reason, we must pass an actual callable in
         # order to suppress the HTTP auth behavior configured in the session.
@@ -693,7 +692,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         headers["If-Modified-Since"] = mod_stamp
 
     headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-    headers['Content-Type'] = 'application/json'
+    headers['Accept'] = 'application/json'
     filename = repodata_fn
 
     try:
@@ -708,7 +707,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         raise ProxyError()   # see #3962
 
     except InvalidSchema as e:
-        if 'SOCKS' in text_type(e):
+        if 'SOCKS' in str(e):
             message = dals("""
             Requests has identified that your current working environment is configured
             to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your
@@ -733,7 +732,11 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
                                       status_code, url + '/' + repodata_fn)
                     return None
                 else:
-                    raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)
+                    raise UnavailableInvalidChannel(
+                        Channel(dirname(url)),
+                        status_code,
+                        response=e.response,
+                    )
 
         elif status_code == 401:
             channel = Channel(url)

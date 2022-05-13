@@ -1,83 +1,52 @@
-name: 'Stale'
+name: Stale
+
 on:
+  # NOTE: github.event is workflow_dispatch payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:
+    inputs:
+      dryrun:
+        description: "dryrun: Preview stale issues/prs without marking them (true|false)"
+        required: true
+        type: boolean
+        default: true
+
   schedule:
-    - cron: '0 4 * * *'
+    - cron: 0 4 * * *
 
 jobs:
   stale:
+    if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # The issues labeled "support" have a more aggressive stale/close timeline from the rest
+        only-issue-labels: ['type::support', '']
     steps:
+      - id: read_yaml
+        uses: conda/actions/read-yaml@v22.2.1
+        with:
+          path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
       - uses: actions/stale@v4
         id: stale
         with:
           # Idle number of days before marking issues stale (default: 60)
-          days-before-issue-stale: 365
+          days-before-issue-stale: ${{ matrix.only-issue-labels && 21 || 365 }}
           # Idle number of days before closing stale issues/PRs (default: 7)
-          days-before-issue-close: 90
+          days-before-issue-close: ${{ matrix.only-issue-labels && 7 || 30 }}
           # Idle number of days before marking PRs stale (default: 60)
-          days-before-pr-stale: 360
+          days-before-pr-stale: 365
           # Idle number of days before closing stale PRs (default: 7)
           days-before-pr-close: 30
 
           # Comment on the staled issues
-          stale-issue-message: |
-            Hi there, thank you for your contribution to Conda!
-
-            This issue has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
-
-            If you would like this issue to remain open please:
-
-            1. Verify that you can still reproduce the issue in the latest version of Conda
-
-            2. Comment that the issue is still reproducible and include:
-
-              - What version of Conda you reproduced the issue on
-              - What OS and version you reproduced the issue on
-              - What steps you followed to reproduce the issue
-
-            3. It would also be helpful to have the output of the following commands available:
-
-              - `conda info`
-              - `conda config --show-sources`
-              - `conda list --show-channel-urls`
-
-            **NOTE:** If this issue was closed prematurely, please leave a comment and we will gladly reopen the issue.
-
-            In case this issue was originally about a project that is covered by the [Anaconda issue tracker](https://github.com/ContinuumIO/anaconda-issues/issues) (e.g. Anaconda, Miniconda, packages built by Anaconda, Inc. like Anaconda Navigator etc), please reopen the issue there again.
-
-            Thanks!
+          stale-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-issue'] }}
           # Comment on the staled issues while closed
-          close-issue-message: |
-            Hi again!
-
-            This issue has been closed since it has not had recent activity.
-            Please don't hesitate to leave a comment if that was done prematurely.
-
-            Thank you for your contribution.
+          # close-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-issue'] }}
           # Comment on the staled PRs
-          stale-pr-message: |
-            Hi there, thank you for your contribution to Conda!
-
-            This pull request has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
-
-            If you would like this pull request to remain open please:
-
-              1. Update the pull request with the latest code in the main branch
-              2. Verify that the pull request change is still working and update it if needed
-              3. Leave a comment with the current status of the pull request
-
-            **NOTE:** If this pull request was closed prematurely, please leave a comment.
-
-            Thanks!
+          stale-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-pr'] }}
           # Comment on the staled PRs while closed
-          close-pr-message: >
-            Hi again!
-
-            This pull request has been closed since it has not had recent activity.
-            Please don't hesitate to leave a comment if that was done prematurely.
-
-            Thank you for your contribution.
+          # close-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-pr'] }}
           # Label to apply on staled issues
           stale-issue-label: 'stale'
           # Label to apply on closed issues
@@ -88,9 +57,11 @@ jobs:
           close-pr-label: 'stale::closed'
 
           # Issues with these labels will never be considered stale
-          exempt-issue-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,Epic,priority-high'
+          exempt-issue-labels: 'stale::recovered,epic'
           # Issues with these labels will never be considered stale
-          exempt-pr-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,Epic,priority-high'
+          exempt-pr-labels: 'stale::recovered,epic'
+          # Only issues with these labels are checked whether they are stale
+          only-issue-labels: ${{ matrix.only-issue-labels }}
 
           # Max number of operations per run
           operations-per-run: ${{ secrets.STALE_OPERATIONS_PER_RUN || 100 }}
@@ -102,7 +73,7 @@ jobs:
           labels-to-remove-when-unstale: 'stale,stale::closed'
 
           # Dry-run (default: false)
-          debug-only: false
+          debug-only: ${{ github.event.inputs.dryrun || false }}
           # Order to get issues/PRs (default: false)
           ascending: true
           # Delete branch after closing a stale PR (default: false)

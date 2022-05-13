@@ -10,7 +10,6 @@ import re
 from .common import disp_features, stdout_json
 from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import text_type
 from ..core.prefix_data import PrefixData
 from ..gateways.disk.test import is_conda_environment
 from ..history import History
@@ -82,7 +81,7 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
         stdout_json(output)
 
     else:
-        print('\n'.join(map(text_type, output)))
+        print('\n'.join(map(str, output)))
 
     return exitcode
 

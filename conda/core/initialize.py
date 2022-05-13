@@ -54,7 +54,7 @@ from ..auxlib.ish import dals
 from ..activate import (CshActivator, FishActivator,
                         PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
-from ..common.compat import (PY2, ensure_binary, ensure_utf8_encoding,
+from ..common.compat import (ensure_binary, ensure_utf8_encoding,
                              ensure_text_type, on_mac, on_win, open)
 from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
                            get_python_site_packages_short_path, win_path_ok)
@@ -67,10 +67,7 @@ from ..gateways.disk.read import compute_md5sum
 from ..gateways.subprocess import subprocess_call
 
 if on_win:
-    if PY2:
-        import _winreg as winreg
-    else:
-        import winreg
+    import winreg
     from menuinst.knownfolders import get_folder_path, FOLDERID
     from menuinst.winshortcut import create_shortcut
 
@@ -132,15 +129,15 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     # > alias conda-dev='eval "$(python -m conda init --dev)"'
     # > eval "$(python -m conda init --dev)"
 
-    dev_env_prefix = expand(dev_env_prefix or sys.prefix)
+    prefix = expand(dev_env_prefix or sys.prefix)
     conda_source_root = expand(conda_source_root or os.getcwd())
 
-    python_exe, python_version, site_packages_dir = _get_python_info(dev_env_prefix)
+    python_exe, python_version, site_packages_dir = _get_python_info(prefix)
 
     if not isfile(join(conda_source_root, 'conda', '__main__.py')):
         raise CondaValueError("Directory is not a conda source root: %s" % conda_source_root)
 
-    plan = make_install_plan(dev_env_prefix)
+    plan = make_install_plan(prefix)
     plan.append({
         'function': remove_conda_in_sp_dir.__name__,
         'kwargs': {
@@ -201,10 +198,9 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         sys_executable = abspath(sys.executable)
         if on_win:
             sys_executable = "$(cygpath '%s')" % sys_executable
-        builder += [
-            "eval \"$(\"%s\" -m conda \"shell.bash\" \"hook\")\"" % sys_executable,
-            "conda activate '%s'" % dev_env_prefix,
-        ]
+        builder += [f'eval "$("{sys_executable}" -m conda "shell.bash" "hook")"']
+        if context.auto_activate_base:
+            builder += [f"conda activate '{prefix}'"]
         print("\n".join(builder))
     elif shell == 'cmd.exe':
         if context.dev:
@@ -217,12 +213,14 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
-            '@CALL \"%s\" %s' % (join(dev_env_prefix, 'condabin', 'conda_hook.bat'), dev_arg),
-            '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
-            '@CALL \"%s\" activate %s \"%s\"' % (join(dev_env_prefix, 'condabin', 'conda.bat'),
-                                                 dev_arg, dev_env_prefix),
+            f'@CALL "{join(prefix, "condabin", "conda_hook.bat")}" {dev_arg}',
             '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
         ]
+        if context.auto_activate_base:
+            builder += [
+                f'@CALL "{join(prefix, "condabin", "conda.bat")}" activate {dev_arg} "{prefix}"',
+                "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
+            ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
                 fh.write('\n'.join(builder))

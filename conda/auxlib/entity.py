@@ -249,10 +249,10 @@ from logging import getLogger
 from enum import Enum
 
 from . import NULL
-from ._vendor.boltons.timeutils import isoparse
-from .collection import AttrDict, frozendict, make_immutable
-from .compat import (integer_types, isiterable, iteritems, itervalues, odict, string_types,
-                     text_type, with_metaclass)
+from .._vendor.boltons.timeutils import isoparse
+from .._vendor.frozendict import frozendict
+from .collection import AttrDict, make_immutable
+from .compat import integer_types, isiterable, odict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
@@ -356,7 +356,7 @@ class Field(object):
     """
     Fields are doing something very similar to boxing and unboxing
     of c#/java primitives.  __set__ should take a "primitive" or "raw" value and create a "boxed"
-    or "programatically useable" value of it.  While __get__ should return the boxed value,
+    or "programmatically usable" value of it.  While __get__ should return the boxed value,
     dump in turn should unbox the value into a primitive or raw value.
 
     Arguments:
@@ -530,10 +530,10 @@ class NumberField(Field):
 
 
 class StringField(Field):
-    _type = string_types
+    _type = str
 
     def box(self, instance, instance_type, val):
-        return text_type(val) if isinstance(val, NumberField._type) else val
+        return str(val) if isinstance(val, NumberField._type) else val
 
 
 class DateField(Field):
@@ -541,7 +541,7 @@ class DateField(Field):
 
     def box(self, instance, instance_type, val):
         try:
-            return isoparse(val) if isinstance(val, string_types) else val
+            return isoparse(val) if isinstance(val, str) else val
         except ValueError as e:
             raise ValidationError(val, msg=e)
 
@@ -589,7 +589,7 @@ class ListField(Field):
     def box(self, instance, instance_type, val):
         if val is None:
             return None
-        elif isinstance(val, string_types):
+        elif isinstance(val, str):
             raise ValidationError("Attempted to assign a string to ListField {0}"
                                   "".format(self.name))
         elif isiterable(val):
@@ -673,7 +673,7 @@ class ComposableField(Field):
                 return val if isinstance(val, self._type) else self._type(**val)
             elif isinstance(val, Mapping):
                 return self._type(**val)
-            elif isinstance(val, Sequence) and not isinstance(val, string_types):
+            elif isinstance(val, Sequence) and not isinstance(val, str):
                 return self._type(*val)
             else:
                 return self._type(val)
@@ -695,8 +695,11 @@ class EntityType(type):
     def __new__(mcs, name, bases, dct):
         # if we're about to mask a field that's already been created with something that's
         #  not a field, then assign it to an alternate variable name
-        non_field_keys = (key for key, value in iteritems(dct)
-                          if not isinstance(value, Field) and not key.startswith('__'))
+        non_field_keys = (
+            key
+            for key, value in dct.items()
+            if not isinstance(value, Field) and not key.startswith("__")
+        )
         entity_subclasses = EntityType.__get_entity_subclasses(bases)
         if entity_subclasses:
             keys_to_override = [key for key in non_field_keys
@@ -714,9 +717,11 @@ class EntityType(type):
         fields = odict()
         _field_sort_key = lambda x: x[1]._order_helper
         for clz in reversed(type.mro(cls)):
-            clz_fields = ((name, field.set_name(name))
-                          for name, field in iteritems(clz.__dict__)
-                          if isinstance(field, Field))
+            clz_fields = (
+                (name, field.set_name(name))
+                for name, field in clz.__dict__.items()
+                if isinstance(field, Field)
+            )
             fields.update(sorted(clz_fields, key=_field_sort_key))
 
         cls.__fields__ = frozendict(fields)
@@ -733,13 +738,12 @@ class EntityType(type):
         return cls.__fields__.keys()
 
 
-@with_metaclass(EntityType)
-class Entity(object):
+class Entity(metaclass=EntityType):
     __fields__ = odict()
     _lazy_validate = False
 
     def __init__(self, **kwargs):
-        for key, field in iteritems(self.__fields__):
+        for key, field in self.__fields__.items():
             try:
                 setattr(self, key, kwargs[key])
             except KeyError:
@@ -764,7 +768,7 @@ class Entity(object):
         init_vars = dict()
         search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o
                             for o in ((override_fields,) + objects))
-        for key, field in iteritems(cls.__fields__):
+        for key, field in cls.__fields__.items():
             try:
                 init_vars[key] = find_or_raise(key, search_maps, field._aliases)
             except AttributeError:
@@ -783,9 +787,10 @@ class Entity(object):
     def validate(self):
         # TODO: here, validate should only have to determine if the required keys are set
         try:
-            reduce(lambda _, name: getattr(self, name),
-                   (name for name, field in iteritems(self.__fields__) if field.required)
-                   )
+            reduce(
+                lambda _, name: getattr(self, name),
+                (name for name, field in self.__fields__.items() if field.required),
+            )
         except TypeError as e:
             if str(e) == "reduce() of empty sequence with no initial value":
                 pass
@@ -837,9 +842,10 @@ class Entity(object):
 
     @classmethod
     def __dump_fields(cls):
-        if '__dump_fields_cache' not in cls.__dict__:
-            cls.__dump_fields_cache = tuple(field for field in itervalues(cls.__fields__)
-                                            if field.in_dump)
+        if "__dump_fields_cache" not in cls.__dict__:
+            cls.__dump_fields_cache = tuple(
+                field for field in cls.__fields__.values() if field.in_dump
+            )
         return cls.__dump_fields_cache
 
     def __eq__(self, other):
@@ -900,13 +906,10 @@ class DictSafeMixin(object):
             if key in self:
                 yield key
 
-    def iteritems(self):
+    def items(self):
         for key in self.__fields__:
             if key in self:
                 yield key, getattr(self, key)
-
-    def items(self):
-        return self.iteritems()
 
     def copy(self):
         return self.__class__(**self.dump())
@@ -921,11 +924,11 @@ class DictSafeMixin(object):
         # If E present and lacks .keys() method, does:     for (k, v) in E: D[k] = v
         # In either case, this is followed by: for k in F: D[k] = F[k]
         if E is not None:
-            if hasattr(E, 'keys'):
-                for k in E:
-                    self[k] = E[k]
-            else:
-                for k, v in iteritems(E):
+            try:
+                for k, v in E.items():
+                    self[k] = v
+            except AttributeError:
+                for k, v in E:
                     self[k] = v
         for k in F:
             self[k] = F[k]

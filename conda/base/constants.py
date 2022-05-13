@@ -14,7 +14,7 @@ from enum import Enum, EnumMeta
 from os.path import join
 import struct
 
-from ..common.compat import itervalues, on_win, six_with_metaclass, string_types
+from ..common.compat import on_win, six_with_metaclass
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -152,6 +152,8 @@ CONDA_PACKAGE_EXTENSIONS = (
 )
 CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build; remove this line  # NOQA
 CONDA_TEMP_EXTENSION = '.c~'
+CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
+CONDA_LOGS_DIR = ".logs"
 
 UNKNOWN_CHANNEL = "<unknown>"
 REPODATA_FN = 'repodata.json'
@@ -255,7 +257,7 @@ class ChannelPriorityMeta(EnumMeta):
         try:
             return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
         except ValueError:
-            if isinstance(value, string_types):
+            if isinstance(value, str):
                 from ..auxlib.type_coercion import typify
                 value = typify(value)
             if value is True:
@@ -281,6 +283,15 @@ class SatSolverChoice(Enum):
     PYCOSAT = 'pycosat'
     PYCRYPTOSAT = 'pycryptosat'
     PYSAT = 'pysat'
+
+    def __str__(self):
+        return self.value
+
+
+class ExperimentalSolverChoice(Enum):
+    CLASSIC = 'classic'
+    LIBMAMBA = 'libmamba'
+    LIBMAMBA_DRAFT = 'libmamba-draft'
 
     def __str__(self):
         return self.value
@@ -316,7 +327,7 @@ NAMESPACES_MAP = {  # base package name, namespace
 }
 
 NAMESPACE_PACKAGE_NAMES = frozenset(NAMESPACES_MAP)
-NAMESPACES = frozenset(itervalues(NAMESPACES_MAP))
+NAMESPACES = frozenset(NAMESPACES_MAP.values())
 
 # Namespace arbiters of uniqueness
 #  global: some repository established by Anaconda, Inc. and conda-forge

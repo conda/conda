@@ -1,14 +1,31 @@
+# NOTE: jobs in this workflow are required checks (see https://github.com/conda/conda/settings/branch_protection_rules/773550)
+# remember to mirror changes here in ci-skip.yml to circumvent skipped required checks issue
+# https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
 name: CI tests
 
 on:
+  # NOTE: github.event context is push payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   push:
     branches:
       - master
     paths-ignore:
       - 'docs/**'
+
+  # NOTE: github.event context is pull_request payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
     paths-ignore:
       - 'docs/**'
+
+concurrency:
+  # Concurrency group that uses the workflow name and PR number if available
+  # or commit SHA as a fallback. If a new build is triggered under that
+  # concurrency group while a previous build is running it will be canceled.
+  # Repeated pushes to a PR will cancel all previous builds, while multiple
+  # merges to main will not cancel.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   windows:
@@ -16,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9']
+        python-version: ['3.7', '3.8', '3.9', '3.10']
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
@@ -27,39 +44,38 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
-    - name: Set temp dirs correctly
-      shell: bash -l {0}
-      # https://github.com/actions/virtual-environments/issues/712
-      run: |
-        echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-        echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-        echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+      - name: Set temp dirs correctly
+        # https://github.com/actions/virtual-environments/issues/712
+        run: |
+          echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+          echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+          echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
 
-    - name: Setup environment
-      shell: cmd
-      run: |
-        call .\dev\windows\setup.bat
+      - name: Setup environment
+        shell: cmd
+        run: |
+          call .\dev\windows\setup.bat
 
-    - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-      shell: cmd
-      run: |
-        call .\dev\windows\${{ matrix.test-type }}.bat
+      - name: Python ${{ matrix.python-version }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+        shell: cmd
+        run: |
+          call .\dev\windows\${{ matrix.test-type }}.bat
 
-    - uses: codecov/codecov-action@v2
-      with:
-        flags: ${{ matrix.test-type }}
-        env_vars: OS,PYTHON
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: ${{ matrix.test-type }}
+          env_vars: OS,PYTHON
 
   linux:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9']
+        python-version: ['3.7', '3.8', '3.9', '3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
     env:
@@ -94,13 +110,11 @@ jobs:
         python-version: ['3.9']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
-
     env:
       OS: 'macos'
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
-
     steps:
       - uses: actions/checkout@v2
         with:

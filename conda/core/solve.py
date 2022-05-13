@@ -19,13 +19,15 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN
+from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
+                              ExperimentalSolverChoice)
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, text_type
+from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError, UnsatisfiableError
+from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
+                          UnsatisfiableError, CondaImportError)
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -35,6 +37,41 @@ from ..models.version import VersionOrder
 from ..resolve import Resolve
 
 log = getLogger(__name__)
+
+
+def _get_solver_class(key=None):
+    """
+    Temporary function to load the correct solver backend.
+
+    See ``context.experimental_solver`` and
+    ``base.constants.ExperimentalSolverChoice`` for more details.
+
+    TODO: This should be replaced by the plugin mechanism in the future.
+    """
+    key = (key or context.experimental_solver.value).lower()
+
+    # These keys match conda.base.constants.ExperimentalSolverChoice
+    if key == "classic":
+        return Solver
+
+    if key.startswith("libmamba"):
+        try:
+            from conda_libmamba_solver import get_solver_class
+
+            return get_solver_class(key)
+        except ImportError as exc:
+            raise CondaImportError(
+                f"You have chosen a non-default solver backend ({key}) "
+                f"but it could not be imported:\n\n"
+                f"  {exc.__class__.__name__}: {exc}\n\n"
+                f"Try (re)installing conda-libmamba-solver."
+            )
+
+    raise ValueError(
+        f"You have chosen a non-default solver backend ({key}) "
+        f"but it was not recognized. Choose one of "
+        f"{[v.value for v in ExperimentalSolverChoice]}"
+    )
 
 
 class Solver(object):
@@ -66,7 +103,8 @@ class Solver(object):
 
         """
         self.prefix = prefix
-        self.channels = IndexedSet(Channel(c) for c in channels or context.channels)
+        self._channels = channels or context.channels
+        self.channels = IndexedSet(Channel(c) for c in self._channels)
         self.subdirs = tuple(s for s in subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
@@ -209,11 +247,11 @@ class Solver(object):
         if update_modifier is NULL:
             update_modifier = context.update_modifier
         else:
-            update_modifier = UpdateModifier(text_type(update_modifier).lower())
+            update_modifier = UpdateModifier(str(update_modifier).lower())
         if deps_modifier is NULL:
             deps_modifier = context.deps_modifier
         else:
-            deps_modifier = DepsModifier(text_type(deps_modifier).lower())
+            deps_modifier = DepsModifier(str(deps_modifier).lower())
         ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
         force_remove = context.force_remove if force_remove is NULL else force_remove
 
@@ -419,7 +457,7 @@ class Solver(object):
         prepared_specs = set(concatv(
             self.specs_to_remove,
             self.specs_to_add,
-            itervalues(ssc.specs_from_history_map),
+            ssc.specs_from_history_map.values(),
         ))
 
         index, r = self._prepare(prepared_specs)
@@ -436,7 +474,7 @@ class Solver(object):
             _track_fts_specs = (spec for spec in self.specs_to_remove if 'track_features' in spec)
             feature_names = set(concat(spec.get_raw_value('track_features')
                                        for spec in _track_fts_specs))
-            graph = PrefixGraph(ssc.solution_precs, itervalues(ssc.specs_map))
+            graph = PrefixGraph(ssc.solution_precs, ssc.specs_map.values())
 
             all_removed_records = []
             no_removed_records_specs = []
@@ -569,7 +607,7 @@ class Solver(object):
         ) or tuple()
         conflict_specs = set(_.name for _ in conflict_specs)
 
-        for pkg_name, spec in iteritems(ssc.specs_map):
+        for pkg_name, spec in ssc.specs_map.items():
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
             if matches_for_spec:
                 if len(matches_for_spec) != 1:
@@ -582,7 +620,7 @@ class Solver(object):
                       spec: %s
                       matches_for_spec: %s
                     """) % (pkg_name, spec,
-                            dashlist((text_type(s) for s in matches_for_spec), indent=4)))
+                            dashlist((str(s) for s in matches_for_spec), indent=4)))
                 target_prec = matches_for_spec[0]
                 if target_prec.is_unmanageable:
                     ssc.specs_map[pkg_name] = target_prec.to_match_spec()
@@ -688,7 +726,7 @@ class Solver(object):
             if 'python' not in conflict_specs and freeze_installed:
                 ssc.specs_map['python'] = python_prefix_rec.to_match_spec()
             else:
-                # will our prefix record conflict with any explict spec?  If so, don't add
+                # will our prefix record conflict with any explicit spec?  If so, don't add
                 #     anything here - let python float when it hasn't been explicitly specified
                 python_spec = ssc.specs_map.get('python', MatchSpec('python'))
                 if not python_spec.get('version'):
@@ -737,7 +775,7 @@ class Solver(object):
     @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
         final_environment_specs = IndexedSet(concatv(
-            itervalues(ssc.specs_map),
+            ssc.specs_map.values(),
             ssc.track_features_specs,
             # pinned specs removed here - added to specs_map in _add_specs instead
         ))
@@ -768,7 +806,7 @@ class Solver(object):
 
             # Are all conflicting specs in specs_map? If not, that means they're in
             # track_features_specs or pinned_specs, which we should raise an error on.
-            specs_map_set = set(itervalues(ssc.specs_map))
+            specs_map_set = set(ssc.specs_map.values())
             grouped_specs = groupby(lambda s: s in specs_map_set, conflicting_specs)
             # force optional to true. This is what it is originally in
             # pinned_specs, but we override that in _add_specs to make it
@@ -808,7 +846,7 @@ class Solver(object):
         # Finally! We get to call SAT.
         if log.isEnabledFor(DEBUG):
             log.debug("final specs to add: %s",
-                      dashlist(sorted(text_type(s) for s in final_environment_specs)))
+                      dashlist(sorted(str(s) for s in final_environment_specs)))
 
         # this will raise for unsatisfiable stuff.  We can
         if not conflicting_specs or context.unsatisfiable_hints:
@@ -828,7 +866,7 @@ class Solver(object):
 
         # add back inconsistent packages to solution
         if ssc.add_back_map:
-            for name, (prec, spec) in iteritems(ssc.add_back_map):
+            for name, (prec, spec) in ssc.add_back_map.items():
                 # spec here will only be set if the conflicting prec was in the original specs_map
                 #    if it isn't there, then we restore the conflict.  If it is there, though,
                 #    we keep the new, consistent solution
@@ -930,7 +968,7 @@ class Solver(object):
                 py_ver = ".".join(python_rec.version.split(".")[:2]) + ".*"
                 specs_map["python"] = MatchSpec(name="python", version=py_ver)
             specs_map.update({spec.name: spec for spec in self.specs_to_add})
-            new_specs_to_add = tuple(itervalues(specs_map))
+            new_specs_to_add = tuple(specs_map.values())
 
             # It feels wrong/unsafe to modify this instance, but I guess let's go with it for now.
             self.specs_to_add = new_specs_to_add
@@ -1156,19 +1194,19 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #               "  prune: %s", prefix, specs_to_remove, specs_to_add, prune)
 #
 #     # declare starting point
-#     solved_linked_dists = () if prune else tuple(iterkeys(linked_data(prefix)))
+#     solved_linked_dists = () if prune else tuple(linked_data(prefix).keys())
 #     # TODO: to change this whole function from working with dists to working with records, just
-#     #       change iterkeys to itervalues
+#     #       change keys() to values()
 #
 #     if solved_linked_dists and specs_to_remove:
-#         solved_linked_dists = r.remove(tuple(text_type(s) for s in specs_to_remove),
+#         solved_linked_dists = r.remove(tuple(str(s) for s in specs_to_remove),
 #                                        solved_linked_dists)
 #
 #     specs_from_history = _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add)
 #     augmented_specs_to_add = augment_specs(prefix, concatv(specs_from_history, specs_to_add))
 #
 #     log.debug("final specs to add:\n    %s\n",
-#               "\n    ".join(text_type(s) for s in augmented_specs_to_add))
+#               "\n    ".join(str(s) for s in augmented_specs_to_add))
 #     solved_linked_dists = r.install(augmented_specs_to_add,
 #                                     solved_linked_dists,
 #                                     update_deps=context.update_dependencies)
@@ -1184,7 +1222,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #     log.debug("solved prefix %s\n"
 #               "  solved_linked_dists:\n"
 #               "    %s\n",
-#               prefix, "\n    ".join(text_type(d) for d in solved_linked_dists))
+#               prefix, "\n    ".join(str(d) for d in solved_linked_dists))
 #
 #     return solved_linked_dists, specs_to_add
 
@@ -1245,7 +1283,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 
 # def sort_unlink_link_from_solve(prefix, solved_dists, remove_satisfied_specs):
 #     # solved_dists should be the return value of solve_prefix()
-#     old_linked_dists = IndexedSet(iterkeys(linked_data(prefix)))
+#     old_linked_dists = IndexedSet(linked_data(prefix).keys())
 #
 #     dists_for_unlinking = old_linked_dists - solved_dists
 #     dists_for_linking = solved_dists - old_linked_dists
@@ -1304,7 +1342,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #                                                   always_copy, pinned, update_deps,
 #                                                   prune, channel_priority_map, is_update)
 #
-#         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
+#         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(env_add_map.values()))
 #         required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
 #                                               specs_to_remove=root_specs_to_remove,
 #                                               specs_to_add=requested_root_specs_to_add,
@@ -1315,7 +1353,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #         # first handle pulling back requested specs to root
 #         forced_root_specs_to_add = set()
 #         pruned_env_add_map = defaultdict(list)
-#         for env_name, specs in iteritems(env_add_map):
+#         for env_name, specs in env_add_map.items():
 #             for spec in specs:
 #                 spec_name = MatchSpec(spec).name
 #                 if spec_name in required_root_package_names:
@@ -1326,7 +1364,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #
 #         # second handle pulling back registered specs to root
 #         env_remove_map = defaultdict(list)
-#         for env_name, registered_package_entries in iteritems(registered_packages):
+#         for env_name, registered_package_entries in registered_packages.items():
 #             for rpe in registered_package_entries:
 #                 if rpe['package_name'] in required_root_package_names:
 #                     # ANY registered packages in this environment need to be pulled back
@@ -1340,7 +1378,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #
 #         unlink_link_map = odict()
 #
-#         # solve all neede preferred_env prefixes
+#         # solve all needed preferred_env prefixes
 #         for env_name in set(concatv(env_add_map, env_remove_map)):
 #             specs_to_add = env_add_map[env_name]
 #             spec_to_remove = env_remove_map[env_name]
@@ -1367,7 +1405,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #                                tuple(specs))
 #
 #         txn_args = tuple(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
-#                          for env_name, oink in iteritems(unlink_link_map))
+#                          for env_name, oink in unlink_link_map.items())
 #         txn = UnlinkLinkTransaction(*txn_args)
 #         return txn
 #

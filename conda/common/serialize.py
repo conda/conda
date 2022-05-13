@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 from logging import getLogger
 
-from .compat import PY2, odict, ensure_text_type
+from .compat import odict, ensure_text_type
 from ..auxlib.decorators import memoize
 from ..auxlib.entity import EntityEncoder
 
@@ -44,13 +44,6 @@ def represent_ordereddict(dumper, data):
 
 yaml.representer.RoundTripRepresenter.add_representer(odict, represent_ordereddict)
 yaml.representer.SafeRepresenter.add_representer(odict, represent_ordereddict)
-
-if PY2:
-    def represent_unicode(self, data):
-        return self.represent_str(data.encode('utf-8'))
-
-
-    yaml.representer.RoundTripRepresenter.add_representer(unicode, represent_unicode)  # NOQA
 
 
 def yaml_round_trip_load(string):

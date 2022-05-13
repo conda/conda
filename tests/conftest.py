@@ -1,55 +1,32 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from pathlib import Path
+import subprocess
 
-from functools import partial
-import os
-import sys
-import warnings
-
-import py
 import pytest
 
-from conda.common.compat import PY3
-from conda.gateways.disk.create import TemporaryDirectory
-from conda.core.subdir_data import SubdirData
 
-win_default_shells = ["cmd.exe", "powershell", "git_bash", "cygwin"]
-shells = ["bash", "zsh"]
-
-if sys.platform == "win32":
-    shells = win_default_shells
+def _conda_build_recipe(recipe):
+    subprocess.run(
+        ["conda-build", str(Path(__file__).resolve().parent / "test-recipes" / recipe)],
+        check=True,
+    )
+    return recipe
 
 
-def pytest_addoption(parser):
-    parser.addoption("--shell", action="append", default=[],
-                     help="list of shells to run shell tests on")
+@pytest.fixture(scope="session")
+def activate_deactivate_package():
+    return _conda_build_recipe("activate_deactivate_package")
 
 
-def pytest_generate_tests(metafunc):
-    if 'shell' in metafunc.fixturenames:
-        metafunc.parametrize("shell", metafunc.config.option.shell)
+@pytest.fixture(scope="session")
+def pre_link_messages_package():
+    return _conda_build_recipe("pre_link_messages_package")
 
 
-@pytest.fixture(autouse=True)
-def suppress_resource_warning():
-    '''
-Suppress `Unclosed Socket Warning`
+@pytest.fixture
+def clear_cache():
+    from conda.core.subdir_data import SubdirData
 
-It seems urllib3 keeps a socket open to avoid costly recreation costs.
-
-xref: https://github.com/kennethreitz/requests/issues/1882
-'''
-    if PY3:
-        warnings.filterwarnings("ignore", category=ResourceWarning)
-
-@pytest.fixture(scope='function')
-def tmpdir(tmpdir, request):
-    tmpdir = TemporaryDirectory(dir=str(tmpdir))
-    request.addfinalizer(tmpdir.cleanup)
-    return py.path.local(tmpdir.name)
-
-
-@pytest.fixture(autouse=True)
-def clear_subdir_cache():
-    SubdirData.clear_cached_local_channel_data()
+    SubdirData._cache_.clear()

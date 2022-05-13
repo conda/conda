@@ -5,10 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 
-try:
-    from collections.abc import Mapping
-except ImportError:
-    from collections import Mapping
+from collections.abc import Mapping
 from functools import reduce
 from logging import getLogger
 from operator import attrgetter
@@ -21,8 +18,7 @@ from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
-                             with_metaclass)
+from ..common.compat import isiterable
 from ..common.io import dashlist
 from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
 from ..common.url import is_url, path_to_url, unquote
@@ -30,6 +26,7 @@ from ..exceptions import CondaValueError, InvalidMatchSpec
 from ..base.context import context
 
 log = getLogger(__name__)
+
 
 class MatchSpecType(type):
 
@@ -44,7 +41,7 @@ class MatchSpecType(type):
                 new_kwargs['_original_spec_str'] = spec_arg.original_spec_str
                 new_kwargs.update(**kwargs)
                 return super(MatchSpecType, cls).__call__(**new_kwargs)
-            elif isinstance(spec_arg, string_types):
+            elif isinstance(spec_arg, str):
                 parsed = _parse_spec_str(spec_arg)
                 if kwargs:
                     parsed = dict(parsed, **kwargs)
@@ -69,8 +66,7 @@ class MatchSpecType(type):
             return super(MatchSpecType, cls).__call__(**kwargs)
 
 
-@with_metaclass(MatchSpecType)
-class MatchSpec(object):
+class MatchSpec(metaclass=MatchSpecType):
     """
     :class:`MatchSpec` is, fundamentally, a query language for conda packages.  Any of the fields
     that comprise a :class:`PackageRecord` can be used to compose a :class:`MatchSpec`.
@@ -246,7 +242,7 @@ class MatchSpec(object):
             # TODO: consider AttrDict instead of PackageRecord
             from .records import PackageRecord
             rec = PackageRecord.from_objects(rec)
-        for field_name, v in iteritems(self._match_components):
+        for field_name, v in self._match_components.items():
             if not self._match_individual(rec, field_name, v):
                 return False
         return True
@@ -291,9 +287,9 @@ class MatchSpec(object):
 
         channel_matcher = self._match_components.get('channel')
         if channel_matcher and channel_matcher.exact_value:
-            builder.append(text_type(channel_matcher))
+            builder.append(str(channel_matcher))
         elif channel_matcher and not channel_matcher.matches_all:
-            brackets.append("channel=%s" % text_type(channel_matcher))
+            brackets.append("channel=%s" % str(channel_matcher))
 
         subdir_matcher = self._match_components.get('subdir')
         if subdir_matcher:
@@ -309,7 +305,7 @@ class MatchSpec(object):
         build = self._match_components.get('build')
         version_exact = False
         if version:
-            version = text_type(version)
+            version = str(version)
             if any(s in version for s in "><$^|,"):
                 brackets.append("version='%s'" % version)
             elif version[:2] in ("!=", "~="):
@@ -329,7 +325,7 @@ class MatchSpec(object):
                 version_exact = True
 
         if build:
-            build = text_type(build)
+            build = str(build)
             if any(s in build for s in '><$^|,'):
                 brackets.append("build='%s'" % build)
             elif '*' in build:
@@ -347,7 +343,7 @@ class MatchSpec(object):
                 if key == 'url' and channel_matcher:
                     # skip url in canonical str if channel already included
                     continue
-                value = text_type(self._match_components[key])
+                value = str(self._match_components[key])
                 if any(s in value for s in ', ='):
                     brackets.append("%s='%s'" % (key, value))
                 else:
@@ -400,7 +396,7 @@ class MatchSpec(object):
             raise InvalidMatchSpec(self._original_spec_str,
                                    'Cannot match on field(s): %s' % not_fields)
         _make_component = MatchSpec._make_component
-        return frozendict(_make_component(key, value) for key, value in iteritems(kwargs))
+        return frozendict(_make_component(key, value) for key, value in kwargs.items())
 
     @staticmethod
     def _make_component(field_name, value):
@@ -416,7 +412,7 @@ class MatchSpec(object):
         if field_name in _implementors:
             matcher = _implementors[field_name](value)
         else:
-            matcher = ExactStrMatch(text_type(value))
+            matcher = ExactStrMatch(str(value))
         _MATCHER_CACHE[(field_name, value)] = matcher
         return field_name, matcher
 
@@ -468,8 +464,8 @@ class MatchSpec(object):
 
         merged_specs = []
         mergeable_groups = tuple(concat(
-            itervalues(groupby(lambda s: s.optional, group))
-            for group in itervalues(name_groups)
+            groupby(lambda s: s.optional, group).values()
+            for group in name_groups.values()
         ))
         for group in mergeable_groups:
             target_groups = groupby(attrgetter('target'), group)
@@ -735,8 +731,7 @@ def _parse_spec_str(spec_str):
     return components
 
 
-@with_metaclass(ABCMeta)
-class MatchInterface(object):
+class MatchInterface(metaclass=ABCMeta):
     def __init__(self, value):
         self._raw_value = value
 
@@ -798,7 +793,7 @@ class ExactStrMatch(_StrMatchMixin, MatchInterface):
         try:
             _other_val = other._raw_value
         except AttributeError:
-            _other_val = text_type(other)
+            _other_val = str(other)
         return self._raw_value == _other_val
 
 
@@ -811,7 +806,7 @@ class ExactLowerStrMatch(ExactStrMatch):
         try:
             _other_val = other._raw_value
         except AttributeError:
-            _other_val = text_type(other)
+            _other_val = str(other)
         return self._raw_value == _other_val.lower()
 
 
@@ -832,7 +827,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):  # lgtm [py/missing-equals]
         try:
             _other_val = other._raw_value
         except AttributeError:
-            _other_val = text_type(other)
+            _other_val = str(other)
 
         if self._re_match:
             return self._re_match(_other_val)
@@ -904,7 +899,7 @@ class FeatureMatch(MatchInterface):
     def _convert(self, value):
         if not value:
             return frozenset()
-        elif isinstance(value, string_types):
+        elif isinstance(value, str):
             return frozenset(f for f in (
                 ff.strip() for ff in value.replace(' ', ',').split(',')
             ) if f)
@@ -937,7 +932,7 @@ class ChannelMatch(GlobStrMatch):
     def __init__(self, value):
         self._re_match = None
 
-        if isinstance(value, string_types):
+        if isinstance(value, str):
             if value.startswith('^') and value.endswith('$'):
                 self._re_match = re.compile(value).match
             elif '*' in value:
@@ -977,7 +972,7 @@ class CaseInsensitiveStrMatch(GlobLowerStrMatch):
         try:
             _other_val = other._raw_value
         except AttributeError:
-            _other_val = text_type(other)
+            _other_val = str(other)
 
         _other_val = _other_val.lower()
         if self._re_match:

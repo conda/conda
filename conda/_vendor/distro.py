@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# source: https://raw.githubusercontent.com/nir0s/distro/v1.0.4/distro.py
-# version: 1.0.4
-# date: 2017-05-25
-
 """
 The ``distro`` package (``distro`` stands for Linux Distribution) provides
 information about the Linux distribution it runs on, such as a reliable

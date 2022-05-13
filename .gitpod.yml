@@ -8,7 +8,6 @@ tasks:
       git tag "$(git tag --sort=committerdate | tail -1).dev"
       eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
       sudo su root -c "/opt/conda/bin/conda install -yq conda-build"
-      conda-build tests/test-recipes/activate_deactivate_package
     command: |
       eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 

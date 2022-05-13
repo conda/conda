@@ -11,8 +11,8 @@ try:
 except ImportError:
     import mock
 
+from conda.exceptions import SpecNotFound
 from conda_env import specs
-from conda_env.exceptions import SpecNotFound
 
 
 true_func = mock.Mock(return_value=True)

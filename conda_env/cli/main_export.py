@@ -8,11 +8,10 @@ import os
 import textwrap
 
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.exceptions import CondaEnvException
 
-# conda env import
 from .common import get_prefix, stdout_json
 from ..env import from_environment
-from ..exceptions import CondaEnvException
 
 description = """
 Export a given environment
@@ -97,7 +96,7 @@ def execute(args, parser):
             raise CondaEnvException(msg)
         if name:
             if os.sep in name:
-                # assume "names" with a path seperator are actually paths
+                # assume "names" with a path separator are actually paths
                 args.prefix = name
             else:
                 args.name = name

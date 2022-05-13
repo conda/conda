@@ -52,31 +52,33 @@ def generate_parser():
 
 
 def init_loggers(context=None):
-    from logging import CRITICAL, getLogger
-    from ..gateways.logging import initialize_logging, set_verbosity
+    from logging import CRITICAL, getLogger, DEBUG
+    from ..gateways.logging import initialize_logging, set_verbosity, set_file_logging
     initialize_logging()
     if context and context.json:
         # Silence logging info to avoid interfering with JSON output
         for logger in ('conda.stdout.verbose', 'conda.stdoutlog', 'conda.stderrlog'):
             getLogger(logger).setLevel(CRITICAL + 1)
 
-    if context and context.verbosity:
-        set_verbosity(context.verbosity)
+    if context:
+        if context.verbosity:
+            set_verbosity(context.verbosity)
+        if context.experimental_solver.value != "classic":
+            set_file_logging(logger_name="conda", level=DEBUG, path=context._logfile_path)
 
 
-def _main(*args, **kwargs):
-    if len(args) == 1:
-        args = args + ('-h',)
+def main_subshell(*args, post_parse_hook=None, **kwargs):
+    """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
+    args = args or ["--help"]
 
     p = generate_parser()
-    args = p.parse_args(args[1:])
+    args = p.parse_args(args)
 
     from ..base.context import context
     context.__init__(argparse_args=args)
     init_loggers(context)
 
     # used with main_pip.py
-    post_parse_hook = kwargs.pop('post_parse_hook', None)
     if post_parse_hook:
         post_parse_hook(args, p)
 
@@ -88,69 +90,39 @@ def _main(*args, **kwargs):
         return exit_code.rc
 
 
-if sys.platform == 'win32' and sys.version_info[0] == 2:
-    def win32_unicode_argv():
-        """Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-        strings.
+def main_sourced(shell, *args, **kwargs):
+    """Entrypoint for the "sourced" invocation of CLI interface. E.g. `conda activate`."""
+    shell = shell.replace("shell.", "", 1)
 
-        Versions 2.x of Python don't support Unicode in sys.argv on
-        Windows, with the underlying Windows API instead replacing multi-byte
-        characters with '?'.
-        """
+    from ..base.context import context
 
-        from ctypes import POINTER, byref, cdll, c_int, windll
-        from ctypes.wintypes import LPCWSTR, LPWSTR
+    context.__init__()
+    init_loggers(context)
 
-        GetCommandLineW = cdll.kernel32.GetCommandLineW
-        GetCommandLineW.argtypes = []
-        GetCommandLineW.restype = LPCWSTR
+    from ..activate import _build_activator_cls
 
-        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-        CommandLineToArgvW.restype = POINTER(LPWSTR)
+    try:
+        activator_cls = _build_activator_cls(shell)
+    except KeyError:
+        raise CondaError("%s is not a supported shell." % shell)
 
-        cmd = GetCommandLineW()
-        argc = c_int(0)
-        argv = CommandLineToArgvW(cmd, byref(argc))
-        if argc.value > 0:
-            # Remove Python executable and commands if present
-            start = argc.value - len(sys.argv)
-            return [argv[i] for i in range(start, argc.value)]
+    activator = activator_cls(args)
+    print(activator.execute(), end="")
+    return 0
 
 
 def main(*args, **kwargs):
     # conda.common.compat contains only stdlib imports
-    from ..common.compat import ensure_text_type, init_std_stream_encoding
+    from ..common.compat import ensure_text_type
+    from ..exceptions import conda_exception_handler
 
-    init_std_stream_encoding()
-
-    if not args:
-        if sys.platform == 'win32' and sys.version_info[0] == 2:
-            args = sys.argv = win32_unicode_argv()
-        else:
-            args = sys.argv
-
+    # cleanup argv
+    args = args or sys.argv[1:]  # drop executable/script
     args = tuple(ensure_text_type(s) for s in args)
 
-    if len(args) > 1:
-        try:
-            argv1 = args[1].strip()
-            if argv1.startswith('shell.'):
-                from ..activate import main as activator_main
-                return activator_main()
-            elif argv1.startswith('..'):
-                import conda.cli.activate as activate
-                activate.main()
-                return
-        except Exception:
-            _, exc_val, exc_tb = sys.exc_info()
-            init_loggers()
-            from ..exceptions import ExceptionHandler
-            return ExceptionHandler().handle_exception(exc_val, exc_tb)
+    if args and args[0].strip().startswith("shell."):
+        main = main_sourced
+    else:
+        main = main_subshell
 
-    from ..exceptions import conda_exception_handler
-    return conda_exception_handler(_main, *args, **kwargs)
-
-
-if __name__ == '__main__':
-    sys.exit(main())
+    return conda_exception_handler(main, *args, **kwargs)

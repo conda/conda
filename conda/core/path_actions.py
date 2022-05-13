@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
+from json import JSONDecodeError
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, join
 import re
@@ -14,12 +15,11 @@ from .envs_manager import get_user_environments_txt_file, register_env, unregist
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 from .. import CondaError
-from ..auxlib.compat import with_metaclass
 from ..auxlib.ish import dals
 from .._vendor.toolz import concat
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
-from ..common.compat import iteritems, on_win, text_type, JSONDecodeError
+from ..common.compat import on_win
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
@@ -57,8 +57,7 @@ REPR_IGNORE_KWARGS = (
     'hold_path',
 )
 
-@with_metaclass(ABCMeta)
-class PathAction(object):
+class PathAction(metaclass=ABCMeta):
 
     _verified = False
 
@@ -90,13 +89,12 @@ class PathAction(object):
         return self._verified
 
     def __repr__(self):
-        args = ('%s=%r' % (key, value) for key, value in iteritems(vars(self))
+        args = ('%s=%r' % (key, value) for key, value in vars(self).items()
                 if key not in REPR_IGNORE_KWARGS)
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
 
-@with_metaclass(ABCMeta)
-class MultiPathAction(object):
+class MultiPathAction(metaclass=ABCMeta):
 
     _verified = False
 
@@ -128,13 +126,12 @@ class MultiPathAction(object):
         return self._verified
 
     def __repr__(self):
-        args = ('%s=%r' % (key, value) for key, value in iteritems(vars(self))
+        args = ('%s=%r' % (key, value) for key, value in vars(self).items()
                 if key not in REPR_IGNORE_KWARGS)
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
 
-@with_metaclass(ABCMeta)
-class PrefixPathAction(PathAction):
+class PrefixPathAction(PathAction, metaclass=ABCMeta):
 
     def __init__(self, transaction_context, target_prefix, target_short_path):
         self.transaction_context = transaction_context
@@ -158,8 +155,7 @@ class PrefixPathAction(PathAction):
 #  Creation of Paths within a Prefix
 # ######################################################
 
-@with_metaclass(ABCMeta)
-class CreateInPrefixPathAction(PrefixPathAction):
+class CreateInPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
     # All CreatePathAction subclasses must create a SINGLE new path
     #   the short/in-prefix version of that path must be returned by execute()
 
@@ -412,7 +408,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             assert False, "I don't think this is the right place to ignore this"
 
         mkdir_p(self.transaction_context['temp_dir'])
-        self.intermediate_path = join(self.transaction_context['temp_dir'], text_type(uuid4()))
+        self.intermediate_path = join(self.transaction_context['temp_dir'], str(uuid4()))
 
         log.trace("copying %s => %s", self.source_full_path, self.intermediate_path)
         create_link(self.source_full_path, self.intermediate_path, LinkType.copy)
@@ -888,7 +884,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             self.package_info.repodata_record,
             # self.package_info.index_json_record,
             self.package_info.package_metadata,
-            requested_spec=text_type(self.requested_spec),
+            requested_spec=str(self.requested_spec),
             paths_data=paths_data,
             files=files,
             link=link,
@@ -983,8 +979,7 @@ class RegisterEnvironmentLocationAction(PathAction):
 #  Removal of Paths within a Prefix
 # ######################################################
 
-@with_metaclass(ABCMeta)
-class RemoveFromPrefixPathAction(PrefixPathAction):
+class RemoveFromPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
 
     def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path):
         super(RemoveFromPrefixPathAction, self).__init__(transaction_context,

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import OrderedDict
+from collections.abc import Mapping, Sequence
 import json
 from logging import getLogger
 import os
@@ -15,10 +15,9 @@ from .. import CondaError
 from ..auxlib.entity import EntityEncoder
 from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
-                              UpdateModifier, SatSolverChoice)
+                              UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalues, string_types,
-                             text_type)
+from ..common.compat import isiterable
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
@@ -34,7 +33,7 @@ def execute(args, parser):
 
 def format_dict(d):
     lines = []
-    for k, v in iteritems(d):
+    for k, v in d.items():
         if isinstance(v, Mapping):
             if v:
                 lines.append("%s:" % k)
@@ -86,7 +85,7 @@ def parameter_description_builder(name):
 def describe_all_parameters():
     builder = []
     skip_categories = ('CLI-only', 'Hidden and Undocumented')
-    for category, parameter_names in iteritems(context.category_map):
+    for category, parameter_names in context.category_map.items():
         if category in skip_categories:
             continue
         builder.append('# ######################################################')
@@ -104,8 +103,8 @@ def print_config_item(key, value):
     if isinstance(value, (dict,)):
         for k, v in value.items():
             print_config_item(key + "." + k, v)
-    elif isinstance(value, (bool, int, string_types)):
-        stdout_write(" ".join(("--set", key, text_type(value))))
+    elif isinstance(value, (bool, int, str)):
+        stdout_write(" ".join(("--set", key, str(value))))
     elif isinstance(value, (list, tuple)):
         # Note, since `conda config --add` prepends, print `--add` commands in
         # reverse order (using repr), so that entering them in this order will
@@ -135,7 +134,7 @@ def execute_config(args, parser):
             ))
         else:
             lines = []
-            for source, reprs in iteritems(context.collect_all()):
+            for source, reprs in context.collect_all().items():
                 lines.append("==> %s <==" % source)
                 lines.extend(format_dict(reprs))
                 lines.append('')
@@ -154,7 +153,7 @@ def execute_config(args, parser):
         else:
             paramater_names = context.list_parameters()
 
-        d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
+        d = {key: getattr(context, key) for key in paramater_names}
         if context.json:
             stdout_write(json.dumps(
                 d, sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder
@@ -164,13 +163,13 @@ def execute_config(args, parser):
             if 'custom_channels' in d:
                 d['custom_channels'] = {
                     channel.name: "%s://%s" % (channel.scheme, channel.location)
-                    for channel in itervalues(d['custom_channels'])
+                    for channel in d['custom_channels'].values()
                 }
             if 'custom_multichannels' in d:
                 from ..common.io import dashlist
                 d['custom_multichannels'] = {
                     multichannel_name: dashlist(channels, indent=4)
-                    for multichannel_name, channels in iteritems(d['custom_multichannels'])
+                    for multichannel_name, channels in d['custom_multichannels'].items()
                 }
 
             stdout_write('\n'.join(format_dict(d)))
@@ -320,7 +319,7 @@ def execute_config(args, parser):
                 from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
             if not (isinstance(arglist, Sequence) and not
-                    isinstance(arglist, string_types)):
+                    isinstance(arglist, str)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
@@ -391,6 +390,9 @@ def execute_config(args, parser):
         yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(
+            ExperimentalSolverChoice, enum_representer
+        )
 
         try:
             with open(rc_path, 'w') as rc:

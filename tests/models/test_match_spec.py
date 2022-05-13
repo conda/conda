@@ -6,10 +6,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from unittest import TestCase
 
-from conda.auxlib.collection import frozendict
 import pytest
 
-from conda import text_type
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import arg2spec, spec_from_line
@@ -27,7 +25,7 @@ blas_value = 'accelerate' if context.subdir == 'osx-64' else 'openblas'
 
 
 def m(string):
-    return text_type(MatchSpec(string))
+    return str(MatchSpec(string))
 
 
 def DPkg(s, **kwargs):
@@ -247,7 +245,7 @@ class MatchSpecTests(TestCase):
         assert m("mkl@") == "*[track_features=mkl]"
 
         # assert m("@mkl") == "*[features=mkl]"
-        assert text_type(MatchSpec(features="mkl")) == "*[features=mkl]"
+        assert str(MatchSpec(features="mkl")) == "*[features=mkl]"
 
     def test_tarball_match_specs(self):
         url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
@@ -326,7 +324,7 @@ class MatchSpecTests(TestCase):
 
         if not on_win:
             # skipping on Windows for now.  don't feel like dealing with the windows url path crud
-            assert text_type(MatchSpec("/some/file/on/disk/package-1.2.3-2.tar.bz2")) == '*[url=file:///some/file/on/disk/package-1.2.3-2.tar.bz2]'
+            assert str(MatchSpec("/some/file/on/disk/package-1.2.3-2.tar.bz2")) == '*[url=file:///some/file/on/disk/package-1.2.3-2.tar.bz2]'
 
     def test_dist(self):
         with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
@@ -403,7 +401,7 @@ class MatchSpecTests(TestCase):
     def test_track_features_match(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
         a = MatchSpec(features='test')
-        assert text_type(a) == "*[features=test]"
+        assert str(a) == "*[features=test]"
         assert not a.match(DPkg(dst))
         assert not a.match(DPkg(dst, track_features=''))
 

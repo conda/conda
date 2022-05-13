@@ -34,8 +34,16 @@ def execute(args, parser):
         path=args.cwd,
         raise_on_error=False,
         capture_output=not args.no_capture_output,
-        live_stream=args.live_stream,
     )
+
+    # display stdout/stderr if it was captured
+    if not args.no_capture_output:
+        if response.stdout:
+            print(response.stdout, file=sys.stdout)
+        if response.stderr:
+            print(response.stderr, file=sys.stderr)
+
+    # log error
     if response.rc != 0:
         log = getLogger(__name__)
         log.error(f"`conda run {' '.join(args.executable_call)}` failed. (See above for error)")
@@ -46,11 +54,5 @@ def execute(args, parser):
     else:
         log = getLogger(__name__)
         log.warning(f"CONDA_TEST_SAVE_TEMPS :: retaining main_run script {script}")
-
-    if not args.live_stream:
-        if response.stdout:
-            print(response.stdout, file=sys.stdout)
-        if response.stderr:
-            print(response.stderr, file=sys.stderr)
 
     return response
