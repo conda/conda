@@ -22,7 +22,6 @@ pip
 pkginfo
 pycosat
 pycrypto
-pyfakefs
 pyflakes
 pytest
 pytest-cov

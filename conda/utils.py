@@ -7,6 +7,8 @@ import logging
 from os.path import dirname
 import re
 import sys
+from functools import wraps
+from pathlib import Path
 
 from .auxlib.decorators import memoize
 from .auxlib.compat import shlex_split_unicode, Utf8NamedTemporaryFile
@@ -486,3 +488,21 @@ def get_comspec():
 
     # fails with KeyError if still undefined
     return environ["COMSPEC"]
+
+
+def ensure_dir_exists(func):
+    """
+    Ensures that the directory exists for functions returning
+    a Path object containing a directory
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+
+        if isinstance(result, Path):
+            result.mkdir(parents=True, exist_ok=True)
+
+        return result
+
+    return wrapper

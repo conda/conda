@@ -159,6 +159,23 @@ UNKNOWN_CHANNEL = "<unknown>"
 REPODATA_FN = "repodata.json"
 NOTICES_FN = "notices.json"
 
+NOTICES_CACHE_SUBDIR = "notices"
+"""
+Determines the subdir for notices cache
+"""
+
+NOTICES_CACHE_DB = "notices.db"
+"""
+Name of the SQLite database we store in cache
+"""
+
+NOTICES_MESSAGE_LIMIT = 2
+"""
+Limit for how many channel notices to display while running commands like
+"install", "create", "update" or "search". This does not affect the "notices"
+command
+"""
+
 # TODO: Determine whether conda.base is the right place for this data; it
 # should be a constant, but another module may be more appropriate.
 #
@@ -292,6 +309,15 @@ class ExperimentalSolverChoice(Enum):
     CLASSIC = 'classic'
     LIBMAMBA = 'libmamba'
     LIBMAMBA_DRAFT = 'libmamba-draft'
+
+    def __str__(self):
+        return self.value
+
+
+class NoticeLevel(Enum):
+    CRITICAL = "critical"
+    WARNING = "warning"
+    INFO = "info"
 
     def __str__(self):
         return self.value

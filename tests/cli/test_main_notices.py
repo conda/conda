@@ -5,11 +5,13 @@ import json
 import os
 import datetime
 import uuid
+from pathlib import Path
 from unittest import mock
 from typing import TypedDict, Literal, Optional
 
 import pytest
 
+from conda.base.constants import NOTICES_CACHE_SUBDIR
 from conda.cli import main_notices as notices
 from conda.cli import conda_argparse
 
@@ -71,7 +73,7 @@ def args_n_parser():
 
 
 @pytest.mark.parametrize("status_code", (200, 404))
-def test_main_notices(status_code, fs, capsys, args_n_parser):
+def test_main_notices(status_code, tmpdir, capsys, args_n_parser):
     """
     Test the full working path through the code. We vary the test based on the status code
     we get back from the server.
@@ -87,12 +89,15 @@ def test_main_notices(status_code, fs, capsys, args_n_parser):
     notices_one = get_test_notices(mesg=mesg_one)
     notices_two = get_test_notices(mesg=mesg_two)
 
-    with mock.patch("conda.gateways.connection.session.CondaSession.get") as session_get:
-        session_get.side_effect = [
-            MockResponse(status_code, notices_one),  # /pkgs/main
-            MockResponse(status_code, notices_two),  # /pkgs/r
-        ]
-        notices.execute(args, parser)
+    with mock.patch("conda.notices.user_cache_dir") as user_cache_dir:
+        user_cache_dir.return_value = tmpdir
+
+        with mock.patch("conda.gateways.connection.session.CondaSession.get") as session_get:
+            session_get.side_effect = [
+                MockResponse(status_code, notices_one),  # /pkgs/main
+                MockResponse(status_code, notices_two),  # /pkgs/r
+            ]
+            notices.execute(args, parser)
 
     captured = capsys.readouterr()
 
@@ -107,7 +112,7 @@ def test_main_notices(status_code, fs, capsys, args_n_parser):
         assert mesg_two not in captured.out
 
 
-def test_main_notices_reads_from_cache(fs, capsys, args_n_parser):
+def test_main_notices_reads_from_cache(tmpdir, capsys, args_n_parser):
     """
     Test the full working path through the code when reading from cache instead of making
     an HTTP request.
@@ -116,13 +121,14 @@ def test_main_notices_reads_from_cache(fs, capsys, args_n_parser):
     from both of these channels.
     """
     args, parser = args_n_parser
+    cache_dir = Path(tmpdir).joinpath(NOTICES_CACHE_SUBDIR)
+    cache_dir.mkdir(parents=True, exist_ok=True)
 
-    cache_dir = "./cache/"
     cache_filename_one = "defaults-pkgs-r-notices.json"
-    cache_key_one = os.path.join(cache_dir, cache_filename_one)
+    cache_key_one = cache_dir.joinpath(cache_filename_one)
 
     cache_filename_two = "defaults-pkgs-main-notices.json"
-    cache_key_two = os.path.join(cache_dir, cache_filename_two)
+    cache_key_two = cache_dir.joinpath(cache_filename_two)
 
     mesg_one = "Test One"
     mesg_two = "Test Two"
@@ -130,11 +136,13 @@ def test_main_notices_reads_from_cache(fs, capsys, args_n_parser):
     notices_one = get_test_notices(mesg=mesg_one)
     notices_two = get_test_notices(mesg=mesg_two)
 
-    with mock.patch("conda.notices.user_cache_dir") as user_cache_dir:
-        user_cache_dir.return_value = cache_dir
-        fs.create_file(cache_key_one, contents=json.dumps(notices_one))
-        fs.create_file(cache_key_two, contents=json.dumps(notices_two))
+    with open(cache_key_one, "w") as fp:
+        json.dump(notices_one, fp)
+    with open(cache_key_two, "w") as fp:
+        json.dump(notices_two, fp)
 
+    with mock.patch("conda.notices.user_cache_dir") as user_cache_dir:
+        user_cache_dir.return_value = tmpdir
         notices.execute(args, parser)
 
     captured = capsys.readouterr()
@@ -145,7 +153,7 @@ def test_main_notices_reads_from_cache(fs, capsys, args_n_parser):
     assert mesg_two in captured.out
 
 
-def test_main_notices_reads_from_expired_cache(fs, capsys, args_n_parser):
+def test_main_notices_reads_from_expired_cache(tmpdir, capsys, args_n_parser):
     """
     Test the full working path through the code when reading from cache instead of making
     an HTTP request.
@@ -155,12 +163,11 @@ def test_main_notices_reads_from_expired_cache(fs, capsys, args_n_parser):
     """
     args, parser = args_n_parser
 
-    cache_dir = "./cache/"
     cache_filename_one = "defaults-pkgs-r-notices.json"
-    cache_key_one = os.path.join(cache_dir, cache_filename_one)
+    cache_key_one = os.path.join(tmpdir, cache_filename_one)
 
     cache_filename_two = "defaults-pkgs-main-notices.json"
-    cache_key_two = os.path.join(cache_dir, cache_filename_two)
+    cache_key_two = os.path.join(tmpdir, cache_filename_two)
 
     mesg_one = "Test One"
     mesg_two = "Test Two"
@@ -173,9 +180,11 @@ def test_main_notices_reads_from_expired_cache(fs, capsys, args_n_parser):
     mock_http_mesg = "Slightly different message, not from cache"
 
     with mock.patch("conda.notices.user_cache_dir") as user_cache_dir:
-        user_cache_dir.return_value = cache_dir
-        fs.create_file(cache_key_one, contents=json.dumps(notices_one))
-        fs.create_file(cache_key_two, contents=json.dumps(notices_two))
+        user_cache_dir.return_value = tmpdir
+        with open(cache_key_one, "w") as fp:
+            json.dump(notices_one, fp)
+        with open(cache_key_two, "w") as fp:
+            json.dump(notices_two, fp)
 
         with mock.patch("conda.gateways.connection.session.CondaSession.get") as session_get:
             notices_one["notices"][0]["message"] = mock_http_mesg

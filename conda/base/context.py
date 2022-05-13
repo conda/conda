@@ -314,6 +314,7 @@ class Context(Configuration):
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
     report_errors = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     shortcuts = ParameterLoader(PrimitiveParameter(True))
+    disable_channel_notices = ParameterLoader(PrimitiveParameter(False))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
 
@@ -780,6 +781,13 @@ class Context(Configuration):
         return tuple(IndexedSet(concatv(local_add, self._channels)))
 
     @property
+    def channel_objs(self):
+        """Return current channels as Channel objects"""
+        from ..models.channel import Channel
+
+        return tuple(Channel(chn) for chn in self.channels)
+
+    @property
     def config_files(self):
         return tuple(path for path in context.collect_all()
                      if path not in ('envvars', 'cmd_line'))
@@ -1005,6 +1013,7 @@ class Context(Configuration):
                 "verbosity",
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
+                "disable_channel_notices",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1561,6 +1570,12 @@ class Context(Configuration):
                 conda. A solver logic takes care of turning your requested packages into a
                 list of specs to add and/or remove from a given environment, based on their
                 dependencies and specified constraints.
+                """
+            ),
+            disable_channel_notices=dals(
+                """
+                Suppresses all channel notices except when calling the "notices" sub-command
+                directly.
                 """
             ),
         )
