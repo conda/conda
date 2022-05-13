@@ -90,7 +90,7 @@ We can now activate this environment, use
 
 .. code-block:: bash
 
-   conda activate numpy16
+   $ conda activate numpy16
 
 This puts the bin directory of the ``numpy16`` environment in the front of the
 ``PATH``, and sets it as the default environment for all subsequent conda commands.
