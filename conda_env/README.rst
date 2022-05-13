@@ -67,7 +67,7 @@ Then run this from the command line:
     [      COMPLETE      ] |#################################################| 100%
     #
     # To activate this environment, use:
-    # $ conda activate numpy
+    # $ conda activate stats
     #
     # To deactivate this environment, use:
     # $ conda deactivate
