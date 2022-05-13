@@ -692,7 +692,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         headers["If-Modified-Since"] = mod_stamp
 
     headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-    headers['Content-Type'] = 'application/json'
+    headers['Accept'] = 'application/json'
     filename = repodata_fn
 
     try:
