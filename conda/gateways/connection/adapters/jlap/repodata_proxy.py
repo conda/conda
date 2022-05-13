@@ -193,13 +193,12 @@ def static_file_headers(
     root: str,
     mimetype: str = "auto",
     download: bool = False,
-    charset: str = "UTF-8",
+    charset: str = "utf-8",
 ) -> FileResponse:
     """
     Returns a "FileResponse" response that is supposed to mimic an HTTP response
     This is why these responses have headers and status codes.
     """
-
     root = os.path.abspath(root) + os.path.sep
     filename = os.path.abspath(os.path.join(root, filename.strip("/\\")))
     headers = dict()
