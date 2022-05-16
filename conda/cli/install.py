@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from logging import getLogger
 import os
+from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 
 from . import common
@@ -11,6 +11,7 @@ from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME, DepsModifier, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
+from ..common.compat import encode_environment
 from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
@@ -23,10 +24,12 @@ from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSy
                           SpecsConfigurationConflictError)
 from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
+from ..gateways.subprocess import wrap_subprocess_call, subprocess_call
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..plan import revert_actions
 from ..resolve import ResolvePackageNotFound
+
 
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderr')
@@ -97,6 +100,36 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
         print(message)  # TODO: use logger
 
 
+def post_create_hook(args, prefix):
+    def get_hook_executables():
+        try:
+            paths = map(lambda entry: entry.path,
+                        os.scandir(join(context.root_prefix, 'etc', 'conda', 'create.d')))
+        except OSError:
+            return ()
+        return sorted(filter(lambda p: os.access(p, os.X_OK), paths))
+
+    for executable in get_hook_executables():
+        script_caller, command = wrap_subprocess_call(
+            context.root_prefix,
+            prefix,
+            dev_mode=False,
+            debug_wrapper_scripts=False,
+            arguments=[executable],
+        )
+        env = encode_environment(os.environ.copy())
+        env.update(context.conda_exe_vars_dict)
+        env['CONDA_ROOT'] = context.root_prefix
+        env['CONDA_PREFIX'] = prefix
+
+        response = subprocess_call(command, env=env, path=prefix,
+                                   raise_on_error=False, capture_output=True)
+        if response.rc != 0:
+            log.error(f"Subprocess for '{executable}' command failed.")
+
+    print_activate(args.name if args.name else prefix)
+
+
 def get_revision(arg, json=False):
     try:
         return int(arg)
@@ -114,7 +147,7 @@ def install(args, parser, command='install'):
     #    because it deduplicates records that exist as both formats.  Forcing this to
     #    repodata.json ensures that .tar.bz2 files are available
     if context.use_only_tar_bz2:
-        args.repodata_fns = ('repodata.json', )
+        args.repodata_fns = ('repodata.json',)
 
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
@@ -217,7 +250,7 @@ def install(args, parser, command='install'):
 
         clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
         touch_nonadmin(prefix)
-        print_activate(args.name or prefix)
+        post_create_hook(args, prefix)
         return
 
     repodata_fns = args.repodata_fns
@@ -365,7 +398,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if newenv:
         touch_nonadmin(prefix)
-        print_activate(args.name or prefix)
+        post_create_hook(args, prefix)
 
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
