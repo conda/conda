@@ -33,7 +33,7 @@ A record of prior signatories is kept in a [separate repo in conda's GitHub][cla
 
 ## Ways to contribute
 
-Below are all the ways you can get involved in with conda.
+Below are all the ways that you can get involved with conda.
 
 ### Bug reports and feature requests
 
