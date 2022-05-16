@@ -1305,7 +1305,7 @@ NOTICES_DESCRIPTION = dals(
     {NOTICES_HELP}
 
     Conda channel maintainers have the option of setting messages that
-    you users will see intermittently. Some of these notices are informational
+    users will see intermittently. Some of these notices are informational
     while others are messages concerning the stability of the channel.
 
     """
