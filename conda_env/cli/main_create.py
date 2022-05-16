@@ -15,7 +15,7 @@ from conda.cli.conda_argparse import add_parser_default_packages, add_parser_jso
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import SpecNotFound
 from conda.gateways.disk.delete import rm_rf
-from conda.notices import notifications
+from conda.notices import notices
 from conda.misc import touch_nonadmin
 from .common import get_prefix, print_result, get_filename
 from .. import specs
@@ -83,7 +83,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func='.main_create.execute')
 
 
-@notifications
+@notices
 def execute(args, parser):
     from conda.base.context import context
     name = args.remote_definition or args.name
