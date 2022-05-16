@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Allow extended user-agent collection to fail but log the exception
+* Allow extended user-agent collection to fail but log the exception (#11455)
 
 ### Deprecations
 

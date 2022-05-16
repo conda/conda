@@ -16,4 +16,4 @@
 
 ### Other
 
-* Removing vendored usage of urllib3 and instead implementing our own wrapper around std. lib urllib (#11334)
+* Removing vendored usage of urllib3 and instead implementing our own wrapper around std. lib urllib (#11373)

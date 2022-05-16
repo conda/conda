@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Fix typos throughout the codebase (#11448)
 
 ### Other
 
-* Replace auxlib's frozendict with vendored frozendict. (#11398)
+* <news item>

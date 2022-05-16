@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add the solver name and version to the user-agent.
+* Add the solver name and version to the user-agent. (#11415, #11455)
 
 ### Bug fixes
 
