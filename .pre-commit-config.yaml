@@ -46,7 +46,7 @@ repos:
     hooks:
       - id: flake8
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.13.8
+    rev: v2.14.0-b1
     hooks:
       - id: pylint
         args: [--exit-zero]
@@ -58,7 +58,7 @@ repos:
         # ignore all tests, not just tests data
         exclude: ^tests/
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.13
+    rev: v1.1.14
     hooks:
       - id: insert-license
         files: \.py$
