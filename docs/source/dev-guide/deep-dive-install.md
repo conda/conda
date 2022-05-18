@@ -265,7 +265,7 @@ case? It depends on the `context.channel_priority` setting: From the help messag
 > the configured priority of channels is used only to break ties.
 
 In practice, `channel_priority=strict` is often the recommended setting for most users. It's faster
-to solve and causes less problems down the line. Check more details
+to solve and causes fewer problems down the line. Check more details
 {ref}`here <concepts-performance-channel-priority>`.
 
 ## Solving the install request
