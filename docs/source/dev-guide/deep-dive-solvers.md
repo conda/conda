@@ -103,7 +103,7 @@ Local variables affect the solving process explicitly and implicitly. As seen in
     (target prefix)
 2.  Call the `solve_for_transaction()` method on the instance, which calls `solve_for_diff()`.
 3.  Call `solve_final_state()`, which takes some more arguments from the CLI.
-4.  Under some circumstances, we can return early (e.g. the packages are already installed)
+4.  Under some circumstances, we can return early (e.g. the packages are already installed).
 5.  If we didn't return early, we collect all the local variables into a list of `MatchSpec`
     objects.
 
