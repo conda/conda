@@ -11,7 +11,12 @@ from typing import Literal, TypedDict, Optional, Sequence
 import mock
 import pytest
 
+from conda.auxlib.ish import dals
 from conda.base.constants import NOTICES_CACHE_SUBDIR
+from conda.base.context import reset_context, context
+from conda.common.configuration import YamlRawParameter
+from conda.common.compat import odict
+from conda.common.serialize import yaml_round_trip_load
 from conda.cli import conda_argparse
 
 NoticeLevel = Literal["info", "warning", "critical"]
@@ -80,6 +85,30 @@ def create_notice_cache_files(
             json.dump(notice, fp)
 
 
+class DummyObject:
+    no_ansi_colors = True
+
+
+def notices_decorator_assert_message_in_stdout(
+    capsys, messages, dummy_mesg, dummy_func, not_in=False
+):
+    """
+    Tests a run of the notices decorator where we expect to see the messages
+    print to stdout.
+    """
+    dummy_func(DummyObject, None)
+    captured = capsys.readouterr()
+
+    assert captured.err == ""
+    assert dummy_mesg in captured.out
+
+    for mesg in messages:
+        if not_in:
+            assert mesg not in captured.out
+        else:
+            assert mesg in captured.out
+
+
 class MockResponse:
     def __init__(self, status_code, json_data):
         self.status_code = status_code
@@ -115,3 +144,27 @@ def conda_notices_args_n_parser():
     args = parser.parse_args(["notices"])
 
     return args, parser
+
+
+@pytest.fixture(scope="function")
+def disable_channel_notices():
+    """
+    Fixture that will set "context.disable_channel_notices" to True and then set
+    it back to its original value.
+
+    This is also a good example of how to override values in the context object.
+    """
+    yaml_str = dals(
+        """
+    disable_channel_notices: true
+    """
+    )
+    reset_context(())
+    rd = odict(
+        testdata=YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(yaml_str))
+    )
+    context._set_raw_data(rd)
+
+    yield
+
+    reset_context()
