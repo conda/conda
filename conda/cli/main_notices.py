@@ -4,7 +4,7 @@
 
 from argparse import Namespace, ArgumentParser
 
-from conda import notices
+from conda.apps.notices import api as notices
 
 
 def execute(args: Namespace, _: ArgumentParser):
