@@ -7,6 +7,7 @@ repository of settings. You normally import the singleton and access its (many) 
 
 ```python
 from conda.base.context import context
+
 context.quiet
 # False
 ```
