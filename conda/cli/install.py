@@ -119,8 +119,6 @@ def install(args, parser, command='install'):
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
     isremove = bool(command == 'remove')
-    if newenv:
-        common.ensure_name_or_prefix(args, command)
     prefix = context.target_prefix
     if newenv:
         check_prefix(prefix, json=context.json)

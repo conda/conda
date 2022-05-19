@@ -576,7 +576,9 @@ def configure_parser_create(sub_parsers):
         help='Path to (or name of) existing local environment.',
         metavar='ENV',
     )
-    solver_mode_options, package_install_options = add_parser_create_install_update(p)
+    solver_mode_options, package_install_options = add_parser_create_install_update(
+        p, prefix_required=True
+    )
     add_parser_default_packages(solver_mode_options)
     add_parser_experimental_solver(solver_mode_options)
     p.add_argument(
@@ -1303,8 +1305,8 @@ def configure_parser_update(sub_parsers, name='update'):
 #
 # #############################################################################################
 
-def add_parser_create_install_update(p):
-    add_parser_prefix(p)
+def add_parser_create_install_update(p, prefix_required=False):
+    add_parser_prefix(p, prefix_required)
     add_parser_channels(p)
     solver_mode_options = add_parser_solver_mode(p)
     package_install_options = add_parser_package_install_options(p)
@@ -1382,9 +1384,9 @@ def add_parser_help(p):
     )
 
 
-def add_parser_prefix(p):
+def add_parser_prefix(p, prefix_required=False):
     target_environment_group = p.add_argument_group("Target Environment Specification")
-    npgroup = target_environment_group.add_mutually_exclusive_group()
+    npgroup = target_environment_group.add_mutually_exclusive_group(required=prefix_required)
     npgroup.add_argument(
         '-n', "--name",
         action="store",

@@ -7,6 +7,7 @@ from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join
 import re
 import sys
+from warnings import warn
 
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
@@ -67,6 +68,10 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
 
 
 def ensure_name_or_prefix(args, command):
+    warn(
+        f"{__name__}.ensure_name_or_prefix is pending deprecation in 5.0.0.",
+        PendingDeprecationWarning,
+    )
     if not (args.name or args.prefix):
         from ..exceptions import CondaValueError
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
