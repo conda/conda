@@ -4,20 +4,20 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-from os.path import dirname
+from os.path import abspath, join, isfile, basename, dirname
+from os import environ
 import re
 import sys
+from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
 
+from . import CondaError
 from .auxlib.decorators import memoize
 from .auxlib.compat import shlex_split_unicode, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
-
 from .common.path import win_path_to_unix, which
 from .common.url import path_to_url
-from os.path import abspath, join, isfile, basename
-from os import environ
 
 log = logging.getLogger(__name__)
 
@@ -501,8 +501,36 @@ def ensure_dir_exists(func):
         result = func(*args, **kwargs)
 
         if isinstance(result, Path):
-            result.mkdir(parents=True, exist_ok=True)
+            try:
+                result.mkdir(parents=True, exist_ok=True)
+            except OSError as exc:
+                raise CondaError(
+                    "Error encountered while attempting to create cache directory."
+                    f"\n  Directory: {result}"
+                    f"\n  Exception: {exc}"
+                )
 
         return result
 
     return wrapper
+
+
+@contextmanager
+def safe_open(*args, **kwargs):
+    """
+    Allows us to open files while catching any exceptions
+    and raise them as CondaErrors instead.
+
+    We do this to provide a more informative/actionable error output.
+    """
+    try:
+        fp = open(*args, **kwargs)
+        yield fp
+    except OSError as exc:
+        raise CondaError(
+            "Error encountered while reading or writing from cache."
+            f"\n  File: {args[0]}"
+            f"\n  Exception: {exc}"
+        )
+
+    fp.close()

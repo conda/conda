@@ -5,8 +5,9 @@
 import datetime
 import uuid
 import json
+from itertools import chain
 from pathlib import Path
-from typing import Literal, TypedDict, Optional, Sequence
+from typing import Literal, TypedDict, Optional, Sequence, Callable
 
 import mock
 import pytest
@@ -35,9 +36,8 @@ DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to user
 
 
 def get_test_notices(
-    num_mesg: Optional[int] = 1,
+    messages: Sequence[str],
     level: Optional[NoticeLevel] = "info",
-    mesg: Optional[str] = DEFAULT_NOTICE_MESG,
     created_at: Optional[datetime.datetime] = None,
     expiry: Optional[int] = 604_800,
     interval: Optional[int] = 604_800,
@@ -54,21 +54,28 @@ def get_test_notices(
                 "expiry": expiry,
                 "interval": interval,
             }
-            for _ in range(num_mesg)
+            for mesg in messages
         )
     }
 
 
 def add_resp_to_mock(
-    mock_session: mock.MagicMock, status_code: int, messages: Sequence[str]
+    mock_session: mock.MagicMock,
+    status_code: int,
+    messages: Sequence[str],
+    raise_exc: bool = False,
 ) -> None:
     """Adds any number of MockResponse to MagicMock object as side_effects"""
-    side_effect = []
 
-    for mesg in messages:
-        side_effect.append(MockResponse(status_code, get_test_notices(mesg=mesg)))
+    def forever_404():
+        while True:
+            yield MockResponse(404, {})
 
-    mock_session.side_effect = side_effect
+    def one_200():
+        yield MockResponse(status_code, get_test_notices(messages), raise_exc=raise_exc)
+
+    chn = chain(one_200(), forever_404())
+    mock_session.side_effect = tuple(next(chn) for _ in range(100))
 
 
 def create_notice_cache_files(
@@ -80,25 +87,30 @@ def create_notice_cache_files(
     """Creates the cache files that we use in tests"""
     for mesg, file in zip(messages, cache_files):
         cache_key = cache_dir.joinpath(file)
-        notice = get_test_notices(mesg=mesg, created_at=created_at)
+        notice = get_test_notices((mesg,), created_at=created_at)
         with open(cache_key, "w") as fp:
             json.dump(notice, fp)
 
 
-class DummyObject:
-    no_ansi_colors = True
+class DummyArgs:
+    """
+    Dummy object that sets all kwargs as object properties
+    """
+
+    def __init__(self, **kwargs):
+        self.no_ansi_colors = True
+
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
 
 def notices_decorator_assert_message_in_stdout(
-    capsys, messages, dummy_mesg, dummy_func, not_in=False
+    captured, messages: Sequence[str], dummy_mesg: Optional[str] = None, not_in: bool = False
 ):
     """
-    Tests a run of the notices decorator where we expect to see the messages
+    Tests a run of notices decorator where we expect to see the messages
     print to stdout.
     """
-    dummy_func(DummyObject, None)
-    captured = capsys.readouterr()
-
     assert captured.err == ""
     assert dummy_mesg in captured.out
 
@@ -110,11 +122,14 @@ def notices_decorator_assert_message_in_stdout(
 
 
 class MockResponse:
-    def __init__(self, status_code, json_data):
+    def __init__(self, status_code, json_data, raise_exc=False):
         self.status_code = status_code
         self.json_data = json_data
+        self.raise_exc = raise_exc
 
     def json(self):
+        if self.raise_exc:
+            raise ValueError("Error")
         return self.json_data
 
 
@@ -124,7 +139,7 @@ def notices_cache_dir(tmpdir):
     Fixture that creates the notices cache dir while also mocking
     out a call to user_cache_dir.
     """
-    with mock.patch("conda.apps.notices.cache.user_cache_dir") as user_cache_dir:
+    with mock.patch("conda.notices.cache.user_cache_dir") as user_cache_dir:
         user_cache_dir.return_value = tmpdir
         cache_dir = Path(tmpdir).joinpath(NOTICES_CACHE_SUBDIR)
         cache_dir.mkdir(parents=True, exist_ok=True)

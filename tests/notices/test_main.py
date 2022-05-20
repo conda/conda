@@ -3,10 +3,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
 
-from conda.apps.notices import api
-from conda.apps.notices.constants import NOTICES_DECORATOR_CONFIG_ERROR
+from conda.notices import main as notices
 
-from .conftest import add_resp_to_mock, notices_decorator_assert_message_in_stdout
+from .conftest import add_resp_to_mock, notices_decorator_assert_message_in_stdout, DummyArgs
 
 
 @pytest.mark.parametrize("status_code", (200, 404, 500))
@@ -20,7 +19,7 @@ def test_display_notices_happy_path(
     messages = ("Test One", "Test Two")
     add_resp_to_mock(notices_mock_http_session_get, status_code, messages)
 
-    api.display_notices()
+    notices.display_notices()
     captured = capsys.readouterr()
 
     assert captured.err == ""
@@ -34,18 +33,26 @@ def test_display_notices_happy_path(
 
 def test_notices_decorator(capsys, notices_cache_dir, notices_mock_http_session_get):
     """
-    Create a dummy function to wrap with our notices decorator
+    Create a dummy function to wrap with our notices decorator and test it with
+    two test messages.
     """
     messages = ("Test One", "Test Two")
     add_resp_to_mock(notices_mock_http_session_get, 200, messages)
     dummy_mesg = "Dummy mesg"
 
-    @api.notices
+    @notices.notices
     def dummy(args, parser):
         print(dummy_mesg)
 
+    dummy_args = DummyArgs()
+    dummy(dummy_args, None)
+
+    captured = capsys.readouterr()
+
     notices_decorator_assert_message_in_stdout(
-        capsys=capsys, messages=messages, dummy_mesg=dummy_mesg, dummy_func=dummy
+        captured,
+        messages=messages,
+        dummy_mesg=dummy_mesg,
     )
 
 
@@ -56,20 +63,24 @@ def test__conda_user_story__only_see_once(
     As a conda user, I only want to see a channel notice once while running
     commands like, 'install', 'update', or 'create'.
     """
-    messages = ("Test One", "Test Two")
+    messages = ("Test One",)
     dummy_mesg = "Dummy Mesg"
     add_resp_to_mock(notices_mock_http_session_get, 200, messages)
 
-    @api.notices
+    @notices.notices
     def dummy(args, parser):
         print(dummy_mesg)
 
-    notices_decorator_assert_message_in_stdout(
-        capsys=capsys, messages=messages, dummy_mesg=dummy_mesg, dummy_func=dummy
-    )
+    dummy_args = DummyArgs()
+    dummy(dummy_args, None)
 
+    captured = capsys.readouterr()
+    notices_decorator_assert_message_in_stdout(captured, messages=messages, dummy_mesg=dummy_mesg)
+
+    dummy(dummy_args, None)
+    captured = capsys.readouterr()
     notices_decorator_assert_message_in_stdout(
-        capsys=capsys, messages=messages, dummy_mesg=dummy_mesg, dummy_func=dummy, not_in=True
+        captured, messages=messages, dummy_mesg=dummy_mesg, not_in=True
     )
 
 
@@ -85,31 +96,39 @@ def test__conda_user_story__disable_notices(
     dummy_mesg = "Dummy Mesg"
     add_resp_to_mock(notices_mock_http_session_get, 200, messages)
 
-    @api.notices
+    @notices.notices
     def dummy(args, parser):
         print(dummy_mesg)
 
+    dummy_args = DummyArgs()
+    dummy(dummy_args, None)
+    captured = capsys.readouterr()
+
     notices_decorator_assert_message_in_stdout(
-        capsys=capsys, messages=messages, dummy_mesg=dummy_mesg, dummy_func=dummy, not_in=True
+        captured, messages=messages, dummy_mesg=dummy_mesg, not_in=True
     )
 
 
-def test__conda_user_story__no_ansi_colors(
+def test__conda_user_story__more_notices_message(
     capsys, notices_cache_dir, notices_mock_http_session_get
 ):
     """
-    As a conda user, when I use the '--no-ansi-colors' flag, I do not want
-    to see colored output in my terminal.
+    As a conda user, I want to see a message telling me there are more notices
+    if there are more to display.
     """
+    messages = tuple(f"Test {idx}" for idx in range(1, 11, 1))
+    add_resp_to_mock(notices_mock_http_session_get, 200, messages)
 
+    @notices.notices
+    def dummy(args, parser):
+        pass
 
-def test__channel_owner_story__correct_message_order(
-    capsys, notices_cache_dir, notices_mock_http_session_get
-):
-    """
-    As a channel owner, I want to make sure my users see the most urgent
-    messages first.  (could be done by ordering in the notices.json).
-    """
+    dummy(None, None)
+
+    captured = capsys.readouterr()
+
+    assert captured.err == ""
+    assert "There are 7 more messages" in captured.out
 
 
 def test__developer_story__useful_error_message(
@@ -120,7 +139,7 @@ def test__developer_story__useful_error_message(
     to see a helpful error message.
     """
 
-    @api.notices
+    @notices.notices
     def dummy():
         print("Dummy Test")
 
@@ -128,4 +147,4 @@ def test__developer_story__useful_error_message(
 
     captured = capsys.readouterr()
 
-    assert NOTICES_DECORATOR_CONFIG_ERROR in captured.err
+    assert notices.NOTICES_DECORATOR_CONFIG_ERROR in captured.err

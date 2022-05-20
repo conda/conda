@@ -2,6 +2,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Sequence, Tuple, Optional
 
@@ -11,8 +12,9 @@ from conda.common.io import Spinner
 from conda.gateways.connection.session import CondaSession
 
 from .cache import cached_response
-from .logging import logger
 from .types import ChannelNoticeResponse
+
+logger = logging.getLogger(__name__)
 
 
 def get_notice_responses(
@@ -68,5 +70,5 @@ def get_channel_notice_response(url: str, name: str) -> Optional[ChannelNoticeRe
         else:
             logger.info(f"Received {resp.status_code} when trying to GET {url}")
     except ValueError:
-        logger.info(f"Unable able to parse JSON data for {url}")
+        logger.info(f"Unable to parse JSON data for {url}")
         return ChannelNoticeResponse(url, name, json_data=None)

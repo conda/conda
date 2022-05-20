@@ -9,23 +9,20 @@ Handles all caching logic including:
   - Determining whether not certain items have expired and need to be refreshed
 """
 import json
+import logging
 import os
-import sqlite3
-from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 from typing import Optional, Sequence, Set
 
-import requests
-
 from conda._vendor.appdirs import user_cache_dir
-from conda.base.constants import APP_NAME, NOTICES_CACHE_DB, NOTICES_CACHE_SUBDIR
-from conda.gateways.connection.session import CondaSession
-from conda.utils import ensure_dir_exists
+from conda.base.constants import APP_NAME, NOTICES_CACHE_SUBDIR, NOTICES_CACHE_FN
+from conda.utils import ensure_dir_exists, safe_open
 
 from .types import ChannelNoticeResponse, ChannelNotice
-from .logging import logger
+
+logger = logging.getLogger(__name__)
 
 
 def cached_response(func):
@@ -44,30 +41,6 @@ def cached_response(func):
         return return_value
 
     return wrapper
-
-
-@cached_response
-def get_channel_notice_response(url: str, name: str) -> Optional[ChannelNoticeResponse]:
-    """
-    Return a channel response object. We use this to wrap the response with
-    additional channel information to use. If the response was invalid we suppress/log
-    and error message.
-    """
-    session = CondaSession()
-    try:
-        resp = session.get(url, allow_redirects=False, timeout=5)  # timeout: connect, read
-    except requests.exceptions.Timeout:
-        logger.info(f"Request timed out for channel: {name} url: {url}")
-        return
-
-    try:
-        if resp.status_code < 300:
-            return ChannelNoticeResponse(url, name, json_data=resp.json())
-        else:
-            logger.info(f"Received {resp.status_code} when trying to GET {url}")
-    except ValueError:
-        logger.info(f"Unable able to parse JSON data for {url}")
-        return ChannelNoticeResponse(url, name, json_data=None)
 
 
 def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeResponse) -> bool:
@@ -95,8 +68,19 @@ def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeRespo
 
 @ensure_dir_exists
 def get_notices_cache_dir() -> Path:
-    """Returns the location of the notices cache as a Path object"""
+    """Returns the location of the notices cache directory as a Path object"""
     return Path(user_cache_dir(APP_NAME)).joinpath(NOTICES_CACHE_SUBDIR)
+
+
+def get_notices_cache_file() -> Path:
+    """Returns the location of the notices cache file as a Path object"""
+    cache_dir = get_notices_cache_dir()
+    cache_file = cache_dir.joinpath(NOTICES_CACHE_FN)
+
+    if not cache_file.is_file():
+        cache_file.write_text("")
+
+    return cache_file
 
 
 def get_notice_response_from_cache(
@@ -108,7 +92,7 @@ def get_notice_response_from_cache(
     cache_key = ChannelNoticeResponse.get_cache_key(url, name, cache_dir)
 
     if os.path.isfile(cache_key):
-        with open(cache_key, "r") as fp:
+        with safe_open(cache_key, "r") as fp:
             data = json.load(fp)
         chn_ntc_resp = ChannelNoticeResponse(url, name, data)
 
@@ -126,57 +110,40 @@ def write_notice_response_to_cache(
         channel_notice_response.url, channel_notice_response.name, cache_dir
     )
 
-    with open(cache_key, "w") as fp:
+    with safe_open(cache_key, "w") as fp:
         json.dump(channel_notice_response.json_data, fp)
 
 
-NOTICES_CACHE_TABLE_NAME = "notices"
-
-NOTICES_CACHE_TABLE_DDL = f"""
-CREATE TABLE IF NOT EXISTS {NOTICES_CACHE_TABLE_NAME} (
-  id text,
-  channel_name text,
-  viewed bool,
-  PRIMARY KEY (id)
-)"""
-
-
-@contextmanager
-def notices_cache_db(cache_dir: Path):
-    """Returns a sqlite connection to our cache database"""
-    cache_db_path = cache_dir.joinpath(NOTICES_CACHE_DB)
-    conn = sqlite3.connect(cache_db_path)
-    conn.execute(NOTICES_CACHE_TABLE_DDL)
-
-    yield conn
-
-    conn.commit()
-    conn.close()
-
-
 def mark_channel_notices_as_viewed(
-    conn: sqlite3.Connection, channel_notice: ChannelNotice
+    cache_file: Path, channel_notices: Sequence[ChannelNotice]
 ) -> None:
     """
     Insert channel notice into our database marking it as read.
     """
-    sql = f"INSERT INTO {NOTICES_CACHE_TABLE_NAME} (id, channel_name, viewed) VALUES (?, ?, ?)"
-    try:
-        conn.execute(sql, (channel_notice.id, channel_notice.channel_name, True))
-    except sqlite3.Error as exc:
-        logger.debug(exc)
-        logger.debug(channel_notice)
+    notice_ids = set(chn.id for chn in channel_notices)
+
+    with safe_open(cache_file, "r") as fp:
+        contents = fp.read()
+
+    contents_unique = set(filter(None, set(contents.split("\n"))))
+    contents_new = contents_unique.union(notice_ids)
+
+    # Save new version of cache file
+    with safe_open(cache_file, "w") as fp:
+        fp.write("\n".join(contents_new))
 
 
 def get_viewed_channel_notice_ids(
-    conn: sqlite3.Connection, channel_notices: Sequence[ChannelNotice]
+    cache_file: Path, channel_notices: Sequence[ChannelNotice]
 ) -> Set[str]:
     """
     Return the ids of the channel notices which have already been seen.
     """
-    chn_ntc_ids = tuple(chn.id for chn in channel_notices)
-    place_holders = ",".join("?" * len(chn_ntc_ids))
-    sql = f"SELECT id FROM notices WHERE viewed = true AND id in ({place_holders})"
-    result = conn.execute(sql, chn_ntc_ids)
+    notice_ids = set(chn.id for chn in channel_notices)
 
-    return {row[0] for row in result.fetchall()}
+    with safe_open(cache_file, "r") as fp:
+        contents = fp.read()
+
+    contents_unique = set(filter(None, set(contents.split("\n"))))
+
+    return notice_ids.intersection(contents_unique)

@@ -3,10 +3,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
 from urllib import parse
-from typing import NamedTuple, Optional, Sequence, Any
+from typing import NamedTuple, Optional, Sequence
 
 from conda.base.constants import NoticeLevel
 
@@ -79,34 +78,3 @@ class ChannelNoticeResponse(NamedTuple):
         cache_key = cache_dir.joinpath(cache_filename)
 
         return cache_key
-
-
-class TerminalStyle(Enum):
-    HEADER = "\033[95m"
-    OKBLUE = "\033[94m"
-    OKCYAN = "\033[96m"
-    OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
-    GRAY = "\033[90m"
-    FAIL = "\033[91m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-
-    def __str__(self):
-        return self.value
-
-    @classmethod
-    def get_color_from_level(cls, level: NoticeLevel) -> "TerminalStyle":
-        if level == NoticeLevel.CRITICAL:
-            return cls.FAIL
-        elif level == NoticeLevel.INFO:
-            return cls.OKGREEN
-        elif level == NoticeLevel.WARNING:
-            return cls.WARNING
-        else:
-            return cls.OKBLUE
-
-    @classmethod
-    def wrap_style(cls, text: Any, style: "TerminalStyle") -> str:
-        return f"{style}{text}{TerminalStyle.ENDC}"

@@ -1328,12 +1328,6 @@ def configure_parser_notices(sub_parsers, name="notices"):
         help=NOTICES_HELP,
         epilog=example,
     )
-    p.add_argument(
-        "--no-ansi-colors",
-        action="store_true",
-        default=False,
-        help="Do not display ANSI terminal colors.",
-    )
     add_parser_channels(p)
     p.set_defaults(func=".main_notices.execute")
 
@@ -1507,12 +1501,6 @@ def add_output_and_prompt_options(p):
         action="store_true",
         default=NULL,
         help="Do not ask for confirmation.",
-    )
-    output_and_prompt_options.add_argument(
-        "--no-ansi-colors",
-        action="store_true",
-        default=False,
-        help="Do not display ANSI terminal colors.",
     )
     return output_and_prompt_options
 

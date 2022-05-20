@@ -7,7 +7,7 @@ import sys
 
 from .install import install
 from ..base.context import context
-from ..apps.notices.api import notices
+from conda.notices import notices
 
 
 @notices

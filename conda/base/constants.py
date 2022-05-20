@@ -157,24 +157,21 @@ CONDA_LOGS_DIR = ".logs"
 
 UNKNOWN_CHANNEL = "<unknown>"
 REPODATA_FN = "repodata.json"
+
+#: Default name of the notices file on the server we look for
 NOTICES_FN = "notices.json"
 
+#: Name of cache file where read notice ids  are stored
+NOTICES_CACHE_FN = "notices.cache"
+
+#: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR = "notices"
-"""
-Determines the subdir for notices cache
-"""
 
-NOTICES_CACHE_DB = "notices.db"
-"""
-Name of the SQLite database we store in cache
-"""
+#: Limit for how many channel notices to display while running commands like
+#: "install", "create", "update" or "search". This does not affect the "notices"
+#: command
+NOTICES_MESSAGE_LIMIT = 3
 
-NOTICES_MESSAGE_LIMIT = 2
-"""
-Limit for how many channel notices to display while running commands like
-"install", "create", "update" or "search". This does not affect the "notices"
-command
-"""
 
 # TODO: Determine whether conda.base is the right place for this data; it
 # should be a constant, but another module may be more appropriate.

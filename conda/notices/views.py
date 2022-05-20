@@ -5,13 +5,13 @@
 """
 Handles all display/view logic
 """
+from datetime import datetime
 from typing import Sequence
 
-from .types import ChannelNotice, TerminalStyle
-from .utils import get_locale_timestamp
+from .types import ChannelNotice
 
 
-def print_notices(channel_notices: Sequence[ChannelNotice], ansi_colors: bool = True):
+def print_notices(channel_notices: Sequence[ChannelNotice]):
     """
     Accepts a list of channel notice responses and prints a display.
     """
@@ -20,34 +20,21 @@ def print_notices(channel_notices: Sequence[ChannelNotice], ansi_colors: bool = 
     for ntc in channel_notices:
         if cur_chn != ntc.channel_name:
             print()
-            if ansi_colors:
-                channel_header = TerminalStyle.wrap_style("Channel:", TerminalStyle.BOLD)
-            else:
-                channel_header = "Channel:"
+            channel_header = "Channel:"
             channel_header += f" {ntc.channel_name}"
             print(channel_header)
             cur_chn = ntc.channel_name
-        print_notice_message(ntc, ansi_colors=ansi_colors)
+        print_notice_message(ntc)
         print()
 
 
-def print_notice_message(
-    notice: ChannelNotice, indent: str = "  ", ansi_colors: bool = True
-) -> None:
+def print_notice_message(notice: ChannelNotice, indent: str = "  ") -> None:
     """
     Prints a single channel notice
     """
     timestamp = "" if not notice.created_at else get_locale_timestamp(notice.created_at)
 
-    if ansi_colors:
-        level_style = TerminalStyle.get_color_from_level(notice.level)
-        level_text = TerminalStyle.wrap_style(notice.level, level_style)
-        level = f"[{level_text}]"
-
-        if notice.created_at:
-            level += TerminalStyle.wrap_style(f" -- {timestamp}", TerminalStyle.GRAY)
-    else:
-        level = f"[{notice.level}] -- {timestamp}"
+    level = f"[{notice.level}] -- {timestamp}"
 
     print(f"{indent}{level}\n{indent}{notice.message}")
 
@@ -66,3 +53,10 @@ def print_more_notices_message(
         else:
             msg = f"There is {notices_not_shown} more message. " "To retrieve it run:\n\n"
         print(f"{msg}conda notices\n")
+
+
+def get_locale_timestamp(timestamp: datetime) -> str:
+    """
+    Returns best attempt at a locale aware timestamp.
+    """
+    return timestamp.strftime("%c")
