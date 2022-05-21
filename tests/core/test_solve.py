@@ -205,7 +205,10 @@ def test_cuda_fail_1(tmpdir):
   - feature:/{}::__cuda==8.0=0
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed version is: 8.0""".format(plat))
+Your installed versions are:
+
+  - __cuda[version='>=10.0|>=9.0'] : 8.0
+  - @/{}::__cuda==8.0=0 : 8.0""".format(plat, plat))
 
 
 def test_cuda_fail_2(tmpdir):
@@ -221,7 +224,9 @@ def test_cuda_fail_2(tmpdir):
 
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed version is: not available""")
+Your installed versions are:
+
+  - __cuda[version='>=10.0|>=9.0'] : not available""")
 
 
 def test_cuda_constrain_absent(tmpdir):

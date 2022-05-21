@@ -709,7 +709,7 @@ The following specifications were found to be incompatible with each other:
 
 The following specifications were found to be incompatible with your system:\n{specs}
 
-Your installed version is: {ref}
+Your installed versions are:\n{ref}
 ''')}
 
         msg = ""
@@ -741,15 +741,20 @@ conda config --set unsatisfiable_hints True
                                 msg += "\n".join([" -> ".join([str(i) for i in c]) for c in chain])
                                 self.unsatisfiable += [tuple(entries) for entries in chain]
                     else:
+                        versions = {}
                         for dep_chain, installed_blocker in dep_class:
                             # Remove any target values from the MatchSpecs, convert to strings
                             dep_chain = [str(MatchSpec(dep, target=None)) for dep in dep_chain]
                             _chains.append(dep_chain)
+                            versions[dep_chain[-1]] = installed_blocker
 
                         if _chains:
                             _chains = self._format_chain_str(_chains)
                         else:
                             _chains = [', '.join(c) for c in _chains]
+                        if class_name == "virtual_package":
+                            versions = ["%s : %s" % (kk, vv) for kk, vv in versions.items()]
+                            installed_blocker = dashlist(versions)
                         msg += messages[class_name].format(specs=dashlist(_chains),
                                                            ref=installed_blocker)
         if strict:
