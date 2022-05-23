@@ -753,7 +753,7 @@ conda config --set unsatisfiable_hints True
                         else:
                             _chains = [', '.join(c) for c in _chains]
                         if class_name == "virtual_package":
-                            versions = ["%s : %s" % (kk, vv) for kk, vv in versions.items()]
+                            versions = ["%s : %s" % (kk, vv) for kk, vv in sorted(versions.items())]
                             installed_blocker = dashlist(versions)
                         msg += messages[class_name].format(specs=dashlist(_chains),
                                                            ref=installed_blocker)
