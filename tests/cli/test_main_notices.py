@@ -8,7 +8,7 @@ import pytest
 from conda.cli import main_notices as notices
 from conda.cli import conda_argparse
 
-from tests.apps.notices.conftest import add_resp_to_mock, create_notice_cache_files
+from tests.notices.conftest import add_resp_to_mock, create_notice_cache_files
 
 
 @pytest.fixture(scope="function")

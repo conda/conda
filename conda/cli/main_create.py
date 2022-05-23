@@ -13,7 +13,7 @@ from ..common.path import paths_equal
 from ..exceptions import CondaValueError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import is_conda_environment
-from conda.notices import notices
+from conda.notices.main import notices
 
 log = getLogger(__name__)
 
