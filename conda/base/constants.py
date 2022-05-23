@@ -167,11 +167,6 @@ NOTICES_CACHE_FN = "notices.cache"
 #: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR = "notices"
 
-#: Limit for how many channel notices to display while running commands like
-#: "install", "create", "update" or "search". This does not affect the "notices"
-#: command
-NOTICES_MESSAGE_LIMIT = 3
-
 
 # TODO: Determine whether conda.base is the right place for this data; it
 # should be a constant, but another module may be more appropriate.

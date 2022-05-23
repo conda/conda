@@ -41,14 +41,14 @@ def clear_subdir_cache():
 @pytest.fixture(scope="function")
 def disable_channel_notices():
     """
-    Fixture that will set "context.disable_channel_notices" to True and then set
+    Fixture that will set "context.number_channel_notices" to 0 and then set
     it back to its original value.
 
     This is also a good example of how to override values in the context object.
     """
     yaml_str = dals(
         """
-        disable_channel_notices: true
+        number_channel_notices: 0
         """
     )
     reset_context(())
@@ -59,7 +59,7 @@ def disable_channel_notices():
 
     yield
 
-    reset_context()
+    reset_context(())
 
 
 @pytest.fixture(scope="function")

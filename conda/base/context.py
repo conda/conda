@@ -314,7 +314,7 @@ class Context(Configuration):
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
     report_errors = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     shortcuts = ParameterLoader(PrimitiveParameter(True))
-    disable_channel_notices = ParameterLoader(PrimitiveParameter(False))
+    number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
 
@@ -1013,7 +1013,7 @@ class Context(Configuration):
                 "verbosity",
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
-                "disable_channel_notices",
+                "number_channel_notices",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1572,10 +1572,11 @@ class Context(Configuration):
                 dependencies and specified constraints.
                 """
             ),
-            disable_channel_notices=dals(
+            number_channel_notices=dals(
                 """
-                Suppresses all channel notices except when calling the "notices" sub-command
-                directly.
+                Sets the number of channel notices to be displayed when running commands
+                the "install", "create", "update", "env create", and "env update" . Defaults
+                to 5. In order to completely suppress channel notices, set this to 0.
                 """
             ),
         )

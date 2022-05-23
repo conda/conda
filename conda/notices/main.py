@@ -13,8 +13,8 @@ from functools import wraps
 from typing import Sequence, Tuple, Optional, Set
 from urllib import parse
 
-from conda.base.context import context
-from conda.base.constants import NOTICES_MESSAGE_LIMIT, NOTICES_FN
+from conda.base.context import context, Context
+from conda.base.constants import NOTICES_FN
 from conda.models.channel import Channel
 
 from . import cache
@@ -71,11 +71,8 @@ def notices(func):
         - args
         - parser
 
-    If it's not configured correctly, we do our best to provide a friendly
+    If this decorator is not configured correctly, we do our best to provide a friendly
     error message.
-
-    This decorator will only display notices when context.disable_channel_notices and
-    context.offline are both False.
     """
 
     @wraps(func)
@@ -88,9 +85,9 @@ def notices(func):
 
         return_value = func(*args, **kwargs)
 
-        if not context.disable_channel_notices and not context.offline:
+        if is_channel_notices_enabled(context):
             display_notices(
-                limit=NOTICES_MESSAGE_LIMIT,
+                limit=context.number_channel_notices,
                 always_show_viewed=False,
                 silent=True,
             )
@@ -143,3 +140,13 @@ def filter_notices(
         channel_notices = channel_notices[:limit]
 
     return channel_notices
+
+
+def is_channel_notices_enabled(cont: Context) -> bool:
+    """
+    Determines whether channel notices should be displayed for `notices` decorator.
+
+    This only happens when offline is False and number_channel_notices is greater
+    than 0.
+    """
+    return cont.number_channel_notices > 0 and not cont.offline

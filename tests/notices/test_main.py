@@ -132,7 +132,7 @@ def test__conda_user_story__more_notices_message(
     captured = capsys.readouterr()
 
     assert captured.err == ""
-    assert "There are 7 more messages" in captured.out
+    assert "There are 5 more messages" in captured.out
 
 
 def test__developer_story__useful_error_message(
