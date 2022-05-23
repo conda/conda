@@ -7,26 +7,15 @@ import uuid
 import json
 from itertools import chain
 from pathlib import Path
-from typing import Literal, TypedDict, Optional, Sequence, Callable
+from typing import TypedDict, Optional, Sequence
 
 import mock
-import pytest
-
-from conda.auxlib.ish import dals
-from conda.base.constants import NOTICES_CACHE_SUBDIR
-from conda.base.context import reset_context, context
-from conda.common.configuration import YamlRawParameter
-from conda.common.compat import odict
-from conda.common.serialize import yaml_round_trip_load
-from conda.cli import conda_argparse
-
-NoticeLevel = Literal["info", "warning", "critical"]
 
 
 class Notice(TypedDict):
     id: str
     message: str
-    level: NoticeLevel
+    level: str
     created_at: datetime.datetime
     expiry: int
     interval: int
@@ -37,7 +26,7 @@ DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to user
 
 def get_test_notices(
     messages: Sequence[str],
-    level: Optional[NoticeLevel] = "info",
+    level: Optional[str] = "info",
     created_at: Optional[datetime.datetime] = None,
     expiry: Optional[int] = 604_800,
     interval: Optional[int] = 604_800,
@@ -131,55 +120,3 @@ class MockResponse:
         if self.raise_exc:
             raise ValueError("Error")
         return self.json_data
-
-
-@pytest.fixture(scope="function")
-def notices_cache_dir(tmpdir):
-    """
-    Fixture that creates the notices cache dir while also mocking
-    out a call to user_cache_dir.
-    """
-    with mock.patch("conda.notices.cache.user_cache_dir") as user_cache_dir:
-        user_cache_dir.return_value = tmpdir
-        cache_dir = Path(tmpdir).joinpath(NOTICES_CACHE_SUBDIR)
-        cache_dir.mkdir(parents=True, exist_ok=True)
-
-        yield cache_dir
-
-
-@pytest.fixture(scope="function")
-def notices_mock_http_session_get():
-    with mock.patch("conda.gateways.connection.session.CondaSession.get") as session_get:
-        yield session_get
-
-
-@pytest.fixture(scope="function")
-def conda_notices_args_n_parser():
-    parser = conda_argparse.generate_parser()
-    args = parser.parse_args(["notices"])
-
-    return args, parser
-
-
-@pytest.fixture(scope="function")
-def disable_channel_notices():
-    """
-    Fixture that will set "context.disable_channel_notices" to True and then set
-    it back to its original value.
-
-    This is also a good example of how to override values in the context object.
-    """
-    yaml_str = dals(
-        """
-    disable_channel_notices: true
-    """
-    )
-    reset_context(())
-    rd = odict(
-        testdata=YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(yaml_str))
-    )
-    context._set_raw_data(rd)
-
-    yield
-
-    reset_context()

@@ -73,6 +73,9 @@ def notices(func):
 
     If it's not configured correctly, we do our best to provide a friendly
     error message.
+
+    This decorator will only display notices when context.disable_channel_notices and
+    context.offline are both False.
     """
 
     @wraps(func)
@@ -83,16 +86,14 @@ def notices(func):
             print(NOTICES_DECORATOR_CONFIG_ERROR, file=sys.stderr)
             return
 
-        if context.disable_channel_notices:
-            return func(*args, **kwargs)
-
         return_value = func(*args, **kwargs)
 
-        display_notices(
-            limit=NOTICES_MESSAGE_LIMIT,
-            always_show_viewed=False,
-            silent=True,
-        )
+        if not context.disable_channel_notices and not context.offline:
+            display_notices(
+                limit=NOTICES_MESSAGE_LIMIT,
+                always_show_viewed=False,
+                silent=True,
+            )
 
         return return_value
 

@@ -5,7 +5,11 @@ import pytest
 
 from conda.notices import main as notices
 
-from .conftest import add_resp_to_mock, notices_decorator_assert_message_in_stdout, DummyArgs
+from conda.testing.notices.helpers import (
+    add_resp_to_mock,
+    notices_decorator_assert_message_in_stdout,
+    DummyArgs,
+)
 
 
 @pytest.mark.parametrize("status_code", (200, 404, 500))

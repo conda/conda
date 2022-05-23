@@ -5,7 +5,6 @@
 """
 Handles all display/view logic
 """
-from datetime import datetime
 from typing import Sequence
 
 from .types import ChannelNotice
@@ -20,8 +19,8 @@ def print_notices(channel_notices: Sequence[ChannelNotice]):
     for ntc in channel_notices:
         if cur_chn != ntc.channel_name:
             print()
-            channel_header = "Channel:"
-            channel_header += f" {ntc.channel_name}"
+            channel_header = "Channel"
+            channel_header += f' "{ntc.channel_name}" has the following notices:'
             print(channel_header)
             cur_chn = ntc.channel_name
         print_notice_message(ntc)
@@ -32,7 +31,7 @@ def print_notice_message(notice: ChannelNotice, indent: str = "  ") -> None:
     """
     Prints a single channel notice
     """
-    timestamp = "" if not notice.created_at else get_locale_timestamp(notice.created_at)
+    timestamp = f"{notice.created_at:%c}" if notice.created_at else ""
 
     level = f"[{notice.level}] -- {timestamp}"
 
@@ -53,10 +52,3 @@ def print_more_notices_message(
         else:
             msg = f"There is {notices_not_shown} more message. " "To retrieve it run:\n\n"
         print(f"{msg}conda notices\n")
-
-
-def get_locale_timestamp(timestamp: datetime) -> str:
-    """
-    Returns best attempt at a locale aware timestamp.
-    """
-    return timestamp.strftime("%c")

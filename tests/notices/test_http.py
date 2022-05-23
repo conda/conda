@@ -8,7 +8,7 @@ import requests
 
 from conda.notices.main import display_notices
 
-from .conftest import add_resp_to_mock
+from conda.testing.notices.helpers import add_resp_to_mock
 
 
 def test_get_channel_notice_response_timeout_error(

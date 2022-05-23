@@ -2,11 +2,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-import pytest
-
 from conda.notices.types import ChannelNoticeResponse
 
-from .conftest import get_test_notices
+from conda.testing.notices.helpers import get_test_notices
 
 
 def test_channel_notice_response():
