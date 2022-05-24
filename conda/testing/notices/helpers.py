@@ -18,7 +18,6 @@ class Notice(TypedDict):
     level: str
     created_at: datetime.datetime
     expiry: int
-    interval: int
 
 
 DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to users"
@@ -29,7 +28,6 @@ def get_test_notices(
     level: Optional[str] = "info",
     created_at: Optional[datetime.datetime] = None,
     expiry: Optional[int] = 604_800,
-    interval: Optional[int] = 604_800,
 ) -> dict:
     created_at = created_at or datetime.datetime.now(datetime.timezone.utc)
 
@@ -41,7 +39,6 @@ def get_test_notices(
                 "level": level,
                 "created_at": created_at.isoformat(),
                 "expiry": expiry,
-                "interval": interval,
             }
             for mesg in messages
         )
