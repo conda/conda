@@ -23,7 +23,6 @@ class Commands:
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
-    HELP = "help"
     LIST = "list"
     REMOVE = "remove"
     SEARCH = "search"
@@ -43,8 +42,8 @@ def run_command(command, *arguments, **kwargs):
 
     Args:
         command: one of the Commands.
-        *arguments: instructions you would normally pass to the conda comamnd on the command line
-                    see below for examples. Be very careful to delimit arguements exactly as you
+        *arguments: instructions you would normally pass to the conda command on the command line
+                    see below for examples. Be very careful to delimit arguments exactly as you
                     want them to be delivered. No 'combine then split at spaces' or other
                     information destroying processing gets performed on the arguments.
         **kwargs: special instructions for programmatic overrides
@@ -52,7 +51,7 @@ def run_command(command, *arguments, **kwargs):
     Keyword Args:
         use_exception_handler: defaults to False. False will let the code calling
           `run_command` handle all exceptions.  True won't raise when an exception
-          has occured, and instead give a non-zero return code
+          has occurred, and instead give a non-zero return code
         search_path: an optional non-standard search path for configuration information
           that overrides the default SEARCH_PATH
         stdout: Define capture behavior for stream sys.stdout. Defaults to STRING.
@@ -63,16 +62,15 @@ def run_command(command, *arguments, **kwargs):
           STDOUT redirects to stdout target and returns None as stderr value.
           Otherwise redirect to file-like object stderr.
 
-    Returns: a tuple of stdout, stderr, and return_code.
+    Returns:
+        a tuple of stdout, stderr, and return_code.
         stdout, stderr are either strings, None or the corresponding file-like function argument.
 
     Examples:
-        >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask",
-        use_exception_handler=True)
-        >>  run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")
-        >>  run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
-
-
+        >>> run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask", \
+                        use_exception_handler=True)
+        >>> run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")
+        >>> run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
     """
     initialize_std_loggers()
     use_exception_handler = kwargs.pop('use_exception_handler', False)

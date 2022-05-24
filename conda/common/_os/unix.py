@@ -18,4 +18,4 @@ def get_free_space_on_unix(dir_name):
 
 def is_admin_on_unix():
     # http://stackoverflow.com/a/1026626/2127762
-    return os.geteuid() == 0 or os.getegid() == 0
+    return os.geteuid() == 0

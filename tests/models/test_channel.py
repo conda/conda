@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
@@ -7,13 +10,13 @@ from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
 
-from conda._vendor.auxlib.ish import dals
+from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import Context, conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.compat import odict, text_type
+from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
 from conda.common.io import env_unmodified, env_var, env_vars
-from conda.common.serialize import yaml_load
+from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -69,6 +72,19 @@ class DefaultConfigChannelTests(TestCase):
         ]
 
 
+    def test_channel_host_port(self):
+        channel = Channel('https://192.168.0.0:8000')
+        assert channel.channel_name == ""
+        assert channel.channel_location == "192.168.0.0:8000"
+        assert channel.platform is None
+        assert channel.package_filename is None
+        assert channel.canonical_name == "https://192.168.0.0:8000"
+        assert channel.urls() == [
+            'https://192.168.0.0:8000/%s' % context.subdir,
+            'https://192.168.0.0:8000/noarch',
+        ]
+
+
     def test_channel_cache(self):
         Channel._reset_state()
         assert len(Channel._cache_) == 0
@@ -99,7 +115,7 @@ class DefaultConfigChannelTests(TestCase):
             assert dc.canonical_name == 'defaults'
             assert dc.urls() == self.DEFAULT_URLS
             assert dc.subdir is None
-            assert text_type(dc) == 'defaults'
+            assert str(dc) == 'defaults'
 
             dc = Channel('defaults/win-32')
             assert dc.canonical_name == 'defaults'
@@ -132,7 +148,7 @@ class DefaultConfigChannelTests(TestCase):
         assert channel.location == "conda-01"
         assert channel.platform is None
         assert channel.canonical_name == url
-        assert channel.name is None
+        assert channel.name is ''
 
         assert channel.base_url == url
         assert channel.url() == join_url(url, context.subdir)
@@ -185,7 +201,7 @@ class AnacondaServerChannelTests(TestCase):
           - http://10.2.3.4:7070/conda
         """)
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -209,8 +225,8 @@ class AnacondaServerChannelTests(TestCase):
             "https://10.2.3.4:8080/conda/bioconda/noarch",
         ]
         assert channel.token == "tk-123-45"
-        assert text_type(channel) == "https://10.2.3.4:8080/conda/bioconda"
-        assert text_type(Channel('bioconda/linux-32')) == "https://10.2.3.4:8080/conda/bioconda/linux-32"
+        assert str(channel) == "https://10.2.3.4:8080/conda/bioconda"
+        assert str(Channel('bioconda/linux-32')) == "https://10.2.3.4:8080/conda/bioconda/linux-32"
 
     def test_channel_alias_w_subhcnnale(self):
         channel = Channel('bioconda/label/dev')
@@ -337,7 +353,7 @@ class CustomConfigChannelTests(TestCase):
           - http://192.168.0.15:8080/pkgs/msys2
         """)
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -636,16 +652,16 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
         channels_config = dals("""
         channels:
           - http://user22:$EXPANDED_PWD@some.url:8080
-          
+
         whitelist_channels:
           - http://user22:$EXPANDED_PWD@some.url:8080
-        
+
         custom_channels:
           unexpanded: http://user1:$UNEXPANDED_PWD@another.url:8080/with/path/t/tk-1234
           expanded: http://user33:$EXPANDED_PWD@another.url:8080/with/path/t/tk-1234
         """)
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(channels_config)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(channels_config)))
         context._set_raw_data(rd)
 
     @classmethod
@@ -684,7 +700,7 @@ class ChannelAuthTokenPriorityTests(TestCase):
           - http://us:pw@192.168.0.15:8080/t/tkn-123/pkgs/r
         """)
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -1026,7 +1042,7 @@ class OtherChannelParsingTests(TestCase):
            - http://test/conda/anaconda-cluster
         """)
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -1105,4 +1121,3 @@ def test_ppc64le_vs_ppc64():
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
     assert ppc64_channel.subdir == "linux-ppc64"
     assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
-

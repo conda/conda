@@ -7,8 +7,11 @@ from logging import getLogger
 from os.path import realpath
 import re
 import struct
+import subprocess
+import sys
 
 from ..base.constants import PREFIX_PLACEHOLDER
+from ..base.context import context
 from ..common.compat import on_win
 from ..exceptions import CondaIOError, BinaryPrefixReplacementError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
@@ -37,7 +40,8 @@ class _PaddingError(Exception):
     pass
 
 
-def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text):
+def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text,
+                  subdir=context.subdir):
     if on_win and mode == FileMode.text:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
@@ -64,7 +68,11 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
 
         return data
 
-    update_file_in_place_as_binary(realpath(path), _update_prefix)
+    updated = update_file_in_place_as_binary(realpath(path), _update_prefix)
+
+    if updated and mode == FileMode.binary and subdir == "osx-arm64" and sys.platform == "darwin":
+        # Apple arm64 needs signed executables
+        subprocess.run(['/usr/bin/codesign', '-s', '-', '-f', realpath(path)], capture_output=True)
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
@@ -127,8 +135,8 @@ def binary_replace(data, a, b):
             raise RuntimeError('match key not found')
         b = b_encoded[encoding]
 
-        occurances = match.group().count(a)
-        padding = (len(a) - len(b)) * occurances
+        occurrences = match.group().count(a)
+        padding = (len(a) - len(b)) * occurrences
         if padding < 0:
             raise _PaddingError
         return match.group().replace(a, b) + b'\0' * padding

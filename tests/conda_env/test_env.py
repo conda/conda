@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from collections import OrderedDict
 import os
 from os.path import join
@@ -7,11 +11,11 @@ from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
-from conda.exceptions import CondaHTTPError
+from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
 from conda.models.match_spec import MatchSpec
 from conda.common.io import env_vars
-from conda.common.serialize import yaml_load
-from conda.install import on_win
+from conda.common.serialize import yaml_round_trip_load
+from conda.common.compat import on_win
 
 from . import support_file
 from .utils import make_temp_envs_dir, Commands, run_command
@@ -36,7 +40,6 @@ except ImportError:
 import pytest
 
 from conda_env import env
-from conda_env import exceptions
 
 
 class FakeStream(object):
@@ -77,6 +80,15 @@ class from_file_TestCase(unittest.TestCase):
         assert 'pip' in e.dependencies
         assert 'foo' in e.dependencies['pip']
         assert 'baz' in e.dependencies['pip']
+
+    @pytest.mark.timeout(20)
+    def test_add_pip(self):
+        e = env.from_file(support_file('add-pip.yml'))
+        expected = OrderedDict([
+            ('conda', ['pip', 'car']),
+            ('pip', ['foo', 'baz'])
+        ])
+        self.assertEqual(e.dependencies, expected)
 
     @pytest.mark.integration
     def test_http(self):
@@ -195,7 +207,7 @@ class EnvironmentTestCase(unittest.TestCase):
             'dependencies': ['nodejs']
         }
 
-        actual = yaml_load(StringIO(e.to_yaml()))
+        actual = yaml_round_trip_load(StringIO(e.to_yaml()))
         self.assertEqual(expected, actual)
 
     def test_to_yaml_returns_proper_yaml(self):
@@ -237,7 +249,7 @@ class EnvironmentTestCase(unittest.TestCase):
             '  - nodejs',
             '',
         ])
-        self.assertEqual(expected, s.output)
+        assert expected == s.output
 
     def test_can_add_dependencies_to_environment(self):
         e = get_simple_environment()
@@ -253,7 +265,7 @@ class EnvironmentTestCase(unittest.TestCase):
             '  - bar',
             ''
         ])
-        self.assertEqual(expected, s.output)
+        assert expected == s.output
 
     def test_dependencies_update_after_adding(self):
         e = get_simple_environment()
@@ -317,11 +329,11 @@ class load_from_directory_trailing_slash_TestCase(DirectoryTestCase):
 
 class load_from_directory_TestCase(unittest.TestCase):
     def test_raises_when_unable_to_find(self):
-        with self.assertRaises(exceptions.EnvironmentFileNotFound):
+        with self.assertRaises(EnvironmentFileNotFound):
             env.load_from_directory('/path/to/unknown/env-spec')
 
     def test_raised_exception_has_environment_yml_as_file(self):
-        with self.assertRaises(exceptions.EnvironmentFileNotFound) as e:
+        with self.assertRaises(EnvironmentFileNotFound) as e:
             env.load_from_directory('/path/to/unknown/env-spec')
         self.assertEqual(e.exception.filename, 'environment.yml')
 
@@ -402,7 +414,7 @@ class SaveExistingEnvTestCase(unittest.TestCase):
                 # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
                 run_command(Commands.EXPORT, env_name, out_file)
                 with open(out_file) as f:
-                    d = yaml_load(f)
+                    d = yaml_round_trip_load(f)
                 assert {'pip': ['argh==0.26.2']} in d['dependencies']
 
 

@@ -35,6 +35,8 @@ System requirements
 
 * Windows, macOS, or Linux.
 
+* For Windows: Windows 8.1 or newer for Python 3.9, or Windows Vista or newer for Python 3.8.
+
 
 .. note::
    You do not need administrative or root permissions to

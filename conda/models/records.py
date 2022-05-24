@@ -17,19 +17,28 @@ from os.path import basename, join
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
+from .enums import MetadataSignatureStatus
 from .match_spec import MatchSpec
-from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, IntegerField, ListField, NumberField,
-                                     StringField)
+from ..auxlib.entity import (
+    BooleanField,
+    ComposableField,
+    DictSafeMixin,
+    Entity,
+    EnumField,
+    IntegerField,
+    ListField,
+    NumberField,
+    StringField,
+)
 from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
-from ..common.compat import isiterable, itervalues, string_types, text_type
+from ..common.compat import isiterable
 from ..exceptions import PathNotFoundError
 
 
 class LinkTypeField(EnumField):
     def box(self, instance, instance_type, val):
-        if isinstance(val, string_types):
+        if isinstance(val, str):
             val = val.replace('-', '').replace('_', '').lower()
             if val == 'hard':
                 val = LinkType.hardlink
@@ -95,10 +104,10 @@ EMPTY_LINK = Link(source='')
 class _FeaturesField(ListField):
 
     def __init__(self, **kwargs):
-        super(_FeaturesField, self).__init__(string_types, **kwargs)
+        super(_FeaturesField, self).__init__(str, **kwargs)
 
     def box(self, instance, instance_type, val):
-        if isinstance(val, string_types):
+        if isinstance(val, str):
             val = val.replace(' ', ',').split(',')
         val = tuple(f for f in (ff.strip() for ff in val) if f)
         return super(_FeaturesField, self).box(instance, instance_type, val)
@@ -117,10 +126,10 @@ class ChannelField(ComposableField):
 
     def dump(self, instance, instance_type, val):
         if val:
-            return text_type(val)
+            return str(val)
         else:
             val = instance.channel  # call __get__
-            return text_type(val)
+            return str(val)
 
     def __get__(self, instance, instance_type):
         try:
@@ -219,7 +228,7 @@ class PathDataV1(PathData):
     # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
-    inode_paths = ListField(string_types, required=False, nullable=True)
+    inode_paths = ListField(str, required=False, nullable=True)
 
     sha256_in_prefix = StringField(required=False, nullable=True)
 
@@ -249,6 +258,8 @@ class PackageRecord(DictSafeMixin, Entity):
     legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+
+    metadata_signature_status = EnumField(MetadataSignatureStatus, required=False)
 
     @property
     def schannel(self):
@@ -302,8 +313,8 @@ class PackageRecord(DictSafeMixin, Entity):
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
 
-    depends = ListField(string_types, default=())
-    constrains = ListField(string_types, default=())
+    depends = ListField(str, default=())
+    constrains = ListField(str, default=())
 
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
@@ -330,7 +341,7 @@ class PackageRecord(DictSafeMixin, Entity):
         for spec in (self.constrains or ()):
             ms = MatchSpec(spec)
             result[ms.name] = MatchSpec(ms, optional=(ms.name not in result))
-        return tuple(itervalues(result))
+        return tuple(result.values())
 
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
     # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)
@@ -431,7 +442,7 @@ class PrefixRecord(PackageRecord):
     package_tarball_full_path = StringField(required=False)
     extracted_package_dir = StringField(required=False)
 
-    files = ListField(string_types, default=(), required=False)
+    files = ListField(str, default=(), required=False)
     paths_data = ComposableField(PathsData, required=False, nullable=True, default_in_dump=False)
     link = ComposableField(Link, required=False)
     # app = ComposableField(App, required=False)

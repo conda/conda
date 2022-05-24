@@ -9,20 +9,14 @@ import os
 from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
+from urllib.parse import urlsplit
 
-from .compat import on_win, string_types
+from .compat import on_win
 from .. import CondaError
-from .._vendor.auxlib.decorators import memoize
-from .._vendor.toolz import accumulate, concat, take
+from ..auxlib.decorators import memoize
+from .._vendor.toolz import accumulate, concat
 from distutils.spawn import find_executable
 
-try:
-    # Python 3
-    from urllib.parse import unquote, urlsplit
-except ImportError:  # pragma: no cover
-    # Python 2
-    from urllib import unquote  # NOQA
-    from urlparse import urlsplit  # NOQA
 
 log = getLogger(__name__)
 
@@ -44,8 +38,6 @@ def is_path(value):
 
 
 def expand(path):
-    # if on_win and PY2:
-    #     path = ensure_fs_path_encoding(path)
     return abspath(expanduser(expandvars(path)))
 
 
@@ -178,6 +170,8 @@ def get_python_site_packages_short_path(python_version):
         return 'lib/python%s/site-packages' % py_ver
 
 
+_VERSION_REGEX = re.compile(r"[0-9]+\.[0-9]+")
+
 def get_major_minor_version(string, with_dot=True):
     # returns None if not found, otherwise two digits as a string
     # should work for
@@ -186,11 +180,32 @@ def get_major_minor_version(string, with_dot=True):
     #   - bin/python2.7
     #   - lib/python34/site-packages/
     # the last two are dangers because windows doesn't have version information there
-    assert isinstance(string, string_types)
-    digits = tuple(take(2, (c for c in string if c.isdigit())))
-    if len(digits) == 2:
-        return '.'.join(digits) if with_dot else ''.join(digits)
-    return None
+    assert isinstance(string, str)
+    if string.startswith("lib/python"):
+        pythonstr = string.split("/")[1]
+        start = len("python")
+        if len(pythonstr) < start + 2:
+            return None
+        maj_min = pythonstr[start], pythonstr[start+1:]
+    elif string.startswith("bin/python"):
+        pythonstr = string.split("/")[1]
+        start = len("python")
+        if len(pythonstr) < start + 3:
+            return None
+        assert pythonstr[start+1] == "."
+        maj_min = pythonstr[start], pythonstr[start+2:]
+    else:
+        match = _VERSION_REGEX.match(string)
+        if match:
+            version = match.group(0).split(".")
+            maj_min = version[0], version[1]
+        else:
+            digits = "".join([c for c in string if c.isdigit()])
+            if len(digits) < 2:
+                return None
+            maj_min = digits[0], digits[1:]
+
+    return ".".join(maj_min) if with_dot else "".join(maj_min)
 
 
 def get_bin_directory_short_path():
@@ -303,7 +318,7 @@ def win_path_to_unix(path, root_prefix=""):
         def _translation(found_path):  # NOQA
             found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
             return root_prefix + "/" + found
-        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[/\\\\]+)*[^:*?"<>|;/\\\\]+?(?![a-zA-Z]:))'  # noqa
         path = re.sub(path_re, _translation, path).replace(";/", ":/")
     return path
 

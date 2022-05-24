@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import importlib.util
 from logging import getLogger
+import os
 from os.path import basename, dirname, isdir, isfile, join, lexists, getsize
 import sys
 from tempfile import gettempdir
@@ -10,10 +15,10 @@ from uuid import uuid4
 
 import pytest
 
-from conda._vendor.auxlib.collection import AttrDict
+from conda.auxlib.collection import AttrDict
 from conda._vendor.toolz.itertoolz import groupby
 from conda.base.context import context
-from conda.common.compat import PY2, on_win
+from conda.common.compat import on_win
 from conda.common.path import get_bin_directory_short_path, get_python_noarch_target_path, \
     get_python_short_path, get_python_site_packages_short_path, parse_entry_point_def, pyc_path, \
     win_path_ok
@@ -21,7 +26,7 @@ from conda.core.path_actions import CompileMultiPycAction, CreatePythonEntryPoin
 from conda.exceptions import ParseError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.link import islink, stat_nlink
+from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
 from conda.gateways.disk.test import softlink_supported
@@ -43,19 +48,10 @@ def make_test_file(target_dir, suffix='', contents=''):
 
 
 def load_python_file(py_file_full_path):
-    if PY2:
-        import imp
-        return imp.load_compiled("module.name", py_file_full_path)
-    elif sys.version_info < (3, 5):
-        raise ParseError("this doesn't work for .pyc files")
-        from importlib.machinery import SourceFileLoader
-        return SourceFileLoader("module.name", py_file_full_path).load_module()
-    else:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("module.name", py_file_full_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
+    spec = importlib.util.spec_from_file_location("module.name", py_file_full_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class PathActionsTests(TestCase):
@@ -74,12 +70,7 @@ class PathActionsTests(TestCase):
 
     def tearDown(self):
         rm_rf(self.prefix)
-        if not (on_win and PY2):
-            # this assertion fails for the Softlink action windows tests
-            # line 141 in backoff_rmdir
-            #  exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
-            # leaves a directory self.prefix\\Scripts that cannot be accessed or removed
-            assert not lexists(self.prefix)
+        assert not lexists(self.prefix)
         rm_rf(self.pkgs_dir)
         assert not lexists(self.pkgs_dir)
 
@@ -173,12 +164,10 @@ class PathActionsTests(TestCase):
         rm_rf(source_full_path1)
         assert not isfile(source_full_path1)
 
-        if (3,) > sys.version_info >= (3, 5):
-            # we're probably dropping py34 support soon enough anyway
-            imported_pyc_file = load_python_file(target_full_path0)
-            assert imported_pyc_file.value == 42
-            imported_pyc_file = load_python_file(target_full_path1)
-            assert imported_pyc_file.value == 43
+        imported_pyc_file = load_python_file(target_full_path0)
+        assert imported_pyc_file.value == 42
+        imported_pyc_file = load_python_file(target_full_path1)
+        assert imported_pyc_file.value == 43
 
         axn.reverse()
         assert not isfile(target_full_path0)
@@ -279,7 +268,7 @@ class PathActionsTests(TestCase):
         axn.execute()
         assert isfile(axn.target_full_path)
         assert not islink(axn.target_full_path)
-        assert stat_nlink(axn.target_full_path) == 2
+        assert os.lstat(axn.target_full_path).st_nlink == 2
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
@@ -310,7 +299,7 @@ class PathActionsTests(TestCase):
         axn.execute()
         assert isfile(axn.target_full_path)
         assert islink(axn.target_full_path)
-        assert stat_nlink(axn.target_full_path) == 1
+        assert os.lstat(axn.target_full_path).st_nlink == 1
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
@@ -355,7 +344,7 @@ class PathActionsTests(TestCase):
         axn.execute()
         assert isfile(axn.target_full_path)
         assert not islink(axn.target_full_path)
-        assert stat_nlink(axn.target_full_path) == 1
+        assert os.lstat(axn.target_full_path).st_nlink == 1
 
         axn.reverse()
         assert not lexists(axn.target_full_path)

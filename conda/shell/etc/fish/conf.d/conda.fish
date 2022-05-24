@@ -7,17 +7,17 @@
 #
 
 if not set -q CONDA_SHLVL
-    set -gx CONDA_SHLVL "0"
+    set -gx CONDA_SHLVL 0
     set -g _CONDA_ROOT (dirname (dirname $CONDA_EXE))
     set -gx PATH $_CONDA_ROOT/condabin $PATH
 end
 
 function __conda_add_prompt
-  if set -q CONDA_PROMPT_MODIFIER
-      set_color -o green
-      echo -n $CONDA_PROMPT_MODIFIER
-      set_color normal
-  end
+    if set -q CONDA_PROMPT_MODIFIER
+        set_color -o green
+        echo -n $CONDA_PROMPT_MODIFIER
+        set_color normal
+    end
 end
 
 if functions -q fish_prompt
@@ -31,16 +31,16 @@ else
 end
 
 function return_last_status
-  return $argv
+    return $argv
 end
 
 function fish_prompt
-  set -l last_status $status
-  if set -q CONDA_LEFT_PROMPT
-      __conda_add_prompt
-  end
-  return_last_status $last_status
-  __fish_prompt_orig
+    set -l last_status $status
+    if set -q CONDA_LEFT_PROMPT
+        __conda_add_prompt
+    end
+    return_last_status $last_status
+    __fish_prompt_orig
 end
 
 if functions -q fish_right_prompt
@@ -54,27 +54,27 @@ else
 end
 
 function fish_right_prompt
-  if not set -q CONDA_LEFT_PROMPT
-      __conda_add_prompt
-  end
-  __fish_right_prompt_orig
+    if not set -q CONDA_LEFT_PROMPT
+        __conda_add_prompt
+    end
+    __fish_right_prompt_orig
 end
 
 
 function conda --inherit-variable CONDA_EXE
     if [ (count $argv) -lt 1 ]
-        eval $CONDA_EXE
+        $CONDA_EXE
     else
         set -l cmd $argv[1]
         set -e argv[1]
         switch $cmd
             case activate deactivate
-                eval (eval $CONDA_EXE shell.fish $cmd $argv)
+                eval ($CONDA_EXE shell.fish $cmd $argv)
             case install update upgrade remove uninstall
-                eval $CONDA_EXE $cmd $argv
-                and eval (eval $CONDA_EXE shell.fish reactivate)
+                $CONDA_EXE $cmd $argv
+                and eval ($CONDA_EXE shell.fish reactivate)
             case '*'
-                eval $CONDA_EXE $cmd $argv
+                $CONDA_EXE $cmd $argv
         end
     end
 end
@@ -87,48 +87,48 @@ end
 
 # Faster but less tested (?)
 function __fish_conda_commands
-  string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
-  for f in $_CONDA_ROOT/bin/conda-*
-    if test -x "$f" -a ! -d "$f"
-      string replace -r '^.*/conda-' '' "$f"
+    string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
+    for f in $_CONDA_ROOT/bin/conda-*
+        if test -x "$f" -a ! -d "$f"
+            string replace -r '^.*/conda-' '' "$f"
+        end
     end
-  end
-  echo activate
-  echo deactivate
+    echo activate
+    echo deactivate
 end
 
 function __fish_conda_env_commands
-  string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
+    string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
 end
 
 function __fish_conda_envs
-  conda config --json --show envs_dirs | python -c "import json, os, sys; from os.path import isdir, join; print('\n'.join(d for ed in json.load(sys.stdin)['envs_dirs'] if isdir(ed) for d in os.listdir(ed) if isdir(join(ed, d))))"
+    conda config --json --show envs_dirs | python -c "import json, os, sys; from os.path import isdir, join; print('\n'.join(d for ed in json.load(sys.stdin)['envs_dirs'] if isdir(ed) for d in os.listdir(ed) if isdir(join(ed, d))))"
 end
 
 function __fish_conda_packages
-  conda list | awk 'NR > 3 {print $1}'
+    conda list | awk 'NR > 3 {print $1}'
 end
 
 function __fish_conda_needs_command
-  set cmd (commandline -opc)
-  if [ (count $cmd) -eq 1 -a $cmd[1] = 'conda' ]
-    return 0
-  end
-  return 1
+    set cmd (commandline -opc)
+    if [ (count $cmd) -eq 1 -a $cmd[1] = conda ]
+        return 0
+    end
+    return 1
 end
 
 function __fish_conda_using_command
-  set cmd (commandline -opc)
-  if [ (count $cmd) -gt 1 ]
-    if [ $argv[1] = $cmd[2] ]
-      return 0
+    set cmd (commandline -opc)
+    if [ (count $cmd) -gt 1 ]
+        if [ $argv[1] = $cmd[2] ]
+            return 0
+        end
     end
-  end
-  return 1
+    return 1
 end
 
 # Conda commands
-complete -f -c conda -n '__fish_conda_needs_command' -a '(__fish_conda_commands)'
+complete -f -c conda -n __fish_conda_needs_command -a '(__fish_conda_commands)'
 complete -f -c conda -n '__fish_conda_using_command env' -a '(__fish_conda_env_commands)'
 
 # Commands that need environment as parameter

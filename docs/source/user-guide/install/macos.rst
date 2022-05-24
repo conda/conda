@@ -46,11 +46,11 @@ To run the :ref:`silent installation <silent-mode-glossary>` of
 Miniconda for macOS or Linux, specify the -b and -p arguments of
 the bash installer. The following arguments are supported:
 
-* -b---Batch mode with no PATH modifications to ``~/.bashrc``.
+* ``-b``: Batch mode with no PATH modifications to shell scripts.
   Assumes that you agree to the license agreement. Does not edit
-  the ``.bashrc`` or ``.bash_profile`` files.
-* -p---Installation prefix/path.
-* -f---Force installation even if prefix -p already exists.
+  shell scripts such as ``.bashrc``, ``.bash_profile``, ``.zshrc``, etc.
+* ``-p``: Installation prefix/path.
+* ``-f``: Force installation even if prefix ``-p`` already exists.
 
 EXAMPLE:
 
@@ -64,9 +64,9 @@ The installer prompts “Do you wish the installer to initialize Miniconda3 by r
 .. note::
    If you enter “no”, then conda will not modify your shell scripts at all. In order to initialize after the installation process is done, first run ``source <path to conda>/bin/activate`` and then run ``conda init``.
 
-**MacOS Catalina**
+   **macOS Catalina (and later)**
 
-If you are on macOS Catalina, the new default shell is zsh. You will instead need to run ``source <path to conda>/bin/activate`` followed by ``conda init zsh``.
+   If you are on macOS Catalina (or later versions), the default shell is zsh. You will instead need to run ``source <path to conda>/bin/activate`` followed by ``conda init zsh`` (to explicitly select the type of shell to initialize).
 
 Updating Anaconda or Miniconda
 ==============================

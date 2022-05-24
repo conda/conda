@@ -1,14 +1,17 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from itertools import chain, combinations, permutations, product
 
 import pytest
 
-from conda.common.compat import iteritems, string_types
 from conda.common.logic import Clauses, FALSE, TRUE, minimal_unsatisfiable_subset
-from tests.helpers import raises
+from conda.testing.helpers import raises
 
 
 # These routines implement logical tests with short-circuiting
-# and propogation of unknown values:
+# and propagation of unknown values:
 #    - positive integers are variables
 #    - negative integers are negations of positive variables
 #    - lowercase True and False are fixed values
@@ -18,13 +21,13 @@ from tests.helpers import raises
 #
 # To ensure correctness, the only logic functions we have implemented
 # directly are NOT and OR. The rest are implemented in terms of these.
-# Peformance is not an issue.
+# Performance is not an issue.
 
 
 def my_NOT(x):
     if isinstance(x, int):
         return -x
-    if isinstance(x, string_types):
+    if isinstance(x, str):
         return x[1:] if x[0] == '!' else '!' + x
     return None
 
@@ -32,7 +35,7 @@ def my_NOT(x):
 def my_ABS(x):
     if isinstance(x, int):
         return abs(x)
-    if isinstance(x, string_types):
+    if isinstance(x, str):
         return x[1:] if x[0] == '!' else x
     return None
 
@@ -235,7 +238,7 @@ def test_LinearBound():
                 C.name_var(k, nm)
                 Cpos.name_var(k, nm)
                 Cneg.name_var(k, nm)
-            eq2 = [(v, C.from_name(c)) for c, v in iteritems(eq)]
+            eq2 = [(v, C.from_name(c)) for c, v in eq.items()]
         else:
             eq2 = eq
         x = C.LinearBound(eq, rhs[0], rhs[1])

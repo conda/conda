@@ -11,7 +11,6 @@ have_boto3 = have_boto = False
 try:
     import boto3
     have_boto3 = True
-    boto3.client('s3')  # https://github.com/conda/conda/issues/8993
 except ImportError:
     try:
         import boto
@@ -54,8 +53,13 @@ class S3Adapter(BaseAdapter):
     def _send_boto3(self, boto3, resp, request):
         from botocore.exceptions import BotoCoreError, ClientError
         bucket_name, key_string = url_to_s3_info(request.url)
-
-        key = boto3.resource('s3').Object(bucket_name, key_string[1:])
+        # https://github.com/conda/conda/issues/8993
+        # creating a separate boto3 session to make this thread safe
+        session = boto3.session.Session()
+        # create a resource client using this thread's session object
+        s3 = session.resource('s3')
+        # finally get the S3 object
+        key = s3.Object(bucket_name, key_string[1:])
 
         try:
             response = key.get()

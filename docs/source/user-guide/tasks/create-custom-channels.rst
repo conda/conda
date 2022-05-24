@@ -53,33 +53,33 @@ To create a custom channel:
       you must rerun ``conda index`` for conda to see the update.
 
 #. To test custom channels, serve the custom channel using a web
-   server or using a ``file:// url`` to the channel directory.
+   server or using a ``file://`` URL to the channel directory.
    Test by sending a search command to the custom channel.
 
    EXAMPLE: If you want a file in the custom channel location
    ``/opt/channel/linux-64/``, search for files in that location:
-  
+
    .. code::
 
-      conda search -c file://opt/channel/ --override-channels
+      conda search -c file:///opt/channel/ --override-channels
 
    .. note::
       The channel URL does not include the platform, as conda
       automatically detects and adds the platform.
 
    .. note::
-      The option  ``--override-channels`` ensures that conda 
-      searches only your specified channel and no other channels, 
-      such as default channels or any other channels you may have 
+      The option  ``--override-channels`` ensures that conda
+      searches only your specified channel and no other channels,
+      such as default channels or any other channels you may have
       listed in your ``.condarc`` file.
 
-   If you have set up your private repository correctly, you 
+   If you have set up your private repository correctly, you
    get the following output:
 
    .. code::
 
       Fetching package metadata: . . . .
 
-   This is followed by a list of the conda packages found. This 
-   verifies that you have set up and indexed your private 
-   repository successfully. 
+   This is followed by a list of the conda packages found. This
+   verifies that you have set up and indexed your private
+   repository successfully.

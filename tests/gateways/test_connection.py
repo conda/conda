@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from conda.auxlib.compat import Utf8NamedTemporaryFile
 from unittest import TestCase
 import warnings
 
 import pytest
 from requests import HTTPError
 
-from conda.common.compat import ensure_binary, PY3
+from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.gateways.connection.session import CondaHttpAuth, CondaSession

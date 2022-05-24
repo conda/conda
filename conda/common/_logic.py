@@ -8,13 +8,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from array import array
 from itertools import combinations
 from logging import DEBUG, getLogger
-from sys import maxsize
+import sys
 
 log = getLogger(__name__)
 
 
-_BIG_NUMBER = maxsize
-TRUE = _BIG_NUMBER
+TRUE = sys.maxsize
 FALSE = -TRUE
 
 
@@ -43,7 +42,7 @@ class _ClauseList(object):
     def restore_state(self, saved_state):
         """
         Restore state saved via `save_state`.
-        Removes clauses that were added after the sate has been saved.
+        Removes clauses that were added after the state has been saved.
         """
         len_clauses = saved_state
         self._clause_list[len_clauses:] = []
@@ -103,7 +102,7 @@ class _ClauseArray(object):
     def restore_state(self, saved_state):
         """
         Restore state saved via `save_state`.
-        Removes clauses that were added after the sate has been saved.
+        Removes clauses that were added after the state has been saved.
         """
         len_clause_array = saved_state
         self._clause_array[len_clause_array:] = array('i')

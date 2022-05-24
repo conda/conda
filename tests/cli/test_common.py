@@ -1,27 +1,22 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from logging import getLogger
 import os
+from io import StringIO
 from unittest import TestCase
 
 import pytest
 from pytest import raises
 
-from conda._vendor.auxlib.collection import AttrDict
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol
-from conda.cli.common import check_non_admin
-from conda.common.compat import on_win, StringIO
+from conda.auxlib.collection import AttrDict
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.cli.common import check_non_admin, confirm, confirm_yn
+from conda.common.compat import on_win
 from conda.common.io import captured, env_var
 from conda.exceptions import CondaSystemExit, DryRunExit, OperationNotAllowed
-
-log = getLogger(__name__)
-
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
 
 
 def test_check_non_admin_enabled_false():
@@ -47,41 +42,40 @@ def test_check_non_admin_enabled_true():
         assert True
 
 
-class ConfirmTests(TestCase):
+def test_confirm_yn_yes(monkeypatch):
+    monkeypatch.setattr('sys.stdin', StringIO('blah\ny\n'))
+    with env_var('CONDA_ALWAYS_YES', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_DRY_RUN', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            assert not context.always_yes
+            args = AttrDict({
+                'dry_run': False,
+            })
+            with captured() as cap:
+                choice = confirm_yn(args)
+            assert choice is True
+            assert "Invalid choice" in cap.stdout
 
-    @patch('sys.stdin', StringIO('blah\ny\n'))
-    def test_confirm_yn_yes(self):
-        args = AttrDict({
-            'dry_run': False,
-        })
-        from conda.cli.common import confirm_yn
-        with captured() as c:
+
+def test_confirm_yn_no(monkeypatch):
+    monkeypatch.setattr('sys.stdin', StringIO('n\n'))
+    args = AttrDict({
+        'dry_run': False,
+    })
+    with pytest.raises(CondaSystemExit):
+        confirm_yn(args)
+
+
+def test_dry_run_exit():
+    with env_var('CONDA_DRY_RUN', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with pytest.raises(DryRunExit):
+            confirm_yn()
+
+        with pytest.raises(DryRunExit):
+            confirm()
+
+
+def test_always_yes():
+    with env_var('CONDA_ALWAYS_YES', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var('CONDA_DRY_RUN', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
             choice = confirm_yn()
-        assert choice is True
-        assert "Invalid choice" in c.stdout
-
-    @patch('sys.stdin', StringIO('n\n'))
-    def test_confirm_yn_no(self):
-        args = AttrDict({
-            'dry_run': False,
-        })
-        from conda.cli.common import confirm_yn
-        with pytest.raises(CondaSystemExit):
-            confirm_yn(args)
-
-    def test_dry_run_exit(self):
-        with env_var('CONDA_DRY_RUN', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            from conda.cli.common import confirm_yn
-            with pytest.raises(DryRunExit):
-                confirm_yn()
-
-            from conda.cli.common import confirm
-            with pytest.raises(DryRunExit):
-                confirm()
-
-    def test_always_yes(self):
-        with env_var('CONDA_ALWAYS_YES', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with env_var('CONDA_DRY_RUN', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                from conda.cli.common import confirm_yn
-                choice = confirm_yn()
-                assert choice is True
+            assert choice is True

@@ -8,7 +8,7 @@ from os.path import basename, dirname, isdir, isfile, join
 import re
 import sys
 
-from .._vendor.auxlib.ish import dals
+from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.constants import NULL
@@ -18,9 +18,10 @@ from ..common.serialize import json_dump
 from ..models.match_spec import MatchSpec
 from ..exceptions import EnvironmentLocationNotFound, DirectoryNotACondaEnvironmentError
 
-def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
+
+def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
     assert default in choices, default
-    if context.dry_run:
+    if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
 
@@ -49,14 +50,13 @@ def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
 
 
 def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
-    dry_run = context.dry_run if dry_run is NULL else dry_run
-    if dry_run:
+    if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
     if context.always_yes:
         return True
     try:
-        choice = confirm(message=message, choices=('yes', 'no'), default=default)
+        choice = confirm(message=message, choices=("yes", "no"), default=default, dry_run=dry_run)
     except KeyboardInterrupt:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.")
@@ -99,7 +99,7 @@ spec_pat = re.compile(r'(?P<name>[^=<>!\s]+)'  # package name  # lgtm [py/regex/
                       r'('
                       r'(?P<cc>=[^=]+(=[^=]+)?)'  # conda constraint
                       r'|'
-                      r'(?P<pc>(?:[=!]=|[><]=?).+)'  # new (pip-style) constraint(s)
+                      r'(?P<pc>(?:[=!]=|[><]=?|~=).+)'  # new (pip-style) constraint(s)
                       r')?$',
                       re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
 
@@ -116,7 +116,15 @@ def spec_from_line(line):
     if cc:
         return name + cc.replace('=', ' ')
     elif pc:
-        return name + ' ' + pc.replace(' ', '')
+        if pc.startswith('~= '):
+            assert pc.count('~=') == 1,\
+                "Overly complex 'Compatible release' spec not handled {}".format(line)
+            assert pc.count('.'), "No '.' in 'Compatible release' version {}".format(line)
+            ver = pc.replace('~= ', '')
+            ver2 = '.'.join(ver.split('.')[:-1]) + '.*'
+            return name + ' >=' + ver + ',==' + ver2
+        else:
+            return name + ' ' + pc.replace(' ', '')
     else:
         return name
 
@@ -212,9 +220,18 @@ def check_non_admin():
             on your system for non-privileged users.
         """))
 
-def is_valid_prefix(prefix):
+def validate_prefix(prefix):
+    """Verifies the prefix is a valid conda environment.
+
+    :raises EnvironmentLocationNotFound: Non-existent path or not a directory.
+    :raises DirectoryNotACondaEnvironmentError: Directory is not a conda environment.
+    :returns: Valid prefix.
+    :rtype: str
+    """
     if isdir(prefix):
         if not isfile(join(prefix, 'conda-meta', 'history')):
             raise DirectoryNotACondaEnvironmentError(prefix)
     else:
         raise EnvironmentLocationNotFound(prefix)
+
+    return prefix

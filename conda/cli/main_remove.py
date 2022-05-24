@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from os.path import isfile, join
 import sys
 
 from .common import check_non_admin, specs_from_args
@@ -12,8 +13,8 @@ from ..base.context import context
 from ..core.envs_manager import unregister_env
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
-from ..core.solve import Solver
-from ..exceptions import CondaEnvironmentError, CondaValueError
+from ..core.solve import _get_solver_class
+from ..exceptions import CondaEnvironmentError, CondaValueError, DirectoryNotACondaEnvironmentError
 from ..gateways.disk.delete import rm_rf, path_is_clean
 from ..models.match_spec import MatchSpec
 from ..exceptions import PackagesNotFoundError
@@ -54,6 +55,8 @@ def execute(args, parser):
         if prefix == context.root_prefix:
             raise CondaEnvironmentError('cannot remove root environment,\n'
                                         '       add -n NAME or -p PREFIX option')
+        if not isfile(join(prefix, 'conda-meta', 'history')):
+            raise DirectoryNotACondaEnvironmentError(prefix)
         print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
 
         if 'package_names' in args:
@@ -70,8 +73,9 @@ def execute(args, parser):
                 handle_txn(txn, prefix, args, False, True)
             except PackagesNotFoundError:
                 print("No packages found in %s. Continuing environment removal" % prefix)
-        rm_rf(prefix, clean_empty_parents=True)
-        unregister_env(prefix)
+        if not context.dry_run:
+            rm_rf(prefix, clean_empty_parents=True)
+            unregister_env(prefix)
 
         return
 
@@ -82,7 +86,7 @@ def execute(args, parser):
             specs = specs_from_args(args.package_names)
         channel_urls = ()
         subdirs = ()
-        solver = Solver(prefix, channel_urls, subdirs, specs_to_remove=specs)
+        solver = _get_solver_class()(prefix, channel_urls, subdirs, specs_to_remove=specs)
         txn = solver.solve_for_transaction()
         handle_txn(txn, prefix, args, False, True)
 
@@ -101,7 +105,7 @@ def execute(args, parser):
     #                                     '       add -n NAME or -p PREFIX option')
     #     actions = defaultdict(list)
     #     actions[PREFIX] = prefix
-    #     for dist in sorted(iterkeys(index)):
+    #     for dist in sorted(iter(index.keys())):
     #         add_unlink(actions, dist)
     #     actions['ACTION'] = 'REMOVE_ALL'
     #     action_groups = (actions, index),
@@ -112,7 +116,7 @@ def execute(args, parser):
     #     specs = specs_from_args(args.package_names)
     #     env_spec_map = groupby(get_env, specs)
     #     action_groups = []
-    #     for env_name, spcs in iteritems(env_spec_map):
+    #     for env_name, spcs in env_spec_map.items():
     #         pfx = ed.to_prefix(env_name)
     #         r = get_resolve_object(index.copy(), pfx)
     #         specs_to_remove = tuple(MatchSpec(s) for s in spcs)
@@ -124,7 +128,7 @@ def execute(args, parser):
     #         actions = get_blank_actions(pfx)
     #         actions['UNLINK'].extend(dists_for_unlinking)
     #         actions['LINK'].extend(dists_for_linking)
-    #         actions['SPECS'].extend(text_type(s) for s in specs_to_remove)
+    #         actions['SPECS'].extend(str(s) for s in specs_to_remove)
     #         actions['ACTION'] = 'REMOVE'
     #         action_groups.append((actions, r.index))
     #     action_groups = tuple(action_groups)

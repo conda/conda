@@ -49,12 +49,12 @@ except NameError:
     FileNotFoundError = IOError
 
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
-from .._vendor.auxlib.compat import Utf8NamedTemporaryFile
-from .._vendor.auxlib.ish import dals
+from ..auxlib.compat import Utf8NamedTemporaryFile
+from ..auxlib.ish import dals
 from ..activate import (CshActivator, FishActivator,
                         PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
-from ..common.compat import (PY2, ensure_binary, ensure_utf8_encoding,
+from ..common.compat import (ensure_binary, ensure_utf8_encoding,
                              ensure_text_type, on_mac, on_win, open)
 from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
                            get_python_site_packages_short_path, win_path_ok)
@@ -67,10 +67,7 @@ from ..gateways.disk.read import compute_md5sum
 from ..gateways.subprocess import subprocess_call
 
 if on_win:
-    if PY2:
-        import _winreg as winreg
-    else:
-        import winreg
+    import winreg
     from menuinst.knownfolders import get_folder_path, FOLDERID
     from menuinst.winshortcut import create_shortcut
 
@@ -132,15 +129,15 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     # > alias conda-dev='eval "$(python -m conda init --dev)"'
     # > eval "$(python -m conda init --dev)"
 
-    dev_env_prefix = expand(dev_env_prefix or sys.prefix)
+    prefix = expand(dev_env_prefix or sys.prefix)
     conda_source_root = expand(conda_source_root or os.getcwd())
 
-    python_exe, python_version, site_packages_dir = _get_python_info(dev_env_prefix)
+    python_exe, python_version, site_packages_dir = _get_python_info(prefix)
 
     if not isfile(join(conda_source_root, 'conda', '__main__.py')):
         raise CondaValueError("Directory is not a conda source root: %s" % conda_source_root)
 
-    plan = make_install_plan(dev_env_prefix)
+    plan = make_install_plan(prefix)
     plan.append({
         'function': remove_conda_in_sp_dir.__name__,
         'kwargs': {
@@ -177,7 +174,6 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         raise CondaError("Operation failed. Privileged install disallowed for 'conda init --dev'.")
 
     env_vars = {
-        'ADD_COV': '--cov-report xml --cov-report term-missing --cov conda',
         'PYTHONHASHSEED': str(randint(0, 4294967296)),
         'PYTHON_MAJOR_VERSION': python_version[0],
         'TEST_PLATFORM': 'win' if on_win else 'unix',
@@ -202,10 +198,9 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         sys_executable = abspath(sys.executable)
         if on_win:
             sys_executable = "$(cygpath '%s')" % sys_executable
-        builder += [
-            "eval \"$(\"%s\" -m conda \"shell.bash\" \"hook\")\"" % sys_executable,
-            "conda activate '%s'" % dev_env_prefix,
-        ]
+        builder += [f'eval "$("{sys_executable}" -m conda "shell.bash" "hook")"']
+        if context.auto_activate_base:
+            builder += [f"conda activate '{prefix}'"]
         print("\n".join(builder))
     elif shell == 'cmd.exe':
         if context.dev:
@@ -218,12 +213,14 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
-            '@CALL \"%s\" %s' % (join(dev_env_prefix, 'condabin', 'conda_hook.bat'), dev_arg),
-            '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
-            '@CALL \"%s\" activate %s \"%s\"' % (join(dev_env_prefix, 'condabin', 'conda.bat'),
-                                                 dev_arg, dev_env_prefix),
+            f'@CALL "{join(prefix, "condabin", "conda_hook.bat")}" {dev_arg}',
             '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
         ]
+        if context.auto_activate_base:
+            builder += [
+                f'@CALL "{join(prefix, "condabin", "conda.bat")}" activate {dev_arg} "{prefix}"',
+                "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
+            ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
                 fh.write('\n'.join(builder))
@@ -450,7 +447,10 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             })
 
         if 'zsh' in shells and for_user:
-            zshrc_path = expand(join('~', '.zshrc'))
+            if 'ZDOTDIR' in os.environ:
+                zshrc_path = expand(join("$ZDOTDIR", ".zshrc"))
+            else:
+                zshrc_path = expand(join('~', '.zshrc'))
             plan.append({
                 'function': init_sh_user.__name__,
                 'kwargs': {
@@ -1417,28 +1417,46 @@ def init_cmd_exe_registry(target_path, conda_prefix, reverse=False):
         prev_value = ""
         value_type = winreg.REG_EXPAND_SZ
 
-    hook_path = '"%s"' % join(conda_prefix, 'condabin', 'conda_hook.bat')
+    old_hook_path = '"{}"'.format(join(conda_prefix, 'condabin', 'conda_hook.bat'))
+    new_hook = 'if exist {hp} {hp}'.format(hp=old_hook_path)
     if reverse:
         # we can't just reset it to None and remove it, because there may be other contents here.
         #   We need to strip out our part, and if there's nothing left, remove the key.
         # Break up string by parts joined with "&"
         autorun_parts = prev_value.split('&')
-        new_value = " & ".join(part.strip() for part in autorun_parts if hook_path not in part)
+        autorun_parts = [part.strip() for part in autorun_parts if new_hook not in part]
+        # We must remove the old hook path too if it is there
+        autorun_parts = [part.strip() for part in autorun_parts if old_hook_path not in part]
+        new_value = " & ".join(autorun_parts)
     else:
         replace_str = "__CONDA_REPLACE_ME_123__"
+        # Replace new (if exist checked) hook
         new_value = re.sub(
-            r'(\"[^\"]*?conda[-_]hook\.bat\")',
+            r'(if exist \"[^\"]*?conda[-_]hook\.bat\" \"[^\"]*?conda[-_]hook\.bat\")',
             replace_str,
             prev_value,
             count=1,
             flags=re.IGNORECASE | re.UNICODE,
         )
-        new_value = new_value.replace(replace_str, hook_path)
-        if hook_path not in new_value:
+        # Replace old hook
+        new_value = re.sub(
+            r'(\"[^\"]*?conda[-_]hook\.bat\")',
+            replace_str,
+            new_value,
+            flags=re.IGNORECASE | re.UNICODE,
+        )
+
+        # Fold repeats of 'HOOK & HOOK'
+        new_value_2 = new_value.replace(replace_str + ' & ' + replace_str, replace_str)
+        while new_value_2 != new_value:
+            new_value = new_value_2
+            new_value_2 = new_value.replace(replace_str + ' & ' + replace_str, replace_str)
+        new_value = new_value_2.replace(replace_str, new_hook)
+        if new_hook not in new_value:
             if new_value:
-                new_value += ' & ' + hook_path
+                new_value += ' & ' + new_hook
             else:
-                new_value = hook_path
+                new_value = new_hook
 
     if prev_value != new_value:
         if context.verbosity:

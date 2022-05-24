@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 """ Test if we can import everything from conda.
 This basically tests syntax correctness and whether the internal imports work.
 Created to test py3k compatibility.

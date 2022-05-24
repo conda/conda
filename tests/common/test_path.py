@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
@@ -118,8 +121,20 @@ def test_get_major_minor_version_no_dot():
     assert get_major_minor_version("lib/python34/site-packages/") == "3.4"
     assert get_major_minor_version("python3") is None
 
+    assert get_major_minor_version("3.10.0") == "3.10"
+    assert get_major_minor_version("310") == "3.10"
+    assert get_major_minor_version("bin/python3.10") == "3.10"
+    assert get_major_minor_version("lib/python310/site-packages/") == "3.10"
+    assert get_major_minor_version("python3") is None
+
     assert get_major_minor_version("3.5.2", False) == "35"
     assert get_major_minor_version("27", False) == "27"
     assert get_major_minor_version("bin/python2.7", False) == "27"
     assert get_major_minor_version("lib/python34/site-packages/", False) == "34"
+    assert get_major_minor_version("python3", False) is None
+
+    assert get_major_minor_version("3.10.0", False) == "310"
+    assert get_major_minor_version("310", False) == "310"
+    assert get_major_minor_version("bin/python3.10", False) == "310"
+    assert get_major_minor_version("lib/python310/site-packages/", False) == "310"
     assert get_major_minor_version("python3", False) is None

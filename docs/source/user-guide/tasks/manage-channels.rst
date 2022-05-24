@@ -8,7 +8,8 @@ Conda packages are downloaded from remote channels, which are URLs to
 directories containing conda packages. The conda command searches a default
 set of channels and packages are automatically downloaded and updated
 from https://repo.anaconda.com/pkgs/. Read more about
-:doc:`conda channels <../concepts/channels>`.
+:doc:`conda channels <../concepts/channels>` and the various terms of service
+for their use.
 
 Different channels can have the same package, so conda must handle these
 channel collisions.
@@ -38,8 +39,8 @@ listed channels and processes them as follows:
 #. Sorts still-tied packages---packages with the same channel priority and same
    version---from highest to lowest build number. For example, if channelA contains
    both NumPy 1.12.0 build 1 and build 2, build 2 is sorted first. Any packages
-   in channelB would be sorted below those in channelA. 
-   
+   in channelB would be sorted below those in channelA.
+
 #. Installs the first package on the sorted list that satisfies
    the installation specifications.
 
@@ -59,7 +60,7 @@ of a package in any listed channel:
   OR
 
 * Run the equivalent command::
-  
+
     conda config --set channel_priority false
 
 Conda then sorts as follows:
@@ -113,9 +114,5 @@ Details about it can be seen by typing ``conda config --describe channel_priorit
     configured priority of channels is used only to break ties. In
     previous versions of conda, this parameter was configured as either
     True or False. True is now an alias to 'flexible'.
- 
+
     channel_priority: flexible
-
-
-
-

@@ -1,6 +1,10 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from conda import utils
 from conda.common.path import win_path_to_unix
-from .helpers import assert_equals
+from conda.testing.helpers import assert_equals
 
 from conda.activate import CmdExeActivator, PosixActivator
 from conda.common.path import which
@@ -9,6 +13,8 @@ from os import environ, pathsep
 from os.path import dirname, join
 import sys
 from conda.common.compat import on_win
+
+import pytest
 
 
 SOME_PREFIX = "/some/prefix"
@@ -122,6 +128,76 @@ def is_prefix_activated_PATHwise(prefix=sys.prefix, test_programs=()):
     return False
 
 
+mark_posix_only = pytest.mark.skipif(on_win, reason="POSIX only")
+mark_win_only = pytest.mark.skipif(not on_win, reason="Windows only")
+
+_posix_quotes = "'{}'".format
+_win_quotes = '"{}"'.format
+_quotes = _win_quotes if on_win else _posix_quotes
+
+@pytest.mark.parametrize(
+    ["args", "expected"],
+    [
+        pytest.param("arg1", "arg1"),
+        pytest.param("arg1 and 2", _quotes("arg1 and 2")),
+        pytest.param("arg1\nand\n2", _quotes("arg1\nand\n2")),
+        pytest.param("numpy<1.22", _quotes("numpy<1.22")),
+        pytest.param("numpy>=1.0", _quotes("numpy>=1.0")),
+        pytest.param("one|two", _quotes("one|two")),
+        pytest.param(">/dev/null", _quotes(">/dev/null")),
+        pytest.param(">NUL", _quotes(">NUL")),
+        pytest.param("1>/dev/null", _quotes("1>/dev/null")),
+        pytest.param("1>NUL", _quotes("1>NUL")),
+        pytest.param("2>/dev/null", _quotes("2>/dev/null")),
+        pytest.param("2>NUL", _quotes("2>NUL")),
+        pytest.param("2>&1", _quotes("2>&1")),
+        pytest.param(None, _quotes("")),
+        pytest.param(
+            'malicious argument\\"&whoami',
+            '"malicious argument\\""&whoami"',
+            marks=mark_win_only,
+        ),
+        pytest.param(
+            "C:\\temp\\some ^%file^% > nul",
+            '"C:\\temp\\some ^%%file^%% > nul"',
+            marks=mark_win_only,
+        ),
+        pytest.param("!", "!" if on_win else "'!'"),
+        pytest.param("#", "#" if on_win else "'#'"),
+        pytest.param("$", "$" if on_win else "'$'"),
+        pytest.param("%", '"%%"' if on_win else "%"),
+        pytest.param("&", _quotes("&")),
+        pytest.param("'", "'" if on_win else "''\"'\"''"),
+        pytest.param("(", "(" if on_win else "'('"),
+        pytest.param(")", ")" if on_win else "')'"),
+        pytest.param("*", "*" if on_win else "'*'"),
+        pytest.param("+", "+"),
+        pytest.param(",", ","),
+        pytest.param("-", "-"),
+        pytest.param(".", "."),
+        pytest.param("/", "/"),
+        pytest.param(":", ":"),
+        pytest.param(";", ";" if on_win else "';'"),
+        pytest.param("<", _quotes("<")),
+        pytest.param("=", "="),
+        pytest.param(">", _quotes(">")),
+        pytest.param("?", "?" if on_win else "'?'"),
+        pytest.param("@", "@"),
+        pytest.param("[", "[" if on_win else "'['"),
+        pytest.param("\\", "\\" if on_win else "'\\'"),
+        pytest.param("]", "]" if on_win else "']'"),
+        pytest.param("^", _quotes("^")),
+        pytest.param("{", "{" if on_win else "'{'"),
+        pytest.param("|", _quotes("|")),
+        pytest.param("}", "}" if on_win else "'}'"),
+        pytest.param("~", "~" if on_win else "'~'"),
+        pytest.param('"', '""""' if on_win else "'\"'"),
+    ],
+)
+def test_quote_for_shell(args, expected):
+    assert utils.quote_for_shell(args) == expected
+
+
 # Some stuff I was playing with, env_unmodified(conda_tests_ctxt_mgmt_def_pol)
 # from contextlib import contextmanager
 # from conda.base.constants import DEFAULT_CHANNELS
@@ -129,9 +205,9 @@ def is_prefix_activated_PATHwise(prefix=sys.prefix, test_programs=()):
 # from conda.common.io import env_vars
 # from conda.common.compat import odict
 # from conda.common.configuration import YamlRawParameter
-# from conda.common.serialize import yaml_load
+# from conda.common.serialize import yaml_safe_load
 # from conda.models.channel import Channel
-# from .test_create import make_temp_prefix
+# from conda.testing.integration import make_temp_prefix
 # from os.path import join
 # from shutil import rmtree
 # is what I ended up with instead.
@@ -170,7 +246,7 @@ def is_prefix_activated_PATHwise(prefix=sys.prefix, test_programs=()):
 # def make_default_conda_config(env=dict({})):
 #     with env_vars(env, stack_context_default):
 #         reset_context(())
-#         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load('')))
+#         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_safe_load('')))
 #         context._set_raw_data(rd)
 #         Channel._reset_state()
 #         try:

@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from contextlib import contextmanager
 import random
 import types
@@ -7,8 +11,8 @@ try:
 except ImportError:
     import mock
 
+from conda.exceptions import SpecNotFound
 from conda_env import specs
-from conda_env.exceptions import SpecNotFound
 
 
 true_func = mock.Mock(return_value=True)

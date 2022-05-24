@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
@@ -8,7 +11,7 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from conda._vendor.auxlib.collection import AttrDict
+from conda.auxlib.collection import AttrDict
 from conda.base.constants import PREFIX_MAGIC_FILE
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
@@ -92,3 +95,23 @@ class EnvsManagerUnitTests(TestCase):
             cleaned_2 = _clean_environments_txt(environments_txt_path)
             assert cleaned_2 == (self.prefix,)
             assert _rewrite_patch.call_count == 0
+
+
+@patch("conda.core.envs_manager.context")
+@patch("conda.core.envs_manager.get_user_environments_txt_file")
+@patch("conda.core.envs_manager._clean_environments_txt")
+def test_list_all_known_prefixes_with_permission_error(mock_clean_env, mock_get_user_env, mock_context, tmp_path):
+    # Mock context
+    myenv_dir = tmp_path / "envs"
+    myenv_dir.mkdir()
+    mock_context.envs_dirs = str(myenv_dir)
+    mock_context.root_prefix = "root_prefix"
+    # Mock get_user_environments_txt_file to return a file
+    env_txt_file = tmp_path / "environment.txt"
+    touch(env_txt_file)
+    mock_get_user_env.return_value = env_txt_file
+    # Mock _clean_environments_txt to raise PermissionError
+    mock_clean_env.side_effect = PermissionError()
+    all_env_paths = list_all_known_prefixes()
+    # On Windows, all_env_paths can contain more paths (like '\\Miniconda')
+    assert "root_prefix" in all_env_paths

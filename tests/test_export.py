@@ -1,11 +1,15 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from os.path import exists, join
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from conda.auxlib.compat import Utf8NamedTemporaryFile
 from unittest import TestCase
 
 from conda.gateways.disk.delete import rm_rf
 import pytest
 
-from .test_create import Commands, PYTHON_BINARY, make_temp_env, make_temp_prefix, \
+from conda.testing.integration import Commands, PYTHON_BINARY, make_temp_env, make_temp_prefix, \
     package_is_installed, run_command
 
 
@@ -46,7 +50,7 @@ class ExportIntegrationTests(TestCase):
 
             output, error, _ = run_command(Commands.LIST, prefix, "-e")
             self.assertIn("conda-forge", output)
-            
+
             try:
                 with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                     env_txt.write(output)

@@ -16769,6 +16769,15 @@
     "requires": [],
     "version": "6.2"
   },
+  "readline-5.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "md5": "7802f80168494982f4f72fff244f72d5",
+    "name": "readline",
+    "requires": [],
+    "version": "5.0"
+  },
   "redis-2.4.15-0.tar.bz2": {
     "build": "0",
     "build_number": 0,
@@ -20971,6 +20980,45 @@
       "python 3.3"
     ],
     "version": "4.1.1.1"
+  },
+  "cuda-glibc-10.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "constrains": [
+      "__glibc>=2.17"
+    ],
+    "depends": [
+      "__cuda>=10.0,<11"
+    ],
+    "md5": "57833caff02605fb87946d8758c6cc99",
+    "name": "cuda-glibc",
+    "pub_date": "2020-09-08",
+    "size": 1,
+    "version": "10.0"
+  },
+  "cuda-constrain-10.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "constrains": [
+      "__cuda>=10.0,<11"
+    ],
+    "md5": "3c83ba17a3bb9de3e4f13e62a909fb7e",
+    "name": "cuda-constrain",
+    "pub_date": "2020-09-01",
+    "size": 1,
+    "version": "10.0"
+  },
+  "cuda-constrain-11.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "constrains": [
+      "__cuda>=11.0,<12"
+    ],
+    "md5": "8ef4b9b28da3c107676450ff0461deb3",
+    "name": "cuda-constrain",
+    "pub_date": "2020-09-01",
+    "size": 1,
+    "version": "11.0"
   },
   "cudatoolkit-9.0-0.tar.bz2": {
     "build": "0",

@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from conda.common.io import env_var, env_vars
 
-from conda._vendor.auxlib.ish import dals
-from conda.common.compat import odict, string_types
+from conda.auxlib.ish import dals
+from conda.common.compat import odict
 from conda.common.configuration import (Configuration, ConfigurationObject, ObjectParameter,
                                         ParameterFlag, ParameterLoader, PrimitiveParameter,
                                         MapParameter, SequenceParameter, YamlRawParameter,
                                         load_file_configs, InvalidTypeError, CustomValidationError)
-from conda.common.serialize import yaml_load
+from conda.common.serialize import yaml_round_trip_load
 from conda.common.configuration import ValidationError
 from os import environ, mkdir
 from os.path import join
@@ -138,11 +141,11 @@ test_yaml_raw = {
         env_var_map:
           expanded: $EXPANDED_VAR
           unexpanded: $UNEXPANDED_VAR
-        
+
         env_var_str: $EXPANDED_VAR
         env_var_bool: $BOOL_VAR
         normal_str: $EXPANDED_VAR
-        
+
         env_var_list:
           - $EXPANDED_VAR
           - $UNEXPANDED_VAR
@@ -162,7 +165,7 @@ test_yaml_raw = {
             - #!bottom
                 key1: a1
                 key2: b1
-            - #!top 
+            - #!top
                 key3: c1
                 key4: d1
     """),
@@ -181,9 +184,9 @@ test_yaml_raw = {
             -
                 key1: a2
                 key2: b2
-            - 
+            -
                 key3: c2
-                key4: d2   
+                key4: d2
     """),
     'objectFile1': dals("""
         test_object:
@@ -215,44 +218,44 @@ class DummyTestObject(ConfigurationObject):
 
     def __init__(self):
         self.int_field = PrimitiveParameter(0, element_type=int)
-        self.str_field = PrimitiveParameter("",element_type=string_types)
-        self.map_field = MapParameter(PrimitiveParameter("", element_type=string_types))
-        self.seq_field = SequenceParameter(PrimitiveParameter("", element_type=string_types))
+        self.str_field = PrimitiveParameter("",element_type=str)
+        self.map_field = MapParameter(PrimitiveParameter("", element_type=str))
+        self.seq_field = SequenceParameter(PrimitiveParameter("", element_type=str))
 
 
 class SampleConfiguration(Configuration):
     always_yes = ParameterLoader(PrimitiveParameter(False),
                                  aliases=('always_yes_altname1', 'yes', 'always_yes_altname2'))
     changeps1 = ParameterLoader(PrimitiveParameter(True))
-    proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=string_types)))
-    channels = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=string_types)),
+    proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=str)))
+    channels = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=str)),
                                aliases=('channels_altname',))
 
     always_an_int = ParameterLoader(PrimitiveParameter(0))
     boolean_map = ParameterLoader(MapParameter(PrimitiveParameter(False, element_type=bool)))
-    commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", string_types)))
+    commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", str)))
 
     env_var_map = ParameterLoader(
-        MapParameter(PrimitiveParameter("", string_types)),
+        MapParameter(PrimitiveParameter("", str)),
         expandvars=True)
     env_var_str = ParameterLoader(PrimitiveParameter(''), expandvars=True)
     env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool), expandvars=True)
     normal_str = ParameterLoader(PrimitiveParameter(''), expandvars=False)
     env_var_list = ParameterLoader(
-        SequenceParameter(PrimitiveParameter('', string_types)),
+        SequenceParameter(PrimitiveParameter('', str)),
         expandvars=True)
 
     nested_map = ParameterLoader(
-        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=string_types))))
+        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=str))))
     nested_seq = ParameterLoader(
-        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=string_types))))
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))))
 
     test_object = ParameterLoader(
         ObjectParameter(DummyTestObject()))
 
 
 def load_from_string_data(*seq):
-    return odict((f, YamlRawParameter.make_raw_parameters(f, yaml_load(test_yaml_raw[f])))
+    return odict((f, YamlRawParameter.make_raw_parameters(f, yaml_round_trip_load(test_yaml_raw[f])))
                  for f in seq)
 
 
@@ -532,7 +535,7 @@ class ConfigurationTests(TestCase):
         string = dals("""
         proxy_servers: bad values
         """)
-        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', yaml_load(string)))
+        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', yaml_round_trip_load(string)))
         config = SampleConfiguration()._set_raw_data(data)
         raises(InvalidTypeError, config.validate_all)
 

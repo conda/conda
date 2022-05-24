@@ -8,15 +8,14 @@ from os.path import dirname
 import re
 import sys
 
-from ._vendor.auxlib.decorators import memoize
-from ._vendor.auxlib.compat import shlex_split_unicode, string_types, Utf8NamedTemporaryFile
+from .auxlib.decorators import memoize
+from .auxlib.compat import shlex_split_unicode, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
 
 from .common.path import win_path_to_unix, which
 from .common.url import path_to_url
 from os.path import abspath, join, isfile, basename
 from os import environ
-from subprocess import list2cmdline
 
 log = logging.getLogger(__name__)
 
@@ -261,30 +260,57 @@ def sys_prefix_unfollowed():
     return unfollowed
 
 
-def quote_for_shell(arguments, shell=None):
-    if not shell:
-        shell = 'cmd.exe' if on_win else 'bash'
-    if shell == 'cmd.exe':
-        return list2cmdline(arguments)
-    else:
-        # If any multiline argument gets mixed with any other argument (which is true if we've
-        # arrived in this function) then we just quote it. This assumes something like:
-        # ['python', '-c', 'a\nmultiline\nprogram\n']
-        # It may make sense to allow specifying a replacement character for '\n' too? e.g. ';'
-        quoted = []
-        # This could all be replaced with some regex wizardry but that is less readable and
-        # for code like this, readability is very important.
-        for arg in arguments:
-            if '"' in arg:
-                quote = "'"
-            elif "'" in arg:
-                quote = '"'
-            elif not any(_ in arg for _ in (' ', '\n')):
-                quote = ''
-            else:
-                quote = '"'
-            quoted.append(quote + arg + quote)
-        return ' '.join(quoted)
+def quote_for_shell(*arguments):
+    """Properly quote arguments for command line passing.
+
+    For POSIX uses `shlex.join`, for Windows uses a custom implementation to properly escape
+    metacharacters.
+
+    :param arguments: Arguments to quote.
+    :type arguments: list of str
+    :return: Quoted arguments.
+    :rtype: str
+    """
+    # [backport] Support passing in a list of strings or args of string.
+    if len(arguments) == 1 and isiterable(arguments[0]):
+        arguments = arguments[0]
+
+    return _args_join(arguments)
+
+
+if on_win:
+    # https://ss64.com/nt/syntax-esc.html
+    # https://docs.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
+
+    _RE_UNSAFE = re.compile(r'["%\s^<>&|]')
+    _RE_DBL = re.compile(r'(["%])')
+
+    def _args_join(args):
+        """Return a shell-escaped string from *args*."""
+
+        def quote(s):
+            # derived from shlex.quote
+            if not s:
+                return '""'
+            # if any unsafe chars are present we must quote
+            if not _RE_UNSAFE.search(s):
+                return s
+            # double escape (" -> "")
+            s = _RE_DBL.sub(r"\1\1", s)
+            # quote entire string
+            return f'"{s}"'
+
+        return " ".join(quote(arg) for arg in args)
+else:
+    try:
+        from shlex import join as _args_join
+    except ImportError:
+        # [backport] Python <3.8
+        def _args_join(args):
+            """Return a shell-escaped string from *args*."""
+            from shlex import quote
+
+            return " ".join(quote(arg) for arg in args)
 
 
 # Ensures arguments are a tuple or a list. Strings are converted
@@ -302,7 +328,7 @@ def massage_arguments(arguments, errors='assert'):
     #    if not isinstance(arguments, list):
     #        arguments = list(map(escape_for_winpath, arguments))
 
-    if isinstance(arguments, string_types):
+    if isinstance(arguments, str):
         if errors == 'assert':
             # This should be something like 'conda programming bug', it is an assert
             assert False, 'Please ensure arguments are not strings'
@@ -320,17 +346,24 @@ def massage_arguments(arguments, errors='assert'):
     return arguments
 
 
-def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments):
-    if on_win:
-        ensure_comspec_set()
+def wrap_subprocess_call(
+        root_prefix,
+        prefix,
+        dev_mode,
+        debug_wrapper_scripts,
+        arguments,
+        use_system_tmp_path=False):
     arguments = massage_arguments(arguments)
-    tmp_prefix = abspath(join(prefix, '.tmp'))
+    if not use_system_tmp_path:
+        tmp_prefix = abspath(join(prefix, '.tmp'))
+    else:
+        tmp_prefix = None
     script_caller = None
     multiline = False
     if len(arguments) == 1 and '\n' in arguments[0]:
         multiline = True
     if on_win:
-        comspec = environ[str('COMSPEC')]
+        comspec = get_comspec()  # fail early with KeyError if undefined
         if dev_mode:
             from conda import CONDA_PACKAGE_ROOT
             conda_bat = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
@@ -346,12 +379,12 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             fh.write('{}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'.format(silencer))  # NOQA
             fh.write("{}chcp 65001 > NUL\n".format(silencer))
             if dev_mode:
-                from conda.core.initialize import CONDA_PACKAGE_ROOT
+                from . import CONDA_SOURCE_ROOT
                 fh.write("{}SET CONDA_DEV=1\n".format(silencer))
                 # In dev mode, conda is really:
                 # 'python -m conda'
                 # *with* PYTHONPATH set.
-                fh.write("{}SET PYTHONPATH={}\n".format(silencer, dirname(CONDA_PACKAGE_ROOT)))
+                fh.write("{}SET PYTHONPATH={}\n".format(silencer, CONDA_SOURCE_ROOT))
                 fh.write("{}SET CONDA_EXE={}\n".format(silencer, sys.executable))
                 fh.write("{}SET _CE_M=-m\n".format(silencer))
                 fh.write("{}SET _CE_CONDA=conda\n".format(silencer))
@@ -372,16 +405,17 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
                 # it needs doing for each line and the caller may as well do that.
                 fh.write("{0}\n".format(arguments[0]))
             else:
-                assert not any('\n' in arg for arg in arguments), \
-                    "Support for scripts where arguments contain newlines not implemented.\n"     \
-                    ".. requires writing the script to an external file and knowing how to "      \
-                    "transform the command-line (e.g. `python -c args` => `python file`) "        \
-                    "in a tool dependent way, or attempting something like:\n"                    \
-                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"         \
+                assert not any("\n" in arg for arg in arguments), (
+                    "Support for scripts where arguments contain newlines not implemented.\n"
+                    ".. requires writing the script to an external file and knowing how to "
+                    "transform the command-line (e.g. `python -c args` => `python file`) "
+                    "in a tool dependent way, or attempting something like:\n"
+                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
                     "requirements)"
-                fh.write("{0}{1}\n".format(silencer, quote_for_shell(arguments)))
+                )
+                fh.write("{0}{1}\n".format(silencer, quote_for_shell(*arguments)))
             fh.write("{}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n".format(silencer))
-            fh.write('{}chcp %_CONDA_OLD_CHCP%>NUL\n'.format(silencer))
+            fh.write("{}chcp %_CONDA_OLD_CHCP%>NUL\n".format(silencer))
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
     else:
@@ -402,26 +436,23 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
             dev_args = []
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
             if dev_mode:
-                from conda.core.initialize import CONDA_PACKAGE_ROOT
-                fh.write(">&2 export PYTHONPATH=" + dirname(CONDA_PACKAGE_ROOT) + "\n")
-            hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook'] + dev_args)
+                from . import CONDA_SOURCE_ROOT
+
+                fh.write(">&2 export PYTHONPATH=" + CONDA_SOURCE_ROOT + "\n")
+            hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
             if debug_wrapper_scripts:
-                fh.write(">&2 echo '*** environment before ***'\n"
-                         ">&2 env\n")
-                fh.write(">&2 echo \"$({0})\"\n"
-                         .format(hook_quoted))
-            fh.write("eval \"$({0})\"\n"
-                     .format(hook_quoted))
-            fh.write("conda activate {0} {1}\n".format(dev_arg, quote_for_shell((prefix,))))
+                fh.write(">&2 echo '*** environment before ***'\n" ">&2 env\n")
+                fh.write('>&2 echo "$({0})"\n'.format(hook_quoted))
+            fh.write('eval "$({0})"\n'.format(hook_quoted))
+            fh.write("conda activate {0} {1}\n".format(dev_arg, quote_for_shell(prefix)))
             if debug_wrapper_scripts:
-                fh.write(">&2 echo '*** environment after ***'\n"
-                         ">&2 env\n")
+                fh.write(">&2 echo '*** environment after ***'\n" ">&2 env\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
-                fh.write("{0}\n".format(' '.join(arguments)))
+                fh.write("{0}\n".format(" ".join(arguments)))
             else:
-                fh.write("{0}\n".format(quote_for_shell(arguments)))
+                fh.write("{0}\n".format(quote_for_shell(*arguments)))
             script_caller = fh.name
         if debug_wrapper_scripts:
             command_args = [shell_path, "-x", script_caller]
@@ -431,13 +462,27 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
     return script_caller, command_args
 
 
-def ensure_comspec_set():
+def get_comspec():
+    """Returns COMSPEC from envvars.
+
+    Ensures COMSPEC envvar is set to cmd.exe, if not attempt to find it.
+
+    :raises KeyError: COMSPEC is undefined and cannot be found.
+    :returns: COMSPEC value.
+    :rtype: str
+    """
     if basename(environ.get("COMSPEC", "")).lower() != "cmd.exe":
-        cmd_exe = join(environ.get('SystemRoot'), 'System32', 'cmd.exe')
-        if not isfile(cmd_exe):
-            cmd_exe = join(environ.get('windir'), 'System32', 'cmd.exe')
-        if not isfile(cmd_exe):
-            log.warn("cmd.exe could not be found. "
-                     "Looked in SystemRoot and windir env vars.\n")
+        for comspec in (
+            # %SystemRoot%\System32\cmd.exe
+            environ.get("SystemRoot") and join(environ["SystemRoot"], "System32", "cmd.exe"),
+            # %windir%\System32\cmd.exe
+            environ.get("windir") and join(environ["windir"], "System32", "cmd.exe"),
+        ):
+            if comspec and isfile(comspec):
+                environ["COMSPEC"] = comspec
+                break
         else:
-            environ['COMSPEC'] = cmd_exe
+            log.warn("cmd.exe could not be found. Looked in SystemRoot and windir env vars.\n")
+
+    # fails with KeyError if still undefined
+    return environ["COMSPEC"]

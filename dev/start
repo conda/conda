@@ -1,44 +1,234 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # NOTE: This script should be sourced! The shebang is only here to help syntax highlighters.
 
-# # conda-build
-# pip install --no-deps -U .
+if ! (return 0 2> /dev/null); then
+    echo "ERROR: Source this script: source '$0'." >&2
+    exit 1
+fi
 
-devenv="${1:-./devenv}"
-pyver="${2:-3}"
-_CONDA="$devenv/bin/conda"
+cleanup() {
+    unset _AUTOBASE
+    unset _BASEEXE
+    unset _CMD
+    unset _DEVENV
+    unset _DRYRUN
+    unset _ENV
+    unset _ENVEXE
+    unset _EXPORTED
+    unset _NAME
+    unset _PYTHON
+    unset _PYTHONEXE
+    unset _SRC
+    unset _UPDATE
+    unset _UPDATED
+}
+updating() {
+    # check if explicitly updating or if 24 hrs since last update
+    [ ${_UPDATE} = 0 ] && return 0
+    [ -f "${_UPDATED}" ] || return 0
+    return $(( $(( $(date +%s) - $(date -r "${_UPDATED}" +%s) )) < 86400 ))
+}
 
-if ! [ -f "$devenv/conda-meta/history" ]; then
-    if [ "$(uname)" = Darwin ]; then
-        if [ ! -f miniconda${pyver}.sh ]; then
-            curl https://repo.anaconda.com/miniconda/Miniconda${pyver}-latest-MacOSX-x86_64.sh -o miniconda${pyver}.sh
+cleanup
+
+# parse args
+while [ $# -gt 0 ]; do
+    case $1 in
+        -p|--python)
+            _PYTHON="$2"
+            shift
+            shift
+            ;;
+        --python=*)
+            _PYTHON="${1#*=}"
+            shift
+            ;;
+        -u|--update)
+            _UPDATE=0
+            shift
+            ;;
+        -d|--devenv)
+            _DEVENV="$2"
+            shift
+            shift
+            ;;
+        --devenv=*)
+            _DEVENV="${1#*=}"
+            shift
+            ;;
+        -n|--dry-run)
+            _DRYRUN=0
+            shift
+            ;;
+        -h|--help)
+            # since zsh is MacOS standard fallback to $0 if not in bash
+            echo "Usage: source ${BASH_SOURCE:-$0} [options]"
+            echo ""
+            echo "Options:"
+            echo "  -p, --python  VERSION  Python version for the env to activate. (default: 3.8)"
+            echo "  -u, --update           Force update packages. (default: update every 24 hours)"
+            echo "  -d, --devenv  PATH     Path to base env install, can also be defined in ~/.condarc."
+            echo "                         Path is appended with $(uname). (default: devenv)"
+            echo "  -n, --dry-run          Display env to activate. (default: false)"
+            echo "  -h, --help             Display this."
+            return 0
+            ;;
+        *)
+            echo "Error: unknown option $1" >&2
+            return 1
+            ;;
+    esac
+done
+
+# fallback to default values
+_PYTHON="${_PYTHON:-3.8}"
+_UPDATE="${_UPDATE:-1}"
+_DRYRUN="${_DRYRUN:-1}"
+
+# get source path
+# since zsh is MacOS standard fallback to $0 if not in bash
+_SRC="$(cd "$(dirname "$(dirname "${BASH_SOURCE:-$0}")")" 2>&1 > /dev/null; pwd -P)"
+
+# read devenv key from ~/.condarc
+if [ -f ~/.condarc ]; then
+    _DEVENV="${_DEVENV:-$(grep "^devenv:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
+fi
+# fallback to devenv in source default
+_DEVENV="${_DEVENV:-${_SRC}/devenv}"
+# tilde expansion
+_DEVENV="${_DEVENV/#\~/${HOME}}"
+# include OS
+_DEVENV="${_DEVENV}/$(uname)"
+# ensure exists and absolute path
+if [ ${_DRYRUN} = 1 ]; then
+    mkdir -p "${_DEVENV}"
+    _DEVENV="$( cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
+fi
+
+# other environment values
+_NAME="devenv-${_PYTHON}-c"
+_ENV="${_DEVENV}/envs/${_NAME}"
+_UPDATED="${_ENV}/.devenv-updated"
+case "$(uname)" in
+    Darwin|Linux) _BASEEXE="${_DEVENV}/bin/conda" ; _ENVEXE="${_ENV}/bin/conda" ; _PYTHONEXE="${_ENV}/bin/python" ;;
+               *) _BASEEXE="${_DEVENV}/Scripts/conda.exe" ; _ENVEXE="${_ENV}/Scripts/conda.exe" ; _PYTHONEXE="${_ENV}/Scripts/python.exe" ;;
+esac
+
+# dryrun printout
+if [ ${_DRYRUN} = 0 ]; then
+    echo "Python: ${_PYTHON}"
+    echo "Updating: $(updating && echo "[yes]" || echo "[no]")"
+    echo "Devenv: ${_DEVENV} $([ -e "${_DEVENV}" ] && echo "[exists]" || echo "[pending]")"
+    echo ""
+    echo "Name: ${_NAME}"
+    echo "Path: ${_ENV} $([ -e "${_ENV}" ] && echo "[exists]" || echo "[pending]")"
+    echo ""
+    echo "Source: ${_SRC}"
+    return 0
+fi
+
+# deactivate any prior envs
+if ! [ ${CONDA_SHLVL:-0} = 0 ]; then
+    echo "Deactivating ${CONDA_SHLVL} environment(s)..."
+    while ! [ ${CONDA_SHLVL:-0} = 0 ]; do
+        if ! conda deactivate; then
+            echo "Error: failed to deactivate environment(s)" 1>&2
+            return 1
         fi
-        bash miniconda${pyver}.sh -bfp "$devenv"
-        "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults
-    elif [ "$(uname)" = Linux ]; then
-        if [ ! -f miniconda${pyver}.sh ]; then
-            curl https://repo.anaconda.com/miniconda/Miniconda${pyver}-latest-Linux-x86_64.sh -o miniconda${pyver}.sh
-        fi
-        bash miniconda${pyver}.sh -bfp "$devenv"
-        "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults
-        "${_CONDA}" install -yq -p $devenv patchelf  # for conda-build
+    done
+fi
+
+# does miniconda install exist?
+if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
+    # downloading miniconda
+    if [ "$(uname)" = "Darwin" ]; then
+        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh" -o "${_DEVENV}/miniconda.sh"'
+    elif [ "$(uname)" = "Linux" ]; then
+        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -o "${_DEVENV}/miniconda.sh"'
     else
-        if [ ! -f miniconda${pyver}.exe ]; then
-            powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('https://repo.anaconda.com/miniconda/Miniconda$pyver-latest-Windows-x86_64.exe','miniconda${pyver}.exe')"
+        [ -f "${_DEVENV}/miniconda.exe" ] || _CMD='powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_DEVENV}/miniconda.exe' | Out-Null"'
+    fi
+    if [ ${_CMD:+0} = 0 ]; then
+        echo "Downloading miniconda..."
+        eval ${_CMD}
+        if ! [ $? = 0 ]; then
+            echo "Error: failed to download miniconda" 1>&2
+            return 1
         fi
-        cmd.exe /c "start /wait \"\" miniconda${pyver}.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%CD%\$(cygpath -w $devenv)"
-        _CONDA="$devenv/Scripts/conda"
+    fi
+
+    # installing miniconda
+    echo "Installing development environment..."
+    case "$(uname)" in
+        Darwin|Linux) bash "${_DEVENV}/miniconda.sh" -bfp "${_DEVENV}" > /dev/null ;;
+                   *) cmd.exe /c "start /wait \"\" \"${_DEVENV}\miniconda.exe\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
+    esac
+    if ! [ $? = 0 ]; then
+        echo "Error: failed to install development environment" 1>&2
+        return 1
     fi
 fi
 
-
-if ! [ -f "$devenv/.dev-start-ed" ]; then
-  "${_CONDA}" install -yq -p $devenv python=$pyver --file dev/test-requirements.txt -c defaults
-  touch "$devenv/.dev-start-ed"
+# create empty env if it doesn't exist
+if ! [ -d "${_ENV}" ]; then
+    echo "Creating ${_NAME}..."
+    if ! "${_BASEEXE}" create -yq --prefix "${_ENV}" > /dev/null; then
+        echo "Error: failed to create ${_NAME}" 1>&2
+        return 1
+    fi
 fi
 
+# check if explicitly updating or if 24 hrs since last update
+if updating; then
+    echo "Updating ${_NAME}..."
 
-case "$(uname)" in
-    Darwin|Linux)  eval "$($devenv/bin/python -m conda init --dev bash)" ;;
-               *)  eval "$($devenv/python -m conda init --dev bash)" ;;
-esac
+    if ! "${_BASEEXE}" update -yq --all > /dev/null; then
+        echo "Error: failed to update development environment" 1>&2
+        return 1
+    fi
+
+    if ! "${_BASEEXE}" install \
+        -yq \
+        --prefix "${_ENV}" \
+        --override-channels \
+        -c defaults \
+        --file "${_SRC}/tests/requirements.txt" \
+        $([ "$(uname)" = "Linux" ] && echo "patchelf") \
+        "python=${_PYTHON}" > /dev/null; then
+        echo "Error: failed to update ${_NAME}" 1>&2
+        return 1
+    fi
+
+    # update timestamp
+    touch "${_UPDATED}"
+fi
+
+# initialize conda command
+echo "Initializing shell integration..."
+_AUTOBASE="${CONDA_AUTO_ACTIVATE_BASE:-undefined}"
+_EXPORTED="$(export -p | grep CONDA_AUTO_ACTIVATE_BASE)"
+export CONDA_AUTO_ACTIVATE_BASE=false
+eval "$(cd "${_SRC}" ; "${_ENVEXE}" init --dev bash)" > /dev/null
+if [ "${_AUTOBASE}" = "undefined" ]; then
+    unset CONDA_AUTO_ACTIVATE_BASE
+elif [ -n ${_EXPORTED+x} ]; then
+    export CONDA_AUTO_ACTIVATE_BASE="${_AUTOBASE}"
+else
+    CONDA_AUTO_ACTIVATE_BASE="${_AUTOBASE}"
+fi
+if ! [ $? = 0 ]; then
+    echo "Error: failed to initialize shell integration" 1>&2
+    return 1
+fi
+
+# activate env
+echo "Activating ${_NAME}..."
+if ! conda activate "${_ENV}" > /dev/null; then
+    echo "Error: failed to activate ${_NAME}" 1>&2
+    return 1
+fi
+export PYTHONPATH="${_SRC}:${PYTHONPATH}"
+
+cleanup
+unset -f cleanup
+unset -f updating

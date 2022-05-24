@@ -8,25 +8,16 @@ import logging  # lgtm [py/import-and-import-from]
 from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 import re
 import sys
+from datetime import datetime
 
 from .. import CondaError
-from .._vendor.auxlib.decorators import memoize
-from ..common.io import attach_stderr_handler
-from ..common.compat import string_types
+from ..auxlib.decorators import memoize
+from ..common.io import attach_stderr_handler, _FORMATTER
 
 log = getLogger(__name__)
 TRACE = 5  # TRACE LOG LEVEL
 VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
 
-if sys.version_info[0] == 2:
-    def another_to_unicode(val):
-        # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
-        if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
-            return unicode(val, encoding='utf-8')  # NOQA
-        return val
-else:
-    def another_to_unicode(val):
-        return val
 
 class TokenURLFilter(Filter):
     TOKEN_URL_PATTERN = re.compile(
@@ -52,10 +43,10 @@ class TokenURLFilter(Filter):
         not happening until now.
         '''
 
-        record.msg = another_to_unicode(self.TOKEN_REPLACE(record.msg))
+        record.msg = self.TOKEN_REPLACE(record.msg)
         if record.args:
-            new_args = tuple(self.TOKEN_REPLACE(another_to_unicode(arg))
-                             if isinstance(arg, string_types) else arg
+            new_args = tuple(self.TOKEN_REPLACE(arg)
+                             if isinstance(arg, str) else arg
                              for arg in record.args)
             record.msg = record.msg % new_args
             record.args = None
@@ -203,23 +194,37 @@ def initialize_std_loggers():
 
 
 def initialize_root_logger(level=ERROR):
-    attach_stderr_handler(level)
+    attach_stderr_handler(level=level)
 
 
 def set_conda_log_level(level=WARN):
-    conda_logger = getLogger('conda')
-    conda_logger.setLevel(level)
-    conda_logger.propagate = True  # let root logger's handler format/output message
+    conda_logger = getLogger("conda")
+    conda_logger.setLevel(logging.NOTSET)
+    attach_stderr_handler(level=level, logger_name="conda")
+    conda_logger.propagate = False
 
 
 def set_all_logger_level(level=DEBUG):
     formatter = Formatter("%(message)s\n") if level >= INFO else None
     attach_stderr_handler(level, formatter=formatter)
-    set_conda_log_level(level)  # only set level and use root's handler/formatter
+    set_conda_log_level(level)
     # 'requests' loggers get their own handlers so that they always output messages in long format
     # regardless of the level.
     attach_stderr_handler(level, 'requests')
     attach_stderr_handler(level, 'requests.packages.urllib3')
+
+
+@memoize
+def set_file_logging(logger_name=None, level=DEBUG, path=None):
+    if path is None:
+        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        path = f".conda.{timestamp}.log"
+
+    conda_logger = getLogger(logger_name)
+    handler = logging.FileHandler(path)
+    handler.setFormatter(_FORMATTER)
+    handler.setLevel(level)
+    conda_logger.addHandler(handler)
 
 
 def set_verbosity(verbosity_level):

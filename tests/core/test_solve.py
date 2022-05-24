@@ -1,152 +1,36 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from contextlib import contextmanager
-import os
 from pprint import pprint
 import platform
 import sys
-from textwrap import dedent
 import copy
-from unittest import TestCase
-
-from os.path import join, abspath, dirname
 
 import pytest
 
-from conda._vendor.auxlib.ish import dals
-from conda.base.context import context, Context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.io import env_var, env_vars, stderr_log_level, captured
-from conda.core.prefix_data import PrefixData
-from conda.core.solve import DepsModifier, Solver, UpdateModifier, Resolve
-from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError, ResolvePackageNotFound
-from conda.gateways.disk.create import TemporaryDirectory
-from conda.history import History
+from conda.auxlib.ish import dals
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.common.compat import on_linux
+from conda.common.io import env_var, env_vars
+from conda.core.solve import DepsModifier, _get_solver_class, UpdateModifier
+from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
 from conda.resolve import MatchSpec
-from ..helpers import add_subdir_to_iter, get_index_r_1, get_index_r_2, get_index_r_4, \
-    get_index_r_5, get_index_cuda, get_index_must_unfreeze
-
-from conda.common.compat import iteritems, on_win
+from conda.testing.helpers import add_subdir_to_iter, get_solver, get_solver_2, get_solver_4, \
+    get_solver_aggregate_1, get_solver_aggregate_2, get_solver_cuda, get_solver_must_unfreeze, \
+    convert_to_dist_str, CHANNEL_DIR
 
 try:
     from unittest.mock import Mock, patch
 except ImportError:
     from mock import Mock, patch
 
-CHANNEL_DIR = abspath(join(dirname(__file__), '..', 'data', 'conda_format_repo'))
-
-
-@contextmanager
-def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_1(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-2'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_4(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-4'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_5(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-5'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_aggregate_1(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    get_index_r_4(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-2'), Channel('channel-4'), ),
-                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_aggregate_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    get_index_r_4(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-4'), Channel('channel-2')),
-                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_must_unfreeze(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_must_unfreeze(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-freeze'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
-def get_solver_cuda(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_cuda(context.subdir)
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(tmpdir, (Channel('channel-1'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-def convert_to_dist_str(solution):
-    return tuple(prec.dist_str() for prec in solution)
+Solver = _get_solver_class()
 
 
 def test_solve_1(tmpdir):
@@ -236,6 +120,39 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
+def test_virtual_package_solver(tmpdir):
+    specs = MatchSpec("cudatoolkit"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            _ = solver.solve_final_state()
+            ssc = solver.ssc
+            # Check the cuda virtual package is included in the solver
+            assert '__cuda' in ssc.specs_map.keys()
+
+            # Check that the environment is consistent after installing a
+            # package which *depends* on a virtual package
+            for pkgs in ssc.solution_precs:
+                if pkgs.name == 'cudatoolkit':
+                    # make sure this package depends on the __cuda virtual
+                    # package as a dependency since this is requirement of the
+                    # test the test
+                    assert '__cuda' in pkgs.depends[0]
+            assert ssc.r.bad_installed(ssc.solution_precs, ())[1] is None
+
+
+def test_solve_msgs_exclude_vp(tmpdir):
+    # Sovler hints should exclude virtual packages that are not dependencies
+    specs = MatchSpec("python =2.7.5"), MatchSpec("readline =5.0"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            with pytest.raises(UnsatisfiableError) as exc:
+                final_state = solver.solve_final_state()
+
+    assert "__cuda==10.0" not in str(exc.value).strip()
+
+
 def test_cuda_1(tmpdir):
     specs = MatchSpec("cudatoolkit"),
 
@@ -282,13 +199,13 @@ def test_cuda_fail_1(tmpdir):
             plat = "win-64"
     else:
         plat = "linux-64"
-    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
+
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
   - feature:/{}::__cuda==8.0=0
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed CUDA driver is: 8.0""".format(plat))
-
+Your installed version is: 8.0""".format(plat))
 
 
 def test_cuda_fail_2(tmpdir):
@@ -299,11 +216,101 @@ def test_cuda_fail_2(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
-    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your CUDA driver:
+
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed CUDA driver is: not available""")
+Your installed version is: not available""")
+
+
+def test_cuda_constrain_absent(tmpdir):
+    specs = MatchSpec("cuda-constrain"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', ''):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            final_state = solver.solve_final_state()
+            # print(convert_to_dist_str(final_state))
+            order = add_subdir_to_iter((
+                'channel-1::cuda-constrain-11.0-0',
+            ))
+            assert convert_to_dist_str(final_state) == order
+
+
+@pytest.mark.skip(reason="known broken; fix to be implemented")
+def test_cuda_constrain_sat(tmpdir):
+    specs = MatchSpec("cuda-constrain"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            final_state = solver.solve_final_state()
+            # print(convert_to_dist_str(final_state))
+            order = add_subdir_to_iter((
+                'channel-1::cuda-constrain-10.0-0',
+            ))
+            assert convert_to_dist_str(final_state) == order
+
+
+@pytest.mark.skip(reason="known broken; fix to be implemented")
+def test_cuda_constrain_unsat(tmpdir):
+    specs = MatchSpec("cuda-constrain"),
+
+    # No cudatoolkit in index for CUDA 8.0
+    with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            with pytest.raises(UnsatisfiableError) as exc:
+                final_state = solver.solve_final_state()
+
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
+
+  - feature:|@/{}::__cuda==8.0=0
+  - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
+
+Your installed version is: 8.0""".format(context.subdir))
+
+
+@pytest.mark.skipif(not on_linux, reason="linux-only test")
+def test_cuda_glibc_sat(tmpdir):
+    specs = MatchSpec("cuda-glibc"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            final_state = solver.solve_final_state()
+            # print(convert_to_dist_str(final_state))
+            order = add_subdir_to_iter((
+                'channel-1::cuda-glibc-10.0-0',
+            ))
+            assert convert_to_dist_str(final_state) == order
+
+
+@pytest.mark.skip(reason="known broken; fix to be implemented")
+@pytest.mark.skipif(not on_linux, reason="linux-only test")
+def test_cuda_glibc_unsat_depend(tmpdir):
+    specs = MatchSpec("cuda-glibc"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '8.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            with pytest.raises(UnsatisfiableError) as exc:
+                final_state = solver.solve_final_state()
+
+    assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
+
+  - feature:|@/{}::__cuda==8.0=0
+  - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
+
+Your installed version is: 8.0""".format(context.subdir))
+
+
+@pytest.mark.skip(reason="known broken; fix to be implemented")
+@pytest.mark.skipif(not on_linux, reason="linux-only test")
+def test_cuda_glibc_unsat_constrain(tmpdir):
+    specs = MatchSpec("cuda-glibc"),
+
+    with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.12'):
+        with get_solver_cuda(tmpdir, specs) as solver:
+            with pytest.raises(UnsatisfiableError) as exc:
+                final_state = solver.solve_final_state()
+
 
 def test_prune_1(tmpdir):
     specs = MatchSpec("numpy=1.6"), MatchSpec("python=2.7.3"), MatchSpec("accelerate"),
@@ -368,7 +375,7 @@ def test_prune_1(tmpdir):
 
 
 def test_force_remove_1(tmpdir):
-    specs = MatchSpec("numpy[build=*py27*]"),
+    specs = MatchSpec("numpy[version=*,build=*py27*]"),
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
@@ -494,7 +501,7 @@ def test_no_deps_1(tmpdir):
 
 
 def test_only_deps_1(tmpdir):
-    specs = MatchSpec("numba[build=*py27*]"),
+    specs = MatchSpec("numba[version=*,build=*py27*]"),
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_1, specs).open_url()
@@ -585,7 +592,7 @@ def test_only_deps_2(tmpdir):
 
 
 def test_update_all_1(tmpdir):
-    specs = MatchSpec("numpy=1.5"), MatchSpec("python=2.6"), MatchSpec("system[build_number=0]")
+    specs = MatchSpec("numpy=1.5"), MatchSpec("python=2.6"), MatchSpec("system[version=*,build_number=0]")
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
@@ -2162,7 +2169,7 @@ def test_freeze_deps_1(tmpdir):
 #         reset_context()
 
 #     def tearDown(self):
-#         for key, value in iteritems(self.saved_values):
+#         for key, value in self.saved_values.items():
 #             if value is not None:
 #                 os.environ[key] = value
 #             else:
@@ -2216,8 +2223,10 @@ def test_freeze_deps_1(tmpdir):
 def test_current_repodata_usage(tmpdir):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        solver = Solver(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
-                        specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json')
+        solver = _get_solver_class()(
+            tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
+            specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json'
+        )
         final_state = solver.solve_final_state()
         # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
         assert final_state
@@ -2232,8 +2241,10 @@ def test_current_repodata_usage(tmpdir):
 
 
 def test_current_repodata_fallback(tmpdir):
-    solver = Solver(tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
-                    specs_to_add=[MatchSpec('zlib=1.2.8')])
+    solver = _get_solver_class()(
+        tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
+        specs_to_add=[MatchSpec('zlib=1.2.8')]
+    )
     final_state = solver.solve_final_state()
     # zlib 1.2.11, zlib 1.2.8, vc 14.1, vs2015_runtime, virtual package for vc track_feature
     assert final_state
@@ -2306,8 +2317,8 @@ def test_packages_in_solution_change_already_newest(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[specs])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
 
@@ -2316,8 +2327,8 @@ def test_packages_in_solution_change_needs_update(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[specs])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
 
@@ -2326,8 +2337,8 @@ def test_packages_in_solution_change_constrained(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[specs])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 1
 
@@ -2346,8 +2357,8 @@ def test_determine_constricting_specs_conflicts(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[spec])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
 
@@ -2366,8 +2377,8 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[spec])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
 
@@ -2391,8 +2402,8 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[spec])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
     assert any(i for i in constricting if i[0] == "notmypkg")
@@ -2412,8 +2423,8 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[spec])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
@@ -2432,8 +2443,8 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[spec])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
@@ -2447,8 +2458,8 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[spec])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 
@@ -2467,8 +2478,8 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = Solver(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
-                    specs_to_add=[spec])
+    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+                                 specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
 

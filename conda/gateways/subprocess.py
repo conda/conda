@@ -7,16 +7,15 @@ from collections import namedtuple
 from logging import getLogger
 import os
 from os.path import abspath
-from conda._vendor.auxlib.compat import shlex_split_unicode
+from conda.auxlib.compat import shlex_split_unicode
 import sys
 from subprocess import CalledProcessError, PIPE, Popen
 from ..utils import wrap_subprocess_call
 
 from .logging import TRACE
 from .. import ACTIVE_SUBPROCESSES
-from .._vendor.auxlib.ish import dals
-from ..common.compat import (ensure_binary, string_types, encode_arguments,
-                             on_win, encode_environment, isiterable)
+from ..auxlib.ish import dals
+from ..common.compat import encode_arguments, encode_environment, isiterable
 from ..gateways.disk.delete import rm_rf
 from ..base.context import context
 
@@ -38,11 +37,20 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
 
 def any_subprocess(args, prefix, env=None, cwd=None):
     script_caller, command_args = wrap_subprocess_call(
-        on_win, context.root_prefix, prefix, context.dev, context.verbosity >= 2, args)
-    process = Popen(command_args,
-                    cwd=cwd or prefix,
-                    universal_newlines=False,
-                    stdout=PIPE, stderr=PIPE, env=env)
+        context.root_prefix,
+        prefix,
+        context.dev,
+        context.verbosity >= 2,
+        args,
+    )
+    process = Popen(
+        command_args,
+        cwd=cwd or prefix,
+        universal_newlines=False,
+        stdout=PIPE,
+        stderr=PIPE,
+        env=env,
+    )
     stdout, stderr = process.communicate()
     if script_caller is not None:
         if 'CONDA_TEST_SAVE_TEMPS' not in os.environ:
@@ -57,7 +65,8 @@ def any_subprocess(args, prefix, env=None, cwd=None):
     return stdout, stderr, process.returncode
 
 
-def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True):
+def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True,
+                    capture_output=True):
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """
@@ -65,18 +74,37 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     cwd = sys.prefix if path is None else abspath(path)
     if not isiterable(command):
         command = shlex_split_unicode(command)
-    command_str = command if isinstance(command, string_types) else ' '.join(command)
+    command_str = command if isinstance(command, str) else ' '.join(command)
     log.debug("executing>> %s", command_str)
-    p = Popen(encode_arguments(command), cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
-    ACTIVE_SUBPROCESSES.add(p)
-    stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
-    stdout, stderr = p.communicate(input=stdin)
+
+    pipe = None
+    if capture_output:
+        pipe = PIPE
+    elif stdin:
+        raise ValueError("When passing stdin, output needs to be captured")
+    else:
+        stdin = None
+
+    # spawn subprocess
+    process = Popen(
+        encode_arguments(command),
+        cwd=cwd,
+        stdin=pipe,
+        stdout=pipe,
+        stderr=pipe,
+        env=env,
+    )
+    ACTIVE_SUBPROCESSES.add(process)
+
+    # decode output, if not PIPE, stdout/stderr will be None
+    stdout, stderr = process.communicate(input=stdin)
     if hasattr(stdout, "decode"):
         stdout = stdout.decode('utf-8', errors='replace')
     if hasattr(stderr, "decode"):
         stderr = stderr.decode('utf-8', errors='replace')
-    rc = p.returncode
-    ACTIVE_SUBPROCESSES.remove(p)
+    rc = process.returncode
+    ACTIVE_SUBPROCESSES.remove(process)
+
     if (raise_on_error and rc != 0) or log.isEnabledFor(TRACE):
         formatted_output = _format_output(command_str, cwd, rc, stdout, stderr)
     if raise_on_error and rc != 0:

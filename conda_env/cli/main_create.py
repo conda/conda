@@ -4,18 +4,20 @@
 from __future__ import print_function
 
 from argparse import RawDescriptionHelpFormatter
+import json
 import os
 import sys
 import textwrap
 
-from conda._vendor.auxlib.path import expand
 from conda.cli import install as cli_install
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, add_parser_networking
-from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
+from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
+    add_parser_prefix, add_parser_networking, add_parser_experimental_solver
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import SpecNotFound
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
-from .common import get_prefix, print_result
-from .. import exceptions, specs
+from .common import get_prefix, print_result, get_filename
+from .. import specs
 from ..installers.base import InvalidInstaller, get_installer
 
 description = """
@@ -68,7 +70,15 @@ def configure_parser(sub_parsers):
         action='store_true',
         default=False,
     )
+    p.add_argument(
+        '-d', '--dry-run',
+        help='Only display what would have been done.',
+        action='store_true',
+        default=False
+    )
+    add_parser_default_packages(p)
     add_parser_json(p)
+    add_parser_experimental_solver(p)
     p.set_defaults(func='.main_create.execute')
 
 
@@ -77,13 +87,7 @@ def execute(args, parser):
     name = args.remote_definition or args.name
 
     try:
-        url_scheme = args.file.split("://", 1)[0]
-        if url_scheme in CONDA_SESSION_SCHEMES:
-            filename = args.file
-        else:
-            filename = expand(args.file)
-
-        spec = specs.detect(name=name, filename=filename, directory=os.getcwd())
+        spec = specs.detect(name=name, filename=get_filename(args.file), directory=os.getcwd())
         env = spec.environment
 
         # FIXME conda code currently requires args to have a name or prefix
@@ -91,7 +95,7 @@ def execute(args, parser):
         if args.prefix is None and args.name is None:
             args.name = env.name
 
-    except exceptions.SpecNotFound:
+    except SpecNotFound:
         raise
 
     prefix = get_prefix(args, search=False)
@@ -105,27 +109,53 @@ def execute(args, parser):
     # channel_urls = args.channel or ()
 
     result = {"conda": None, "pip": None}
-    if len(env.dependencies.items()) == 0:
-        installer_type = "conda"
-        pkg_specs = []
+
+    args_packages = context.create_default_packages if not args.no_default_packages else []
+
+    if args.dry_run:
+        installer_type = 'conda'
         installer = get_installer(installer_type)
-        result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+
+        pkg_specs = env.dependencies.get(installer_type, [])
+        pkg_specs.extend(args_packages)
+
+        solved_env = installer.dry_run(pkg_specs, args, env)
+        if args.json:
+            print(json.dumps(solved_env.to_dict(), indent=2))
+        else:
+            print(solved_env.to_yaml(), end='')
+
     else:
-        for installer_type, pkg_specs in env.dependencies.items():
-            try:
-                installer = get_installer(installer_type)
-                result[installer_type] = installer.install(prefix, pkg_specs, args, env)
-            except InvalidInstaller:
-                sys.stderr.write(textwrap.dedent("""
-                    Unable to install package for {0}.
+        if args_packages:
+            installer_type = "conda"
+            installer = get_installer(installer_type)
+            result[installer_type] = installer.install(prefix, args_packages, args, env)
 
-                    Please double check and ensure your dependencies file has
-                    the correct spelling.  You might also try installing the
-                    conda-env-{0} package to see if provides the required
-                    installer.
-                    """).lstrip().format(installer_type)
-                )
-                return -1
+        if len(env.dependencies.items()) == 0:
+            installer_type = "conda"
+            pkg_specs = []
+            installer = get_installer(installer_type)
+            result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+        else:
+            for installer_type, pkg_specs in env.dependencies.items():
+                try:
+                    installer = get_installer(installer_type)
+                    result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+                except InvalidInstaller:
+                    sys.stderr.write(textwrap.dedent("""
+                        Unable to install package for {0}.
 
-    touch_nonadmin(prefix)
-    print_result(args, prefix, result)
+                        Please double check and ensure your dependencies file has
+                        the correct spelling.  You might also try installing the
+                        conda-env-{0} package to see if provides the required
+                        installer.
+                        """).lstrip().format(installer_type)
+                    )
+                    return -1
+
+        if env.variables:
+            pd = PrefixData(prefix)
+            pd.set_environment_env_vars(env.variables)
+
+        touch_nonadmin(prefix)
+        print_result(args, prefix, result)

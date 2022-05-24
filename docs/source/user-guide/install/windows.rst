@@ -11,7 +11,7 @@ Installing on Windows
      Windows <https://www.anaconda.com/download/>`_.
 
 #. :ref:`Verify your installer hashes <hash-verification>`.
- 
+
 #. Double-click the ``.exe`` file.
 
 #. Follow the instructions on the screen.
@@ -41,11 +41,11 @@ To run the the Windows installer for Miniconda in
 argument. The following optional arguments are supported:
 
 * ``/InstallationType=[JustMe|AllUsers]``---Default is ``JustMe``.
-* ``/AddToPath=[0|1]``---Default is ``1``
+* ``/AddToPath=[0|1]``---Default is ``0``
 * ``/RegisterPython=[0|1]``---Make this the system's default
   Python.
-  ``0`` indicates ``JustMe``, which is the default. ``1``
-  indicates ``AllUsers``.
+  ``0`` indicates Python won't be registered as the system's default. ``1``
+  indicates Python will be registered as the system's default.
 * ``/S``---Install in silent mode.
 * ``/D=<installation path>``---Destination installation path.
   Must be the last argument. Do not wrap in quotation marks.

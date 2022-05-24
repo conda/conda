@@ -12,7 +12,7 @@ number of packages increases.
 How a package is installed
 ==========================
 
-While you are waiting, conda is doing a lot of work installing the 
+While you are waiting, conda is doing a lot of work installing the
 packages. At any point along these steps, performance issues may arise.
 
 Conda follows these steps when installing a package:
@@ -67,6 +67,8 @@ Are you:
 
 Read more about `how we made conda faster <https://www.anaconda.com/how-we-made-conda-faster-4-7/>`_.
 
+.. _concepts-performance-channel-priority:
+
 Set strict channel priority
 ---------------------------
 
@@ -91,7 +93,7 @@ Reduce the index
 One option for speeding up conda is to reduce the index. The index is
 reduced by conda based upon the user's input specs. It's likely that
 your repodata contains package data that is not used in the solving stage.
-Filtering out these unnecessary packages before solving can save time. 
+Filtering out these unnecessary packages before solving can save time.
 
 Making your input specifications more specific improves
 the effectiveness of the index reduction and, thus, speeds up the

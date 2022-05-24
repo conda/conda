@@ -3,19 +3,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from fnmatch import filter as fnmatch_filter
-from logging import getLogger
-from os import listdir
-from os.path import basename, isdir, isfile, join, lexists
-import re
 from collections import OrderedDict
 import json
+from logging import getLogger
+import os
+from os.path import basename, isdir, isfile, join, lexists
+import re
 
 from ..base.constants import PREFIX_STATE_FILE
-from .._vendor.auxlib.exceptions import ValidationError
+from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import JSONDecodeError, itervalues, odict, string_types, with_metaclass
+from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -50,12 +49,11 @@ class PrefixDataType(type):
             return prefix_data_instance
 
 
-@with_metaclass(PrefixDataType)
-class PrefixData(object):
+class PrefixData(metaclass=PrefixDataType):
     _cache_ = {}
 
     def __init__(self, prefix_path, pip_interop_enabled=None):
-        # pip_interop_enabled is a temporary paramater; DO NOT USE
+        # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = prefix_path
         self.__prefix_records = None
@@ -69,8 +67,13 @@ class PrefixData(object):
         self.__prefix_records = {}
         _conda_meta_dir = join(self.prefix_path, 'conda-meta')
         if lexists(_conda_meta_dir):
-            for meta_file in fnmatch_filter(listdir(_conda_meta_dir), '*.json'):
-                self._load_single_record(join(_conda_meta_dir, meta_file))
+            conda_meta_json_paths = (
+                p for p in
+                (entry.path for entry in os.scandir(_conda_meta_dir))
+                if p[-5:] == ".json"
+            )
+            for meta_file in conda_meta_json_paths:
+                self._load_single_record(meta_file)
         if self._pip_interop_enabled:
             self._load_site_packages()
 
@@ -133,7 +136,7 @@ class PrefixData(object):
                 raise
 
     def iter_records(self):
-        return itervalues(self._prefix_records)
+        return iter(self._prefix_records.values())
 
     def iter_records_sorted(self):
         prefix_graph = PrefixGraph(self.iter_records())
@@ -141,7 +144,7 @@ class PrefixData(object):
 
     def all_subdir_urls(self):
         subdir_urls = set()
-        for prefix_record in itervalues(self._prefix_records):
+        for prefix_record in self.iter_records():
             subdir_url = prefix_record.channel.subdir_url
             if subdir_url and subdir_url not in subdir_urls:
                 log.debug("adding subdir url %s for %s", subdir_url, prefix_record)
@@ -151,7 +154,7 @@ class PrefixData(object):
     def query(self, package_ref_or_match_spec):
         # returns a generator
         param = package_ref_or_match_spec
-        if isinstance(param, string_types):
+        if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             return (prefix_rec for prefix_rec in self.iter_records()
@@ -165,11 +168,13 @@ class PrefixData(object):
         return self.__prefix_records or self.load() or self.__prefix_records
 
     def _load_single_record(self, prefix_record_json_path):
-        log.trace("loading prefix record %s", prefix_record_json_path)
+        log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
                 json_data = json_load(fh.read())
-            except JSONDecodeError:
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                # UnicodeDecodeError: catch horribly corrupt files
+                # JSONDecodeError: catch bad json format files
                 raise CorruptedEnvironmentError(self.prefix_path, prefix_record_json_path)
 
             # TODO: consider, at least in memory, storing prefix_record_json_path as part
@@ -208,7 +213,7 @@ class PrefixData(object):
     def _python_pkg_record(self):
         """Return the prefix record for the package python."""
         return next(
-            (prefix_record for prefix_record in itervalues(self.__prefix_records)
+            (prefix_record for prefix_record in self.__prefix_records.values()
              if prefix_record.name == 'python'),
             None
         )
@@ -376,6 +381,8 @@ def get_python_version_for_prefix(prefix):
     next_record = next(py_record_iter, None)
     if next_record is not None:
         raise CondaDependencyError("multiple python records found in prefix %s" % prefix)
+    elif record.version[3].isdigit():
+        return record.version[:4]
     else:
         return record.version[:3]
 

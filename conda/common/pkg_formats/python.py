@@ -4,12 +4,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
+from configparser import ConfigParser
 from csv import reader as csv_reader
 from email.parser import HeaderParser
 from errno import ENOENT
-from fnmatch import filter as fnmatch_filter
+from io import StringIO
 from logging import getLogger
-from os import listdir, name as os_name, strerror
+from os import name as os_name, scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
 import platform
 from posixpath import normpath as posix_normpath
@@ -18,18 +19,13 @@ import sys
 import warnings
 
 from ... import CondaError
-from ..compat import PY2, StringIO, itervalues, odict, open, string_types
+from ..compat import odict, open
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )
-from ..._vendor.auxlib.decorators import memoizedproperty
+from ...auxlib.decorators import memoizedproperty
 from ..._vendor.frozendict import frozendict
 from ..._vendor.toolz import concat, concatv, groupby
-
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
 
 log = getLogger(__name__)
 
@@ -134,7 +130,7 @@ class PythonDistribution(object):
         https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
         """
         requires = odict()
-        lines = [l.strip() for l in data.split('\n') if l]
+        lines = [line.strip() for line in data.split('\n') if line]
 
         if lines and not (lines[0].startswith('[') and lines[0].endswith(']')):
             # Add dummy section for unsectioned items
@@ -265,8 +261,6 @@ class PythonDistribution(object):
                 return tuple(records)
 
             csv_delimiter = ','
-            if PY2:
-                csv_delimiter = csv_delimiter.encode('utf-8')
             with open(manifest_full_path) as csvfile:
                 record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                 # format of each record is (path, checksum, size)
@@ -336,7 +330,7 @@ class PythonDistribution(object):
             "python_version": self.python_version,
         }
         depends.update(
-            pyspec_to_norm_req(pyspec) for pyspec in concat(itervalues(marker_groups))
+            pyspec_to_norm_req(pyspec) for pyspec in concat(marker_groups.values())
             if interpret(pyspec.marker, execution_context)
         )
         constrains = set(pyspec_to_norm_req(pyspec) for pyspec in extras if pyspec.constraints)
@@ -589,7 +583,7 @@ class PythonDistributionMetadata(object):
         """
         Helper method to get multiple data values by keys.
 
-        Keys is an iterable including the prefered key in order, to include
+        Keys is an iterable including the preferred key in order, to include
         values of key that might have been replaced (deprecated), for example
         keys can be ['requires_dist', 'requires'], where the key 'requires' is
         deprecated and replaced by 'requires_dist'.
@@ -874,7 +868,8 @@ def parse_specification(spec):
 def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
     """Get all the anchor files for the site packages directory."""
     site_packages_anchor_files = set()
-    for fname in listdir(site_packages_path):
+    for entry in scandir(site_packages_path):
+        fname = entry.name
         anchor_file = None
         if fname.endswith('.dist-info'):
             anchor_file = "%s/%s/%s" % (site_packages_dir, fname, 'RECORD')
@@ -921,7 +916,11 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
             egg_link_contents = fh.readlines()[0].strip()
 
     if lexists(egg_link_contents):
-        egg_info_fnames = fnmatch_filter(listdir(egg_link_contents), '*.egg-info')
+        egg_info_fnames = tuple(
+            name for name in
+            (entry.name for entry in scandir(egg_link_contents))
+            if name[-9:] == ".egg-info"
+        )
     else:
         egg_info_fnames = ()
 
@@ -1055,14 +1054,14 @@ STRING_CHUNK = re.compile(r'([\s\w\.{}()*+#:;,/?!~`@$%^&=|<>\[\]-]+)')
 
 
 def _is_literal(o):
-    if not isinstance(o, string_types) or not o:
+    if not isinstance(o, str) or not o:
         return False
     return o[0] in '\'"'
 
 
 class Evaluator(object):
     """
-    This class is used to evaluate marker expessions.
+    This class is used to evaluate marker expressions.
     """
 
     operations = {
@@ -1085,7 +1084,7 @@ class Evaluator(object):
         Evaluate a marker expression returned by the :func:`parse_requirement`
         function in the specified context.
         """
-        if isinstance(expr, string_types):
+        if isinstance(expr, str):
             if expr[0] in '\'"':
                 result = expr[1:-1]
             else:

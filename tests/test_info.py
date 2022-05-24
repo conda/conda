@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function
 
 import json
@@ -8,7 +12,7 @@ import sys
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.cli.python_api import Commands, run_command
 from conda.common.io import env_var
-from tests.helpers import assert_equals, assert_in
+from conda.testing.helpers import assert_equals, assert_in
 
 try:
     from unittest.mock import Mock, patch

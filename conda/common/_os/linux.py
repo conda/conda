@@ -5,12 +5,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 from genericpath import exists
-from glob import glob
 from logging import getLogger
+from os import scandir
 import sys
 
-from ..._vendor.auxlib.decorators import memoize
-from ..compat import iteritems
+from ...auxlib.decorators import memoize
 
 
 log = getLogger(__name__)
@@ -34,7 +33,7 @@ def linux_get_libc_version():
                                           ('CS_GNU_LIBPTHREAD_VERSION', 3)])
 
     val = None
-    for k, v in iteritems(confstr_names_fallback):
+    for k, v in confstr_names_fallback.items():
         assert k not in confstr_names or confstr_names[k] == v, (
             "confstr_names_fallback for %s is %s yet in confstr_names it is %s"
             "" % (k, confstr_names_fallback[k], confstr_names[k])
@@ -58,8 +57,7 @@ def linux_get_libc_version():
     # version refers to that of uClibc. readlink() can help to try to
     # figure out a better name instead.
     if family == 'NPTL':  # pragma: no cover
-        clibs = glob('/lib/libc.so*')
-        for clib in clibs:
+        for clib in (entry.path for entry in scandir("/lib") if entry.name[:7] == "libc.so"):
             clib = readlink(clib)
             if exists(clib):
                 if clib.startswith('libuClibc'):

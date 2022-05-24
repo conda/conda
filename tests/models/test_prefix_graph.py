@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from pprint import pprint
 
-from conda._vendor.auxlib.decorators import memoize
+from conda.auxlib.decorators import memoize
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import CyclicalDependencyError
@@ -11,9 +14,9 @@ from conda.models.match_spec import MatchSpec
 import conda.models.prefix_graph
 from conda.models.prefix_graph import PrefixGraph, GeneralGraph
 from conda.models.records import PackageRecord
+from conda.testing.helpers import add_subdir_to_iter, get_solver_4, get_solver_5
+
 import pytest
-from tests.core.test_solve import get_solver_4, get_solver_5
-from tests.helpers import add_subdir_to_iter
 
 try:
     from unittest.mock import Mock, patch
@@ -968,4 +971,3 @@ def test_general_graph_bfs_version():
 
     a_to_g2 = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("g=2"))
     assert a_to_g2 == [MatchSpec("a"), MatchSpec("d"), MatchSpec("g=2")]
-

@@ -3,9 +3,8 @@
 *.egg-info
 build/
 dist/
-docs/build
 docs/_build
-docs/source/_build
+docs/source/umls/*.puml
 .cache/
 .idea/
 ve/
@@ -25,7 +24,6 @@ conda_build_test_recipe/
 record.txt
 .vagrant/
 Vagrantfile
-docs/source/_build
 env/
 dev-init.bat
 devenv/
@@ -33,9 +31,11 @@ Miniconda*.sh
 miniconda*.sh
 miniconda*.exe
 .pytest_cache/
-docs/source/_build
 **/.vscode
 conda.tmp/
 *.iml
 *.ipr
 *.iws
+
+# Rever
+rever/

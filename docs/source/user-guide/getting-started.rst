@@ -199,16 +199,16 @@ used when you downloaded and installed Anaconda. If you want to use a different
 version of Python, for example Python 3.5, simply create a new environment and
 specify the version of Python that you want.
 
-#. Create a new environment named "snakes" that contains Python 3.5:
+#. Create a new environment named "snakes" that contains Python 3.9:
 
    .. code::
 
-      conda create --name snakes python=3.5
+      conda create --name snakes python=3.9
 
    When conda asks if you want to proceed, type "y" and press Enter.
 
 #. Activate the new environment:
-     
+
    * Windows: ``conda activate snakes``
    * macOS and Linux: ``conda activate snakes``
 
@@ -256,7 +256,7 @@ specify the version of Python that you want.
 
    .. note::
       For versions prior to conda 4.6, use:
-       
+
         * Windows:  ``activate``
         * macOS, Linux: ``source activate``
 
@@ -302,6 +302,6 @@ More information
 ================
 
 * :doc:`Conda cheat sheet <cheatsheet>`
-* Full documentation--- https://conda.io/docs/ 
-* Free community support--- https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda 
-* Paid support options--- https://www.anaconda.com/support/ 
+* Full documentation--- https://conda.io/docs/
+* Free community support--- https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda
+* Paid support options--- https://www.anaconda.com/support/

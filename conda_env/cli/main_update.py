@@ -6,12 +6,14 @@ import os
 import sys
 import textwrap
 
-from conda._vendor.auxlib.path import expand
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, \
+    add_parser_experimental_solver
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import CondaEnvException, SpecNotFound
 from conda.misc import touch_nonadmin
-from .common import get_prefix, print_result
-from .. import exceptions, specs as install_specs
-from ..exceptions import CondaEnvException
+
+from .common import get_prefix, print_result, get_filename
+from .. import specs as install_specs
 from ..installers.base import InvalidInstaller, get_installer
 
 description = """
@@ -57,6 +59,7 @@ def configure_parser(sub_parsers):
         nargs='?'
     )
     add_parser_json(p)
+    add_parser_experimental_solver(p)
     p.set_defaults(func='.main_update.execute')
 
 
@@ -64,10 +67,10 @@ def execute(args, parser):
     name = args.remote_definition or args.name
 
     try:
-        spec = install_specs.detect(name=name, filename=expand(args.file),
+        spec = install_specs.detect(name=name, filename=get_filename(args.file),
                                     directory=os.getcwd())
         env = spec.environment
-    except exceptions.SpecNotFound:
+    except SpecNotFound:
         raise
 
     if not (args.name or args.prefix):
@@ -122,6 +125,10 @@ def execute(args, parser):
     for installer_type, specs in env.dependencies.items():
         installer = installers[installer_type]
         result[installer_type] = installer.install(prefix, specs, args, env)
+
+    if env.variables:
+        pd = PrefixData(prefix)
+        pd.set_environment_env_vars(env.variables)
 
     touch_nonadmin(prefix)
     print_result(args, prefix, result)

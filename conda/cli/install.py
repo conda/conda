@@ -10,15 +10,14 @@ from os.path import abspath, basename, exists, isdir, isfile, join
 from . import common
 from .common import check_non_admin
 from .. import CondaError
-from .._vendor.auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME, UpdateModifier, REPODATA_FN
+from ..auxlib.ish import dals
+from ..base.constants import ROOT_ENV_NAME, DepsModifier, UpdateModifier, REPODATA_FN
 from ..base.context import context, locate_prefix_by_name
-from ..common.compat import text_type
 from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
-from ..core.solve import DepsModifier, Solver
+from ..core.solve import _get_solver_class
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotACondaEnvironmentError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
@@ -42,7 +41,7 @@ def check_prefix(prefix, json=False):
     if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
-        if isdir(prefix) and 'conda-meta' not in os.listdir(prefix):
+        if isdir(prefix) and 'conda-meta' not in tuple(entry.name for entry in os.scandir(prefix)):
             return None
         error = "prefix already exists: %s" % prefix
 
@@ -130,10 +129,8 @@ def install(args, parser, command='install'):
     if isupdate and not (args.file or args.packages
                          or context.update_modifier == UpdateModifier.UPDATE_ALL):
         raise CondaValueError("""no package names supplied
-# If you want to update to a newer version of Anaconda, type:
-#
-# $ conda update --prefix %s anaconda
-""" % prefix)
+# Example: conda update -n myenv scipy
+""")
 
     if not newenv:
         if isdir(prefix):
@@ -148,7 +145,7 @@ def install(args, parser, command='install'):
                 # fall-through expected under normal operation
                 pass
         else:
-            if args.mkdir:
+            if hasattr(args, "mkdir") and args.mkdir:
                 try:
                     mkdir_p(prefix)
                 except EnvironmentError as e:
@@ -249,8 +246,9 @@ def install(args, parser, command='install'):
                 unlink_link_transaction = revert_actions(prefix, get_revision(args.revision),
                                                          index)
             else:
-                solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs,
-                                repodata_fn=repodata_fn, command=args.cmd)
+                SolverType = _get_solver_class()
+                solver = SolverType(prefix, context.channels, context.subdirs, specs_to_add=specs,
+                                    repodata_fn=repodata_fn, command=args.cmd)
                 update_modifier = context.update_modifier
                 if (isinstall or isremove) and args.update_modifier == NULL:
                     update_modifier = UpdateModifier.FREEZE_INSTALLED
@@ -286,6 +284,18 @@ def install(args, parser, command='install'):
                     raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
         except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+            if not getattr(e, "allow_retry", True):
+                # TODO: This is a temporary workaround to allow downstream libraries
+                # to inject this attribute set to False and skip the retry logic
+                # Other solvers might implement their own internal retry logic without
+                # depending --freeze-install implicitly like conda classic does. Example
+                # retry loop in conda-libmamba-solver:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/da5b1ba/conda_libmamba_solver/solver.py#L254-L299
+                # If we end up raising UnsatisfiableError, we annotate it with `allow_retry`
+                # so we don't have go through all the repodatas and freeze-installed logic
+                # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
+                raise e
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
             if not hasattr(args, 'update_modifier'):
                 if repodata_fn == repodata_fns[-1]:
@@ -301,7 +311,7 @@ def install(args, parser, command='install'):
                 except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
                     # Unsatisfiable package specifications/no such revision/import error
                     if e.args and 'could not import' in e.args[0]:
-                        raise CondaImportError(text_type(e))
+                        raise CondaImportError(str(e))
                     # we want to fall through without raising if we're not at the end of the list
                     #    of fns.  That way, we fall to the next fn.
                     if repodata_fn == repodata_fns[-1]:
@@ -312,7 +322,7 @@ def install(args, parser, command='install'):
                 # end of the line.  Raise the exception
                 # Unsatisfiable package specifications/no such revision/import error
                 if e.args and 'could not import' in e.args[0]:
-                    raise CondaImportError(text_type(e))
+                    raise CondaImportError(str(e))
                 raise e
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 

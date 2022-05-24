@@ -1,4 +1,6 @@
-conda:
-  file: utils/environment.yml
+version: 2
+
 python:
-  version: 3
+  version: "3"
+  install:
+  - requirements: docs/requirements.txt

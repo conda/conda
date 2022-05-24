@@ -7,13 +7,13 @@
 
 ----------------------------------------
 
-.. image:: https://img.shields.io/circleci/project/github/conda/conda/master.svg?maxAge=900&label=Unix
-    :target: https://circleci.com/gh/conda/workflows/conda/tree/master
-    :alt: Unix tests (CircleCI)
+.. image:: https://github.com/conda/conda/actions/workflows/ci.yml/badge.svg
+    :target: https://github.com/conda/conda/actions/workflows/ci.yml
+    :alt: CI Tests (GitHub Actions)
 
-.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/master.svg?maxAge=900&label=Windows
-    :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
-    :alt: Windows tests (Appveyor)
+.. image:: https://github.com/conda/conda/actions/workflows/ci-images.yml/badge.svg
+    :target: https://github.com/conda/conda/actions/workflows/ci-images.yml
+    :alt: CI Images (GitHub Actions)
 
 .. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg?label=coverage
    :alt: Codecov Status
@@ -22,7 +22,6 @@
 .. image:: https://img.shields.io/github/release/conda/conda.svg
    :alt: latest release version
    :target: https://github.com/conda/conda/releases
-
 
 Conda is a cross-platform, language-agnostic binary package manager. It is the
 package manager used by `Anaconda
@@ -91,11 +90,7 @@ We can now activate this environment, use
 
 .. code-block:: bash
 
-   # On Linux and Mac OS X
-   $ source activate numpy16
-
-   # On Windows
-   > activate numpy16
+   $ conda activate numpy16
 
 This puts the bin directory of the ``numpy16`` environment in the front of the
 ``PATH``, and sets it as the default environment for all subsequent conda commands.
@@ -104,12 +99,7 @@ To go back to the base environment, use
 
 .. code-block:: bash
 
-   # On Linux and Mac OS X
-   $ source deactivate
-
-   # On Windows
-   > deactivate
-
+   $ conda deactivate
 
 Building Your Own Packages
 --------------------------
@@ -160,6 +150,10 @@ code and issue tracker for conda are on `GitHub <https://github.com/conda/conda>
 
 Contributing
 ------------
+
+.. image:: https://gitpod.io/button/open-in-gitpod.svg
+   :alt: open in gitpod for one-click development
+   :target: https://gitpod.io/#https://github.com/conda/conda
 
 Contributions to conda are welcome. See the `contributing <CONTRIBUTING.md>`_ documentation
 for instructions on setting up a development environment.

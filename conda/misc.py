@@ -15,14 +15,17 @@ import shutil
 import sys
 
 from .base.context import context
-from .common.compat import itervalues, on_win, open
+from .common.compat import on_win, open
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
-from .exceptions import DisallowedPackageError, DryRunExit, PackagesNotFoundError, ParseError
+from .exceptions import (
+    DisallowedPackageError, DryRunExit, PackagesNotFoundError,
+    ParseError, CondaExitZero
+)
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import MatchSpec
@@ -83,6 +86,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     pfe = ProgressiveFetchExtract(fetch_specs)
     pfe.execute()
 
+    if context.download_only:
+        raise CondaExitZero('Package caches prepared. '
+                            'UnlinkLinkTransaction cancelled with --download-only option.')
+
     # now make an UnlinkLinkTransaction with the PackageCacheRecords as inputs
     # need to add package name to fetch_specs so that history parsing keeps track of them correctly
     specs_pcrecs = tuple([spec, next(PackageCacheData.query_all(spec), None)]
@@ -97,10 +104,14 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
         prec = prefix_data.get(pcrec.name, None)
         if prec:
-            precs_to_remove.append(prec)
+            # If we've already got matching specifications, then don't bother re-linking it
+            if next(prefix_data.query(new_spec), None):
+                specs_pcrecs[q][0] = None
+            else:
+                precs_to_remove.append(prec)
 
-    stp = PrefixSetup(prefix, precs_to_remove, tuple(sp[1] for sp in specs_pcrecs),
-                      (), tuple(sp[0] for sp in specs_pcrecs), ())
+    stp = PrefixSetup(prefix, precs_to_remove, tuple(sp[1] for sp in specs_pcrecs if sp[0]),
+                      (), tuple(sp[0] for sp in specs_pcrecs if sp[0]), ())
 
     txn = UnlinkLinkTransaction(stp)
     txn.execute()
@@ -125,7 +136,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
     binignore = {'conda', 'activate', 'deactivate'}
     if sys.platform == 'darwin':
         ignore.update({'python.app', 'Launcher.app'})
-    for fn in os.listdir(prefix):
+    for fn in (entry.name for entry in os.scandir(prefix)):
         if ignore_predefined_files and fn in ignore:
             continue
         if isfile(join(prefix, fn)):
@@ -205,7 +216,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         if not quiet:
             fh = sys.stderr if context.json else sys.stdout
             print('The following packages cannot be cloned out of the root environment:', file=fh)
-            for prec in itervalues(filter):
+            for prec in filter.values():
                 print(' - ' + prec.dist_str(), file=fh)
         drecs = {prec for prec in PrefixData(prefix1).iter_records() if prec['name'] not in filter}
     else:
@@ -221,7 +232,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
         for prec in unknowns:
             spec = MatchSpec(name=prec.name, version=prec.version, build=prec.build)
-            precs = tuple(prec for prec in itervalues(index) if spec.match(prec))
+            precs = tuple(prec for prec in index.values() if spec.match(prec))
             if not precs:
                 notfound.append(spec)
             elif len(precs) > 1:

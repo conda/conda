@@ -1,0 +1,13 @@
+@startuml
+!$light_green = "#43B02A"
+!$dark_green = "#047704"
+!$green = "#078E07"
+
+UpdateElementStyle("person", $bgColor=$dark_green, $borderColor=$dark_green, $shape=RoundedBoxShape())
+UpdateElementStyle("external_person", $shape=RoundedBoxShape())
+UpdateElementStyle("system", $bgColor=$green, $borderColor=$green, $shape=RoundedBoxShape())
+UpdateElementStyle("external_system", $shape=RoundedBoxShape())
+UpdateElementStyle("container", $bgColor=$light_green, $borderColor=$light_green, $shape=RoundedBoxShape())
+UpdateElementStyle("boundary", $shape=RoundedBoxShape())
+
+@enduml

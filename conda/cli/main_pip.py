@@ -9,7 +9,7 @@ import sys
 
 from .main import main as main_main
 from .. import CondaError
-from .._vendor.auxlib.ish import dals
+from ..auxlib.ish import dals
 
 log = getLogger(__name__)
 

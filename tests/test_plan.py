@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 from functools import partial
@@ -22,9 +26,10 @@ from conda.models.records import PackageRecord
 from conda.models.match_spec import MatchSpec
 from conda.plan import display_actions, add_unlink, add_defaults_to_specs, _update_old_plan as update_old_plan
 from conda.exports import execute_plan
-from .decorators import skip_if_no_mock
+from conda.testing.decorators import skip_if_no_mock
+from conda.testing.helpers import captured, get_index_r_1, mock, tempdir
+
 from .gateways.disk.test_permissions import tempdir
-from .helpers import captured, get_index_r_1, mock, tempdir
 
 index, r, = get_index_r_1()
 index = index.copy()  # create a shallow copy so this module can mutate state

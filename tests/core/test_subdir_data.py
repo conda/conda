@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from os.path import dirname, join
 from unittest import TestCase
+from time import sleep
 
 import pytest
 
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
 from conda.core.index import get_index
@@ -40,10 +43,10 @@ class GetRepodataIntegrationTests(TestCase):
                 with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     this_platform = context.subdir
                     index = get_index(channel_urls=channel_urls, prepend=False)
-                    for dist, record in iteritems(index):
+                    for dist, record in index.items():
                         assert platform_in_record(this_platform, record), (this_platform, record.url)
 
-        # When unknown=True (which is implicity engaged when context.offline is
+        # When unknown=True (which is implicitly engaged when context.offline is
         # True), there may be additional items in the cache that are included in
         # the index. But where those items coincide with entries already in the
         # cache, they must not change the record in any way. TODO: add one or
@@ -54,7 +57,7 @@ class GetRepodataIntegrationTests(TestCase):
             with env_var('CONDA_OFFLINE', 'yes', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     index2 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
-                    assert all(index2.get(k) == rec for k, rec in iteritems(index))
+                    assert all(index2.get(k) == rec for k, rec in index.items())
                     assert unknown is not False or len(index) == len(index2)
                     assert remote_request.call_count == 0
 
@@ -63,7 +66,7 @@ class GetRepodataIntegrationTests(TestCase):
                 with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     remote_request.side_effect = Response304ContentUnchanged()
                     index3 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
-                    assert all(index3.get(k) == rec for k, rec in iteritems(index))
+                    assert all(index3.get(k) == rec for k, rec in index.items())
                     assert unknown or len(index) == len(index3)
 
     def test_subdir_data_context_offline(self):
@@ -201,14 +204,57 @@ def test_subdir_data_prefers_conda_to_tar_bz2():
 
 def test_use_only_tar_bz2():
     channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    SubdirData.clear_cached_local_channel_data()
     with env_var('CONDA_USE_ONLY_TAR_BZ2', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".tar.bz2")
+    SubdirData.clear_cached_local_channel_data()
     with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".conda")
+
+
+def test_metadata_cache_works():
+    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    SubdirData.clear_cached_local_channel_data()
+
+    # Sadly, on Windows, st_mtime resolution is limited to 2 seconds. (See note in Python docs
+    # on os.stat_result.)  To ensure that the timestamp on the existing JSON file is safely
+    # in the past before this test starts, we need to wait for more than 2 seconds...
+
+    sleep(3)
+
+    with patch('conda.core.subdir_data.fetch_repodata_remote_request',
+               wraps=fetch_repodata_remote_request) as fetcher:
+        sd_a = SubdirData(channel)
+        precs_a = tuple(sd_a.query("zlib"))
+        assert fetcher.call_count == 1
+
+        sd_b = SubdirData(channel)
+        assert sd_b is sd_a
+        precs_b = tuple(sd_b.query("zlib"))
+        assert fetcher.call_count == 1
+
+
+def test_metadata_cache_clearing():
+    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir))
+    SubdirData.clear_cached_local_channel_data()
+
+    with patch('conda.core.subdir_data.fetch_repodata_remote_request',
+               wraps=fetch_repodata_remote_request) as fetcher:
+        sd_a = SubdirData(channel)
+        precs_a = tuple(sd_a.query("zlib"))
+        assert fetcher.call_count == 1
+
+        SubdirData.clear_cached_local_channel_data()
+
+        sd_b = SubdirData(channel)
+        assert sd_b is not sd_a
+        precs_b = tuple(sd_b.query("zlib"))
+        assert fetcher.call_count == 2
+        assert precs_b == precs_a
 
 
 # @pytest.mark.integration

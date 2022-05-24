@@ -53,7 +53,7 @@ file, open Anaconda Prompt or a terminal and enter the
 ``conda config`` command.
 
 The ``.condarc`` configuration file follows simple
-`YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
+`YAML syntax <https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html>`_.
 
 EXAMPLE:
 
@@ -101,6 +101,8 @@ gives a non-exhaustive list of the most frequently used options and
 their usage. For a complete list of all available options for your
 version of conda, use the ``conda config --describe`` command.
 
+.. _condarc_search_precedence:
+
 Searching for .condarc
 ======================
 
@@ -108,36 +110,45 @@ Conda looks in the following locations for a ``.condarc`` file:
 
 .. code-block:: python
 
-    if on_win:
-     SEARCH_PATH = (
-         'C:/ProgramData/conda/.condarc',
-         'C:/ProgramData/conda/condarc',
-         'C:/ProgramData/conda/condarc.d',
-     )
-     else:
-     SEARCH_PATH = (
-         '/etc/conda/.condarc',
-         '/etc/conda/condarc',
-         '/etc/conda/condarc.d/',
-         '/var/lib/conda/.condarc',
-         '/var/lib/conda/condarc',
-         '/var/lib/conda/condarc.d/',
+  if on_win:
+      SEARCH_PATH = (
+          "C:/ProgramData/conda/.condarc",
+          "C:/ProgramData/conda/condarc",
+          "C:/ProgramData/conda/condarc.d",
+      )
+  else:
+      SEARCH_PATH = (
+          "/etc/conda/.condarc",
+          "/etc/conda/condarc",
+          "/etc/conda/condarc.d/",
+          "/var/lib/conda/.condarc",
+          "/var/lib/conda/condarc",
+          "/var/lib/conda/condarc.d/",
       )
 
-     SEARCH_PATH += (
-         '$CONDA_ROOT/.condarc',
-         '$CONDA_ROOT/condarc',
-         '$CONDA_ROOT/condarc.d/',
-         '~/.conda/.condarc',
-         '~/.conda/condarc',
-         '~/.conda/condarc.d/',
-         '~/.condarc',
-         '$CONDA_PREFIX/.condarc',
-         '$CONDA_PREFIX/condarc',
-         '$CONDA_PREFIX/condarc.d/',
-         '$CONDARC',
-     )
+  SEARCH_PATH += (
+      "$CONDA_ROOT/.condarc",
+      "$CONDA_ROOT/condarc",
+      "$CONDA_ROOT/condarc.d/",
+      "$XDG_CONFIG_HOME/conda/.condarc",
+      "$XDG_CONFIG_HOME/conda/condarc",
+      "$XDG_CONFIG_HOME/conda/condarc.d/",
+      "~/.config/conda/.condarc",
+      "~/.config/conda/condarc",
+      "~/.config/conda/condarc.d/",
+      "~/.conda/.condarc",
+      "~/.conda/condarc",
+      "~/.conda/condarc.d/",
+      "~/.condarc",
+      "$CONDA_PREFIX/.condarc",
+      "$CONDA_PREFIX/condarc",
+      "$CONDA_PREFIX/condarc.d/",
+      "$CONDARC",
+  )
 
+``XDG_CONFIG_HOME`` is the path to where user-specific configuration files should
+be stored defined following The XDG Base Directory Specification (XDGBDS). Default
+to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
 ``CONDA_PREFIX`` is the path to the current active environment.
 
@@ -154,7 +165,7 @@ Precedence
 
 The precedence by which the conda configuration is built out is shown below.
 Each new arrow takes precedence over the ones before it. For example, config
-files (by parse order) will be superceded by any of the other configuration
+files (by parse order) will be superseded by any of the other configuration
 options. Configuration environment variables (formatted like ``CONDA_<CONFIG NAME>``)
 will always take precedence over the other 3.
 
@@ -1073,7 +1084,7 @@ Setting any of the above can be done in ``.condarc`` or with
 conda config:
 
 At your terminal::
-  
+
   conda config --set repodata_threads 2
 
 In ``.condarc``::

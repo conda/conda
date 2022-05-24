@@ -4,8 +4,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+import re
 from itertools import chain
 from logging import getLogger
+import platform
+import sys
 
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
@@ -13,7 +16,6 @@ from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv
 from ..base.context import context
-from ..common.compat import itervalues
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..gateways.logging import initialize_logging
@@ -83,7 +85,7 @@ def fetch_index(channel_urls, use_cache=False, index=None, repodata_fn=context.r
 
 def dist_str_in_index(index, dist_str):
     match_spec = MatchSpec.from_dist_str(dist_str)
-    return any(match_spec.match(prec) for prec in itervalues(index))
+    return any(match_spec.match(prec) for prec in index.values())
 
 
 def _supplement_index_with_prefix(index, prefix):
@@ -133,12 +135,12 @@ def _supplement_index_with_cache(index):
             index[pcrec] = pcrec
 
 
-def _make_virtual_package(name, version=None):
+def _make_virtual_package(name, version=None, build_string='0'):
     return PackageRecord(
             package_type=PackageType.VIRTUAL_SYSTEM,
             name=name,
             version=version or '0',
-            build='0',
+            build_string=build_string,
             channel='@',
             subdir=context.subdir,
             md5="12345678901234567890123456789012",
@@ -159,17 +161,75 @@ def _supplement_index_with_system(index):
         index[rec] = rec
 
     dist_name, dist_version = context.os_distribution_name_version
-    if dist_name == 'OSX':
+    is_osx = context.subdir.startswith("osx-")
+    if is_osx:
+        # User will have to set env variable when using CONDA_SUBDIR var
         dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
-        if len(dist_version) > 0:
+        if dist_version:
             rec = _make_virtual_package('__osx', dist_version)
             index[rec] = rec
 
     libc_family, libc_version = context.libc_family_version
-    if libc_family and libc_version:
-        libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
-        rec = _make_virtual_package('__' + libc_family, libc_version)
+    is_linux = context.subdir.startswith("linux-")
+    if is_linux:
+        # By convention, the kernel release string should be three or four
+        # numeric components, separated by dots, followed by vendor-specific
+        # bits.  For the purposes of versioning the `__linux` virtual package,
+        # discard everything after the last digit of the third or fourth
+        # numeric component; note that this breaks version ordering for
+        # development (`-rcN`) kernels, but we'll deal with that later.
+        dist_version = os.environ.get('CONDA_OVERRIDE_LINUX', context.platform_system_release[1])
+        m = re.match(r'\d+\.\d+(\.\d+)?(\.\d+)?', dist_version)
+        rec = _make_virtual_package('__linux', m.group() if m else "0")
         index[rec] = rec
+
+        if not (libc_family and libc_version):
+            # Default to glibc when using CONDA_SUBDIR var
+            libc_family = "glibc"
+        libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
+        if libc_version:
+            rec = _make_virtual_package('__' + libc_family, libc_version)
+            index[rec] = rec
+
+    if is_linux or is_osx:
+        rec = _make_virtual_package('__unix')
+        index[rec] = rec
+    elif context.subdir.startswith('win-'):
+        rec = _make_virtual_package('__win')
+        index[rec] = rec
+
+    archspec_name = get_archspec_name()
+    archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC", archspec_name)
+    if archspec_name:
+        rec = _make_virtual_package('__archspec', "1", archspec_name)
+        index[rec] = rec
+
+
+def get_archspec_name():
+    from conda.base.context import non_x86_machines, _arch_names, _platform_map
+
+    target_plat, target_arch = context.subdir.split("-")
+    # This has to reverse what Context.subdir is doing
+    if target_arch in non_x86_machines:
+        machine = target_arch
+    elif target_arch == "zos":
+        return None
+    elif target_arch.isdigit():
+        machine = _arch_names[int(target_arch)]
+    else:
+        return None
+
+    # This has to match what Context.platform is doing
+    native_plat = _platform_map.get(sys.platform, 'unknown')
+
+    if native_plat != target_plat or platform.machine() != machine:
+        return machine
+
+    try:
+        import archspec.cpu
+        return str(archspec.cpu.host())
+    except ImportError:
+        return machine
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
@@ -254,7 +314,7 @@ def get_reduced_index(prefix, channels, subdirs, specs, repodata_fn):
 
     # add feature records for the solver
     known_features = set()
-    for rec in itervalues(reduced_index):
+    for rec in reduced_index.values():
         known_features.update(concatv(rec.track_features, rec.features))
     known_features.update(context.track_features)
     for ftr_str in known_features:

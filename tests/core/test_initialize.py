@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from distutils.sysconfig import get_python_lib
@@ -11,8 +14,8 @@ from unittest import TestCase
 
 import pytest
 
-from conda import CONDA_PACKAGE_ROOT
-from conda._vendor.auxlib.ish import dals
+from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
+from conda.auxlib.ish import dals
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open
@@ -25,7 +28,7 @@ from conda.core.initialize import Result, _get_python_info, init_sh_system, init
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
-from tests.helpers import tempdir
+from conda.testing.helpers import tempdir
 
 try:
     from unittest.mock import Mock, patch
@@ -573,7 +576,11 @@ class InitializeTests(TestCase):
                 mkdir_p(dirname(new_py))
                 create_link(abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink)
                 with captured() as c:
-                    initialize_dev('bash', dev_env_prefix=conda_temp_prefix, conda_source_root=dirname(CONDA_PACKAGE_ROOT))
+                    initialize_dev(
+                        "bash",
+                        dev_env_prefix=conda_temp_prefix,
+                        conda_source_root=CONDA_SOURCE_ROOT,
+                    )
 
         print(c.stdout)
         print(c.stderr, file=sys.stderr)
@@ -641,7 +648,11 @@ class InitializeTests(TestCase):
                 mkdir_p(dirname(new_py))
                 create_link(abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink)
                 with captured() as c:
-                    initialize_dev('cmd.exe', dev_env_prefix=conda_temp_prefix, conda_source_root=dirname(CONDA_PACKAGE_ROOT))
+                    initialize_dev(
+                        "cmd.exe",
+                        dev_env_prefix=conda_temp_prefix,
+                        conda_source_root=CONDA_SOURCE_ROOT,
+                    )
 
         print(c.stdout)
         print(c.stderr, file=sys.stderr)
@@ -890,7 +901,7 @@ class InitializeTests(TestCase):
         def _read_windows_registry_mock(target_path, value=None):
             if not value:
                 value = "yada\\yada\\conda_hook.bat"
-            return 'echo hello & "{}" & echo "world"'.format(value), None
+            return 'echo hello & if exist "{v}" "{v}" & echo "world"'.format(v=value), None
 
         from conda.core import initialize
         orig_read_windows_registry = initialize._read_windows_registry
@@ -908,7 +919,7 @@ class InitializeTests(TestCase):
             initialize._read_windows_registry = orig_read_windows_registry
             initialize.join = orig_join
 
-        expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat\" & echo \"world\""
+        expected = "echo hello & if exist \"c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat\" \"c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat\" & echo \"world\""
         assert c.stdout.strip().splitlines()[-1][1:] == expected
 
         # test the reverse (remove the key)

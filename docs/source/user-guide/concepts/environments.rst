@@ -1,3 +1,5 @@
+.. _concepts-conda-environments:
+
 ==================
 Conda environments
 ==================
@@ -78,7 +80,7 @@ Some other traits are:
    :widths: 20 40 40
    :header-rows: 1
 
-   * - 
+   * -
      - Python virtual environment
      - Conda virtual environment
    * - **Libraries**

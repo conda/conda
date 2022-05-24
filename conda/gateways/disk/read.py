@@ -7,19 +7,18 @@ from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
 from functools import partial
-from glob import glob
 import hashlib
 from itertools import chain
 import json
 from logging import getLogger
-from os import listdir
-from os.path import isdir, isfile, join
+import os
+from os.path import isdir, isfile, join  # noqa
 
-from .link import islink, lexists
+from .link import islink, lexists  # noqa
 from .create import TemporaryDirectory
-from ..._vendor.auxlib.collection import first
-from ..._vendor.auxlib.compat import shlex_split_unicode
-from ..._vendor.auxlib.ish import dals
+from ...auxlib.collection import first
+from ...auxlib.compat import shlex_split_unicode
+from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import open
 from ...common.pkg_formats.python import (
@@ -34,8 +33,7 @@ from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
 
-listdir = listdir
-lexists, isdir, isfile = lexists, isdir, isfile
+listdir = lambda d: list(entry.name for entry in os.scandir(d))  # noqa
 
 
 def yield_lines(path):
@@ -79,14 +77,6 @@ def compute_md5sum(file_full_path):
 
 def compute_sha256sum(file_full_path):
     return _digest_path('sha256', file_full_path)
-
-
-def find_first_existing(*globs):
-    for g in globs:
-        for path in glob(g):
-            if lexists(path):
-                return path
-    return None
 
 
 # ####################################################

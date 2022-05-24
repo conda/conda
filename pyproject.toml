@@ -1,0 +1,65 @@
+[tool.black]
+line-length = 99
+target-version = ['py36', 'py37', 'py38']
+extend-exclude = '''
+^/(
+    conda/_vendor
+  | devenv
+)/
+'''
+
+[tool.vendoring]
+destination = "conda/_vendor/"
+requirements = "conda/_vendor/vendor.txt"
+namespace = "conda._vendor"
+
+protected-files = ["__init__.py", "vendor.txt", "README.rst"]
+patches-dir = "tools/vendoring/patches"
+
+[tool.vendoring.transformations]
+substitute = []
+drop = [
+  # contains unnecessary scripts
+  "bin/",
+  # remove unwanted modules
+  '^boltons/(cache|debug|depr|dict|easter|eco|exc|file|format|func|gc|io|iter|json|list|math|mbox|named|path|queue|socket|stats|str|table|tb||type|url)utils\.py',
+  "boltons/txurl_notes.md",
+  "cpuinfo/__main__.py",
+  "tlz/",
+  '^toolz/(_signatures|functoolz)\.py',
+  "toolz/curried",
+  "toolz/sandbox",
+  "toolz/tests",
+  '^tqdm/.*(gui|notebook|pandas)\.py',
+  '^tqdm/(_dist_ver|rich|keras|tk|dask)\.py',
+  '^tqdm/(completion\.sh|tqdm\.1)',
+  "tqdm/contrib",
+  '^urllib3/(_collections|fields|filepost|poolmanager|request|response)\.py',
+  '^urllib3/connection.*\.py',
+  "urllib3/contrib",
+  "urllib3/packages",
+  '^urllib3/util/(timeout|ssl_|retry|response|request|connection)\.py',
+]
+
+[tool.vendoring.typing-stubs]
+# prevent stubs from being generated
+boltons = []
+toolz = []
+tqdm = []
+urllib3 = []
+appdirs = []
+cpuinfo = []
+distro = []
+frozendict = []
+six = []
+
+[tool.vendoring.license.fallback-urls]
+boltons = "https://raw.githubusercontent.com/mahmoud/boltons/master/LICENSE"  # BSD
+toolz = "https://raw.githubusercontent.com/pytoolz/toolz/master/LICENSE.txt"  # BSD
+tqdm = "https://raw.githubusercontent.com/tqdm/tqdm/master/LICENCE"  # MPL, MIT
+urllib3 = "https://raw.githubusercontent.com/urllib3/urllib3/main/LICENSE.txt"  # MIT
+appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt"  # MIT
+cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE"  # MIT
+distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache
+frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
+six = "https://raw.githubusercontent.com/benjaminp/six/master/LICENSE"  # MIT

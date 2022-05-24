@@ -7,6 +7,7 @@ from datetime import timedelta
 from errno import ENOSPC
 from functools import partial
 import json
+from json.decoder import JSONDecodeError
 from logging import getLogger
 import os
 from os.path import join
@@ -15,13 +16,16 @@ from textwrap import dedent
 from traceback import format_exception, format_exception_only
 import getpass
 
-from . import CondaError, CondaExitZero, CondaMultiError, text_type
-from ._vendor.auxlib.entity import EntityEncoder
-from ._vendor.auxlib.ish import dals
-from ._vendor.auxlib.type_coercion import boolify
+from .models.channel import Channel
+from .common.url import join_url, maybe_unquote
+from . import CondaError, CondaExitZero, CondaMultiError
+from .auxlib.entity import EntityEncoder
+from .auxlib.ish import dals
+from .auxlib.logz import stringify
+from .auxlib.type_coercion import boolify
 from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
-from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
+from .common.compat import ensure_text_type, on_win
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
 
@@ -53,15 +57,6 @@ class ArgumentError(CondaError):
 
     def __init__(self, message, **kwargs):
         super(ArgumentError, self).__init__(message, **kwargs)
-
-
-class CommandArgumentError(ArgumentError):
-    # TODO: Consolidate with ArgumentError.
-    return_code = 2
-
-    def __init__(self, message, **kwargs):
-        command = ' '.join(ensure_text_type(s) for s in sys.argv)
-        super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
 
 
 class Help(CondaError):
@@ -142,17 +137,6 @@ class TooManyArgumentsError(ArgumentError):
         super(TooManyArgumentsError, self).__init__(msg, *args)
 
 
-class TooFewArgumentsError(ArgumentError):
-    def __init__(self, expected, received, optional_message='', *args):
-        self.expected = expected
-        self.received = received
-        self.optional_message = optional_message
-
-        msg = ('%s Got %s arguments but expected %s.' %
-               (optional_message, received, expected))
-        super(TooFewArgumentsError, self).__init__(msg, *args)
-
-
 class ClobberError(CondaError):
     def __init__(self, message, path_conflict, **kwargs):
         self.path_conflict = path_conflict
@@ -230,7 +214,7 @@ class SharedLinkPathClobberError(ClobberError):
         super(SharedLinkPathClobberError, self).__init__(
             message, context.path_conflict,
             target_path=target_path,
-            incompatible_packages=', '.join(text_type(d) for d in incompatible_package_dists),
+            incompatible_packages=', '.join(str(d) for d in incompatible_package_dists),
         )
 
 
@@ -368,7 +352,7 @@ class DryRunExit(CondaExitZero):
 
 class CondaSystemExit(CondaExitZero, SystemExit):
     def __init__(self, *args):
-        msg = ' '.join(text_type(arg) for arg in self.args)
+        msg = ' '.join(str(arg) for arg in self.args)
         super(CondaSystemExit, self).__init__(msg)
 
 
@@ -428,8 +412,6 @@ class ChannelError(CondaError):
 
 class ChannelNotAllowed(ChannelError):
     def __init__(self, channel):
-        from .models.channel import Channel
-        from .common.url import maybe_unquote
         channel = Channel(channel)
         channel_name = channel.name
         channel_url = maybe_unquote(channel.base_url)
@@ -444,34 +426,66 @@ class ChannelNotAllowed(ChannelError):
 
 class UnavailableInvalidChannel(ChannelError):
 
-    def __init__(self, channel, error_code):
-        from .models.channel import Channel
-        from .common.url import join_url, maybe_unquote
+    def __init__(self, channel, status_code, response=None):
+
+        # parse channel
         channel = Channel(channel)
         channel_name = channel.name
         channel_url = maybe_unquote(channel.base_url)
-        message = dals("""
-        The channel is not accessible or is invalid.
-          channel name: %(channel_name)s
-          channel url: %(channel_url)s
-          error code: %(error_code)d
 
-        You will need to adjust your conda configuration to proceed.
-        Use `conda config --show channels` to view your configuration's current state,
-        and use `conda config --show-sources` to view config file locations.
-        """)
+        # define hardcoded/default reason/message
+        reason = getattr(response, "reason", None)
+        message = dals(
+            """
+            The channel is not accessible or is invalid.
 
-        if channel.scheme == 'file':
-            message += dedent("""
-            As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
-            associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-            empty. Use `conda index %s`, or create `noarch/repodata.json`
-            and associated `noarch/repodata.json.bz2`.
-            """) % join_url(channel.location, channel.name)
+            You will need to adjust your conda configuration to proceed.
+            Use `conda config --show channels` to view your configuration's current state,
+            and use `conda config --show-sources` to view config file locations.
+            """
+        )
+        if channel.scheme == "file":
+            url = join_url(channel.location, channel.name)
+            message += dedent(
+                f"""
+                As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
+                associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                empty. Use `conda index {url}`, or create `noarch/repodata.json`
+                and associated `noarch/repodata.json.bz2`.
+                """
+            )
 
-        super(UnavailableInvalidChannel, self).__init__(message, channel_url=channel_url,
-                                                        channel_name=channel_name,
-                                                        error_code=error_code)
+        # if response includes a valid json body we prefer the reason/message defined there
+        try:
+            body = response.json()
+        except (AttributeError, JSONDecodeError):
+            body = {}
+        else:
+            reason = body.get("reason", None) or reason
+            message = body.get("message", None) or message
+
+        # standardize arguments
+        status_code = status_code or "000"
+        reason = reason or "UNAVAILABLE OR INVALID"
+        if isinstance(reason, str):
+            reason = reason.upper()
+
+        super().__init__(
+            dals(
+                f"""
+                HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>
+
+                """
+            )
+            # since message may include newlines don't include in f-string/dals above
+            + message,
+            channel_name=channel_name,
+            channel_url=channel_url,
+            status_code=status_code,
+            reason=reason,
+            response_details=stringify(response, content_max_len=1024) or "",
+            json=body,
+        )
 
 
 class OperationNotAllowed(CondaError):
@@ -507,7 +521,6 @@ class ChecksumMismatchError(CondaError):
           expected %(checksum_type)s: %(expected_checksum)s
           actual %(checksum_type)s: %(actual_checksum)s
         """)
-        from .common.url import maybe_unquote
         url = maybe_unquote(url)
         super(ChecksumMismatchError, self).__init__(
             message, url=url, target_full_path=target_full_path, checksum_type=checksum_type,
@@ -530,37 +543,51 @@ class PackageNotInstalledError(CondaError):
 class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
-        from .common.url import maybe_unquote
-        _message = dals("""
-        HTTP %(status_code)s %(reason)s for url <%(url)s>
-        Elapsed: %(elapsed_time)s
-        """)
-        cf_ray = getattr(response, 'headers', {}).get('CF-RAY')
-        _message += "CF-RAY: %s\n\n" % cf_ray if cf_ray else "\n"
-        message = _message + message
+        # if response includes a valid json body we prefer the reason/message defined there
+        try:
+            body = response.json()
+        except (AttributeError, JSONDecodeError):
+            body = {}
+        else:
+            reason = body.get("reason", None) or reason
+            message = body.get("message", None) or message
 
+        # standardize arguments
+        url = maybe_unquote(url)
         status_code = status_code or '000'
         reason = reason or 'CONNECTION FAILED'
-        elapsed_time = elapsed_time or '-'
-
-        from ._vendor.auxlib.logz import stringify
-        response_details = (stringify(response, content_max_len=1024) or '') if response else ''
-
-        url = maybe_unquote(url)
-        if isinstance(elapsed_time, timedelta):
-            elapsed_time = text_type(elapsed_time).split(':', 1)[-1]
-        if isinstance(reason, string_types):
+        if isinstance(reason, str):
             reason = reason.upper()
-        super(CondaHTTPError, self).__init__(message, url=url, status_code=status_code,
-                                             reason=reason, elapsed_time=elapsed_time,
-                                             response_details=response_details,
-                                             caused_by=caused_by)
+        elapsed_time = elapsed_time or '-'
+        if isinstance(elapsed_time, timedelta):
+            elapsed_time = str(elapsed_time).split(":", 1)[-1]
 
+        # extract CF-RAY
+        try:
+            cf_ray = response.headers["CF-RAY"]
+        except (AttributeError, KeyError):
+            cf_ray = ""
+        else:
+            cf_ray = f"CF-RAY: {cf_ray}\n"
 
-class CondaRevisionError(CondaError):
-    def __init__(self, message):
-        msg = "%s." % message
-        super(CondaRevisionError, self).__init__(msg)
+        super().__init__(
+            dals(
+                f"""
+                HTTP {status_code} {reason} for url <{url}>
+                Elapsed: {elapsed_time}
+                {cf_ray}
+                """
+            )
+            # since message may include newlines don't include in f-string/dals above
+            + message,
+            url=url,
+            status_code=status_code,
+            reason=reason,
+            elapsed_time=elapsed_time,
+            response_details=stringify(response, content_max_len=1024) or "",
+            json=body,
+            caused_by=caused_by,
+        )
 
 
 class AuthenticationError(CondaError):
@@ -571,7 +598,7 @@ class PackagesNotFoundError(CondaError):
 
     def __init__(self, packages, channel_urls=()):
 
-        format_list = lambda iterable: '  - ' + '\n  - '.join(text_type(x) for x in iterable)
+        format_list = lambda iterable: '  - ' + '\n  - '.join(str(x) for x in iterable)
 
         if channel_urls:
             message = dals("""
@@ -626,14 +653,14 @@ class UnsatisfiableError(CondaError):
             key = (dep[0],) + tuple(v[0] for v in dep1)
             vals = ('',) + tuple(v[2] for v in dep1)
             found = False
-            for key2, csets in iteritems(chains):
+            for key2, csets in chains.items():
                 if key2[:len(key)] == key:
                     for cset, val in zip(csets, vals):
                         cset.add(val)
                     found = True
             if not found:
                 chains[key] = [{val} for val in vals]
-        for key, csets in iteritems(chains):
+        for key, csets in chains.items():
             deps = []
             for name, cset in zip(key, csets):
                 if '' not in cset:
@@ -647,8 +674,7 @@ class UnsatisfiableError(CondaError):
                     name = 'feature:' + name[1:]
                 deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
             chains[key] = ' -> '.join(deps)
-        bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
-        return bad_deps
+        return [chains[key] for key in sorted(chains.keys())]
 
     def __init__(self, bad_deps, chains=True, strict=False):
         from .models.match_spec import MatchSpec
@@ -679,14 +705,15 @@ explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
 
 The following specifications were found to be incompatible with each other:
                     '''),
-                    'cuda': dals('''
+                    'virtual_package': dals('''
 
-The following specifications were found to be incompatible with your CUDA driver:\n{specs}
+The following specifications were found to be incompatible with your system:\n{specs}
 
-Your installed CUDA driver is: {ref}
+Your installed version is: {ref}
 ''')}
 
         msg = ""
+        self.unsatisfiable = []
         if len(bad_deps) == 0:
             msg += '''
 Did not find conflicting dependencies. If you would like to know which
@@ -712,6 +739,7 @@ conda config --set unsatisfiable_hints True
                             if len(chain) > 1:
                                 msg += "\n\nPackage %s conflicts for:\n" % dep
                                 msg += "\n".join([" -> ".join([str(i) for i in c]) for c in chain])
+                                self.unsatisfiable += [tuple(entries) for entries in chain]
                     else:
                         for dep_chain, installed_blocker in dep_class:
                             # Remove any target values from the MatchSpecs, convert to strings
@@ -729,12 +757,6 @@ conda config --set unsatisfiable_hints True
                     'packages required for satisfiability.')
 
         super(UnsatisfiableError, self).__init__(msg)
-
-
-class InstallError(CondaError):
-    def __init__(self, message):
-        msg = '%s' % message
-        super(InstallError, self).__init__(msg)
 
 
 class RemoveError(CondaError):
@@ -783,12 +805,6 @@ class CondaValueError(CondaError, ValueError):
         super(CondaValueError, self).__init__(message, *args, **kwargs)
 
 
-class CondaTypeError(CondaError, TypeError):
-    def __init__(self, expected_type, received_type, optional_message):
-        msg = "Expected type '%s' and got type '%s'. %s"
-        super(CondaTypeError, self).__init__(msg)
-
-
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles, **kwargs):
         from .models.records import PackageRecord
@@ -828,21 +844,6 @@ class CondaUpgradeError(CondaError):
     def __init__(self, message):
         msg = "%s" % message
         super(CondaUpgradeError, self).__init__(msg)
-
-
-class CaseInsensitiveFileSystemError(CondaError):
-    def __init__(self, package_location, extract_location, **kwargs):
-        message = dals("""
-        Cannot extract package to a case-insensitive file system.
-          package location: %(package_location)s
-          extract location: %(extract_location)s
-        """)
-        super(CaseInsensitiveFileSystemError, self).__init__(
-            message,
-            package_location=package_location,
-            extract_location=extract_location,
-            **kwargs
-        )
 
 
 class CondaVerificationError(CondaError):
@@ -892,6 +893,7 @@ class NotWritableError(CondaError, OSError):
                 'gid': os.getegid(),
             })
         super(NotWritableError, self).__init__(message, **kwargs)
+        self.errno = errno
 
 
 class NoWritableEnvsDirError(CondaError):
@@ -1004,6 +1006,39 @@ class NoSpaceLeftError(CondaError):
         super(NoSpaceLeftError, self).__init__(message, caused_by=caused_by, **kwargs)
 
 
+class CondaEnvException(CondaError):
+    def __init__(self, message, *args, **kwargs):
+        msg = "%s" % message
+        super(CondaEnvException, self).__init__(msg, *args, **kwargs)
+
+
+class EnvironmentFileNotFound(CondaEnvException):
+    def __init__(self, filename, *args, **kwargs):
+        msg = "'{}' file not found".format(filename)
+        self.filename = filename
+        super(EnvironmentFileNotFound, self).__init__(msg, *args, **kwargs)
+
+
+class EnvironmentFileExtensionNotValid(CondaEnvException):
+    def __init__(self, filename, *args, **kwargs):
+        msg = "'{}' file extension must be one of '.txt', '.yaml' or '.yml'".format(filename)
+        self.filename = filename
+        super(EnvironmentFileExtensionNotValid, self).__init__(msg, *args, **kwargs)
+
+
+class EnvironmentFileNotDownloaded(CondaError):
+    def __init__(self, username, packagename, *args, **kwargs):
+        msg = "{}/{} file not downloaded".format(username, packagename)
+        self.username = username
+        self.packagename = packagename
+        super(EnvironmentFileNotDownloaded, self).__init__(msg, *args, **kwargs)
+
+
+class SpecNotFound(CondaError):
+    def __init__(self, msg, *args, **kwargs):
+        super(SpecNotFound, self).__init__(msg, *args, **kwargs)
+
+
 def maybe_raise(error, context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
@@ -1111,8 +1146,6 @@ class ExceptionHandler(object):
                 return self.handle_reportable_application_exception(exc_val, exc_tb)
             else:
                 return self.handle_application_exception(exc_val, exc_tb)
-        if isinstance(exc_val, UnicodeError) and PY2:
-            return self.handle_application_exception(EncodingError(exc_val), exc_tb)
         if isinstance(exc_val, EnvironmentError):
             if getattr(exc_val, 'errno', None) == ENOSPC:
                 return self.handle_application_exception(NoSpaceLeftError(exc_val), exc_tb)
@@ -1170,14 +1203,14 @@ class ExceptionHandler(object):
                 info_dict = {
                     'error': repr(info_e),
                     'exception_name': info_e.__class__.__name__,
-                    'exception_type': text_type(exc_val.__class__),
+                    'exception_type': str(exc_val.__class__),
                     'traceback': info_traceback,
                 }
 
         error_report = {
             'error': repr(exc_val),
             'exception_name': exc_val.__class__.__name__,
-            'exception_type': text_type(exc_val.__class__),
+            'exception_type': str(exc_val.__class__),
             'command': command,
             'traceback': _format_exc(exc_val, exc_tb),
             'conda_info': info_dict,

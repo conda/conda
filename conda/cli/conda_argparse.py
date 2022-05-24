@@ -3,8 +3,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import (ArgumentParser as ArgumentParserBase, REMAINDER, RawDescriptionHelpFormatter,
-                      SUPPRESS, _CountAction, _HelpAction)
+from argparse import (
+    ArgumentParser as ArgumentParserBase,
+    REMAINDER,
+    RawDescriptionHelpFormatter,
+    SUPPRESS,
+    Action,
+    _CountAction,
+    _HelpAction,
+)
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
@@ -13,7 +20,8 @@ import sys
 from textwrap import dedent
 
 from .. import __version__
-from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, UpdateModifier
+from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
+    UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -55,9 +63,9 @@ def generate_parser():
     sub_parsers.required = True
 
     configure_parser_clean(sub_parsers)
+    configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
     configure_parser_create(sub_parsers)
-    configure_parser_help(sub_parsers)
     configure_parser_info(sub_parsers)
     configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
@@ -194,6 +202,39 @@ class NullCountAction(_CountAction):
         setattr(namespace, self.dest, new_count)
 
 
+class ExtendConstAction(Action):
+    # a derivative of _AppendConstAction and Python 3.8's _ExtendAction
+    def __init__(
+        self,
+        option_strings,
+        dest,
+        const,
+        default=None,
+        type=None,
+        choices=None,
+        required=False,
+        help=None,
+        metavar=None,
+    ):
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            nargs="*",
+            const=const,
+            default=default,
+            type=type,
+            choices=choices,
+            required=required,
+            help=help,
+            metavar=metavar,
+        )
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        items = getattr(namespace, self.dest, None)
+        items = [] if items is None else items[:]
+        items.extend(values or [self.const])
+        setattr(namespace, self.dest, items)
+
 # #############################################################################################
 #
 # sub-parsers
@@ -235,13 +276,6 @@ def configure_parser_clean(sub_parsers):
              "symlinks back to the package cache.",
     )
     removal_target_options.add_argument(
-        '-s', '--source-cache',
-        action='store_true',
-        # help="Remove files from the source cache of conda build.",
-        help=SUPPRESS,
-        # TODO: Deprecation warning issued. Remove in future release.
-    )
-    removal_target_options.add_argument(
         "-t", "--tarballs",
         action="store_true",
         help="Remove cached package tarballs.",
@@ -254,10 +288,18 @@ def configure_parser_clean(sub_parsers):
              "back to the package cache.",
     )
     removal_target_options.add_argument(
-        "-c", "--tempfiles",
-        nargs="+",
+        "-c",  # for tempfile extension (.c~)
+        "--tempfiles",
+        const=sys.prefix,
+        action=ExtendConstAction,
         help=("Remove temporary files that could not be deleted earlier due to being in-use.  "
               "Argument is path(s) to prefix(es) where files should be found and removed."),
+    )
+    removal_target_options.add_argument(
+        "-l",
+        "--logfiles",
+        action="store_true",
+        help="Remove log files.",
     )
 
     add_output_and_prompt_options(p)
@@ -535,11 +577,8 @@ def configure_parser_create(sub_parsers):
         metavar='ENV',
     )
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
-    solver_mode_options.add_argument(
-        "--no-default-packages",
-        action="store_true",
-        help='Ignore create_default_packages in the .condarc file.',
-    )
+    add_parser_default_packages(solver_mode_options)
+    add_parser_experimental_solver(solver_mode_options)
     p.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -681,24 +720,6 @@ def configure_parser_init(sub_parsers):
     p.set_defaults(func='.main_init.execute')
 
 
-def configure_parser_help(sub_parsers):
-    descr = "Displays a list of available conda commands and their help strings."
-
-    p = sub_parsers.add_parser(
-        'help',
-        description=descr,
-        help=descr,
-    )
-    p.add_argument(
-        'command',
-        metavar='COMMAND',
-        action="store",
-        nargs='?',
-        help="Print help information for COMMAND (same as: conda COMMAND --help).",
-    )
-    p.set_defaults(func='.main_help.execute')
-
-
 def configure_parser_install(sub_parsers):
     help = "Installs a list of packages into a specified conda environment."
     descr = dedent(help + """
@@ -746,6 +767,7 @@ def configure_parser_install(sub_parsers):
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
+    add_parser_experimental_solver(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -785,19 +807,19 @@ def configure_parser_list(sub_parsers):
     examples = dedent("""
     Examples:
 
-    List all packages in the current environment:
+    List all packages in the current environment::
 
         conda list
 
-    List all packages installed into the environment 'myenv':
+    List all packages installed into the environment 'myenv'::
 
         conda list -n myenv
 
-    Save packages for future use:
+    Save packages for future use::
 
         conda list --export > package-list.txt
 
-    Reinstall packages from an export file:
+    Reinstall packages from an export file::
 
         conda create -n myenv --file package-list.txt
 
@@ -859,6 +881,41 @@ def configure_parser_list(sub_parsers):
         help="List only packages matching this regular expression.",
     )
     p.set_defaults(func='.main_list.execute')
+
+
+def configure_parser_compare(sub_parsers):
+    descr = "Compare packages between conda environments."
+
+    # Note, the formatting of this is designed to work well with help2man
+    examples = dedent("""
+    Examples:
+
+    Compare packages in the current environment with respect to 'environment.yml':
+
+        conda compare environment.yml
+
+    Compare packages installed into the environment 'myenv' with respect to 'environment.yml':
+
+        conda compare -n myenv environment.yml
+
+    """)
+    p = sub_parsers.add_parser(
+        'compare',
+        description=descr,
+        help=descr,
+        formatter_class=RawDescriptionHelpFormatter,
+        epilog=examples,
+        add_help=False,
+    )
+    add_parser_help(p)
+    add_parser_json(p)
+    add_parser_prefix(p)
+    p.add_argument(
+        'file',
+        action="store",
+        help="Path to the environment file that is to be compared against",
+    )
+    p.set_defaults(func='.main_compare.execute')
 
 
 def configure_parser_package(sub_parsers):
@@ -976,6 +1033,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
         help="Ignore pinned file.",
     )
     add_parser_prune(solver_mode_options)
+    add_parser_experimental_solver(solver_mode_options)
 
     add_parser_networking(p)
     add_output_and_prompt_options(p)
@@ -1001,16 +1059,13 @@ def configure_parser_remove(sub_parsers, name='remove'):
 
 
 def configure_parser_run(sub_parsers):
-    help = "Run an executable in a conda environment. [Experimental]"
+    help = "Run an executable in a conda environment."
     descr = help + dedent("""
 
-    Use '--' (double dash) to separate CLI flags for 'conda run' from CLI flags sent to
-    the process being launched.
+    Example usage::
 
-    Example usage:
-
-        $ conda create -y -n my-python-2-env python=2
-        $ conda run -n my-python-2-env python --version
+        $ conda create -y -n my-python-env python=3
+        $ conda run -n my-python-env python --version
     """)
 
     epilog = dedent("""
@@ -1056,6 +1111,13 @@ def configure_parser_run(sub_parsers):
         help="Current working directory for command to run in.  Defaults to cwd",
         default=os.getcwd()
     )
+    p.add_argument(
+        "--no-capture-output",
+        "--live-stream",
+        action="store_true",
+        help="Don't capture stdout/stderr.",
+        default=False,
+    )
 
     p.add_argument(
         'executable_call',
@@ -1063,6 +1125,7 @@ def configure_parser_run(sub_parsers):
         help="Executable name, with additional arguments to be passed to the executable "
              "on invocation.",
     )
+
     p.set_defaults(func='.main_run.execute')
 
 
@@ -1214,6 +1277,7 @@ def configure_parser_update(sub_parsers, name='update'):
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
+    add_parser_experimental_solver(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -1414,11 +1478,12 @@ def add_parser_channels(p):
         # TODO: if you ever change 'channel' to 'channels', make sure you modify the context.channels property accordingly # NOQA
         action="append",
         help="""Additional channel to search for packages. These are URLs searched in the order
-        they are given (including file:// for local directories).  Then, the defaults
+        they are given (including local directories using the 'file://'  syntax or
+        simply a path like '/home/conda/mychan' or '../mychan').  Then, the defaults
         or channels from .condarc are searched (unless --override-channels is given).  You can use
         'defaults' to get the default packages for conda.  You can also use any name and the
         .condarc channel_alias value will be prepended.  The default channel_alias
-        is http://conda.anaconda.org/.""",
+        is https://conda.anaconda.org/.""",
     )
     channel_customization_options.add_argument(
         "--use-local",
@@ -1438,8 +1503,8 @@ def add_parser_channels(p):
         help=("Specify name of repodata on remote server. Conda will try "
               "whatever you specify, but will ultimately fall back to repodata.json if "
               "your specs are not satisfiable with what you specify here. This is used "
-              "to employ repodata that is reduced in time scope.  You may pass this flag"
-              "more than once.  Leftmost entries are tried first, and the fallback to"
+              "to employ repodata that is reduced in time scope.  You may pass this flag "
+              "more than once.  Leftmost entries are tried first, and the fallback to "
               "repodata.json is added for you automatically.")
     )
     return channel_customization_options
@@ -1555,6 +1620,23 @@ def add_parser_prune(p):
     )
 
 
+def add_parser_experimental_solver(p):
+    """
+    Add a command-line flag for alternative solver backends.
+
+    See ``context.experimental_solver`` for more info.
+
+    TODO: This will be replaced by a proper plugin mechanism in the future.
+    """
+    p.add_argument(
+        "--experimental-solver",
+        dest="experimental_solver",
+        choices=[v.value for v in ExperimentalSolverChoice],
+        help="EXPERIMENTAL. Choose which solver backend to use.",
+        default=NULL,
+    )
+
+
 def add_parser_networking(p):
     networking_options = p.add_argument_group("Networking Options")
     networking_options.add_argument(
@@ -1619,4 +1701,11 @@ def add_parser_known(p):
         default=False,
         dest='unknown',
         help=SUPPRESS,
+    )
+
+def add_parser_default_packages(p):
+    p.add_argument(
+        "--no-default-packages",
+        action="store_true",
+        help='Ignore create_default_packages in the .condarc file.',
     )

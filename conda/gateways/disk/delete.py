@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 import fnmatch
 from logging import getLogger
-from os import environ, getcwd, listdir, makedirs, rename, rmdir, unlink, walk
+from os import environ, getcwd, makedirs, rename, rmdir, scandir, unlink, walk
 from os.path import abspath, basename, dirname, exists, isdir, isfile, join, normpath, split
 import shutil
 from subprocess import CalledProcessError, STDOUT, check_output
@@ -46,14 +46,14 @@ def rmtree(path, *args, **kwargs):
             try:
                 # Try to delete in Unicode
                 name = None
-                from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+                from conda.auxlib.compat import Utf8NamedTemporaryFile
                 from conda.utils import quote_for_shell
 
                 with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as batch_file:
-                    batch_file.write('RD /S {}\n'.format(quote_for_shell([path])))
-                    batch_file.write('chcp 65001\n')
-                    batch_file.write('RD /S {}\n'.format(quote_for_shell([path])))
-                    batch_file.write('EXIT 0\n')
+                    batch_file.write("RD /S {}\n".format(quote_for_shell(path)))
+                    batch_file.write("chcp 65001\n")
+                    batch_file.write("RD /S {}\n".format(quote_for_shell(path)))
+                    batch_file.write("EXIT 0\n")
                     name = batch_file.name
                 # If the above is bugged we can end up deleting hard-drives, so we check
                 # that 'path' appears in it. This is not bulletproof but it could save you (me).
@@ -72,7 +72,7 @@ def rmtree(path, *args, **kwargs):
             except CalledProcessError as e:
                 if e.returncode != 5:
                     log.error("Removing folder {} the fast way failed.  Output was: {}"
-                              .format(out))
+                              .format(name, out))
                     raise
                 else:
                     log.debug("removing dir contents the fast way failed.  Output was: {}"
@@ -85,15 +85,19 @@ def rmtree(path, *args, **kwargs):
         # yes, this looks strange.  See
         #    https://unix.stackexchange.com/a/79656/34459
         #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html  # NOQA
-        rsync = which('rsync')
-        if rsync and isdir('.empty'):
-            try:
-                out = check_output(
-                    [rsync, '-a', '--force', '--delete', join(getcwd(), '.empty') + "/",
-                     path + "/"],
-                    stderr=STDOUT)
-            except CalledProcessError:
-                log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
+
+        if isdir('.empty'):
+            rsync = which('rsync')
+
+            if rsync:
+                try:
+                    out = check_output(
+                        [rsync, '-a', '--force', '--delete', join(getcwd(), '.empty') + "/",
+                         path + "/"],
+                        stderr=STDOUT)
+                except CalledProcessError:
+                    log.debug(f"removing dir contents the fast way failed.  Output was: {out}")
+
             shutil.rmtree('.empty')
     shutil.rmtree(path)
 
@@ -143,7 +147,8 @@ def unlink_or_rename_to_trash(path):
 def remove_empty_parent_paths(path):
     # recurse to clean up empty folders that were created to have a nested hierarchy
     parent_path = dirname(path)
-    while(isdir(parent_path) and not listdir(parent_path)):
+
+    while isdir(parent_path) and not next(scandir(parent_path), None):
         rmdir(parent_path)
         parent_path = dirname(parent_path)
 

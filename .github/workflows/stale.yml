@@ -1,0 +1,89 @@
+name: Stale
+
+on:
+  # NOTE: github.event is workflow_dispatch payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      dryrun:
+        description: "dryrun: Preview stale issues/prs without marking them (true|false)"
+        required: true
+        type: boolean
+        default: true
+
+  schedule:
+    - cron: 0 4 * * *
+
+jobs:
+  stale:
+    if: '!github.event.repository.fork'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # The issues labeled "support" have a more aggressive stale/close timeline from the rest
+        only-issue-labels: ['type::support', '']
+    steps:
+      - id: read_yaml
+        uses: conda/actions/read-yaml@v22.2.1
+        with:
+          path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
+      - uses: actions/stale@v4
+        id: stale
+        with:
+          # Idle number of days before marking issues stale (default: 60)
+          days-before-issue-stale: ${{ matrix.only-issue-labels && 21 || 365 }}
+          # Idle number of days before closing stale issues/PRs (default: 7)
+          days-before-issue-close: ${{ matrix.only-issue-labels && 7 || 30 }}
+          # Idle number of days before marking PRs stale (default: 60)
+          days-before-pr-stale: 365
+          # Idle number of days before closing stale PRs (default: 7)
+          days-before-pr-close: 30
+
+          # Comment on the staled issues
+          stale-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-issue'] }}
+          # Comment on the staled issues while closed
+          # close-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-issue'] }}
+          # Comment on the staled PRs
+          stale-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-pr'] }}
+          # Comment on the staled PRs while closed
+          # close-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-pr'] }}
+          # Label to apply on staled issues
+          stale-issue-label: 'stale'
+          # Label to apply on closed issues
+          close-issue-label: 'stale::closed'
+          # Label to apply on staled PRs
+          stale-pr-label: 'stale'
+          # Label to apply on closed PRs
+          close-pr-label: 'stale::closed'
+
+          # Issues with these labels will never be considered stale
+          exempt-issue-labels: 'stale::recovered,epic'
+          # Issues with these labels will never be considered stale
+          exempt-pr-labels: 'stale::recovered,epic'
+          # Only issues with these labels are checked whether they are stale
+          only-issue-labels: ${{ matrix.only-issue-labels }}
+
+          # Max number of operations per run
+          operations-per-run: ${{ secrets.STALE_OPERATIONS_PER_RUN || 100 }}
+          # Remove stale label from issues/PRs on updates/comments
+          remove-stale-when-updated: true
+
+          # Add specified labels to issues/PRs when they become unstale
+          labels-to-add-when-unstale: 'stale::recovered'
+          labels-to-remove-when-unstale: 'stale,stale::closed'
+
+          # Dry-run (default: false)
+          debug-only: ${{ github.event.inputs.dryrun || false }}
+          # Order to get issues/PRs (default: false)
+          ascending: true
+          # Delete branch after closing a stale PR (default: false)
+          delete-branch: false
+
+          # Exempt all issues/PRs with milestones from stale
+          exempt-all-milestones: true
+
+          # Assignees on issues/PRs exempted from stale
+          exempt-assignees: mingwandroid
+
+      - name: Print outputs
+        run: echo ${{ join(steps.stale.outputs.*, ',') }}

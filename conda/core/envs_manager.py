@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EACCES, EROFS, ENOENT
 from logging import getLogger
-from os import devnull, listdir
+import os
 from os.path import dirname, isdir, isfile, join, normpath
 
 from .prefix_data import PrefixData
@@ -18,6 +18,7 @@ from ..gateways.disk.test import is_conda_environment
 
 log = getLogger(__name__)
 
+
 # The idea is to mock this to return '/dev/null' (or some temp file) instead.
 def get_user_environments_txt_file(userhome='~'):
     return expand(join(userhome, '.conda', 'environments.txt'))
@@ -28,12 +29,12 @@ def register_env(location):
     location = normpath(location)
     folder = dirname(location)
     try:
-        makedirs(folder)
+        os.makedirs(folder)
     except:
         pass
 
     if ("placehold_pl" in location or "skeleton_" in location
-       or user_environments_txt_file == devnull):
+       or user_environments_txt_file == os.devnull):
         # Don't record envs created by conda-build.
         return
 
@@ -58,7 +59,7 @@ def unregister_env(location):
     if isdir(location):
         meta_dir = join(location, 'conda-meta')
         if isdir(meta_dir):
-            meta_dir_contents = listdir(meta_dir)
+            meta_dir_contents = tuple(entry.name for entry in os.scandir(meta_dir))
             if len(meta_dir_contents) > 1:
                 # if there are any files left other than 'conda-meta/history'
                 #   then don't unregister
@@ -73,7 +74,7 @@ def list_all_known_prefixes():
     if is_admin():
         if on_win:
             home_dir_dir = dirname(expand('~'))
-            search_dirs = tuple(join(home_dir_dir, d) for d in listdir(home_dir_dir))
+            search_dirs = tuple(entry.path for entry in os.scandir(home_dir_dir))
         else:
             from pwd import getpwall
             search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
@@ -82,13 +83,18 @@ def list_all_known_prefixes():
     for home_dir in search_dirs:
         environments_txt_file = get_user_environments_txt_file(home_dir)
         if isfile(environments_txt_file):
-            all_env_paths.update(_clean_environments_txt(environments_txt_file))
+            try:
+                # When the user is an admin, some environments.txt files might
+                # not be readable (if on network file system for example)
+                all_env_paths.update(_clean_environments_txt(environments_txt_file))
+            except PermissionError:
+                log.warning(f"Unable to access {environments_txt_file}")
 
     # in case environments.txt files aren't complete, also add all known conda environments in
     # all envs_dirs
     envs_dirs = (envs_dir for envs_dir in context.envs_dirs if isdir(envs_dir))
     all_env_paths.update(path for path in (
-        join(envs_dir, name) for envs_dir in envs_dirs for name in listdir(envs_dir)
+        entry.path for envs_dir in envs_dirs for entry in os.scandir(envs_dir)
     ) if path not in all_env_paths and is_conda_environment(path))
 
     all_env_paths.add(context.root_prefix)
