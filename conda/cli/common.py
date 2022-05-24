@@ -69,7 +69,7 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
 
 def ensure_name_or_prefix(args, command):
     warn(
-        f"{__name__}.ensure_name_or_prefix is pending deprecation in 5.0.0.",
+        "conda.cli.common.ensure_name_or_prefix is pending deprecation in a future release.",
         PendingDeprecationWarning,
     )
     if not (args.name or args.prefix):
