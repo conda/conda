@@ -7,18 +7,9 @@ import uuid
 import json
 from itertools import chain
 from pathlib import Path
-from typing import TypedDict, Optional, Sequence
+from typing import Optional, Sequence
 
 import mock
-
-
-class Notice(TypedDict):
-    id: str
-    message: str
-    level: str
-    created_at: datetime.datetime
-    expiry: int
-
 
 DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to users"
 
