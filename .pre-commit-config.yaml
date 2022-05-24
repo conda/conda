@@ -58,7 +58,7 @@ repos:
         # ignore all tests, not just tests data
         exclude: ^tests/
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.14
+    rev: v1.2.0
     hooks:
       - id: insert-license
         files: \.py$
