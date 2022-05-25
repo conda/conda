@@ -1,6 +1,6 @@
-================
-Conda Plugin API
-================
+=======
+Plugins
+=======
 
 As of version ``X.Y``, ``conda`` has support for user plugins, enabling them to
 extend and/or change some of its functionality.
@@ -63,112 +63,29 @@ custom plugin function decorated with the plugin hook (shown above):
 A note on licensing
 -------------------
 
-XYZ
+When licensing plugins, we recommend using licenses such as BSD-3_, MIT_, and
+`Apache License 2.0`_. Some ``import`` statements may possibly require the GPLv3_
+license, which ensures that the software being licensed is open source.
 
-.. Brief info about licensing and different options here
+Ultimately, the authors of the plugins can decide which license is best for their particular
+use case. Be sure to credit the original author of the plugin, and keep in mind that
+licenses can be altered depending on the situation.
 
-Custom subcommand plugin tutorial
----------------------------------
-
-XYZ
-
-.. Explain what this tutorial is going to be teaching
-
-A custom subcommand module
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. What does this module do?
-
-.. code-block:: python
-   :caption: string_art.py
-
-   from art import *
-
-   import conda.plugins
+For more information on which license to use for your custom plugin, please reference
+the `"Choose an Open Source License"`_ site.
 
 
-   def conda_string_art(args: str):
-       # if using a multi-word string with spaces, make sure to wrap it in quote marks
-       str = ""
-       output = str.join(args)
-       string_art = text2art(output)
+How-to guides
+-------------
 
-       print(string_art)
+.. py:module:: conda.plugins
 
 
-   @conda.plugins.hookimpl
-   def conda_cli_register_subcommands():
-       yield conda.plugins.CondaSubcommand(
-           name="string-art",
-           summary="tutorial subcommand that prints a string as ASCII art",
-           action=conda_string_art,
-       )
+.. toctree::
+   :maxdepth: 1
 
+   subcommand_guide
 
-Entrypoint namespace for the custom subcommand
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. Include info about how to use entrypoints
-
-.. code-block:: python
-   :caption: setup.py
-
-   from setuptools import setup
-
-   install_requires = [
-       "conda",
-       "art",
-   ]
-
-   setup(
-       name="my-conda-subcommand",
-       install_requires=install_requires,
-       entry_points={"conda": ["my-conda-subcommand = string_art"]},
-       py_modules=["string_art"],
-   )
-
-
-
-The subcommand output
-~~~~~~~~~~~~~~~~~~~~~
-
-Once the subcommand plugin is successfully installed, the help text will display
-it as an additional option available from other packages:
-
-.. code-block:: bash
-
-  $ conda --help
-  usage: conda [-h] [-V] command ...
-
-  conda is a tool for managing and deploying applications, environments and packages.
-
-  Options:
-
-  positional arguments:
-   command
-     clean        Remove unused packages and caches.
-
-  [...output shortened...]
-
-  conda commands available from other packages:
-  string-art - tutorial subcommand that prints a string as ASCII art
-
-  conda commands available from other packages (legacy):
-   content-trust
-   env
-
-
-Running ``conda string-art [string]`` will result in output like the following:
-
-.. code-block::
-
-  $ conda string-art "testing 123"
-    _               _    _                 _  ____   _____
-   | |_   ___  ___ | |_ (_) _ __    __ _  / ||___ \ |___ /
-   | __| / _ \/ __|| __|| || '_ \  / _` | | |  __) |  |_ \
-   | |_ |  __/\__ \| |_ | || | | || (_| | | | / __/  ___) |
-    \__| \___||___/ \__||_||_| |_| \__, | |_||_____||____/
-                                   |___/
 
 API reference
 -------------
@@ -183,3 +100,8 @@ API reference
 
 .. _documentation: https://pluggy.readthedocs.io/en/stable/
 .. _`Python package entrypoints`: https://packaging.python.org/en/latest/specifications/entry-points/
+.. _BSD-3: https://opensource.org/licenses/BSD-3-Clause
+.. _MIT: https://opensource.org/licenses/MIT
+.. _`Apache License 2.0`: https://www.apache.org/licenses/LICENSE-2.0
+.. _GPLv3: https://www.gnu.org/licenses/gpl-3.0.en.html
+.. _`"Choose an Open Source License"`: https://choosealicense.com/
