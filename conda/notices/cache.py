@@ -69,7 +69,9 @@ def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeRespo
 @ensure_dir_exists
 def get_notices_cache_dir() -> Path:
     """Returns the location of the notices cache directory as a Path object"""
-    return Path(user_cache_dir(APP_NAME)).joinpath(NOTICES_CACHE_SUBDIR)
+    cache_dir = user_cache_dir(APP_NAME, appauthor=APP_NAME)
+
+    return Path(cache_dir).joinpath(NOTICES_CACHE_SUBDIR)
 
 
 def get_notices_cache_file() -> Path:
