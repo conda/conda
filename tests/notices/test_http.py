@@ -22,8 +22,6 @@ def test_get_channel_notice_response_timeout_error(
 
         display_notices()
 
-        assert len(mock_logger.mock_calls) == 2
-
         for mock_call in mock_logger.mock_calls:
             for arg in mock_call.args:
                 assert "Request timed out for channel" in arg
@@ -40,8 +38,6 @@ def test_get_channel_notice_response_malformed_json(
         add_resp_to_mock(notices_mock_http_session_get, 200, messages, raise_exc=True)
 
         display_notices()
-
-        assert len(mock_logger.mock_calls) == 2
 
         expected_log_mesgs = (
             "Unable to parse JSON data",
