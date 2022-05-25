@@ -45,6 +45,7 @@ extensions = [
     "sphinxarg.ext",
     "sphinxcontrib.programoutput",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx.ext.graphviz",
