@@ -67,6 +67,8 @@ Are you:
 
 Read more about `how we made conda faster <https://www.anaconda.com/how-we-made-conda-faster-4-7/>`_.
 
+.. _concepts-performance-channel-priority:
+
 Set strict channel priority
 ---------------------------
 

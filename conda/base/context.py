@@ -837,8 +837,12 @@ class Context(Configuration):
             try:
                 # Solver.user_agent has to be a static or class method
                 user_agent_str += f" {_get_solver_class().user_agent()}"
-            except (AttributeError, TypeError):
-                pass
+            except Exception as exc:
+                log.debug(
+                    "User agent could not be fetched from solver class '%s'.",
+                    self.experimental_solver.value,
+                    exc_info=exc
+                )
             builder.append(user_agent_str)
         return " ".join(builder)
 
