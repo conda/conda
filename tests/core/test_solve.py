@@ -207,8 +207,8 @@ def test_cuda_fail_1(tmpdir):
 
 Your installed versions are:
 
-  - __cuda[version='>=10.0|>=9.0'] : 8.0
-  - @/{}::__cuda==8.0=0 : 8.0""".format(plat, plat))
+  - @/{}::__cuda==8.0=0 : 8.0
+  - __cuda[version='>=10.0|>=9.0'] : 8.0""".format(plat, plat))
 
 
 def test_cuda_fail_2(tmpdir):
