@@ -40,7 +40,7 @@ Installation
 ------------
 
 Conda is a part of the `Anaconda Distribution <https://repo.anaconda.com>`_.
-Use `Miniconda <https://conda.io/en/latest/miniconda.html>`_ to bootstrap a minimal installation
+Use `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_ to bootstrap a minimal installation
 that only includes conda and its dependencies.
 
 
@@ -108,7 +108,7 @@ You can easily build your own packages for conda, and upload them
 to `anaconda.org <https://anaconda.org>`_, a free service for hosting
 packages for conda, as well as other package managers.
 To build a package, create a recipe. Package building documentation is available
-`here <https://conda.io/projects/conda-build/en/latest/>`_.
+`here <https://docs.conda.io/projects/conda-build/en/latest/>`_.
 See https://github.com/AnacondaRecipes for the recipes that make up the Anaconda Distribution
 and ``defaults`` channel. `Conda-forge <https://conda-forge.org/feedstocks/>`_ and
 `Bioconda <https://github.com/bioconda/bioconda-recipes>`_ are community-driven
@@ -143,7 +143,7 @@ to add).
 Getting Help
 ------------
 
-The documentation for conda is at https://conda.io/en/latest/. You can
+The documentation for conda is at https://docs.conda.io/projects/conda/en/latest/. You can
 subscribe to the `conda mailing list
 <https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_.  The source
 code and issue tracker for conda are on `GitHub <https://github.com/conda/conda>`_.
