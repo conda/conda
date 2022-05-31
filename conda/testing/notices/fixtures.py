@@ -4,7 +4,7 @@
 
 from pathlib import Path
 
-import mock
+from unittest import mock
 import pytest
 
 from conda.base.constants import NOTICES_CACHE_SUBDIR
