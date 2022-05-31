@@ -4,6 +4,8 @@
 
 import json
 import os
+import pathlib
+import tempfile
 import yaml
 
 import pytest
@@ -126,27 +128,32 @@ class Commands:
     ACTIVATE = "activate"
 
 
-def run_env_command(command, prefix, *arguments):
+def run_env_command(command, prefix, *arguments, use_prefix_flag: bool = False):
     """
         Run conda env commands
     Args:
         command: The command, create, remove, export
         prefix: The prefix, for remove and create
         *arguments: The extra arguments
+        use_prefix_flag: determines whether we use '-n' or '-p' to specify our environment
     """
 
     arguments = massage_arguments(arguments)
     arguments.insert(0, command)
 
+    flag = "-p" if use_prefix_flag else "-n"
+
     if command is Commands.ENV_EXPORT:
-        arguments[1:1] = ['-n', prefix]
-    elif command is Commands.ENV_CREATE: # CREATE
+        arguments[1:1] = [flag, prefix]
+    elif command is Commands.ENV_CREATE:
         if prefix:
-            arguments[1:1] = ['-n', prefix]
-    elif command is Commands.ENV_REMOVE:  # REMOVE
-        arguments[1:1] = ['--yes', '-n', prefix]
+            arguments[1:1] = [flag, prefix]
+    elif command is Commands.ENV_REMOVE:
+        arguments[1:1] = ["--yes", flag, prefix]
     elif command is Commands.ENV_UPDATE:
-        arguments[1:1] = ['-n', prefix]
+        arguments[1:1] = [flag, prefix]
+    elif command is Commands.ENV_RENAME:
+        arguments[1:1] = [flag, prefix]
     else:
         command_line = " --help "
     p = create_parser()
@@ -486,7 +493,20 @@ class IntegrationTests(unittest.TestCase):
         assert e is ""
 
     def test_rename_by_path_success(self):
-        pass
+        create_env(ENVIRONMENT_1)
+        run_env_command(Commands.ENV_CREATE, None)
+        env_name = "env-1"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            new_name = str(pathlib.Path(temp_dir).joinpath("new-env"))
+            run_env_command(Commands.ENV_RENAME, env_name, new_name)
+            o, e = run_env_command(Commands.LIST, new_name, "--json")
+            output_env_vars = json.loads(o)
+            result = ",".join(output_env_vars.get("envs", []))
+
+            assert new_name in result
+            assert env_name not in result
+            assert e == ""
 
 
 def env_is_created(env_name):
