@@ -5,10 +5,10 @@
 import os
 from argparse import RawDescriptionHelpFormatter
 
-from conda.cli import common
-from conda.common.path import expand
 from conda.base.context import context, locate_prefix_by_name, validate_prefix_name
-from conda.cli import conda_argparse as c_arg, install
+from conda.cli import common, conda_argparse as c_arg, install
+from conda.common.path import expand
+from conda.exceptions import CondaEnvException
 from conda.gateways.disk.delete import rm_rf
 
 DESCRIPTION = """
@@ -66,10 +66,14 @@ def validate_src(args) -> str:
 def validate_destination(dest: str) -> str:
     """Ensure that our destination does not exist"""
     if os.sep in dest:
-        return expand(dest)
+        dest = expand(dest)
     else:
-        return validate_prefix_name(dest, ctx=context, allow_base=False)
+        dest = validate_prefix_name(dest, ctx=context, allow_base=False)
 
+    if os.path.exists(dest):
+        raise CondaEnvException("Environment destination already exists")
+
+    return dest
 
 def execute(args, _):
     """

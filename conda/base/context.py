@@ -1739,20 +1739,20 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
     from ..exceptions import CondaValueError
 
     if any(_ in prefix_name for _ in PREFIX_NAME_DISALLOWED_CHARS):
-
         builder = [
             "Invalid environment name: '" + prefix_name + "'",
             "  Characters not allowed: {}".format(PREFIX_NAME_DISALLOWED_CHARS),
         ]
         raise CondaValueError("\n".join(builder))
+
     if prefix_name in (ROOT_ENV_NAME, "root"):
         if allow_base:
             return ctx.root_prefix
         else:
             raise CondaValueError("Use of 'base' as environment name is not allowed here.")
+
     else:
         from ..exceptions import EnvironmentNameNotFound
-
         try:
             return locate_prefix_by_name(prefix_name)
         except EnvironmentNameNotFound:

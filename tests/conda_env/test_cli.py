@@ -30,16 +30,24 @@ from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 
-ENVIRONMENT_1 = """
-name: env-1
+# Environment names we use during our tests
+TEST_ENV_NAME_1 = "env-1"
+TEST_ENV_NAME_2 = "snowflakes"
+TEST_ENV_NAME_42 = "env-42"
+TEST_ENV_NAME_PIP = "env-pip"
+TEST_ENV_NAME_RENAME = "rename-env"
+
+# Environment config files we use for out tests
+ENVIRONMENT_1 = f"""
+name: {TEST_ENV_NAME_1}
 dependencies:
   - python
 channels:
   - defaults
 """
 
-ENVIRONMENT_1_WITH_VARIABLES = """
-name: env-1
+ENVIRONMENT_1_WITH_VARIABLES = f"""
+name: {TEST_ENV_NAME_1}
 dependencies:
   - python
 channels:
@@ -51,8 +59,8 @@ variables:
 
 """
 
-ENVIRONMENT_2 = """
-name: env-1
+ENVIRONMENT_2 = f"""
+name: {TEST_ENV_NAME_1}
 dependencies:
   - python
   - flask
@@ -60,8 +68,8 @@ channels:
   - defaults
 """
 
-ENVIRONMENT_3_INVALID = """
-name: env-1
+ENVIRONMENT_3_INVALID = f"""
+name: {TEST_ENV_NAME_1}
 dependecies:
   - python
   - flask
@@ -70,8 +78,8 @@ channels:
 foo: bar
 """
 
-ENVIRONMENT_PYTHON_PIP_CLICK = """
-name: env-1
+ENVIRONMENT_PYTHON_PIP_CLICK = f"""
+name: {TEST_ENV_NAME_1}
 dependencies:
   - python=3
   - pip
@@ -81,8 +89,8 @@ channels:
   - defaults
 """
 
-ENVIRONMENT_PYTHON_PIP_CLICK_ATTRS = """
-name: env-1
+ENVIRONMENT_PYTHON_PIP_CLICK_ATTRS = f"""
+name: {TEST_ENV_NAME_1}
 dependencies:
   - python=3
   - pip
@@ -93,8 +101,8 @@ channels:
   - defaults
 """
 
-ENVIRONMENT_PYTHON_PIP_NONEXISTING = """
-name: env-1
+ENVIRONMENT_PYTHON_PIP_NONEXISTING = f"""
+name: {TEST_ENV_NAME_1}
 dependencies:
   - python=3
   - pip
@@ -103,11 +111,6 @@ dependencies:
 channels:
   - defaults
 """
-
-TEST_ENV_NAME_1 = "env-1"
-TEST_ENV_NAME_2 = "snowflakes"
-TEST_ENV_NAME_42 = "env-42"
-TEST_ENV_NAME_PIP = "env-pip"
 
 
 def escape_for_winpath(p):
@@ -213,6 +216,7 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
+        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_RENAME)
         for env_nb in range(1, 6):
             run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
 
@@ -221,6 +225,7 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
+        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_RENAME)
         for env_nb in range(1, 6):
              run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
 
@@ -479,34 +484,69 @@ class IntegrationTests(unittest.TestCase):
         with pytest.raises(CondaEnvException, match="Pip failed"):
             run_env_command(Commands.ENV_CREATE, TEST_ENV_NAME_PIP)
 
-    def test_rename_by_name_success(self):
+
+class RenameIntegrationTests(unittest.TestCase):
+    """
+    The following are integration tests for the `conda env rename` command
+    """
+
+    def setUp(self) -> None:
+        rm_rf("environment.yml")
+        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_RENAME)
+        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
+
         create_env(ENVIRONMENT_1)
         run_env_command(Commands.ENV_CREATE, None)
-        env_name = "env-1"
-        new_name = "renamed-env"
-        run_env_command(Commands.ENV_RENAME, env_name, new_name)
-        o, e = run_env_command(Commands.LIST, new_name, "--json")
-        output_env_vars = json.loads(o)
-        result = ",".join(output_env_vars.get("envs", []))
-        assert new_name in result
-        assert env_name not in result
-        assert e is ""
+
+    def tearDown(self) -> None:
+        # Cleanup remaining test artifacts
+        rm_rf("environment.yml")
+        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_RENAME)
+        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
+
+    def test_rename_by_name_success(self):
+        run_env_command(Commands.ENV_RENAME, TEST_ENV_NAME_1, TEST_ENV_NAME_RENAME)
+        stdout, stderr = run_env_command(Commands.LIST, None, "--json")
+        output_env_vars = json.loads(stdout)
+        result = output_env_vars.get("envs", [])
+
+        rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_RENAME) for path in result)
+        original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
+
+        assert rename_appears_in_envs
+        assert not original_name_in_envs
+        assert stderr is ""
 
     def test_rename_by_path_success(self):
-        create_env(ENVIRONMENT_1)
-        run_env_command(Commands.ENV_CREATE, None)
-        env_name = "env-1"
-
         with tempfile.TemporaryDirectory() as temp_dir:
             new_name = str(pathlib.Path(temp_dir).joinpath("new-env"))
-            run_env_command(Commands.ENV_RENAME, env_name, new_name)
-            o, e = run_env_command(Commands.LIST, new_name, "--json")
-            output_env_vars = json.loads(o)
-            result = ",".join(output_env_vars.get("envs", []))
+            run_env_command(Commands.ENV_RENAME, TEST_ENV_NAME_1, new_name, use_prefix_flag=True)
 
-            assert new_name in result
-            assert env_name not in result
-            assert e == ""
+            stdout, stderr = run_env_command(Commands.LIST, None, "--json")
+            output_env_vars = json.loads(stdout)
+            result = output_env_vars.get("envs", [])
+
+            path_appears_in_env_list = any(new_name == path for path in result)
+            original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
+
+            assert path_appears_in_env_list
+            assert not original_name_in_envs
+            assert stderr == ""
+
+    def test_rename_by_name_name_already_exists_error(self):
+        """Test to ensure that we do not rename if the name already exists"""
+        try:
+            run_env_command(Commands.ENV_RENAME, TEST_ENV_NAME_1, TEST_ENV_NAME_1)
+        except CondaEnvException as exc:
+            assert "Environment destination already exists" in str(exc)
+
+    def test_rename_by_path_path_already_exists_error(self):
+        """Test to ensure that we do not rename if the path already exists"""
+        with tempfile.TemporaryDirectory() as tempdir:
+            try:
+                run_env_command(Commands.ENV_RENAME, TEST_ENV_NAME_1, tempdir)
+            except CondaEnvException as exc:
+                assert "Environment destination already exists" in str(exc)
 
 
 def env_is_created(env_name):
