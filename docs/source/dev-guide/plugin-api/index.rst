@@ -75,8 +75,8 @@ For more information on which license to use for your custom plugin, please refe
 the `"Choose an Open Source License"`_ site.
 
 
-How-to guides
--------------
+Tutorials
+---------
 
 .. py:module:: conda.plugins
 

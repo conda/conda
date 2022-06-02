@@ -1,16 +1,19 @@
 Custom subcommand plugin tutorial
 ---------------------------------
 
-[content coming soon]
+In this tutorial, we will create a new ``conda`` subcommand that can convert a string
+into ASCII art.
 
-.. Explain what this tutorial is going to be teaching
 
 A custom subcommand module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[content coming soon]
+The following module implements a function, ``conda_string_art``, into a plugin manager
+hook ``conda_cli_register_subcommands``. The ``HookImplMarker`` decorator is initialized
+with the name of ``conda`` as the host project in the ``conda/plugins/__init__.py``
+file, and is invoked via ``@conda.plugins.hookimpl`` in the example subcommand module below:
 
-.. What does this module do?
+.. (TODO: link to __init__.py file)
 
 .. code-block:: python
    :caption: string_art.py
@@ -37,13 +40,8 @@ A custom subcommand module
            action=conda_string_art,
        )
 
-
 Entrypoint namespace for the custom subcommand
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-[content coming soon]
-
-.. Include info about how to use entrypoints
 
 .. code-block:: python
    :caption: setup.py
@@ -62,6 +60,19 @@ Entrypoint namespace for the custom subcommand
        py_modules=["string_art"],
    )
 
+
+In order to install the subcommand plugin via the ``setup.py`` entrypoint shown above,
+run the following:
+
+.. code-block:: bash
+
+   $ pip install --editable [path to project]/string_art
+
+.. note::
+
+   There is also a way to use setuptools entry points to automatically load plugins
+   that are registered through them, via the ``load_setup_tools_entrypoints()`` method.
+   For more information, check out the associated ``pluggy`` `documentation page`_.
 
 
 The subcommand output
@@ -106,3 +117,5 @@ Running ``conda string-art [string]`` successfully will result in the following 
                                    |___/
 
 As with any custom plugin, be sure you are applying the :ref:`appropriate license<A note on licensing>`.
+
+.. _`documentation page`: https://pluggy.readthedocs.io/en/stable/index.html#loading-setuptools-entry-points
