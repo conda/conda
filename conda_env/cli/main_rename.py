@@ -56,8 +56,13 @@ def configure_parser(sub_parsers) -> None:
 
 
 def validate_src(args) -> str:
-    """Validate that we are receiving at least one value for --name or --prefix"""
+    """
+    Validate that we are receiving at least one value for --name or --prefix
+    and ensure that the "base" environment is not being renamed
+    """
     common.ensure_name_or_prefix(args, "env rename")
+    if context.target_prefix == context.root_prefix:
+        raise CondaEnvException("The 'base' environment cannot be renamed")
     prefix = args.name if args.name else args.prefix
 
     return locate_prefix_by_name(prefix)

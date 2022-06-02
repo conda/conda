@@ -548,6 +548,25 @@ class RenameIntegrationTests(unittest.TestCase):
             except CondaEnvException as exc:
                 assert "Environment destination already exists" in str(exc)
 
+    def test_rename_base_env_by_name_error(self):
+        """Test to ensure that we cannot rename the base env invoked by name"""
+        try:
+            run_env_command(Commands.ENV_RENAME, "base", TEST_ENV_NAME_RENAME)
+        except CondaEnvException as exc:
+            assert "The 'base' environment cannot be renamed" in str(exc)
+
+    def test_rename_base_env_by_path_error(self):
+        """Test to ensure that we cannot rename the base env invoked by path"""
+        try:
+            run_env_command(
+                Commands.ENV_RENAME,
+                context.root_prefix,
+                TEST_ENV_NAME_RENAME,
+                use_prefix_flag=True,
+            )
+        except CondaEnvException as exc:
+            assert "The 'base' environment cannot be renamed" in str(exc)
+
 
 def env_is_created(env_name):
     """
