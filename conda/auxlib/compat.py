@@ -5,6 +5,7 @@ from collections import OrderedDict as odict  # noqa: F401
 from itertools import chain
 import os
 from shlex import split
+import sys
 from tempfile import NamedTemporaryFile
 
 from .._vendor.six import (  # noqa: F401
@@ -48,6 +49,10 @@ def Utf8NamedTemporaryFile(
 ):
     if "CONDA_TEST_SAVE_TEMPS" in os.environ:
         delete = False
+    if "CONDA_USE_PREFIX_TEMP" in os.environ:
+        if dir is None:
+            dir = os.path.join(sys.prefix, "tmp")
+            os.makedirs(dir, exist_ok=True)
     encoding = None
     if "b" not in mode:
         encoding = "utf-8"
