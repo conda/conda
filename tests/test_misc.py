@@ -3,7 +3,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import codecs
+import os
 import sys
+import tempfile
 import unittest
 
 from conda.core.subdir_data import cache_fn_url
@@ -23,6 +25,37 @@ class TestMisc(unittest.TestCase):
             assert value == test_string
         except Exception as e:
             raise e
+
+    def test_using_system_temp(self):
+        tempdir = tempfile.gettempdir()
+
+        saved_temp_env = os.environ.get("CONDA_USE_PREFIX_TEMP")
+        if saved_temp_env:
+            del os.environ["CONDA_USE_PREFIX_TEMP"]
+
+        try:
+            with Utf8NamedTemporaryFile(delete=False) as tf:
+                fname = tf.name
+            assert os.path.commonprefix([tempdir, fname]) == tempdir
+        finally:
+            if saved_temp_env:
+                os.environ["CONDA_USE_PREFIX_TEMP"] = saved_temp_env
+
+    def test_using_prefix_temp(self):
+        tempdir = tempfile.gettempdir()
+
+        saved_temp_env = os.environ.get("CONDA_USE_PREFIX_TEMP")
+        if not saved_temp_env:
+            os.environ["CONDA_USE_PREFIX_TEMP"] = "TRUE"
+        try:
+            with Utf8NamedTemporaryFile(delete=False) as tf:
+                fname = tf.name
+
+            assert os.path.commonprefix([tempdir, fname]) != tempdir
+            assert os.path.commonprefix([sys.prefix, fname]) == sys.prefix
+        finally:
+            if not saved_temp_env:
+                del os.environ["CONDA_USE_PREFIX_TEMP"]
 
     def test_cache_fn_url(self):
         url = "http://repo.continuum.io/pkgs/pro/osx-64/"
