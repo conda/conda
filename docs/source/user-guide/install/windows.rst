@@ -36,6 +36,9 @@ Installing in silent mode
    The following instructions are for Miniconda. For Anaconda,
    substitute ``Anaconda`` for ``Miniconda`` in all of the commands.
 
+.. note::
+   As of ``Anaconda Distribution 2022.05`` and ``Miniconda 4.12.0``, the option to add Anaconda to the PATH environment variable during an **All Users** installation has been disabled. This was done to address `a security exploit <https://nvd.nist.gov/vuln/detail/CVE-2022-26526>`_. You can still add Anaconda to the PATH environment variable during a **Just Me** installation.
+
 To run the the Windows installer for Miniconda in
 :ref:`silent mode <silent-mode-glossary>`, use the ``/S``
 argument. The following optional arguments are supported:
