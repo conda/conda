@@ -83,14 +83,32 @@ def load_from_directory(directory):
     raise EnvironmentFileNotFound(files[0])
 
 
+def get_pip_history(prefix):
+    """Get packages installed with pip"""
+    from conda_env.pip_util import pip_subprocess
+
+    quiet = context.quiet
+    context.quiet = True  # suppress messages
+    out, _ = pip_subprocess(["list", "--not-required"], prefix, os.getcwd())  # removed path
+    context.quiet = quiet
+    pip_base_packages = re.compile(r"^conda\s|^pip\s|^setuptools\s|^wheel\s")
+    pkg = out.split("\n")[2:]  # get potential package candidates
+    pkg = [entry for entry in pkg if not pip_base_packages.search(entry)]
+    pkg = ["==".join(entry.split()) for entry in pkg if entry]
+    return pkg
+
+
 # TODO tests!!!
-def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_history=False):
+def from_environment(
+    name, prefix, no_builds=False, no_pip=False, ignore_channels=False, from_history=False
+):
     """
         Get environment object from prefix
     Args:
         name: The name of environment
         prefix: The path of prefix
         no_builds: Whether has build requirement
+        no_pip: whether packages installed with pip should be included
         ignore_channels: whether ignore_channels
         from_history: Whether environment file should be based on explicit specs in history
 
@@ -100,29 +118,25 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
     pd = PrefixData(prefix, pip_interop_enabled=True)
     variables = pd.get_environment_env_vars()
 
-    if from_history:
-        history = History(prefix).get_requested_specs_map()
-        deps = [str(package) for package in history.values()]
-        return Environment(name=name, dependencies=deps, channels=list(context.channels),
-                           prefix=prefix, variables=variables)
-
     precs = tuple(PrefixGraph(pd.iter_records()).graph)
-    grouped_precs = groupby(lambda x: x.package_type, precs)
-    conda_precs = sorted(concatv(
-        grouped_precs.get(None, ()),
-        grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
-        grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
-    ), key=lambda x: x.name)
+    if from_history:
+        # subset precs to those in history
+        hist = History(prefix).get_requested_specs_map()
+        hist_keys = hist.keys()
+        precs = tuple(prec for prec in precs if prec.name in hist_keys)
 
-    pip_precs = sorted(concatv(
-        grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
-        grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
-        grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
-        # grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
-    ), key=lambda x: x.name)
+    grouped_precs = groupby(lambda x: x.package_type, precs)
+    conda_precs = sorted(
+        concatv(
+            grouped_precs.get(None, ()),
+            grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
+            grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
+        ),
+        key=lambda x: x.name,
+    )
 
     if no_builds:
-        dependencies = ['='.join((a.name, a.version)) for a in conda_precs]
+        dependencies = ["=".join((a.name, a.version)) for a in conda_precs]
     else:
         dependencies = ['='.join((a.name, a.version, a.build)) for a in conda_precs]
     if pip_precs:
@@ -134,9 +148,30 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
             canonical_name = prec.channel.canonical_name
             if canonical_name not in channels:
                 channels.insert(0, canonical_name)
-    return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix,
-                       variables=variables)
 
+    if not no_pip:
+        # get pip dependencies from all dependencies as they are not in the history file
+        full_precs = precs if not from_history else tuple(PrefixGraph(pd.iter_records()).graph)
+        grouped_precs = groupby(lambda x: x.package_type, full_precs)
+        pip_precs = sorted(
+            concatv(
+                grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
+                grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
+                grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
+                # grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
+            ),
+            key=lambda x: x.name,
+        )
+        if pip_precs:
+            pip_dep = {"pip": [f"{a.name}=={a.version}" for a in pip_precs]}
+            if from_history:
+                pip_hist = get_pip_history(prefix)
+                pip_dep = {"pip": [i for i in pip_dep["pip"] if i in pip_hist]}
+            dependencies.append(pip_dep)
+
+    return Environment(
+        name=name, dependencies=dependencies, channels=channels, prefix=prefix, variables=variables
+    )
 
 def from_yaml(yamlstr, **kwargs):
     """Load and return a ``Environment`` from a given ``yaml string``"""
@@ -244,6 +279,9 @@ class Environment:
     def remove_channels(self):
         self.channels = []
 
+    def remove_prefix(self):
+        self.prefix = []
+
     def to_dict(self, stream=None):
         d = odict([('name', self.name)])
         if self.channels:
@@ -254,9 +292,10 @@ class Environment:
             d['variables'] = self.variables
         if self.prefix:
             d['prefix'] = self.prefix
-        if stream is None:
+        if stream is None or isinstance(stream, str):
             return d
-        stream.write(json.dumps(d))
+        print(stream.__class__)
+        stream.write(bytes(json.dumps(d), encoding="utf-8"))
 
     def to_yaml(self, stream=None):
         d = self.to_dict()

@@ -40,6 +40,14 @@ def configure_parser(sub_parsers):
         action="store_true",
         help="Do not include .condarc channels",
     )
+
+    p.add_argument(
+        "--override-prefix",
+        default=False,
+        action="store_true",
+        help="Do not include environment prefix",
+    )
+
     add_parser_prefix(p)
 
     p.add_argument(
@@ -54,6 +62,14 @@ def configure_parser(sub_parsers):
         action='store_true',
         required=False,
         help='Remove build specification from dependencies'
+    )
+
+    p.add_argument(
+        "--no-pip",
+        default=False,
+        action="store_true",
+        required=False,
+        help="Remove packages installed with pip from dependencies",
     )
 
     p.add_argument(
@@ -81,12 +97,16 @@ def execute(args, parser):
         env_name(prefix),
         prefix,
         no_builds=args.no_builds,
+        no_pip=args.no_pip,
         ignore_channels=args.ignore_channels,
         from_history=args.from_history,
     )
 
     if args.override_channels:
         env.remove_channels()
+
+    if args.override_prefix:
+        env.remove_prefix()
 
     if args.channel is not None:
         env.add_channels(args.channel)
