@@ -19,3 +19,22 @@ Reference
 .. autoclass:: CondaSubcommand
    :members:
    :undoc-members:
+
+
+Example
+-------
+
+
+.. code-block:: python
+
+   def example_command(args):
+       print("This is an example command!")
+
+
+   @conda.plugins.hookimp
+   def conda_cli_register_subcommands(self):
+       yield plugins.CondaSubcommand(
+           name="example",
+           summary="example command",
+           action=example_command,
+       )

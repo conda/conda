@@ -8,15 +8,17 @@ into ASCII art.
 A custom subcommand module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following module implements a function, ``conda_string_art``, into a plugin manager
-hook ``conda_cli_register_subcommands``. The ``HookImplMarker`` decorator is initialized
-with the name of ``conda`` as the host project in the ``conda/plugins/__init__.py``
-file, and is invoked via ``@conda.plugins.hookimpl`` in the example subcommand module below:
+The following module implements a function, ``conda_string_art`` (where a specified string gets
+converted into ASCII art), into a plugin manager hook ``conda_cli_register_subcommands``.
 
-.. (TODO: link to __init__.py file)
+The ``HookImplMarker`` decorator is initialized with the name of ``conda`` as the host
+project in the ``conda/plugins/__init__.py`` file, and is invoked via ``@conda.plugins.hookimpl``
+in the example subcommand module below:
+
+.. (TODO: link to __init__.py file!)
 
 .. code-block:: python
-   :caption: string_art.py
+   :caption: string-art/string_art.py
 
    from art import *
 
@@ -43,8 +45,12 @@ file, and is invoked via ``@conda.plugins.hookimpl`` in the example subcommand m
 Entrypoint namespace for the custom subcommand
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+In order to run the ``string-art`` subcommand successfully, you will need to make sure the
+the ``art`` package is available, which is why it is listed in the ``install_requires`` section
+of the ``setup.py`` file shown below:
+
 .. code-block:: python
-   :caption: setup.py
+   :caption: string-art/setup.py
 
    from setuptools import setup
 
@@ -61,17 +67,38 @@ Entrypoint namespace for the custom subcommand
    )
 
 
-In order to install the subcommand plugin via the ``setup.py`` entrypoint shown above,
-run the following:
+The custom ``string-art`` subcommand plugin can be installed via the ``setup.py`` entrypoint shown above
+by running the following:
 
 .. code-block:: bash
 
    $ pip install --editable [path to project]/string_art
 
+
+Registering a plugin locally
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is also a way to use ``setuptools`` entrypoints to automatically load plugins that
+are registered through them, via the ``load_setup_tools_entrypoints()`` method; this is particularly
+useful if you would like to use a custom subcommand locally via a cloned repo. The example below
+shows how to register a plugin in ``context.py``:
+
+.. code-block:: python
+   :caption: conda/base/context.py
+
+   @functools.lru_cache(maxsize=None)
+   def get_plugin_manager():
+       pm = pluggy.PluginManager("conda")
+       pm.add_hookspecs(plugins)
+       pm.register(string_art)
+       # The line above is implementing the custom subcommand from inside of conda,
+       # vs via an external entrypoint namespace
+       pm.load_setuptools_entrypoints("conda")
+       return pm
+
+
 .. note::
 
-   There is also a way to use setuptools entry points to automatically load plugins
-   that are registered through them, via the ``load_setup_tools_entrypoints()`` method.
    For more information, check out the associated ``pluggy`` `documentation page`_.
 
 
