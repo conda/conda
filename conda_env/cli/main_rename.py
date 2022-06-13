@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 import os
 from argparse import RawDescriptionHelpFormatter
+from typing import Callable
 
 from conda.base.context import context, locate_prefix_by_name, validate_prefix_name
 from conda.cli import common, conda_argparse as c_arg, install
@@ -22,6 +24,8 @@ examples:
     conda env rename -p path/to/test123 test321
     conda env rename --prefix path/to/test123 test321
 """
+
+DRY_RUN_PREFIX = "Dry run action:"
 
 
 def configure_parser(sub_parsers) -> None:
@@ -61,30 +65,59 @@ def validate_src(args) -> str:
     and ensure that the "base" environment is not being renamed
     """
     common.ensure_name_or_prefix(args, "env rename")
+
     if context.target_prefix == context.root_prefix:
         raise CondaEnvException("The 'base' environment cannot be renamed")
+
     prefix = args.name if args.name else args.prefix
+
+    if common.is_active_prefix(prefix):
+        raise CondaEnvException("Cannot rename the active environment")
 
     return locate_prefix_by_name(prefix)
 
 
-def validate_destination(dest: str) -> str:
+def validate_destination(dest: str, force: bool = False) -> str:
     """Ensure that our destination does not exist"""
     if os.sep in dest:
         dest = expand(dest)
     else:
         dest = validate_prefix_name(dest, ctx=context, allow_base=False)
 
-    if os.path.exists(dest):
+    if not force and os.path.exists(dest):
         raise CondaEnvException("Environment destination already exists")
 
     return dest
 
+
+Args = tuple
+Kwargs = dict
+
+
 def execute(args, _):
     """
-    Execute the command for renaming an existing environment
+    Executes the command for renaming an existing environment
     """
     src = validate_src(args)
-    dest = validate_destination(args.destination)
-    install.clone(src, dest, quiet=context.quiet, json=context.json, use_context=False)
-    rm_rf(src)
+    dest = validate_destination(args.destination, force=args.force)
+
+    actions: list[tuple[Callable, Args, Kwargs]] = []
+
+    if args.force:
+        actions.append((rm_rf, (dest,), {}))
+
+    actions.append(
+        (
+            install.clone,
+            (src, dest),
+            {"quiet": context.quiet, "json": context.json, "use_context": False},
+        )
+    )
+    actions.append((rm_rf, (src,), {}))
+
+    for act_func, act_args, act_kwargs in actions:
+        if args.dry_run:
+            pos_args = ", ".join(act_args)
+            print(f"{DRY_RUN_PREFIX} {act_func.__name__} {pos_args}")
+        else:
+            act_func(*act_args, **act_kwargs)

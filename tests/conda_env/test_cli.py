@@ -515,7 +515,7 @@ class RenameIntegrationTests(unittest.TestCase):
 
         assert rename_appears_in_envs
         assert not original_name_in_envs
-        assert stderr is ""
+        assert stderr == ""
 
     def test_rename_by_path_success(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -566,6 +566,56 @@ class RenameIntegrationTests(unittest.TestCase):
             )
         except CondaEnvException as exc:
             assert "The 'base' environment cannot be renamed" in str(exc)
+
+    def test_rename_with_force(self):
+        """
+        Runs a test where we specify the --force flag to remove an existing directory.
+        Without this flag, it would return with an error message.
+        """
+        # First create a new environment that we will overwrite with the "--force" flag
+        test_env_name_force = "env-2"
+        run_env_command(Commands.ENV_REMOVE, test_env_name_force)
+        environment_2 = ENVIRONMENT_1.replace(TEST_ENV_NAME_1, test_env_name_force)
+        create_env(environment_2)
+        run_env_command(Commands.ENV_CREATE, None)
+
+        run_env_command(Commands.ENV_RENAME, test_env_name_force, TEST_ENV_NAME_1, "--force")
+
+        stdout, stderr = run_env_command(Commands.LIST, None, "--json")
+        output_env_vars = json.loads(stdout)
+        result = output_env_vars.get("envs", [])
+
+        rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
+        force_name_not_in_envs = not any(path.endswith(test_env_name_force) for path in result)
+
+        assert rename_appears_in_envs
+        assert force_name_not_in_envs
+        assert stderr == ""
+
+    def test_rename_with_dry_run(self):
+        """
+        Runs a test where we specify the --dry-run flag to remove an existing directory.
+        Without this flag, it would actually execute all the actions.
+        """
+        test_env_dry_run = "test-env-dry-run"
+        rename_stdout, rename_stderr = run_env_command(
+            Commands.ENV_RENAME, TEST_ENV_NAME_1, test_env_dry_run, "--dry-run"
+        )
+
+        stdout, stderr = run_env_command(Commands.LIST, None, "--json")
+        output_env_vars = json.loads(stdout)
+        result = output_env_vars.get("envs", [])
+
+        rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
+        force_name_not_in_envs = not any(path.endswith(test_env_dry_run) for path in result)
+
+        assert rename_appears_in_envs
+        assert force_name_not_in_envs
+        assert stderr == ""
+
+        assert "Dry run action: clone" in rename_stdout
+        assert "Dry run action: rm_rf" in rename_stdout
+        assert rename_stderr == ""
 
 
 def env_is_created(env_name):
