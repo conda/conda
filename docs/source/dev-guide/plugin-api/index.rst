@@ -9,7 +9,7 @@ An overview of ``pluggy``
 -------------------------
 
 Plugins in ``conda`` are implemented with the use of ``pluggy``, a Python framework used by
-other projects such as ``pytest``, ``tox``, and ``devpi``. ``pluggy`` provides the ability to
+other projects, such as ``pytest``, ``tox``, and ``devpi``. ``pluggy`` provides the ability to
 extend and modify the behavior of ``conda`` via function hooking, which results in plugin
 systems that are discoverable with the use of `Python package entrypoints`_.
 
@@ -45,7 +45,7 @@ Entrypoint namespace
 ~~~~~~~~~~~~~~~~~~~~
 
 The ``setup.py`` file below is an example of an entrypoint namespace for the
-custom plugin function decorated with the plugin hook (shown above):
+custom plugin function, decorated with the plugin hook (shown above):
 
 .. code-block:: python
    :caption: setup.py
