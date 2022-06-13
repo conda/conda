@@ -91,7 +91,7 @@ shows how to register a plugin in ``context.py``:
        pm = pluggy.PluginManager("conda")
        pm.add_hookspecs(plugins)
        pm.register(string_art)
-       # The line above is implementing the custom subcommand from inside of conda,
+       # The line above is implementing the custom subcommand from inside of conda
        # vs via an external entrypoint namespace
        pm.load_setuptools_entrypoints("conda")
        return pm
