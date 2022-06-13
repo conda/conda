@@ -477,10 +477,10 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _process_raw_repodata_str(self, raw_repodata_str):
         json_obj = json.loads(raw_repodata_str or '{}')
-        return self._process_raw_repodata_obj(json_obj)
+        return self._process_raw_repodata(json_obj)
 
-    def _process_raw_repodata_obj(self, json_obj):
-        subdir = json_obj.get('info', {}).get('subdir') or self.channel.subdir
+    def _process_raw_repodata(self, repodata):
+        subdir = repodata.get('info', {}).get('subdir') or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
