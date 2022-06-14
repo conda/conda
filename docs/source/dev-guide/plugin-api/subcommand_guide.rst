@@ -1,12 +1,29 @@
+=================================
 Custom subcommand plugin tutorial
----------------------------------
+=================================
 
 In this tutorial, we will create a new ``conda`` subcommand that can convert a string
 into ASCII art.
 
+.. note::
 
-A custom subcommand module
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+   This tutorial requires the ``art`` package, available on `PyPI`_.
+
+
+Project directory structure
+---------------------------
+
+Set up your working directory and files as shown below:
+
+.. code-block:: bash
+
+    string-art
+    │── string_art.py
+    ├── setup.py
+
+
+The custom subcommand module
+----------------------------
 
 The following module implements a function, ``conda_string_art`` (where a specified string gets
 converted into ASCII art), into a plugin manager hook called ``conda_cli_register_subcommands``.
@@ -15,12 +32,10 @@ The ``HookImplMarker`` decorator is initialized with the name of ``conda`` as th
 project in the ``conda/plugins/__init__.py`` file, and it is invoked via ``@conda.plugins.hookimpl``
 in the example subcommand module below:
 
-.. (TODO: link to __init__.py file!)
-
 .. code-block:: python
    :caption: string-art/string_art.py
 
-   from art import *
+   from art import text2art
 
    import conda.plugins
 
@@ -42,12 +57,13 @@ in the example subcommand module below:
            action=conda_string_art,
        )
 
-Entrypoint namespace for the custom subcommand
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to run the ``string-art`` subcommand successfully, you will need to make sure the
-``art`` package is available, which is why it is listed in the ``install_requires`` section
-of the ``setup.py`` file shown below:
+Entrypoint namespace for the custom subcommand
+----------------------------------------------
+
+In order to run the ``conda string-art`` subcommand successfully, you will need to make sure
+that the ``art`` package is available, which is why it is listed in the ``install_requires``
+section of the ``setup.py`` file shown below:
 
 .. code-block:: python
    :caption: string-art/setup.py
@@ -75,13 +91,17 @@ by running the following:
    $ pip install --editable [path to project]/string_art
 
 
-Registering a plugin locally
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+An alternative option: registering a plugin locally
+---------------------------------------------------
 
 There is also a way to use ``setuptools`` entrypoints to automatically load plugins that
-are registered through them, via the ``load_setup_tools_entrypoints()`` method; this is particularly
-useful if you would like to use a custom subcommand locally via a cloned repo. The example below
-shows how to register a plugin in ``context.py``:
+are registered through them, via the ``load_setup_tools_entrypoints()`` method inside of the
+``get_plugin_manager()`` function. This option is particularly useful if you would like to
+develop and utilize a custom subcommand locally via a cloned ``conda`` codebase on your
+machine.
+
+The example below shows how to register the ``string_art.py`` subcommand plugin module in
+``conda/base/context.py``:
 
 .. code-block:: python
    :caption: conda/base/context.py
@@ -90,9 +110,8 @@ shows how to register a plugin in ``context.py``:
    def get_plugin_manager():
        pm = pluggy.PluginManager("conda")
        pm.add_hookspecs(plugins)
-       pm.register(string_art)
-       # The line above is implementing the custom subcommand from inside of conda
-       # vs via an external entrypoint namespace
+       pm.register(string_art)  # <--- this line is registering the custom subcommand
+       # inside of conda itself instead of using an external entrypoint namespace
        pm.load_setuptools_entrypoints("conda")
        return pm
 
@@ -103,9 +122,9 @@ shows how to register a plugin in ``context.py``:
 
 
 The subcommand output
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
-Once the subcommand plugin is successfully installed, the help text will display
+Once the subcommand plugin is successfully installed or registered, the help text will display
 it as an additional option available from other packages:
 
 .. code-block:: bash
@@ -131,7 +150,7 @@ it as an additional option available from other packages:
    env
 
 
-Running ``conda string-art [string]`` successfully will result in the following output:
+Running ``conda string-art [string]`` will result in the following output:
 
 .. code-block::
 
@@ -143,6 +162,13 @@ Running ``conda string-art [string]`` successfully will result in the following 
     \__| \___||___/ \__||_||_| |_| \__, | |_||_____||____/
                                    |___/
 
-As with any custom plugin, be sure you are applying the :ref:`appropriate license<A note on licensing>`.
+Congratulations, you've just implemented your first custom ``conda`` subcommand plugin!
 
+.. note::
+
+  Whenever you develop your own custom plugins, please be sure to apply
+  the :ref:`appropriate license<A note on licensing>`.
+
+
+.. _`PyPI`: https://pypi.org/project/art/
 .. _`documentation page`: https://pluggy.readthedocs.io/en/stable/index.html#loading-setuptools-entry-points
