@@ -127,9 +127,11 @@ to add).
 
 ## Getting Help
 
-The documentation for conda is at https://docs.conda.io/projects/conda/en/latest/. You can
-subscribe to the [conda mailing list](https://groups.google.com/a/continuum.io/forum/#!forum/conda).  The source
-code and issue tracker for conda are on [GitHub](https://github.com/conda/conda).
+- [Documentation](https://docs.conda.io/projects/conda/en/latest)
+- [Twitter](https://twitter.com/condaproject)
+- [Slack](https://conda.slack.com)
+- [Bug Reports/Feature Requests](https://github.com/conda/conda/issues)
+- [Installer/Package Issues](https://github.com/ContinuumIO/anaconda-issues/issues)
 
 ## Contributing
 
