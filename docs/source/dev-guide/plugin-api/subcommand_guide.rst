@@ -9,7 +9,7 @@ A custom subcommand module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following module implements a function, ``conda_string_art`` (where a specified string gets
-converted into ASCII art), into a plugin manager hook ``conda_cli_register_subcommands``.
+converted into ASCII art), into a plugin manager hook called ``conda_cli_register_subcommands``.
 
 The ``HookImplMarker`` decorator is initialized with the name of ``conda`` as the host
 project in the ``conda/plugins/__init__.py`` file, and it is invoked via ``@conda.plugins.hookimpl``
