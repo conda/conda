@@ -12,7 +12,7 @@ The following module implements a function, ``conda_string_art`` (where a specif
 converted into ASCII art), into a plugin manager hook ``conda_cli_register_subcommands``.
 
 The ``HookImplMarker`` decorator is initialized with the name of ``conda`` as the host
-project in the ``conda/plugins/__init__.py`` file, and is invoked via ``@conda.plugins.hookimpl``
+project in the ``conda/plugins/__init__.py`` file, and it is invoked via ``@conda.plugins.hookimpl``
 in the example subcommand module below:
 
 .. (TODO: link to __init__.py file!)
