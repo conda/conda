@@ -85,7 +85,7 @@ def validate_destination(dest: str, force: bool = False) -> str:
         dest = validate_prefix_name(dest, ctx=context, allow_base=False)
 
     if not force and os.path.exists(dest):
-        raise CondaEnvException("Environment destination already exists")
+        raise CondaEnvException("Environment destination already exists. Override with --force.")
 
     return dest
 
@@ -115,6 +115,7 @@ def execute(args, _):
     )
     actions.append((rm_rf, (src,), {}))
 
+    # We now either run collected actions or print dry run statement
     for act_func, act_args, act_kwargs in actions:
         if args.dry_run:
             pos_args = ", ".join(act_args)
