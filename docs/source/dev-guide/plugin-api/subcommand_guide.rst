@@ -46,7 +46,7 @@ Entrypoint namespace for the custom subcommand
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to run the ``string-art`` subcommand successfully, you will need to make sure the
-the ``art`` package is available, which is why it is listed in the ``install_requires`` section
+``art`` package is available, which is why it is listed in the ``install_requires`` section
 of the ``setup.py`` file shown below:
 
 .. code-block:: python
