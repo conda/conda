@@ -44,6 +44,7 @@ def list_envs() -> tuple[subprocess.CompletedProcess, dict]:
     return proc_res, data
 
 
+@pytest.mark.integration
 def test_rename_by_name_success(env_one):
     subprocess.run(["conda", "rename", "-n", TEST_ENV_NAME_1, TEST_ENV_NAME_RENAME], check=True)
 
@@ -61,6 +62,7 @@ def test_rename_by_name_success(env_one):
     assert proc_res.stderr == b""
 
 
+@pytest.mark.integration
 def test_rename_by_path_success(env_one):
     with tempfile.TemporaryDirectory() as temp_dir:
         new_name = str(pathlib.Path(temp_dir).joinpath("new-env"))
@@ -80,6 +82,7 @@ def test_rename_by_path_success(env_one):
         assert proc_res.stderr == b""
 
 
+@pytest.mark.integration
 def test_rename_by_name_name_already_exists_error(env_one):
     """Test to ensure that we do not rename if the name already exists"""
     proc_res = subprocess.run(
@@ -88,6 +91,7 @@ def test_rename_by_name_name_already_exists_error(env_one):
     assert "Environment destination already exists" in str(proc_res.stderr)
 
 
+@pytest.mark.integration
 def test_rename_by_path_path_already_exists_error(env_one):
     """Test to ensure that we do not rename if the path already exists"""
     with tempfile.TemporaryDirectory() as tempdir:
@@ -97,6 +101,7 @@ def test_rename_by_path_path_already_exists_error(env_one):
         assert "Environment destination already exists" in str(proc_res.stderr)
 
 
+@pytest.mark.integration
 def test_rename_base_env_by_name_error(env_one):
     """Test to ensure that we cannot rename the base env invoked by name"""
     proc_res = subprocess.run(
@@ -105,6 +110,7 @@ def test_rename_base_env_by_name_error(env_one):
     assert "The 'base' environment cannot be renamed" in str(proc_res.stderr)
 
 
+@pytest.mark.integration
 def test_rename_base_env_by_path_error(env_one):
     """Test to ensure that we cannot rename the base env invoked by path"""
     proc_res = subprocess.run(
@@ -113,6 +119,7 @@ def test_rename_base_env_by_path_error(env_one):
     assert "The 'base' environment cannot be renamed" in str(proc_res.stderr)
 
 
+@pytest.mark.integration
 def test_rename_with_force(env_one, env_two):
     """
     Runs a test where we specify the --force flag to remove an existing directory.
@@ -138,6 +145,7 @@ def test_rename_with_force(env_one, env_two):
     assert proc_res.stderr == b""
 
 
+@pytest.mark.integration
 def test_rename_with_dry_run(env_one):
     """
     Runs a test where we specify the --dry-run flag to remove an existing directory.
