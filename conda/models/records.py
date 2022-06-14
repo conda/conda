@@ -33,6 +33,7 @@ from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
 from ..common.compat import isiterable
 from ..exceptions import PathNotFoundError
+from ..trust.signature_verification import signature_verification
 
 
 class LinkTypeField(EnumField):
@@ -258,10 +259,6 @@ class PackageRecord(DictSafeMixin, Entity):
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
 
-    metadata_signature_status = StringField(
-        default=None, required=False, nullable=True, default_in_dump=False
-    )
-
     @property
     def schannel(self):
         return self.channel.canonical_name
@@ -386,6 +383,18 @@ class PackageRecord(DictSafeMixin, Entity):
         #              channel_name/subdir:namespace:name-version-build_number-build_string
         return "%s/%s::%s-%s-%s" % (self.channel.name, self.subdir,
                                     self.name, self.version, self.build)
+
+    @property
+    def metadata(self) -> str:
+        # join all metadatas after filtering out noops
+        return " ".join(
+            filter(
+                None,
+                [
+                    signature_verification(self),
+                ],
+            )
+        )
 
 
 class Md5Field(StringField):

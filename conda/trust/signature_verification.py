@@ -217,23 +217,21 @@ class _SignatureVerification:
             # TODO: additional loading and error handling improvements?
             raise ValueError(f"Invalid JSON returned from {signing_data_url}/{filename}")
 
-    def __call__(self, info, fn, signatures):
+    def __call__(self, record):
         if not self.enabled or fn not in signatures:
             return
 
         # create a signable envelope (a dict with the info and signatures)
-        envelope = wrap_as_signable(info)
-        envelope["signatures"] = signatures[fn]
+        envelope = wrap_as_signable(record.info)
+        envelope["signatures"] = record.signatures
 
         try:
             verify_delegation("pkg_mgr", envelope, self.key_mgr)
         except SignatureError:
-            log.warn(f"invalid signature for {fn}")
-            status = "(WARNING: metadata signature verification failed)"
+            log.warn(f"invalid signature for {record.fn}")
+            return "(WARNING: metadata signature verification failed)"
         else:
-            status = "(INFO: package metadata is signed by Anaconda and trusted)"
-
-        info["metadata_signature_status"] = status
+            return "(INFO: package metadata is signed by Anaconda and trusted)"
 
 
 # singleton for caching
