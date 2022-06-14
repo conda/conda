@@ -845,6 +845,7 @@ EXAMPLE: A more complex environment file:
      - numpy=1.21.*
      - nodejs=16.13.*
      - flask
+     - pip
      - pip:
        - Flask-Testing
 
