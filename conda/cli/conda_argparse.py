@@ -73,9 +73,10 @@ def generate_parser():
     configure_parser_list(sub_parsers)
     configure_parser_package(sub_parsers)
     configure_parser_remove(sub_parsers)
-    configure_parser_remove(sub_parsers, name='uninstall')
+    configure_parser_rename(sub_parsers)
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
+    configure_parser_remove(sub_parsers, name="uninstall")
     configure_parser_update(sub_parsers)
     configure_parser_update(sub_parsers, name='upgrade')
     configure_parser_notices(sub_parsers)
@@ -1332,6 +1333,52 @@ def configure_parser_notices(sub_parsers, name="notices"):
     )
     add_parser_channels(p)
     p.set_defaults(func=".main_notices.execute")
+
+def configure_parser_rename(sub_parsers) -> None:
+    description = dedent(
+        """
+    Renames an existing environment
+    """
+    )
+
+    example = dedent(
+        """
+    examples:
+        conda rename -n test123 test321
+        conda rename --name test123 test321
+        conda rename -p path/to/test123 test321
+        conda rename --prefix path/to/test123 test321
+    """
+    )
+
+    p = sub_parsers.add_parser(
+        "rename",
+        formatter_class=RawDescriptionHelpFormatter,
+        description=description,
+        help=description,
+        epilog=example,
+    )
+    # Add name and prefix args
+    add_parser_prefix(p)
+
+    p.add_argument("destination", help="New name for the conda environment")
+    p.add_argument(
+        "--force",
+        help=(
+            "force creation of environment (removing a previously existing "
+            "environment of the same name)."
+        ),
+        action="store_true",
+        default=False,
+    )
+    p.add_argument(
+        "-d",
+        "--dry-run",
+        help="Only display what would have been done.",
+        action="store_true",
+        default=False,
+    )
+    p.set_defaults(func=".main_rename.execute")
 
 
 # #############################################################################################

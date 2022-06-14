@@ -4,59 +4,15 @@
 from __future__ import annotations
 
 import os
-from argparse import RawDescriptionHelpFormatter
 from typing import Callable
 
 from conda.base.context import context, locate_prefix_by_name, validate_prefix_name
-from conda.cli import common, conda_argparse as c_arg, install
+from conda.cli import common, install
 from conda.common.path import expand
 from conda.exceptions import CondaEnvException
 from conda.gateways.disk.delete import rm_rf
 
-DESCRIPTION = """
-Renames an existing environment
-"""
-
-EXAMPLE = """
-examples:
-    conda env rename -n test123 test321
-    conda env rename --name test123 test321
-    conda env rename -p path/to/test123 test321
-    conda env rename --prefix path/to/test123 test321
-"""
-
 DRY_RUN_PREFIX = "Dry run action:"
-
-
-def configure_parser(sub_parsers) -> None:
-    p = sub_parsers.add_parser(
-        "rename",
-        formatter_class=RawDescriptionHelpFormatter,
-        description=DESCRIPTION,
-        help=DESCRIPTION,
-        epilog=EXAMPLE,
-    )
-    # Add name and prefix args
-    c_arg.add_parser_prefix(p)
-
-    p.add_argument("destination", help="New name for the conda environment")
-    p.add_argument(
-        "--force",
-        help=(
-            "force creation of environment (removing a previously existing "
-            "environment of the same name)."
-        ),
-        action="store_true",
-        default=False,
-    )
-    p.add_argument(
-        "-d",
-        "--dry-run",
-        help="Only display what would have been done.",
-        action="store_true",
-        default=False,
-    )
-    p.set_defaults(func=".main_rename.execute")
 
 
 def validate_src(args) -> str:

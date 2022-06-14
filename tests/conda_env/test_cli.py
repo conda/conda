@@ -4,8 +4,6 @@
 
 import json
 import os
-import pathlib
-import tempfile
 import yaml
 
 import pytest
@@ -35,7 +33,6 @@ TEST_ENV_NAME_1 = "env-1"
 TEST_ENV_NAME_2 = "snowflakes"
 TEST_ENV_NAME_42 = "env-42"
 TEST_ENV_NAME_PIP = "env-pip"
-TEST_ENV_NAME_RENAME = "rename-env"
 
 # Environment config files we use for out tests
 ENVIRONMENT_1 = f"""
@@ -216,7 +213,6 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_RENAME)
         for env_nb in range(1, 6):
             run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
 
@@ -225,7 +221,6 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_RENAME)
         for env_nb in range(1, 6):
              run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
 
@@ -483,139 +478,6 @@ class IntegrationTests(unittest.TestCase):
         create_env(ENVIRONMENT_PYTHON_PIP_NONEXISTING)
         with pytest.raises(CondaEnvException, match="Pip failed"):
             run_env_command(Commands.ENV_CREATE, TEST_ENV_NAME_PIP)
-
-
-class RenameIntegrationTests(unittest.TestCase):
-    """
-    The following are integration tests for the `conda env rename` command
-    """
-
-    def setUp(self) -> None:
-        rm_rf("environment.yml")
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_RENAME)
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
-
-        create_env(ENVIRONMENT_1)
-        run_env_command(Commands.ENV_CREATE, None)
-
-    def tearDown(self) -> None:
-        # Cleanup remaining test artifacts
-        rm_rf("environment.yml")
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_RENAME)
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
-
-    def test_rename_by_name_success(self):
-        run_env_command(Commands.ENV_RENAME, TEST_ENV_NAME_1, TEST_ENV_NAME_RENAME)
-        stdout, stderr = run_env_command(Commands.LIST, None, "--json")
-        output_env_vars = json.loads(stdout)
-        result = output_env_vars.get("envs", [])
-
-        rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_RENAME) for path in result)
-        original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
-
-        assert rename_appears_in_envs
-        assert not original_name_in_envs
-        assert stderr == ""
-
-    def test_rename_by_path_success(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            new_name = str(pathlib.Path(temp_dir).joinpath("new-env"))
-            run_env_command(Commands.ENV_RENAME, TEST_ENV_NAME_1, new_name, use_prefix_flag=True)
-
-            stdout, stderr = run_env_command(Commands.LIST, None, "--json")
-            output_env_vars = json.loads(stdout)
-            result = output_env_vars.get("envs", [])
-
-            path_appears_in_env_list = any(new_name == path for path in result)
-            original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
-
-            assert path_appears_in_env_list
-            assert not original_name_in_envs
-            assert stderr == ""
-
-    def test_rename_by_name_name_already_exists_error(self):
-        """Test to ensure that we do not rename if the name already exists"""
-        try:
-            run_env_command(Commands.ENV_RENAME, TEST_ENV_NAME_1, TEST_ENV_NAME_1)
-        except CondaEnvException as exc:
-            assert "Environment destination already exists" in str(exc)
-
-    def test_rename_by_path_path_already_exists_error(self):
-        """Test to ensure that we do not rename if the path already exists"""
-        with tempfile.TemporaryDirectory() as tempdir:
-            try:
-                run_env_command(Commands.ENV_RENAME, TEST_ENV_NAME_1, tempdir)
-            except CondaEnvException as exc:
-                assert "Environment destination already exists" in str(exc)
-
-    def test_rename_base_env_by_name_error(self):
-        """Test to ensure that we cannot rename the base env invoked by name"""
-        try:
-            run_env_command(Commands.ENV_RENAME, "base", TEST_ENV_NAME_RENAME)
-        except CondaEnvException as exc:
-            assert "The 'base' environment cannot be renamed" in str(exc)
-
-    def test_rename_base_env_by_path_error(self):
-        """Test to ensure that we cannot rename the base env invoked by path"""
-        try:
-            run_env_command(
-                Commands.ENV_RENAME,
-                context.root_prefix,
-                TEST_ENV_NAME_RENAME,
-                use_prefix_flag=True,
-            )
-        except CondaEnvException as exc:
-            assert "The 'base' environment cannot be renamed" in str(exc)
-
-    def test_rename_with_force(self):
-        """
-        Runs a test where we specify the --force flag to remove an existing directory.
-        Without this flag, it would return with an error message.
-        """
-        # First create a new environment that we will overwrite with the "--force" flag
-        test_env_name_force = "env-2"
-        run_env_command(Commands.ENV_REMOVE, test_env_name_force)
-        environment_2 = ENVIRONMENT_1.replace(TEST_ENV_NAME_1, test_env_name_force)
-        create_env(environment_2)
-        run_env_command(Commands.ENV_CREATE, None)
-
-        run_env_command(Commands.ENV_RENAME, test_env_name_force, TEST_ENV_NAME_1, "--force")
-
-        stdout, stderr = run_env_command(Commands.LIST, None, "--json")
-        output_env_vars = json.loads(stdout)
-        result = output_env_vars.get("envs", [])
-
-        rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
-        force_name_not_in_envs = not any(path.endswith(test_env_name_force) for path in result)
-
-        assert rename_appears_in_envs
-        assert force_name_not_in_envs
-        assert stderr == ""
-
-    def test_rename_with_dry_run(self):
-        """
-        Runs a test where we specify the --dry-run flag to remove an existing directory.
-        Without this flag, it would actually execute all the actions.
-        """
-        test_env_dry_run = "test-env-dry-run"
-        rename_stdout, rename_stderr = run_env_command(
-            Commands.ENV_RENAME, TEST_ENV_NAME_1, test_env_dry_run, "--dry-run"
-        )
-
-        stdout, stderr = run_env_command(Commands.LIST, None, "--json")
-        output_env_vars = json.loads(stdout)
-        result = output_env_vars.get("envs", [])
-
-        rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
-        force_name_not_in_envs = not any(path.endswith(test_env_dry_run) for path in result)
-
-        assert rename_appears_in_envs
-        assert force_name_not_in_envs
-        assert stderr == ""
-
-        assert "Dry run action: clone" in rename_stdout
-        assert "Dry run action: rm_rf" in rename_stdout
-        assert rename_stderr == ""
 
 
 def env_is_created(env_name):

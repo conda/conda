@@ -47,7 +47,6 @@ from . import main_list
 from . import main_remove
 from . import main_update
 from . import main_config
-from . import main_rename
 
 
 # TODO: This belongs in a helper library somewhere
@@ -68,7 +67,6 @@ def create_parser():
     main_remove.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
     main_config.configure_parser(sub_parsers)
-    main_rename.configure_parser(sub_parsers)
 
     show_help_on_empty_command()
     return p
