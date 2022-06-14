@@ -7,7 +7,6 @@
 
 [![Conda Logo][conda-logo]](https://github.com/conda/conda)
 
---
 
 [![CI Tests (GitHub Actions)][ci-tests-badge]](https://github.com/conda/conda/actions/workflows/ci.yml)
 [![CI Images (GitHub Actions)][ci-images-badge]](https://github.com/conda/conda/actions/workflows/ci-images.yml)
@@ -35,7 +34,7 @@ that only includes conda and its dependencies.
 
 ## Getting Started
 
-If you install Anaconda, you will already have hundreds of packages
+If you install the Anaconda Distribution, you will already have hundreds of packages
 installed.  You can see what packages are installed by running
 
 ```bash
@@ -54,8 +53,8 @@ and to install a package, use
 $ conda install <package-name>
 ```
 
-The real power of conda comes from its ability to manage environments. In
-conda, an environment can be thought of as a completely separate installation.
+The real power of conda comes from its ability to manage environments.
+In conda, an environment can be thought of as a completely separate installation.
 Conda installs packages into environments efficiently using [hard links](https://en.wikipedia.org/wiki/Hard_link) by default when it is possible, so
 environments are space efficient, and take seconds to create.
 
@@ -63,7 +62,7 @@ The default environment, which `conda` itself is installed into is called
 `base`.  To create another environment, use the `conda create`
 command. For instance, to create an environment with the IPython notebook and
 NumPy 1.6, which is older than the version that comes with Anaconda by
-default, you would run
+default, you would run:
 
 ```bash
 $ conda create -n numpy16 ipython-notebook numpy=1.6
@@ -94,10 +93,8 @@ to [anaconda.org](https://anaconda.org), a free service for hosting
 packages for conda, as well as other package managers.
 To build a package, create a recipe. Package building documentation is available
 [here](https://docs.conda.io/projects/conda-build/en/latest/).
-See https://github.com/AnacondaRecipes for the recipes that make up the Anaconda Distribution
-and `defaults` channel. [Conda-forge](https://conda-forge.org/feedstocks/) and
-[Bioconda](https://github.com/bioconda/bioconda-recipes) are community-driven
-conda-based distributions.
+See [AnacondaRecipes](https://github.com/AnacondaRecipes) for the recipes that make up the Anaconda Distribution and `defaults` channel.
+[Conda-forge](https://conda-forge.org/feedstocks/) and [Bioconda](https://github.com/bioconda/bioconda-recipes) are community-driven conda-based distributions.
 
 To upload to anaconda.org, create an account.  Then, install the
 anaconda-client and login
