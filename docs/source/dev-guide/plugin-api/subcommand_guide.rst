@@ -5,9 +5,8 @@ Custom subcommand plugin tutorial
 In this tutorial, we will create a new ``conda`` subcommand that can convert a string
 into ASCII art.
 
-.. note::
-
-   This tutorial requires the ``art`` package, available on `PyPI`_.
+This guide requires the use of a ``conda`` environment with Python 3.X and ``pip``
+installed.
 
 
 Project directory structure
@@ -42,8 +41,7 @@ in the example subcommand module below:
 
    def conda_string_art(args: str):
        # if using a multi-word string with spaces, make sure to wrap it in quote marks
-       str = ""
-       output = str.join(args)
+       output = "".join(args)
        string_art = text2art(output)
 
        print(string_art)
@@ -170,5 +168,4 @@ Congratulations, you've just implemented your first custom ``conda`` subcommand 
   the :ref:`appropriate license<A note on licensing>`.
 
 
-.. _`PyPI`: https://pypi.org/project/art/
 .. _`documentation page`: https://pluggy.readthedocs.io/en/stable/index.html#loading-setuptools-entry-points
