@@ -5,160 +5,144 @@ from __future__ import annotations
 
 import json
 import pathlib
-import subprocess
 import tempfile
+from typing import Callable
 
 import pytest
 
 from conda.base.context import context
+from conda.exceptions import CondaEnvException
+from conda.testing.fixtures import conda_cli, conda_env_cli
 
 TEST_ENV_NAME_1 = "env-1"
 TEST_ENV_NAME_2 = "env-2"
 TEST_ENV_NAME_RENAME = "renamed-env"
 
-ENV_LIST_COMMAND = ["conda", "env", "list", "--json"]
+ENV_LIST_COMMAND = ["list", "--json"]
 
 
-@pytest.fixture(scope="module")
-def env_one():
+@pytest.fixture
+def env_one(conda_cli, conda_env_cli):
     """
     This fixture has been given a module scope to help decrease execution time.
     When using the fixture, please rename the original environment back to what it
     was (i.e. always make sure there is a TEST_ENV_NAME_1 present).
     """
-    subprocess.run(["conda", "create", "-n", TEST_ENV_NAME_1], check=True)
+    conda_cli(["create", "-n", TEST_ENV_NAME_1, "-y"])
     yield
-    subprocess.run(["conda", "env", "remove", "-n", TEST_ENV_NAME_1], check=True)
-    subprocess.run(["conda", "env", "remove", "-n", TEST_ENV_NAME_RENAME], check=True)
+    conda_env_cli(["remove", "-n", TEST_ENV_NAME_1])
+    conda_env_cli(["remove", "-n", TEST_ENV_NAME_RENAME])
 
 
 @pytest.fixture
-def env_two():
-    subprocess.run(["conda", "create", "-n", TEST_ENV_NAME_2], check=True)
+def env_two(conda_cli, conda_env_cli):
+    conda_cli(["create", "-n", TEST_ENV_NAME_2, "-y"])
     yield
-    subprocess.run(["conda", "env", "remove", "-n", TEST_ENV_NAME_2], check=True)
+    conda_env_cli(["remove", "-n", TEST_ENV_NAME_2])
 
 
-def list_envs() -> tuple[subprocess.CompletedProcess, dict]:
-    proc_res = subprocess.run(ENV_LIST_COMMAND, check=True, capture_output=True)
-    data = json.loads(proc_res.stdout)
+def list_envs(conda_env_cli: Callable):
+    res = conda_env_cli(ENV_LIST_COMMAND)
+    data = json.loads(res.out)
 
-    return proc_res, data
+    return res, data
 
 
-@pytest.mark.integration
-def test_rename_by_name_success(env_one):
-    subprocess.run(["conda", "rename", "-n", TEST_ENV_NAME_1, TEST_ENV_NAME_RENAME], check=True)
+def test_rename_by_name_success(env_one, conda_cli, conda_env_cli):
+    conda_cli(["rename", "-n", TEST_ENV_NAME_1, TEST_ENV_NAME_RENAME])
 
-    proc_res, data = list_envs()
+    res, data = list_envs(conda_env_cli)
     result = data.get("envs", [])
 
     # Clean up
-    subprocess.run(["conda", "rename", "-n", TEST_ENV_NAME_RENAME, TEST_ENV_NAME_1], check=True)
+    conda_cli(["rename", "-n", TEST_ENV_NAME_RENAME, TEST_ENV_NAME_1])
 
     rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_RENAME) for path in result)
     original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
 
     assert rename_appears_in_envs
     assert not original_name_in_envs
-    assert proc_res.stderr == b""
+    assert res.err == ""
 
 
-@pytest.mark.integration
-def test_rename_by_path_success(env_one):
+def test_rename_by_path_success(env_one, conda_cli, conda_env_cli):
     with tempfile.TemporaryDirectory() as temp_dir:
         new_name = str(pathlib.Path(temp_dir).joinpath("new-env"))
-        subprocess.run(["conda", "rename", "-p", TEST_ENV_NAME_1, new_name], check=True)
+        conda_cli(["rename", "-p", TEST_ENV_NAME_1, new_name])
 
-        proc_res, data = list_envs()
+        res, data = list_envs(conda_env_cli)
         result = data.get("envs", [])
 
         # Clean up
-        subprocess.run(["conda", "rename", "-p", new_name, TEST_ENV_NAME_1], check=True)
+        conda_cli(["rename", "-p", new_name, TEST_ENV_NAME_1])
 
         path_appears_in_env_list = any(new_name == path for path in result)
         original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
 
         assert path_appears_in_env_list
         assert not original_name_in_envs
-        assert proc_res.stderr == b""
+        assert res.err == ""
 
 
-@pytest.mark.integration
-def test_rename_by_name_name_already_exists_error(env_one):
+def test_rename_by_name_name_already_exists_error(env_one, conda_cli):
     """Test to ensure that we do not rename if the name already exists"""
-    proc_res = subprocess.run(
-        ["conda", "rename", "-p", TEST_ENV_NAME_1, TEST_ENV_NAME_1], capture_output=True
-    )
-    assert "Environment destination already exists" in str(proc_res.stderr)
+    with pytest.raises(CondaEnvException) as exc:
+        conda_cli(["rename", "-p", TEST_ENV_NAME_1, TEST_ENV_NAME_1])
+        assert "Environment destination already exists" in str(exc)
 
 
-@pytest.mark.integration
-def test_rename_by_path_path_already_exists_error(env_one):
+def test_rename_by_path_path_already_exists_error(env_one, conda_cli):
     """Test to ensure that we do not rename if the path already exists"""
     with tempfile.TemporaryDirectory() as tempdir:
-        proc_res = subprocess.run(
-            ["conda", "rename", "-p", TEST_ENV_NAME_1, tempdir], capture_output=True
-        )
-        assert "Environment destination already exists" in str(proc_res.stderr)
+        with pytest.raises(CondaEnvException) as exc:
+            conda_cli(["rename", "-p", TEST_ENV_NAME_1, tempdir])
+            assert "Environment destination already exists" in str(exc)
 
 
-@pytest.mark.integration
-def test_rename_base_env_by_name_error(env_one):
+def test_rename_base_env_by_name_error(env_one, conda_cli):
     """Test to ensure that we cannot rename the base env invoked by name"""
-    proc_res = subprocess.run(
-        ["conda", "rename", "-n", "base", TEST_ENV_NAME_RENAME], capture_output=True
-    )
-    assert "The 'base' environment cannot be renamed" in str(proc_res.stderr)
+    with pytest.raises(CondaEnvException) as exc:
+        conda_cli(["rename", "-n", "base", TEST_ENV_NAME_RENAME])
+        assert "The 'base' environment cannot be renamed" in str(exc)
 
 
-@pytest.mark.integration
-def test_rename_base_env_by_path_error(env_one):
+def test_rename_base_env_by_path_error(env_one, conda_cli):
     """Test to ensure that we cannot rename the base env invoked by path"""
-    proc_res = subprocess.run(
-        ["conda", "rename", "-p", context.root_prefix, TEST_ENV_NAME_RENAME], capture_output=True
-    )
-    assert "The 'base' environment cannot be renamed" in str(proc_res.stderr)
+    with pytest.raises(CondaEnvException) as exc:
+        conda_cli(["rename", "-p", context.root_prefix, TEST_ENV_NAME_RENAME])
+        assert "The 'base' environment cannot be renamed" in str(exc)
 
 
-@pytest.mark.integration
-def test_rename_with_force(env_one, env_two):
+def test_rename_with_force(env_one, env_two, conda_cli, conda_env_cli):
     """
     Runs a test where we specify the --force flag to remove an existing directory.
     Without this flag, it would return with an error message.
     """
     # Do a force rename
-    subprocess.run(
-        ["conda", "rename", "-n", TEST_ENV_NAME_1, TEST_ENV_NAME_2, "--force"], check=True
-    )
+    conda_cli(["rename", "-n", TEST_ENV_NAME_1, TEST_ENV_NAME_2, "--force"])
 
-    proc_res, data = list_envs()
+    res, data = list_envs(conda_env_cli)
     result = data.get("envs", [])
 
     # Clean up
-    subprocess.run(["conda", "rename", "-n", TEST_ENV_NAME_2, TEST_ENV_NAME_1], check=True)
+    conda_cli(["rename", "-n", TEST_ENV_NAME_2, TEST_ENV_NAME_1])
 
     rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_2) for path in result)
     force_name_not_in_envs = not any(path.endswith(TEST_ENV_NAME_1) for path in result)
 
     assert rename_appears_in_envs
     assert force_name_not_in_envs
-    assert proc_res.stderr == b""
+    assert res.err == ""
 
 
-@pytest.mark.integration
-def test_rename_with_dry_run(env_one):
+def test_rename_with_dry_run(env_one, conda_cli, conda_env_cli):
     """
     Runs a test where we specify the --dry-run flag to remove an existing directory.
     Without this flag, it would actually execute all the actions.
     """
-    rename_res = subprocess.run(
-        ["conda", "rename", "-n", TEST_ENV_NAME_1, TEST_ENV_NAME_RENAME, "--dry-run"],
-        check=True,
-        capture_output=True,
-    )
+    rename_res = conda_cli(["rename", "-n", TEST_ENV_NAME_1, TEST_ENV_NAME_RENAME, "--dry-run"])
 
-    proc_res, data = list_envs()
+    res, data = list_envs(conda_env_cli)
     result = data.get("envs", [])
 
     rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
@@ -166,9 +150,9 @@ def test_rename_with_dry_run(env_one):
 
     assert rename_appears_in_envs
     assert force_name_not_in_envs
-    assert proc_res.stderr == b""
+    assert res.err == ""
 
-    rename_stdout = str(rename_res.stdout)
+    rename_stdout = str(rename_res.out)
     assert "Dry run action: clone" in rename_stdout
     assert "Dry run action: rm_rf" in rename_stdout
-    assert rename_res.stderr == b""
+    assert rename_res.err == ""
