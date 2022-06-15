@@ -19,15 +19,17 @@ TEST_ENV_NAME_RENAME = "renamed-env"
 ENV_LIST_COMMAND = ["conda", "env", "list", "--json"]
 
 
-class TestingError(Exception):
-    pass
-
-
-@pytest.fixture
+@pytest.fixture(scope="module")
 def env_one():
+    """
+    This fixture has been given a module scope to help decrease execution time.
+    When using the fixture, please rename the original environment back to what it
+    was (i.e. always make sure there is a TEST_ENV_NAME_1 present).
+    """
     subprocess.run(["conda", "create", "-n", TEST_ENV_NAME_1], check=True)
     yield
     subprocess.run(["conda", "env", "remove", "-n", TEST_ENV_NAME_1], check=True)
+    subprocess.run(["conda", "env", "remove", "-n", TEST_ENV_NAME_RENAME], check=True)
 
 
 @pytest.fixture
@@ -52,7 +54,7 @@ def test_rename_by_name_success(env_one):
     result = data.get("envs", [])
 
     # Clean up
-    subprocess.run(["conda", "env", "remove", "-n", TEST_ENV_NAME_RENAME], check=True)
+    subprocess.run(["conda", "rename", "-n", TEST_ENV_NAME_RENAME, TEST_ENV_NAME_1], check=True)
 
     rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_RENAME) for path in result)
     original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
@@ -72,7 +74,7 @@ def test_rename_by_path_success(env_one):
         result = data.get("envs", [])
 
         # Clean up
-        subprocess.run(["conda", "env", "remove", "-n", TEST_ENV_NAME_RENAME], check=True)
+        subprocess.run(["conda", "rename", "-p", new_name, TEST_ENV_NAME_1], check=True)
 
         path_appears_in_env_list = any(new_name == path for path in result)
         original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
@@ -133,9 +135,8 @@ def test_rename_with_force(env_one, env_two):
     proc_res, data = list_envs()
     result = data.get("envs", [])
 
-    from pprint import pprint
-
-    pprint(result)
+    # Clean up
+    subprocess.run(["conda", "rename", "-n", TEST_ENV_NAME_2, TEST_ENV_NAME_1], check=True)
 
     rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_2) for path in result)
     force_name_not_in_envs = not any(path.endswith(TEST_ENV_NAME_1) for path in result)
