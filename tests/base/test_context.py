@@ -23,7 +23,7 @@ from conda.base.context import (
     conda_tests_ctxt_mgmt_def_pol,
     validate_prefix_name,
 )
-from conda.common.compat import odict
+from conda.common.compat import odict, on_win
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
@@ -492,7 +492,11 @@ class ContextDefaultRcTests(TestCase):
             assert context.local_build_root == expand('~/conda-bld')
 
 
-VALIDATE_PREFIX_NAME_BASE_DIR = "/home/user/prefix_dir"
+if on_win:
+    VALIDATE_PREFIX_NAME_BASE_DIR = Path("C:\\Users\\name\\prefix_dir\\")
+else:
+    VALIDATE_PREFIX_NAME_BASE_DIR = Path("/home/user/prefix_dir/")
+
 VALIDATE_PREFIX_ENV_NAME = "env-name"
 
 VALIDATE_PREFIX_TEST_CASES = (
@@ -501,7 +505,7 @@ VALIDATE_PREFIX_TEST_CASES = (
         VALIDATE_PREFIX_ENV_NAME,
         False,
         (VALIDATE_PREFIX_NAME_BASE_DIR, EnvironmentNameNotFound(VALIDATE_PREFIX_ENV_NAME)),
-        f"{VALIDATE_PREFIX_NAME_BASE_DIR}/{VALIDATE_PREFIX_ENV_NAME}",
+        VALIDATE_PREFIX_NAME_BASE_DIR.joinpath(VALIDATE_PREFIX_ENV_NAME),
     ),
     # Passing in not allowed characters as the prefix name
     (
@@ -545,6 +549,6 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
 
     else:
         actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
-        assert actual == expected
+        assert actual == str(expected)
 
     tuple(ptch.stop for ptch in patches)
