@@ -199,7 +199,7 @@ def print_envs_list(known_conda_prefixes, output=True):
 
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
-        default = '*' if prefix == context.default_prefix else ' '
+        active = '*' if prefix == context.active_prefix else ' '
         if prefix == context.root_prefix:
             name = ROOT_ENV_NAME
         elif any(paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs):
@@ -207,7 +207,7 @@ def print_envs_list(known_conda_prefixes, output=True):
         else:
             name = ''
         if output:
-            print(fmt % (name, default, prefix))
+            print(fmt % (name, active, prefix))
 
     for prefix in known_conda_prefixes:
         disp_env(prefix)
