@@ -135,7 +135,7 @@ def rm_pkgs(
 
     if not any(pkgs for pkgs in pkg_sizes.values()):
         if verbose:
-            print(f"There are no unused {name} to remove")
+            print(f"There are no unused {name} to remove.")
         return
 
     if verbose:
