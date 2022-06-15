@@ -44,6 +44,8 @@ from ..models.records import PackageRecord
 from ..models.records import PrefixRecord
 from ..resolve import Resolve
 
+from conda_env.cli import main as conda_env_cli
+
 
 import pytest
 
@@ -120,14 +122,22 @@ def assert_in(a, b, output=""):
     assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
 
 
-def run_inprocess_conda_command(command, disallow_stderr=True):
+def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     # anything that uses this function is an integration test
     reset_context(())
+
+    # determine whether this is a conda_env command and assign appropriate main function
+    if command.startswith("conda env"):
+        command = command.replace("env", "")  # Remove 'env' because of command parser
+        main_func = conda_env_cli.main
+    else:
+        main_func = cli.main
+
     # May want to do this to command:
     with argv(encode_arguments(shlex_split_unicode(command))), captured(disallow_stderr) as c:
         initialize_logging()
         try:
-            exit_code = cli.main()
+            exit_code = main_func()
         except SystemExit:
             pass
     print(c.stderr, file=sys.stderr)
