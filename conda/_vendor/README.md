@@ -1,8 +1,7 @@
-conda._vendor
--------------
+## `conda._vendor`
 
 Conda's pure-python dependencies will be
-`vendored <http://stackoverflow.com/questions/26217488/what-is-vendoring>`_
+[vendored](http://stackoverflow.com/questions/26217488/what-is-vendoring)
 until conda 5.0 when conda will be isolated in its own private environment.
 
 Introduction of dependencies for the 4.x series is discussed in
