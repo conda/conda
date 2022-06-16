@@ -5,8 +5,14 @@ Custom subcommand plugin tutorial
 In this tutorial, we will create a new ``conda`` subcommand that can convert a string
 into ASCII art.
 
-This guide requires the use of a ``conda`` environment with Python 3.X and ``pip``
-installed.
+To follow along with this guide, it is recommended to create and activate a new ``conda``
+environment with the following commands:
+
+.. code-block:: bash
+
+   $ conda create -n plugin-tutorial "python>=3"
+
+   $ conda activate plugin-tutorial
 
 
 Project directory structure
