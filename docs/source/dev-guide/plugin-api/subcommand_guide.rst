@@ -5,7 +5,7 @@ Custom subcommand plugin tutorial
 In this tutorial, we will create a new ``conda`` subcommand that can convert a string
 into ASCII art.
 
-To follow along with this guide, it is recommended to create and activate a new ``conda``
+To follow along with this guide, it is recommended that you create and activate a new ``conda``
 environment with the following commands:
 
 .. code-block:: bash
