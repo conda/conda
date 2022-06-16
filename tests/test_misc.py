@@ -42,20 +42,23 @@ class TestMisc(unittest.TestCase):
                 os.environ["CONDA_USE_PREFIX_TEMP"] = saved_temp_env
 
     def test_using_prefix_temp(self):
-        tempdir = tempfile.gettempdir()
-
         saved_temp_env = os.environ.get("CONDA_USE_PREFIX_TEMP")
         if not saved_temp_env:
             os.environ["CONDA_USE_PREFIX_TEMP"] = "TRUE"
-        try:
-            with Utf8NamedTemporaryFile(delete=False) as tf:
-                fname = tf.name
 
-            assert os.path.commonprefix([tempdir, fname]) != tempdir
-            assert os.path.commonprefix([sys.prefix, fname]) == sys.prefix
-        finally:
-            if not saved_temp_env:
-                del os.environ["CONDA_USE_PREFIX_TEMP"]
+        # Note: prefix might be read-only
+        old_prefix = sys.prefix
+        with tempfile.TemporaryDirectory() as temp_prefix:
+            sys.prefix = temp_prefix
+            try:
+                with Utf8NamedTemporaryFile(delete=False) as temp_file:
+                    fname = temp_file.name
+
+                assert os.path.commonprefix([sys.prefix, fname]) == sys.prefix
+            finally:
+                sys.prefix = old_prefix
+                if not saved_temp_env:
+                    del os.environ["CONDA_USE_PREFIX_TEMP"]
 
     def test_cache_fn_url(self):
         url = "http://repo.continuum.io/pkgs/pro/osx-64/"
