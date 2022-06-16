@@ -1,8 +1,8 @@
 ## `conda.core`
 
-Code in `conda.core` is the core logic.  It is strictly forbidden from having side effects.
+Code in `conda.core` is the core logic. It is strictly forbidden from having side effects.
 No printing to stdout or stderr, no disk manipulation, no http requests.
-All side effects should be implemented through `conda.gateways`.  Objects defined in
+All side effects should be implemented through `conda.gateways`. Objects defined in
 `conda.models` should be heavily preferred for `conda.core` function/method arguments
 and return values.
 

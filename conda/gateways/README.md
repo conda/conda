@@ -1,7 +1,7 @@
 ## `conda.gateways`
 
-Gateways isolate interaction of conda code with the outside world.  Disk manipulation,
-database interaction, and remote requests should all be through various gateways.  Functions
+Gateways isolate interaction of conda code with the outside world. Disk manipulation,
+database interaction, and remote requests should all be through various gateways. Functions
 and methods in `conda.gateways` must use `conda.models` for arguments and return values.
 
 Conda modules importable from `conda.gateways` are:
