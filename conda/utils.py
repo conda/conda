@@ -351,7 +351,7 @@ def wrap_subprocess_call(
         arguments,
 ):
     arguments = massage_arguments(arguments)
-    tmp_prefix = ".tmp"
+    tmp_prefix = ".conda_"
     script_caller = None
     multiline = False
     if len(arguments) == 1 and '\n' in arguments[0]:
