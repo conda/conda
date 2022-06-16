@@ -28,15 +28,15 @@ def env_one():
     """
     run(f"conda create -n {TEST_ENV_NAME_1} -y")
     yield
-    run(f"conda env remove -n {TEST_ENV_NAME_1}")
-    run(f"conda env remove -n {TEST_ENV_NAME_RENAME}")
+    run(f"conda env remove -n {TEST_ENV_NAME_1}", disallow_stderr=False)
+    run(f"conda env remove -n {TEST_ENV_NAME_RENAME}", disallow_stderr=False)
 
 
 @pytest.fixture
 def env_two():
     run(f"conda create -n {TEST_ENV_NAME_2} -y")
     yield
-    run(f"conda env remove -n {TEST_ENV_NAME_2}")
+    run(f"conda env remove -n {TEST_ENV_NAME_2}", disallow_stderr=False)
 
 
 def list_envs():

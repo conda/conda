@@ -535,20 +535,22 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         mock.patch("conda.base.context.locate_prefix_by_name"),
     )
 
-    mocks = (ptch.start() for ptch in patches)
+    try:
+        mocks = (ptch.start() for ptch in patches)
 
-    for mck, ret_val in zip(mocks, mock_return_values):
-        mck.side_effect = [ret_val]
+        for mck, ret_val in zip(mocks, mock_return_values):
+            mck.side_effect = [ret_val]
 
-    if isinstance(expected, CondaValueError):
-        with pytest.raises(CondaValueError) as exc:
-            validate_prefix_name(prefix, ctx, allow_base=allow_base)
+        if isinstance(expected, CondaValueError):
+            with pytest.raises(CondaValueError) as exc:
+                validate_prefix_name(prefix, ctx, allow_base=allow_base)
 
-        # We fuzzy match the error message here. Doing this exactly is not important
-        assert str(expected) in str(exc)
+            # We fuzzy match the error message here. Doing this exactly is not important
+            assert str(expected) in str(exc)
 
-    else:
-        actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
-        assert actual == str(expected)
-
-    tuple(ptch.stop for ptch in patches)
+        else:
+            actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
+            assert actual == str(expected)
+    finally:
+        # Needs to always run in order to clean up patches we may have set
+        tuple(ptch.stop() for ptch in patches)
