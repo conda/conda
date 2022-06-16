@@ -4,7 +4,7 @@ Code in `conda.base` is the lowest level of the application stack.  It is loaded
 virtually every time the application is executed. Any code within, and any of its imports, must
 be highly performant.
 
-Conda modules importable from `conda.base` are
+Conda modules importable from `conda.base` are:
 
 - `conda._vendor`
 - `conda.base`

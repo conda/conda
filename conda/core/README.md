@@ -6,7 +6,7 @@ All side effects should be implemented through `conda.gateways`.  Objects define
 `conda.models` should be heavily preferred for `conda.core` function/method arguments
 and return values.
 
-Conda modules importable from `conda.core` are
+Conda modules importable from `conda.core` are:
 
 - `conda._vendor`
 - `conda.common`
@@ -14,7 +14,7 @@ Conda modules importable from `conda.core` are
 - `conda.models`
 - `conda.gateways`
 
-Conda modules strictly off limits for import within `conda.core` are
+Conda modules strictly off limits for import within `conda.core` are:
 
 - `conda.api`
 - `conda.cli`

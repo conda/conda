@@ -112,14 +112,14 @@ $ conda build <recipe-dir>
 
 you will be prompted to upload to anaconda.org.
 
-To add your anaconda.org channel, or the channel of others to conda so
+To add your anaconda.org channel, or other's channels, to conda so
 that `conda install` will find and install their packages, run
 
 ```bash
 $ conda config --add channels https://conda.anaconda.org/username
 ```
 
-(replacing `username` with the user name of the person whose channel you want
+(replacing `username` with the username of the person whose channel you want
 to add).
 
 ## Getting Help
