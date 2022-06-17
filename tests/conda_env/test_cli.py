@@ -125,7 +125,6 @@ class Commands:
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
-    ACTIVATE = "activate"
 
 
 def run_env_command(command, prefix, *arguments, use_prefix_flag: bool = False):

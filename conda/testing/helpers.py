@@ -105,6 +105,17 @@ def capture_json_with_argv(command, disallow_stderr=True, ignore_stderr=False, *
         raise
 
 
+@contextmanager
+def set_active_prefix(prefix: str) -> None:
+    old_prefix = os.environ["CONDA_PREFIX"]
+
+    try:
+        os.environ["CONDA_PREFIX"] = prefix
+        yield
+    finally:
+        os.environ["CONDA_PREFIX"] = old_prefix
+
+
 def assert_equals(a, b, output=""):
     output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
     assert a.lower() == b.lower(), output

@@ -10,7 +10,7 @@ import tempfile
 import pytest
 
 from conda.base import context as ctx
-from conda.testing.helpers import run_inprocess_conda_command as run
+from conda.testing.helpers import run_inprocess_conda_command as run, set_active_prefix
 
 TEST_ENV_NAME_1 = "env-1"
 TEST_ENV_NAME_2 = "env-2"
@@ -26,17 +26,25 @@ def env_one():
     When using the fixture, please rename the original environment back to what it
     was (i.e. always make sure there is a TEST_ENV_NAME_1 present).
     """
+    # Setup
     run(f"conda create -n {TEST_ENV_NAME_1} -y")
+
     yield
-    run(f"conda env remove -n {TEST_ENV_NAME_1}", disallow_stderr=False)
-    run(f"conda env remove -n {TEST_ENV_NAME_RENAME}", disallow_stderr=False)
+
+    # Teardown
+    run(f"conda remove --all -y -n {TEST_ENV_NAME_1}", disallow_stderr=False)
+    run(f"conda remove --all -y -n {TEST_ENV_NAME_RENAME}", disallow_stderr=False)
 
 
 @pytest.fixture
 def env_two():
+    # Setup
     run(f"conda create -n {TEST_ENV_NAME_2} -y")
+
     yield
-    run(f"conda env remove -n {TEST_ENV_NAME_2}", disallow_stderr=False)
+
+    # Teardown
+    run(f"conda remove --all -y -n {TEST_ENV_NAME_2}", disallow_stderr=False)
 
 
 def list_envs():
@@ -113,6 +121,26 @@ def test_cannot_rename_base_env_by_path(env_one):
         f"conda rename -p {ctx.context.root_prefix} {TEST_ENV_NAME_RENAME}", disallow_stderr=False
     )
     assert "The 'base' environment cannot be renamed" in err
+
+
+def test_cannot_rename_active_env_by_name(env_one):
+    """
+    Makes sure that we cannot rename our active environment.
+    """
+    _, data = list_envs()
+    result = data.get("envs", [])
+
+    prefix_list = [res for res in result if res.endswith(TEST_ENV_NAME_1)]
+
+    assert len(prefix_list) > 0
+
+    prefix = prefix_list[0]
+
+    with set_active_prefix(prefix):
+        out, err, exit_code = run(
+            f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_RENAME}", disallow_stderr=False
+        )
+        assert "Cannot rename the active environment" in err
 
 
 def test_rename_with_force(env_one, env_two):

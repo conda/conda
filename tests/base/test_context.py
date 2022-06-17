@@ -530,16 +530,12 @@ VALIDATE_PREFIX_TEST_CASES = (
 def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
     ctx = mock.MagicMock()
 
-    patches = (
-        mock.patch("conda.base.context._first_writable_envs_dir"),
-        mock.patch("conda.base.context.locate_prefix_by_name"),
-    )
+    with mock.patch("conda.base.context._first_writable_envs_dir") as mock_one, mock.patch(
+        "conda.base.context.locate_prefix_by_name"
+    ) as mock_two:
 
-    try:
-        mocks = (ptch.start() for ptch in patches)
-
-        for mck, ret_val in zip(mocks, mock_return_values):
-            mck.side_effect = [ret_val]
+        mock_one.side_effect = [mock_return_values[0]]
+        mock_two.side_effect = [mock_return_values[1]]
 
         if isinstance(expected, CondaValueError):
             with pytest.raises(CondaValueError) as exc:
@@ -551,6 +547,3 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         else:
             actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
-    finally:
-        # Needs to always run in order to clean up patches we may have set
-        tuple(ptch.stop() for ptch in patches)
