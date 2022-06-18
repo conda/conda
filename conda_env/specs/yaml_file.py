@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from conda.exceptions import EnvironmentFileNotFound
+from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 
 from .. import env
 
@@ -20,6 +20,9 @@ class YamlFileSpec(object):
             return True
         except EnvironmentFileNotFound as e:
             self.msg = str(e)
+            return False
+        except EnvironmentFileEmpty as e:
+            self.msg = e.message
             return False
         except TypeError:
             self.msg = "{} is not a valid yaml file.".format(self.filename)

@@ -10,7 +10,7 @@ import re
 import json
 
 from conda.base.context import context
-from conda.exceptions import EnvironmentFileNotFound
+from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.compat import odict
 from conda.common.serialize import yaml_safe_load, yaml_safe_dump
@@ -141,6 +141,9 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
 def from_yaml(yamlstr, **kwargs):
     """Load and return a ``Environment`` from a given ``yaml string``"""
     data = yaml_safe_load(yamlstr)
+    filename = kwargs.get("filename")
+    if data is None:
+        raise EnvironmentFileEmpty(filename)
     data = validate_keys(data, kwargs)
 
     if kwargs is not None:
