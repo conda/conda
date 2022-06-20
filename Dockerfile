@@ -1,17 +1,28 @@
-FROM --platform=linux/amd64 debian:buster-slim AS buildbase
+FROM debian:buster-slim AS buildbase
 
-ARG MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+ARG CONDA_VERSION=latest
 
 WORKDIR /tmp
 
 RUN apt-get update && apt-get install -y wget
 
-RUN wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \
+RUN set -x && \
+    UNAME_M="$(uname -m)" && \
+    if [ "${UNAME_M}" = "x86_64" ]; then \
+        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh"; \
+    elif [ "${UNAME_M}" = "s390x" ]; then \
+        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-s390x.sh"; \
+    elif [ "${UNAME_M}" = "aarch64" ]; then \
+        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-aarch64.sh"; \
+    elif [ "${UNAME_M}" = "ppc64le" ]; then \
+        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-ppc64le.sh"; \
+    fi && \
+    wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
     rm ~/miniconda.sh && \
     /opt/conda/bin/conda clean --all --yes
 
-FROM --platform=linux/amd64 debian:buster-slim
+FROM debian:buster-slim
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
