@@ -263,8 +263,7 @@ def test_safe_open_errors():
     with patch("conda.utils.open") as mock_open:
         mock_open.side_effect = OSError(exc_mesg)
 
-        with pytest.raises(CondaError) as exc_info:
-            with utils.safe_open("test", "w") as fp:
-                pass
+        with pytest.raises(CondaError) as exc_info, utils.safe_open("test", "w"):
+            pass
 
         assert exc_mesg in str(exc_info.value)

@@ -1318,6 +1318,7 @@ def configure_parser_notices(sub_parsers, name="notices"):
         Examples:
 
         conda {name}
+
         conda {name} -c defaults
 
         """

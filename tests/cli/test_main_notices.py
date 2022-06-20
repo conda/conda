@@ -89,7 +89,7 @@ def test_main_notices_reads_from_expired_cache(
     # Cache first version of notices, with a cache date we know is expired
     create_notice_cache_files(notices_cache_dir, cache_files, messages, created_at=created_at)
 
-    # Force a difference response, so we know we actually made a mock HTTP call to get
+    # Force a different response, so we know we actually made a mock HTTP call to get
     # different messages
     add_resp_to_mock(notices_mock_http_session_get, status_code=200, messages=messages_different)
 

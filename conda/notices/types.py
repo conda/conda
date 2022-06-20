@@ -20,7 +20,7 @@ class ChannelNotice(NamedTuple):
     message: Optional[str]
     level: NoticeLevel
     created_at: Optional[datetime]
-    expiry: Optional[int]
+    expired_at: Optional[datetime]
     interval: Optional[int]
 
 
@@ -41,14 +41,14 @@ class ChannelNoticeResponse(NamedTuple):
                     message=msg.get("message"),
                     level=self._parse_notice_level(msg.get("level")),
                     created_at=self._parse_iso_timestamp(msg.get("created_at")),
-                    expiry=msg.get("expiry"),
+                    expired_at=self._parse_iso_timestamp(msg.get("expired_at")),
                     interval=msg.get("interval"),
                 )
                 for msg in notice_data
             )
 
     @staticmethod
-    def _parse_notice_level(level: str) -> NoticeLevel:
+    def _parse_notice_level(level: Optional[str]) -> NoticeLevel:
         """
         We use this to validate notice levels and provide reasonable defaults
         if any are invalid.
@@ -60,17 +60,19 @@ class ChannelNoticeResponse(NamedTuple):
             return NoticeLevel(NoticeLevel.INFO)
 
     @staticmethod
-    def _parse_iso_timestamp(iso_timestamp: str) -> Optional[datetime]:
+    def _parse_iso_timestamp(iso_timestamp: Optional[str]) -> Optional[datetime]:
         """
         We try to parse this as a valid ISO timestamp and fail over to a default value of none.
         """
+        if iso_timestamp is None:
+            return
         try:
             return datetime.fromisoformat(iso_timestamp)
         except ValueError:
             return
 
     @classmethod
-    def get_cache_key(cls, url: str, name: str, cache_dir: Path) -> str:
+    def get_cache_key(cls, url: str, name: str, cache_dir: Path) -> Path:
         """Returns the place where this channel response will be stored as cache"""
         url_obj = parse.urlparse(url)
         path = url_obj.path.replace("/", "-")

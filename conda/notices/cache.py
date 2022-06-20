@@ -11,7 +11,7 @@ Handles all caching logic including:
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 from typing import Optional, Sequence, Set
@@ -52,17 +52,16 @@ def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeRespo
     """
     now = datetime.now(timezone.utc)
 
-    def is_channel_notice_expired(created_at: datetime, expiry: int) -> bool:
-        expires_at = created_at + timedelta(seconds=expiry)
-        zero = timedelta(seconds=0)
-
-        return expires_at - now < zero
+    def is_channel_notice_expired(expired_at: Optional[datetime]) -> bool:
+        """
+        If there is no "expired_at" field present assume it is expired
+        """
+        if expired_at is None:
+            return True
+        return expired_at < now
 
     return any(
-        (
-            is_channel_notice_expired(chn.created_at, chn.expiry)
-            for chn in channel_notice_response.notices
-        )
+        (is_channel_notice_expired(chn.expired_at) for chn in channel_notice_response.notices)
     )
 
 

@@ -8,8 +8,7 @@ import json
 from itertools import chain
 from pathlib import Path
 from typing import Optional, Sequence
-
-import mock
+from unittest import mock
 
 DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to users"
 
@@ -18,9 +17,10 @@ def get_test_notices(
     messages: Sequence[str],
     level: Optional[str] = "info",
     created_at: Optional[datetime.datetime] = None,
-    expiry: Optional[int] = 604_800,
+    expired_at: Optional[datetime.datetime] = None,
 ) -> dict:
     created_at = created_at or datetime.datetime.now(datetime.timezone.utc)
+    expired_at = expired_at or created_at + datetime.timedelta(days=7)
 
     return {
         "notices": list(
@@ -29,7 +29,7 @@ def get_test_notices(
                 "message": mesg,
                 "level": level,
                 "created_at": created_at.isoformat(),
-                "expiry": expiry,
+                "expired_at": expired_at.isoformat(),
             }
             for mesg in messages
         )
