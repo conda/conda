@@ -196,6 +196,7 @@ jobs:
 
   analyze:
     needs: [windows, linux, macos]
+    name: Analyze test results
     if: always()
     runs-on: ubuntu-latest
     steps:
