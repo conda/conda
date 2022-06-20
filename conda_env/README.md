@@ -82,6 +82,7 @@ dependencies:
   - numpy=1.9.*
   - nodejs=0.10.*
   - flask
+  - pip
   - pip:
     - Flask-Testing
 ```
