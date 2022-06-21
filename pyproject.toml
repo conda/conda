@@ -13,7 +13,7 @@ destination = "conda/_vendor/"
 requirements = "conda/_vendor/vendor.txt"
 namespace = "conda._vendor"
 
-protected-files = ["__init__.py", "vendor.txt", "README.rst"]
+protected-files = ["__init__.py", "vendor.txt", "README.md"]
 patches-dir = "tools/vendoring/patches"
 
 [tool.vendoring.transformations]
