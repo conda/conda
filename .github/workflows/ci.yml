@@ -16,8 +16,6 @@ on:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
     paths-ignore:
-      - .github/ci-images.yml
-      - Dockerfile
       - 'docs/**'
 
 concurrency:
