@@ -226,7 +226,7 @@ Explicit installs are taken care of by the [`explicit`][conda.misc:explicit] fun
 existing environment. This is needed because you cannot relocate an environment using `cp`,
 `mv`, or your favorite file manager without unintended consequences. Some files in a conda
 environment might contain hardcoded paths to existing files in the original location, and
-those references will break if `cp` or`mv` is utilized (conda environments _can_ be renamed
+those references will break if `cp` or `mv` is utilized (conda environments _can_ be renamed
 via the `conda rename` command, however; see the [following section](#rename) for more information).
 
 The [`clone_env`][conda.misc:clone_env] function implements this functionality. It essentially

@@ -1375,7 +1375,7 @@ def configure_parser_rename(sub_parsers) -> None:
     p.add_argument(
         "-d",
         "--dry-run",
-        help="Only display what would have been done.",
+        help="Only display what would have been done",
         action="store_true",
         default=False,
     )
