@@ -38,7 +38,7 @@ jobs:
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
     env:
-      OS: ${{ runner.os }}
+      OS: Windows
       PYTHON: ${{ matrix.python-version }}
       CONDA_SUBDIR: ${{ matrix.conda-subdir }}
       TEST_SPLITS: 3
@@ -91,7 +91,7 @@ jobs:
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
     env:
-      OS: ${{ runner.os }}
+      OS: Linux
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
@@ -135,7 +135,7 @@ jobs:
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
     env:
-      OS: ${{ runner.os }}
+      OS: macOS
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
