@@ -17,8 +17,8 @@ from pathlib import Path
 from typing import Optional, Sequence, Set
 
 from .._vendor.appdirs import user_cache_dir
-from .base.constants import APP_NAME, NOTICES_CACHE_SUBDIR, NOTICES_CACHE_FN
-from .utils import ensure_dir_exists, safe_open
+from ..base.constants import APP_NAME, NOTICES_CACHE_SUBDIR, NOTICES_CACHE_FN
+from ..utils import ensure_dir_exists, safe_open
 
 from .types import ChannelNoticeResponse, ChannelNotice
 
@@ -79,7 +79,8 @@ def get_notices_cache_file() -> Path:
     cache_file = cache_dir.joinpath(NOTICES_CACHE_FN)
 
     if not cache_file.is_file():
-        cache_file.write_text("")
+        with safe_open(cache_file, "w") as fp:
+            fp.write("")
 
     return cache_file
 
@@ -124,9 +125,9 @@ def mark_channel_notices_as_viewed(
     notice_ids = set(chn.id for chn in channel_notices)
 
     with safe_open(cache_file, "r") as fp:
-        contents = fp.read()
+        contents: str = fp.read()
 
-    contents_unique = set(filter(None, set(contents.split("\n"))))
+    contents_unique = set(filter(None, set(contents.splitlines())))
     contents_new = contents_unique.union(notice_ids)
 
     # Save new version of cache file
@@ -143,8 +144,8 @@ def get_viewed_channel_notice_ids(
     notice_ids = set(chn.id for chn in channel_notices)
 
     with safe_open(cache_file, "r") as fp:
-        contents = fp.read()
+        contents: str = fp.read()
 
-    contents_unique = set(filter(None, set(contents.split("\n"))))
+    contents_unique = set(filter(None, set(contents.splitlines())))
 
     return notice_ids.intersection(contents_unique)

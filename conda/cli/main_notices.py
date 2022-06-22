@@ -4,7 +4,7 @@
 
 from argparse import Namespace, ArgumentParser
 
-from ..notices import main as notices
+from ..notices import core as notices
 
 
 def execute(args: Namespace, _: ArgumentParser):

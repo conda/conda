@@ -7,7 +7,7 @@ import sys
 
 from .install import install
 from ..base.context import context
-from ..notices.main import notices
+from ..notices import notices
 
 
 @notices

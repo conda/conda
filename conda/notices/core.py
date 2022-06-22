@@ -2,25 +2,22 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Module that provides the unofficial API for this feature. In order to maintain
-a good level of encapsulation, other parts of the application should only import
-from this module.
-"""
-
-import sys
 from functools import wraps
 from typing import Sequence, Tuple, Optional, Set
 from urllib import parse
 
 from ..base.context import context, Context
 from ..base.constants import NOTICES_FN
-from ..models.channel import Channel
+from ..models.channel import Channel, get_channel_objs
 
 from . import cache
 from . import views
 from . import http
 from .types import ChannelNotice, ChannelNoticeResponse
+
+# Used below in type hints
+ChannelName = str
+ChannelUrl = str
 
 
 def display_notices(
@@ -31,13 +28,14 @@ def display_notices(
     """
     Entry point for displaying notices. This is called by the "notices" decorator as well
     as the sub-command "notices"
-    
+
     Args:
         limit: Limit the number of notices to show (defaults to None).
-        always_show_viewed: Whether all notices should be shown, not only the unread ones (defalts to True).
+        always_show_viewed: Whether all notices should be shown, not only the unread ones
+                            (defaults to True).
         silent: Whether to use a spinner when fetching and caching notices.
     """
-    channel_name_urls = get_channel_name_and_urls(context.channel_objs)
+    channel_name_urls = get_channel_name_and_urls(get_channel_objs(context))
     channel_notice_responses = http.get_notice_responses(channel_name_urls, silent=silent)
     channel_notices = flatten_notice_responses(channel_notice_responses)
     num_total_notices = len(channel_notices)
@@ -61,34 +59,16 @@ def display_notices(
     views.print_more_notices_message(num_total_notices, len(channel_notices), num_viewed_notices)
 
 
-NOTICES_DECORATOR_CONFIG_ERROR = (
-    "Unable to parse decorated function arguments for conda.notices."
-    ' Please make sure the function being decorated accepts both "args"'
-    ' and "parser" positional parameters'
-)
-
-
 def notices(func):
     """
     Wrapper for "execute" entry points for subcommands.
 
-    If this decorator is not configured correctly, we do our best to provide a friendly
-    error message.
-
     Args:
-        args: Arguments
-        parser: Parser
-
+        func: Function to be decorated
     """
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        try:
-            cmd_args, _ = args
-        except ValueError:
-            print(NOTICES_DECORATOR_CONFIG_ERROR, file=sys.stderr)
-            return
-
         return_value = func(*args, **kwargs)
 
         if is_channel_notices_enabled(context):
@@ -101,10 +81,6 @@ def notices(func):
         return return_value
 
     return wrapper
-
-
-ChannelName = str
-ChannelUrl = str
 
 
 def get_channel_name_and_urls(
@@ -130,7 +106,8 @@ def flatten_notice_responses(
 ) -> Sequence[ChannelNotice]:
     return tuple(
         notice
-        for channel in channel_notice_responses if channel.notices
+        for channel in channel_notice_responses
+        if channel.notices
         for notice in channel.notices
     )
 
@@ -156,14 +133,14 @@ def filter_notices(
     return channel_notices
 
 
-def is_channel_notices_enabled(context: Context) -> bool:
+def is_channel_notices_enabled(ctx: Context) -> bool:
     """
     Determines whether channel notices should be displayed for `notices` decorator.
 
     This only happens when offline is False and number_channel_notices is greater
     than 0.
-    
+
     Args:
-        context: The conda context object 
+        ctx: The conda context object
     """
-    return context.number_channel_notices > 0 and not context.offline
+    return ctx.number_channel_notices > 0 and not ctx.offline

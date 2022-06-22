@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
 
-from conda.notices import main as notices
+from conda.notices import core as notices
 
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
@@ -133,22 +133,3 @@ def test__conda_user_story__more_notices_message(
 
     assert captured.err == ""
     assert "There are 5 more messages" in captured.out
-
-
-def test__developer_story__useful_error_message(
-    capsys, notices_cache_dir, notices_mock_http_session_get
-):
-    """
-    As a developer, if I improperly use the "notices" decorator, I want
-    to see a helpful error message.
-    """
-
-    @notices.notices
-    def dummy():
-        print("Dummy Test")
-
-    dummy()
-
-    captured = capsys.readouterr()
-
-    assert notices.NOTICES_DECORATOR_CONFIG_ERROR in captured.err

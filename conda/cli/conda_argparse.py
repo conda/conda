@@ -34,7 +34,7 @@ escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = abspath(join(sys.prefix, '.condarc')).replace("%", "%%")
 
 
-def generate_parser() -> "ArgumentParser":
+def generate_parser():
     p = ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
                     ' environments and packages.',

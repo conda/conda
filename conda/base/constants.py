@@ -276,7 +276,14 @@ class ChannelPriorityMeta(EnumMeta):
             return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
 
 
-class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, Enum)):
+class ValueEnum(Enum):
+    """Subclass of enum that returns the value of the enum as its str representation"""
+
+    def __str__(self):
+        return f"{self.value}"
+
+
+class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, ValueEnum)):
     __name__ = "ChannelPriority"
 
     STRICT = 'strict'
@@ -284,35 +291,23 @@ class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, Enum)):
     FLEXIBLE = 'flexible'
     DISABLED = 'disabled'
 
-    def __str__(self):
-        return self.value
 
-
-class SatSolverChoice(Enum):
+class SatSolverChoice(ValueEnum):
     PYCOSAT = 'pycosat'
     PYCRYPTOSAT = 'pycryptosat'
     PYSAT = 'pysat'
 
-    def __str__(self):
-        return self.value
 
-
-class ExperimentalSolverChoice(Enum):
+class ExperimentalSolverChoice(ValueEnum):
     CLASSIC = 'classic'
     LIBMAMBA = 'libmamba'
     LIBMAMBA_DRAFT = 'libmamba-draft'
 
-    def __str__(self):
-        return self.value
 
-
-class NoticeLevel(Enum):
+class NoticeLevel(ValueEnum):
     CRITICAL = "critical"
     WARNING = "warning"
     INFO = "info"
-
-    def __str__(self):
-        return self.value
 
 
 # Magic files for permissions determination

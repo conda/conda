@@ -781,13 +781,6 @@ class Context(Configuration):
         return tuple(IndexedSet(concatv(local_add, self._channels)))
 
     @property
-    def channel_objs(self):
-        """Return current channels as Channel objects"""
-        from ..models.channel import Channel
-
-        return tuple(Channel(chn) for chn in self.channels)
-
-    @property
     def config_files(self):
         return tuple(path for path in context.collect_all()
                      if path not in ('envvars', 'cmd_line'))
