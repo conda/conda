@@ -89,9 +89,19 @@ jobs:
       matrix:
         python-version: ['3.7', '3.8', '3.9', '3.10']
         test-type: ['unit', 'integration']
+        platform: ['amd64']
         test-group: ['1', '2', '3']
+        include:
+          - python-version: '3.9'
+            test-type: unit
+            platform: 'arm64'
+            test-group: 1
+          - python-version: '3.10'
+            test-type: unit
+            platform: 'ppc64le'
+            test-group: 2
     env:
-      OS: Linux
+      OS: linux-${{ matrix.platform }}
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
@@ -100,10 +110,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} ${{ matrix.test_type }} tests, group ${{ matrix.test-group }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Python linux-${{ matrix.platform }} ${{ matrix.python-version }} ${{ matrix.test_type }} tests, group ${{ matrix.test-group }}
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
+          --platform linux/${{ matrix.platform }}
           -e TEST_SPLITS
           -e TEST_GROUP
           ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}
@@ -120,7 +134,7 @@ jobs:
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          name: test-results-${{ github.sha }}-linux-${{ matrix.platform }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
             test-report.xml
