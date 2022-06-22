@@ -9,6 +9,7 @@ from conda.testing.notices.helpers import (
     add_resp_to_mock,
     notices_decorator_assert_message_in_stdout,
     DummyArgs,
+    get_test_notices,
 )
 
 
@@ -21,7 +22,8 @@ def test_display_notices_happy_path(
     display that we assume
     """
     messages = ("Test One", "Test Two")
-    add_resp_to_mock(notices_mock_http_session_get, status_code, messages)
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_http_session_get, status_code, messages_json)
 
     notices.display_notices()
     captured = capsys.readouterr()
@@ -41,7 +43,8 @@ def test_notices_decorator(capsys, notices_cache_dir, notices_mock_http_session_
     two test messages.
     """
     messages = ("Test One", "Test Two")
-    add_resp_to_mock(notices_mock_http_session_get, 200, messages)
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
     dummy_mesg = "Dummy mesg"
 
     @notices.notices
@@ -69,7 +72,8 @@ def test__conda_user_story__only_see_once(
     """
     messages = ("Test One",)
     dummy_mesg = "Dummy Mesg"
-    add_resp_to_mock(notices_mock_http_session_get, 200, messages)
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
 
     @notices.notices
     def dummy(args, parser):
@@ -98,7 +102,8 @@ def test__conda_user_story__disable_notices(
     """
     messages = ("Test One", "Test Two")
     dummy_mesg = "Dummy Mesg"
-    add_resp_to_mock(notices_mock_http_session_get, 200, messages)
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
 
     @notices.notices
     def dummy(args, parser):
@@ -121,7 +126,8 @@ def test__conda_user_story__more_notices_message(
     if there are more to display.
     """
     messages = tuple(f"Test {idx}" for idx in range(1, 11, 1))
-    add_resp_to_mock(notices_mock_http_session_get, 200, messages)
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
 
     @notices.notices
     def dummy(args, parser):

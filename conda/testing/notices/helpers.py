@@ -39,7 +39,7 @@ def get_test_notices(
 def add_resp_to_mock(
     mock_session: mock.MagicMock,
     status_code: int,
-    messages: Sequence[str],
+    messages_json: dict,
     raise_exc: bool = False,
 ) -> None:
     """Adds any number of MockResponse to MagicMock object as side_effects"""
@@ -49,7 +49,7 @@ def add_resp_to_mock(
             yield MockResponse(404, {})
 
     def one_200():
-        yield MockResponse(status_code, get_test_notices(messages), raise_exc=raise_exc)
+        yield MockResponse(status_code, messages_json, raise_exc=raise_exc)
 
     chn = chain(one_200(), forever_404())
     mock_session.side_effect = tuple(next(chn) for _ in range(100))
@@ -58,15 +58,13 @@ def add_resp_to_mock(
 def create_notice_cache_files(
     cache_dir: Path,
     cache_files: Sequence[str],
-    messages: Sequence[str],
-    created_at: Optional[datetime.datetime] = None,
+    messages_json_seq: Sequence[dict],
 ) -> None:
     """Creates the cache files that we use in tests"""
-    for mesg, file in zip(messages, cache_files):
+    for message_json, file in zip(messages_json_seq, cache_files):
         cache_key = cache_dir.joinpath(file)
-        notice = get_test_notices((mesg,), created_at=created_at)
         with open(cache_key, "w") as fp:
-            json.dump(notice, fp)
+            json.dump(message_json, fp)
 
 
 class DummyArgs:

@@ -8,7 +8,11 @@ import pytest
 from conda.cli import main_notices as notices
 from conda.cli import conda_argparse
 
-from conda.testing.notices.helpers import add_resp_to_mock, create_notice_cache_files
+from conda.testing.notices.helpers import (
+    add_resp_to_mock,
+    create_notice_cache_files,
+    get_test_notices,
+)
 
 
 @pytest.mark.parametrize("status_code", (200, 404))
@@ -28,7 +32,8 @@ def test_main_notices(
     """
     args, parser = conda_notices_args_n_parser
     messages = ("Test One", "Test Two")
-    add_resp_to_mock(notices_mock_http_session_get, status_code, messages)
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_http_session_get, status_code, messages_json)
 
     notices.execute(args, parser)
 
@@ -56,7 +61,8 @@ def test_main_notices_reads_from_cache(capsys, conda_notices_args_n_parser, noti
     messages = ("Test One", "Test Two")
     cache_files = ("defaults-pkgs-r-notices.json", "defaults-pkgs-main-notices.json")
 
-    create_notice_cache_files(notices_cache_dir, cache_files, messages)
+    messages_json_seq = tuple(get_test_notices(messages) for _ in cache_files)
+    create_notice_cache_files(notices_cache_dir, cache_files, messages_json_seq)
 
     notices.execute(args, parser)
 
@@ -87,11 +93,17 @@ def test_main_notices_reads_from_expired_cache(
     created_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=14)
 
     # Cache first version of notices, with a cache date we know is expired
-    create_notice_cache_files(notices_cache_dir, cache_files, messages, created_at=created_at)
+    messages_json_seq = tuple(
+        get_test_notices(messages, created_at=created_at) for _ in cache_files
+    )
+    create_notice_cache_files(notices_cache_dir, cache_files, messages_json_seq)
 
     # Force a different response, so we know we actually made a mock HTTP call to get
     # different messages
-    add_resp_to_mock(notices_mock_http_session_get, status_code=200, messages=messages_different)
+    messages_different_json = get_test_notices(messages_different)
+    add_resp_to_mock(
+        notices_mock_http_session_get, status_code=200, messages_json=messages_different_json
+    )
 
     notices.execute(args, parser)
 
@@ -102,6 +114,46 @@ def test_main_notices_reads_from_expired_cache(
 
     for message in messages_different:
         assert message in captured.out
+
+
+def test_main_notices_handles_bad_expired_at_field(
+    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_http_session_get
+):
+    """
+    This test ensures that an incorrectly defined `notices.json` file doesn't completely break
+    our notices subcommand.
+    """
+    args, parser = conda_notices_args_n_parser
+
+    message = "testing"
+    level = "info"
+    message_id = "1234"
+    cache_file = "defaults-pkgs-main-notices.json"
+
+    bad_notices_json = {
+        "notices": [
+            {
+                "message": message,
+                "created_at": datetime.datetime.now().isoformat(),
+                "level": level,
+                "id": message_id,
+            }
+        ]
+    }
+    add_resp_to_mock(
+        notices_mock_http_session_get, status_code=200, messages_json=bad_notices_json
+    )
+
+    create_notice_cache_files(notices_cache_dir, [cache_file], [bad_notices_json])
+
+    notices.execute(args, parser)
+
+    captured = capsys.readouterr()
+
+    assert captured.err == ""
+    assert "Retrieving" in captured.out
+
+    assert message in captured.out
 
 
 def test_main_notices_help(capsys):
