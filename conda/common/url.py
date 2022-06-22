@@ -286,32 +286,10 @@ def is_ipv6_address(string_ip):
         [False, False]
     """
     try:
-        inet_pton = socket.inet_pton
-    except AttributeError:
-        return is_ipv6_address_win_py27(string_ip)
-    try:
-        inet_pton(socket.AF_INET6, string_ip)
+        socket.inet_pton(socket.AF_INET6, string_ip)
     except socket.error:
         return False
     return True
-
-
-def is_ipv6_address_win_py27(string_ip):
-    """
-    Examples:
-        >>> [is_ipv6_address_win_py27(ip) for ip in ('::1', '1234:'*7+'1234')]
-        [True, True]
-        >>> [is_ipv6_address_win_py27(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
-        [False, False]
-    """
-    # python 2.7 on windows does not have socket.inet_pton
-    return bool(re.match(r""  # lgtm [py/regex/unmatchable-dollar]
-                         r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
-                         r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
-                         r"(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|"
-                         r"(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z",
-                         string_ip,
-                         flags=re.DOTALL | re.IGNORECASE))
 
 
 def is_ip_address(string_ip):
