@@ -60,7 +60,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-          platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+          platforms: linux/amd64,linux/arm64,linux/ppc64le
 
       - name: Set up Docker Buildx
         id: buildx
@@ -86,5 +86,5 @@ jobs:
           build-args: python_version=${{ matrix.python }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
-          platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+          platforms: linux/amd64,linux/arm64,linux/ppc64le
           push: ${{ github.ref == 'refs/heads/master' }}

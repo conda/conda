@@ -5,6 +5,7 @@ beautifulsoup4
 chardet
 conda
 conda-build
+conda-forge::pre-commit
 conda-forge::pytest-split
 conda-forge::xdoctest
 conda-package-handling
