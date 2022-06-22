@@ -10,6 +10,7 @@ on:
 
 jobs:
   add_to_project:
+    if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/add-to-project@v0.0.3
