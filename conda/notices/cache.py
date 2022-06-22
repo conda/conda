@@ -16,9 +16,9 @@ from functools import wraps
 from pathlib import Path
 from typing import Optional, Sequence, Set
 
-from conda._vendor.appdirs import user_cache_dir
-from conda.base.constants import APP_NAME, NOTICES_CACHE_SUBDIR, NOTICES_CACHE_FN
-from conda.utils import ensure_dir_exists, safe_open
+from .._vendor.appdirs import user_cache_dir
+from .base.constants import APP_NAME, NOTICES_CACHE_SUBDIR, NOTICES_CACHE_FN
+from .utils import ensure_dir_exists, safe_open
 
 from .types import ChannelNoticeResponse, ChannelNotice
 

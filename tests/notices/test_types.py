@@ -15,9 +15,9 @@ def test_channel_notice_response():
     expected_num_notices = len(messages)
     json_data = get_test_notices(messages)
 
-    chn_ntc_resp = ChannelNoticeResponse("http://localhost", "local", json_data)
+    response = ChannelNoticeResponse("http://localhost", "local", json_data)
 
-    notices = chn_ntc_resp.notices
+    notices = response.notices
 
     assert len(notices) == expected_num_notices
 
@@ -32,9 +32,9 @@ def test_channel_notice_response_date_parse_error():
     json_data["notices"][0]["created_at"] = "Not a valid datetime string"
     json_data["notices"][0]["level"] = "Not a valid level"
 
-    chn_ntc_resp = ChannelNoticeResponse("http://localhost", "local", json_data)
+    response = ChannelNoticeResponse("http://localhost", "local", json_data)
 
-    notices = chn_ntc_resp.notices
+    notices = response.notices
 
     assert notices[0].created_at is None
     assert notices[0].level.value == "info"

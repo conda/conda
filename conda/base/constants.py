@@ -161,7 +161,7 @@ REPODATA_FN = "repodata.json"
 #: Default name of the notices file on the server we look for
 NOTICES_FN = "notices.json"
 
-#: Name of cache file where read notice ids  are stored
+#: Name of cache file where read notice IDs are stored
 NOTICES_CACHE_FN = "notices.cache"
 
 #: Determines the subdir for notices cache

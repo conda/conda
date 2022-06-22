@@ -37,11 +37,11 @@ def test_main_notices(
     assert captured.err == ""
     assert "Retrieving" in captured.out
 
-    for mesg in messages:
+    for message in messages:
         if status_code < 300:
-            assert mesg in captured.out
+            assert message in captured.out
         else:
-            assert mesg not in captured.out
+            assert message not in captured.out
 
 
 def test_main_notices_reads_from_cache(capsys, conda_notices_args_n_parser, notices_cache_dir):
@@ -65,8 +65,8 @@ def test_main_notices_reads_from_cache(capsys, conda_notices_args_n_parser, noti
     assert captured.err == ""
     assert "Retrieving" in captured.out
 
-    for mesg in messages:
-        assert mesg in captured.out
+    for message in messages:
+        assert message in captured.out
 
 
 def test_main_notices_reads_from_expired_cache(
@@ -100,8 +100,8 @@ def test_main_notices_reads_from_expired_cache(
     assert captured.err == ""
     assert "Retrieving" in captured.out
 
-    for mesg in messages_different:
-        assert mesg in captured.out
+    for message in messages_different:
+        assert message in captured.out
 
 
 def test_main_notices_help(capsys):

@@ -221,10 +221,10 @@ def test_ensure_dir_errors():
     Test to ensure correct error handling
     """
     new_dir = "test_dir"
-    exc_mesg = "Test!"
+    exc_message = "Test!"
 
     with patch("pathlib.Path.mkdir") as mock_mkdir:
-        mock_mkdir.side_effect = OSError(exc_mesg)
+        mock_mkdir.side_effect = OSError(exc_message)
 
         @utils.ensure_dir_exists
         def get_test_dir() -> Path:
@@ -234,7 +234,7 @@ def test_ensure_dir_errors():
         with pytest.raises(CondaError) as exc_info:
             get_test_dir()
 
-    assert exc_mesg in str(exc_info.value)
+    assert exc_message in str(exc_info.value)
 
 
 def test_safe_open(tmpdir):
@@ -258,12 +258,12 @@ def test_safe_open_errors():
     """
     Test to ensure correct error handling
     """
-    exc_mesg = "Test!"
+    exc_message = "Test!"
 
     with patch("conda.utils.open") as mock_open:
-        mock_open.side_effect = OSError(exc_mesg)
+        mock_open.side_effect = OSError(exc_message)
 
         with pytest.raises(CondaError) as exc_info, utils.safe_open("test", "w"):
             pass
 
-        assert exc_mesg in str(exc_info.value)
+        assert exc_message in str(exc_info.value)

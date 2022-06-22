@@ -26,12 +26,12 @@ def get_test_notices(
         "notices": list(
             {
                 "id": str(uuid.uuid4()),
-                "message": mesg,
+                "message": message,
                 "level": level,
                 "created_at": created_at.isoformat(),
                 "expired_at": expired_at.isoformat(),
             }
-            for mesg in messages
+            for message in messages
         )
     }
 

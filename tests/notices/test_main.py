@@ -28,11 +28,11 @@ def test_display_notices_happy_path(
 
     assert captured.err == ""
 
-    for mesg in messages:
+    for message in messages:
         if status_code < 300:
-            assert mesg in captured.out
+            assert message in captured.out
         else:
-            assert mesg not in captured.out
+            assert message not in captured.out
 
 
 def test_notices_decorator(capsys, notices_cache_dir, notices_mock_http_session_get):

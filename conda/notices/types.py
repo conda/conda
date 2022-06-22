@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib import parse
 from typing import NamedTuple, Optional, Sequence
 
-from conda.base.constants import NoticeLevel
+from ..base.constants import NoticeLevel
 
 
 class ChannelNotice(NamedTuple):
@@ -32,19 +32,19 @@ class ChannelNoticeResponse(NamedTuple):
     @property
     def notices(self) -> Sequence[ChannelNotice]:
         if self.json_data:
-            notice_data = self.json_data.get("notices", tuple())
+            notices = self.json_data.get("notices", tuple())
 
             return tuple(
                 ChannelNotice(
-                    id=msg.get("id"),
+                    id=notice.get("id"),
                     channel_name=self.name,
-                    message=msg.get("message"),
-                    level=self._parse_notice_level(msg.get("level")),
-                    created_at=self._parse_iso_timestamp(msg.get("created_at")),
-                    expired_at=self._parse_iso_timestamp(msg.get("expired_at")),
-                    interval=msg.get("interval"),
+                    message=notice.get("message"),
+                    level=self._parse_notice_level(notice.get("level")),
+                    created_at=self._parse_iso_timestamp(notice.get("created_at")),
+                    expired_at=self._parse_iso_timestamp(notice.get("expired_at")),
+                    interval=notice.get("interval"),
                 )
-                for msg in notice_data
+                for notice in notices
             )
 
     @staticmethod
@@ -65,11 +65,11 @@ class ChannelNoticeResponse(NamedTuple):
         We try to parse this as a valid ISO timestamp and fail over to a default value of none.
         """
         if iso_timestamp is None:
-            return
+            return None
         try:
             return datetime.fromisoformat(iso_timestamp)
         except ValueError:
-            return
+            return None
 
     @classmethod
     def get_cache_key(cls, url: str, name: str, cache_dir: Path) -> Path:
@@ -77,6 +77,4 @@ class ChannelNoticeResponse(NamedTuple):
         url_obj = parse.urlparse(url)
         path = url_obj.path.replace("/", "-")
         cache_filename = f"{name}{path}"
-        cache_key = cache_dir.joinpath(cache_filename)
-
-        return cache_key
+        return cache_dir.joinpath(cache_filename)

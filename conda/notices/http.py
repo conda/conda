@@ -8,8 +8,8 @@ from typing import Sequence, Tuple, Optional
 
 import requests
 
-from conda.common.io import Spinner
-from conda.gateways.connection.session import CondaSession
+from ..common.io import Spinner
+from ..gateways.connection.session import CondaSession
 
 from .cache import cached_response
 from .types import ChannelNoticeResponse
@@ -24,13 +24,15 @@ def get_notice_responses(
     Provided a list of channel notification url/name tuples, return a sequence of
     ChannelNoticeResponse objects.
 
-    Options:
-        - silent: turn off "loading animation" (defaults to False)
-        - max_workers: increase worker number in thread executor (defaults to 10)
+    Args:
+        silent: turn off "loading animation" (defaults to False)
+        max_workers: increase worker number in thread executor (defaults to 10)
+    Returns:
+        Sequence[ChannelNoticeResponse]
     """
     executor = ThreadPoolExecutor(max_workers=max_workers)
 
-    def _get_notices() -> Sequence[ChannelNoticeResponse]:
+    with Spinner("Retrieving notices", enabled=not silent):
         return tuple(
             filter(
                 None,
@@ -42,12 +44,6 @@ def get_notice_responses(
                 ),
             )
         )
-
-    if silent:
-        return _get_notices()
-
-    with Spinner("Retrieving notices"):
-        return _get_notices()
 
 
 @cached_response

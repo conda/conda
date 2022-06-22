@@ -39,11 +39,11 @@ def test_get_channel_notice_response_malformed_json(
 
         display_notices()
 
-        expected_log_mesgs = (
+        expected_log_messages = (
             "Unable to parse JSON data",
             "Received 404 when trying to GET",
         )
 
-        for expected, mock_call in zip(expected_log_mesgs, mock_logger.mock_calls):
+        for expected, mock_call in zip(expected_log_messages, mock_logger.mock_calls):
             for arg in mock_call.args:
                 assert expected in arg

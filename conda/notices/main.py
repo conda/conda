@@ -13,9 +13,9 @@ from functools import wraps
 from typing import Sequence, Tuple, Optional, Set
 from urllib import parse
 
-from conda.base.context import context, Context
-from conda.base.constants import NOTICES_FN
-from conda.models.channel import Channel
+from ..base.context import context, Context
+from ..base.constants import NOTICES_FN
+from ..models.channel import Channel
 
 from . import cache
 from . import views
@@ -31,6 +31,11 @@ def display_notices(
     """
     Entry point for displaying notices. This is called by the "notices" decorator as well
     as the sub-command "notices"
+    
+    Args:
+        limit: Limit the number of notices to show (defaults to None).
+        always_show_viewed: Whether all notices should be shown, not only the unread ones (defalts to True).
+        silent: Whether to use a spinner when fetching and caching notices.
     """
     channel_name_urls = get_channel_name_and_urls(context.channel_objs)
     channel_notice_responses = http.get_notice_responses(channel_name_urls, silent=silent)
@@ -67,12 +72,13 @@ def notices(func):
     """
     Wrapper for "execute" entry points for subcommands.
 
-    This decorator assumes two positional arguments:
-        - args
-        - parser
-
     If this decorator is not configured correctly, we do our best to provide a friendly
     error message.
+
+    Args:
+        args: Arguments
+        parser: Parser
+
     """
 
     @wraps(func)
@@ -104,7 +110,7 @@ ChannelUrl = str
 def get_channel_name_and_urls(
     channels: [Sequence[Channel]],
 ) -> Sequence[Tuple[ChannelUrl, ChannelName]]:
-    """Return a sequence of Channel name and urls"""
+    """Return a sequence of Channel URL and name"""
 
     def ensure_endswith(value: str, ends: str) -> str:
         return value if value.endswith(ends) else f"{value}{ends}"
@@ -113,16 +119,20 @@ def get_channel_name_and_urls(
         return parse.urljoin(ensure_endswith(value, "/"), join_val)
 
     return tuple(
-        (join_url(chn_url, NOTICES_FN), chn_obj.name or chn_obj.location)
-        for chn_obj in channels
-        for chn_url in chn_obj.base_urls
+        (join_url(base_url, NOTICES_FN), channel.name or channel.location)
+        for channel in channels
+        for base_url in channel.base_urls
     )
 
 
 def flatten_notice_responses(
     channel_notice_responses: Sequence[ChannelNoticeResponse],
 ) -> Sequence[ChannelNotice]:
-    return tuple(ntc for chn in channel_notice_responses if chn.notices for ntc in chn.notices)
+    return tuple(
+        notice
+        for channel in channel_notice_responses if channel.notices
+        for notice in channel.notices
+    )
 
 
 def filter_notices(
@@ -134,7 +144,11 @@ def filter_notices(
     Perform filtering actions for the provided sequence of ChannelNotice objects.
     """
     if exclude:
-        channel_notices = tuple(chn for chn in channel_notices if chn.id not in exclude)
+        channel_notices = tuple(
+            channel_notice
+            for channel_notice in channel_notices
+            if channel_notice.id not in exclude
+        )
 
     if limit is not None:
         channel_notices = channel_notices[:limit]
@@ -142,11 +156,14 @@ def filter_notices(
     return channel_notices
 
 
-def is_channel_notices_enabled(cont: Context) -> bool:
+def is_channel_notices_enabled(context: Context) -> bool:
     """
     Determines whether channel notices should be displayed for `notices` decorator.
 
     This only happens when offline is False and number_channel_notices is greater
     than 0.
+    
+    Args:
+        context: The conda context object 
     """
-    return cont.number_channel_notices > 0 and not cont.offline
+    return context.number_channel_notices > 0 and not context.offline
