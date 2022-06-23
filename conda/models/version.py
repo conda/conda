@@ -491,7 +491,7 @@ class BaseSpec(object):
         return True
 
 
-class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/missing-equals]
+class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
     _cache_ = {}
 
     def __init__(self, vspec):
@@ -601,7 +601,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/miss
 VersionMatch = VersionSpec
 
 
-class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/missing-equals]
+class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
     _cache_ = {}
 
     def __init__(self, vspec):

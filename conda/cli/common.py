@@ -7,6 +7,7 @@ from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join
 import re
 import sys
+from warnings import warn
 
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
@@ -67,6 +68,10 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
 
 
 def ensure_name_or_prefix(args, command):
+    warn(
+        "conda.cli.common.ensure_name_or_prefix is pending deprecation in a future release.",
+        PendingDeprecationWarning,
+    )
     if not (args.name or args.prefix):
         from ..exceptions import CondaValueError
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
@@ -94,14 +99,18 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-spec_pat = re.compile(r'(?P<name>[^=<>!\s]+)'  # package name  # lgtm [py/regex/unmatchable-dollar]
-                      r'\s*'  # ignore spaces
-                      r'('
-                      r'(?P<cc>=[^=]+(=[^=]+)?)'  # conda constraint
-                      r'|'
-                      r'(?P<pc>(?:[=!]=|[><]=?|~=).+)'  # new (pip-style) constraint(s)
-                      r')?$',
-                      re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
+spec_pat = re.compile(
+    r"""
+    (?P<name>[^=<>!\s]+)                # package name
+    \s*                                 # ignore spaces
+    (
+        (?P<cc>=[^=]+(=[^=]+)?)         # conda constraint
+        |
+        (?P<pc>(?:[=!]=|[><]=?|~=).+)   # new pip-style constraints
+    )?$
+    """,
+    re.VERBOSE,
+)
 
 
 def strip_comment(line):
@@ -194,7 +203,7 @@ def print_envs_list(known_conda_prefixes, output=True):
 
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
-        default = '*' if prefix == context.default_prefix else ' '
+        active = '*' if prefix == context.active_prefix else ' '
         if prefix == context.root_prefix:
             name = ROOT_ENV_NAME
         elif any(paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs):
@@ -202,7 +211,7 @@ def print_envs_list(known_conda_prefixes, output=True):
         else:
             name = ''
         if output:
-            print(fmt % (name, default, prefix))
+            print(fmt % (name, active, prefix))
 
     for prefix in known_conda_prefixes:
         disp_env(prefix)

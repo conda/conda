@@ -971,17 +971,20 @@ Expansion of environment variables
 Conda expands environment variables in a subset of configuration settings.
 These are:
 
-- ``envs_dirs``
-- ``pkgs_dirs``
-- ``ssl_verify``
-- ``client_cert``
-- ``client_cert_key``
-- ``proxy_servers``
+- ``channel``
+- ``channel_alias``
 - ``channels``
+- ``client_cert_key``
+- ``client_cert``
 - ``custom_channels``
 - ``custom_multichannels``
 - ``default_channels``
+- ``envs_dirs``
+- ``envs_path``
 - ``migrated_custom_channels``
+- ``pkgs_dirs``
+- ``proxy_servers``
+- ``verify_ssl``
 - ``whitelist_channels``
 
 This allows you to store the credentials of a private repository in an
