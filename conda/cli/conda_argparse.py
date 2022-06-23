@@ -13,8 +13,6 @@ from argparse import (
     _HelpAction,
 )
 from logging import getLogger
-import itertools
-import operator
 import os
 from os.path import abspath, expanduser, join
 from subprocess import Popen
@@ -28,6 +26,7 @@ from ..base import context
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
+from ..common.io import dashlist
 from ..exceptions import PluginError
 
 log = getLogger(__name__)
@@ -122,22 +121,34 @@ class ArgumentParser(ArgumentParserBase):
             self.description += "\n\nOptions:\n"
 
         pm = context.get_plugin_manager()
-        self._subcommands = sorted(itertools.chain(
-            *pm.hook.conda_cli_register_subcommands()
-        ), key=operator.attrgetter('name'))
+        self._subcommands = sorted(
+            (
+                subcommand
+                for subcommands in pm.hook.conda_cli_register_subcommands()
+                for subcommand in subcommands
+            ),
+            key=lambda subcommand: subcommand.name,
+        )
 
         # Check for conflicts
-        seen = []
-        for subcommand in self._subcommands:
-            if subcommand.name in seen:
-                raise PluginError(f"""
-                    Conflicting subcommand entries found for the
-                    {subcommand.name} subcommand. Multiple conda plugins
-                    are registering this subcommand via the
-                    'conda_cli_register_subcommands' hook; please make sure that
+        seen = set()
+        conflicts = [
+            subcommand
+            for subcommand in self._subcommands
+            if subcommand.name in seen or seen.add(subcommand.name)
+        ]
+        if conflicts:
+            raise PluginError(
+                dals(
+                    f"""
+                    Conflicting entries found for the following subcommands:
+                    {dashlist(conflicts)}
+                    Multiple conda plugins are registering these subcommands via the
+                    `conda_cli_register_subcommands` hook; please make sure that
                     you do not have any incompatible plugins installed.
-                """)
-            seen.append(subcommand.name)
+                    """
+                )
+            )
 
         if self._subcommands:
             self.epilog = 'conda commands available from other packages:' + ''.join(
@@ -185,7 +196,7 @@ class ArgumentParser(ArgumentParserBase):
                             if cmd == subcommand.name:
                                 sys.exit(subcommand.action(sys.argv[2:]))
                         # Run the subcommand from executables; legacy path
-                        # TODO: Replace the URL!
+                        # FUTURE: Replace the URL!
                         warnings.warn(PendingDeprecationWarning("""
                             Loading conda subcommands via executables is
                             pending deprecation in favor of the plugin system.
