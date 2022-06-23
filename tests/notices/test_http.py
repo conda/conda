@@ -23,8 +23,7 @@ def test_get_channel_notice_response_timeout_error(
         display_notices()
 
         for mock_call in mock_logger.mock_calls:
-            for arg in mock_call.args:
-                assert "Request timed out for channel" in arg
+            assert "Request timed out for channel" in str(mock_call)
 
 
 def test_get_channel_notice_response_malformed_json(
@@ -45,5 +44,4 @@ def test_get_channel_notice_response_malformed_json(
         )
 
         for expected, mock_call in zip(expected_log_messages, mock_logger.mock_calls):
-            for arg in mock_call.args:
-                assert expected in arg
+            assert expected in str(mock_call)
