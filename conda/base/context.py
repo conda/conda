@@ -151,7 +151,7 @@ def ssl_verify_validation(value):
     return True
 
 
-@functools.lru_cache(maxsize=None)  # TODO: Replace w/ functools.cache when 3.8 is dropped
+@functools.lru_cache(maxsize=None)  # FUTURE: Replace w/ functools.cache when 3.8 is dropped
 def get_plugin_manager():
     pm = pluggy.PluginManager('conda')
     pm.add_hookspecs(plugins)
@@ -398,6 +398,7 @@ class Context(Configuration):
         self._plugin_manager = get_plugin_manager()
 
     @property
+    @functools.lru_cache(maxsize=None)  # FUTURE: Replace w/ functools.cache when 3.8 is dropped
     def plugin_manager(self):
         return self._plugin_manager
 
