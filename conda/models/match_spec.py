@@ -810,7 +810,7 @@ class ExactLowerStrMatch(ExactStrMatch):
         return self._raw_value == _other_val.lower()
 
 
-class GlobStrMatch(_StrMatchMixin, MatchInterface):  # lgtm [py/missing-equals]
+class GlobStrMatch(_StrMatchMixin, MatchInterface):
     __slots__ = '_raw_value', '_re_match'
 
     def __init__(self, value):
@@ -940,7 +940,7 @@ class ChannelMatch(GlobStrMatch):
             else:
                 value = Channel(value)
 
-        super(GlobStrMatch, self).__init__(value)  # lgtm [py/super-not-enclosing-class]
+        super(GlobStrMatch, self).__init__(value)
 
     def match(self, other):
         try:

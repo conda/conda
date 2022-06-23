@@ -1112,7 +1112,7 @@ class ExceptionHandler(object):
     def __call__(self, func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except:  # lgtm [py/catch-base-exception]
+        except:
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
 
@@ -1386,9 +1386,7 @@ class ExceptionHandler(object):
             )
         elif ask_response is None and ask_for_upload:
             # means timeout was reached for `input`
-            self.write_out(  # lgtm [py/unreachable-statement]
-                '\nTimeout reached. No report sent.\n'
-            )
+            self.write_out("\nTimeout reached. No report sent.\n")
         elif ask_for_upload:
             self.write_out(
                 "\n"

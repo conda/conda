@@ -14,7 +14,7 @@ import sys
 from io import BytesIO, StringIO
 from itertools import cycle
 import json
-import logging  # lgtm [py/import-and-import-from]
+import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join

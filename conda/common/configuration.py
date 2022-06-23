@@ -1166,9 +1166,9 @@ class ParameterLoader(object):
     def _set_name(self, name):
         # this is an explicit method, and not a descriptor/setter
         # it's meant to be called by the Configuration metaclass
-        self._name = name  # lgtm [py/mutable-descriptor]
+        self._name = name
         _names = frozenset(x for x in chain(self.aliases, (name, )))
-        self._names = _names  # lgtm [py/mutable-descriptor]
+        self._names = _names
         return name
 
     @property
@@ -1212,8 +1212,8 @@ class ParameterLoader(object):
         else:
             errors.extend(expanded.collect_errors(instance, result, "<<merged>>"))
         raise_errors(errors)
-        instance._cache_[self.name] = result  # lgtm [py/uninitialized-local-variable]
-        return result  # lgtm [py/uninitialized-local-variable]
+        instance._cache_[self.name] = result
+        return result
 
     def _raw_parameters_from_single_source(self, raw_parameters):
         return ParameterLoader.raw_parameters_from_single_source(
