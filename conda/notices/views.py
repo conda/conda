@@ -13,7 +13,7 @@ from .types import ChannelNotice
 def print_notices(channel_notices: Sequence[ChannelNotice]):
     """
     Accepts a list of channel notice responses and prints a display.
-    
+
     Args:
         channel_notices: A sequence of ChannelNotice objects.
     """
