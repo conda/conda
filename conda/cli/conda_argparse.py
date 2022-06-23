@@ -599,7 +599,7 @@ def configure_parser_create(sub_parsers):
 
 
 def configure_parser_init(sub_parsers):
-    help = "Initialize conda for shell interaction. [Experimental]"
+    help = "Initialize conda for shell interaction."
     descr = help
 
     epilog = dedent("""
@@ -616,8 +616,8 @@ def configure_parser_init(sub_parsers):
     '--dry-run' flag.  To see the exact changes that are being or will be made to each location,
     use the '--verbose' flag.
 
-    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted
-               for changes to take effect.
+    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted for
+               changes to take effect.
 
     """)
 
@@ -671,22 +671,19 @@ def configure_parser_init(sub_parsers):
     setup_type_group.add_argument(
         "--user",
         action="store_true",
-        # help="Initialize conda for the current user (default).",
-        help=SUPPRESS,
+        help="Initialize conda for the current user (default).",
         default=NULL,
     )
     setup_type_group.add_argument(
         "--no-user",
         action="store_false",
-        # help="Don't initialize conda for the current user (default).",
-        help=SUPPRESS,
+        help="Don't initialize conda for the current user (default).",
         default=NULL,
     )
     setup_type_group.add_argument(
         "--system",
         action="store_true",
-        # help="Initialize conda for all users on the system.",
-        help=SUPPRESS,
+        help="Initialize conda for all users on the system.",
         default=NULL,
     )
     setup_type_group.add_argument(
