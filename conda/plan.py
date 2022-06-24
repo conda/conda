@@ -20,7 +20,7 @@ from ._vendor.boltons.setutils import IndexedSet
 from ._vendor.toolz import concatv
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, stack_context_default
-from .common.io import env_vars, time_recorder
+from .common.io import dashlist, env_vars, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
@@ -34,7 +34,7 @@ from .models.match_spec import ChannelMatch
 from .models.prefix_graph import PrefixGraph
 from .models.records import PackageRecord
 from .models.version import normalized_version
-from .resolve import MatchSpec, dashlist
+from .resolve import MatchSpec
 from .utils import human_bytes
 
 log = getLogger(__name__)
