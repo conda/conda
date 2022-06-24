@@ -143,4 +143,4 @@ def is_channel_notices_enabled(ctx: Context) -> bool:
     Args:
         ctx: The conda context object
     """
-    return ctx.number_channel_notices > 0 and not ctx.offline
+    return ctx.number_channel_notices > 0 and not ctx.offline and not ctx.json
