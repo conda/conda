@@ -14,7 +14,7 @@ from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import on_win
-from .common.io import time_recorder
+from .common.io import dashlist, time_recorder
 from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolver, TRUE,
                            minimal_unsatisfiable_subset)
 from .common.toposort import toposort
@@ -69,10 +69,6 @@ def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
             log.debug("Falling back to SAT solver interface '%s'.", sat_solver_choice)
             return sat_solver
     raise CondaDependencyError("Cannot run solver. No functioning SAT implementations available.")
-
-
-def dashlist(iterable, indent=2):
-    return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
 
 
 def exactness_and_number_of_deps(resolve_obj, ms):

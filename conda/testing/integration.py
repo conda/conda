@@ -47,10 +47,10 @@ from conda.common.compat import encode_arguments, on_win
 from conda.common.io import (
     argv,
     captured,
+    dashlist,
     disable_logger,
     env_var,
     stderr_log_level,
-    dashlist,
 )
 from conda.common.url import path_to_url, escape_channel_url
 from conda.core.prefix_data import PrefixData
