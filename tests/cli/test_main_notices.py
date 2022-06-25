@@ -5,9 +5,9 @@ import datetime
 
 import pytest
 
+from conda.base.constants import on_win
 from conda.cli import main_notices as notices
 from conda.cli import conda_argparse
-
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
@@ -49,7 +49,9 @@ def test_main_notices(
             assert message not in captured.out
 
 
-def test_main_notices_reads_from_cache(capsys, conda_notices_args_n_parser, notices_cache_dir):
+def test_main_notices_reads_from_cache(
+    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_http_session_get
+):
     """
     Test the full working path through the code when reading from cache instead of making
     an HTTP request.
@@ -60,6 +62,9 @@ def test_main_notices_reads_from_cache(capsys, conda_notices_args_n_parser, noti
     args, parser = conda_notices_args_n_parser
     messages = ("Test One", "Test Two")
     cache_files = ("defaults-pkgs-r-notices.json", "defaults-pkgs-main-notices.json")
+
+    if on_win:
+        cache_files += ("defaults-pkgs-msys2-notices.json",)
 
     messages_json_seq = tuple(get_test_notices(messages) for _ in cache_files)
     create_notice_cache_files(notices_cache_dir, cache_files, messages_json_seq)
@@ -89,8 +94,11 @@ def test_main_notices_reads_from_expired_cache(
 
     messages = ("Test One", "Test Two")
     messages_different = ("With different value one", "With different value two")
-    cache_files = ("defaults-pkgs-r-notices.json", "defaults-pkgs-main-notices.json")
     created_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=14)
+    cache_files = ("defaults-pkgs-r-notices.json", "defaults-pkgs-main-notices.json")
+
+    if on_win:
+        cache_files += ("defaults-pkgs-msys2-notices.json",)
 
     # Cache first version of notices, with a cache date we know is expired
     messages_json_seq = tuple(
