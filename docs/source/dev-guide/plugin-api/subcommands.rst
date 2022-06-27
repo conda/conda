@@ -31,7 +31,7 @@ Example
        print("This is an example command!")
 
 
-   @conda.plugins.hookimp
+   @conda.plugins.hookimpl
    def conda_cli_register_subcommands(self):
        yield plugins.CondaSubcommand(
            name="example",

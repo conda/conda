@@ -10,20 +10,20 @@ from conda import plugins
 
 
 class SubcommandPlugin:
-        def __init__(self):
-            self.invoked = False
-            self.args = None
+    def __init__(self):
+        self.invoked = False
+        self.args = None
 
-        def custom_command(self, args):
-            pass
+    def custom_command(self, args):
+        pass
 
-        @plugins.hookimpl
-        def conda_cli_register_subcommands(self):
-            yield plugins.CondaSubcommand(
-                name='custom',
-                summary='test custom command',
-                action=self.custom_command,
-            )
+    @plugins.hookimpl
+    def conda_cli_register_subcommands(self):
+        yield plugins.CondaSubcommand(
+            name="custom",
+            summary="test custom command",
+            action=self.custom_command,
+        )
 
 
 @pytest.fixture()
@@ -46,7 +46,7 @@ def test_help(plugin, cli_main, capsys):
 
     stdout, stderr = capsys.readouterr()
 
-    assert ('custom - test custom command') in stdout
+    assert "custom - test custom command" in stdout
 
 
 def test_duplicated(plugin_manager, cli_main, capsys):
@@ -56,4 +56,4 @@ def test_duplicated(plugin_manager, cli_main, capsys):
     cli_main()
     stdout, stderr = capsys.readouterr()
 
-    assert ("Conflicting entries found for the following subcommands") in stderr
+    assert "Conflicting entries found for the following subcommands" in stderr
