@@ -2,13 +2,13 @@
 Plugins
 =======
 
-As of version ``X.Y``, ``conda`` has support for user plugins, enabling them to
-extend and/or change some of its functionality.
+As of version ``4.14.0``, ``conda`` has support for user plugins, enabling extension and/or
+alterations to some of its functionality.
 
 An overview of ``pluggy``
 -------------------------
 
-Plugins in ``conda`` are implemented with the use of ``pluggy``, a Python framework used by
+Plugins in ``conda`` are implemented with the use of Pluggy_, a Python framework used by
 other projects, such as ``pytest``, ``tox``, and ``devpi``. ``pluggy`` provides the ability to
 extend and modify the behavior of ``conda`` via function hooking, which results in plugin
 systems that are discoverable with the use of `Python package entrypoints`_.
@@ -99,6 +99,7 @@ API reference
    subcommands
 
 
+.. _Pluggy: https://pluggy.readthedocs.io/en/stable/
 .. _documentation: https://pluggy.readthedocs.io/en/stable/
 .. _`Python package entrypoints`: https://packaging.python.org/en/latest/specifications/entry-points/
 .. _BSD-3: https://opensource.org/licenses/BSD-3-Clause

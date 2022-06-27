@@ -196,12 +196,13 @@ class ArgumentParser(ArgumentParserBase):
                             if cmd == subcommand.name:
                                 sys.exit(subcommand.action(sys.argv[2:]))
                         # Run the subcommand from executables; legacy path
-                        # FUTURE: Replace the URL!
-                        warnings.warn(PendingDeprecationWarning("""
-                            Loading conda subcommands via executables is
-                            pending deprecation in favor of the plugin system.
-                            See https://github.com/conda/conda/issues/???.
-                        """))
+                        warnings.warn(
+                            (
+                                "Loading conda subcommands via executables is "
+                                "pending deprecation in favor of the plugin system. "
+                            ),
+                            PendingDeprecationWarning,
+                        )
                         executable = find_executable('conda-' + cmd)
                         if not executable:
                             from ..exceptions import CommandNotFoundError

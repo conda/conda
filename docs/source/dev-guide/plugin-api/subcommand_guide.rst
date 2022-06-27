@@ -24,7 +24,7 @@ Set up your working directory and files as shown below:
 
     string-art
     │── string_art.py
-    ├── setup.py
+    └── setup.py
 
 
 The custom subcommand module
@@ -41,11 +41,13 @@ in the example subcommand module below:
    :caption: string-art/string_art.py
 
    from art import text2art
+   from typing import Sequence
+
 
    import conda.plugins
 
 
-   def conda_string_art(args: str):
+   def conda_string_art(args: Sequence[str]):
        # if using a multi-word string with spaces, make sure to wrap it in quote marks
        output = "".join(args)
        string_art = text2art(output)
