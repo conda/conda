@@ -19,8 +19,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   windows:
+    permissions:
+      contents: none
     runs-on: windows-2019
     strategy:
       matrix:
@@ -32,6 +37,8 @@ jobs:
       - run: 'echo "No build required"'
 
   linux:
+    permissions:
+      contents: none
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -42,6 +49,8 @@ jobs:
       - run: 'echo "No build required"'
 
   macos:
+    permissions:
+      contents: none
     runs-on: macos-latest
     strategy:
       matrix:
