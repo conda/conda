@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 import datetime
 import uuid
@@ -9,6 +10,11 @@ from itertools import chain
 from pathlib import Path
 from typing import Optional, Sequence
 from unittest import mock
+
+from conda.base.context import Context
+from conda.notices.core import get_channel_name_and_urls
+from conda.notices.types import ChannelNoticeResponse
+from conda.models.channel import get_channel_objs
 
 DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to users"
 
@@ -106,3 +112,13 @@ class MockResponse:
         if self.raise_exc:
             raise ValueError("Error")
         return self.json_data
+
+
+def get_notice_cache_filenames(ctx: Context) -> tuple[str]:
+    """Returns the filenames of the cache files that will be searched for"""
+    channel_urls_and_names = get_channel_name_and_urls(get_channel_objs(ctx))
+
+    return tuple(
+        ChannelNoticeResponse.get_cache_key(url, name, Path("")).name
+        for url, name in channel_urls_and_names
+    )
