@@ -20,6 +20,7 @@ import sys
 from textwrap import dedent
 
 from .. import __version__
+from ..auxlib.ish import dals
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
@@ -77,6 +78,7 @@ def generate_parser():
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers)
     configure_parser_update(sub_parsers, name='upgrade')
+    configure_parser_notices(sub_parsers)
 
     return p
 
@@ -1294,6 +1296,40 @@ def configure_parser_update(sub_parsers, name='update'):
              "and suppress related warnings.",
     )
     p.set_defaults(func='.main_update.execute')
+
+
+NOTICES_HELP = "Retrieves latest channel notifications."
+NOTICES_DESCRIPTION = dals(
+    f"""
+    {NOTICES_HELP}
+
+    Conda channel maintainers have the option of setting messages that
+    users will see intermittently. Some of these notices are informational
+    while others are messages concerning the stability of the channel.
+
+    """
+)
+
+
+def configure_parser_notices(sub_parsers, name="notices"):
+    example = dals(
+        f"""
+        Examples:
+
+        conda {name}
+
+        conda {name} -c defaults
+
+        """
+    )
+    p = sub_parsers.add_parser(
+        name,
+        description=NOTICES_DESCRIPTION,
+        help=NOTICES_HELP,
+        epilog=example,
+    )
+    add_parser_channels(p)
+    p.set_defaults(func=".main_notices.execute")
 
 
 # #############################################################################################

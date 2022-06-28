@@ -314,6 +314,7 @@ class Context(Configuration):
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
     report_errors = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     shortcuts = ParameterLoader(PrimitiveParameter(True))
+    number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
 
@@ -1009,6 +1010,7 @@ class Context(Configuration):
                 "verbosity",
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
+                "number_channel_notices",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1565,6 +1567,13 @@ class Context(Configuration):
                 conda. A solver logic takes care of turning your requested packages into a
                 list of specs to add and/or remove from a given environment, based on their
                 dependencies and specified constraints.
+                """
+            ),
+            number_channel_notices=dals(
+                """
+                Sets the number of channel notices to be displayed when running commands
+                the "install", "create", "update", "env create", and "env update" . Defaults
+                to 5. In order to completely suppress channel notices, set this to 0.
                 """
             ),
         )

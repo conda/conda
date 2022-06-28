@@ -7,6 +7,11 @@ import pytest
 
 from conda.gateways.disk.create import TemporaryDirectory
 from conda.core.subdir_data import SubdirData
+from conda.auxlib.ish import dals
+from conda.base.context import reset_context, context
+from conda.common.configuration import YamlRawParameter
+from conda.common.compat import odict
+from conda.common.serialize import yaml_round_trip_load
 
 
 @pytest.fixture(autouse=True)
@@ -31,3 +36,37 @@ def tmpdir(tmpdir, request):
 @pytest.fixture(autouse=True)
 def clear_subdir_cache():
     SubdirData.clear_cached_local_channel_data()
+
+
+@pytest.fixture(scope="function")
+def disable_channel_notices():
+    """
+    Fixture that will set "context.number_channel_notices" to 0 and then set
+    it back to its original value.
+
+    This is also a good example of how to override values in the context object.
+    """
+    yaml_str = dals(
+        """
+        number_channel_notices: 0
+        """
+    )
+    reset_context(())
+    rd = odict(
+        testdata=YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(yaml_str))
+    )
+    context._set_raw_data(rd)
+
+    yield
+
+    reset_context(())
+
+
+@pytest.fixture(scope="function")
+def reset_conda_context():
+    """
+    Resets the context object after each test function is run.
+    """
+    yield
+
+    reset_context()
