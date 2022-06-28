@@ -55,9 +55,11 @@ class S3Adapter(BaseAdapter):
         bucket_name, key_string = url_to_s3_info(request.url)
         # https://github.com/conda/conda/issues/8993
         # creating a separate boto3 session to make this thread safe
-        session = boto3.session.Session()
+        session = boto3.session.Session(profile_name='aliyun')
         # create a resource client using this thread's session object
-        s3 = session.resource('s3')
+        s3 = session.resource('s3', endpoint_url='http://oss-cn-shanghai.aliyuncs.com', config=boto3.session.Config(
+            s3={'addressing_style': 'virtual'}
+        ))
         # finally get the S3 object
         key = s3.Object(bucket_name, key_string[1:])
 
