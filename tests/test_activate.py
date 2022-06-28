@@ -18,11 +18,11 @@ from unittest import TestCase
 from uuid import uuid4
 
 import pytest
+from cytoolz.itertoolz import concatv
 
 from conda import __version__ as conda_version
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
-from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import (
     CmdExeActivator,
     CshActivator,

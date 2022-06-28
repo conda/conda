@@ -14,9 +14,9 @@ from unittest import TestCase
 from uuid import uuid4
 
 import pytest
+from cytoolz.itertoolz import groupby
 
 from conda.auxlib.collection import AttrDict
-from conda._vendor.toolz.itertoolz import groupby
 from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.path import get_bin_directory_short_path, get_python_noarch_target_path, \

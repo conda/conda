@@ -12,10 +12,10 @@ from tempfile import gettempdir
 from unittest import TestCase, mock
 
 import pytest
+from cytoolz.itertoolz import concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda._vendor.toolz.itertoolz import concat
 from conda.base.constants import PathConflict, ChannelPriority
 from conda.base.context import (
     context,
