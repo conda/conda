@@ -1,48 +1,44 @@
 name: Bug Report
-description: Create a report to help us improve
-labels: ['type::bug']
+description: Create a bug report.
+labels:
+  - type::bug
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping Conda! 🐍
+        Because processing new bug reports is time-consuming, we would like to ask you to fill out the following form to the best of your ability and as completely as possible.
 
-        Going through bugs and issues takes up a lot of time, so please be so kind and take a few minutes to fill out all the areas to the best of your ability.
+        > **Note**
+        > Bug reports that are incomplete or missing information may be closed as inactionable.
 
-        There will always be more issues than there is time to do them, and so we will need to selectively close issues that don't provide enough information, so we can focus our time on helping people like you who fill out the issue form completely. Thank you for your collaboration!
+        Since there are already a lot of open issues, please also take a moment to search existing ones to see if your bug has already been reported. If you find something related, please upvote that issue and provide additional details as necessary.
 
-        There are also already a lot of open issues, so please take 2 minutes and search through existing ones to see if what you are experiencing already exists
-
-        Thanks for helping Conda be amazing. We are nothing without people like you helping build a better community 💐!
+        💐 Thank you for helping to make Conda better. We would be unable to improve Conda without our community!
   - type: checkboxes
     id: checks
     attributes:
       label: Checklist
-      description: Please confirm and check all the following options.
+      description: Please confirm and check all of the following options.
       options:
         - label: I added a descriptive title
           required: true
-        - label: I searched for other issues and couldn't find a solution or duplication
-          required: true
-        - label: I already searched in Google and didn't find any good information or help
-          required: true
-        - label: I looked at the [docs](https://docs.conda.io/projects/conda/en/latest/user-guide/index.html) and didn't see anything to help
+        - label: I searched open reports and couldn't find a duplicate
           required: true
   - type: textarea
-    id: what-happened
+    id: what
     attributes:
       label: What happened?
-      description: And what should have happened instead? This really helps us triage quicker and greatly increases the chance that we can get around to solve your issue
-      placeholder: Tell us what you see!
-      value: "A wild Caterpie appeared!"
+      description: What should have happened instead? Please provide as many details as possible. The more information provided, the more likely we are able to replicate your problem and offer a solution.
     validations:
       required: true
   - type: textarea
     id: info
     attributes:
-      label: Conda info
+      label: Conda Info
       description: |
-        Let's get the info on your Conda setup. Run the following command from your command line and paste the output
+        Let's collect some basic information about your conda install.
+
+        Please run the following command from your command line and paste the output below.
 
         ```bash
         conda info
@@ -51,9 +47,11 @@ body:
   - type: textarea
     id: config
     attributes:
-      label: Conda config
+      label: Conda Config
       description: |
-        Let's see what your Conda config looks like. Run the following command from your command line and paste the output
+        Let's collect any customizations you may have for your conda install.
+
+        Please run the following command from your command line and paste the output below.
 
         ```bash
         conda config --show-sources
@@ -64,7 +62,9 @@ body:
     attributes:
       label: Conda list
       description: |
-        These are the packages installed in your Conda environment and the Conda channels used. They tell us where you are pulling packages from. Make sure you are in the environment where \n you are seeing the issues. Run the following command from your command line and paste the output
+        The packages installed into your environment can offer clues as to the problem you are facing.
+
+        Please activate the environment within which you are encountering this bug, run the following command from your command line, and paste the output below.
 
         ```bash
         conda list --show-channel-urls
@@ -74,4 +74,4 @@ body:
     id: context
     attributes:
       label: Additional Context
-      description: Add any additional context information or screenshots you think are useful.
+      description: Include any additional information (or screenshots) that you think would be valuable.

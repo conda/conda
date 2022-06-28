@@ -1,12 +1,37 @@
 name: Epic
-description: (for conda-core team only) A collection of smaller related tickets
-labels: [epic]
+description: A collection of related tickets.
+labels:
+  - epic
 body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is intended for grouping and collecting together related tickets to better gauge the scope of a problem/feature.
+
+        If you are attempting to report a bug, propose a new feature, or some other code change please use one of the other forms available.
+
+        > **Note**
+        > Epics that are incomplete or missing information may be closed as inactionable.
+
+        Since there are already a lot of open issues, please also take a moment to search existing ones to see if a similar epic has already been opened. If you find something related, please upvote that issue and provide additional details as necessary.
+
+        💐 Thank you for helping to make Conda better. We would be unable to improve Conda without our community!
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      description: Please confirm and check all of the following options.
+      options:
+        - label: I added a descriptive title
+          required: true
+        - label: I searched open reports and couldn't find a duplicate
+          required: true
   - type: textarea
+    id: summary
     attributes:
       label: Summary
       description: >-
-        Define the highlevel objectives accomplished in this epic. Include the
+        Define the highlevel objectives to be accomplished in this epic. Include the
         bigger picture of what is changing and/or the user story for why the
         changes are desired/necessary.
     validations:
@@ -16,9 +41,6 @@ body:
       label: Linked Issues & PRs
       description: List all issues related to this epic.
       value: |
-        - #
-        - #
-        - #
-        ...
+        - [ ] #
     validations:
       required: true
