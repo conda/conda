@@ -194,8 +194,46 @@ jobs:
             test-report.xml
           retention-days: 1
 
+  no-ssl:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.7', '3.8', '3.9', '3.10']
+    env:
+      OS: Linux
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Python ${{ matrix.python-version }} no_ssl tests
+        run: >
+          docker run
+          --rm -v ${PWD}:/opt/conda-src
+          ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}
+          /opt/conda-src/dev/linux/no_ssl.sh
+
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: no_ssl
+          env_vars: OS,PYTHON
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+          # when locally dowloading and comparing results of different workflow runs.
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.python-version }}-no_ssl
+          path: |
+            .coverage
+            test-report.xml
+          retention-days: 1
+
   analyze:
-    needs: [windows, linux, macos]
+    needs: [windows, linux, macos, no-ssl]
     name: Analyze test results
     if: always()
     runs-on: ubuntu-latest

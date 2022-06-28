@@ -20,5 +20,6 @@ ignore:
   - conda/gateways/connection/adapters/ftp.py
   - conda/gateways/connection/adapters/s3.py
   - tests/.*
+  - tests_no_ssl/.*
 
 comment: off
