@@ -5,13 +5,14 @@ import datetime
 
 import pytest
 
-from conda.base.constants import on_win
+from conda.base.context import context
 from conda.cli import main_notices as notices
 from conda.cli import conda_argparse
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
     get_test_notices,
+    get_notice_cache_filenames,
 )
 
 
@@ -61,10 +62,7 @@ def test_main_notices_reads_from_cache(
     """
     args, parser = conda_notices_args_n_parser
     messages = ("Test One", "Test Two")
-    cache_files = ("defaults-pkgs-r-notices.json", "defaults-pkgs-main-notices.json")
-
-    if on_win:
-        cache_files += ("defaults-pkgs-msys2-notices.json",)
+    cache_files = get_notice_cache_filenames(context)
 
     messages_json_seq = tuple(get_test_notices(messages) for _ in cache_files)
     create_notice_cache_files(notices_cache_dir, cache_files, messages_json_seq)
@@ -95,10 +93,7 @@ def test_main_notices_reads_from_expired_cache(
     messages = ("Test One", "Test Two")
     messages_different = ("With different value one", "With different value two")
     created_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=14)
-    cache_files = ("defaults-pkgs-r-notices.json", "defaults-pkgs-main-notices.json")
-
-    if on_win:
-        cache_files += ("defaults-pkgs-msys2-notices.json",)
+    cache_files = get_notice_cache_filenames(context)
 
     # Cache first version of notices, with a cache date we know is expired
     messages_json_seq = tuple(
