@@ -477,8 +477,10 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _process_raw_repodata_str(self, raw_repodata_str):
         json_obj = json.loads(raw_repodata_str or '{}')
+        return self._process_raw_repodata(json_obj)
 
-        subdir = json_obj.get('info', {}).get('subdir') or self.channel.subdir
+    def _process_raw_repodata(self, repodata):
+        subdir = repodata.get('info', {}).get('subdir') or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
@@ -487,7 +489,7 @@ class SubdirData(metaclass=SubdirDataType):
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
-        signatures = json_obj.get("signatures", {})
+        signatures = repodata.get("signatures", {})
 
         _internal_state = {
             'channel': self.channel,
@@ -500,14 +502,14 @@ class SubdirData(metaclass=SubdirDataType):
             '_names_index': _names_index,
             '_track_features_index': _track_features_index,
 
-            '_etag': json_obj.get('_etag'),
-            '_mod': json_obj.get('_mod'),
-            '_cache_control': json_obj.get('_cache_control'),
-            '_url': json_obj.get('_url'),
+            '_etag': repodata.get('_etag'),
+            '_mod': repodata.get('_mod'),
+            '_cache_control': repodata.get('_cache_control'),
+            '_url': repodata.get('_url'),
             '_add_pip': add_pip,
             '_pickle_version': REPODATA_PICKLE_VERSION,
             '_schannel': schannel,
-            'repodata_version': json_obj.get('repodata_version', 0),
+            'repodata_version': repodata.get('repodata_version', 0),
         }
         if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
             raise CondaUpgradeError(dals("""
@@ -520,16 +522,16 @@ class SubdirData(metaclass=SubdirDataType):
                 """) % self.url_w_subdir)
 
         meta_in_common = {  # just need to make this once, then apply with .update()
-            'arch': json_obj.get('info', {}).get('arch'),
+            'arch': repodata.get('info', {}).get('arch'),
             'channel': self.channel,
-            'platform': json_obj.get('info', {}).get('platform'),
+            'platform': repodata.get('info', {}).get('platform'),
             'schannel': schannel,
             'subdir': subdir,
         }
 
         channel_url = self.url_w_credentials
-        legacy_packages = json_obj.get("packages", {})
-        conda_packages = {} if context.use_only_tar_bz2 else json_obj.get("packages.conda", {})
+        legacy_packages = repodata.get("packages", {})
+        conda_packages = {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
 
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
         use_these_legacy_keys = set(legacy_packages.keys()) - set(
@@ -608,12 +610,12 @@ def read_mod_and_etag(path):
                 match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
                 result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
                 return result
-        except (BufferError, ValueError, OSError):  # pragma: no cover
+        except (BufferError, ValueError):  # pragma: no cover
             # BufferError: cannot close exported pointers exist
             #   https://github.com/conda/conda/issues/4592
             # ValueError: cannot mmap an empty file
             return {}
-        except (IOError, OSError) as e:  # pragma: no cover
+        except OSError as e:  # pragma: no cover
             # OSError: [Errno 19] No such device
             if e.errno == ENODEV:
                 return {}
