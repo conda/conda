@@ -11,10 +11,11 @@ import re
 import sys
 from textwrap import dedent
 
+from cytoolz.itertoolz import concatv, drop
+
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
-from ._vendor.toolz import concatv, drop
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name

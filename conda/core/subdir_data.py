@@ -21,11 +21,12 @@ import re
 from time import time
 import warnings
 
+from cytoolz.itertoolz import concat, take, groupby
+
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..auxlib.logz import stringify
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.constants import INITIAL_TRUST_ROOT    # Where root.json is currently.
 from ..base.context import context

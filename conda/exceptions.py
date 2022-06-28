@@ -16,6 +16,8 @@ from textwrap import dedent
 from traceback import format_exception, format_exception_only
 import getpass
 
+from cytoolz.itertoolz import groupby
+
 from .models.channel import Channel
 from .common.url import join_url, maybe_unquote
 from . import CondaError, CondaExitZero, CondaMultiError
@@ -23,7 +25,6 @@ from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
 from .auxlib.logz import stringify
 from .auxlib.type_coercion import boolify
-from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import ensure_text_type, on_win
 from .common.io import dashlist, timeout

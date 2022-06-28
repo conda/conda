@@ -27,6 +27,10 @@ from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
+from cytoolz.itertoolz import concat, concatv, unique
+from cytoolz.dicttoolz import merge, merge_with
+from cytoolz.functoolz import excepts
+
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL
 from .path import expand
@@ -37,7 +41,6 @@ from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, concatv, excepts, merge, merge_with, unique
 
 try:  # pragma: no cover
     from ruamel_yaml.comments import CommentedSeq, CommentedMap

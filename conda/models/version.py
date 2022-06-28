@@ -7,7 +7,8 @@ import operator as op
 import re
 from itertools import zip_longest
 
-from .._vendor.toolz import excepts
+from cytoolz.functoolz import excepts
+
 from ..exceptions import InvalidVersionSpec
 
 log = getLogger(__name__)
