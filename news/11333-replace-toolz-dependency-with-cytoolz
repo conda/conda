@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Completely replacing vendor dependency toolz with cytoolz
+* Replace vendored toolz with cytoolz dependency. (#11589)
 
 ### Bug fixes
 
