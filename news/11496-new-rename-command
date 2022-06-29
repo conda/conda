@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Implementation of a new `rename` subcommand
+* Implementation of a new `rename` subcommand. (#11496)
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Corresponding documentation of `rename` subcommand
+* Corresponding documentation of `rename` subcommand. (#11496)
 
 ### Other
 

@@ -1738,12 +1738,15 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
 
-    if any(_ in prefix_name for _ in PREFIX_NAME_DISALLOWED_CHARS):
-        builder = [
-            "Invalid environment name: '" + prefix_name + "'",
-            "  Characters not allowed: {}".format(PREFIX_NAME_DISALLOWED_CHARS),
-        ]
-        raise CondaValueError("\n".join(builder))
+    if PREFIX_NAME_DISALLOWED_CHARS.intersection(prefix_name):
+        raise CondaValueError(
+            dals(
+                f"""
+                Invalid environment name: {prefix_name!r}
+                Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
+                """
+            )
+        )
 
     if prefix_name in (ROOT_ENV_NAME, "root"):
         if allow_base:

@@ -1336,23 +1336,24 @@ def configure_parser_notices(sub_parsers, name="notices"):
 
 def configure_parser_rename(sub_parsers) -> None:
     help = "Renames an existing environment"
-    descr = dedent(
-        help
-        + """
-    This command renames a conda environment via its name (-n/--name) or its prefix (-p/--prefix).
+    descr = dals(
+        f"""
+        {help}
+    
+        This command renames a conda environment via its name (-n/--name) or its prefix (-p/--prefix).
 
-    The base environment and the currently-active environment cannot be renamed.
-    """
+        The base environment and the currently-active environment cannot be renamed.
+        """
     )
 
-    example = dedent(
+    example = dals(
         """
-    Examples:
-        conda rename -n test123 test321
-        conda rename --name test123 test321
-        conda rename -p path/to/test123 test321
-        conda rename --prefix path/to/test123 test321
-    """
+        Examples:
+            conda rename -n test123 test321
+            conda rename --name test123 test321
+            conda rename -p path/to/test123 test321
+            conda rename --prefix path/to/test123 test321
+        """
     )
 
     p = sub_parsers.add_parser(
@@ -1368,7 +1369,7 @@ def configure_parser_rename(sub_parsers) -> None:
     p.add_argument("destination", help="New name for the conda environment")
     p.add_argument(
         "--force",
-        help=("Force rename of an environment"),
+        help="Force rename of an environment",
         action="store_true",
         default=False,
     )
