@@ -618,8 +618,8 @@ def configure_parser_init(sub_parsers):
     '--dry-run' flag.  To see the exact changes that are being or will be made to each location,
     use the '--verbose' flag.
 
-    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted for
-               changes to take effect.
+    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted for 
+    changes to take effect.
 
     """)
 
