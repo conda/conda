@@ -37,6 +37,7 @@ from .constants import (
     ExperimentalSolverChoice,
     UpdateModifier,
     CONDA_LOGS_DIR,
+    PREFIX_NAME_DISALLOWED_CHARS,
 )
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
@@ -1729,9 +1730,6 @@ def locate_prefix_by_name(name, envs_dirs=None):
 
     from ..exceptions import EnvironmentNameNotFound
     raise EnvironmentNameNotFound(name)
-
-
-PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
 
 
 def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:
