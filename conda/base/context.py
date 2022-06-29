@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import OrderedDict
 
 from errno import ENOENT
+from functools import lru_cache
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
@@ -41,7 +42,7 @@ from .constants import (
 )
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
-from ..auxlib.decorators import memoize, memoizedproperty
+from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
@@ -1692,7 +1693,8 @@ def replace_context_default(pushing=None, argparse_args=None):
 # and not to stack_context_default.
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
-@memoize
+
+@lru_cache(maxsize=None)
 def _get_cpu_info():
     # DANGER: This is rather slow
     from .._vendor.cpuinfo import get_cpu_info

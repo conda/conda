@@ -4,17 +4,18 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from re import escape
 from collections import OrderedDict
+from functools import lru_cache
+import json
 from logging import getLogger
 import os
 from os.path import dirname, isdir, join
+from re import escape
 import subprocess
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
-import json
 
 import pytest
 
@@ -51,7 +52,6 @@ from conda.gateways.disk.update import touch
 
 from conda.testing.helpers import tempdir
 from conda.testing.integration import Commands, run_command, SPACER_CHARACTER
-from conda.auxlib.decorators import memoize
 
 log = getLogger(__name__)
 
@@ -107,7 +107,7 @@ PKG_B_ENV_VARS = '''
 }
 '''
 
-@memoize
+@lru_cache(maxsize=None)
 def bash_unsupported_because():
     bash = which("bash")
     reason = ""
