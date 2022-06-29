@@ -7,12 +7,11 @@ import os
 from typing import Callable
 
 from conda.base.context import context, locate_prefix_by_name, validate_prefix_name
+from conda.base.constants import DRY_RUN_PREFIX
 from conda.cli import common, install
 from conda.common.path import expand
 from conda.exceptions import CondaEnvException
 from conda.gateways.disk.delete import rm_rf
-
-DRY_RUN_PREFIX = "Dry run action:"
 
 
 def validate_src(args) -> str:
@@ -66,7 +65,7 @@ def execute(args, _):
         (
             install.clone,
             (src, dest),
-            {"quiet": context.quiet, "json": context.json, "use_context": False},
+            {"quiet": context.quiet, "json": context.json},
         )
     )
     actions.append((rm_rf, (src,), {}))

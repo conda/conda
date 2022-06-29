@@ -54,17 +54,13 @@ def check_prefix(prefix, json=False):
                           "Spaces in paths can sometimes be problematic." % prefix)
 
 
-def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None, use_context=True):
+def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
             raise DirectoryNotFoundError(src_arg)
     else:
-        if use_context:
-            assert context._argparse_args.clone is not None
-            src_prefix = locate_prefix_by_name(context._argparse_args.clone)
-        else:
-            src_prefix = locate_prefix_by_name(src_arg)
+        src_prefix = locate_prefix_by_name(src_arg)
 
     if not json:
         print("Source:      %s" % src_prefix)
