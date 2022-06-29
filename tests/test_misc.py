@@ -5,9 +5,12 @@
 import codecs
 import sys
 import unittest
+from unittest.mock import patch
+
+import pytest
 
 from conda.core.subdir_data import cache_fn_url
-from conda.misc import url_pat, walk_prefix
+from conda.misc import url_pat, explicit, walk_prefix
 from conda.utils import Utf8NamedTemporaryFile
 
 class TestMisc(unittest.TestCase):
@@ -51,6 +54,32 @@ class TestMisc(unittest.TestCase):
     def test_url_pat_3(self):
         m = url_pat.match('http://www.cont.io/pkgs/linux-64/foo.tar.bz2#1234')
         self.assertEqual(m, None)
+
+
+# Patching ProgressiveFetchExtract prevents trying to download a package from the url.
+# Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
+@patch('conda.misc.ProgressiveFetchExtract')
+def test_explicit_no_cache(ProgressiveFetchExtract):
+    """Test that explicit() raises and notifies if none of the specs were found in the cache."""
+    with pytest.raises(AssertionError, match='No PackageCacheRecords found'):
+        explicit(
+            ['http://www.cont.io/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2',
+             'http://www.cont.io/pkgs/linux-64/bar-1.0.0-py_0.tar.bz2',
+             ], '')
+
+
+# Patching ProgressiveFetchExtract prevents trying to download a package from the url.
+# Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
+@patch('conda.misc.ProgressiveFetchExtract')
+def test_explicit_missing_cache_entries(ProgressiveFetchExtract):
+    """Test that explicit() raises and notifies if some of the specs were not found in the cache."""
+    from conda.core.package_cache_data import PackageCacheData
+    with pytest.raises(AssertionError,
+                       match="Missing PackageCacheRecords for: pkgs/linux-64::foo==1.0.0=py_0"):
+        explicit(
+            ['http://www.cont.io/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2',  # does not exist
+             PackageCacheData.get_all_extracted_entries()[0].url,        # exists
+            ], '')
 
 
 def make_mock_directory(tmpdir, mock_directory):
