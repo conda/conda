@@ -1339,8 +1339,9 @@ def configure_parser_rename(sub_parsers) -> None:
     descr = dals(
         f"""
         {help}
-    
-        This command renames a conda environment via its name (-n/--name) or its prefix (-p/--prefix).
+
+        This command renames a conda environment via its name (-n/--name) or
+        its prefix (-p/--prefix).
 
         The base environment and the currently-active environment cannot be renamed.
         """
