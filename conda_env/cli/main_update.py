@@ -6,6 +6,7 @@ import os
 import sys
 import textwrap
 
+from conda.base.context import context, determine_target_prefix
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, \
     add_parser_experimental_solver
 from conda.core.prefix_data import PrefixData
@@ -13,7 +14,7 @@ from conda.exceptions import CondaEnvException, SpecNotFound
 from conda.misc import touch_nonadmin
 from conda.notices import notices
 
-from .common import get_prefix, print_result, get_filename
+from .common import print_result, get_filename
 from .. import specs as install_specs
 from ..installers.base import InvalidInstaller, get_installer
 
@@ -95,7 +96,7 @@ def execute(args, parser):
         # be specified.
         args.name = env.name
 
-    prefix = get_prefix(args, search=False)
+    prefix = determine_target_prefix(context, args)
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 

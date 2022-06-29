@@ -3,8 +3,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 from os.path import isdir, join, abspath, expanduser, expandvars
+import warnings
 
-from conda.base.context import context
+from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
 from conda.cli.common import stdout_json as _stdout_json, stdout_json_success
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -22,7 +23,11 @@ def stdout_json(d):
 
 
 def get_prefix(args, search=True):
-    from conda.base.context import determine_target_prefix
+    warnings.warn(
+        "`conda_env.cli.common.get_prefix` is pending deprecation and will be removed in a future "
+        "release. Please use `conda.base.context.determine_target_prefix` instead.",
+        PendingDeprecationWarning,
+    )
     return determine_target_prefix(context, args)
 
 

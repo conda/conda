@@ -9,6 +9,7 @@ import os
 import sys
 import textwrap
 
+from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
     add_parser_prefix, add_parser_networking, add_parser_experimental_solver
@@ -17,7 +18,7 @@ from conda.exceptions import SpecNotFound
 from conda.gateways.disk.delete import rm_rf
 from conda.notices import notices
 from conda.misc import touch_nonadmin
-from .common import get_prefix, print_result, get_filename
+from .common import print_result, get_filename
 from .. import specs
 from ..installers.base import InvalidInstaller, get_installer
 
@@ -85,7 +86,6 @@ def configure_parser(sub_parsers):
 
 @notices
 def execute(args, parser):
-    from conda.base.context import context
     name = args.remote_definition or args.name
 
     try:
@@ -100,7 +100,7 @@ def execute(args, parser):
     except SpecNotFound:
         raise
 
-    prefix = get_prefix(args, search=False)
+    prefix = determine_target_prefix(context, args)
 
     if args.force and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
