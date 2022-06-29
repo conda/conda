@@ -8,9 +8,10 @@ import os
 import textwrap
 
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.cli.common import stdout_json
 from conda.exceptions import CondaEnvException
 
-from .common import get_prefix, stdout_json
+from .common import get_prefix
 from ..env import from_environment
 
 description = """
