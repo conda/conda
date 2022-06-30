@@ -604,7 +604,8 @@ def configure_parser_init(sub_parsers):
     help = "Initialize conda for shell interaction."
     descr = help
 
-    epilog = dedent("""
+    epilog = dedent(
+        """
     Key parts of conda's functionality require that it interact directly with the shell
     within which conda is being invoked. The `conda activate` and `conda deactivate` commands
     specifically are shell-level commands. That is, they affect the state (e.g. environment
@@ -618,10 +619,11 @@ def configure_parser_init(sub_parsers):
     '--dry-run' flag.  To see the exact changes that are being or will be made to each location,
     use the '--verbose' flag.
 
-    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted for 
+    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted for
     changes to take effect.
 
-    """)
+    """
+    )
 
     # dev_example = dedent("""
     #     # An example for creating an environment to develop on conda's own code. Clone the
