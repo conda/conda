@@ -604,25 +604,25 @@ def configure_parser_init(sub_parsers):
     help = "Initialize conda for shell interaction."
     descr = help
 
-    epilog = dedent(
+    epilog = dals(
         """
-    Key parts of conda's functionality require that it interact directly with the shell
-    within which conda is being invoked. The `conda activate` and `conda deactivate` commands
-    specifically are shell-level commands. That is, they affect the state (e.g. environment
-    variables) of the shell context being interacted with. Other core commands, like
-    `conda create` and `conda install`, also necessarily interact with the shell environment.
-    They're therefore implemented in ways specific to each shell. Each shell must be configured
-    to make use of them.
+        Key parts of conda's functionality require that it interact directly with the shell
+        within which conda is being invoked. The `conda activate` and `conda deactivate` commands
+        specifically are shell-level commands. That is, they affect the state (e.g. environment
+        variables) of the shell context being interacted with. Other core commands, like
+        `conda create` and `conda install`, also necessarily interact with the shell environment.
+        They're therefore implemented in ways specific to each shell. Each shell must be configured
+        to make use of them.
 
-    This command makes changes to your system that are specific and customized for each shell.
-    To see the specific files and locations on your system that will be affected before, use the
-    '--dry-run' flag.  To see the exact changes that are being or will be made to each location,
-    use the '--verbose' flag.
+        This command makes changes to your system that are specific and customized for each shell.
+        To see the specific files and locations on your system that will be affected before, use
+        the '--dry-run' flag.  To see the exact changes that are being or will be made to each
+        location, use the '--verbose' flag.
 
-    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted for
-    changes to take effect.
+        IMPORTANT: After running `conda init`, most shells will need to be closed and restarted for
+        changes to take effect.
 
-    """
+        """
     )
 
     # dev_example = dedent("""
