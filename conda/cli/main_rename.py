@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from functools import partial
 import os
-from typing import Callable
 
 from conda.base.context import context, locate_prefix_by_name, validate_prefix_name
 from conda.base.constants import DRY_RUN_PREFIX
@@ -56,24 +56,17 @@ def execute(args, _):
     src = validate_src(args)
     dest = validate_destination(args.destination, force=args.force)
 
-    actions: list[tuple[Callable, Args, Kwargs]] = []
+    actions: list[partial] = []
 
     if args.force:
-        actions.append((rm_rf, (dest,), {}))
+        actions.append(partial(rm_rf, dest))
 
-    actions.append(
-        (
-            install.clone,
-            (src, dest),
-            {"quiet": context.quiet, "json": context.json},
-        )
-    )
-    actions.append((rm_rf, (src,), {}))
+    actions.append(partial(install.clone, src, dest, quiet=context.quiet, json=context.json))
+    actions.append(partial(rm_rf, src))
 
     # We now either run collected actions or print dry run statement
-    for act_func, act_args, act_kwargs in actions:
+    for func in actions:
         if args.dry_run:
-            pos_args = ", ".join(act_args)
-            print(f"{DRY_RUN_PREFIX} {act_func.__name__} {pos_args}")
+            print(f"{DRY_RUN_PREFIX} {func.func.__name__} {','.join(func.args)}")
         else:
-            act_func(*act_args, **act_kwargs)
+            func()
