@@ -27,6 +27,11 @@ def get_prefix(args, search=True):
 
 
 def find_prefix_name(name):
+    warnings.warn(
+        "`conda_env.cli.common.find_prefix_name` is pending deprecation and will be removed in a "
+        "future release.",
+        PendingDeprecationWarning,
+    )
     if name == base_env_name:
         return context.root_prefix
     # always search cwd in addition to envs dirs (for relative path access)
