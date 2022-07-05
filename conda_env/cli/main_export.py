@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function
 
 from argparse import RawDescriptionHelpFormatter
 
-from conda.base.context import context, determine_target_prefix
+from conda.base.context import context, determine_target_prefix, env_name
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.cli.common import stdout_json
 
@@ -79,8 +79,13 @@ def configure_parser(sub_parsers):
 # TODO Make this aware of channels that were used to install packages
 def execute(args, parser):
     prefix = determine_target_prefix(context, args)
-    env = from_environment(name, prefix, no_builds=args.no_builds,
-                           ignore_channels=args.ignore_channels, from_history=args.from_history)
+    env = from_environment(
+        env_name(prefix),
+        prefix,
+        no_builds=args.no_builds,
+        ignore_channels=args.ignore_channels,
+        from_history=args.from_history,
+    )
 
     if args.override_channels:
         env.remove_channels()
