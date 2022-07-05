@@ -7,6 +7,7 @@ Developer guide
 
    contributing
    development-environment
+   writing-tests
    releasing
    ../architecture
    deep-dive-install
