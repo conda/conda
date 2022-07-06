@@ -9,7 +9,7 @@ import functools
 import os
 import sys
 import threading
-import warnings as _warnings
+import warnings
 
 # necessary for conda-build
 from ._vendor.six import PY3, iteritems, string_types, text_type  # noqa: F401
@@ -34,8 +34,11 @@ from .common.toposort import _toposort  # noqa: F401
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.connection.download import TmpDownload, download as _download  # noqa: F401
 
-handle_proxy_407 = lambda x, y: _warnings.warn("handle_proxy_407 is deprecated. "
-                                               "Now handled by CondaSession.")
+handle_proxy_407 = lambda x, y: warnings.warn(
+    "The `conda.exports.handle_proxy_407` is pending deprecation and will be removed in a "
+    "future release. Now handled by CondaSession.",
+    PendingDeprecationWarning,
+)
 
 from .core.package_cache_data import rm_fetched  # noqa: F401
 from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
@@ -132,6 +135,12 @@ class memoized(object):  # pragma: no cover
     (not reevaluated).
     """
     def __init__(self, func):
+        warnings.warn(
+            "The `conda.exports.memoized` is pending deprecation and will be removed in a future "
+            "release. Please use `functools.lru_cache` instead.",
+            PendingDeprecationWarning,
+        )
+
         self.func = func
         self.cache = {}
         self.lock = threading.Lock()
