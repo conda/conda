@@ -42,7 +42,7 @@ General Guidelines
 
 Preferred test style (pytest)
 -----------------------------
-Although our codebase includes class based unittest tests, our preferred
+Although our codebase includes class-based unittest tests, our preferred
 format for all new tests are pytest style tests. These tests are written using
 functions and handle the setup and teardown of context for tests using fixtures.
 We recommend familiarizing yourself with pytest first before attempting to
