@@ -7,7 +7,7 @@ Developer guide
 
    contributing
    development-environment
-   writing-tests
+   writing-tests/index.rst
    releasing
    ../architecture
    deep-dive-install

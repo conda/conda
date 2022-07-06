@@ -1,31 +1,12 @@
-# Writing Tests
+# Integration Tests
 
-The following guide gives an overview of writing tests for the `conda` codebase.
-This article is mostly aimed at new contributors, especially those wishing
-to submit bug fixes. To give those new to writing tests in the conda codebase
-a proper introduction, this article will cover writing both integration
-and unit tests.
-
-```{admonition} Quick note about test style
-:class: tip
-
-Although our codebase includes class based `unittest` tests, our preferred
-format for all new tests are `pytest` style tests. These tests are written using
-functions and handle the setup and teardown of context for tests using fixtures.
-We recommend familiarizing yourself with `pytest` first before attempting to
-write tests for conda. Head over to their [Getting Started Guide][pytest-getting-started]
-to learn more.
-```
-
-## Integration tests
-
-Integration tests in `conda` test the application from a high level where each test can
+Integration tests in conda test the application from a high level where each test can
 potentially cover large portions of the code.  These tests may also use the local
 file system and/or perform network calls. In the following sections, we cover
-several examples of exactly how these tests look, so you can use these for
-your own tests.
+several examples of exactly how these tests look. When writing your own integration tests,
+these should serve as a good starting point.
 
-### Running CLI level tests
+## Running CLI level tests
 
 CLI level tests are the highest level integration tests you can write. This means that the code in
 the test is executed as if you were running it from the command line. For example,
@@ -54,8 +35,6 @@ def test_creates_new_environment():
     env_names = {os.path.basename(path) for path in json_out.get("envs", tuple())}
 
     assert TEST_ENV_NAME_1 in env_names
-    assert err == ""
-    assert exit_code == 0
 
     out, err, exit_code = run(f"conda remove --all -n {TEST_ENV_NAME_1}")
 
@@ -75,14 +54,14 @@ perform our inspections in order to determine whether the command successfully r
 
 The second part of the test again uses the `run` command to call `conda env list`. This time,
 we pass the `--json` flag, which allows capturing JSON that we can better parse and more easily
-inspect. This second part of the integration test not only ensures that our previous `conda create`
-command ran successfully, but also tests to make sure that `conda env list` runs correctly.
+inspect. We then assert whether the environment we just created is actually in the list of all
+environments currently available.
 
 Finally, we destroy the environment we just created and ensure the standard error and the exit
 code are what we expect them to be. It is important to remember removing anything you create
 as this will be present when other tests are run.
 
-### Tests with fixtures
+## Tests with fixtures
 
 Sometimes in integration tests, you may want to re-use the same type of environment more than once.
 Copying and pasting this setup and teardown code into each individual test can make these tests more
@@ -131,7 +110,7 @@ def test_env_list_finds_existing_environment(env_one):
 ```
 
 In the fixture named `env_one`, we first create a new environment exactly the same as we
-did in our previous test. We make an assertion to ensure that it ran correctly, and
+did in our previous test. We make an assertion to ensure that it ran correctly and
 yield to mark the end of the setup. In the teardown section after the yield statement,
 we run the `conda remove` command and also make an assertion to determine in ran correctly.
 
@@ -141,8 +120,4 @@ and environment or other pieces of data between tests, just remember to set the 
 scope appropriately. [Read here][pytest-scope]
 for more information on `pytest` fixture scopes.
 
-
-
-
-[pytest-getting-started]: https://docs.pytest.org/en/stable/getting-started.html
 [pytest-scope]: https://docs.pytest.org/en/stable/how-to/fixtures.html#scope-sharing-fixtures-across-classes-modules-packages-or-session
