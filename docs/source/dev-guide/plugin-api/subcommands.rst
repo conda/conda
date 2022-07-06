@@ -2,7 +2,7 @@
 Conda Subcommands
 =================
 
-The Conda CLI can be extended with the ``conda_cli_register_subcommands`` plugin
+The Conda CLI can be extended with the ``conda_subcommands`` plugin
 hook. Registered subcommands will be available under the ``conda <subcommand>``
 command.
 
@@ -14,7 +14,7 @@ Reference
 .. py:module:: conda.plugins
    :noindex:
 
-.. autofunction:: conda_cli_register_subcommands
+.. autofunction:: conda_subcommands
 
 .. autoclass:: CondaSubcommand
    :members:
@@ -31,8 +31,8 @@ Example
        print("This is an example command!")
 
 
-   @conda.plugins.hookimpl
-   def conda_cli_register_subcommands(self):
+   @conda.plugins.register
+   def conda_subcommands(self):
        yield plugins.CondaSubcommand(
            name="example",
            summary="example command",

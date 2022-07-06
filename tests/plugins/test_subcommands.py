@@ -17,8 +17,8 @@ class SubcommandPlugin:
     def custom_command(self, args):
         pass
 
-    @plugins.hookimpl
-    def conda_cli_register_subcommands(self):
+    @plugins.register
+    def conda_subcommands(self):
         yield plugins.CondaSubcommand(
             name="custom",
             summary="test custom command",

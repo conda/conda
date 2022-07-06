@@ -13,8 +13,8 @@ else:
     from collections.abc import Iterable
 
 
-_hookspec = pluggy.HookspecMarker('conda')
-hookimpl = pluggy.HookimplMarker('conda')
+_hookspec = pluggy.HookspecMarker("conda")
+register = pluggy.HookimplMarker("conda")
 
 
 class CondaSubcommand(NamedTuple):
@@ -34,7 +34,7 @@ class CondaSubcommand(NamedTuple):
 
 
 @_hookspec
-def conda_cli_register_subcommands() -> Iterable[CondaSubcommand]:
+def conda_subcommands() -> Iterable[CondaSubcommand]:
     """
     Register external subcommands in conda.
 

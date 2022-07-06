@@ -124,7 +124,7 @@ class ArgumentParser(ArgumentParserBase):
         self._subcommands = sorted(
             (
                 subcommand
-                for subcommands in pm.hook.conda_cli_register_subcommands()
+                for subcommands in pm.hook.conda_subcommands()
                 for subcommand in subcommands
             ),
             key=lambda subcommand: subcommand.name,
@@ -144,7 +144,7 @@ class ArgumentParser(ArgumentParserBase):
                     Conflicting entries found for the following subcommands:
                     {dashlist(conflicts)}
                     Multiple conda plugins are registering these subcommands via the
-                    `conda_cli_register_subcommands` hook; please make sure that
+                    `conda_subcommands` hook; please make sure that
                     you do not have any incompatible plugins installed.
                     """
                 )
