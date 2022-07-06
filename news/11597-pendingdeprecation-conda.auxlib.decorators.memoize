@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.auxlib.decorators.memoize` as pending deprecation in favor of `functools.lru_cache`. (#11597)
+* Mark `conda.exports.memoized` as pending deprecation in favor of `functools.lru_cache`. (#11597)
+* Mark `conda.exports.handle_proxy_407` as pending deprecation. (#11597)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
