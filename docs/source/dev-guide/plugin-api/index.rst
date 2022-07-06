@@ -37,8 +37,8 @@ Below is an example of a very basic plugin "hook":
    import conda.plugins
 
 
-   @conda.plugins.hookimpl
-   def conda_cli_register_subcommands():
+   @conda.plugins.register
+   def conda_subcommands():
        ...
 
 Entrypoint namespace

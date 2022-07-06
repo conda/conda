@@ -31,10 +31,10 @@ The custom subcommand module
 ----------------------------
 
 The following module implements a function, ``conda_string_art`` (where a specified string gets
-converted into ASCII art), into a plugin manager hook called ``conda_cli_register_subcommands``.
+converted into ASCII art), into a plugin manager hook called ``conda_subcommands``.
 
 The ``HookImplMarker`` decorator is initialized with the name of ``conda`` as the host
-project in the ``conda/plugins/__init__.py`` file, and it is invoked via ``@conda.plugins.hookimpl``
+project in the ``conda/plugins/__init__.py`` file, and it is invoked via ``@conda.plugins.register``
 in the example subcommand module below:
 
 .. code-block:: python
@@ -55,8 +55,8 @@ in the example subcommand module below:
        print(string_art)
 
 
-   @conda.plugins.hookimpl
-   def conda_cli_register_subcommands():
+   @conda.plugins.register
+   def conda_subcommands():
        yield conda.plugins.CondaSubcommand(
            name="string-art",
            summary="tutorial subcommand that prints a string as ASCII art",
