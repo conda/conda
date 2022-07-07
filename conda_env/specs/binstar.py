@@ -64,7 +64,7 @@ class BinstarSpec(object):
         elif self.name is None:
             self.msg = "Can't process without a name"
         else:
-            self.msg = "Invalid name, try the format: user/package"
+            self.msg = f"Invalid name {self.name!r}, try the format: user/package"
         return False
 
     def valid_package(self):
