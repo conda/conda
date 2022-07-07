@@ -1,6 +1,6 @@
 # Integration Tests
 
-Integration tests in conda test the application from a high level where each test can
+Integration tests in `conda` test the application from a high level where each test can
 potentially cover large portions of the code. These tests may also use the local
 file system and/or perform network calls. In the following sections, we cover
 several examples of exactly how these tests look. When writing your own integration tests,
@@ -111,7 +111,7 @@ def test_env_list_finds_existing_environment(env_one):
 
 In the fixture named `env_one`, we first create a new environment in exactly the same way as we
 did in our previous test. We make an assertion to ensure that it ran correctly and
-yield to mark the end of the setup. In the teardown section after the yield statement,
+yield to mark the end of the setup. In the teardown section after the `yield` statement,
 we run the `conda remove` command and also make an assertion to determine it ran correctly.
 
 This fixture will be run using the default scope in `pytest`, which is `function`. This means
