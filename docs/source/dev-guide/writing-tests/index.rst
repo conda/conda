@@ -58,7 +58,7 @@ For example, if you were writing a test for a function in
 The "conda.testing" module
 ----------------------------
 This is a module that contains anything that could possibly help with
-writing tests, including fixtures, functions and classes. Feel free to
+writing tests, including fixtures, functions, and classes. Feel free to
 make additions to this module as you see fit, but be mindful of organization.
 For example, if your testing utilities are primarily only for the ``base`` module
 considering storing these in ``conda.testing.base``.
