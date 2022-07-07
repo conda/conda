@@ -14,6 +14,7 @@ import sys
 import struct
 from contextlib import contextmanager
 from datetime import datetime
+import warnings
 
 from .constants import (
     APP_NAME,
@@ -1811,6 +1812,11 @@ def _first_writable_envs_dir():
 
 # backward compatibility for conda-build
 def get_prefix(ctx, args, search=True):  # pragma: no cover
+    warnings.warn(
+        "`conda.base.context.get_prefix` is pending deprecation and will be removed in a future "
+        "release. Please use `conda.base.context.determine_target_prefix` instead.",
+        PendingDeprecationWarning,
+    )
     return determine_target_prefix(ctx or context, args)
 
 
