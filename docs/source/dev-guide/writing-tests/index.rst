@@ -3,7 +3,7 @@ Writing Tests
 ===============
 
 This section contains a series of guides and guidelines for writing tests
-in the conda repository.
+in the ``conda`` repository.
 
 .. raw:: html
 
@@ -66,12 +66,12 @@ considering storing these in ``conda.testing.base``.
 Adding new fixtures
 -------------------
 For fixtures that have a very limited scope or purpose, it is okay to define these
-alongside the tests themselves. But, if these fixtures could be used across multiple
-tests, they should be saved in a separate ``fixtures.py`` file. The ``conda.testing``
+alongside the tests themselves. However, if these fixtures could be used across multiple
+tests, then they should be saved in a separate ``fixtures.py`` file. The ``conda.testing``
 module already contains several of these files.
 
 If you want to add new fixtures within a new file, be sure to add a reference to this module in
-``tests/conftest.py::pytest_plugins``. This is a our preferred way of making
+``tests/conftest.py::pytest_plugins``. This is our preferred way of making
 fixtures available to our tests. Because of the way these are included in the
 environment, you should be mindful of naming schemes and choose ones that likely will not
 collide with each other. Consider using a prefix to achieve this.
