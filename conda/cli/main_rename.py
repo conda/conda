@@ -3,15 +3,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import tempfile
+from contextlib import contextmanager
 from functools import partial
 import os
 
-from conda.base.context import context, locate_prefix_by_name, validate_prefix_name
-from conda.base.constants import DRY_RUN_PREFIX
-from conda.cli import common, install
-from conda.common.path import expand
-from conda.exceptions import CondaEnvException
-from conda.gateways.disk.delete import rm_rf
+from ..base.context import context, locate_prefix_by_name, validate_prefix_name
+from ..base.constants import DRY_RUN_PREFIX
+from ..cli import common, install
+from ..common.path import expand, paths_equal
+from ..exceptions import CondaEnvException
+from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.update import rename
 
 
 def validate_src(args) -> str:
@@ -19,9 +22,7 @@ def validate_src(args) -> str:
     Validate that we are receiving at least one value for --name or --prefix
     and ensure that the "base" environment is not being renamed
     """
-    common.ensure_name_or_prefix(args, "env rename")
-
-    if context.target_prefix == context.root_prefix:
+    if paths_equal(context.target_prefix, context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
 
     prefix = args.name if args.name else args.prefix
@@ -40,33 +41,56 @@ def validate_destination(dest: str, force: bool = False) -> str:
         dest = validate_prefix_name(dest, ctx=context, allow_base=False)
 
     if not force and os.path.exists(dest):
-        raise CondaEnvException("Environment destination already exists. Override with --force.")
-
+        env_name = os.path.basename(os.path.normpath(dest))
+        raise CondaEnvException(
+            f"The environment '{env_name}' already exists. Override with --force."
+        )
     return dest
 
 
-Args = tuple
-Kwargs = dict
+@contextmanager
+def safe_rm_destination(directory: str):
+    """
+    Used for removing a directory when there are dependent actions (i.e. you need to ensure
+    other actions succeed before removing it).
+
+    Example:
+        with safe_rm_destination(directory):
+            # Do dependent actions here
+    """
+    tmpdir = tempfile.mkdtemp()
+
+    try:
+        rename(directory, tmpdir)
+        yield
+    except Exception as exc:
+        # Error occurred, roll back change
+        rename(tmpdir, directory)
+        raise exc
 
 
 def execute(args, _):
     """
     Executes the command for renaming an existing environment
     """
-    src = validate_src(args)
-    dest = validate_destination(args.destination, force=args.force)
+    source = validate_src(args)
+    destination = validate_destination(args.destination, force=args.force)
 
-    actions: list[partial] = []
+    def clone_and_remove():
+        actions: tuple[partial, ...] = (
+            partial(install.clone, source, destination, quiet=context.quiet, json=context.json),
+            partial(rm_rf, source),
+        )
+
+        # We now either run collected actions or print dry run statement
+        for func in actions:
+            if args.dry_run:
+                print(f"{DRY_RUN_PREFIX} {func.func.__name__} {','.join(func.args)}")
+            else:
+                func()
 
     if args.force:
-        actions.append(partial(rm_rf, dest))
-
-    actions.append(partial(install.clone, src, dest, quiet=context.quiet, json=context.json))
-    actions.append(partial(rm_rf, src))
-
-    # We now either run collected actions or print dry run statement
-    for func in actions:
-        if args.dry_run:
-            print(f"{DRY_RUN_PREFIX} {func.func.__name__} {','.join(func.args)}")
-        else:
-            func()
+        with safe_rm_destination(destination):
+            clone_and_remove()
+    else:
+        clone_and_remove()

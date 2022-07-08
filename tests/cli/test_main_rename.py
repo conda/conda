@@ -4,12 +4,15 @@
 from __future__ import annotations
 
 import json
+import mock
+import os.path
 import pathlib
 import tempfile
 
 import pytest
 
 from conda.base import context as ctx
+from conda.exceptions import CondaError
 from conda.testing.helpers import run_inprocess_conda_command as run, set_active_prefix
 
 TEST_ENV_NAME_1 = "env-1"
@@ -45,6 +48,19 @@ def env_two():
 
     # Teardown
     run(f"conda remove --all -y -n {TEST_ENV_NAME_2}", disallow_stderr=False)
+
+
+@pytest.fixture
+def env_prefix_one():
+    """Used to get an environment created using -p flag"""
+    # Setup
+    tmpdir = tempfile.mkdtemp()
+    run(f"conda create -p {tmpdir} -y")
+
+    yield tmpdir
+
+    # Teardown
+    run(f"conda remove --all -y -p {tmpdir}", disallow_stderr=False)
 
 
 def list_envs():
@@ -163,6 +179,56 @@ def test_rename_with_force(env_one, env_two):
     assert rename_appears_in_envs
     assert force_name_not_in_envs
     assert err == ""
+
+
+def test_rename_with_force_with_errors(env_one, env_two):
+    """
+    Runs a test where we specify the --force flag to remove an existing directory.
+    Additionally, in this test, we mock an exception to recreate a failure condition.
+    """
+    error_message = "Error Message"
+
+    # Do a force rename
+    with mock.patch("conda.cli.main_rename.install.clone") as clone_mock:
+        clone_mock.side_effect = [CondaError(error_message)]
+        out, err, exit_code = run(
+            f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_2} --force", disallow_stderr=False
+        )
+        assert error_message in err
+
+    (out, err, exit_code), data = list_envs()
+    result = data.get("envs", [])
+
+    # Make sure both environments still exist
+    rename_appears_in_envs = any(path.endswith(TEST_ENV_NAME_2) for path in result)
+    force_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
+
+    assert rename_appears_in_envs
+    assert force_name_in_envs
+    assert err == ""
+
+
+def test_rename_with_force_with_errors_prefix(env_prefix_one):
+    """
+    Runs a test using --force flag while mocking an exception.
+    Specifically targets environments created using the -p flag.
+    """
+    error_message = "Error Message"
+
+    # Do a force rename
+    with mock.patch(
+        "conda.cli.main_rename.install.clone"
+    ) as clone_mock, tempfile.TemporaryDirectory() as tmpdir:
+
+        clone_mock.side_effect = [CondaError(error_message)]
+        out, err, exit_code = run(
+            f"conda rename -p {env_prefix_one} {tmpdir} --force", disallow_stderr=False
+        )
+        assert error_message in err
+
+        # Make sure both directories still exist
+        assert os.path.isdir(tmpdir)
+        assert os.path.isdir(env_prefix_one)
 
 
 def test_rename_with_dry_run(env_one):
