@@ -23,17 +23,27 @@ from .. import specs
 from ..installers.base import InvalidInstaller, get_installer
 
 description = """
-Create an environment based on an environment file
+Create an environment based on an environment definition file.
+
+If using an environment.yml file (the default), you can name the 
+environment in the first line of the file with 'name: envname' or 
+you can specify the environment name in the CLI command using the 
+-n/--name argument. The name specified in the CLI will override 
+the name specified in the environment.yml.
+
+Unless you are in the directory containing the environment definition 
+file, use -f to specify the file path of the environment definition 
+file you want to use.
 """
 
 example = """
 examples:
     conda env create
-    conda env create -n name
-    conda env create vader/deathstar
-    conda env create -f=/path/to/environment.yml
-    conda env create -f=/path/to/requirements.txt -n deathstar
-    conda env create -f=/path/to/requirements.txt -p /home/user/software/deathstar
+    conda env create -n envname
+    conda env create folder/envname
+    conda env create -f /path/to/environment.yml
+    conda env create -f /path/to/requirements.txt -n envname
+    conda env create -f /path/to/requirements.txt -p /home/user/envname
 """
 
 
@@ -48,7 +58,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-f', '--file',
         action='store',
-        help='environment definition file (default: environment.yml)',
+        help='Environment definition file (default: environment.yml)',
         default='environment.yml',
     )
 
@@ -60,21 +70,22 @@ def configure_parser(sub_parsers):
 
     p.add_argument(
         'remote_definition',
-        help='remote environment definition / IPython notebook',
+        help='Remote environment definition / IPython notebook',
         action='store',
         default=None,
         nargs='?'
     )
     p.add_argument(
         '--force',
-        help=('force creation of environment (removing a previously existing '
+        help=('Force creation of environment (removing a previously-existing '
               'environment of the same name).'),
         action='store_true',
         default=False,
     )
     p.add_argument(
         '-d', '--dry-run',
-        help='Only display what would have been done.',
+        help='Only display what can be done with the current command, arguments, '
+             'and other flags. Remove this flag to actually run the command.',
         action='store_true',
         default=False
     )
