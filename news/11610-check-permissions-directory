@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Checked premission on directory before writing in conda env create
