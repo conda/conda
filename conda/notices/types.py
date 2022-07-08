@@ -47,6 +47,9 @@ class ChannelNoticeResponse(NamedTuple):
                 for notice in notices
             )
 
+        # Default value
+        return tuple()
+
     @staticmethod
     def _parse_notice_level(level: Optional[str]) -> NoticeLevel:
         """
