@@ -83,7 +83,8 @@ def is_active_prefix(prefix):
     Can be used a validation step to make sure operations are not being
     performed on the active prefix.
     """
-    return prefix == context.active_prefix or prefix == env_name(context.active_prefix)
+    active_prefix = context.active_prefix
+    return paths_equal(prefix, active_prefix) or prefix == env_name(context.active_prefix)
 
 
 def arg2spec(arg, json=False, update=False):
