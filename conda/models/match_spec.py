@@ -846,6 +846,40 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
     def matches_all(self):
         return self._raw_value == '*'
 
+    def merge(self, other):
+        # exact match
+        if self.raw_value == other.raw_value:
+            return self.raw_value
+
+        if not self._re_match and isinstance(other, GlobStrMatch) and other._re_match:
+            # swap order, so `self` always has an actual pattern if there is only one
+            other, self = self, other
+
+        if "*" not in other.raw_value:
+            # other is an exact literal,
+            # check our pattern against it
+            # if we match, other is more strict
+            if self._re_match and self._re_match(other.raw_value):
+                return other.raw_value
+            else:
+                # Raise on incompatible pattern
+                return super().merge(other)
+
+        # both are patterns, compute regular expression
+        # compute regular expression intersection
+        patterns = []
+        for m in [self, other]:
+            value = m.raw_value
+            if value.startswith("^") and value.endswith("$"):
+                patterns.append(value[1:-1])
+            elif "*" in value:
+                value = re.escape(value).replace(r"\*", r".*")
+                patterns.append(value)
+            else:
+                patterns.append(value)
+
+        return rf"^(?={patterns[0]})(?:{patterns[1]})$"
+
 
 class GlobLowerStrMatch(GlobStrMatch):
 

@@ -985,6 +985,101 @@ class MatchSpecMergeTests(TestCase):
         with pytest.raises(ValueError):
             MatchSpec.merge(specs)
 
+    def test_build_glob_merge(self):
+        package = {
+            "name": "petsc",
+            "version": "1.17.3",
+            "build": "complex_habc123_3",
+            "build_number": 3,
+        }
+        real = {}
+        real.update(package)
+        real["build"] = "real_hdef1234_3"
+
+        no_build = MatchSpec("petsc=1.17.*")
+        assert no_build.match(package)
+        assert no_build.match(real)
+
+        build_prefix = MatchSpec("petsc=1.17.*=complex_*")
+        assert build_prefix.match(package)
+        assert not build_prefix.match(real)
+
+        real_prefix = MatchSpec("petsc=1.17.*=real_*")
+        assert not real_prefix.match(package)
+        assert real_prefix.match(real)
+
+        exact = MatchSpec(f"petsc=1.17.*={package['build']}")
+        assert exact.match(package)
+        assert not exact.match(real)
+
+        build_scalar_wild = MatchSpec("petsc=1.17.*=*complex*")
+        assert build_scalar_wild.match(package)
+        assert not build_scalar_wild.match(real)
+
+        build_tail = MatchSpec("petsc=1.17.*=*_3")
+        assert build_tail.match(package)
+        assert build_tail.match(real)
+
+        merged, *unmergeable = MatchSpec.merge(
+            [
+                no_build,
+                build_prefix,
+            ]
+        )
+        assert not unmergeable
+        assert merged.match(package)
+        assert not merged.match(real)
+
+        merged, *unmergeable = MatchSpec.merge(
+            [
+                build_prefix,
+                exact,
+            ]
+        )
+        assert merged.get("build") == exact.get("build")
+        assert merged.match(package)
+        assert not merged.match(real)
+
+        merged, *unmergeable = MatchSpec.merge(
+            [
+                exact,
+                build_prefix,
+            ]
+        )
+        assert merged.get("build") == exact.get("build")
+        assert merged.match(package)
+        assert not merged.match(real)
+
+        merged, *unmergeable = MatchSpec.merge(
+            [
+                no_build,
+                build_prefix,
+                build_scalar_wild,
+            ]
+        )
+        assert not unmergeable
+        assert merged.match(package)
+        assert not merged.match(real)
+
+        merged, *unmergeable = MatchSpec.merge(
+            [
+                no_build,
+                build_prefix,
+                build_scalar_wild,
+                build_tail,
+            ]
+        )
+        assert not unmergeable
+        assert merged.match(package)
+        assert not merged.match(real)
+
+        # definitely-incompatible combinations
+        with pytest.raises(ValueError):
+            MatchSpec.merge([exact, real_prefix])
+
+        with pytest.raises(ValueError):
+            MatchSpec.merge([real_prefix, exact])
+
     def test_md5_merge_with_name(self):
         specs = (MatchSpec('python[md5=deadbeef]'), MatchSpec('python=1.2.3'), MatchSpec('conda-forge::python[md5=deadbeef]'))
         merged = MatchSpec.merge(specs)

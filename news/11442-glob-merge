@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Merge overlapping glob build specs instead of raising `Incompatible component merge`
