@@ -34,6 +34,7 @@ General Guidelines
 * `Organizing tests`_
 * `The "conda.testing" module`_
 * `Adding new fixtures`_
+* `The context object`_
 
 .. note::
    It should be noted that existing tests may deviate
@@ -75,3 +76,63 @@ If you want to add new fixtures within a new file, be sure to add a reference to
 fixtures available to our tests. Because of the way these are included in the
 environment, you should be mindful of naming schemes and choose ones that likely will not
 collide with each other. Consider using a prefix to achieve this.
+
+The context object
+------------------
+The context object in ``conda`` is used as a singleton. This means that everytime the ``conda``
+command runs, only a single object is instantiated. This makes sense as it holds all the configuration
+for the program and re-instantiating it or making multiple copies would be inefficient.
+
+Where this causes problems is during tests where you may want to run ``conda`` commands potentially
+hundreds of times within the same process. Therefore, it is important to always reset this object
+to a fresh state when writing tests.
+
+This can be accomplished by using the ``reset_context`` function which also lives in the
+``conda.base.context`` module. The following example shows how you would modify the context
+object and then reset it using the ``reset_conda_context`` ``pytest`` fixture:
+
+.. code-block:: python
+
+   import os
+   import tempfile
+
+   from conda.base.context import reset_context, context
+   from conda.testing.fixtures import reset_conda_context
+
+   TEST_CONDARC = """
+   channels:
+     - test-channel
+   """
+
+
+   def test_that_uses_context(reset_conda_context):
+       # We first created a temporary file to hold our test configuration
+       with tempfile.TemporaryDirectory() as tempdir:
+           condarc_file = os.path.join(tempdir, "condarc")
+
+           with open(condarc_file, "w") as tmp_file:
+               tmp_file.write(TEST_CONDARC)
+
+           # We use the reset_context function to load our new configuration
+           reset_context(search_path=(condarc_file,))
+
+           # Run various test assertions, below is an example
+           assert "test-channel" in context.channels
+
+
+Using this testing fixture ensures that your context object is returned to the way it was
+before the test. For this specific test, it means that the ``channels`` setting will be returned to its
+default configuration. If you ever need to manually reset the context during a test, you can do so by manually
+invoking the ``reset_context`` command like in the following example:
+
+.. code-block:: python
+
+   from conda.base.context import reset_context
+
+
+   def test_updating_context_manually():
+       # Load some custom variables in to context here like above...
+
+       reset_context()
+
+       # Continue testing with a fresh context...
