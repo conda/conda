@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join
+from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
 from warnings import warn
@@ -83,8 +83,11 @@ def is_active_prefix(prefix):
     Can be used a validation step to make sure operations are not being
     performed on the active prefix.
     """
-    active_prefix = context.active_prefix
-    return paths_equal(prefix, active_prefix) or prefix == env_name(context.active_prefix)
+    return (
+        paths_equal(prefix, context.active_prefix)
+        # normcasing our prefix check for Windows, for case insensitivity
+        or normcase(prefix) == normcase(env_name(context.active_prefix))
+    )
 
 
 def arg2spec(arg, json=False, update=False):
