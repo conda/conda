@@ -18,6 +18,7 @@ from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
 from .delete import rm_rf
 from .link import lexists
 from ...base.context import context
+from ...base.constants import DRY_RUN_PREFIX
 from ...common.compat import on_win
 from ...common.path import expand
 from ...exceptions import NotWritableError
@@ -90,7 +91,7 @@ def rename(source_path, destination_path, force=False):
 
 
 @contextmanager
-def rename_context(source: str, destination: Optional[str] = None):
+def rename_context(source: str, destination: Optional[str] = None, dry_run: bool = False):
     """
     Used for removing a directory when there are dependent actions (i.e. you need to ensure
     other actions succeed before removing it).
@@ -101,6 +102,11 @@ def rename_context(source: str, destination: Optional[str] = None):
     """
     if destination is None:
         destination = tempfile.mkdtemp()
+
+    if dry_run:
+        print(f"{DRY_RUN_PREFIX} rename_context {source} > {destination}")
+        yield
+        return
 
     try:
         rename(source, destination, force=True)

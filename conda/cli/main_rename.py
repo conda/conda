@@ -67,7 +67,7 @@ def execute(args, _):
                 func()
 
     if args.force:
-        with rename_context(destination):
+        with rename_context(destination, dry_run=args.dry_run):
             clone_and_remove()
     else:
         clone_and_remove()
