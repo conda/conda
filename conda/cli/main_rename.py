@@ -17,7 +17,7 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import rename
 
 
-def validate_src(args) -> str:
+def validate_src(name: str | None, prefix: str | None) -> str:
     """
     Validate that we are receiving at least one value for --name or --prefix
     and ensure that the "base" environment is not being renamed
@@ -25,7 +25,7 @@ def validate_src(args) -> str:
     if paths_equal(context.target_prefix, context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
 
-    prefix = args.name if args.name else args.prefix
+    prefix = name or prefix
 
     if common.is_active_prefix(prefix):
         raise CondaEnvException("Cannot rename the active environment")
@@ -73,7 +73,7 @@ def execute(args, _):
     """
     Executes the command for renaming an existing environment
     """
-    source = validate_src(args)
+    source = validate_src(args.name, args.prefix)
     destination = validate_destination(args.destination, force=args.force)
 
     def clone_and_remove():
