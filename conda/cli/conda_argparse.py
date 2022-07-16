@@ -535,7 +535,7 @@ def configure_parser_config(sub_parsers):
         "--clear",
         nargs=1,
         action="append",
-        help="""Clear a configuration. This clears out
+        help="""Clear a list key. This clears out
     all values for the key.""",
         default=[],
         metavar=('KEY', 'VALUE'),
