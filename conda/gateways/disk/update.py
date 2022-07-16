@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from contextlib import contextmanager
 from errno import EINVAL, EXDEV, EPERM
 from logging import getLogger
 import os
@@ -10,6 +11,8 @@ from os.path import dirname, isdir, split, basename, join, exists
 import re
 from shutil import move
 from subprocess import Popen, PIPE
+import tempfile
+from typing import Optional
 
 from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
 from .delete import rm_rf
@@ -84,6 +87,28 @@ def rename(source_path, destination_path, force=False):
                 raise
     else:
         log.trace("cannot rename; source path does not exist '%s'", source_path)
+
+
+@contextmanager
+def rename_context(source: str, destination: Optional[str] = None):
+    """
+    Used for removing a directory when there are dependent actions (i.e. you need to ensure
+    other actions succeed before removing it).
+
+    Example:
+        with rename_context(directory):
+            # Do dependent actions here
+    """
+    if destination is None:
+        destination = tempfile.mkdtemp()
+
+    try:
+        rename(source, destination, force=True)
+        yield
+    except Exception as exc:
+        # Error occurred, roll back change
+        rename(destination, source, force=True)
+        raise exc
 
 
 def backoff_rename(source_path, destination_path, force=False):

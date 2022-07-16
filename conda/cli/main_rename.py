@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import tempfile
-from contextlib import contextmanager
 from functools import partial
 import os
 
@@ -14,7 +12,7 @@ from ..cli import common, install
 from ..common.path import expand, paths_equal
 from ..exceptions import CondaEnvException
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.update import rename
+from ..gateways.disk.update import rename_context
 
 
 def validate_src(name: str | None, prefix: str | None) -> str:
@@ -48,27 +46,6 @@ def validate_destination(dest: str, force: bool = False) -> str:
     return dest
 
 
-@contextmanager
-def safe_rm_destination(directory: str):
-    """
-    Used for removing a directory when there are dependent actions (i.e. you need to ensure
-    other actions succeed before removing it).
-
-    Example:
-        with safe_rm_destination(directory):
-            # Do dependent actions here
-    """
-    tmpdir = tempfile.mkdtemp()
-
-    try:
-        rename(directory, tmpdir, force=True)
-        yield
-    except Exception as exc:
-        # Error occurred, roll back change
-        rename(tmpdir, directory, force=True)
-        raise exc
-
-
 def execute(args, _):
     """
     Executes the command for renaming an existing environment
@@ -90,7 +67,7 @@ def execute(args, _):
                 func()
 
     if args.force:
-        with safe_rm_destination(destination):
+        with rename_context(destination):
             clone_and_remove()
     else:
         clone_and_remove()
