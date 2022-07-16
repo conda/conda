@@ -60,8 +60,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         if not isdir(src_prefix):
             raise DirectoryNotFoundError(src_arg)
     else:
-        assert context._argparse_args.clone is not None
-        src_prefix = locate_prefix_by_name(context._argparse_args.clone)
+        src_prefix = locate_prefix_by_name(src_arg)
 
     if not json:
         print("Source:      %s" % src_prefix)

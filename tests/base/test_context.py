@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 import os
 from os.path import join, abspath
+from pathlib import Path
 from tempfile import gettempdir
 from unittest import TestCase, mock
 
@@ -16,14 +17,20 @@ from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
 from conda.base.constants import PathConflict, ChannelPriority
-from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import odict
+from conda.base.context import (
+    context,
+    reset_context,
+    conda_tests_ctxt_mgmt_def_pol,
+    validate_prefix_name,
+)
+from conda.common.compat import odict, on_win
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.package_cache_data import PackageCacheData
+from conda.exceptions import EnvironmentNameNotFound, CondaValueError
 from conda.gateways.disk.create import mkdir_p, create_package_cache_directory
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
@@ -483,3 +490,60 @@ class ContextDefaultRcTests(TestCase):
             assert context.local_build_root == join(context.root_prefix, 'conda-bld')
         else:
             assert context.local_build_root == expand('~/conda-bld')
+
+
+if on_win:
+    VALIDATE_PREFIX_NAME_BASE_DIR = Path("C:\\Users\\name\\prefix_dir\\")
+else:
+    VALIDATE_PREFIX_NAME_BASE_DIR = Path("/home/user/prefix_dir/")
+
+VALIDATE_PREFIX_ENV_NAME = "env-name"
+
+VALIDATE_PREFIX_TEST_CASES = (
+    # First scenario which triggers an Environment not found error
+    (
+        VALIDATE_PREFIX_ENV_NAME,
+        False,
+        (VALIDATE_PREFIX_NAME_BASE_DIR, EnvironmentNameNotFound(VALIDATE_PREFIX_ENV_NAME)),
+        VALIDATE_PREFIX_NAME_BASE_DIR.joinpath(VALIDATE_PREFIX_ENV_NAME),
+    ),
+    # Passing in not allowed characters as the prefix name
+    (
+        "not/allow#characters:in-path",
+        False,
+        (None, None),
+        CondaValueError("Invalid environment name"),
+    ),
+    # Passing in not allowed characters as the prefix name
+    (
+        "base",
+        False,
+        (None, None),
+        CondaValueError("Use of 'base' as environment name is not allowed here."),
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "prefix,allow_base,mock_return_values,expected", VALIDATE_PREFIX_TEST_CASES
+)
+def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
+    ctx = mock.MagicMock()
+
+    with mock.patch("conda.base.context._first_writable_envs_dir") as mock_one, mock.patch(
+        "conda.base.context.locate_prefix_by_name"
+    ) as mock_two:
+
+        mock_one.side_effect = [mock_return_values[0]]
+        mock_two.side_effect = [mock_return_values[1]]
+
+        if isinstance(expected, CondaValueError):
+            with pytest.raises(CondaValueError) as exc:
+                validate_prefix_name(prefix, ctx, allow_base=allow_base)
+
+            # We fuzzy match the error message here. Doing this exactly is not important
+            assert str(expected) in str(exc)
+
+        else:
+            actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
+            assert actual == str(expected)

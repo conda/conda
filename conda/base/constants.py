@@ -167,6 +167,8 @@ NOTICES_CACHE_FN = "notices.cache"
 #: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR = "notices"
 
+DRY_RUN_PREFIX = "Dry run action:"
+PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
 
 # TODO: Determine whether conda.base is the right place for this data; it
 # should be a constant, but another module may be more appropriate.
