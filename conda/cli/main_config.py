@@ -365,6 +365,25 @@ def execute_config(args, parser):
                                 (item, key))
         rc_config[key] = [i for i in rc_config[key] if i != item]
 
+    # Clear
+    for key in args.clear:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
+        if key == 'channels' and key not in rc_config:
+            rc_config[key] = ['defaults']
+        if key in sequence_parameters:
+            arglist = rc_config.setdefault(key, [])
+        elif key in map_parameters:
+            arglist = rc_config.setdefault(key, {}).setdefault(subkey, [])
+        else:
+            from ..exceptions import CondaValueError
+            raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
+        if not (isinstance(arglist, Sequence) and not
+                isinstance(arglist, str)):
+            from ..exceptions import CouldntParseError
+            bad = rc_config[key].__class__.__name__
+            raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
+        arglist = []
+
     # Remove Key
     for key, in args.remove_key:
         key, subkey = key.split('.', 1) if '.' in key else (key, None)

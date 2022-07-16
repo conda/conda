@@ -532,6 +532,15 @@ def configure_parser_config(sub_parsers):
         metavar=('KEY', 'VALUE'),
     )
     config_modifiers.add_argument(
+        "--clear",
+        nargs=1,
+        action="append",
+        help="""Clear a configuration. This clears out
+    all values for the key.""",
+        default=[],
+        metavar=('KEY', 'VALUE'),
+    )
+    config_modifiers.add_argument(
         "--remove-key",
         nargs=1,
         action="append",
