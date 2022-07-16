@@ -1188,7 +1188,7 @@ def _bashrc_content(conda_prefix, shell):
         conda_initialize_content = dals("""
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!
-        if [ -f %(conda_exe)s ]; then
+        if [ -f '%(conda_exe)s' ]; then
             eval "$('%(conda_exe)s' 'shell.%(shell)s' 'hook')"
         fi
         # <<< conda initialize <<<

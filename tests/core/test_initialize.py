@@ -860,7 +860,7 @@ class InitializeTests(TestCase):
 
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
-            if [ -f %(cygpath_conda_prefix)s ]; then
+            if [ -f '%(cygpath_conda_prefix)s/Scripts/conda.exe' ]; then
                 eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' 'shell.bash' 'hook')"
             fi
             # <<< conda initialize <<<
