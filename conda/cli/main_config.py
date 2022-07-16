@@ -390,7 +390,6 @@ def execute_config(args, parser):
 
     # Remove Key
     for key, in args.remove_key:
-        print("stattel REMOVE key", key)
         key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key not in rc_config:
             from ..exceptions import CondaKeyError
