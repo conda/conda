@@ -366,7 +366,7 @@ def execute_config(args, parser):
         rc_config[key] = [i for i in rc_config[key] if i != item]
 
     # Clear
-    for key in args.clear:
+    for key, in args.clear:
         key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key == 'channels' and key not in rc_config:
             rc_config[key] = ['defaults']
@@ -382,10 +382,15 @@ def execute_config(args, parser):
             from ..exceptions import CouldntParseError
             bad = rc_config[key].__class__.__name__
             raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
-        arglist = []
+        if key in sequence_parameters:
+            rc_config[key] = []
+        elif key in map_parameters:
+            argmap = rc_config.setdefault(key, {})
+            argmap[subkey] = []
 
     # Remove Key
     for key, in args.remove_key:
+        print("stattel REMOVE key", key)
         key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key not in rc_config:
             from ..exceptions import CondaKeyError
