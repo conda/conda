@@ -61,11 +61,11 @@ def safe_rm_destination(directory: str):
     tmpdir = tempfile.mkdtemp()
 
     try:
-        rename(directory, tmpdir)
+        rename(directory, tmpdir, force=True)
         yield
     except Exception as exc:
         # Error occurred, roll back change
-        rename(tmpdir, directory)
+        rename(tmpdir, directory, force=True)
         raise exc
 
 
