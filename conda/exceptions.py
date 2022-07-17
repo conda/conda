@@ -1030,7 +1030,7 @@ class EnvironmentFileEmpty(CondaEnvException):
     def __init__(self, filename, *args, **kwargs):
         self.filename = filename
         msg = f"'{filename}' is empty"
-        super(EnvironmentFileEmpty, self).__init__(msg, *args, **kwargs)
+        super().__init__(msg, *args, **kwargs)
 
 
 class EnvironmentFileNotDownloaded(CondaError):
