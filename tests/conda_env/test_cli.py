@@ -151,10 +151,6 @@ def run_env_command(command, prefix, *arguments, use_prefix_flag: bool = False):
         arguments[1:1] = ["--yes", flag, prefix]
     elif command is Commands.ENV_UPDATE:
         arguments[1:1] = [flag, prefix]
-    elif command is Commands.ENV_RENAME:
-        arguments[1:1] = [flag, prefix]
-    else:
-        command_line = " --help "
     p = create_parser()
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
