@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Correct a misleading `conda --help` error message.
+* Correct a misleading `conda --help` error message. (#11625)
 
 ### Deprecations
 
