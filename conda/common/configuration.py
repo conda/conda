@@ -17,21 +17,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-try:
-    from collections.abc import Mapping
-except ImportError:
-    from collections import Mapping
+from collections.abc import Mapping
 import copy
 from enum import Enum, EnumMeta
 from itertools import chain
 from logging import getLogger
-from os import environ, stat
+from os import environ, scandir, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
-from .compat import (binary_type, isiterable, iteritems, itervalues, odict, primitive_types,
-                     scandir, string_types, text_type)
+from .compat import isiterable, odict, primitive_types
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -67,14 +63,15 @@ def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
 
 
 def pretty_map(dictionary, padding='  '):
-    return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
+    return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in dictionary.items())
 
 
 def expand_environment_variables(unexpanded):
-    if isinstance(unexpanded, string_types) or isinstance(unexpanded, binary_type):
+    if isinstance(unexpanded, (str, bytes)):
         return expandvars(unexpanded)
     else:
         return unexpanded
+
 
 class ConfigurationError(CondaError):
     pass
@@ -189,7 +186,7 @@ class RawParameter(metaclass=ABCMeta):
             self._raw_value = raw_value
 
     def __repr__(self):
-        return text_type(vars(self))
+        return str(vars(self))
 
     @abstractmethod
     def value(self, parameter_obj):
@@ -217,7 +214,7 @@ class EnvRawParameter(RawParameter):
         # note: this assumes that EnvRawParameters will only have flat configuration of either
         # primitive or sequential type
         if hasattr(parameter_obj, 'string_delimiter'):
-            assert isinstance(self._raw_value, string_types)
+            assert isinstance(self._raw_value, str)
             string_delimiter = getattr(parameter_obj, 'string_delimiter')
             # TODO: add stripping of !important, !top, and !bottom
             return tuple(EnvRawParameter(EnvRawParameter.source, self.key, v)
@@ -245,7 +242,7 @@ class EnvRawParameter(RawParameter):
     def make_raw_parameters(cls, appname):
         keystart = "{0}_".format(appname.upper())
         raw_env = dict((k.replace(keystart, '', 1).lower(), v)
-                       for k, v in iteritems(environ) if k.startswith(keystart))
+                       for k, v in environ.items() if k.startswith(keystart))
         return super(EnvRawParameter, cls).make_raw_parameters(EnvRawParameter.source, raw_env)
 
 
@@ -294,7 +291,7 @@ class YamlRawParameter(RawParameter):
         elif isinstance(self._raw_value, CommentedMap):
             value_comments = self._get_yaml_map_comments(self._raw_value)
             self._value_flags = dict((k, ParameterFlag.from_string(v))
-                                     for k, v in iteritems(value_comments) if v is not None)
+                                     for k, v in value_comments.items() if v is not None)
             children_values = {}
             for k, v in self._raw_value.items():
                 children_values[k] = YamlRawParameter(self.source, self.key, v, value_comments[k])
@@ -517,7 +514,7 @@ class LoadedParameter(metaclass=ABCMeta):
             result = self._validation(typed_value)
             if result is False:
                 errors.append(ValidationError(self._name, typed_value, source))
-            elif isinstance(result, string_types):
+            elif isinstance(result, str):
                 errors.append(CustomValidationError(self._name, typed_value, source, result))
         return errors
 
@@ -530,7 +527,7 @@ class LoadedParameter(metaclass=ABCMeta):
         # This is similar to conda.auxlib.type_coercion.typify_data_structure
         # It could be DRY-er but that would break SRP.
         if isinstance(self.value, Mapping):
-            new_value = type(self.value)((k, v.expand()) for k, v in iteritems(self.value))
+            new_value = type(self.value)((k, v.expand()) for k, v in self.value.items())
         elif isiterable(self.value):
             new_value = type(self.value)(v.expand() for v in self.value)
         elif isinstance(self.value, ConfigurationObject):
@@ -568,9 +565,7 @@ class LoadedParameter(metaclass=ABCMeta):
         try:
             return LoadedParameter._typify_data_structure(self.value, source, element_type)
         except TypeCoercionError as e:
-            # if name is None:
-            #     name = self.name
-            msg = text_type(e)
+            msg = str(e)
             if issubclass(element_type, Enum):
                 choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
                 msg += "\nValid choices for {}: {}".format(self._name, choices)
@@ -579,7 +574,7 @@ class LoadedParameter(metaclass=ABCMeta):
     @staticmethod
     def _typify_data_structure(value, source, type_hint=None):
         if isinstance(value, Mapping):
-            return type(value)((k, v.typify(source)) for k, v in iteritems(value))
+            return type(value)((k, v.typify(source)) for k, v in value.items())
         elif isiterable(value):
             return type(value)(v.typify(source) for v in value)
         elif isinstance(value, ConfigurationObject):
@@ -587,8 +582,8 @@ class LoadedParameter(metaclass=ABCMeta):
                 if isinstance(attr_value, LoadedParameter):
                     value.__setattr__(attr_name, attr_value.typify(source))
             return value
-        elif (isinstance(value, string_types)
-              and isinstance(type_hint, type) and issubclass(type_hint, string_types)):
+        elif (isinstance(value, str)
+              and isinstance(type_hint, type) and issubclass(type_hint, str)):
             # This block is necessary because if we fall through to typify(), we end up calling
             # .strip() on the str, when sometimes we want to preserve preceding and trailing
             # whitespace.
@@ -667,7 +662,7 @@ class MapLoadedParameter(LoadedParameter):
 
         # recursively validate the values in the map
         if isinstance(self.value, Mapping):
-            for key, value in iteritems(self.value):
+            for key, value in self.value.items():
                 errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
@@ -687,7 +682,7 @@ class MapLoadedParameter(LoadedParameter):
         def key_is_important(match, key):
             return match.value_flags.get(key) == ParameterFlag.final
         important_maps = tuple(dict((k, v)
-                                    for k, v in iteritems(match_value)
+                                    for k, v in match_value.items()
                                     if key_is_important(match, k))
                                for match, match_value in relevant_matches_and_values)
 
@@ -833,7 +828,7 @@ class ObjectLoadedParameter(LoadedParameter):
         def key_is_important(match, key):
             return match.value_flags.get(key) == ParameterFlag.final
         important_maps = tuple(dict((k, v)
-                                    for k, v in iteritems(match_value)
+                                    for k, v in match_value.items()
                                     if key_is_important(match, k))
                                for match, match_value in relevant_matches_and_values)
 
@@ -911,7 +906,7 @@ class Parameter(metaclass=ABCMeta):
         """
         matches = []
         multikey_exceptions = []
-        for filepath, raw_parameters in iteritems(instance.raw_data):
+        for filepath, raw_parameters in instance.raw_data.items():
             match, error = ParameterLoader.raw_parameters_from_single_source(
                 name, names, raw_parameters)
             if match is not None:
@@ -938,9 +933,7 @@ class Parameter(metaclass=ABCMeta):
         try:
             return typify_data_structure(value, element_type)
         except TypeCoercionError as e:
-            # if name is None:
-            #     name = self.name
-            msg = text_type(e)
+            msg = str(e)
             if issubclass(element_type, Enum):
                 choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
                 msg += "\nValid choices for {}: {}".format(name, choices)
@@ -1173,9 +1166,9 @@ class ParameterLoader(object):
     def _set_name(self, name):
         # this is an explicit method, and not a descriptor/setter
         # it's meant to be called by the Configuration metaclass
-        self._name = name  # lgtm [py/mutable-descriptor]
+        self._name = name
         _names = frozenset(x for x in chain(self.aliases, (name, )))
-        self._names = _names  # lgtm [py/mutable-descriptor]
+        self._names = _names
         return name
 
     @property
@@ -1219,8 +1212,8 @@ class ParameterLoader(object):
         else:
             errors.extend(expanded.collect_errors(instance, result, "<<merged>>"))
         raise_errors(errors)
-        instance._cache_[self.name] = result  # lgtm [py/uninitialized-local-variable]
-        return result  # lgtm [py/uninitialized-local-variable]
+        instance._cache_[self.name] = result
+        return result
 
     def _raw_parameters_from_single_source(self, raw_parameters):
         return ParameterLoader.raw_parameters_from_single_source(
@@ -1236,7 +1229,7 @@ class ParameterLoader(object):
         if numkeys == 0:
             return None, None
         elif numkeys == 1:
-            return next(itervalues(matches)), None
+            return next(iter(matches.values())), None
         elif name in keys:
             return matches[name], MultipleKeysError(
                 raw_parameters[next(iter(keys))].source, keys, name)
@@ -1252,7 +1245,7 @@ class ConfigurationType(type):
         super(ConfigurationType, cls).__init__(name, bases, attr)
 
         # call _set_name for each parameter
-        cls.parameter_names = tuple(p._set_name(name) for name, p in iteritems(cls.__dict__)
+        cls.parameter_names = tuple(p._set_name(name) for name, p in cls.__dict__.items()
                                     if isinstance(p, ParameterLoader))
 
 
@@ -1290,7 +1283,7 @@ class Configuration(metaclass=ConfigurationType):
         if hasattr(argparse_args, '__dict__'):
             # the argparse_args from argparse will be an object with a __dict__ attribute
             #   and not a mapping type like this method will turn it into
-            self._argparse_args = AttrDict((k, v) for k, v, in iteritems(vars(argparse_args))
+            self._argparse_args = AttrDict((k, v) for k, v, in vars(argparse_args).items()
                                            if v is not NULL)
         elif not argparse_args:
             # argparse_args can be initialized as `None`
@@ -1298,7 +1291,7 @@ class Configuration(metaclass=ConfigurationType):
         else:
             # we're calling this method with argparse_args that are a mapping type, likely
             #   already having been processed by this method before
-            self._argparse_args = AttrDict((k, v) for k, v, in iteritems(argparse_args)
+            self._argparse_args = AttrDict((k, v) for k, v, in argparse_args.items()
                                            if v is not NULL)
 
         source = ArgParseRawParameter.source
@@ -1385,8 +1378,8 @@ class Configuration(metaclass=ConfigurationType):
         validation_errors = odict()
         for source in self.raw_data:
             typed_values[source], validation_errors[source] = self.check_source(source)
-        raise_errors(tuple(chain.from_iterable(itervalues(validation_errors))))
-        return odict((k, v) for k, v in iteritems(typed_values) if v)
+        raise_errors(tuple(chain.from_iterable(validation_errors.values())))
+        return odict((k, v) for k, v in typed_values.items() if v)
 
     def describe_parameter(self, parameter_name):
         # TODO, in Parameter base class, rename element_type to value_type

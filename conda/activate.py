@@ -20,7 +20,7 @@ from ._vendor.toolz import concatv, drop
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, scandir, string_types
+from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
 
 
@@ -63,12 +63,7 @@ class _Activator(object):
 
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
-
-        if PY2:
-            self.environ = {ensure_fs_path_encoding(k): ensure_fs_path_encoding(v)
-                            for k, v in iteritems(os.environ)}
-        else:
-            self.environ = os.environ.copy()
+        self.environ = os.environ.copy()
 
     # Once Python2 dies odargs can become kwargs again since dicts are ordered since 3.6.
     def get_export_unset_vars(self, odargs):
@@ -277,7 +272,7 @@ class _Activator(object):
         self.command = command
 
     def _yield_commands(self, cmds_dict):
-        for key, value in sorted(iteritems(cmds_dict.get('export_path', {}))):
+        for key, value in sorted(cmds_dict.get('export_path', {}).items()):
             yield self.export_var_tmpl % (key, value)
 
         for script in cmds_dict.get('deactivate_scripts', ()):
@@ -286,10 +281,10 @@ class _Activator(object):
         for key in cmds_dict.get('unset_vars', ()):
             yield self.unset_var_tmpl % key
 
-        for key, value in iteritems(cmds_dict.get('set_vars', {})):
+        for key, value in cmds_dict.get('set_vars', {}).items():
             yield self.set_var_tmpl % (key, value)
 
-        for key, value in iteritems(cmds_dict.get('export_vars', {})):
+        for key, value in cmds_dict.get('export_vars', {}).items():
             yield self.export_var_tmpl % (key, value)
 
         for script in cmds_dict.get('activate_scripts', ()):
@@ -638,7 +633,7 @@ class _Activator(object):
         return tuple(path_list)
 
     def _build_activate_shell_custom(self, export_vars):
-        # A method that can be overriden by shell-specific implementations.
+        # A method that can be overridden by shell-specific implementations.
         # The signature of this method may change in the future.
         pass
 
@@ -656,12 +651,13 @@ class _Activator(object):
             env_stack = []
             prompt_stack = []
             old_shlvl = int(self.environ.get('CONDA_SHLVL', '0').rstrip())
-            for i in range(1, old_shlvl+1):
+            for i in range(1, old_shlvl + 1):
                 if i == old_shlvl:
                     env_i = self._default_env(self.environ.get('CONDA_PREFIX', ''))
                 else:
                     env_i = self._default_env(
-                            self.environ.get('CONDA_PREFIX_{}'.format(i), '').rstrip())
+                        self.environ.get('CONDA_PREFIX_{}'.format(i), '').rstrip()
+                    )
                 stacked_i = bool(self.environ.get('CONDA_STACKED_{}'.format(i), '').rstrip())
                 env_stack.append(env_i)
                 if not stacked_i:
@@ -700,7 +696,9 @@ class _Activator(object):
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
-            paths = (entry.path for entry in scandir(join(prefix, 'etc', 'conda', 'activate.d')))
+            paths = (
+                entry.path for entry in os.scandir(join(prefix, "etc", "conda", "activate.d"))
+            )
         except EnvironmentError:
             return ()
         return self.path_conversion(sorted(
@@ -711,7 +709,9 @@ class _Activator(object):
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
-            paths = (entry.path for entry in scandir(join(prefix, 'etc', 'conda', 'deactivate.d')))
+            paths = (
+                entry.path for entry in os.scandir(join(prefix, "etc", "conda", "deactivate.d"))
+            )
         except EnvironmentError:
             return ()
         return self.path_conversion(sorted(
@@ -726,7 +726,7 @@ class _Activator(object):
 
         # First get env vars from packages
         if exists(pkg_env_var_dir):
-            for pkg_env_var_path in sorted(entry.path for entry in scandir(pkg_env_var_dir)):
+            for pkg_env_var_path in sorted(entry.path for entry in os.scandir(pkg_env_var_dir)):
                 with open(pkg_env_var_path, 'r') as f:
                     env_vars.update(json.loads(f.read(), object_pairs_hook=OrderedDict))
 
@@ -783,7 +783,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     command = os.path.join(dirname(bash), 'cygpath') if bash else 'cygpath'
     command += ' --path -f -'
 
-    single_path = isinstance(paths, string_types)
+    single_path = isinstance(paths, str)
     joined = paths if single_path else ("%s" % os.pathsep).join(paths)
 
     if hasattr(joined, 'encode'):
@@ -820,7 +820,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
 
 
 def path_identity(paths):
-    if isinstance(paths, string_types):
+    if isinstance(paths, str):
         return os.path.normpath(paths)
     elif paths is None:
         return None
@@ -935,7 +935,7 @@ class XonshActivator(_Activator):
     def path_conversion(paths):
         if not on_win:
             return path_identity(paths)
-        elif isinstance(paths, string_types):
+        elif isinstance(paths, str):
             return paths.replace('\\', '/')
         elif paths is None:
             return None

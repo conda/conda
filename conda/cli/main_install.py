@@ -7,8 +7,10 @@ import sys
 
 from .install import install
 from ..base.context import context
+from ..notices import notices
 
 
+@notices
 def execute(args, parser):
     if context.force:
         print("\n\n"

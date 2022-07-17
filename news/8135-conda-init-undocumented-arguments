@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Updated docs and CLI help to include information on ``conda init`` arguments. (#11574)
+
+### Other
+
+* <news item>

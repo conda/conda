@@ -4,15 +4,12 @@
 from __future__ import absolute_import, print_function
 
 from argparse import RawDescriptionHelpFormatter
-import os
-import textwrap
 
+from conda.base.context import context, determine_target_prefix, env_name
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.cli.common import stdout_json
 
-# conda env import
-from .common import get_prefix, stdout_json
 from ..env import from_environment
-from ..exceptions import CondaEnvException
 
 description = """
 Export a given environment
@@ -81,33 +78,14 @@ def configure_parser(sub_parsers):
 
 # TODO Make this aware of channels that were used to install packages
 def execute(args, parser):
-    if not (args.name or args.prefix):
-        # Note, this is a hack fofr get_prefix that assumes argparse results
-        # TODO Refactor common.get_prefix
-        name = os.environ.get('CONDA_DEFAULT_ENV', False)
-        prefix = os.environ.get('CONDA_PREFIX', False)
-        if not (name or prefix):
-            msg = "Unable to determine environment\n\n"
-            msg += textwrap.dedent("""
-                Please re-run this command with one of the following options:
-
-                * Provide an environment name via --name or -n
-                * Re-run this command inside an activated conda environment.""").lstrip()
-            # TODO Add json support
-            raise CondaEnvException(msg)
-        if name:
-            if os.sep in name:
-                # assume "names" with a path seperator are actually paths
-                args.prefix = name
-            else:
-                args.name = name
-        else:
-            args.prefix = prefix
-    else:
-        name = args.name
-    prefix = get_prefix(args)
-    env = from_environment(name, prefix, no_builds=args.no_builds,
-                           ignore_channels=args.ignore_channels, from_history=args.from_history)
+    prefix = determine_target_prefix(context, args)
+    env = from_environment(
+        env_name(prefix),
+        prefix,
+        no_builds=args.no_builds,
+        ignore_channels=args.ignore_channels,
+        from_history=args.from_history,
+    )
 
     if args.override_channels:
         env.remove_channels()

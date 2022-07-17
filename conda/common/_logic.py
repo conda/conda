@@ -13,14 +13,7 @@ import sys
 log = getLogger(__name__)
 
 
-# maxsize transitions to type(long) on 2.7 64-bit machines and breaks int
-# type checks in logic.py
-if sys.version_info.major == 2:
-    _BIG_NUMBER = sys.maxint
-else:
-    _BIG_NUMBER = sys.maxsize
-
-TRUE = _BIG_NUMBER
+TRUE = sys.maxsize
 FALSE = -TRUE
 
 
@@ -49,7 +42,7 @@ class _ClauseList(object):
     def restore_state(self, saved_state):
         """
         Restore state saved via `save_state`.
-        Removes clauses that were added after the sate has been saved.
+        Removes clauses that were added after the state has been saved.
         """
         len_clauses = saved_state
         self._clause_list[len_clauses:] = []
@@ -109,7 +102,7 @@ class _ClauseArray(object):
     def restore_state(self, saved_state):
         """
         Restore state saved via `save_state`.
-        Removes clauses that were added after the sate has been saved.
+        Removes clauses that were added after the state has been saved.
         """
         len_clause_array = saved_state
         self._clause_array[len_clause_array:] = array('i')

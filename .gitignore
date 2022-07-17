@@ -36,6 +36,7 @@ conda.tmp/
 *.iml
 *.ipr
 *.iws
+test-report.xml
 
 # Rever
 rever/

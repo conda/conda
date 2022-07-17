@@ -72,7 +72,7 @@ To see how this process works for this project, read "[The Triaging Process at c
 
 
 [conda cla]: https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement
-[clabot]: https://github.com/conda/clabot-config/blob/master/.clabot
+[clabot]: https://github.com/conda/infra/blob/main/.clabot
 [install git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
 [github signup]: https://github.com/signup
 [github]: https://github.com/

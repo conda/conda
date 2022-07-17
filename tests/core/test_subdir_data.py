@@ -12,7 +12,6 @@ from time import sleep
 import pytest
 
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
 from conda.core.index import get_index
@@ -44,10 +43,10 @@ class GetRepodataIntegrationTests(TestCase):
                 with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     this_platform = context.subdir
                     index = get_index(channel_urls=channel_urls, prepend=False)
-                    for dist, record in iteritems(index):
+                    for dist, record in index.items():
                         assert platform_in_record(this_platform, record), (this_platform, record.url)
 
-        # When unknown=True (which is implicity engaged when context.offline is
+        # When unknown=True (which is implicitly engaged when context.offline is
         # True), there may be additional items in the cache that are included in
         # the index. But where those items coincide with entries already in the
         # cache, they must not change the record in any way. TODO: add one or
@@ -58,7 +57,7 @@ class GetRepodataIntegrationTests(TestCase):
             with env_var('CONDA_OFFLINE', 'yes', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     index2 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
-                    assert all(index2.get(k) == rec for k, rec in iteritems(index))
+                    assert all(index2.get(k) == rec for k, rec in index.items())
                     assert unknown is not False or len(index) == len(index2)
                     assert remote_request.call_count == 0
 
@@ -67,7 +66,7 @@ class GetRepodataIntegrationTests(TestCase):
                 with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     remote_request.side_effect = Response304ContentUnchanged()
                     index3 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
-                    assert all(index3.get(k) == rec for k, rec in iteritems(index))
+                    assert all(index3.get(k) == rec for k, rec in index.items())
                     assert unknown or len(index) == len(index3)
 
     def test_subdir_data_context_offline(self):

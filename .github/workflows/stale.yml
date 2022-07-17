@@ -33,7 +33,7 @@ jobs:
           # Idle number of days before marking issues stale (default: 60)
           days-before-issue-stale: ${{ matrix.only-issue-labels && 21 || 365 }}
           # Idle number of days before closing stale issues/PRs (default: 7)
-          days-before-issue-close: ${{ matrix.only-issue-labels && 7 || 90 }}
+          days-before-issue-close: ${{ matrix.only-issue-labels && 7 || 30 }}
           # Idle number of days before marking PRs stale (default: 60)
           days-before-pr-stale: 365
           # Idle number of days before closing stale PRs (default: 7)
@@ -42,11 +42,11 @@ jobs:
           # Comment on the staled issues
           stale-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-issue'] }}
           # Comment on the staled issues while closed
-          close-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-issue'] }}
+          # close-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-issue'] }}
           # Comment on the staled PRs
           stale-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-pr'] }}
           # Comment on the staled PRs while closed
-          close-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-pr'] }}
+          # close-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['close-pr'] }}
           # Label to apply on staled issues
           stale-issue-label: 'stale'
           # Label to apply on closed issues
@@ -57,9 +57,9 @@ jobs:
           close-pr-label: 'stale::closed'
 
           # Issues with these labels will never be considered stale
-          exempt-issue-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,epic,priority-high'
+          exempt-issue-labels: 'stale::recovered,epic'
           # Issues with these labels will never be considered stale
-          exempt-pr-labels: 'stale::recovered,good-first-issue,help-wanted,severity::1,source::partner,¡important!,¡security!,type::tech-debt,epic,priority-high'
+          exempt-pr-labels: 'stale::recovered,epic'
           # Only issues with these labels are checked whether they are stale
           only-issue-labels: ${{ matrix.only-issue-labels }}
 

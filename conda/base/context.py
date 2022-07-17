@@ -15,6 +15,7 @@ import struct
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Sequence, Tuple
+import warnings
 
 from .constants import (
     APP_NAME,
@@ -45,7 +46,7 @@ from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from .._vendor.toolz import concat, concatv, unique
-from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
+from ..common.compat import NoneType, odict, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
                                     ValidationError)
@@ -137,7 +138,7 @@ def default_python_validation(value):
 
 
 def ssl_verify_validation(value):
-    if isinstance(value, string_types):
+    if isinstance(value, str):
         if not isfile(value) and not isdir(value):
             return ("ssl_verify value '%s' must be a boolean, a path to a "
                     "certificate bundle file, or a path to a directory containing "
@@ -160,10 +161,10 @@ class Context(Configuration):
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
     create_default_packages = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types)))
+        SequenceParameter(PrimitiveParameter("", element_type=str)))
     default_python = ParameterLoader(
         PrimitiveParameter(default_python_default(),
-                           element_type=string_types + (NoneType,),
+                           element_type=(str, NoneType),
                            validation=default_python_validation))
     download_only = ParameterLoader(PrimitiveParameter(False))
     enable_private_envs = ParameterLoader(PrimitiveParameter(False))
@@ -186,42 +187,42 @@ class Context(Configuration):
     # Safety & Security
     _aggressive_update_packages = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=string_types),
+            PrimitiveParameter("", element_type=str),
             DEFAULT_AGGRESSIVE_UPDATE_PACKAGES),
         aliases=('aggressive_update_packages',))
     safety_checks = ParameterLoader(PrimitiveParameter(SafetyChecks.warn))
     extra_safety_checks = ParameterLoader(PrimitiveParameter(False))
     _signing_metadata_url_base = ParameterLoader(
-        PrimitiveParameter(None, element_type=string_types + (NoneType,)),
+        PrimitiveParameter(None, element_type=(str, NoneType)),
         aliases=('signing_metadata_url_base',))
     path_conflict = ParameterLoader(PrimitiveParameter(PathConflict.clobber))
 
     pinned_packages = ParameterLoader(SequenceParameter(
-        PrimitiveParameter("", element_type=string_types),
+        PrimitiveParameter("", element_type=str),
         string_delimiter='&'))  # TODO: consider a different string delimiter  # NOQA
     disallowed_packages = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=string_types), string_delimiter='&'),
+            PrimitiveParameter("", element_type=str), string_delimiter='&'),
         aliases=('disallow',))
     rollback_enabled = ParameterLoader(PrimitiveParameter(True))
     track_features = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types)))
+        SequenceParameter(PrimitiveParameter("", element_type=str)))
     use_index_cache = ParameterLoader(PrimitiveParameter(False))
 
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
 
     _root_prefix = ParameterLoader(PrimitiveParameter(""), aliases=('root_dir', 'root_prefix'))
     _envs_dirs = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types),
+        SequenceParameter(PrimitiveParameter("", element_type=str),
                           string_delimiter=os.pathsep),
         aliases=('envs_dirs', 'envs_path'),
         expandvars=True)
-    _pkgs_dirs = ParameterLoader(SequenceParameter(PrimitiveParameter("", string_types)),
+    _pkgs_dirs = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)),
                                  aliases=('pkgs_dirs',),
                                  expandvars=True)
     _subdir = ParameterLoader(PrimitiveParameter(''), aliases=('subdir',))
     _subdirs = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", string_types)), aliases=('subdirs',))
+        SequenceParameter(PrimitiveParameter("", str)), aliases=('subdirs',))
 
     local_repodata_ttl = ParameterLoader(PrimitiveParameter(1, element_type=(bool, int)))
     # number of seconds to cache repodata locally
@@ -231,20 +232,20 @@ class Context(Configuration):
     # remote connection details
     ssl_verify = ParameterLoader(
         PrimitiveParameter(True,
-                           element_type=string_types + (bool,),
+                           element_type=(str, bool),
                            validation=ssl_verify_validation),
         aliases=('verify_ssl',),
         expandvars=True)
     client_ssl_cert = ParameterLoader(
-        PrimitiveParameter(None, element_type=string_types + (NoneType,)),
+        PrimitiveParameter(None, element_type=(str, NoneType)),
         aliases=('client_cert',),
         expandvars=True)
     client_ssl_cert_key = ParameterLoader(
-        PrimitiveParameter(None, element_type=string_types + (NoneType,)),
+        PrimitiveParameter(None, element_type=(str, NoneType)),
         aliases=('client_cert_key',),
         expandvars=True)
     proxy_servers = ParameterLoader(
-        MapParameter(PrimitiveParameter(None, string_types + (NoneType,))),
+        MapParameter(PrimitiveParameter(None, (str, NoneType))),
         expandvars=True)
     remote_connect_timeout_secs = ParameterLoader(PrimitiveParameter(9.15))
     remote_read_timeout_secs = ParameterLoader(PrimitiveParameter(60.))
@@ -265,37 +266,37 @@ class Context(Configuration):
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter(
-            "", element_type=string_types), default=(DEFAULTS_CHANNEL_NAME,)),
+            "", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)),
         aliases=('channels', 'channel',),
         expandvars=True)  # channel for args.channel
     _custom_channels = ParameterLoader(
-        MapParameter(PrimitiveParameter("", element_type=string_types), DEFAULT_CUSTOM_CHANNELS),
+        MapParameter(PrimitiveParameter("", element_type=str), DEFAULT_CUSTOM_CHANNELS),
         aliases=('custom_channels',),
         expandvars=True)
     _custom_multichannels = ParameterLoader(
-        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=string_types))),
+        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=str))),
         aliases=('custom_multichannels',),
         expandvars=True)
     _default_channels = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types), DEFAULT_CHANNELS),
+        SequenceParameter(PrimitiveParameter("", element_type=str), DEFAULT_CHANNELS),
         aliases=('default_channels',),
         expandvars=True)
     _migrated_channel_aliases = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types)),
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         aliases=('migrated_channel_aliases',))
     migrated_custom_channels = ParameterLoader(
-        MapParameter(PrimitiveParameter("", element_type=string_types)),
+        MapParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True)  # TODO: also take a list of strings
     override_channels_enabled = ParameterLoader(PrimitiveParameter(True))
     show_channel_urls = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     use_local = ParameterLoader(PrimitiveParameter(False))
     whitelist_channels = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=string_types)),
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True)
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=string_types),
+            PrimitiveParameter("", element_type=str),
             ("current_repodata.json", REPODATA_FN)))
     _use_only_tar_bz2 = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)),
                                         aliases=('use_only_tar_bz2',))
@@ -315,6 +316,7 @@ class Context(Configuration):
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
     report_errors = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     shortcuts = ParameterLoader(PrimitiveParameter(True))
+    number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
     experimental_repodata = ParameterLoader(PrimitiveParameter(False))
@@ -354,7 +356,7 @@ class Context(Configuration):
         PrimitiveParameter(None, element_type=(bool, NoneType)), aliases=('binstar_upload',))
     _croot = ParameterLoader(PrimitiveParameter(''), aliases=('croot',))
     _conda_build = ParameterLoader(
-        MapParameter(PrimitiveParameter("", element_type=string_types)),
+        MapParameter(PrimitiveParameter("", element_type=str)),
         aliases=('conda-build', 'conda_build'))
 
     def __init__(self, search_path=None, argparse_args=None):
@@ -716,19 +718,19 @@ class Context(Configuration):
         reserved_multichannels = odict(
             (name, tuple(
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls)
-             ) for name, urls in iteritems(reserved_multichannel_urls)
+             ) for name, urls in reserved_multichannel_urls.items()
         )
         custom_multichannels = odict(
             (name, tuple(
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls)
-             ) for name, urls in iteritems(self._custom_multichannels)
+             ) for name, urls in self._custom_multichannels.items()
         )
         all_multichannels = odict(
             (name, channels)
-            for name, channels in concat(map(iteritems, (
-                custom_multichannels,
-                reserved_multichannels,  # reserved comes last, so reserved overrides custom
-            )))
+            for name, channels in concatv(
+                custom_multichannels.items(),
+                reserved_multichannels.items(),  # order maters, reserved overrides custom
+            )
         )
         return all_multichannels
 
@@ -736,9 +738,9 @@ class Context(Configuration):
     def custom_channels(self):
         from ..models.channel import Channel
         custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
-                           for name, url in iteritems(self._custom_channels))
+                           for name, url in self._custom_channels.items())
         channels_from_multichannels = concat(channel for channel
-                                             in itervalues(self.custom_multichannels))
+                                             in self.custom_multichannels.values())
         all_channels = odict((x.name, x) for x in (ch for ch in concatv(
             channels_from_multichannels,
             custom_channels,
@@ -833,6 +835,20 @@ class Context(Configuration):
         builder.append("%s/%s" % self.os_distribution_name_version)
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
+        if self.experimental_solver.value != "classic":
+            from ..core.solve import _get_solver_class
+
+            user_agent_str = "solver/%s" % self.experimental_solver.value
+            try:
+                # Solver.user_agent has to be a static or class method
+                user_agent_str += f" {_get_solver_class().user_agent()}"
+            except Exception as exc:
+                log.debug(
+                    "User agent could not be fetched from solver class '%s'.",
+                    self.experimental_solver.value,
+                    exc_info=exc
+                )
+            builder.append(user_agent_str)
         return " ".join(builder)
 
     @contextmanager
@@ -1007,6 +1023,7 @@ class Context(Configuration):
                 "verbosity",
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
+                "number_channel_notices",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1168,7 +1185,7 @@ class Context(Configuration):
             client_ssl_cert=dals(
                 """
                 A path to a single file containing a private key and certificate (e.g. .pem
-                file). Alternately, use client_ssl_cert_key in conjuction with client_ssl_cert
+                file). Alternately, use client_ssl_cert_key in conjunction with client_ssl_cert
                 for individual files.
                 """
             ),
@@ -1569,6 +1586,12 @@ class Context(Configuration):
                 """
                 This is a flag that when enabled, forces conda to read from the new type
                 of repodata.json file which is a stored and cached in smaller chunks.
+                """),
+            number_channel_notices=dals(
+                """
+                Sets the number of channel notices to be displayed when running commands
+                the "install", "create", "update", "env create", and "env update" . Defaults
+                to 5. In order to completely suppress channel notices, set this to 0.
                 """
             ),
         )
@@ -1806,6 +1829,11 @@ def _first_writable_envs_dir():
 
 # backward compatibility for conda-build
 def get_prefix(ctx, args, search=True):  # pragma: no cover
+    warnings.warn(
+        "`conda.base.context.get_prefix` is pending deprecation and will be removed in a future "
+        "release. Please use `conda.base.context.determine_target_prefix` instead.",
+        PendingDeprecationWarning,
+    )
     return determine_target_prefix(ctx or context, args)
 
 

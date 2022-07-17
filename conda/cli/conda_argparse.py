@@ -20,6 +20,7 @@ import sys
 from textwrap import dedent
 
 from .. import __version__
+from ..auxlib.ish import dals
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
@@ -77,6 +78,7 @@ def generate_parser():
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers)
     configure_parser_update(sub_parsers, name='upgrade')
+    configure_parser_notices(sub_parsers)
 
     return p
 
@@ -576,7 +578,9 @@ def configure_parser_create(sub_parsers):
         help='Path to (or name of) existing local environment.',
         metavar='ENV',
     )
-    solver_mode_options, package_install_options = add_parser_create_install_update(p)
+    solver_mode_options, package_install_options = add_parser_create_install_update(
+        p, prefix_required=True
+    )
     add_parser_default_packages(solver_mode_options)
     add_parser_experimental_solver(solver_mode_options)
     add_parser_experimental_repodata(solver_mode_options)
@@ -598,27 +602,29 @@ def configure_parser_create(sub_parsers):
 
 
 def configure_parser_init(sub_parsers):
-    help = "Initialize conda for shell interaction. [Experimental]"
+    help = "Initialize conda for shell interaction."
     descr = help
 
-    epilog = dedent("""
-    Key parts of conda's functionality require that it interact directly with the shell
-    within which conda is being invoked. The `conda activate` and `conda deactivate` commands
-    specifically are shell-level commands. That is, they affect the state (e.g. environment
-    variables) of the shell context being interacted with. Other core commands, like
-    `conda create` and `conda install`, also necessarily interact with the shell environment.
-    They're therefore implemented in ways specific to each shell. Each shell must be configured
-    to make use of them.
+    epilog = dals(
+        """
+        Key parts of conda's functionality require that it interact directly with the shell
+        within which conda is being invoked. The `conda activate` and `conda deactivate` commands
+        specifically are shell-level commands. That is, they affect the state (e.g. environment
+        variables) of the shell context being interacted with. Other core commands, like
+        `conda create` and `conda install`, also necessarily interact with the shell environment.
+        They're therefore implemented in ways specific to each shell. Each shell must be configured
+        to make use of them.
 
-    This command makes changes to your system that are specific and customized for each shell.
-    To see the specific files and locations on your system that will be affected before, use the
-    '--dry-run' flag.  To see the exact changes that are being or will be made to each location,
-    use the '--verbose' flag.
+        This command makes changes to your system that are specific and customized for each shell.
+        To see the specific files and locations on your system that will be affected before, use
+        the '--dry-run' flag.  To see the exact changes that are being or will be made to each
+        location, use the '--verbose' flag.
 
-    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted
-               for changes to take effect.
+        IMPORTANT: After running `conda init`, most shells will need to be closed and restarted for
+        changes to take effect.
 
-    """)
+        """
+    )
 
     # dev_example = dedent("""
     #     # An example for creating an environment to develop on conda's own code. Clone the
@@ -670,22 +676,19 @@ def configure_parser_init(sub_parsers):
     setup_type_group.add_argument(
         "--user",
         action="store_true",
-        # help="Initialize conda for the current user (default).",
-        help=SUPPRESS,
+        help="Initialize conda for the current user (default).",
         default=NULL,
     )
     setup_type_group.add_argument(
         "--no-user",
         action="store_false",
-        # help="Don't initialize conda for the current user (default).",
-        help=SUPPRESS,
+        help="Don't initialize conda for the current user (default).",
         default=NULL,
     )
     setup_type_group.add_argument(
         "--system",
         action="store_true",
-        # help="Initialize conda for all users on the system.",
-        help=SUPPRESS,
+        help="Initialize conda for all users on the system.",
         default=NULL,
     )
     setup_type_group.add_argument(
@@ -1301,14 +1304,48 @@ def configure_parser_update(sub_parsers, name='update'):
     p.set_defaults(func='.main_update.execute')
 
 
+NOTICES_HELP = "Retrieves latest channel notifications."
+NOTICES_DESCRIPTION = dals(
+    f"""
+    {NOTICES_HELP}
+
+    Conda channel maintainers have the option of setting messages that
+    users will see intermittently. Some of these notices are informational
+    while others are messages concerning the stability of the channel.
+
+    """
+)
+
+
+def configure_parser_notices(sub_parsers, name="notices"):
+    example = dals(
+        f"""
+        Examples:
+
+        conda {name}
+
+        conda {name} -c defaults
+
+        """
+    )
+    p = sub_parsers.add_parser(
+        name,
+        description=NOTICES_DESCRIPTION,
+        help=NOTICES_HELP,
+        epilog=example,
+    )
+    add_parser_channels(p)
+    p.set_defaults(func=".main_notices.execute")
+
+
 # #############################################################################################
 #
 # parser helpers
 #
 # #############################################################################################
 
-def add_parser_create_install_update(p):
-    add_parser_prefix(p)
+def add_parser_create_install_update(p, prefix_required=False):
+    add_parser_prefix(p, prefix_required)
     add_parser_channels(p)
     solver_mode_options = add_parser_solver_mode(p)
     package_install_options = add_parser_package_install_options(p)
@@ -1386,9 +1423,9 @@ def add_parser_help(p):
     )
 
 
-def add_parser_prefix(p):
+def add_parser_prefix(p, prefix_required=False):
     target_environment_group = p.add_argument_group("Target Environment Specification")
-    npgroup = target_environment_group.add_mutually_exclusive_group()
+    npgroup = target_environment_group.add_mutually_exclusive_group(required=prefix_required)
     npgroup.add_argument(
         '-n', "--name",
         action="store",

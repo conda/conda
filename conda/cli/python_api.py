@@ -28,6 +28,7 @@ class Commands:
     SEARCH = "search"
     UPDATE = "update"
     RUN = "run"
+    NOTICES = "notices"
 
 
 STRING = CaptureTarget.STRING
@@ -51,7 +52,7 @@ def run_command(command, *arguments, **kwargs):
     Keyword Args:
         use_exception_handler: defaults to False. False will let the code calling
           `run_command` handle all exceptions.  True won't raise when an exception
-          has occured, and instead give a non-zero return code
+          has occurred, and instead give a non-zero return code
         search_path: an optional non-standard search path for configuration information
           that overrides the default SEARCH_PATH
         stdout: Define capture behavior for stream sys.stdout. Defaults to STRING.

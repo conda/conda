@@ -9,18 +9,17 @@ from os.path import abspath, expanduser, expandvars
 
 from .common import stdout_json
 from ..base.context import context
-from ..common.compat import text_type
 from ..core.prefix_data import PrefixData
+from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import is_conda_environment
-from conda_env import exceptions, specs
 from ..models.match_spec import MatchSpec
+from conda_env import specs
 
 log = logging.getLogger(__name__)
 
 def get_packages(prefix):
     if not os.path.isdir(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 
     return sorted(PrefixData(prefix, pip_interop_enabled=True).iter_records(),
@@ -58,7 +57,6 @@ with matching version and build string.")
 def execute(args, parser):
     prefix = context.target_prefix
     if not is_conda_environment(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 
     try:
@@ -73,7 +71,7 @@ def execute(args, parser):
 
         if args.prefix is None and args.name is None:
             args.name = env.name
-    except exceptions.SpecNotFound:
+    except SpecNotFound:
         raise
 
     active_pkgs = dict(map(_get_name_tuple, get_packages(prefix)))
@@ -88,6 +86,6 @@ def execute(args, parser):
     if context.json:
         stdout_json(output)
     else:
-        print('\n'.join(map(text_type, output)))
+        print('\n'.join(map(str, output)))
 
     return exitcode

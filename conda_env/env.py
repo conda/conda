@@ -10,6 +10,7 @@ import re
 import json
 
 from conda.base.context import context
+from conda.exceptions import EnvironmentFileNotFound
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.compat import odict
 from conda.common.serialize import yaml_safe_load, yaml_safe_dump
@@ -19,7 +20,6 @@ from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
-from . import compat, exceptions
 from conda.history import History
 
 try:
@@ -74,13 +74,13 @@ def load_from_directory(directory):
         for f in files:
             try:
                 return from_file(os.path.join(directory, f))
-            except exceptions.EnvironmentFileNotFound:
+            except EnvironmentFileNotFound:
                 pass
         old_directory = directory
         directory = os.path.dirname(directory)
         if directory == old_directory:
             break
-    raise exceptions.EnvironmentFileNotFound(files[0])
+    raise EnvironmentFileNotFound(files[0])
 
 
 # TODO tests!!!
@@ -155,7 +155,7 @@ def from_file(filename):
     if url_scheme in CONDA_SESSION_SCHEMES:
         yamlstr = download_text(filename)
     elif not os.path.exists(filename):
-        raise exceptions.EnvironmentFileNotFound(filename)
+        raise EnvironmentFileNotFound(filename)
     else:
         with open(filename, 'rb') as fp:
             yamlb = fp.read()
@@ -167,7 +167,7 @@ def from_file(filename):
 
 
 # TODO test explicitly
-class Dependencies(OrderedDict):  # lgtm [py/missing-equals]
+class Dependencies(OrderedDict):
     def __init__(self, raw, *args, **kwargs):
         super(Dependencies, self).__init__(*args, **kwargs)
         self.raw = raw
@@ -257,10 +257,13 @@ class Environment(object):
 
     def to_yaml(self, stream=None):
         d = self.to_dict()
-        out = compat.u(yaml_safe_dump(d))
+        out = yaml_safe_dump(d)
         if stream is None:
             return out
-        stream.write(compat.b(out, encoding="utf-8"))
+        try:
+            stream.write(bytes(out, encoding="utf-8"))
+        except TypeError:
+            stream.write(out)
 
     def save(self):
         with open(self.filename, "wb") as fp:

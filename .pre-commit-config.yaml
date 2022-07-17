@@ -17,7 +17,7 @@ exclude: |
   )/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v4.3.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -46,7 +46,7 @@ repos:
     hooks:
       - id: flake8
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.13.7
+    rev: v2.14.4
     hooks:
       - id: pylint
         args: [--exit-zero]
@@ -58,7 +58,7 @@ repos:
         # ignore all tests, not just tests data
         exclude: ^tests/
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.13
+    rev: v1.2.0
     hooks:
       - id: insert-license
         files: \.py$

@@ -2,16 +2,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from conda import utils
+import sys
+from logging import getLogger
+from os import environ, pathsep
+from os.path import dirname, join
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+from conda import utils, CondaError
 from conda.common.path import win_path_to_unix
 from conda.testing.helpers import assert_equals
 
 from conda.activate import CmdExeActivator, PosixActivator
 from conda.common.path import which
-from logging import getLogger
-from os import environ, pathsep
-from os.path import dirname, join
-import sys
 from conda.common.compat import on_win
 
 import pytest
@@ -198,59 +201,69 @@ def test_quote_for_shell(args, expected):
     assert utils.quote_for_shell(args) == expected
 
 
-# Some stuff I was playing with, env_unmodified(conda_tests_ctxt_mgmt_def_pol)
-# from contextlib import contextmanager
-# from conda.base.constants import DEFAULT_CHANNELS
-# from conda.base.context import context, reset_context, stack_context_default
-# from conda.common.io import env_vars
-# from conda.common.compat import odict
-# from conda.common.configuration import YamlRawParameter
-# from conda.common.serialize import yaml_safe_load
-# from conda.models.channel import Channel
-# from conda.testing.integration import make_temp_prefix
-# from os.path import join
-# from shutil import rmtree
-# is what I ended up with instead.
-#
-# I do maintain however, that all of:
-# env_{var,vars,unmodified} and make_temp_env must be combined into one function
-#
-# .. because as things stand, they are frequently nested but they can and do
-# conflict with each other. For example make_temp_env calls reset_context()
-# which will break our ContextStack (which is currently unused, but will be
-# later I hope).
+def test_ensure_dir(tmpdir):
+    """
+    Ensures that this decorator creates a directory
+    """
+    new_dir = "test_dir"
 
-# @contextmanager
-# def make_default_conda_config(env=dict({})):
-#     prefix = make_temp_prefix()
-#     condarc = join(prefix, 'condarc')
-#     with open(condarc, 'w') as condarcf:
-#         condarcf.write("default_channels:\n")
-#         for c in list(DEFAULT_CHANNELS):
-#             condarcf.write('  - ' + c + '\n')
-#     if not env:
-#         env2 = dict({'CONDARC': condarc})
-#     else:
-#         env2 = env.copy()
-#         env2['CONDARC'] = condarc
-#     with env_vars(env2, lambda: reset_context((condarc,))):
-#         try:
-#             yield condarc
-#         finally:
-#             rmtree(prefix, ignore_errors=True)
-#             # Expensive and probably unnecessary?
-#             reset_context()
-#
-#
-# @contextmanager
-# def make_default_conda_config(env=dict({})):
-#     with env_vars(env, stack_context_default):
-#         reset_context(())
-#         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_safe_load('')))
-#         context._set_raw_data(rd)
-#         Channel._reset_state()
-#         try:
-#             yield None
-#         finally:
-#             pass
-#
+    @utils.ensure_dir_exists
+    def get_test_dir() -> Path:
+        return Path(tmpdir).joinpath(new_dir)
+
+    new_dir = get_test_dir()
+
+    assert new_dir.is_dir()
+
+
+def test_ensure_dir_errors():
+    """
+    Test to ensure correct error handling
+    """
+    new_dir = "test_dir"
+    exc_message = "Test!"
+
+    with patch("pathlib.Path.mkdir") as mock_mkdir:
+        mock_mkdir.side_effect = OSError(exc_message)
+
+        @utils.ensure_dir_exists
+        def get_test_dir() -> Path:
+            test_dir = Path(new_dir)
+            return test_dir
+
+        with pytest.raises(CondaError) as exc_info:
+            get_test_dir()
+
+    assert exc_message in str(exc_info.value)
+
+
+def test_safe_open(tmpdir):
+    """
+    Ensures this context manager open and closes files appropriately
+    """
+    new_file = Path(tmpdir).joinpath("test.file")
+    content = "test"
+
+    with utils.safe_open(new_file, "w") as fp:
+        fp.write(content)
+
+    assert fp.closed
+
+    written_content = new_file.read_text()
+
+    assert written_content == content
+
+
+def test_safe_open_errors():
+    """
+    Test to ensure correct error handling
+    """
+    exc_message = "Test!"
+
+    with patch("conda.utils.open") as mock_open:
+        mock_open.side_effect = OSError(exc_message)
+
+        with pytest.raises(CondaError) as exc_info, utils.safe_open("test", "w"):
+            pass
+
+        assert exc_message in str(exc_info.value)

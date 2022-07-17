@@ -114,14 +114,14 @@
     @EXIT /B 1
 )
 @REM Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
-@CALL :CONDA install -yq --name base defaults::git > NUL
+@CALL :CONDA "%_BASEEXE%" install -yq --name base defaults::git > NUL
 :INSTALLED
 
 @REM create empty env if it doesn't exist
 @IF EXIST "%_ENV%" @GOTO ENVEXISTS
 @ECHO Creating %_NAME%...
 
-@CALL :CONDA create -yq --prefix "%_ENV%" > NUL
+@CALL :CONDA "%_BASEEXE%" create -yq --prefix "%_ENV%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to create %_NAME% 1>&2
     @EXIT /B 1
@@ -133,13 +133,13 @@
 @IF NOT %ErrorLevel%==0 @GOTO UPTODATE
 @ECHO Updating %_NAME%...
 
-@CALL :CONDA update -yq --all > NUL
+@CALL :CONDA "%_BASEEXE%" update -yq --all > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update development environment 1>&2
     @EXIT /B 1
 )
 
-@CALL :CONDA install ^
+@CALL :CONDA "%_BASEEXE%" install ^
     -yq ^
     --prefix "%_ENV%" ^
     --override-channels ^
@@ -165,7 +165,7 @@
     @SET "_AUTOBASE=%CONDA_AUTO_ACTIVATE_BASE%"
 )
 @SET "CONDA_AUTO_ACTIVATE_BASE=false"
-@CALL :CONDA init --dev cmd.exe > NUL
+@CALL :CONDA "%_ENVEXE%" init --dev cmd.exe > NUL
 @CALL dev-init.bat > NUL
 @IF "%_AUTOBASE%"=="undefined" (
     @SET CONDA_AUTO_ACTIVATE_BASE=
@@ -185,8 +185,6 @@
     @ECHO Error: failed to activate %_NAME% 1>&2
     @EXIT /B 1
 )
-@SET "CONDA_EXE=%_ENVEXE%"
-@SET "CONDA_PYTHON_EXE=%_PYTHONEXE%"
 @SET "CONDA_BAT=%_CONDABAT%"
 @DOSKEY conda="%CONDA_BAT%" $*
 
@@ -214,7 +212,7 @@
 @SET "_PATH=%PATH%"
 @SET "PATH=%_DEVENV%\Library\bin;%PATH%"
 
-@CALL "%_BASEEXE%" %*
+@CALL %*
 @IF NOT %ErrorLevel%==0 @EXIT /B %ErrorLevel%
 
 @REM restore %PATH%

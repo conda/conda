@@ -14,7 +14,7 @@ import sys
 from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
 from ..base.context import conda_in_private_env, context, env_name, sys_rc_path, user_rc_path
-from ..common.compat import iteritems, itervalues, on_win, text_type
+from ..common.compat import on_win
 from ..common.url import mask_anaconda_token
 from ..core.index import _supplement_index_with_system
 from ..models.channel import all_channel_urls, offline_keep
@@ -52,7 +52,7 @@ SKIP_FIELDS = IGNORE_FIELDS | {'name', 'version', 'build', 'build_number',
 
 
 def dump_record(pkg):
-    return {k: v for k, v in iteritems(pkg.dump()) if k not in IGNORE_FIELDS}
+    return {k: v for k, v in pkg.dump().items() if k not in IGNORE_FIELDS}
 
 
 def pretty_package(prec):
@@ -64,7 +64,7 @@ def pretty_package(prec):
         ('version', pkg['version']),
         ('build string', pkg['build']),
         ('build number', pkg['build_number']),
-        ('channel', text_type(prec.channel)),
+        ('channel', str(prec.channel)),
         ('size', human_bytes(pkg['size'])),
     ])
     for key in sorted(set(pkg.keys()) - SKIP_FIELDS):
@@ -91,7 +91,7 @@ def print_package_info(packages):
     if context.json:
         stdout_json({package: results[package] for package in packages})
     else:
-        for result in itervalues(results):
+        for result in results.values():
             for prec in result:
                 pretty_package(prec)
 
@@ -345,7 +345,7 @@ def execute(args, parser):
                 print('                %s' % site_dir)
             print('')
 
-            for name, value in sorted(iteritems(info_dict['env_vars'])):
+            for name, value in sorted(info_dict['env_vars'].items()):
                 print("%s: %s" % (name, value))
             print('')
 

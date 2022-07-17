@@ -101,6 +101,8 @@ gives a non-exhaustive list of the most frequently used options and
 their usage. For a complete list of all available options for your
 version of conda, use the ``conda config --describe`` command.
 
+.. _condarc_search_precedence:
+
 Searching for .condarc
 ======================
 
@@ -163,7 +165,7 @@ Precedence
 
 The precedence by which the conda configuration is built out is shown below.
 Each new arrow takes precedence over the ones before it. For example, config
-files (by parse order) will be superceded by any of the other configuration
+files (by parse order) will be superseded by any of the other configuration
 options. Configuration environment variables (formatted like ``CONDA_<CONFIG NAME>``)
 will always take precedence over the other 3.
 
@@ -969,17 +971,20 @@ Expansion of environment variables
 Conda expands environment variables in a subset of configuration settings.
 These are:
 
-- ``envs_dirs``
-- ``pkgs_dirs``
-- ``ssl_verify``
-- ``client_cert``
-- ``client_cert_key``
-- ``proxy_servers``
+- ``channel``
+- ``channel_alias``
 - ``channels``
+- ``client_cert_key``
+- ``client_cert``
 - ``custom_channels``
 - ``custom_multichannels``
 - ``default_channels``
+- ``envs_dirs``
+- ``envs_path``
 - ``migrated_custom_channels``
+- ``pkgs_dirs``
+- ``proxy_servers``
+- ``verify_ssl``
 - ``whitelist_channels``
 
 This allows you to store the credentials of a private repository in an

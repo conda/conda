@@ -54,7 +54,7 @@ from ..auxlib.ish import dals
 from ..activate import (CshActivator, FishActivator,
                         PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
-from ..common.compat import (PY2, ensure_binary, ensure_utf8_encoding,
+from ..common.compat import (ensure_binary, ensure_utf8_encoding,
                              ensure_text_type, on_mac, on_win, open)
 from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
                            get_python_site_packages_short_path, win_path_ok)
@@ -67,10 +67,7 @@ from ..gateways.disk.read import compute_md5sum
 from ..gateways.subprocess import subprocess_call
 
 if on_win:
-    if PY2:
-        import _winreg as winreg
-    else:
-        import winreg
+    import winreg
     from menuinst.knownfolders import get_folder_path, FOLDERID
     from menuinst.winshortcut import create_shortcut
 

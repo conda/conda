@@ -2169,7 +2169,7 @@ def test_freeze_deps_1(tmpdir):
 #         reset_context()
 
 #     def tearDown(self):
-#         for key, value in iteritems(self.saved_values):
+#         for key, value in self.saved_values.items():
 #             if value is not None:
 #                 os.environ[key] = value
 #             else:

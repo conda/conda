@@ -4,9 +4,10 @@
 import importlib
 import re
 
+from conda.exceptions import EnvironmentFileNotDownloaded
 from conda.models.version import normalized_version
+
 from .. import env
-from ..exceptions import EnvironmentFileNotDownloaded
 
 
 ENVIRONMENT_TYPE = 'env'
@@ -63,7 +64,7 @@ class BinstarSpec(object):
         elif self.name is None:
             self.msg = "Can't process without a name"
         else:
-            self.msg = "Invalid name, try the format: user/package"
+            self.msg = f"Invalid name {self.name!r}, try the format: user/package"
         return False
 
     def valid_package(self):

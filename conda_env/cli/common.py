@@ -3,30 +3,40 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 from os.path import isdir, join, abspath, expanduser, expandvars
-import sys
+import warnings
 
-from conda.auxlib.entity import EntityEncoder
-from conda.base.context import context
+from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
-from conda.cli import common as cli_common
+from conda.cli.common import stdout_json as _stdout_json, stdout_json_success
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 
 base_env_name = 'base'
 
 
 def stdout_json(d):
-    import json
-
-    json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
-    sys.stdout.write('\n')
+    warnings.warn(
+        "`conda_env.cli.common.stdout_json` is pending deprecation and will be removed in a "
+        "future release. Please use `conda.cli.common.stdout_json` instead.",
+        PendingDeprecationWarning,
+    )
+    _stdout_json(d)
 
 
 def get_prefix(args, search=True):
-    from conda.base.context import determine_target_prefix
+    warnings.warn(
+        "`conda_env.cli.common.get_prefix` is pending deprecation and will be removed in a future "
+        "release. Please use `conda.base.context.determine_target_prefix` instead.",
+        PendingDeprecationWarning,
+    )
     return determine_target_prefix(context, args)
 
 
 def find_prefix_name(name):
+    warnings.warn(
+        "`conda_env.cli.common.find_prefix_name` is pending deprecation and will be removed in a "
+        "future release.",
+        PendingDeprecationWarning,
+    )
     if name == base_env_name:
         return context.root_prefix
     # always search cwd in addition to envs dirs (for relative path access)
@@ -40,7 +50,7 @@ def find_prefix_name(name):
 def print_result(args, prefix, result):
     if context.json:
         if result["conda"] is None and result["pip"] is None:
-            cli_common.stdout_json_success(message='All requested packages already installed.')
+            stdout_json_success(message="All requested packages already installed.")
         else:
             if result["conda"] is not None:
                 actions = result["conda"]
@@ -48,7 +58,7 @@ def print_result(args, prefix, result):
                 actions = {}
             if result["pip"] is not None:
                 actions["PIP"] = result["pip"]
-            cli_common.stdout_json_success(prefix=prefix, actions=actions)
+            stdout_json_success(prefix=prefix, actions=actions)
     else:
         cli_install.print_activate(args.name if args.name else prefix)
 

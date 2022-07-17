@@ -3,8 +3,12 @@ coverage:
   round: nearest
   range: 60...100
   status:
-    patch: off
-    project: off
+    patch:
+      default:
+        informational: true
+    project:
+      default:
+        informational: true
 
 ignore:
   - conda_env/.*

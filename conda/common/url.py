@@ -9,8 +9,9 @@ from getpass import getpass
 from os.path import abspath, expanduser
 import re
 import socket
+import warnings
 
-from .compat import input, on_win
+from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 from ..auxlib.decorators import memoize
 
@@ -285,32 +286,10 @@ def is_ipv6_address(string_ip):
         [False, False]
     """
     try:
-        inet_pton = socket.inet_pton
-    except AttributeError:
-        return is_ipv6_address_win_py27(string_ip)
-    try:
-        inet_pton(socket.AF_INET6, string_ip)
+        socket.inet_pton(socket.AF_INET6, string_ip)
     except socket.error:
         return False
     return True
-
-
-def is_ipv6_address_win_py27(string_ip):
-    """
-    Examples:
-        >>> [is_ipv6_address_win_py27(ip) for ip in ('::1', '1234:'*7+'1234')]
-        [True, True]
-        >>> [is_ipv6_address_win_py27(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
-        [False, False]
-    """
-    # python 2.7 on windows does not have socket.inet_pton
-    return bool(re.match(r""  # lgtm [py/regex/unmatchable-dollar]
-                         r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
-                         r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
-                         r"(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|"
-                         r"(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z",
-                         string_ip,
-                         flags=re.DOTALL | re.IGNORECASE))
 
 
 def is_ip_address(string_ip):
@@ -511,6 +490,11 @@ def remove_auth(url: str) -> str:
 
 
 def escape_channel_url(channel):
+    warnings.warn(
+        "This function lives now under conda-libmamba-solver "
+        "and will be deprecated in a future release",
+        PendingDeprecationWarning
+    )
     if channel.startswith("file:"):
         if "%" in channel:  # it's escaped already
             return channel
@@ -520,7 +504,7 @@ def escape_channel_url(channel):
     if parts.scheme:
         components = parts.path.split("/")
         if on_win:
-            if len(parts.netloc) == 2 and parts.netloc[1] == ":":
+            if parts.netloc and len(parts.netloc) == 2 and parts.netloc[1] == ":":
                 # with absolute paths (e.g. C:/something), C:, D:, etc might get parsed as netloc
                 path = "/".join([parts.netloc] + [quote(p) for p in components])
                 parts = parts.replace(netloc="")

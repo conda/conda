@@ -29,8 +29,7 @@ from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.constants import INITIAL_TRUST_ROOT    # Where root.json is currently.
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, iterkeys,
-                             string_types, text_type)
+from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
@@ -144,7 +143,7 @@ class SubdirData(metaclass=SubdirDataType):
         if not self._loaded:
             self.load()
         param = package_ref_or_match_spec
-        if isinstance(param, string_types):
+        if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             if param.get_exact_value('name'):
@@ -478,8 +477,10 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _process_raw_repodata_str(self, raw_repodata_str):
         json_obj = json.loads(raw_repodata_str or '{}')
+        return self._process_raw_repodata(json_obj)
 
-        subdir = json_obj.get('info', {}).get('subdir') or self.channel.subdir
+    def _process_raw_repodata(self, repodata):
+        subdir = repodata.get('info', {}).get('subdir') or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
@@ -488,7 +489,7 @@ class SubdirData(metaclass=SubdirDataType):
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
-        signatures = json_obj.get("signatures", {})
+        signatures = repodata.get("signatures", {})
 
         _internal_state = {
             'channel': self.channel,
@@ -501,14 +502,14 @@ class SubdirData(metaclass=SubdirDataType):
             '_names_index': _names_index,
             '_track_features_index': _track_features_index,
 
-            '_etag': json_obj.get('_etag'),
-            '_mod': json_obj.get('_mod'),
-            '_cache_control': json_obj.get('_cache_control'),
-            '_url': json_obj.get('_url'),
+            '_etag': repodata.get('_etag'),
+            '_mod': repodata.get('_mod'),
+            '_cache_control': repodata.get('_cache_control'),
+            '_url': repodata.get('_url'),
             '_add_pip': add_pip,
             '_pickle_version': REPODATA_PICKLE_VERSION,
             '_schannel': schannel,
-            'repodata_version': json_obj.get('repodata_version', 0),
+            'repodata_version': repodata.get('repodata_version', 0),
         }
         if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
             raise CondaUpgradeError(dals("""
@@ -521,20 +522,20 @@ class SubdirData(metaclass=SubdirDataType):
                 """) % self.url_w_subdir)
 
         meta_in_common = {  # just need to make this once, then apply with .update()
-            'arch': json_obj.get('info', {}).get('arch'),
+            'arch': repodata.get('info', {}).get('arch'),
             'channel': self.channel,
-            'platform': json_obj.get('info', {}).get('platform'),
+            'platform': repodata.get('info', {}).get('platform'),
             'schannel': schannel,
             'subdir': subdir,
         }
 
         channel_url = self.url_w_credentials
-        legacy_packages = json_obj.get("packages", {})
-        conda_packages = {} if context.use_only_tar_bz2 else json_obj.get("packages.conda", {})
+        legacy_packages = repodata.get("packages", {})
+        conda_packages = {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
 
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
-        use_these_legacy_keys = set(iterkeys(legacy_packages)) - set(
-            k[:-6] + _tar_bz2 for k in iterkeys(conda_packages)
+        use_these_legacy_keys = set(legacy_packages.keys()) - set(
+            k[:-6] + _tar_bz2 for k in conda_packages.keys()
         )
 
         if context.extra_safety_checks:
@@ -554,7 +555,7 @@ class SubdirData(metaclass=SubdirDataType):
             verify_metadata_signatures = False
 
         for group, copy_legacy_md5 in (
-                (iteritems(conda_packages), True),
+                (conda_packages.items(), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
             for fn, info in group:
 
@@ -609,12 +610,12 @@ def read_mod_and_etag(path):
                 match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
                 result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
                 return result
-        except (BufferError, ValueError, OSError):  # pragma: no cover
+        except (BufferError, ValueError):  # pragma: no cover
             # BufferError: cannot close exported pointers exist
             #   https://github.com/conda/conda/issues/4592
             # ValueError: cannot mmap an empty file
             return {}
-        except (IOError, OSError) as e:  # pragma: no cover
+        except OSError as e:  # pragma: no cover
             # OSError: [Errno 19] No such device
             if e.errno == ENODEV:
                 return {}
@@ -650,7 +651,7 @@ def fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
         file_url = join_url(signing_data_url, filename)
 
-        # The `auth` arugment below looks a bit weird, but passing `None` seems
+        # The `auth` argument below looks a bit weird, but passing `None` seems
         # insufficient for suppressing modifying the URL to add an Anaconda
         # server token; for whatever reason, we must pass an actual callable in
         # order to suppress the HTTP auth behavior configured in the session.
@@ -693,7 +694,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         headers["If-Modified-Since"] = mod_stamp
 
     headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-    headers['Content-Type'] = 'application/json'
+    headers['Accept'] = 'application/json'
     filename = repodata_fn
 
     try:
@@ -708,7 +709,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         raise ProxyError()   # see #3962
 
     except InvalidSchema as e:
-        if 'SOCKS' in text_type(e):
+        if 'SOCKS' in str(e):
             message = dals("""
             Requests has identified that your current working environment is configured
             to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your

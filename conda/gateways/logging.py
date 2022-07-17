@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import partial
-import logging  # lgtm [py/import-and-import-from]
+import logging
 from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 import re
 import sys
@@ -13,21 +13,11 @@ from datetime import datetime
 from .. import CondaError
 from ..auxlib.decorators import memoize
 from ..common.io import attach_stderr_handler, _FORMATTER
-from ..common.compat import string_types
 
 log = getLogger(__name__)
 TRACE = 5  # TRACE LOG LEVEL
 VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
 
-if sys.version_info[0] == 2:
-    def another_to_unicode(val):
-        # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
-        if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
-            return unicode(val, encoding='utf-8')  # NOQA
-        return val
-else:
-    def another_to_unicode(val):
-        return val
 
 class TokenURLFilter(Filter):
     TOKEN_URL_PATTERN = re.compile(
@@ -53,10 +43,10 @@ class TokenURLFilter(Filter):
         not happening until now.
         '''
 
-        record.msg = another_to_unicode(self.TOKEN_REPLACE(record.msg))
+        record.msg = self.TOKEN_REPLACE(record.msg)
         if record.args:
-            new_args = tuple(self.TOKEN_REPLACE(another_to_unicode(arg))
-                             if isinstance(arg, string_types) else arg
+            new_args = tuple(self.TOKEN_REPLACE(arg)
+                             if isinstance(arg, str) else arg
                              for arg in record.args)
             record.msg = record.msg % new_args
             record.args = None

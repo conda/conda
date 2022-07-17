@@ -23,10 +23,10 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     steps:
-      - id: read_yaml
-        uses: conda/actions/read-yaml@v22.2.1
-        with:
-          path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
+      # - id: read_yaml
+      #   uses: conda/actions/read-yaml@v22.2.1
+      #   with:
+      #     path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
       - uses: dessant/lock-threads@v2
         with:
           # Number of days of inactivity before a closed issue is locked
@@ -38,7 +38,7 @@ jobs:
           # Labels to add before locking an issue, value must be a comma separated list of labels or ''
           issue-lock-labels: 'locked'
           # Comment to post before locking an issue
-          issue-lock-comment: ${{ fromJSON(steps.read_yaml.outputs.value)['lock-issue'] }}
+          # issue-lock-comment: ${{ fromJSON(steps.read_yaml.outputs.value)['lock-issue'] }}
           # Reason for locking an issue, value must be one of resolved, off-topic, too heated, spam or ''
           issue-lock-reason: 'resolved'
 
@@ -51,7 +51,7 @@ jobs:
           # Labels to add before locking a pull request, value must be a comma separated list of labels or ''
           pr-lock-labels: 'locked'
           # Comment to post before locking a pull request
-          pr-lock-comment: ${{ fromJSON(steps.read_yaml.outputs.value)['lock-pr'] }}
+          # pr-lock-comment: ${{ fromJSON(steps.read_yaml.outputs.value)['lock-pr'] }}
           # Reason for locking a pull request, value must be one of resolved, off-topic, too heated, spam or ''
           pr-lock-reason: 'resolved'
 

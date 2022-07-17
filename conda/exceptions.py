@@ -18,14 +18,14 @@ import getpass
 
 from .models.channel import Channel
 from .common.url import join_url, maybe_unquote
-from . import CondaError, CondaExitZero, CondaMultiError, text_type
+from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
 from .auxlib.logz import stringify
 from .auxlib.type_coercion import boolify
 from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
-from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win
+from .common.compat import ensure_text_type, on_win
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
 
@@ -214,7 +214,7 @@ class SharedLinkPathClobberError(ClobberError):
         super(SharedLinkPathClobberError, self).__init__(
             message, context.path_conflict,
             target_path=target_path,
-            incompatible_packages=', '.join(text_type(d) for d in incompatible_package_dists),
+            incompatible_packages=', '.join(str(d) for d in incompatible_package_dists),
         )
 
 
@@ -352,7 +352,7 @@ class DryRunExit(CondaExitZero):
 
 class CondaSystemExit(CondaExitZero, SystemExit):
     def __init__(self, *args):
-        msg = ' '.join(text_type(arg) for arg in self.args)
+        msg = ' '.join(str(arg) for arg in self.args)
         super(CondaSystemExit, self).__init__(msg)
 
 
@@ -598,7 +598,7 @@ class PackagesNotFoundError(CondaError):
 
     def __init__(self, packages, channel_urls=()):
 
-        format_list = lambda iterable: '  - ' + '\n  - '.join(text_type(x) for x in iterable)
+        format_list = lambda iterable: '  - ' + '\n  - '.join(str(x) for x in iterable)
 
         if channel_urls:
             message = dals("""
@@ -653,14 +653,14 @@ class UnsatisfiableError(CondaError):
             key = (dep[0],) + tuple(v[0] for v in dep1)
             vals = ('',) + tuple(v[2] for v in dep1)
             found = False
-            for key2, csets in iteritems(chains):
+            for key2, csets in chains.items():
                 if key2[:len(key)] == key:
                     for cset, val in zip(csets, vals):
                         cset.add(val)
                     found = True
             if not found:
                 chains[key] = [{val} for val in vals]
-        for key, csets in iteritems(chains):
+        for key, csets in chains.items():
             deps = []
             for name, cset in zip(key, csets):
                 if '' not in cset:
@@ -674,8 +674,7 @@ class UnsatisfiableError(CondaError):
                     name = 'feature:' + name[1:]
                 deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
             chains[key] = ' -> '.join(deps)
-        bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
-        return bad_deps
+        return [chains[key] for key in sorted(chains.keys())]
 
     def __init__(self, bad_deps, chains=True, strict=False):
         from .models.match_spec import MatchSpec
@@ -1007,6 +1006,39 @@ class NoSpaceLeftError(CondaError):
         super(NoSpaceLeftError, self).__init__(message, caused_by=caused_by, **kwargs)
 
 
+class CondaEnvException(CondaError):
+    def __init__(self, message, *args, **kwargs):
+        msg = "%s" % message
+        super(CondaEnvException, self).__init__(msg, *args, **kwargs)
+
+
+class EnvironmentFileNotFound(CondaEnvException):
+    def __init__(self, filename, *args, **kwargs):
+        msg = "'{}' file not found".format(filename)
+        self.filename = filename
+        super(EnvironmentFileNotFound, self).__init__(msg, *args, **kwargs)
+
+
+class EnvironmentFileExtensionNotValid(CondaEnvException):
+    def __init__(self, filename, *args, **kwargs):
+        msg = "'{}' file extension must be one of '.txt', '.yaml' or '.yml'".format(filename)
+        self.filename = filename
+        super(EnvironmentFileExtensionNotValid, self).__init__(msg, *args, **kwargs)
+
+
+class EnvironmentFileNotDownloaded(CondaError):
+    def __init__(self, username, packagename, *args, **kwargs):
+        msg = "{}/{} file not downloaded".format(username, packagename)
+        self.username = username
+        self.packagename = packagename
+        super(EnvironmentFileNotDownloaded, self).__init__(msg, *args, **kwargs)
+
+
+class SpecNotFound(CondaError):
+    def __init__(self, msg, *args, **kwargs):
+        super(SpecNotFound, self).__init__(msg, *args, **kwargs)
+
+
 def maybe_raise(error, context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
@@ -1080,7 +1112,7 @@ class ExceptionHandler(object):
     def __call__(self, func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except:  # lgtm [py/catch-base-exception]
+        except:
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
 
@@ -1114,8 +1146,6 @@ class ExceptionHandler(object):
                 return self.handle_reportable_application_exception(exc_val, exc_tb)
             else:
                 return self.handle_application_exception(exc_val, exc_tb)
-        if isinstance(exc_val, UnicodeError) and PY2:
-            return self.handle_application_exception(EncodingError(exc_val), exc_tb)
         if isinstance(exc_val, EnvironmentError):
             if getattr(exc_val, 'errno', None) == ENOSPC:
                 return self.handle_application_exception(NoSpaceLeftError(exc_val), exc_tb)
@@ -1173,14 +1203,14 @@ class ExceptionHandler(object):
                 info_dict = {
                     'error': repr(info_e),
                     'exception_name': info_e.__class__.__name__,
-                    'exception_type': text_type(exc_val.__class__),
+                    'exception_type': str(exc_val.__class__),
                     'traceback': info_traceback,
                 }
 
         error_report = {
             'error': repr(exc_val),
             'exception_name': exc_val.__class__.__name__,
-            'exception_type': text_type(exc_val.__class__),
+            'exception_type': str(exc_val.__class__),
             'command': command,
             'traceback': _format_exc(exc_val, exc_tb),
             'conda_info': info_dict,
@@ -1356,9 +1386,7 @@ class ExceptionHandler(object):
             )
         elif ask_response is None and ask_for_upload:
             # means timeout was reached for `input`
-            self.write_out(  # lgtm [py/unreachable-statement]
-                '\nTimeout reached. No report sent.\n'
-            )
+            self.write_out("\nTimeout reached. No report sent.\n")
         elif ask_for_upload:
             self.write_out(
                 "\n"

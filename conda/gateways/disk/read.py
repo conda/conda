@@ -11,15 +11,16 @@ import hashlib
 from itertools import chain
 import json
 from logging import getLogger
-from os.path import isdir, isfile, join
+import os
+from os.path import isdir, isfile, join  # noqa
 
-from .link import islink, lexists
+from .link import islink, lexists  # noqa
 from .create import TemporaryDirectory
 from ...auxlib.collection import first
 from ...auxlib.compat import shlex_split_unicode
 from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import open, scandir
+from ...common.compat import open
 from ...common.pkg_formats.python import (
     PythonDistribution, PythonEggInfoDistribution, PythonEggLinkDistribution,
     PythonInstalledDistribution,
@@ -32,8 +33,7 @@ from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
 
-listdir = lambda d: list(entry.name for entry in scandir(d))
-lexists, isdir, isfile = lexists, isdir, isfile
+listdir = lambda d: list(entry.name for entry in os.scandir(d))  # noqa
 
 
 def yield_lines(path):

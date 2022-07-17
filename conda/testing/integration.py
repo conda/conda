@@ -47,10 +47,10 @@ from conda.common.compat import encode_arguments, on_win
 from conda.common.io import (
     argv,
     captured,
+    dashlist,
     disable_logger,
     env_var,
     stderr_log_level,
-    dashlist,
 )
 from conda.common.url import path_to_url, escape_channel_url
 from conda.core.prefix_data import PrefixData
@@ -70,20 +70,14 @@ TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
 BIN_DIRECTORY = "Scripts" if on_win else "bin"
 UNICODE_CHARACTERS = "ōγђ家固한áêñßôç"
-# UNICODE_CHARACTERS_RESTRICTED_PY2 = u"ÀÁÂÃÄÅ"
-UNICODE_CHARACTERS_RESTRICTED_PY2 = "abcdef"
-# UNICODE_CHARACTERS_RESTRICTED_PY3 = u"áêñßôç"
-UNICODE_CHARACTERS_RESTRICTED_PY3 = "abcdef"
+# UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
+UNICODE_CHARACTERS_RESTRICTED = "abcdef"
 which_or_where = "which" if not on_win else "where"
 cp_or_copy = "cp" if not on_win else "copy"
 env_or_set = "env" if not on_win else "set"
 
 # UNICODE_CHARACTERS = u"12345678abcdef"
 # UNICODE_CHARACTERS_RESTRICTED = UNICODE_CHARACTERS
-
-# We basically do not work at all with Unicode on Python 2 still!
-# if sys.version_info[0] == 2:
-#     UNICODE_CHARACTERS = UNICODE_CHARACTERS_RESTRICTED
 
 # When testing for bugs, you may want to change this to a _,
 # for example to see if a bug is related to spaces in prefixes.
@@ -139,11 +133,7 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
     capable = running_a_python_capable_of_unicode_subprocessing()
 
     if not capable or use_restricted_unicode:
-        RESTRICTED = (
-            UNICODE_CHARACTERS_RESTRICTED_PY2
-            if (sys.version_info[0] == 2)
-            else UNICODE_CHARACTERS_RESTRICTED_PY3
-        )
+        RESTRICTED = UNICODE_CHARACTERS_RESTRICTED
         random_unicode = "".join(sample(RESTRICTED, len(RESTRICTED)))
     else:
         random_unicode = "".join(sample(UNICODE_CHARACTERS, len(UNICODE_CHARACTERS)))

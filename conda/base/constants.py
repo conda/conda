@@ -16,7 +16,7 @@ from pathlib import Path
 import struct
 
 from conda._vendor.appdirs import user_cache_dir
-from ..common.compat import itervalues, on_win, six_with_metaclass, string_types
+from ..common.compat import on_win, six_with_metaclass
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -170,7 +170,16 @@ CACHED_SESSION_DB_PATH = CACHE_DIR.joinpath("http_cache.db")
 
 
 UNKNOWN_CHANNEL = "<unknown>"
-REPODATA_FN = 'repodata.json'
+REPODATA_FN = "repodata.json"
+
+#: Default name of the notices file on the server we look for
+NOTICES_FN = "notices.json"
+
+#: Name of cache file where read notice IDs are stored
+NOTICES_CACHE_FN = "notices.cache"
+
+#: Determines the subdir for notices cache
+NOTICES_CACHE_SUBDIR = "notices"
 
 
 # TODO: Determine whether conda.base is the right place for this data; it
@@ -271,7 +280,7 @@ class ChannelPriorityMeta(EnumMeta):
         try:
             return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
         except ValueError:
-            if isinstance(value, string_types):
+            if isinstance(value, str):
                 from ..auxlib.type_coercion import typify
                 value = typify(value)
             if value is True:
@@ -281,7 +290,14 @@ class ChannelPriorityMeta(EnumMeta):
             return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
 
 
-class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, Enum)):
+class ValueEnum(Enum):
+    """Subclass of enum that returns the value of the enum as its str representation"""
+
+    def __str__(self):
+        return f"{self.value}"
+
+
+class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, ValueEnum)):
     __name__ = "ChannelPriority"
 
     STRICT = 'strict'
@@ -289,26 +305,23 @@ class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, Enum)):
     FLEXIBLE = 'flexible'
     DISABLED = 'disabled'
 
-    def __str__(self):
-        return self.value
 
-
-class SatSolverChoice(Enum):
+class SatSolverChoice(ValueEnum):
     PYCOSAT = 'pycosat'
     PYCRYPTOSAT = 'pycryptosat'
     PYSAT = 'pysat'
 
-    def __str__(self):
-        return self.value
 
-
-class ExperimentalSolverChoice(Enum):
+class ExperimentalSolverChoice(ValueEnum):
     CLASSIC = 'classic'
     LIBMAMBA = 'libmamba'
     LIBMAMBA_DRAFT = 'libmamba-draft'
 
-    def __str__(self):
-        return self.value
+
+class NoticeLevel(ValueEnum):
+    CRITICAL = "critical"
+    WARNING = "warning"
+    INFO = "info"
 
 
 # Magic files for permissions determination
@@ -341,7 +354,7 @@ NAMESPACES_MAP = {  # base package name, namespace
 }
 
 NAMESPACE_PACKAGE_NAMES = frozenset(NAMESPACES_MAP)
-NAMESPACES = frozenset(itervalues(NAMESPACES_MAP))
+NAMESPACES = frozenset(NAMESPACES_MAP.values())
 
 # Namespace arbiters of uniqueness
 #  global: some repository established by Anaconda, Inc. and conda-forge
