@@ -159,7 +159,6 @@ CONDA_LOGS_DIR = ".logs"
 
 JLAP_CACHE_DB = "jlap_cache.db"
 JLAP_CHUNK_SIZE = 1 << 14
-JLAP_MIRROR_URL = "https://repodata.fly.dev"
 
 # User cache
 CACHE_DIR = Path(user_cache_dir(APP_NAME))  # TODO: not sure this is the best place for this.

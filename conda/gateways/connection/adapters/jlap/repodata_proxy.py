@@ -179,7 +179,7 @@ class RepodataUrl:
     def translate_to_jlap_url(self) -> str:
         """translates our repodata_url into a jlap one."""
         assert self.path.endswith(consts.REPODATA_FN)  # TODO: remove the assert statement
-        return f"{consts.JLAP_MIRROR_URL}/{self.server}/{self.path[:-len('.json')]}.jlap"
+        return f"https://{self.server}/{self.path[:-len('.json')]}.jlap"
 
 
 class FileResponse(NamedTuple):
