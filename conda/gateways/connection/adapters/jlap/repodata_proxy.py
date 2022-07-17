@@ -16,7 +16,7 @@ import tempfile
 import time
 import hashlib
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 from typing import Optional, NamedTuple, Tuple
 
 import requests
@@ -179,7 +179,7 @@ class RepodataUrl:
     def translate_to_jlap_url(self) -> str:
         """translates our repodata_url into a jlap one."""
         assert self.path.endswith(consts.REPODATA_FN)  # TODO: remove the assert statement
-        return f"https://{self.server}/{self.path[:-len('.json')]}.jlap"
+        return urlunparse(self.url_obj._replace(path=self.path[:-len('.json')] + ".jlap"))
 
 
 class FileResponse(NamedTuple):
