@@ -20,14 +20,15 @@ def get_yaml():
     except ImportError:  # pragma: no cover
         try:
             import ruamel.yaml as yaml
+            from ruamel.yaml.compat import StringIO
         except ImportError:
             raise ImportError("No yaml library available.\n"
                               "To proceed, conda install "
                               "ruamel_yaml")
-    return yaml
+    return (yaml, StringIO)
 
 
-yaml = get_yaml()
+(yaml, StringIO) = get_yaml()
 
 
 def represent_ordereddict(dumper, data):
@@ -47,7 +48,8 @@ yaml.representer.SafeRepresenter.add_representer(odict, represent_ordereddict)
 
 
 def yaml_round_trip_load(string):
-    return yaml.round_trip_load(string, version="1.2")
+    yinst = yaml.YAML(typ='rt')
+    return yinst.load(string)
 
 
 def yaml_safe_load(string):
@@ -57,22 +59,34 @@ def yaml_safe_load(string):
         {'key': 'value'}
 
     """
-    return yaml.safe_load(string, version="1.2")
+    yinst=yaml.YAML(typ='safe', pure=True)
+    return yinst.load(string)
 
 
-def yaml_round_trip_dump(object):
-    """dump object to string"""
-    return yaml.round_trip_dump(
-        object, block_seq_indent=2, default_flow_style=False, indent=2
-    )
+def yaml_round_trip_dump(object, stream=None):
+    """dump object to string or stream"""
+    yinst = yaml.YAML(typ='rt')
+    yinst.indent(mapping=2, offset=2, sequence=4)
+    inefficient = False
+    if stream is None:
+        inefficient = True
+        stream = StringIO()
+    yinst.dump(object, stream)
+    if inefficient:
+        return stream.getvalue()
 
-
-def yaml_safe_dump(object):
-    """dump object to string"""
-    return yaml.safe_dump(
-        object, block_seq_indent=2, default_flow_style=False, indent=2
-    )
-
+def yaml_safe_dump(object, stream=None):
+    """dump object to string or stream"""
+    yinst=yaml.YAML(typ='safe', pure=True)
+    yinst.indent(mapping=2, offset=2, sequence=4)
+    yinst.default_flow_style = False
+    inefficient = False
+    if stream is None:
+        inefficient = True
+        stream = StringIO()
+    yinst.dump(object, stream)
+    if inefficient:
+        return stream.getvalue()
 
 def json_load(string):
     return json.loads(string)
