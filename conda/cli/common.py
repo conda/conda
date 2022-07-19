@@ -4,14 +4,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join
+from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
 from warnings import warn
 
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
-from ..base.context import context
+from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
@@ -76,6 +76,18 @@ def ensure_name_or_prefix(args, command):
         from ..exceptions import CondaValueError
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
                               'try "conda %s -h" for more details' % command)
+
+def is_active_prefix(prefix):
+    """
+    Determines whether the args we pass in are pointing to the active prefix.
+    Can be used a validation step to make sure operations are not being
+    performed on the active prefix.
+    """
+    return (
+        paths_equal(prefix, context.active_prefix)
+        # normcasing our prefix check for Windows, for case insensitivity
+        or normcase(prefix) == normcase(env_name(context.active_prefix))
+    )
 
 
 def arg2spec(arg, json=False, update=False):

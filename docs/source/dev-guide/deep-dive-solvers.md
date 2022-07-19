@@ -222,13 +222,12 @@ Explicit installs are taken care of by the [`explicit`][conda.misc:explicit] fun
 
 ### Cloning an environment
 
-`conda create` has a `--clone` flag that allows you to create a fully working copy of an
-existing environment. This is needed because you cannot just copy (or rename) an environment
-using the usual means (`cp`, `mv` or your favorite file manager): this will break your
-environment! Conda _environments_ are _not_ relocatable; some files might contain hardcoded
-paths to existing files in the original location, and those references will break with a
-rename. You can create a new environment anywhere you want, but once created they shall not
-change locations.
+`conda create` has a `--clone` flag that allows you to create a fully-working copy of an
+existing environment. This is needed because you cannot relocate an environment using `cp`,
+`mv`, or your favorite file manager without unintended consequences. Some files in a conda
+environment might contain hardcoded paths to existing files in the original location, and
+those references will break if `cp` or `mv` is utilized (conda environments _can_ be renamed
+via the `conda rename` command, however; see the [following section](#rename) for more information).
 
 The [`clone_env`][conda.misc:clone_env] function implements this functionality. It essentially
 takes the source environment, generates the URLs for each installed packages (filtering
@@ -236,6 +235,12 @@ takes the source environment, generates the URLs for each installed packages (fi
 the source tarballs are not in the cache anymore, it will query the index for the best possible
 match for the current channels. As such, there's a slim chance that the copy is not exactly a clone
 of the original environment.
+
+### <a name="rename"></a>Renaming an environment
+
+When the `conda rename` command is used to rename an already-existing environment, please keep in
+mind that the solver is not invoked at all, since the command essentially does a `conda create --clone`
+and `conda remove --all` of the environment.
 
 ### History rollback
 
