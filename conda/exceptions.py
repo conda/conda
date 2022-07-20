@@ -229,7 +229,7 @@ class CommandNotFoundError(CondaError):
             'clean',
             'config',
             'create',
-            'help',
+            '--help',  # https://github.com/conda/conda/issues/11585
             'info',
             'install',
             'list',
