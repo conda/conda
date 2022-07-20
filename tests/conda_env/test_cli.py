@@ -24,7 +24,7 @@ from conda.exceptions import (
     CondaEnvException,
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
-    EnvironmentFileEmpty,
+    SpecNotFound,
 )
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
@@ -320,7 +320,7 @@ class IntegrationTests(unittest.TestCase):
         """
         Test `conda env create --file=file_name.yml` where file_name.yml is empty
         """
-        with self.assertRaises(EnvironmentFileEmpty), tempfile.NamedTemporaryFile(
+        with self.assertRaises(SpecNotFound), tempfile.NamedTemporaryFile(
             suffix=".yml"
         ) as tmp_file:
             run_env_command(Commands.ENV_CREATE, None, "--file", tmp_file.name)
