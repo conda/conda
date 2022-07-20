@@ -320,10 +320,13 @@ class IntegrationTests(unittest.TestCase):
         """
         Test `conda env create --file=file_name.yml` where file_name.yml is empty
         """
-        with self.assertRaises(SpecNotFound), tempfile.NamedTemporaryFile(
-            suffix=".yml"
-        ) as tmp_file:
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".yml", delete=False)
+
+        with self.assertRaises(SpecNotFound):
             run_env_command(Commands.ENV_CREATE, None, "--file", tmp_file.name)
+
+        tmp_file.close()
+        os.unlink(tmp_file.name)
 
     @pytest.mark.integration
     def test_conda_env_create_http(self):
