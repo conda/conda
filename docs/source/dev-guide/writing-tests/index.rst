@@ -131,7 +131,7 @@ invoking the ``reset_context`` command like in the following example:
 
 
    def test_updating_context_manually():
-       # Load some custom variables in to context here like above...
+       # Load some custom variables into context here like above...
 
        reset_context()
 
