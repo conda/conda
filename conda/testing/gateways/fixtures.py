@@ -61,7 +61,7 @@ def s3_server(xprocess):
 
             return not error
 
-    logfile = xprocess.ensure(NAME, Starter)
+    xprocess.ensure(NAME, Starter)
 
     yield f"http://localhost:{PORT}/{NAME}"
 
