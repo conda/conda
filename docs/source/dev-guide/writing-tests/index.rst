@@ -87,7 +87,7 @@ Where this causes problems is during tests where you may want to run ``conda`` c
 hundreds of times within the same process. Therefore, it is important to always reset this object
 to a fresh state when writing tests.
 
-This can be accomplished by using the ``reset_context`` function which also lives in the
+This can be accomplished by using the ``reset_context`` function, which also lives in the
 ``conda.base.context`` module. The following example shows how you would modify the context
 object and then reset it using the ``reset_conda_context`` ``pytest`` fixture:
 
