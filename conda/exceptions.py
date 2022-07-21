@@ -1026,6 +1026,13 @@ class EnvironmentFileExtensionNotValid(CondaEnvException):
         super(EnvironmentFileExtensionNotValid, self).__init__(msg, *args, **kwargs)
 
 
+class EnvironmentFileEmpty(CondaEnvException):
+    def __init__(self, filename, *args, **kwargs):
+        self.filename = filename
+        msg = f"'{filename}' is empty"
+        super().__init__(msg, *args, **kwargs)
+
+
 class EnvironmentFileNotDownloaded(CondaError):
     def __init__(self, username, packagename, *args, **kwargs):
         msg = "{}/{} file not downloaded".format(username, packagename)
