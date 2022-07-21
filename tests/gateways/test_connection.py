@@ -80,6 +80,7 @@ class CondaSessionTests(TestCase):
 
 
 @pytest.mark.skipif(have_minio_error, reason=f"Minio server not available: {have_minio_error})")
+@pytest.mark.integration
 def test_s3_server(s3_server):
     import boto3
     from botocore.client import Config
