@@ -279,9 +279,9 @@ Current deficiencies to schematics:
   - name = StringType(serialize_when_none=False)
   - more flexible validation error messages
   - field validation can depend on other fields
-  - 'roles' containing blacklists for .dump() and .json()
+  - 'roles' containing denylists for .dump() and .json()
     __roles__ = {
-        EntityRole.registered_name: Blacklist('field1', 'field2'),
+        EntityRole.registered_name: Denylist('field1', 'field2'),
         EntityRole.another_registered_name: Allowlist('field3', 'field4'),
     }
 
