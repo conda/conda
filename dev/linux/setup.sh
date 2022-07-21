@@ -6,9 +6,14 @@ apt-get update --fix-missing
 apt-get install -y --no-install-recommends \
     tini wget build-essential bzip2 ca-certificates \
     libglib2.0-0 libxext6 libsm6 libxrender1 git mercurial subversion \
-    sudo htop less nano man grep
+    sudo htop less nano man grep curl
 apt-get clean
 rm -rf /var/lib/apt/lists/*
+
+# Download the Minio server, needed for S3 tests
+curl -LO https://dl.minio.io/server/minio/release/linux-amd64/minio
+chmod +x minio
+sudo mv minio /usr/bin/minio
 
 useradd -m -s /bin/bash test_user
 usermod -u 1001 test_user
