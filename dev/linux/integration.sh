@@ -10,7 +10,7 @@ TEST_GROUP="${TEST_GROUP:-1}"
 curl -LO https://dl.minio.io/server/minio/release/linux-amd64/minio
 chmod +x minio
 sudo mv minio /usr/bin/minio
-conda install -yq conda-forge::pytest-xprocess boto3
+sudo su root -c "/opt/conda/bin/conda install -yq conda-forge::pytest-xprocess boto3"
 ## /TODO
 
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
