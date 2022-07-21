@@ -282,7 +282,7 @@ Current deficiencies to schematics:
   - 'roles' containing blacklists for .dump() and .json()
     __roles__ = {
         EntityRole.registered_name: Blacklist('field1', 'field2'),
-        EntityRole.another_registered_name: Whitelist('field3', 'field4'),
+        EntityRole.another_registered_name: Allowlist('field3', 'field4'),
     }
 
 

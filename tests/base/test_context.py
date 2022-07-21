@@ -457,7 +457,7 @@ class ContextCustomRcTests(TestCase):
         for attr in [
             "channels",
             "default_channels",
-            "whitelist_channels",
+            "allowlist_channels",
         ]:
             value = _get_expandvars_context(attr, "['${TEST_VAR}']", "foo")
             assert value == ("foo",)
