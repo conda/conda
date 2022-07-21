@@ -8,7 +8,6 @@ from logging import getLogger
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
-from subprocess import run
 
 import pytest
 from requests import HTTPError
@@ -21,14 +20,9 @@ from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_tok
 from conda.gateways.connection.session import CondaHttpAuth, CondaSession
 from conda.gateways.disk.delete import rm_rf
 from conda.testing.integration import make_temp_env, env_var
+from conda.testing.gateways.helpers import populate_s3_server, have_minio_error
 
 log = getLogger(__name__)
-
-try:
-    run(["minio", "-v"], check=True)
-    have_minio_error = None
-except Exception as exc:
-    have_minio_error = exc
 
 
 class CondaHttpAuthTests(TestCase):
@@ -84,7 +78,6 @@ class CondaSessionTests(TestCase):
 def test_s3_server(s3_server):
     import boto3
     from botocore.client import Config
-    from conda.testing.gateways.helpers import populate_s3_server
 
     endpoint, bucket_name = s3_server.rsplit("/", 1)
     channel_dir = Path(__file__).parent.parent / "data" / "conda_format_repo"

@@ -1,7 +1,15 @@
 import json
 import os
-from fnmatch import fnmatch
 from pathlib import Path
+from subprocess import run
+
+try:
+    run(["minio", "-v"], check=True)
+    have_minio = True
+    have_minio_error = None
+except Exception as exc:
+    have_minio = False
+    have_minio_error = exc
 
 
 def populate_s3_server(endpoint, bucket_name, data_directory):

@@ -1,10 +1,12 @@
 import socket
 import tempfile
 from pathlib import Path
+
 import pytest
 
+from .helpers import have_minio
 
-@pytest.fixture(autouse=True)
+
 def s3_server(xprocess):
     """
     Mock a local S3 server using `minio`
@@ -60,3 +62,7 @@ def s3_server(xprocess):
     yield f"http://localhost:{PORT}/{NAME}"
 
     xprocess.getinfo(NAME).terminate()
+
+
+if have_minio:
+    s3_server = pytest.fixture(autouse=True)(s3_server)
