@@ -336,8 +336,8 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(
             Commands.ENV_CREATE,
             None,
-            '--file',
-            'https://raw.githubusercontent.com/conda/conda/master/tests/conda_env/support/simple.yml',
+            "--file",
+            "https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/simple.yml",
         )
         try:
             self.assertTrue(env_is_created("nlp"))
