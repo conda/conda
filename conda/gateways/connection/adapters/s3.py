@@ -5,6 +5,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import json
 from logging import LoggerAdapter, getLogger
+import os
+import re
 from tempfile import SpooledTemporaryFile
 
 have_boto3 = have_boto = False
@@ -55,9 +57,18 @@ class S3Adapter(BaseAdapter):
         bucket_name, key_string = url_to_s3_info(request.url)
         # https://github.com/conda/conda/issues/8993
         # creating a separate boto3 session to make this thread safe
-        session = boto3.session.Session()
+        endpoint = os.getenv("H2H_MIRROR_ENDPOINT", os.getenv("ALIYUN_ENDPOINT", 'http://oss-cn-shanghai.aliyuncs.com'))
+        if endpoint and len(endpoint) > 0:
+            if not re.match(r'[a-z][a-z0-9]{0,11}://', endpoint):
+                endpoint = f'http://{endpoint}'
         # create a resource client using this thread's session object
-        s3 = session.resource('s3')
+        session = boto3.session.Session(profile_name='aliyun')
+        # create a resource client using this thread's session object
+        proxy = os.environ.get("all_proxy") or os.environ.get("https_proxy") or os.environ.get("http_proxy")
+        s3 = session.resource('s3', endpoint_url=endpoint, config=boto3.session.Config(
+            s3={'addressing_style': 'virtual'},
+            proxies={"https": proxy, "http": proxy}
+        ))
         # finally get the S3 object
         key = s3.Object(bucket_name, key_string[1:])
 
