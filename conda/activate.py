@@ -65,7 +65,7 @@ class _Activator(object):
         self._raw_arguments = arguments
         self.environ = os.environ.copy()
 
-    def get_export_unset_vars(self, **kwargs):
+    def get_export_unset_vars(self, *, conda_exe_vars=True, **kwargs):
         """
         :param kwargs: environment variables to export. The `conda_exe_vars` meta
                        variables are also exported by default. If you do not want
@@ -74,33 +74,32 @@ class _Activator(object):
                        .. if you pass and set any other variable to None, then it
                        emits it to the dict with a value of None.
 
-        :return: A OrderedDict of env vars to export ordered the same way as kwargs.
+        :return: A dict of env vars to export ordered the same way as kwargs.
                  And a list of env vars to unset.
         """
-        conda_exe_vars_None = False if ('conda_exe_vars' not in kwargs or
-                                        kwargs['conda_exe_vars'] is not None) else True
-        conda_exe_unset_vars = []
         unset_vars = []
-        # conda_exe_vars = context.conda_exe_vars_dict.copy()
-        from collections import OrderedDict
-        conda_exe_vars_export = OrderedDict()
-        for k, v in context.conda_exe_vars_dict.items():
-            if v is None or conda_exe_vars_None:
-                conda_exe_unset_vars.append(k)
-            else:
-                conda_exe_vars_export[k] = self.path_conversion(v) if v else v
-        from collections import OrderedDict
-        export_vars = OrderedDict()
-        for k, v in kwargs.items():
-            if k == 'conda_exe_vars':
-                continue
-            elif v is None:
-                unset_vars.append(k.upper())
-            else:
-                export_vars[k.upper()] = v
-        # Just to make writing tests a bit more ergonomic we add these to the end.
-        unset_vars += conda_exe_unset_vars
-        export_vars = OrderedDict(chain(export_vars.items(), conda_exe_vars_export.items()))
+        export_vars = {}
+
+        def split_export_unset(**kwargs):
+            for name, value in kwargs.items():
+                if value is None:
+                    unset_vars.append(name.upper())
+                elif value and isinstance(value, str):
+                    # ensure paths use the correct delimiter
+                    export_vars[name.upper()] = self.path_conversion(value)
+                else:
+                    export_vars[name.upper()] = value
+
+        # split provided environment variables into exports vs unsets
+        split_export_unset(**kwargs)
+
+        if conda_exe_vars is None:
+            # unset all meta variables
+            unset_vars.extend(context.conda_exe_vars_dict)
+        else:
+            # split meta variables into exports vs unsets
+            split_export_unset(**context.conda_exe_vars_dict)
+
         return export_vars, unset_vars
 
     # Used in tests only.
