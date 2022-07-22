@@ -3,9 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import OrderedDict
 from errno import ENOENT
-from itertools import chain
 import json
 import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, exists
@@ -106,9 +104,9 @@ class _Activator(object):
     def add_export_unset_vars(self, export_vars, unset_vars, **kwargs):
         new_export_vars, new_unset_vars = self.get_export_unset_vars(**kwargs)
         if export_vars is not None:
-            export_vars = OrderedDict(chain(export_vars.items(), new_export_vars.items()))
+            export_vars = {**export_vars, **new_export_vars}
         if unset_vars is not None:
-            unset_vars += new_unset_vars
+            unset_vars = [*unset_vars, *new_unset_vars]
         return export_vars, unset_vars
 
     # Used in tests only.
@@ -393,11 +391,11 @@ class _Activator(object):
         if not old_conda_prefix or old_conda_shlvl < 1:
             # no active environment, so cannot deactivate; do nothing
             return {
-                'unset_vars': (),
-                'set_vars': OrderedDict(),
-                'export_vars': OrderedDict(),
-                'deactivate_scripts': (),
-                'activate_scripts': (),
+                "unset_vars": (),
+                "set_vars": {},
+                "export_vars": {},
+                "deactivate_scripts": (),
+                "activate_scripts": (),
             }
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
         old_conda_environment_env_vars = self._get_environment_env_vars(old_conda_prefix)
@@ -476,11 +474,11 @@ class _Activator(object):
         if not conda_prefix or conda_shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
             return {
-                'unset_vars': (),
-                'set_vars': OrderedDict(),
-                'export_vars': OrderedDict(),
-                'deactivate_scripts': (),
-                'activate_scripts': (),
+                "unset_vars": (),
+                "set_vars": {},
+                "export_vars": {},
+                "deactivate_scripts": (),
+                "activate_scripts": (),
             }
         conda_default_env = self.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
         new_path = self.pathsep_join(self._replace_prefix_in_path(conda_prefix, conda_prefix))
@@ -490,11 +488,11 @@ class _Activator(object):
             self._update_prompt(set_vars, conda_prompt_modifier)
 
         env_vars_to_unset = ()
-        env_vars_to_export = OrderedDict([
-            ('PATH', new_path),
-            ('CONDA_SHLVL', conda_shlvl),
-            ('CONDA_PROMPT_MODIFIER', self._prompt_modifier(conda_prefix, conda_default_env)),
-        ])
+        env_vars_to_export = {
+            "PATH": new_path,
+            "CONDA_SHLVL": conda_shlvl,
+            "CONDA_PROMPT_MODIFIER": self._prompt_modifier(conda_prefix, conda_default_env),
+        }
         conda_environment_env_vars = self._get_environment_env_vars(conda_prefix)
         for k, v in conda_environment_env_vars.items():
             if v == CONDA_ENV_VARS_UNSET_VAR:
@@ -712,18 +710,18 @@ class _Activator(object):
     def _get_environment_env_vars(self, prefix):
         env_vars_file = join(prefix, PREFIX_STATE_FILE)
         pkg_env_var_dir = join(prefix, PACKAGE_ENV_VARS_DIR)
-        env_vars = OrderedDict()
+        env_vars = {}
 
         # First get env vars from packages
         if exists(pkg_env_var_dir):
             for pkg_env_var_path in sorted(entry.path for entry in os.scandir(pkg_env_var_dir)):
                 with open(pkg_env_var_path, 'r') as f:
-                    env_vars.update(json.loads(f.read(), object_pairs_hook=OrderedDict))
+                    env_vars.update(json.loads(f.read()))
 
         # Then get env vars from environment specification
         if exists(env_vars_file):
             with open(env_vars_file, 'r') as f:
-                prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
+                prefix_state = json.loads(f.read())
                 prefix_state_env_vars = prefix_state.get('env_vars', {})
                 dup_vars = [ev for ev in env_vars.keys() if ev in prefix_state_env_vars.keys()]
                 for dup in dup_vars:
