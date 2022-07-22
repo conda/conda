@@ -63,3 +63,35 @@ cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE
 distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
 six = "https://raw.githubusercontent.com/benjaminp/six/master/LICENSE"  # MIT
+
+[tool.pytest.ini_optios]
+minversion = "3.0"
+testpaths = "conda tests"
+norecursedirs = ".* *.egg* build dist env ve conda/_vendor/* conda_env/* test_data/*"
+addopts = """
+--ignore setup.py
+--ignore conda/__main__.py
+--ignore conda/_vendor
+--ignore tests/conda_env/specs/test_binstar.py
+--ignore tests/conda_env/support
+--ignore tests/conda_env/utils/test_uploader.py
+--ignore test_data
+--tb native
+--strict-markers
+--durations 16
+--xdoctest-modules
+--xdoctest-style=google
+--cov-report xml
+--cov-report term-missing
+--cov conda
+--cov-append
+--junitxml=test-report.xml"""
+doctest_optionflags = """
+NORMALIZE_WHITESPACE
+IGNORE_EXCEPTION_DETAIL
+ALLOW_UNICODE
+ELLIPSIS"""
+markers = """
+integration: integration tests that usually require an internet connect
+slow: slow running tests
+"""
