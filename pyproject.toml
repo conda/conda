@@ -64,7 +64,7 @@ distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
 six = "https://raw.githubusercontent.com/benjaminp/six/master/LICENSE"  # MIT
 
-[tool.pytest.ini_optios]
+[tool.pytest.ini_options]
 minversion = "3.0"
 testpaths = "conda tests"
 norecursedirs = ".* *.egg* build dist env ve conda/_vendor/* conda_env/* test_data/*"
