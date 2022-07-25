@@ -136,9 +136,10 @@ class memoized(object):  # pragma: no cover
     """
     def __init__(self, func):
         warnings.warn(
-            "The `conda.exports.memoized` is pending deprecation and will be removed in a future "
-            "release. Please use `functools.lru_cache` instead.",
+            "The `conda.exports.memoized` decorator is pending deprecation and will be removed in "
+            "a future release. Please use `functools.lru_cache` instead.",
             PendingDeprecationWarning,
+            stacklevel=2,
         )
 
         self.func = func

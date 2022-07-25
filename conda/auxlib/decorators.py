@@ -50,9 +50,10 @@ def memoize(func):
     TypeError: Can't memoize a generator or non-hashable object!
     """
     warnings.warn(
-        "The `conda.auxlib.decorators.memoize` is pending deprecation and will be removed in a "
-        "future release. Please use `functools.lru_cache` instead.",
+        "The `conda.auxlib.decorators.memoize` decorator is pending deprecation and will be "
+        "removed in a future release. Please use `functools.lru_cache` instead.",
         PendingDeprecationWarning,
+        stacklevel=2,
     )
 
     func._result_cache = {}  # pylint: disable-msg=W0212
