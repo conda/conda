@@ -14,6 +14,9 @@ import pytest
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
+from conda.exceptions import CondaSSLError
+from conda.gateways.connection import SSLError
+from conda.gateways.connection.session import CondaSession
 from conda.core.index import get_index
 from conda.core.subdir_data import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
     SubdirData, fetch_repodata_remote_request, UnavailableInvalidChannel
@@ -190,7 +193,20 @@ class FetchLocalRepodataTests(TestCase):
         etag = None
         mod_stamp = 'Mon, 28 Jan 2019 01:01:01 GMT'
         with pytest.raises(UnavailableInvalidChannel):
-            result = fetch_repodata_remote_request(url, etag, mod_stamp)
+            fetch_repodata_remote_request(url, etag, mod_stamp)
+
+
+def test_no_ssl(mocker):
+    def CondaSession_get(*args, **kwargs):
+        raise SSLError("Got an SSL error")
+
+    mocker.patch.object(CondaSession, "get", CondaSession_get)
+
+    url = "https://www.fake.fake/fake/fake/noarch"
+    etag = None
+    mod_stamp = "Mon, 28 Jan 2019 01:01:01 GMT"
+    with pytest.raises(CondaSSLError):
+        fetch_repodata_remote_request(url, etag, mod_stamp)
 
 
 def test_subdir_data_prefers_conda_to_tar_bz2():

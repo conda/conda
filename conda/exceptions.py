@@ -590,6 +590,10 @@ class CondaHTTPError(CondaError):
         )
 
 
+class CondaSSLError(CondaError):
+    pass
+
+
 class AuthenticationError(CondaError):
     pass
 

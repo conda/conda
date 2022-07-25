@@ -34,10 +34,23 @@ from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
-                          NotWritableError, UnavailableInvalidChannel, ProxyError)
-from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
-                                   InvalidSchema, SSLError, RequestsProxyError)
+from ..exceptions import (
+    CondaDependencyError,
+    CondaHTTPError,
+    CondaUpgradeError,
+    CondaSSLError,
+    NotWritableError,
+    UnavailableInvalidChannel,
+    ProxyError,
+)
+from ..gateways.connection import (
+    ConnectionError,
+    HTTPError,
+    InsecureRequestWarning,
+    InvalidSchema,
+    SSLError,
+    RequestsProxyError,
+)
 from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
@@ -720,8 +733,33 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         else:
             raise
 
-    except (ConnectionError, HTTPError, SSLError) as e:
-        # status_code might not exist on SSLError
+    except SSLError as e:
+        # SSLError: either an invalid certificate or OpenSSL is unavailable
+        try:
+            import ssl  # noqa: F401
+        except ImportError:
+            raise CondaSSLError(
+                dals(
+                    f"""
+                    OpenSSL appears to be unavailable on this machine. OpenSSL is required to
+                    download and install packages.
+
+                    Exception: {e}
+                    """
+                )
+            )
+        else:
+            raise CondaSSLError(
+                dals(
+                    f"""
+                    Encountered an SSL error. Most likely a certificate verification issue.
+
+                    Exception: {e}
+                    """
+                )
+            )
+
+    except (ConnectionError, HTTPError) as e:
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
