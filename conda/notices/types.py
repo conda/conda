@@ -8,6 +8,7 @@ from urllib import parse
 from typing import NamedTuple, Optional, Sequence
 
 from ..base.constants import NoticeLevel
+from ..utils import sanitize_filename
 
 
 class ChannelNotice(NamedTuple):
@@ -79,5 +80,6 @@ class ChannelNoticeResponse(NamedTuple):
         """Returns the place where this channel response will be stored as cache"""
         url_obj = parse.urlparse(url)
         path = url_obj.path.replace("/", "-")
-        cache_filename = f"{name}{path}"
+        cache_filename = sanitize_filename(f"{name}{path}")
+
         return cache_dir.joinpath(cache_filename)
