@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import lru_cache
 from logging import getLogger
 from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, join
@@ -11,7 +12,6 @@ from uuid import uuid4
 from .create import create_link
 from .delete import rm_rf
 from .link import islink, lexists
-from ...auxlib.decorators import memoize
 from ...base.constants import PREFIX_MAGIC_FILE
 from ...common.path import expand
 from ...models.enums import LinkType
@@ -39,7 +39,7 @@ def file_path_is_writable(path):
         return access(path, W_OK)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def hardlink_supported(source_file, dest_dir):
     test_file = join(dest_dir, '.tmp.%s.%s' % (basename(source_file), str(uuid4())[:8]))
     assert isfile(source_file), source_file
@@ -64,7 +64,7 @@ def hardlink_supported(source_file, dest_dir):
         rm_rf(test_file)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def softlink_supported(source_file, dest_dir):
     # On Windows, softlink creation is restricted to Administrative users by default. It can
     # optionally be enabled for non-admin users through explicit registry modification.

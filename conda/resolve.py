@@ -5,9 +5,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict, OrderedDict, deque
 import copy
+from functools import lru_cache
 from logging import DEBUG, getLogger
 
-from .auxlib.decorators import memoize, memoizemethod
+from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from ._vendor.toolz import concat, groupby
 from ._vendor.tqdm import tqdm
@@ -40,7 +41,7 @@ _sat_solvers = {
 }
 
 
-@memoize
+@lru_cache(maxsize=None)
 def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     def try_out_solver(sat_solver):
         c = Clauses(sat_solver=sat_solver)
