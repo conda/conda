@@ -140,6 +140,7 @@ else:
         'powershell',
     )
 
+
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000
 
