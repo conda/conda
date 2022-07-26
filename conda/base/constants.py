@@ -140,12 +140,6 @@ else:
         'powershell',
     )
 
-# These characters are not allowed in filenames for these types of operating systems
-ILLEGAL_FILENAME_CHARS_NIX = "/"
-
-ILLEGAL_FILENAME_CHARS_WIN = rf"\\|#*?><:\"{ILLEGAL_FILENAME_CHARS_NIX}"
-
-
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000
 

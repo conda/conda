@@ -15,7 +15,6 @@ from pathlib import Path
 from . import CondaError
 from .auxlib.decorators import memoize
 from .auxlib.compat import shlex_split_unicode, Utf8NamedTemporaryFile
-from .base.constants import ILLEGAL_FILENAME_CHARS_WIN
 from .common.compat import on_win, isiterable
 from .common.path import win_path_to_unix, which
 from .common.url import path_to_url
@@ -535,13 +534,3 @@ def safe_open(*args, **kwargs):
         )
 
     fp.close()
-
-
-def sanitize_filename(filename: str, replacement_char: str = "_") -> str:
-    """
-    Strips all illegal/problematic characters from a filename and replaces them
-    with `replacement_char` (defaults to "_"). We apply Windows rules
-    (see ``conda.base.constants.ILLEGAL_FILENAME_CHARS_WIN``) to err on the
-    safe side.
-    """
-    return re.sub(rf"[{ILLEGAL_FILENAME_CHARS_WIN}]", replacement_char, filename)

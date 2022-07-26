@@ -267,23 +267,3 @@ def test_safe_open_errors():
             pass
 
         assert exc_message in str(exc_info.value)
-
-
-@pytest.mark.parametrize(
-    "filename,replacement_char,expected",
-    (
-        (
-            "filename/with/lots/of/forward/slashes.txt",
-            "_",
-            "filename_with_lots_of_forward_slashes.txt",
-        ),
-        (
-            r"filename/with\lots/of\forward?|#slashes.txt",
-            "_",
-            "filename_with_lots_of_forward___slashes.txt",
-        ),
-    ),
-)
-def test_sanitize_filename(filename, replacement_char, expected):
-    actual = utils.sanitize_filename(filename, replacement_char=replacement_char)
-    assert actual == expected

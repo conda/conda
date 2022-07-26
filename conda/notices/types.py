@@ -3,12 +3,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from datetime import datetime
+import hashlib
 from pathlib import Path
 from urllib import parse
 from typing import NamedTuple, Optional, Sequence
 
 from ..base.constants import NoticeLevel
-from ..utils import sanitize_filename
 
 
 class ChannelNotice(NamedTuple):
@@ -77,9 +77,16 @@ class ChannelNoticeResponse(NamedTuple):
 
     @classmethod
     def get_cache_key(cls, url: str, name: str, cache_dir: Path) -> Path:
-        """Returns the place where this channel response will be stored as cache"""
+        """
+        Returns the place where this channel response will be stored as cache
+
+        We use a naive hashing algorithm to avoid issues with filenames (e.g. illegal or
+        problematic characters). We don't care the that this is a weak hash.
+        """
         url_obj = parse.urlparse(url)
         path = url_obj.path.replace("/", "-")
-        cache_filename = sanitize_filename(f"{name}{path}.json")
+        bytes_filename = bytes(f"{name}{path}", "utf-8")
+        md5_hash = hashlib.md5(bytes_filename)
+        cache_filename = f"{md5_hash.hexdigest()}.json"
 
         return cache_dir.joinpath(cache_filename)
