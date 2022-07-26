@@ -1206,7 +1206,7 @@ dependencies:
             assert ("Environment name starts with underscore '_'.  "
                     "Skipping menu installation." in stderr)
 
-    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    @pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         shortcut_dir = get_shortcut_dir()
@@ -1218,7 +1218,7 @@ dependencies:
                     not in stderr)
             assert not isfile(shortcut_file)
 
-    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    @pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
         shortcut_dir = get_shortcut_dir()
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
@@ -1242,7 +1242,7 @@ dependencies:
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
-    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    @pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
     def test_shortcut_absent_does_not_barf_on_uninstall(self):
         shortcut_dir = get_shortcut_dir()
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
@@ -1267,7 +1267,7 @@ dependencies:
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
-    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    @pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
     def test_shortcut_absent_when_condarc_set(self):
         shortcut_dir = get_shortcut_dir()
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
@@ -1294,6 +1294,44 @@ dependencies:
                 run_command(Commands.REMOVE, prefix, 'console_shortcut')
                 assert not package_is_installed(prefix, 'console_shortcut')
                 assert not isfile(shortcut_file)
+        finally:
+            rmtree(prefix, ignore_errors=True)
+            if isfile(shortcut_file):
+                os.remove(shortcut_file)
+
+    @pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
+    def test_shortcuts_only_filters_out(self):
+        shortcut_dir = get_shortcut_dir()
+        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
+                                          "".format(sys.version_info.major, context.bits))
+
+        prefix = make_temp_prefix(str(uuid4())[:7])
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        assert not isfile(shortcut_file)
+
+        try:
+            with make_temp_env("console_shortcut", "--shortcuts-only=miniforge_console_shortcut", prefix=prefix):
+                assert package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
+        finally:
+            rmtree(prefix, ignore_errors=True)
+            if isfile(shortcut_file):
+                os.remove(shortcut_file)
+
+    @pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
+    def test_shortcuts_only_includes(self):
+        shortcut_dir = get_shortcut_dir()
+        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
+                                          "".format(sys.version_info.major, context.bits))
+
+        prefix = make_temp_prefix(str(uuid4())[:7])
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        assert not isfile(shortcut_file)
+
+        try:
+            with make_temp_env("console_shortcut", "--shortcuts-only=console_shortcut", prefix=prefix):
+                assert package_is_installed(prefix, 'console_shortcut')
+                assert isfile(shortcut_file)
         finally:
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
