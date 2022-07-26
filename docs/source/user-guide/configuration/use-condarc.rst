@@ -985,7 +985,7 @@ These are:
 - ``pkgs_dirs``
 - ``proxy_servers``
 - ``verify_ssl``
-- ``whitelist_channels``
+- ``allowlist_channels``
 
 This allows you to store the credentials of a private repository in an
 environment variable, like so:

@@ -416,7 +416,7 @@ class ChannelNotAllowed(ChannelError):
         channel_name = channel.name
         channel_url = maybe_unquote(channel.base_url)
         message = dals("""
-        Channel not included in whitelist:
+        Channel not included in allowlist:
           channel name: %(channel_name)s
           channel url: %(channel_url)s
         """)

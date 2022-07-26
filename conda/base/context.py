@@ -291,8 +291,9 @@ class Context(Configuration):
     override_channels_enabled = ParameterLoader(PrimitiveParameter(True))
     show_channel_urls = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     use_local = ParameterLoader(PrimitiveParameter(False))
-    whitelist_channels = ParameterLoader(
+    allowlist_channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str)),
+        aliases=("whitelist_channels",),
         expandvars=True)
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
@@ -937,7 +938,7 @@ class Context(Configuration):
                 "channel_alias",
                 "default_channels",
                 "override_channels_enabled",
-                "whitelist_channels",
+                "allowlist_channels",
                 "custom_channels",
                 "custom_multichannels",
                 "migrated_channel_aliases",
@@ -1541,7 +1542,7 @@ class Context(Configuration):
                 defaults to 1.
                 """
             ),
-            whitelist_channels=dals(
+            allowlist_channels=dals(
                 """
                 The exclusive list of channels allowed to be used on the system. Use of any
                 other channels will result in an error. If conda-build channels are to be

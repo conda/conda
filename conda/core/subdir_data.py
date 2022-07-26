@@ -125,7 +125,7 @@ class SubdirData(metaclass=SubdirDataType):
     @staticmethod
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
                   repodata_fn=REPODATA_FN):
-        from .index import check_whitelist  # TODO: fix in-line import
+        from .index import check_allowlist  # TODO: fix in-line import
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
@@ -140,7 +140,7 @@ class SubdirData(metaclass=SubdirDataType):
                 log.info("Ignoring the following channel urls because mode is offline.%s",
                          dashlist(ignored_urls))
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
-        check_whitelist(channel_urls)
+        check_allowlist(channel_urls)
         subdir_query = lambda url: tuple(SubdirData(Channel(url), repodata_fn=repodata_fn).query(
             package_ref_or_match_spec))
 
