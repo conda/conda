@@ -84,9 +84,8 @@ class ChannelNoticeResponse(NamedTuple):
         problematic characters). We don't care the that this is a weak hash.
         """
         url_obj = parse.urlparse(url)
-        path = url_obj.path.replace("/", "-")
-        bytes_filename = bytes(f"{name}{path}", "utf-8")
-        md5_hash = hashlib.md5(bytes_filename)
+        bytes_filename = f"{name}{url_obj.path}".encode()
+        md5_hash = hashlib.sha256(bytes_filename)
         cache_filename = f"{md5_hash.hexdigest()}.json"
 
         return cache_dir.joinpath(cache_filename)

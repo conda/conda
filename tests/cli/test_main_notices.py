@@ -182,9 +182,18 @@ def test_main_notices_help(capsys):
 @pytest.mark.parametrize(
     "channel_name,expected_cache_filename",
     (
-        ("channel/name/with/paths/in/it", "a83e60bd8aa9db9aa1dd6cdd52a45fdc.json"),
-        (r"channel\name\with\paths\in\it", "d07f31e890b392f89557317ebdc2838b.json"),
-        ("channel#name?with#weird|chars|in?it", "ffcdf560df2b2d73864cb44592e0caa9.json"),
+        (
+            "channel/name/with/paths/in/it",
+            "f3d884326b9c3ac1b61c2db89f1f8adc3b35802382a8f57a89f9e1c64f84fdd1.json",
+        ),
+        (
+            r"channel\name\with\paths\in\it",
+            "af70148cc630c52164c5b6650944699dfb3ce3bbe2ad686fe771237e82a75bcc.json",
+        ),
+        (
+            "channel#name?with#weird|chars|in?it",
+            "3480e84f175ef7f1a9234d261a6e50f6ab3944e5be115bbb4ea11151375f3f70.json",
+        ),
     ),
 )
 def test_problematic_characters_do_not_break_notice_cache(
