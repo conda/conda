@@ -175,6 +175,17 @@ normally). But once you open a PR to contribue your changes, pre-commit will
 be automatically run at which point any errors that occur will need to be
 addressed prior to proceeding.
 
+## Autocomplete
+
+You can get IDE-style autocompletions for Conda with [Fig](https://fig.io/) <a href="https://fig.io/" target="_blank"><img src="https://fig.io/badges/Logo.svg" width="15" height="15"/></a>. It works in bash, zsh, and fish.
+
+To install, run:
+
+```shell
+brew install fig
+```
+
+
 ## Testing
 
 We use pytest to run our test suite. Please consult pytest's
