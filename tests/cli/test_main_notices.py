@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import datetime
 import glob
+import hashlib
 import os
 from unittest import mock
 
@@ -179,39 +180,19 @@ def test_main_notices_help(capsys):
     assert conda_argparse.NOTICES_DESCRIPTION in captured.out
 
 
-@pytest.mark.parametrize(
-    "channel_name,expected_cache_filename",
-    (
-        (
-            "channel/name/with/paths/in/it",
-            "f3d884326b9c3ac1b61c2db89f1f8adc3b35802382a8f57a89f9e1c64f84fdd1.json",
-        ),
-        (
-            r"channel\name\with\paths\in\it",
-            "af70148cc630c52164c5b6650944699dfb3ce3bbe2ad686fe771237e82a75bcc.json",
-        ),
-        (
-            "channel#name?with#weird|chars|in?it",
-            "3480e84f175ef7f1a9234d261a6e50f6ab3944e5be115bbb4ea11151375f3f70.json",
-        ),
-    ),
-)
-def test_problematic_characters_do_not_break_notice_cache(
+def test_cache_names_appear_as_expected(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
     notices_mock_http_session_get,
-    channel_name,
-    expected_cache_filename,
 ):
     """
-    Regression test for testing the conversion of illegal/problematic characters in channel names.
-
-    This test is very similar to `test_main_notices` except that we mock the get_channel_name_and_urls
-    function to return channel names that have characters in them that we wish to strip.
+    This is a test to make sure the cache filenames appear as we expect them to.
     """
     with mock.patch("conda.notices.core.get_channel_name_and_urls") as get_channel_name_and_urls:
-        get_channel_name_and_urls.return_value = (("http://localhost", channel_name),)
+        channel_url = "http://localhost/notices.json"
+        get_channel_name_and_urls.return_value = ((channel_url, "channel_name"),)
+        expected_cache_filename = f"{hashlib.sha256(channel_url.encode()).hexdigest()}.json"
 
         args, parser = conda_notices_args_n_parser
         messages = ("Test One", "Test Two")

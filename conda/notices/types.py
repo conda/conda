@@ -5,7 +5,6 @@
 from datetime import datetime
 import hashlib
 from pathlib import Path
-from urllib import parse
 from typing import NamedTuple, Optional, Sequence
 
 from ..base.constants import NoticeLevel
@@ -76,15 +75,11 @@ class ChannelNoticeResponse(NamedTuple):
             return None
 
     @classmethod
-    def get_cache_key(cls, url: str, name: str, cache_dir: Path) -> Path:
+    def get_cache_key(cls, url: str, cache_dir: Path) -> Path:
         """
-        Returns the place where this channel response will be stored as cache
-
-        We use a naive hashing algorithm to avoid issues with filenames (e.g. illegal or
-        problematic characters). We don't care the that this is a weak hash.
+        Returns the place where this channel response will be stored as cache by hashing the url.
         """
-        url_obj = parse.urlparse(url)
-        bytes_filename = f"{name}{url_obj.path}".encode()
+        bytes_filename = url.encode()
         md5_hash = hashlib.sha256(bytes_filename)
         cache_filename = f"{md5_hash.hexdigest()}.json"
 
