@@ -20,7 +20,7 @@
 )
 @FOR %%A in ("%TMP%") do @SET TMP=%%~sA
 @SET _sysp=!_sysp:~0,-1!
-@SET PATH=!_sysp!;!_sysp!\Library\mingw-w64\bin;!_sysp!\Library\usr\bin;!_sysp!\Library\bin;!_sysp!\Scripts;!_sysp!\bin;%PATH%
+@REM @SET PATH=!_sysp!;!_sysp!\Library\mingw-w64\bin;!_sysp!\Library\usr\bin;!_sysp!\Library\bin;!_sysp!\Scripts;!_sysp!\bin;%PATH%
 @REM It seems that it is not possible to have "CONDA_EXE=Something With Spaces"
 @REM and %* to contain: activate "Something With Spaces does not exist".
 @REM MSDOS associates the outer "'s and is unable to run very much at all.

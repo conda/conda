@@ -95,13 +95,13 @@ function Enter-CondaEnvironment {
     );
 
     begin {
-        $OldPath = Add-Sys-Prefix-To-Path;
+        # $OldPath = Add-Sys-Prefix-To-Path;
         If ($Stack) {
             $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
         } Else {
             $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
         }
-        $Env:PATH = $OldPath;
+        # $Env:PATH = $OldPath;
 
         Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
@@ -128,9 +128,9 @@ function Exit-CondaEnvironment {
     param();
 
     begin {
-        $OldPath = Add-Sys-Prefix-To-Path;
+        # $OldPath = Add-Sys-Prefix-To-Path;
         $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate | Out-String);
-        $Env:PATH = $OldPath;
+        # $Env:PATH = $OldPath;
 
         # If deactivate returns an empty string, we have nothing more to do,
         # so return early.
@@ -183,9 +183,9 @@ function Invoke-Conda() {
                 # There may be a command we don't know want to handle
                 # differently in the shell wrapper, pass it through
                 # verbatim.
-                $OldPath = Add-Sys-Prefix-To-Path;
+                # $OldPath = Add-Sys-Prefix-To-Path;
                 & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
-                $Env:PATH = $OldPath;
+                # $Env:PATH = $OldPath;
             }
         }
     }
