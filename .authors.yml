@@ -1261,8 +1261,12 @@
   first_commit: 2017-09-04 10:47:52
 - name: Valentin Haenel
   email: vhaenel@anaconda.com
+  aliases:
+  - esc
+  - Valentin Haenel
   alternate_emails:
   - valentin@haenel.co
+  - esc@users.noreply.github.com
   num_commits: 4
   first_commit: 2015-02-09 23:43:21
   github: esc
@@ -2034,6 +2038,7 @@
   - conda-bot
   - Distro Bot
   - distro-bot@anaconda.com
+  - conda bot
   alternate_emails:
   - ad-team+condabot@anaconda.com
   - 18747875+conda-bot@users.noreply.github.com
@@ -2064,8 +2069,10 @@
   num_commits: 1
   first_commit: 2022-03-31 09:27:06
 - name: Bianca Henderson
-  email: beeankha@gmail.com
+  email: bhenderson@anaconda.com
   github: beeankha
+  alternate_emails:
+  - beeankha@gmail.com
   num_commits: 1
   first_commit: 2022-05-12 13:39:02
 - name: Kian-Meng Ang
@@ -2093,3 +2100,35 @@
   github: thomasrockhu-codecov
   num_commits: 1
   first_commit: 2022-05-17 11:49:03
+- name: Andrew Arendt
+  email: andrewarendt@gmail.com
+  github: drewja
+- name: Tim Hoffmann
+  email: 2836374+timhoffm@users.noreply.github.com
+  github: timhoffm
+- name: Samuel Walters-Nevet
+  email: SamuelWN@users.noreply.github.com
+  github: SamuelWN
+- name: Paul Yim
+  email: pseudoyim@users.noreply.github.com
+  github: pseudoyim
+- name: Spencer Mathews
+  email: spencermathews@users.noreply.github.com
+  github: spencermathews
+- name: Navdeeppal Singh
+  email: 29735499+nps1ngh@users.noreply.github.com
+  github: nps1ngh
+  aliases:
+  - nps1ngh
+- name: Deepyaman Datta
+  email: deepyaman.datta@utexas.edu
+  github: deepyaman
+- name: Christopher Howard
+  email: 45762860+topherocity@users.noreply.github.com
+  github: topherocity
+- name: Dan Dascalescu
+  email: ddascalescu+github@gmail.com
+  github: dandv
+- name: Sam Nicholls
+  email: samstudio8+github@gmail.com
+  github: SamStudio8
