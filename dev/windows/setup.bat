@@ -19,6 +19,11 @@ CALL conda create -n conda-test-env -y python=%PYTHON% pywin32 --file=tests\requ
 CALL conda activate conda-test-env || goto :error
 CALL conda update openssl ca-certificates certifi || goto :error
 python -m conda init cmd.exe --dev || goto :error
+
+:: Download minio server needed for S3 tests and place it in our conda environment so is in PATH
+:: certutil somehow is able to download arbitrary files; don't aske me why: https://superuser.com/a/1545689
+certutil -urlcache -split -f "https://dl.minio.io/server/minio/release/windows-amd64/minio.exe" "%CONDA_PREFIX%\minio.exe" || goto :error
+
 goto :EOF
 
 :error
