@@ -13,4 +13,3 @@ conda config --set use_only_tar_bz2 true
 # install all test requirements
 conda install --name conda-test-env --yes --file tests/requirements.txt
 conda update openssl ca-certificates certifi
-
