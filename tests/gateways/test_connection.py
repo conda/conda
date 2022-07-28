@@ -19,8 +19,8 @@ from conda.exceptions import CondaExitZero
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.gateways.connection.session import CondaHttpAuth, CondaSession
 from conda.gateways.disk.delete import rm_rf
+from conda.testing.gateways.fixtures import MINIO_EXE
 from conda.testing.integration import make_temp_env, env_var
-from conda.testing.gateways.helpers import populate_s3_server, have_minio_error
 
 log = getLogger(__name__)
 
@@ -73,15 +73,15 @@ class CondaSessionTests(TestCase):
                 rm_rf(test_path)
 
 
-@pytest.mark.skipif(have_minio_error, reason=f"Minio server not available: {have_minio_error})")
+@pytest.mark.skipif(MINIO_EXE is None, reason=f"Minio server not available")
 @pytest.mark.integration
-def test_s3_server(s3_server):
+def test_s3_server(minio_s3_server):
     import boto3
     from botocore.client import Config
 
-    endpoint, bucket_name = s3_server.rsplit("/", 1)
+    endpoint, bucket_name = minio_s3_server.server_url.rsplit("/", 1)
     channel_dir = Path(__file__).parent.parent / "data" / "conda_format_repo"
-    populate_s3_server(endpoint, bucket_name, channel_dir)
+    minio_s3_server.populate_bucket(endpoint, bucket_name, channel_dir)
 
     # We patch the default kwargs values in boto3.session.Session.resource(...)
     # which is used in conda.gateways.connection.s3.S3Adapter to initialize the S3
