@@ -80,7 +80,7 @@ class ChannelNoticeResponse(NamedTuple):
         Returns the place where this channel response will be stored as cache by hashing the url.
         """
         bytes_filename = url.encode()
-        md5_hash = hashlib.sha256(bytes_filename)
-        cache_filename = f"{md5_hash.hexdigest()}.json"
+        sha256_hash = hashlib.sha256(bytes_filename)
+        cache_filename = f"{sha256_hash.hexdigest()}.json"
 
         return cache_dir.joinpath(cache_filename)
