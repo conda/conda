@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Updated conda env create CLI documentation description and examples to be more helpful. #9396
+* Update [`conda-zsh-completeion` link](https://github.com/conda-incubator/conda-zsh-completion). (#11541)
 
 ### Other
 

@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Updated docs and CLI help to include information on ``conda init`` arguments. (#11574)
+* Correct docs URL to https://docs.conda.io. (#11508)
 
 ### Other
 

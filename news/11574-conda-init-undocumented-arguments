@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix MD5 hash generation for FIPS-enabled systems. (#11658)
+* <news item>
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Updated docs and CLI help to include information on `conda init` arguments. (#11574)
 
 ### Other
 

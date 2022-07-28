@@ -4,11 +4,11 @@
 
 ### Bug fixes
 
-* Fix MD5 hash generation for FIPS-enabled systems. (#11658)
+* <news item>
 
 ### Deprecations
 
-* <news item>
+* Remove redundant `conda.resolve.dashlist` definition. (#11578)
 
 ### Docs
 

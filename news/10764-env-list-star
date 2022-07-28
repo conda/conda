@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Only star activated environment in `conda info --envs`/`conda env list`. (#10764)
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Missing `pip` as a dependancy when including a pip-installed dependency
+* <news item>
 
 ### Other
 

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix MD5 hash generation for FIPS-enabled systems. (#11658)
+* Fixed the bug when providing empty environment.yml to `conda env create` command. (#11556, #11630)
 
 ### Deprecations
 

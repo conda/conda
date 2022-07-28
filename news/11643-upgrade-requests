@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Bump requests version (`>=2.20.1`) and drop monkeypatching. (#11643)
 
 ### Bug fixes
 
-* Fixed the bug when providing empty environment.yml to `conda env create` command. (#11542)
+* <news item>
 
 ### Deprecations
 

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix MD5 hash generation for FIPS-enabled systems. (#11658)
+* <news item>
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Updated `conda env create` CLI documentation description and examples to be more helpful. (#11611)
 
 ### Other
 

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix MD5 hash generation for FIPS-enabled systems. (#11658)
+* <news item>
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Update `Dockerfile` and `ci-images.yml` flow to build multi arch images. (#11560)
