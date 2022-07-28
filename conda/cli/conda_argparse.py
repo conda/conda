@@ -558,7 +558,7 @@ def configure_parser_config(sub_parsers):
 def configure_parser_create(sub_parsers):
     help = "Create a new conda environment from a list of specified packages. "
     descr = (help + "To use the created environment, use 'conda activate "
-             "envname' look in that directory first.  This command requires either "
+             "envname' to look in that directory first.  This command requires either "
              "the -n NAME or -p PREFIX option.")
 
     example = dedent("""
