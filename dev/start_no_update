@@ -192,7 +192,7 @@ if updating; then
         -yq \
         --prefix "${_ENV}" \
         --override-channels \
-        -c https://mirrors-ssl.aliyuncs.com/anaconda/cloud/conda-forge \
+        -c https://mirrors.aliyun.com/anaconda/cloud/conda-forge \
         --file "${_SRC}/tests/requirements.txt" \
         $([ "$(uname)" = "Linux" ] && echo "patchelf") \
         "python=${_PYTHON}" > /dev/null; then
