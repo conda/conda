@@ -63,12 +63,10 @@ class _Activator(object):
         self._raw_arguments = arguments
         self.environ = os.environ.copy()
 
-    def get_export_unset_vars(self, *, conda_exe_vars=True, **kwargs):
+    def get_export_unset_vars(self, export_metavars=True, **kwargs):
         """
-        :param kwargs: environment variables to export. The `conda_exe_vars` meta
-                       variables are also exported by default. If you do not want
-                       this to happen then pass:
-                           conda_exe_vars=None
+        :param export_metavars: whether to export `conda_exe_vars` meta variables.
+        :param kwargs: environment variables to export.
                        .. if you pass and set any other variable to None, then it
                        emits it to the dict with a value of None.
 
@@ -90,12 +88,12 @@ class _Activator(object):
         # split provided environment variables into exports vs unsets
         split_export_unset(**kwargs)
 
-        if conda_exe_vars is None:
-            # unset all meta variables
-            unset_vars.extend(context.conda_exe_vars_dict)
-        else:
+        if export_metavars:
             # split meta variables into exports vs unsets
             split_export_unset(func=self.path_conversion, **context.conda_exe_vars_dict)
+        else:
+            # unset all meta variables
+            unset_vars.extend(context.conda_exe_vars_dict)
 
         return export_vars, unset_vars
 
@@ -403,7 +401,7 @@ class _Activator(object):
         set_vars = {}
         if old_conda_shlvl == 1:
             new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
-            # You might think that you can remove the CONDA_EXE vars by passing conda_exe_vars=None
+            # You might think that you can remove the CONDA_EXE vars with export_metavars=False
             # here so that "deactivate means deactivate" but you cannot since the conda shell
             # scripts still refer to them and they only set them once at the top. We could change
             # that though, the conda() shell function could set them instead of doing it at the
