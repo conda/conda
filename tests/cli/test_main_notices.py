@@ -2,6 +2,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import datetime
+import glob
+import hashlib
+import os
+from unittest import mock
 
 import pytest
 
@@ -174,3 +178,40 @@ def test_main_notices_help(capsys):
     assert captured.err == ""
     assert conda_argparse.NOTICES_HELP in captured.out
     assert conda_argparse.NOTICES_DESCRIPTION in captured.out
+
+
+def test_cache_names_appear_as_expected(
+    capsys,
+    conda_notices_args_n_parser,
+    notices_cache_dir,
+    notices_mock_http_session_get,
+):
+    """
+    This is a test to make sure the cache filenames appear as we expect them to.
+    """
+    with mock.patch("conda.notices.core.get_channel_name_and_urls") as get_channel_name_and_urls:
+        channel_url = "http://localhost/notices.json"
+        get_channel_name_and_urls.return_value = ((channel_url, "channel_name"),)
+        expected_cache_filename = f"{hashlib.sha256(channel_url.encode()).hexdigest()}.json"
+
+        args, parser = conda_notices_args_n_parser
+        messages = ("Test One", "Test Two")
+        messages_json = get_test_notices(messages)
+        add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
+
+        notices.execute(args, parser)
+
+        captured = capsys.readouterr()
+
+        # Test to make sure everything looks normal for our notices output
+        assert captured.err == ""
+        assert "Retrieving" in captured.out
+
+        for message in messages:
+            assert message in captured.out
+
+        # Test to make sure the cache files are showing up as we expect them to
+        cache_files = glob.glob(f"{notices_cache_dir}/*.json")
+
+        assert len(cache_files) == 1
+        assert os.path.basename(cache_files[0]) == expected_cache_filename
