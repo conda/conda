@@ -905,8 +905,14 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     #    are looking for the cache under keys without this.
     if repodata_fn != REPODATA_FN:
         url += repodata_fn
-    md5 = hashlib.md5(ensure_binary(url)).hexdigest()
-    return '%s.json' % (md5[:8],)
+
+    # TODO: remove try-except when conda only supports Python 3.9+, as
+    # `usedforsecurity=False` was added in 3.9.
+    try:
+        md5 = hashlib.md5(ensure_binary(url))
+    except ValueError:
+        md5 = hashlib.md5(ensure_binary(url), usedforsecurity=False)
+    return '%s.json' % (md5.hexdigest()[:8],)
 
 
 def add_http_value_to_dict(resp, http_key, d, dict_key):
