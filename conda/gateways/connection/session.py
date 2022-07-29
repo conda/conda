@@ -73,7 +73,7 @@ class CondaSessionType(type):
             session = cls._thread_local.session = super(CondaSessionType, cls).__call__()
             return session
 
-
+# XXX This winds up putting package requests through the cache also:::
 class CondaSession(CachedSession, metaclass=CondaSessionType):
     """
     CondaSession is a subclass of CachedSession provided by requests_cache
@@ -87,7 +87,11 @@ class CondaSession(CachedSession, metaclass=CondaSessionType):
             db_path,
             allowable_codes=[200, 206],
             match_headers=["Accept", "Range"],
-            serializer=discard_serializer,  # TODO: change this serializer to something real
+            # this serializer causes requests-cache to only track headers,
+            # allowing the caller to save response contents outside the cache
+            # database. That's more useful for large files, or when you need the
+            # file to be downloaded somewhere anyway.
+            serializer=discard_serializer,  # TODO: change this serializer to something realializer
             cache_control=True,
             expire_after=CACHED_SESSION_EXPIRY,
         )
