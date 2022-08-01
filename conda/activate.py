@@ -76,21 +76,20 @@ class _Activator(object):
         unset_vars = []
         export_vars = {}
 
-        def split_export_unset(func=None, **kwargs):
-            for name, value in kwargs.items():
-                if value is None:
-                    unset_vars.append(name.upper())
-                elif func and value:
-                    export_vars[name.upper()] = func(value)
-                else:
-                    export_vars[name.upper()] = value
-
         # split provided environment variables into exports vs unsets
-        split_export_unset(**kwargs)
+        for name, value in kwargs.items():
+            if value is None:
+                unset_vars.append(name.upper())
+            else:
+                export_vars[name.upper()] = value
 
         if export_metavars:
             # split meta variables into exports vs unsets
-            split_export_unset(func=self.path_conversion, **context.conda_exe_vars_dict)
+            for name, value in context.conda_exe_vars_dict.items():
+                if value is None:
+                    unset_vars.append(name.upper())
+                else:
+                    export_vars[name.upper()] = self.path_conversion(value) if value else value
         else:
             # unset all meta variables
             unset_vars.extend(context.conda_exe_vars_dict)
