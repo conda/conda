@@ -46,7 +46,7 @@ def update_prefix(
         # Step 1. do all prefix replacement
         data = replace_prefix(mode, original_data, placeholder, new_prefix)
 
-        # Step 2. if the shebang is too long or the new prefix contains spaces, shorten it using 
+        # Step 2. if the shebang is too long or the new prefix contains spaces, shorten it using
         # /usr/bin/env trick -- NOTE: this trick assumes the environment WILL BE activated
         if not on_win:
             data = replace_long_shebang(mode, data)
