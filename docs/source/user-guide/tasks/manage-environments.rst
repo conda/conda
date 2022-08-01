@@ -866,6 +866,32 @@ list <config-channels>` in the ``.condarc`` file. However,
 changing ``environment.yml`` affects only one of your conda
 environments while changing ``.condarc`` affects them all.
 
+Starting from conda 23.3.0 release, multiple entries of ``pip:`` can be used
+for better organization of the pip packages. An example of an environment file
+with multiple ``pip`` entries:
+
+.. code::
+
+   name: stats3
+   channels:
+     - pytorch
+     - defaults
+   dependencies:
+     - python=3.9
+     - pip
+
+     # Tensor libraries
+     - pytorch
+     - numpy=1.21.*
+     - pip:
+       - functorch
+
+     # For documentation
+     - sphinx
+     - sphinx-autobuild
+     - pip:
+       - sphinxcontrib-tikz
+
 For details on creating an environment from this
 ``environment.yml`` file, see :ref:`create-env-from-file`.
 
