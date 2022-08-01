@@ -1015,7 +1015,6 @@ class Solver(object):
                 latest_version = conda_newer_precs[-1].version
                 # If conda comes from defaults, ensure we're giving instructions to users
                 # that should resolve release timing issues between defaults and conda-forge.
-                add_channel = "-c defaults " if channel_name == "defaults" else ""
                 print(dedent("""
 
                 ==> WARNING: A newer version of conda exists. <==
@@ -1024,9 +1023,9 @@ class Solver(object):
 
                 Please update conda by running
 
-                    $ conda update -n base %sconda
+                    $ conda update -n base -c %s conda
 
-                """) % (CONDA_VERSION, latest_version, add_channel), file=sys.stderr)
+                """) % (CONDA_VERSION, latest_version, channel_name), file=sys.stderr)
 
     def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further
