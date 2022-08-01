@@ -337,6 +337,8 @@ class IntegrationTests(BaseTestCase):
             if on_win:
                 exe_path += ".exe"
             assert isfile(exe_path)
+            output = check_output([exe_path, "--help"], universal_newlines=True)
+            assert "Usage: flask" in output
 
             run_command(Commands.REMOVE, prefix, "flask")
 
