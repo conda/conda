@@ -326,7 +326,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
                 #   python 2.7 raises ValueError instead of JsonDecodeError
                 #   ValueError("No JSON object could be decoded")
-                log.debug("unable to read %s\n  because",
+                log.debug("unable to read %s\n  because %r",
                           join(extracted_package_dir, 'info', 'index.json'), e)
 
                 if isdir(extracted_package_dir) and not isfile(package_tarball_full_path):
