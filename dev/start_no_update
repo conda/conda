@@ -145,7 +145,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     if [ "$(uname)" = "Darwin" ]; then
         [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh" -o "${_DEVENV}/miniconda.sh"'
     elif [ "$(uname)" = "Linux" ]; then
-        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://mirrors-ssl.aliyuncs.com/anaconda/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh" -o "${_DEVENV}/miniconda.sh"'
+        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "http://mirrors.cloud.aliyuncs.com/anaconda/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh" -o "${_DEVENV}/miniconda.sh"'
     else
         [ -f "${_DEVENV}/miniconda.exe" ] || _CMD='powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_DEVENV}/miniconda.exe' | Out-Null"'
     fi
@@ -189,10 +189,10 @@ if updating; then
     # fi
 
     if ! "${_BASEEXE}" install \
-        -yq \
+        -y \
         --prefix "${_ENV}" \
         --override-channels \
-        -c https://mirrors.aliyun.com/anaconda/cloud/conda-forge \
+        -c http://mirrors.cloud.aliyuncs.com/anaconda/cloud/conda-forge \
         --file "${_SRC}/tests/requirements.txt" \
         $([ "$(uname)" = "Linux" ] && echo "patchelf") \
         "python=${_PYTHON}" > /dev/null; then
