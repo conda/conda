@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from os.path import abspath, dirname
 import sys
+import warnings
 
 from json import JSONEncoder
 
@@ -40,6 +41,11 @@ CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
 CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
 
 def another_to_unicode(val):
+    warnings.warn(
+        "`conda.another_to_unicode` is pending deprecation and will be removed in a "
+        "future release.",
+        PendingDeprecationWarning,
+    )
     # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
     if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
         return unicode(val, encoding='utf-8')  # NOQA
