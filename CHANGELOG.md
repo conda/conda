@@ -63,24 +63,25 @@
 
 ### Contributors
 
-* @drewja
+* @drewja made their first contribution in #11614
 * @beeankha
-* @topherocity
+* @topherocity made their first contribution in #11658
 * @conda-bot
-* @dandv
+* @dandv made their first contribution in #11636
 * @dbast
 * @dholth
-* @deepyaman
+* @deepyaman made their first contribution in #11598
+* @dogukanteber made their first contribution in #11556/#11630
 * @jaimergp
 * @kathatherine
 * @kenodegard
-* @nps1ngh
-* @pseudoyim
-* @SamStudio8
-* @SamuelWN
-* @spencermathews
+* @nps1ngh made their first contribution in #10764
+* @pseudoyim made their first contribution in #11528
+* @SamStudio8 made their first contribution in #11679
+* @SamuelWN made their first contribution in #11543
+* @spencermathews made their first contribution in #11508
 * @timgates42
-* @timhoffm
+* @timhoffm made their first contribution in #11601
 * @travishathaway
 * @esc
 * @pre-commit-ci[bot]
