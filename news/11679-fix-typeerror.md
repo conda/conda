@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixed TypeError encountered when log is debug and package JSON cannot be read (#11679)
+* Fixed `TypeError` encountered when logging is set to DEBUG and the package's JSON cannot be read. (#11679)
 
 ### Deprecations
 
