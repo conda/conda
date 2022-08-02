@@ -379,11 +379,13 @@ class Context(Configuration):
         if argparse_args:
             # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
             # configuration can be properly loaded from those locations
-            func_name = ('func' in argparse_args and argparse_args.func or '').rsplit('.', 1)[-1]
-            if func_name in ('create', 'install', 'update', 'remove', 'uninstall', 'upgrade'):
-                if 'prefix' in argparse_args and argparse_args.prefix:
-                    os.environ['CONDA_PREFIX'] = argparse_args.prefix
-                elif 'name' in argparse_args and argparse_args.name:
+            func_name = "func" in argparse_args and isinstance(argparse_args.func, str) or ""
+
+            func_name = func_name.rsplit(".", 1)[-1]
+            if func_name in ("create", "install", "update", "remove", "uninstall", "upgrade"):
+                if "prefix" in argparse_args and argparse_args.prefix:
+                    os.environ["CONDA_PREFIX"] = argparse_args.prefix
+                elif "name" in argparse_args and argparse_args.name:
                     # Currently, usage of the '-n' flag is inefficient, with all configuration
                     # files being loaded/re-loaded at least two times.
                     target_prefix = determine_target_prefix(context, argparse_args)

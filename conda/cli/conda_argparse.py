@@ -27,7 +27,7 @@ from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier
     UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
 from ..common.io import dashlist
-from ..exceptions import PluginError
+from ..exceptions import PluginError, CondaError
 
 log = getLogger(__name__)
 
@@ -39,9 +39,12 @@ escaped_sys_rc_path = abspath(join(sys.prefix, '.condarc')).replace("%", "%%")
 
 
 def generate_parser():
+    plugin_subcommands = get_plugin_subcommands()
+
     p = ArgumentParser(
-        description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.',
+        description="conda is a tool for managing and deploying applications,"
+        " environments and packages.",
+        plugin_subcommands=plugin_subcommands,
     )
     p.add_argument(
         '-V', '--version',
@@ -85,17 +88,52 @@ def generate_parser():
     configure_parser_update(sub_parsers, name='upgrade')
     configure_parser_notices(sub_parsers)
 
+    # Add plugin subcommands
+    for plugin_sub in plugin_subcommands:
+        plugin_sub.add_argument_parser(sub_parsers)
+
     return p
 
 
 def do_call(args, parser):
-    relative_mod, func_name = args.func.rsplit('.', 1)
-    # func_name should always be 'execute'
-    from importlib import import_module
-    module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
+    """
+    Attempts several methods to call the appropriate sub-command:
 
-    return getattr(module, func_name)(args, parser)
+    If the ``func`` attribute on the parser object is a set to a string,
+    we assume a relatie namespace import.
 
+    If the ``func`` attribute is actually callable, we call it passing in
+    the ``args`` and the ``parser`` passed into this function.
+
+    Finally, we raise CondaError when none of this conditions are met.
+
+    """
+    if not hasattr(args, "func"):
+        print(
+            "This is a helpful error message for plugin authors! This happens when you do not "
+            "appropriately set the p.set_defaults(func=entry_point_function)"
+        )
+
+        sys.exit(1)
+
+    if isinstance(args.func, str):
+        relative_mod, func_name = args.func.rsplit(".", 1)
+        # func_name should always be 'execute'
+        from importlib import import_module
+
+        module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
+
+        return getattr(module, func_name)(args, parser)
+
+    elif callable(args.func):
+        args.func(args, parser)
+
+    else:
+        raise CondaError(
+            "There is something mis-configured with your subcommands. This could be due to an "
+            "incorrectly configured plugin. Please try uninstalling any problematic plugins "
+            "you may have to remove this error."
+        )
 
 def find_builtin_commands(parser):
     # ArgumentParser doesn't have an API for getting back what subparsers
@@ -104,7 +142,7 @@ def find_builtin_commands(parser):
 
 
 class ArgumentParser(ArgumentParserBase):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, plugin_subcommands=None, **kwargs):
         if not kwargs.get('formatter_class'):
             kwargs['formatter_class'] = RawDescriptionHelpFormatter
         if 'add_help' not in kwargs:
@@ -120,40 +158,9 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
-        pm = context.get_plugin_manager()
-        self._subcommands = sorted(
-            (
-                subcommand
-                for subcommands in pm.hook.conda_subcommands()
-                for subcommand in subcommands
-            ),
-            key=lambda subcommand: subcommand.name,
-        )
-
-        # Check for conflicts
-        seen = set()
-        conflicts = [
-            subcommand
-            for subcommand in self._subcommands
-            if subcommand.name in seen or seen.add(subcommand.name)
-        ]
-        if conflicts:
-            raise PluginError(
-                dals(
-                    f"""
-                    Conflicting entries found for the following subcommands:
-                    {dashlist(conflicts)}
-                    Multiple conda plugins are registering these subcommands via the
-                    `conda_subcommands` hook; please make sure that
-                    you do not have any incompatible plugins installed.
-                    """
-                )
-            )
-
-        if self._subcommands:
-            self.epilog = 'conda commands available from other packages:' + ''.join(
-                f'\n {subcommand.name} - {subcommand.summary}'
-                for subcommand in self._subcommands
+        if plugin_subcommands:
+            self.epilog = "conda commands available from other packages:" + "".join(
+                f"\n {subcommand.name} - {subcommand.summary}" for subcommand in plugin_subcommands
             )
 
     def _get_action_from_name(self, name):
@@ -191,10 +198,6 @@ class ArgumentParser(ArgumentParserBase):
                         self.print_help()
                         sys.exit(0)
                     else:
-                        # Run the subcommand from plugins
-                        for subcommand in self._subcommands:
-                            if cmd == subcommand.name:
-                                sys.exit(subcommand.action(sys.argv[2:]))
                         # Run the subcommand from executables; legacy path
                         warnings.warn(
                             (
@@ -1850,3 +1853,39 @@ def add_parser_default_packages(p):
         action="store_true",
         help='Ignore create_default_packages in the .condarc file.',
     )
+
+
+def get_plugin_subcommands():
+    """
+    We use this function as a way to retrieve all of our register plugin subcommands.
+
+    It will raise an exception if duplicate plugin subcommands are found.
+    """
+    pm = context.get_plugin_manager()
+
+    subcommands = sorted(
+        (subcommand for subcommands in pm.hook.conda_subcommands() for subcommand in subcommands),
+        key=lambda subcommand: subcommand.name,
+    )
+
+    # Check for conflicts
+    seen = set()
+    conflicts = [
+        subcommand
+        for subcommand in subcommands
+        if subcommand.name in seen or seen.add(subcommand.name)
+    ]
+    if conflicts:
+        raise PluginError(
+            dals(
+                f"""
+                Conflicting entries found for the following subcommands:
+                {dashlist(conflicts)}
+                Multiple conda plugins are registering these subcommands via the
+                `conda_subcommands` hook; please make sure that
+                you do not have any incompatible plugins installed.
+                """
+            )
+        )
+
+    return subcommands

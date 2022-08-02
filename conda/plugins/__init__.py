@@ -4,7 +4,7 @@
 import pluggy
 import sys
 
-from typing import Callable, List, NamedTuple, Optional
+from typing import Callable, NamedTuple
 
 
 if sys.version_info < (3, 9):
@@ -23,14 +23,11 @@ class CondaSubcommand(NamedTuple):
 
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
-    :param action: Callable that will be run when the subcommand is invoked.
+    :param add_argument_parser: Function that adds the parser to the main conda argument parser
     """
     name: str
     summary: str
-    action: Callable[
-        [List[str]],  # arguments
-        Optional[int],  # return code
-    ]
+    add_argument_parser: Callable
 
 
 @_hookspec
