@@ -22,12 +22,11 @@ import warnings
 
 from .. import __version__
 from ..auxlib.ish import dals
-from ..base import context
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
-from ..common.io import dashlist
-from ..exceptions import PluginError, CondaError
+from ..exceptions import CondaError
+from .. import plugins
 
 log = getLogger(__name__)
 
@@ -39,7 +38,7 @@ escaped_sys_rc_path = abspath(join(sys.prefix, '.condarc')).replace("%", "%%")
 
 
 def generate_parser():
-    plugin_subcommands = get_plugin_subcommands()
+    plugin_subcommands = plugins.get_plugin_subcommands()
 
     p = ArgumentParser(
         description="conda is a tool for managing and deploying applications,"
@@ -88,33 +87,30 @@ def generate_parser():
     configure_parser_update(sub_parsers, name='upgrade')
     configure_parser_notices(sub_parsers)
 
-    # Add plugin subcommands
+    # Add plugin subcommands. These are meant to be "pass-thru" placeholders
+    # because the plugins themselves handle their own argument parsing.
     for plugin_sub in plugin_subcommands:
-        plugin_sub.add_argument_parser(sub_parsers)
+        parser = sub_parsers.add_parser(plugin_sub.name)
+        parser.set_defaults(func=plugin_sub.action)
 
     return p
 
 
 def do_call(args, parser):
     """
-    Attempts several methods to call the appropriate sub-command:
-
-    If the ``func`` attribute on the parser object is a set to a string,
-    we assume a relatie namespace import.
-
-    If the ``func`` attribute is actually callable, we call it passing in
-    the ``args`` and the ``parser`` passed into this function.
-
-    Finally, we raise CondaError when none of this conditions are met.
-
+    This will either call a subcommand that belongs to conda itself or to
+    a plugin. If the attribute ``func`` is not set on the ``args`` object,
+    we assume this to be a plugin subcommand; otherwise, we just print a
+    (hopefully) helpful error message.
     """
+    # Not a regular subcommand, we assume it could be a plugin subcommand
     if not hasattr(args, "func"):
-        print(
-            "This is a helpful error message for plugin authors! This happens when you do not "
-            "appropriately set the p.set_defaults(func=entry_point_function)"
-        )
-
-        sys.exit(1)
+        if len(sys.argv) > 1:
+            subcommand = plugins.find_plugin_subcommand(sys.argv[1])
+            if subcommand is None:
+                raise CondaError(f"Unable to find plugin subcommand: {sys.argv[1]}")
+            subcommand.action()
+            return
 
     if isinstance(args.func, str):
         relative_mod, func_name = args.func.rsplit(".", 1)
@@ -125,14 +121,11 @@ def do_call(args, parser):
 
         return getattr(module, func_name)(args, parser)
 
-    elif callable(args.func):
-        args.func(args, parser)
-
     else:
         raise CondaError(
             "There is something mis-configured with your subcommands. This could be due to an "
-            "incorrectly configured plugin. Please try uninstalling any problematic plugins "
-            "you may have to remove this error."
+            "incorrectly configured plugin or conda itself. Please try uninstalling any "
+            "problematic plugins you may have to remove this error."
         )
 
 def find_builtin_commands(parser):
@@ -151,6 +144,8 @@ class ArgumentParser(ArgumentParserBase):
         else:
             add_custom_help = False
         super(ArgumentParser, self).__init__(*args, **kwargs)
+
+        self.plugin_subcommands = plugin_subcommands
 
         if add_custom_help:
             add_parser_help(self)
@@ -229,6 +224,16 @@ class ArgumentParser(ArgumentParserBase):
                 builder.append("conda commands available from other packages (legacy):")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
+
+    def parse_args(self, args=None, namespace=None):
+        """
+        We override this method to check and see if we are running from a known
+        plugin subcommand. If we are, we do not want to handle argument parsing as
+        this is delegated to the plugin subcommand.
+        """
+        if plugins.is_plugin_subcommand():
+            return
+        super().parse_args(args, namespace)
 
 
 def _exec(executable_args, env_vars):
@@ -1853,39 +1858,3 @@ def add_parser_default_packages(p):
         action="store_true",
         help='Ignore create_default_packages in the .condarc file.',
     )
-
-
-def get_plugin_subcommands():
-    """
-    We use this function as a way to retrieve all of our register plugin subcommands.
-
-    It will raise an exception if duplicate plugin subcommands are found.
-    """
-    pm = context.get_plugin_manager()
-
-    subcommands = sorted(
-        (subcommand for subcommands in pm.hook.conda_subcommands() for subcommand in subcommands),
-        key=lambda subcommand: subcommand.name,
-    )
-
-    # Check for conflicts
-    seen = set()
-    conflicts = [
-        subcommand
-        for subcommand in subcommands
-        if subcommand.name in seen or seen.add(subcommand.name)
-    ]
-    if conflicts:
-        raise PluginError(
-            dals(
-                f"""
-                Conflicting entries found for the following subcommands:
-                {dashlist(conflicts)}
-                Multiple conda plugins are registering these subcommands via the
-                `conda_subcommands` hook; please make sure that
-                you do not have any incompatible plugins installed.
-                """
-            )
-        )
-
-    return subcommands
