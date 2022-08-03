@@ -94,6 +94,6 @@ def is_plugin_subcommand() -> bool:
     """Determines if the running process is a plugin subcommand or not"""
     if len(sys.argv) > 1:
         name = sys.argv[1]
-        return len(find_plugin_subcommand(name)) > 0
+        return find_plugin_subcommand(name) is not None
     else:
         return False

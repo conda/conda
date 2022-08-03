@@ -12,6 +12,7 @@ from argparse import (
     _CountAction,
     _HelpAction,
 )
+from importlib import import_module
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
@@ -107,16 +108,13 @@ def do_call(args, parser):
     if not hasattr(args, "func"):
         if len(sys.argv) > 1:
             subcommand = plugins.find_plugin_subcommand(sys.argv[1])
-            if subcommand is None:
-                raise CondaError(f"Unable to find plugin subcommand: {sys.argv[1]}")
-            subcommand.action()
-            return
+            if subcommand is not None:
+                subcommand.action()
+                return
 
     if isinstance(args.func, str):
         relative_mod, func_name = args.func.rsplit(".", 1)
         # func_name should always be 'execute'
-        from importlib import import_module
-
         module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
         return getattr(module, func_name)(args, parser)
@@ -233,7 +231,7 @@ class ArgumentParser(ArgumentParserBase):
         """
         if plugins.is_plugin_subcommand():
             return
-        super().parse_args(args, namespace)
+        return super().parse_args(args, namespace)
 
 
 def _exec(executable_args, env_vars):

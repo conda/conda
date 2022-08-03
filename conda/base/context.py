@@ -379,9 +379,7 @@ class Context(Configuration):
         if argparse_args:
             # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
             # configuration can be properly loaded from those locations
-            func_name = "func" in argparse_args and isinstance(argparse_args.func, str) or ""
-
-            func_name = func_name.rsplit(".", 1)[-1]
+            func_name = ("func" in argparse_args and argparse_args.func or "").rsplit(".", 1)[-1]
             if func_name in ("create", "install", "update", "remove", "uninstall", "upgrade"):
                 if "prefix" in argparse_args and argparse_args.prefix:
                     os.environ["CONDA_PREFIX"] = argparse_args.prefix
