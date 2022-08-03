@@ -19,6 +19,7 @@ Authors are sorted alphabetically.
 * Amir Mohammadi
 * Andreas Girgensohn
 * Andrew Achkar
+* Andrew Arendt
 * Andrew M. Farrell
 * Andy R. Terrel
 * Angela Gloyna
@@ -74,6 +75,7 @@ Authors are sorted alphabetically.
 * Christoph Stich
 * Christopher Barber
 * Christopher Granade
+* Christopher Howard
 * Christopher J. Wright
 * Christos Panopoulos
 * ColemanTom
@@ -85,6 +87,7 @@ Authors are sorted alphabetically.
 * Daekwon Yun
 * Dainese Hsiao
 * Dan Blanchard
+* Dan Dascalescu
 * Dan Lovell
 * Dan Meador
 * Daniel Bast
@@ -101,6 +104,7 @@ Authors are sorted alphabetically.
 * David Li
 * David Mertz
 * David Warde-Farley
+* Deepyaman Datta
 * Dennis George
 * Derek Ludwig
 * Diogo de Campos
@@ -258,6 +262,7 @@ Authors are sorted alphabetically.
 * Murray Read
 * NaincyKumariKnoldus
 * Nate Coraor
+* Navdeeppal Singh
 * Nehal J Wani
 * Nelson Liu
 * Ni Huang
@@ -277,6 +282,7 @@ Authors are sorted alphabetically.
 * Orion Poplawski
 * Patricio Hubmann
 * Patrick Snape
+* Paul Yim
 * Pete Bachant
 * Peter Cable
 * Peter Williams
@@ -305,7 +311,9 @@ Authors are sorted alphabetically.
 * Saad Parwaiz
 * Sachin G Biradar
 * Sam Davis
+* Sam Nicholls
 * Samuel Debionne
+* Samuel Walters-Nevet
 * Santi Villalba
 * Santiago Castro
 * Sarah Bird
@@ -322,6 +330,7 @@ Authors are sorted alphabetically.
 * Simon McLaren
 * Skipper Seabold
 * Sophia Castellarin
+* Spencer Mathews
 * Stan Seibert
 * Stanis Shkel
 * Stefaan Lippens
@@ -342,6 +351,7 @@ Authors are sorted alphabetically.
 * Tian Zhang
 * Tianchen Zhong
 * Tim Gates
+* Tim Hoffmann
 * Tim Hopper
 * Tim Snyder
 * Tobias Megies
