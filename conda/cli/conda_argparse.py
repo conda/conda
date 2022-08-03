@@ -88,12 +88,6 @@ def generate_parser():
     configure_parser_update(sub_parsers, name='upgrade')
     configure_parser_notices(sub_parsers)
 
-    # Add plugin subcommands. These are meant to be "pass-thru" placeholders
-    # because the plugins themselves handle their own argument parsing.
-    for plugin_sub in plugin_subcommands:
-        parser = sub_parsers.add_parser(plugin_sub.name)
-        parser.set_defaults(func=plugin_sub.action)
-
     return p
 
 
