@@ -101,7 +101,8 @@ class _SignatureVerification:
             )
 
         # Refresh trust root metadata
-        while True:
+        more_signatures = True
+        while more_signatures:
             # TODO: caching mechanism to reduce number of refresh requests
             fname = f"{trusted['signed']['version'] + 1}.root.json"
             path = join(context.av_data_dir, fname)
@@ -119,11 +120,11 @@ class _SignatureVerification:
                 # not really an "error" and does not need to be logged.
                 if err.response.status_code != 404:
                     log.error(err)
-                break
+                more_signatures = False
             except Exception as err:
                 # TODO: more error handling
                 log.error(err)
-                break
+                more_signatures = False
             else:
                 # New trust root metadata checks out
                 trusted = untrusted
@@ -165,12 +166,15 @@ class _SignatureVerification:
 
         return trusted
 
-    @staticmethod
-    def _fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=None):
+    # FUTURE: Python 3.8+, replace with functools.cached_property
+    @property
+    @lru_cache(maxsize=None)
+    def session(self):
+        return CondaSession()
+
+    def _fetch_channel_signing_data(self, signing_data_url, filename, etag=None, mod_stamp=None):
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
-
-        session = CondaSession()
 
         headers = {
             "Accept-Encoding": "gzip, deflate, compress, identity",
@@ -189,10 +193,10 @@ class _SignatureVerification:
             #
             # TODO: Figure how to handle authn for obtaining trust metadata,
             # independently of the authn used to access package repositories.
-            resp = session.get(
+            resp = self.session.get(
                 join_url(signing_data_url, filename),
                 headers=headers,
-                proxies=session.proxies,
+                proxies=self.session.proxies,
                 auth=lambda r: r,
                 timeout=(context.remote_connect_timeout_secs, context.remote_read_timeout_secs),
             )
@@ -208,18 +212,16 @@ class _SignatureVerification:
         # content here (rather than directly in the return statement) so callers of
         # this function only have to worry about a ValueError being raised.
         try:
-            str_data = json.loads(resp.content)
+            return resp.json()
         except json.decoder.JSONDecodeError as err:  # noqa
-            raise ValueError(f"Invalid JSON returned from {signing_data_url}/{filename}") from err
-
-        # TODO: additional loading and error handling improvements?
-
-        return str_data
+            # TODO: additional loading and error handling improvements?
+            raise ValueError(f"Invalid JSON returned from {signing_data_url}/{filename}")
 
     def __call__(self, info, fn, signatures):
         if not self.enabled or fn not in signatures:
             return
 
+        # create a signable envelope (a dict with the info and signatures)
         envelope = wrap_as_signable(info)
         envelope["signatures"] = signatures[fn]
 
