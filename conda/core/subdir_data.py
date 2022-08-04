@@ -30,7 +30,7 @@ from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
-from ..content_trust import signature_verification
+from ..trust import signature_verification
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
                           NotWritableError, UnavailableInvalidChannel, ProxyError)
