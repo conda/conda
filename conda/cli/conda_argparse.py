@@ -98,13 +98,12 @@ def do_call(args, parser):
     we assume this to be a plugin subcommand; otherwise, we just print a
     (hopefully) helpful error message.
     """
-    # Not a regular subcommand, we assume it could be a plugin subcommand
-    if not hasattr(args, "func"):
-        if len(sys.argv) > 1:
-            subcommand = plugins.find_plugin_subcommand(sys.argv[1])
-            if subcommand is not None:
-                subcommand.action()
-                return
+    if plugins.is_plugin_subcommand():
+        # If this is true, we already know sys.argv > 1
+        subcommand = plugins.find_plugin_subcommand(sys.argv[1])
+        if subcommand is not None:
+            subcommand.action()
+            return
 
     if isinstance(args.func, str):
         relative_mod, func_name = args.func.rsplit(".", 1)
@@ -119,6 +118,7 @@ def do_call(args, parser):
             "incorrectly configured plugin or conda itself. Please try uninstalling any "
             "problematic plugins you may have to remove this error."
         )
+
 
 def find_builtin_commands(parser):
     # ArgumentParser doesn't have an API for getting back what subparsers

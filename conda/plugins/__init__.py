@@ -1,34 +1,40 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import pluggy
+from __future__ import annotations
+
 import sys
+from functools import lru_cache
+from typing import Callable, NamedTuple, Optional, Iterable
 
-from typing import Callable, NamedTuple, Optional
+import pluggy
 
-
-if sys.version_info < (3, 9):
-    from typing import Iterable
-else:
-    from collections.abc import Iterable
-
+from ..auxlib.ish import dals
 from ..base import context
+from .. import CondaError
+from ..common.io import dashlist
 
 _hookspec = pluggy.HookspecMarker("conda")
 register = pluggy.HookimplMarker("conda")
 
 
+class PluginError(CondaError):
+    pass
+
+
 class CondaSubcommand(NamedTuple):
     """
     Conda subcommand entry.
-
-    :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
-    :param summary: Subcommand summary, will be shown in ``conda --help``.
-    :param add_argument_parser: Function that adds the parser to the main conda argument parser
     """
+
     name: str
+    "Subcommand name (e.g., ``conda my-subcommand-name``)."
+
     summary: str
+    "Subcommand summary, will be shown in ``conda --help``."
+
     action: Callable
+    "Function that is called when subcommand is to be invoked"
 
 
 @_hookspec
@@ -90,6 +96,7 @@ def find_plugin_subcommand(name: str) -> Optional[CondaSubcommand]:
         return filtered_set[0]
 
 
+@lru_cache(1)
 def is_plugin_subcommand() -> bool:
     """Determines if the running process is a plugin subcommand or not"""
     if len(sys.argv) > 1:
