@@ -18,7 +18,7 @@ import re
 import sys
 import warnings
 
-from cytoolz.itertoolz import concat, concatv, groupby
+from tlz.itertoolz import concat, concatv, groupby
 
 from ... import CondaError
 from ..compat import odict, open

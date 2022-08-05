@@ -27,9 +27,9 @@ from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
-from cytoolz.itertoolz import concat, concatv, unique
-from cytoolz.dicttoolz import merge, merge_with
-from cytoolz.functoolz import excepts
+from tlz.itertoolz import concat, concatv, unique
+from tlz.dicttoolz import merge, merge_with
+from tlz.functoolz import excepts
 
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL

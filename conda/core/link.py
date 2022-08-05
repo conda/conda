@@ -14,7 +14,7 @@ from traceback import format_exception_only
 from textwrap import indent
 import warnings
 
-from cytoolz.itertoolz import concat, concatv, interleave
+from tlz.itertoolz import concat, concatv, interleave
 
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,

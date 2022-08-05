@@ -10,7 +10,7 @@ from os.path import join
 import sys
 from textwrap import dedent
 
-from cytoolz.itertoolz import concat, concatv, groupby
+from tlz.itertoolz import concat, concatv, groupby
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction

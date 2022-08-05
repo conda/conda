@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from datetime import datetime
 import warnings
 
-from cytoolz.itertoolz import concat, concatv, unique
+from tlz.itertoolz import concat, concatv, unique
 
 from .constants import (
     APP_NAME,

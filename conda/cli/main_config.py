@@ -11,7 +11,7 @@ from os.path import isfile, join
 import sys
 from textwrap import wrap
 
-from cytoolz.itertoolz import concat, groupby
+from tlz.itertoolz import concat, groupby
 
 from .. import CondaError
 from ..auxlib.entity import EntityEncoder

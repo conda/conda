@@ -16,7 +16,7 @@ from textwrap import dedent
 from traceback import format_exception, format_exception_only
 import getpass
 
-from cytoolz.itertoolz import groupby
+from tlz.itertoolz import groupby
 
 from .models.channel import Channel
 from .common.url import join_url, maybe_unquote

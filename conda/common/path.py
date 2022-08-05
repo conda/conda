@@ -11,7 +11,7 @@ import re
 import subprocess
 from urllib.parse import urlsplit
 
-from cytoolz.itertoolz import accumulate, concat
+from tlz.itertoolz import accumulate, concat
 
 from .compat import on_win
 from .. import CondaError

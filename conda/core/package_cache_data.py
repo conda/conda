@@ -13,7 +13,7 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 
-from cytoolz.itertoolz import concat, concatv, groupby
+from tlz.itertoolz import concat, concatv, groupby
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler

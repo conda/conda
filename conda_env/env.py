@@ -23,7 +23,7 @@ from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
 
 try:
-    from cytoolz.itertoolz import concatv, groupby
+    from tlz.itertoolz import concatv, groupby
 except ImportError:  # pragma: no cover
     from conda._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 

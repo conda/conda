@@ -16,7 +16,7 @@ from textwrap import dedent
 import time
 import warnings
 
-from cytoolz.itertoolz import groupby, take
+from tlz.itertoolz import groupby, take
 
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals

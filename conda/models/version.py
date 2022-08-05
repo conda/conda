@@ -7,7 +7,7 @@ import operator as op
 import re
 from itertools import zip_longest
 
-from cytoolz.functoolz import excepts
+from tlz.functoolz import excepts
 
 from ..exceptions import InvalidVersionSpec
 

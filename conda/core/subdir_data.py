@@ -21,7 +21,7 @@ import re
 from time import time
 import warnings
 
-from cytoolz.itertoolz import concat, take, groupby
+from tlz.itertoolz import concat, take, groupby
 
 from .. import CondaError
 from ..auxlib.ish import dals

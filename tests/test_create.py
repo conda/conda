@@ -30,7 +30,7 @@ from uuid import uuid4
 
 import pytest
 import requests
-from cytoolz.itertoolz import groupby
+from tlz.itertoolz import groupby
 
 from conda import (
     CondaError,

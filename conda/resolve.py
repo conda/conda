@@ -9,7 +9,7 @@ from functools import lru_cache
 from logging import DEBUG, getLogger
 
 from .auxlib.decorators import memoizemethod
-from cytoolz.itertoolz import concat, groupby
+from tlz.itertoolz import concat, groupby
 
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from ._vendor.tqdm import tqdm

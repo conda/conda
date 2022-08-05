@@ -11,7 +11,7 @@ import platform
 import sys
 import warnings
 
-from cytoolz.itertoolz import concat, concatv
+from tlz.itertoolz import concat, concatv
 
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData

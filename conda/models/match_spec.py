@@ -12,7 +12,7 @@ from operator import attrgetter
 from os.path import basename
 import re
 
-from cytoolz.itertoolz import concat, concatv, groupby
+from tlz.itertoolz import concat, concatv, groupby
 
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
