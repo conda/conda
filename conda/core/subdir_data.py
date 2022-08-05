@@ -34,10 +34,23 @@ from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
-                          NotWritableError, UnavailableInvalidChannel, ProxyError)
-from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
-                                   InvalidSchema, SSLError, RequestsProxyError)
+from ..exceptions import (
+    CondaDependencyError,
+    CondaHTTPError,
+    CondaUpgradeError,
+    CondaSSLError,
+    NotWritableError,
+    UnavailableInvalidChannel,
+    ProxyError,
+)
+from ..gateways.connection import (
+    ConnectionError,
+    HTTPError,
+    InsecureRequestWarning,
+    InvalidSchema,
+    SSLError,
+    RequestsProxyError,
+)
 from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
@@ -112,7 +125,7 @@ class SubdirData(metaclass=SubdirDataType):
     @staticmethod
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
                   repodata_fn=REPODATA_FN):
-        from .index import check_whitelist  # TODO: fix in-line import
+        from .index import check_allowlist  # TODO: fix in-line import
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
@@ -127,7 +140,7 @@ class SubdirData(metaclass=SubdirDataType):
                 log.info("Ignoring the following channel urls because mode is offline.%s",
                          dashlist(ignored_urls))
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
-        check_whitelist(channel_urls)
+        check_allowlist(channel_urls)
         subdir_query = lambda url: tuple(SubdirData(Channel(url), repodata_fn=repodata_fn).query(
             package_ref_or_match_spec))
 
@@ -720,8 +733,33 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         else:
             raise
 
-    except (ConnectionError, HTTPError, SSLError) as e:
-        # status_code might not exist on SSLError
+    except SSLError as e:
+        # SSLError: either an invalid certificate or OpenSSL is unavailable
+        try:
+            import ssl  # noqa: F401
+        except ImportError:
+            raise CondaSSLError(
+                dals(
+                    f"""
+                    OpenSSL appears to be unavailable on this machine. OpenSSL is required to
+                    download and install packages.
+
+                    Exception: {e}
+                    """
+                )
+            )
+        else:
+            raise CondaSSLError(
+                dals(
+                    f"""
+                    Encountered an SSL error. Most likely a certificate verification issue.
+
+                    Exception: {e}
+                    """
+                )
+            )
+
+    except (ConnectionError, HTTPError) as e:
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
@@ -867,8 +905,14 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     #    are looking for the cache under keys without this.
     if repodata_fn != REPODATA_FN:
         url += repodata_fn
-    md5 = hashlib.md5(ensure_binary(url)).hexdigest()
-    return '%s.json' % (md5[:8],)
+
+    # TODO: remove try-except when conda only supports Python 3.9+, as
+    # `usedforsecurity=False` was added in 3.9.
+    try:
+        md5 = hashlib.md5(ensure_binary(url))
+    except ValueError:
+        md5 = hashlib.md5(ensure_binary(url), usedforsecurity=False)
+    return '%s.json' % (md5.hexdigest()[:8],)
 
 
 def add_http_value_to_dict(resp, http_key, d, dict_key):

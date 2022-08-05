@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import codecs
 from collections import namedtuple
+from functools import lru_cache
 from getpass import getpass
 from os.path import abspath, expanduser
 import re
@@ -13,7 +14,6 @@ import warnings
 
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
-from ..auxlib.decorators import memoize
 
 try:  # pragma: py2 no cover
     # Python 3
@@ -42,7 +42,7 @@ def hex_octal_to_int(ho):
     return res
 
 
-@memoize
+@lru_cache(maxsize=None)
 def percent_decode(path):
 
     # This is not fast so avoid when we can.
@@ -91,7 +91,7 @@ def url_to_path(url):
 """
 
 
-@memoize
+@lru_cache(maxsize=None)
 def path_to_url(path):
     if not path:
         raise ValueError('Not allowed: %r' % path)
@@ -223,7 +223,7 @@ class Url(namedtuple("Url", url_attrs)):
         return cls(**values)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def urlparse(url: str) -> Url:
     if on_win and url.startswith('file:'):
         url.replace('\\', '/')
@@ -370,7 +370,7 @@ def split_platform(known_subdirs, url):
     return cleaned_url.rstrip('/'), platform
 
 
-@memoize
+@lru_cache(maxsize=None)
 def _split_platform_re(known_subdirs):
     _platform_match_regex = r'/(%s)(?:/|$)' % r'|'.join(r'%s' % d for d in known_subdirs)
     return re.compile(_platform_match_regex, re.IGNORECASE)
@@ -429,7 +429,7 @@ def split_conda_url_easy_parts(known_subdirs, url):
     )
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_proxy_username_and_pass(scheme):
     username = input("\n%s proxy username: " % scheme)
     passwd = getpass("Password: ")

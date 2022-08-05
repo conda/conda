@@ -3,17 +3,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import lru_cache
 import json
 from logging import getLogger
 
 from .compat import odict, ensure_text_type
-from ..auxlib.decorators import memoize
 from ..auxlib.entity import EntityEncoder
 
 log = getLogger(__name__)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_yaml():
     try:
         import ruamel_yaml as yaml

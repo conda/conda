@@ -43,17 +43,17 @@ def main():
         'ipython-notebook',
     )
     _keep = {}
-    missing_in_whitelist = set()
+    missing_in_allowlist = set()
     for fn, info in r0json['packages'].items():
         if info['name'] in keep_list:
             _keep[fn] = info
             for dep in info['depends']:
                 dep = dep.split()[0]
                 if dep not in keep_list:
-                    missing_in_whitelist.add(dep)
-    # if missing_in_whitelist:
+                    missing_in_allowlist.add(dep)
+    # if missing_in_allowlist:
     #     print(">>> missing 0 (for info only; missing ok) <<<")
-    #     pprint(missing_in_whitelist)
+    #     pprint(missing_in_allowlist)
     keep.update(_keep)
 
 
@@ -350,17 +350,17 @@ def main():
 
     )
     _keep = {}
-    missing_in_whitelist = set()
+    missing_in_allowlist = set()
     for fn, info in r1json['packages'].items():
         if info['name'] in keep_list:
             _keep[fn] = info
             for dep in info['depends']:
                 dep = dep.split()[0]
                 if dep not in keep_list:
-                    missing_in_whitelist.add(dep)
-    if missing_in_whitelist:
+                    missing_in_allowlist.add(dep)
+    if missing_in_allowlist:
         print(">>> missing 1 <<<")
-        pprint(missing_in_whitelist)
+        pprint(missing_in_allowlist)
 
     # patch 'conda-env' to include an namespace for the problem cases
     conda_env_dicts = tuple(info for info in _keep.values() if info['name'] == 'conda-env')
@@ -379,7 +379,7 @@ def main():
 
     r4json = read_data_source("r_linux-64")
     _keep = {}
-    missing_in_whitelist = set()
+    missing_in_allowlist = set()
     keep_list = (
         'mro-base',
         'r-base',
@@ -581,10 +581,10 @@ def main():
             for dep in info['depends']:
                 dep = dep.split()[0]
                 if dep not in keep_list and dep not in all_package_names:
-                    missing_in_whitelist.add(dep)
-    if missing_in_whitelist:
+                    missing_in_allowlist.add(dep)
+    if missing_in_allowlist:
         print(">>> missing 4 <<<")
-        pprint(missing_in_whitelist)
+        pprint(missing_in_allowlist)
 
     # patch 'r' to be in global namespace
     r_info_dicts = tuple(info for info in _keep.values() if info['name'] == 'r')
@@ -598,7 +598,7 @@ def main():
 
     r5json = read_data_source("conda-forge_linux-64")
     _keep = {}
-    missing_in_whitelist = set()
+    missing_in_allowlist = set()
     keep_list = (
         'perl',
     )
@@ -609,16 +609,16 @@ def main():
             for dep in info['depends']:
                 dep = dep.split()[0]
                 if dep not in keep_list and dep not in all_package_names:
-                    missing_in_whitelist.add(dep)
-    if missing_in_whitelist:
+                    missing_in_allowlist.add(dep)
+    if missing_in_allowlist:
         print(">>> missing 5 <<<")
-        pprint(missing_in_whitelist)
+        pprint(missing_in_allowlist)
     keep.update(_keep)
 
 
     r6json = read_data_source("bioconda_linux-64")
     _keep = {}
-    missing_in_whitelist = set()
+    missing_in_allowlist = set()
     keep_list = (
         'perl-graphviz',
         'perl-file-which',
@@ -686,10 +686,10 @@ def main():
             for dep in info['depends']:
                 dep = dep.split()[0]
                 if dep not in keep_list and dep not in all_package_names:
-                    missing_in_whitelist.add(dep)
-    if missing_in_whitelist:
+                    missing_in_allowlist.add(dep)
+    if missing_in_allowlist:
         print(">>> missing 6 <<<")
-        pprint(missing_in_whitelist)
+        pprint(missing_in_allowlist)
 
     # patch 'perl-*' to include an explicit dependency on perl, as from the 'perl-threaded' package
     perl_info_dicts = tuple(info for info in _keep.values() if info['name'].startswith('perl-'))
