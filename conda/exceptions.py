@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from datetime import timedelta
 from errno import ENOSPC
-from functools import partial
+from functools import lru_cache, partial
 import json
 from json.decoder import JSONDecodeError
 from logging import getLogger
@@ -1299,15 +1299,18 @@ class ExceptionHandler(object):
             message_builder.append('')
             self.write_out('\n'.join(message_builder))
 
+    # FUTURE: Python 3.8+, replace with functools.cached_property
+    @property
+    @lru_cache(maxsize=None)
+    def _isatty(self):
+        try:
+            return os.isatty(0) or on_win
+        except Exception as e:
+            log.debug("%r", e)
+            return True
+
     def _calculate_ask_do_upload(self):
         from .base.context import context
-
-        try:
-            isatty = os.isatty(0) or on_win
-        except Exception as e:
-            log.debug('%r', e)
-            # given how the rest of this function is constructed, better to assume True here
-            isatty = True
 
         if context.report_errors is False:
             ask_for_upload = False
@@ -1318,7 +1321,7 @@ class ExceptionHandler(object):
         elif context.json or context.quiet:
             ask_for_upload = False
             do_upload = not context.offline and context.always_yes
-        elif not isatty:
+        elif not self._isatty:
             ask_for_upload = False
             do_upload = not context.offline and context.always_yes
         else:
