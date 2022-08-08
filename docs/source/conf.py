@@ -164,8 +164,9 @@ html_sidebars = {
     ]
 }
 
-html_baseurl = 'https://docs.conda.io/projects/conda/en/stable/'
+html_baseurl = 'https://docs.conda.io/projects/conda/'
 sitemap_locales = [None]
+sitemap_url_scheme = "{lang}stable/{link}"
 
 # -- Options for HTMLHelp output ------------------------------------------
 
