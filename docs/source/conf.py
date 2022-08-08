@@ -52,6 +52,7 @@ extensions = [
     "sphinx.ext.inheritance_diagram",
     "sphinxcontrib.plantuml",
     "conda_umls",
+    "sphinx_sitemap",
 ]
 
 myst_heading_anchors = 3
@@ -136,6 +137,7 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_style = "css/custom.css"
 html_favicon = "conda-logo.png"
+html_extra_path = ["robots.txt"]
 
 html_js_files = [
     "https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.js",
@@ -162,6 +164,8 @@ html_sidebars = {
     ]
 }
 
+html_baseurl = 'https://docs.conda.io/projects/conda/en/stable/'
+sitemap_locales = [None]
 
 # -- Options for HTMLHelp output ------------------------------------------
 
