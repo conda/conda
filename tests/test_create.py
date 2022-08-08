@@ -21,7 +21,7 @@ import os
 from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 import re
 from shutil import copyfile, rmtree
-from subprocess import check_call, check_output, Popen, PIPE
+from subprocess import CalledProcessError, check_call, check_output, Popen, PIPE, STDOUT
 import sys
 from textwrap import dedent
 from unittest import TestCase
@@ -337,8 +337,17 @@ class IntegrationTests(BaseTestCase):
             if on_win:
                 exe_path += ".exe"
             assert isfile(exe_path)
-            output = check_output([exe_path, "--help"], universal_newlines=True)
-            assert "Usage: flask" in output
+            try:
+                output = check_output(
+                    [exe_path, "--help"], 
+                    text=True,
+                    stderr=STDOUT
+                )
+            except CalledProcessError as exc:
+                print(exc.output)
+                raise
+            else:
+                assert "Usage: flask" in output
 
             run_command(Commands.REMOVE, prefix, "flask")
 
