@@ -1182,7 +1182,7 @@ class ExceptionHandler(object):
     def handle_unexpected_exception(self, exc_val, exc_tb):
         error_report = self.get_error_report(exc_val, exc_tb)
         self.print_unexpected_error_report(error_report)
-        self._do_upload(error_report)
+        self._upload(error_report)
         rc = getattr(exc_val, 'return_code', None)
         return rc if rc is not None else 1
 
@@ -1192,7 +1192,7 @@ class ExceptionHandler(object):
         if context.json:
             error_report.update(exc_val.dump_map())
         self.print_expected_error_report(error_report)
-        self._do_upload(error_report)
+        self._upload(error_report)
         return exc_val.return_code
 
     def get_error_report(self, exc_val, exc_tb):
@@ -1304,7 +1304,7 @@ class ExceptionHandler(object):
             log.debug("%r", e)
             return True
 
-    def _do_upload(self, error_report) -> None:
+    def _upload(self, error_report) -> None:
         """Determine whether or not to upload the error report."""
         from .base.context import context
 
