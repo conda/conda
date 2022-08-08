@@ -166,7 +166,7 @@ html_sidebars = {
 }
 
 # Setting the prod URL of the site here as the base URL.
-html_baseurl = 'https://docs.conda.io/projects/conda/'
+html_baseurl = f"https://docs.conda.io/projects/{project}/"
 # We don't have a locale set, so we can safely ignore that for the sitemaps.
 sitemap_locales = [None]
 # We're hard-coding stable here since that's what we want Google to point to.
