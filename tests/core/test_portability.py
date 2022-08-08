@@ -4,12 +4,17 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+
+import os
+import re
+from logging import getLogger
+from unittest import TestCase
+
+import pytest
+
+from conda.base.constants import PREFIX_PLACEHOLDER, on_win
 from conda.core.portability import SHEBANG_REGEX, replace_long_shebang, update_prefix
 from conda.models.enums import FileMode
-from logging import getLogger
-import re
-import os
-from unittest import TestCase
 
 log = getLogger(__name__)
 
@@ -111,6 +116,7 @@ class ReplaceShebangTests(TestCase):
         assert new_expected_data == new_data
 
 
+@pytest.mark.skipif(on_win, reason="Shebang replacement only needed on Unix systems")
 def test_escaped_prefix_replaced_only_shebang(tmp_path):
     """
     In order to deal with spaces and shebangs, we first escape the spaces
@@ -118,11 +124,10 @@ def test_escaped_prefix_replaced_only_shebang(tmp_path):
 
     However, we must NOT escape other occurrences of the prefix in the file.
     """
-    placeholder = "/_placehold_placehold_placehold_placehold_"
     new_prefix = "/a/path/with/s p a c e s"
     contents = (
-f"""#!{placeholder}/python
-data = "{placeholder}"
+f"""#!{PREFIX_PLACEHOLDER}/python
+data = "{PREFIX_PLACEHOLDER}"
 """
     )
     script = os.path.join(tmp_path, "executable_script")
@@ -131,7 +136,7 @@ data = "{placeholder}"
     update_prefix(
         path=script,
         new_prefix=new_prefix,
-        placeholder=placeholder)
+        placeholder=PREFIX_PLACEHOLDER)
 
     with open(script) as f:
         for i, line in enumerate(f):
