@@ -77,7 +77,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
             # handle this by escaping the spaces early, which will trigger a
             # /usr/bin/env replacement later on
             newline_pos = data.find(b"\n")
-            if newline_pos:
+            if newline_pos > -1:
                 shebang_line, rest_of_data = data[:newline_pos], data[newline_pos:]
                 shebang_placeholder = b"#!" + placeholder.encode('utf-8')
                 if shebang_placeholder in shebang_line:
