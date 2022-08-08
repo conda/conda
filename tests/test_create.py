@@ -337,17 +337,8 @@ class IntegrationTests(BaseTestCase):
             if on_win:
                 exe_path += ".exe"
             assert isfile(exe_path)
-            try:
-                output = check_output(
-                    [exe_path, "--help"], 
-                    text=True,
-                    stderr=STDOUT
-                )
-            except CalledProcessError as exc:
-                print(exc.output)
-                raise
-            else:
-                assert "Usage: flask" in output
+            output = check_output([exe_path, "--help"], text=True)
+            assert "Usage: flask" in output
 
             run_command(Commands.REMOVE, prefix, "flask")
 

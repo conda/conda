@@ -35,11 +35,10 @@ class _PaddingError(Exception):
 def update_prefix(
     path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text, subdir=context.subdir
 ):
-    if mode == FileMode.text:
-        if on_win:
-            # force all prefix replacements to forward slashes to simplify need to escape backslashes
-            # replace with unix-style path separators
-            new_prefix = new_prefix.replace("\\", "/")
+    if on_win and mode == FileMode.text:
+        # force all prefix replacements to forward slashes to simplify need to escape backslashes
+        # replace with unix-style path separators
+        new_prefix = new_prefix.replace("\\", "/")
 
     def _update_prefix(original_data):
 
