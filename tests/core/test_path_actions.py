@@ -219,10 +219,19 @@ class PathActionsTests(TestCase):
         with open(py_ep_axn.target_full_path) as fh:
             lines = fh.readlines()
             first_line = lines[0].strip()
+            second_line = lines[1].strip()
+            third_line = lines[2].strip()
             last_line = lines[-1].strip()
         if not on_win:
             python_full_path = join(self.prefix, get_python_short_path(target_python_version))
-            assert first_line == "#!%s" % python_full_path
+            if " " in self.prefix:  
+                # spaces in prefix break shebang! we use this python/shell workaround
+                # also seen in virtualenv
+                assert first_line == "#!/bin/sh"
+                assert second_line == "'''exec' " + f'"{python_full_path}" "$0" "$@"'
+                assert third_line == "' '''"
+            else:
+                assert first_line == "#!%s" % python_full_path
         assert last_line == "sys.exit(%s())" % func
 
         py_ep_axn.reverse()
