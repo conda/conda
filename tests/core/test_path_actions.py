@@ -224,7 +224,7 @@ class PathActionsTests(TestCase):
             last_line = lines[-1].strip()
         if not on_win:
             python_full_path = join(self.prefix, get_python_short_path(target_python_version))
-            if " " in self.prefix:  
+            if " " in self.prefix:
                 # spaces in prefix break shebang! we use this python/shell workaround
                 # also seen in virtualenv
                 assert first_line == "#!/bin/sh"

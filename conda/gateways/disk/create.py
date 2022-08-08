@@ -27,7 +27,7 @@ from ...common.compat import on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
-from ...models.enums import FileMode, LinkType
+from ...models.enums import LinkType
 
 
 # we have our own TemporaryDirectory implementation both for historical reasons and because
