@@ -1182,11 +1182,7 @@ class ExceptionHandler(object):
     def handle_unexpected_exception(self, exc_val, exc_tb):
         error_report = self.get_error_report(exc_val, exc_tb)
         self.print_unexpected_error_report(error_report)
-        ask_for_upload, do_upload = self._calculate_ask_do_upload()
-        do_upload, ask_response = self.ask_for_upload() if ask_for_upload else (do_upload, None)
-        if do_upload:
-            self._execute_upload(error_report)
-        self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
+        self._upload(error_report)
         rc = getattr(exc_val, 'return_code', None)
         return rc if rc is not None else 1
 
@@ -1196,11 +1192,7 @@ class ExceptionHandler(object):
         if context.json:
             error_report.update(exc_val.dump_map())
         self.print_expected_error_report(error_report)
-        ask_for_upload, do_upload = self._calculate_ask_do_upload()
-        do_upload, ask_response = self.ask_for_upload() if ask_for_upload else (do_upload, None)
-        if do_upload:
-            self._execute_upload(error_report)
-        self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
+        self._upload(error_report)
         return exc_val.return_code
 
     def get_error_report(self, exc_val, exc_tb):
@@ -1312,41 +1304,50 @@ class ExceptionHandler(object):
             log.debug("%r", e)
             return True
 
-    def _calculate_ask_do_upload(self):
+    def _upload(self, error_report) -> None:
+        """Determine whether or not to upload the error report."""
         from .base.context import context
 
+        post_upload = False
         if context.report_errors is False:
-            ask_for_upload = False
+            # no prompt and no submission
             do_upload = False
         elif context.report_errors is True or context.always_yes:
-            ask_for_upload = False
+            # no prompt and submit
             do_upload = True
-        elif context.json or context.quiet:
-            ask_for_upload = False
-            do_upload = not context.offline and context.always_yes
-        elif not self._isatty:
-            ask_for_upload = False
-            do_upload = not context.offline and context.always_yes
+        elif context.json or context.quiet or not self._isatty:
+            # never prompt under these conditions, submit iff always_yes
+            do_upload = bool(not context.offline and context.always_yes)
         else:
-            ask_for_upload = True
-            do_upload = False
+            # prompt whether to submit
+            do_upload = self._ask_upload()
+            post_upload = True
 
-        return ask_for_upload, do_upload
+        # the upload state is one of the following:
+        #   - True: upload error report
+        #   - False: do not upload error report
+        #   - None: while prompting a timeout occurred
 
-    def ask_for_upload(self):
+        if do_upload:
+            # user wants report to be submitted
+            self._execute_upload(error_report)
+
+        if post_upload:
+            # post submission text
+            self._post_upload(do_upload)
+
+    def _ask_upload(self):
         self.write_out(
             "If submitted, this report will be used by core maintainers to improve",
             "future releases of conda.",
             "Would you like conda to send this report to the core maintainers?",
         )
-        ask_response = None
         try:
-            ask_response = timeout(40, partial(input, "[y/N]: "))
-            do_upload = ask_response and boolify(ask_response)
-        except Exception as e:  # pragma: no cover
-            log.debug('%r', e)
-            do_upload = False
-        return do_upload, ask_response
+            do_upload = timeout(40, partial(input, "[y/N]: "))
+            return do_upload and boolify(do_upload)
+        except Exception as e:
+            log.debug("%r", e)
+            return False
 
     def _execute_upload(self, error_report):
         headers = {
@@ -1390,8 +1391,9 @@ class ExceptionHandler(object):
         except Exception as e:
             log.debug("%r" % e)
 
-    def print_upload_confirm(self, do_upload, ask_for_upload, ask_response):
-        if ask_response and do_upload:
+    def _post_upload(self, do_upload):
+        if do_upload is True:
+            # report was submitted
             self.write_out(
                 "",
                 "Thank you for helping to improve conda.",
@@ -1401,14 +1403,15 @@ class ExceptionHandler(object):
                 "    $ conda config --set report_errors true",
                 "",
             )
-        elif ask_response is None and ask_for_upload:
-            # means timeout was reached for `input`
+        elif do_upload is None:
+            # timeout was reached while prompting user
             self.write_out(
                 "",
                 "Timeout reached. No report sent.",
                 "",
             )
-        elif ask_for_upload:
+        else:
+            # no report submitted
             self.write_out(
                 "",
                 "No report sent. To permanently opt-out, use",
