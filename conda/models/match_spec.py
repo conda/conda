@@ -12,11 +12,12 @@ from operator import attrgetter
 from os.path import basename
 import re
 
+from tlz.itertoolz import concat, concatv, groupby
+
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
 from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
-from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..common.compat import isiterable
 from ..common.io import dashlist

@@ -11,9 +11,10 @@ import re
 import subprocess
 from urllib.parse import urlsplit
 
+from tlz.itertoolz import accumulate, concat
+
 from .compat import on_win
 from .. import CondaError
-from .._vendor.toolz import accumulate, concat
 from distutils.spawn import find_executable
 
 

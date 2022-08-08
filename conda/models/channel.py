@@ -7,8 +7,9 @@ from copy import copy
 from itertools import chain
 from logging import getLogger
 
+from tlz.itertoolz import concat, concatv, drop
+
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, concatv, drop
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context, Context
 from ..common.compat import ensure_text_type, isiterable, odict

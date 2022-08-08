@@ -9,8 +9,9 @@ from functools import lru_cache
 from logging import DEBUG, getLogger
 
 from .auxlib.decorators import memoizemethod
+from tlz.itertoolz import concat, groupby
+
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
-from ._vendor.toolz import concat, groupby
 from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
