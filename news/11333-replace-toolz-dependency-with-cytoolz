@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda._vendor.toolz` as pending deprecation. (#11704)
 
 ### Docs
 
