@@ -65,6 +65,7 @@ from ..gateways.disk.link import lexists
 from ..gateways.disk.permissions import make_executable
 from ..gateways.disk.read import compute_md5sum
 from ..gateways.subprocess import subprocess_call
+from .portability import generate_shebang_for_entry_point
 
 if on_win:
     import winreg
@@ -747,8 +748,6 @@ def make_entry_point(target_path, conda_prefix, module, func):
         # no shebang needed on windows
         new_ep_content = ""
     else:
-        from .portability import generate_shebang_for_entry_point
-
         python_path = join(conda_prefix, get_python_short_path())
         new_ep_content = generate_shebang_for_entry_point(python_path)
 

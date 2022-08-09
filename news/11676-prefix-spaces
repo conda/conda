@@ -5,7 +5,7 @@
 ### Bug fixes
 
 * Better support for shebang instructions in prefixes with spaces. (#11676)
-* Fix `noarch` entry points in Unicode-containing prefixes on Windows. (#11676)
+* Fix `noarch` entry points in Unicode-containing prefixes on Windows. (#11694)
 
 ### Deprecations
 

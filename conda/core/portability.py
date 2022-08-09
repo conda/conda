@@ -12,7 +12,7 @@ import sys
 
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import on_win
+from ..common.compat import on_win, on_mac
 from ..exceptions import CondaIOError, BinaryPrefixReplacementError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
@@ -180,17 +180,18 @@ def replace_long_shebang(mode, data):
     if mode == FileMode.text:
         if not isinstance(data, bytes):
             try:
-                data = bytes(data, encoding='utf-8')
+                data = bytes(data, encoding="utf-8")
             except:
-                data = data.encode('utf-8')
+                data = data.encode("utf-8")
 
         shebang_match = re.match(SHEBANG_REGEX, data, re.MULTILINE)
         if shebang_match:
             whole_shebang, executable, options = shebang_match.groups()
             prefix, executable_name = executable.decode("utf-8").rsplit("/", 1)
-            if len(whole_shebang) > 127 or "\\ " in prefix:
-                new_shebang = '#!/usr/bin/env %s%s' % (executable_name, options.decode('utf-8'))
-                data = data.replace(whole_shebang, new_shebang.encode('utf-8'))
+            max_length = 512 if on_mac else 127
+            if len(whole_shebang) > max_length or "\\ " in prefix:
+                new_shebang = "#!/usr/bin/env %s%s" % (executable_name, options.decode("utf-8"))
+                data = data.replace(whole_shebang, new_shebang.encode("utf-8"))
 
     else:
         # TODO: binary shebangs exist; figure this out in the future if text works well
