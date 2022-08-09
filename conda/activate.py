@@ -336,11 +336,6 @@ class _Activator(object):
                 **env_vars,
             )
             deactivate_scripts = ()
-        # KO: I don't think this is true...
-        # elif self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl - 1)) == prefix:
-        #     # in this case, user is attempting to activate the previous environment,
-        #     #  i.e. step back down
-        #     return self.build_deactivate()
         elif stack:
             export_vars, unset_vars = self.get_export_unset_vars(
                 path=self.pathsep_join(self._add_prefix_to_path(prefix)),
