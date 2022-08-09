@@ -11,7 +11,8 @@ from unittest import TestCase
 
 import pytest
 
-from conda.base.constants import PREFIX_PLACEHOLDER, on_win
+from conda.base.constants import PREFIX_PLACEHOLDER
+from conda.common.compat import on_win, on_linux
 from conda.core.portability import SHEBANG_REGEX, replace_long_shebang, update_prefix
 from conda.models.enums import FileMode
 
@@ -20,6 +21,7 @@ log = getLogger(__name__)
 
 class ReplaceShebangTests(TestCase):
     content_line = b"content line " * 5
+    shebang_length = 127 if on_linux else 512
 
     def test_shebang_regex_matches(self):
         shebang = b"#!/simple/shebang"
@@ -50,8 +52,9 @@ class ReplaceShebangTests(TestCase):
             b" --and --flags -x",
         )
 
-    def test_replace_long_shebang_simple_no_replacement(self):
+    def test_replace_simple_shebang_no_replacement(self):
         # simple shebang no replacement
+        # NOTE: we don't do anything if the binary contains spaces! not our problem :)
         shebang = b"#!/simple/shebang/escaped\\ space --and --flags -x"
         data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
         new_data = replace_long_shebang(FileMode.text, data)
@@ -60,11 +63,12 @@ class ReplaceShebangTests(TestCase):
     def test_replace_long_shebang_with_truncation_python(self):
         # long shebang with truncation
         #   executable name is 'python'
-        shebang = b"#!/" + b"shebang/" * 20 + b"python" + b" --and --flags -x"
-        assert len(shebang) > 127
+        shebang = b"#!/" + b"shebang/" * 100 + b"python" + b" --and --flags -x"
+        assert len(shebang) > self.shebang_length
         data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env python --and --flags -x"
+        assert len(new_shebang) < self.shebang_length
         new_expected_data = b"\n".join(
             (new_shebang, self.content_line, self.content_line, self.content_line)
         )
@@ -73,11 +77,12 @@ class ReplaceShebangTests(TestCase):
     def test_replace_long_shebang_with_truncation_escaped_space(self):
         # long shebang with truncation
         #   executable name is 'escaped space'
-        shebang = b"#!/" + b"shebang/" * 20 + b"escaped\\ space" + b" --and --flags -x"
-        assert len(shebang) > 127
+        shebang = b"#!/" + b"shebang/" * 100 + b"escaped\\ space" + b" --and --flags -x"
+        assert len(shebang) > self.shebang_length
         data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env escaped\\ space --and --flags -x"
+        assert len(new_shebang) < self.shebang_length
         new_expected_data = b"\n".join(
             (new_shebang, self.content_line, self.content_line, self.content_line)
         )
@@ -87,10 +92,11 @@ class ReplaceShebangTests(TestCase):
         # normal shebang with escaped spaces in prefix
         #   executable name is 'python'
         shebang = b"#!/she\\ bang/python --and --flags -x"
-        assert len(shebang) < 127
+        assert len(shebang) < self.shebang_length
         data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env python --and --flags -x"
+        assert len(new_shebang) < self.shebang_length
         new_expected_data = b"\n".join(
             (new_shebang, self.content_line, self.content_line, self.content_line)
         )
@@ -100,10 +106,11 @@ class ReplaceShebangTests(TestCase):
         # normal shebang with escaped spaces in prefix
         #   executable name is 'escaped space'
         shebang = b"#!/she\\ bang/escaped\\ space --and --flags -x"
-        assert len(shebang) < 127
+        assert len(shebang) < self.shebang_length
         data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env escaped\\ space --and --flags -x"
+        assert len(new_shebang) < self.shebang_length
         new_expected_data = b"\n".join(
             (new_shebang, self.content_line, self.content_line, self.content_line)
         )
@@ -111,11 +118,12 @@ class ReplaceShebangTests(TestCase):
 
     def test_replace_long_shebang_spaces_in_prefix(self):
         # long shebang with escaped spaces in prefix
-        shebang = b"#!/" + b"she\\ bang/" * 20 + b"python --and --flags -x"
-        assert len(shebang) > 127
+        shebang = b"#!/" + b"she\\ bang/" * 100 + b"python --and --flags -x"
+        assert len(shebang) > self.shebang_length
         data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env python --and --flags -x"
+        assert len(new_shebang) < self.shebang_length
         new_expected_data = b"\n".join(
             (new_shebang, self.content_line, self.content_line, self.content_line)
         )
