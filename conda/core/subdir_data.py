@@ -21,7 +21,10 @@ import re
 from time import time
 import warnings
 
-from tlz.itertoolz import concat, take, groupby
+try:
+    from tlz.itertoolz import concat, groupby, take
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, groupby, take
 
 from .. import CondaError
 from ..auxlib.ish import dals

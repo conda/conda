@@ -17,7 +17,10 @@ from contextlib import contextmanager
 from datetime import datetime
 import warnings
 
-from tlz.itertoolz import concat, concatv, unique
+try:
+    from tlz.itertoolz import concat, concatv, unique
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, unique
 
 from .constants import (
     APP_NAME,
