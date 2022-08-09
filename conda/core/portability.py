@@ -12,7 +12,7 @@ import sys
 
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import on_win, on_mac
+from ..common.compat import on_win, on_linux
 from ..exceptions import CondaIOError, BinaryPrefixReplacementError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
@@ -26,6 +26,8 @@ SHEBANG_REGEX = (br'^(#!'  # pretty much the whole match string
                  br'(/(?:\\ |[^ \n\r\t])*)'  # the executable is the next text block without an escaped space or non-space whitespace character  # NOQA
                  br'(.*)'  # the rest of the line can contain option flags
                  br')$')  # end whole_shebang group
+
+MAX_SHEBANG_LENGTH = 127 if on_linux else 512  # Not used on Windows
 
 
 class _PaddingError(Exception):
@@ -188,8 +190,7 @@ def replace_long_shebang(mode, data):
         if shebang_match:
             whole_shebang, executable, options = shebang_match.groups()
             prefix, executable_name = executable.decode("utf-8").rsplit("/", 1)
-            max_length = 512 if on_mac else 127
-            if len(whole_shebang) > max_length or "\\ " in prefix:
+            if len(whole_shebang) > MAX_SHEBANG_LENGTH or "\\ " in prefix:
                 new_shebang = "#!/usr/bin/env %s%s" % (executable_name, options.decode("utf-8"))
                 data = data.replace(whole_shebang, new_shebang.encode("utf-8"))
 
@@ -212,7 +213,7 @@ def generate_shebang_for_entry_point(executable):
     #       * '' (empty string)
     #       * 'exec' "path/with spaces/to/python" "this file" "arguments"
     #       * ' ''' (quoted space followed by empty string)
-    if len(shebang) > 127 or " " in shebang:
+    if len(shebang) > MAX_SHEBANG_LENGTH or " " in shebang:
         shebang = "#!/bin/sh\n"
         shebang += "'''exec' " + f'"{executable}" "$0" "$@"'
         shebang += "\n' '''\n"
