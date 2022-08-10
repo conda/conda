@@ -16,10 +16,7 @@ from textwrap import dedent
 from traceback import format_exception, format_exception_only
 import getpass
 
-try:
-    from tlz.itertoolz import groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import groupby
+from conda.tlz import groupby
 
 from .models.channel import Channel
 from .common.url import join_url, maybe_unquote

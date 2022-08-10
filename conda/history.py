@@ -16,10 +16,7 @@ from textwrap import dedent
 import time
 import warnings
 
-try:
-    from tlz.itertoolz import groupby, take
-except ImportError:
-    from conda._vendor.toolz.itertoolz import groupby, take
+from conda.tlz import groupby, take
 
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals

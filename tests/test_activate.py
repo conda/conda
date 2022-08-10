@@ -21,7 +21,7 @@ from unittest import TestCase
 from uuid import uuid4
 
 import pytest
-from tlz.itertoolz import concatv
+from conda.tlz import concatv
 
 from conda import __version__ as conda_version
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT

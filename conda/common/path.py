@@ -11,10 +11,7 @@ import re
 import subprocess
 from urllib.parse import urlsplit
 
-try:
-    from tlz.itertoolz import accumulate, concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import accumulate, concat
+from conda.tlz import accumulate, concat
 
 from .compat import on_win
 from .. import CondaError

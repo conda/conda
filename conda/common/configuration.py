@@ -27,14 +27,7 @@ from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
-try:
-    from tlz.itertoolz import concat, concatv, unique
-    from tlz.dicttoolz import merge, merge_with
-    from tlz.functoolz import excepts
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, unique
-    from conda._vendor.toolz.dicttoolz import merge, merge_with
-    from conda._vendor.toolz import excepts
+from conda.tlz import concat, concatv, unique, merge, merge_with, excepts
 
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL

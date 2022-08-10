@@ -12,10 +12,7 @@ from operator import attrgetter
 from os.path import basename
 import re
 
-try:
-    from tlz.itertoolz import concat, concatv, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+from conda.tlz import concat, concatv, groupby
 
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec

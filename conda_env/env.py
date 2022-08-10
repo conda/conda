@@ -22,11 +22,7 @@ from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
 
-try:
-    from tlz.itertoolz import concatv, groupby
-except ImportError:  # pragma: no cover
-    from conda._vendor.toolz.itertoolz import concatv, groupby  # NOQA
-
+from conda.tlz import concatv, groupby
 
 VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')
 

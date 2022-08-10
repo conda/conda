@@ -16,10 +16,7 @@ from collections import defaultdict
 from logging import getLogger
 import sys
 
-try:
-    from tlz.itertoolz import concatv, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concatv, groupby
+from conda.tlz import concatv, groupby
 
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL

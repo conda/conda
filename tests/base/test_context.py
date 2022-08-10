@@ -12,7 +12,7 @@ from tempfile import gettempdir
 from unittest import TestCase, mock
 
 import pytest
-from tlz.itertoolz import concat
+from conda.tlz import concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals

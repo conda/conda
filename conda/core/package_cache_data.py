@@ -13,10 +13,7 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 
-try:
-    from tlz.itertoolz import concat, concatv, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+from conda.tlz import concat, concatv, groupby
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
