@@ -15,9 +15,7 @@ except ImportError:  # pragma: no cover
     try:
         import ruamel.yaml as yaml
     except ImportError:
-        raise ImportError("No yaml library available.\n"
-                            "To proceed, conda install "
-                            "ruamel_yaml")
+        raise ImportError("No yaml library available. To proceed, conda install ruamel_yaml")
 
 log = getLogger(__name__)
 
