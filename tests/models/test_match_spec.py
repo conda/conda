@@ -1084,7 +1084,7 @@ class MatchSpecMergeTests(TestCase):
 
         with pytest.raises(ValueError):
             MatchSpec.merge([blue_prefix, red_exact])
-    
+
     def test_build_glob_merge_channel(self):
         no_channel = {
             "name": "my_pkg",
@@ -1105,7 +1105,7 @@ class MatchSpecMergeTests(TestCase):
         assert not unmergeable
         assert merged.match(exact_channel)
         assert merged.get("channel") == exact_channel["channel"]
-        
+
         with pytest.raises(ValueError):
             MatchSpec.merge(
                 [MatchSpec(spec) for spec in (exact_channel, non_matching_star_channel)]
