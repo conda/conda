@@ -10,6 +10,7 @@ import struct
 import subprocess
 import sys
 
+from ..auxlib.ish import dals
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
 from ..common.compat import on_win, on_linux
@@ -195,7 +196,7 @@ def replace_long_shebang(mode, data):
             whole_shebang, executable, options = shebang_match.groups()
             prefix, executable_name = executable.decode("utf-8").rsplit("/", 1)
             if len(whole_shebang) > MAX_SHEBANG_LENGTH or "\\ " in prefix:
-                new_shebang = "#!/usr/bin/env {executable_name}{options.decode('utf-8')}"
+                new_shebang = f"#!/usr/bin/env {executable_name}{options.decode('utf-8')}"
                 data = data.replace(whole_shebang, new_shebang.encode("utf-8"))
 
     else:

@@ -16,6 +16,7 @@ from uuid import uuid4
 import pytest
 from tlz.itertoolz import groupby
 
+from conda.auxlib.ish import dals
 from conda.auxlib.collection import AttrDict
 from conda.base.context import context
 from conda.common.compat import on_win
@@ -23,14 +24,12 @@ from conda.common.path import get_bin_directory_short_path, get_python_noarch_ta
     get_python_short_path, get_python_site_packages_short_path, parse_entry_point_def, pyc_path, \
     win_path_ok
 from conda.core.path_actions import CompileMultiPycAction, CreatePythonEntryPointAction, LinkPathAction
-from conda.exceptions import ParseError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
 from conda.gateways.disk.test import softlink_supported
-from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.records import PathDataV1
 

@@ -11,6 +11,7 @@ from unittest import TestCase
 
 import pytest
 
+from conda.auxlib.ish import dals
 from conda.base.constants import PREFIX_PLACEHOLDER
 from conda.common.compat import on_win
 from conda.core.portability import SHEBANG_REGEX, replace_long_shebang, update_prefix, MAX_SHEBANG_LENGTH
