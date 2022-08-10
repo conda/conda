@@ -44,11 +44,6 @@ from ..models.match_spec import MatchSpec
 from ..models.records import (Link, PackageCacheRecord, PackageRecord, PathDataV1, PathsData,
                               PrefixRecord)
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
-
 log = getLogger(__name__)
 
 REPR_IGNORE_KWARGS = (

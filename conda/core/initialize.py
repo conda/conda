@@ -43,11 +43,6 @@ import re
 import sys
 import struct
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
-
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from ..auxlib.compat import Utf8NamedTemporaryFile
 from ..auxlib.ish import dals

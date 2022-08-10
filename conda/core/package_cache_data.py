@@ -40,10 +40,6 @@ from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
 
 log = getLogger(__name__)
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 
 class PackageCacheType(type):
