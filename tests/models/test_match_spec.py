@@ -992,8 +992,7 @@ class MatchSpecMergeTests(TestCase):
             "build": "complex_habc123_3",
             "build_number": 3,
         }
-        real = {}
-        real.update(package)
+        real = {**package}
         real["build"] = "real_hdef1234_3"
 
         no_build = MatchSpec("petsc=1.17.*")
@@ -1015,6 +1014,11 @@ class MatchSpecMergeTests(TestCase):
         build_scalar_wild = MatchSpec("petsc=1.17.*=*complex*")
         assert build_scalar_wild.match(package)
         assert not build_scalar_wild.match(real)
+
+        build_scalar_wild_no_leading_star = MatchSpec("petsc=1.17.*=complex*")
+        merged, *unmergeable = MatchSpec.merge([build_scalar_wild, build_scalar_wild_no_leading_star])
+        assert not unmergeable
+        assert merged.match(package)
 
         build_tail = MatchSpec("petsc=1.17.*=*_3")
         assert build_tail.match(package)
@@ -1079,6 +1083,33 @@ class MatchSpecMergeTests(TestCase):
 
         with pytest.raises(ValueError):
             MatchSpec.merge([real_prefix, exact])
+    
+    def test_build_glob_merge_channel(self):
+        no_channel = {
+            "name": "my_pkg",
+            "version": "1.17.3",
+            "build": "pyhabc123_3",
+            "build_number": 3,
+        }
+        exact_channel = {**no_channel}
+        exact_channel["channel"] = "conda-forge"
+        star_channel = {**no_channel}
+        star_channel["channel"] = "conda-*"
+        non_matching_star_channel = {**no_channel}
+        non_matching_star_channel["channel"] = "*-adnoc"
+
+        merged, *unmergeable = MatchSpec.merge(
+            [MatchSpec(spec) for spec in (no_channel, exact_channel, star_channel)]
+        )
+        assert not unmergeable
+        assert merged.match(exact_channel)
+        assert merged.get("channel") == exact_channel["channel"]
+        
+        with pytest.raises(ValueError):
+            MatchSpec.merge(
+                [MatchSpec(spec) for spec in (exact_channel, non_matching_star_channel)]
+            )
+
 
     def test_md5_merge_with_name(self):
         specs = (MatchSpec('python[md5=deadbeef]'), MatchSpec('python=1.2.3'), MatchSpec('conda-forge::python[md5=deadbeef]'))

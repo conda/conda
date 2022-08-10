@@ -854,22 +854,24 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
         if not self._re_match and isinstance(other, GlobStrMatch) and other._re_match:
             # swap order, so `self` always has an actual pattern if there is only one
             other, self = self, other
+        
+        # the other component might not be a str (e.g. Channel or MultiChannel)
+        other_as_str = str(other)
 
-        if "*" not in other.raw_value:
+        if "*" not in other_as_str:
             # other is an exact literal,
             # check our pattern against it
             # if we match, other is more strict
-            if self._re_match and self._re_match(other.raw_value):
+            if self._re_match and self._re_match(other_as_str):
                 return other.raw_value
             else:
                 # Raise on incompatible pattern
                 return super().merge(other)
 
-        # both are patterns, compute regular expression
-        # compute regular expression intersection
+        # both are patterns, compute regular expression intersection
         patterns = []
-        for m in [self, other]:
-            value = m.raw_value
+        for m in (self, other):
+            value = str(m)
             if value.startswith("^") and value.endswith("$"):
                 patterns.append(value[1:-1])
             elif "*" in value:
