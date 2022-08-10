@@ -21,9 +21,9 @@ def get_yaml():
         try:
             import ruamel.yaml as yaml
         except ImportError:
-            raise ImportError("No yaml library available.\n"
-                              "To proceed, conda install "
-                              "ruamel_yaml")
+            raise ImportError(
+                "No yaml library available.\n" "To proceed, conda install " "ruamel_yaml"
+            )
     return yaml
 
 
@@ -39,7 +39,7 @@ def represent_ordereddict(dumper, data):
 
         value.append((node_key, node_value))
 
-    return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
+    return yaml.nodes.MappingNode("tag:yaml.org,2002:map", value)
 
 
 yaml.representer.RoundTripRepresenter.add_representer(odict, represent_ordereddict)
@@ -62,16 +62,12 @@ def yaml_safe_load(string):
 
 def yaml_round_trip_dump(object):
     """dump object to string"""
-    return yaml.round_trip_dump(
-        object, block_seq_indent=2, default_flow_style=False, indent=2
-    )
+    return yaml.round_trip_dump(object, block_seq_indent=2, default_flow_style=False, indent=2)
 
 
 def yaml_safe_dump(object):
     """dump object to string"""
-    return yaml.safe_dump(
-        object, block_seq_indent=2, default_flow_style=False, indent=2
-    )
+    return yaml.safe_dump(object, block_seq_indent=2, default_flow_style=False, indent=2)
 
 
 def json_load(string):
@@ -79,5 +75,13 @@ def json_load(string):
 
 
 def json_dump(object):
-    return ensure_text_type(json.dumps(object, indent=2, sort_keys=True,
-                                       separators=(',', ': '), cls=EntityEncoder))
+    # DWH surely json.dumps() is always text
+    return ensure_text_type(
+        json.dumps(object, indent=2, sort_keys=True, separators=(",", ": "), cls=EntityEncoder)
+    )
+
+
+def json_to_file(object, fp):
+    return json.dump(
+        object, fp, indent=2, sort_keys=True, separators=(",", ": "), cls=EntityEncoder
+    )

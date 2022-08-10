@@ -25,7 +25,7 @@ from ...base.constants import CONDA_PACKAGE_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FI
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
-from ...common.serialize import json_dump
+from ...common.serialize import json_to_file
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.enums import FileMode, LinkType
 
@@ -109,8 +109,7 @@ if __name__ == '__main__':
 def write_as_json_to_file(file_path, obj):
     log.trace("writing json to file %s", file_path)
     with codecs.open(file_path, mode='wb', encoding='utf-8') as fo:
-        json_str = json_dump(obj)
-        fo.write(json_str)
+        json_to_file(obj, fo)
 
 
 def create_python_entry_point(target_full_path, python_full_path, module, func):
