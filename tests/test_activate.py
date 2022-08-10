@@ -2691,6 +2691,7 @@ def create_stackable_envs():
 
     sys = _run_command(
         *("conda deactivate" for _ in range(5)),
+        "conda config --set auto_activate_base false",
         which,
     )
 
