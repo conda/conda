@@ -986,103 +986,104 @@ class MatchSpecMergeTests(TestCase):
             MatchSpec.merge(specs)
 
     def test_build_glob_merge(self):
-        package = {
-            "name": "petsc",
+        red = {
+            "name": "my_pkg",
             "version": "1.17.3",
-            "build": "complex_habc123_3",
+            "build": "red_habc123_3",
             "build_number": 3,
         }
-        real = {**package}
-        real["build"] = "real_hdef1234_3"
+        blue = {**red}
+        blue["build"] = "blue_hdef1234_3"
 
-        no_build = MatchSpec("petsc=1.17.*")
-        assert no_build.match(package)
-        assert no_build.match(real)
+        no_build = MatchSpec("my_pkg=1.17.*")
+        assert no_build.match(red)
+        assert no_build.match(blue)
 
-        build_prefix = MatchSpec("petsc=1.17.*=complex_*")
-        assert build_prefix.match(package)
-        assert not build_prefix.match(real)
+        red_prefix = MatchSpec("my_pkg=1.17.*=red_*")
+        assert red_prefix.match(red)
+        assert not red_prefix.match(blue)
 
-        real_prefix = MatchSpec("petsc=1.17.*=real_*")
-        assert not real_prefix.match(package)
-        assert real_prefix.match(real)
+        blue_prefix = MatchSpec("my_pkg=1.17.*=blue_*")
+        assert not blue_prefix.match(red)
+        assert blue_prefix.match(blue)
 
-        exact = MatchSpec(f"petsc=1.17.*={package['build']}")
-        assert exact.match(package)
-        assert not exact.match(real)
+        red_exact = MatchSpec(f"my_pkg=1.17.*={red['build']}")
+        assert red_exact.match(red)
+        assert not red_exact.match(blue)
 
-        build_scalar_wild = MatchSpec("petsc=1.17.*=*complex*")
-        assert build_scalar_wild.match(package)
-        assert not build_scalar_wild.match(real)
+        red_scalar_wild = MatchSpec("my_pkg=1.17.*=*red*")
+        assert red_scalar_wild.match(red)
+        assert not red_scalar_wild.match(blue)
 
-        build_scalar_wild_no_leading_star = MatchSpec("petsc=1.17.*=complex*")
-        merged, *unmergeable = MatchSpec.merge([build_scalar_wild, build_scalar_wild_no_leading_star])
+        merged, *unmergeable = MatchSpec.merge([red_scalar_wild, red_prefix])
         assert not unmergeable
-        assert merged.match(package)
+        assert merged.match(red)
+        # resulting build is the regex intersection
+        assert merged.get("build") == '^(?=.*red.*)(?:red_.*)$'
 
-        build_tail = MatchSpec("petsc=1.17.*=*_3")
-        assert build_tail.match(package)
-        assert build_tail.match(real)
+        build_tail = MatchSpec("my_pkg=1.17.*=*_3")
+        assert build_tail.match(red)
+        assert build_tail.match(blue)
 
         merged, *unmergeable = MatchSpec.merge(
             [
                 no_build,
-                build_prefix,
+                red_prefix,
             ]
         )
         assert not unmergeable
-        assert merged.match(package)
-        assert not merged.match(real)
+        assert merged.match(red)
+        assert not merged.match(blue)
 
         merged, *unmergeable = MatchSpec.merge(
             [
-                build_prefix,
-                exact,
+                red_prefix,
+                red_exact,
             ]
         )
-        assert merged.get("build") == exact.get("build")
-        assert merged.match(package)
-        assert not merged.match(real)
+        assert merged.get("build") == red_exact.get("build")
+        assert merged.match(red)
+        assert not merged.match(blue)
 
         merged, *unmergeable = MatchSpec.merge(
             [
-                exact,
-                build_prefix,
+                red_exact,
+                red_prefix,
             ]
         )
-        assert merged.get("build") == exact.get("build")
-        assert merged.match(package)
-        assert not merged.match(real)
+        assert merged.get("build") == red_exact.get("build")
+        assert merged.match(red)
+        assert not merged.match(blue)
 
         merged, *unmergeable = MatchSpec.merge(
             [
                 no_build,
-                build_prefix,
-                build_scalar_wild,
+                red_prefix,
+                red_scalar_wild,
             ]
         )
         assert not unmergeable
-        assert merged.match(package)
-        assert not merged.match(real)
+        assert merged.match(red)
+        assert not merged.match(blue)
 
         merged, *unmergeable = MatchSpec.merge(
             [
                 no_build,
-                build_prefix,
-                build_scalar_wild,
+                red_prefix,
+                red_scalar_wild,
                 build_tail,
             ]
         )
         assert not unmergeable
-        assert merged.match(package)
-        assert not merged.match(real)
+        assert merged.match(red)
+        assert not merged.match(blue)
 
         # definitely-incompatible combinations
         with pytest.raises(ValueError):
-            MatchSpec.merge([exact, real_prefix])
+            MatchSpec.merge([red_exact, blue_prefix])
 
         with pytest.raises(ValueError):
-            MatchSpec.merge([real_prefix, exact])
+            MatchSpec.merge([blue_prefix, red_exact])
     
     def test_build_glob_merge_channel(self):
         no_channel = {

@@ -16,7 +16,7 @@ from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars
 from conda.core.solve import DepsModifier, _get_solver_class, UpdateModifier
-from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
+from conda.exceptions import ResolvePackageNotFound, UnsatisfiableError, SpecsConfigurationConflictError
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
@@ -2525,3 +2525,20 @@ def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
                 assert prec.build_number == 1
             elif prec.name == '_dummy_anaconda_impl':
                 assert prec.version == "2.0"
+
+
+@pytest.mark.integration
+def test_globstr_matchspec_compatible(tmpdir):
+    # This should work -- build strings are compatible
+    specs = MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np17*"),
+    with get_solver(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+
+
+@pytest.mark.integration
+def test_globstr_matchspec_non_compatible(tmpdir):
+    # This should fail -- build strings are not compatible
+    specs = MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"),
+    with get_solver(tmpdir, specs) as solver:
+        with pytest.raises(ResolvePackageNotFound):
+            final_state_1 = solver.solve_final_state()

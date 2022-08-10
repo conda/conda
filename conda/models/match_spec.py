@@ -854,8 +854,8 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
         if not self._re_match and isinstance(other, GlobStrMatch) and other._re_match:
             # swap order, so `self` always has an actual pattern if there is only one
             other, self = self, other
-        
-        # the other component might not be a str (e.g. Channel or MultiChannel)
+
+        # the other component might not have str 'raw_value' (e.g. Channel or MultiChannel)
         other_as_str = str(other)
 
         if "*" not in other_as_str:
@@ -869,6 +869,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
                 return super().merge(other)
 
         # both are patterns, compute regular expression intersection
+        # compatibility to be determined by the index filters
         patterns = []
         for m in (self, other):
             value = str(m)
@@ -880,6 +881,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
             else:
                 patterns.append(value)
 
+        # lookahead assertion followed by non-capture group
         return rf"^(?={patterns[0]})(?:{patterns[1]})$"
 
 
