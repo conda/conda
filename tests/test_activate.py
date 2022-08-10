@@ -5,7 +5,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
+from enum import Enum
 from functools import lru_cache
+from itertools import chain
 import json
 from logging import getLogger
 import os
@@ -52,7 +54,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 
 from conda.testing.helpers import tempdir
-from conda.testing.integration import Commands, run_command, SPACER_CHARACTER
+from conda.testing.integration import Commands, run_command, SPACER_CHARACTER, make_temp_env
 
 log = getLogger(__name__)
 
@@ -2669,87 +2671,86 @@ def test_activate_deactivate_modify_path(shell, prefix, activate_deactivate_pack
     assert original_path == os.environ.get("PATH")
 
 
-def _run_command(*lines):
-    if on_win:
-        script = " && ".join(
-            (
-                f"{Path(context.root_prefix, 'condabin', 'conda_hook.bat')}",
-                *lines,
-            )
-        )
-    else:
-        script = "\n".join(
-            (
-                f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}",
-                *lines,
-            )
-        )
-    return [
-        Path(path) for path in filter(None, check_output(script, shell=True).decode().splitlines())
-    ]
-
-
-PKG = "curl"
-BASE_ENV = "base"
-HAS_ENV = "hascurl"
-NOT_ENV = "notcurl"
-SYS_PATH = _run_command(
-    *("conda deactivate" for _ in range(5)),
-    f"{'where' if on_win else 'which -a'} {PKG}",
-)
-if on_win:
-    BASE_PATH = Path(context.root_prefix, "Library", "bin", f"{PKG}.exe")
-    HAS_PATH = Path(context.root_prefix, "envs", HAS_ENV, "Library", "bin", f"{PKG}.exe")
-else:
-    BASE_PATH = Path(context.root_prefix, "bin", PKG)
-    HAS_PATH = Path(context.root_prefix, "envs", HAS_ENV, "bin", PKG)
-
-
 @pytest.fixture(scope="module")
 def create_stackable_envs():
-    # execute
-    _run_command(
-        f"conda install -n {BASE_ENV} --quiet --yes {PKG}",
-        f"conda create -n {HAS_ENV} --quiet --yes {PKG}",
-        f"conda create -n {NOT_ENV} --quiet --yes",
+    # generate stackable environments, two with curl and one without curl
+    which = f"{'where' if on_win else 'which -a'} curl"
+
+    class Env:
+        def __init__(self, prefix=None, paths=None):
+            self.prefix = Path(prefix) if prefix else None
+
+            if not paths:
+                if on_win:
+                    path = self.prefix / "Library" / "bin" / f"curl.exe"
+                else:
+                    path = self.prefix / "bin" / "curl"
+
+                paths = (path,) if path.exists() else ()
+            self.paths = paths
+
+    sys = _run_command(
+        *("conda deactivate" for _ in range(5)),
+        which,
     )
 
+    with make_temp_env("curl", name="fake_base") as base:
+        with make_temp_env("curl", name="haspkg") as haspkg:
+            with make_temp_env(name="notpkg") as notpkg:
+                yield which, {
+                    "sys": Env(paths=sys),
+                    "base": Env(prefix=base),
+                    "has": Env(prefix=haspkg),
+                    "not": Env(prefix=notpkg),
+                }
 
+
+def _run_command(*lines):
+    # create a custom run command since this is specific to the shell integration
+    if on_win:
+        join = " && ".join
+        source = f"{Path(context.root_prefix, 'condabin', 'conda_hook.bat')}"
+    else:
+        join = "\n".join
+        source = f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}"
+    script = join((source, *lines))
+    output = check_output(script, shell=True).decode().splitlines()
+    return [Path(path) for path in filter(None, output)]
+
+
+# see https://github.com/conda/conda/pull/11257#issuecomment-1050531320
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    ("auto_stack", "envs", "run", "paths"),
+    ("auto_stack", "stack", "run", "expected"),
     [
-        (0, [], BASE_ENV, [BASE_PATH, *SYS_PATH]),
-        (0, [], HAS_ENV, [HAS_PATH, *SYS_PATH]),
-        (0, [], NOT_ENV, [*SYS_PATH]),
-        (0, [BASE_ENV], BASE_ENV, [BASE_PATH, *SYS_PATH]),
-        (0, [BASE_ENV], HAS_ENV, [HAS_PATH, *SYS_PATH]),
-        (0, [BASE_ENV], NOT_ENV, [*SYS_PATH]),
-        (0, [HAS_ENV], BASE_ENV, [BASE_PATH, *SYS_PATH]),
-        (0, [HAS_ENV], HAS_ENV, [HAS_PATH, *SYS_PATH]),
-        (0, [HAS_ENV], NOT_ENV, [*SYS_PATH]),
-        (10, [BASE_ENV], BASE_ENV, [BASE_PATH, *SYS_PATH]),
-        (10, [BASE_ENV], HAS_ENV, [HAS_PATH, BASE_PATH, *SYS_PATH]),
-        (10, [BASE_ENV], NOT_ENV, [BASE_PATH, *SYS_PATH]),
-        (
-            10,
-            [BASE_ENV, HAS_ENV],
-            BASE_ENV,
-            [BASE_PATH, HAS_PATH, *SYS_PATH]
-            if on_win
-            else [BASE_PATH, HAS_PATH, BASE_PATH, *SYS_PATH],
-        ),
-        (10, [BASE_ENV, HAS_ENV], HAS_ENV, [HAS_PATH, BASE_PATH, *SYS_PATH]),
-        (10, [BASE_ENV, HAS_ENV], NOT_ENV, [HAS_PATH, BASE_PATH, *SYS_PATH]),
+        (0, "", "base", "base,sys"),
+        (0, "", "has", "has,sys"),
+        (0, "", "not", "sys"),
+        (0, "base", "base", "base,sys"),
+        (0, "base", "has", "has,sys"),
+        (0, "base", "not", "sys"),
+        (0, "has", "base", "base,sys"),
+        (0, "has", "has", "has,sys"),
+        (0, "has", "not", "sys"),
+        (5, "base", "base", "base,sys"),
+        (5, "base", "has", "has,base,sys"),
+        (5, "base", "not", "base,sys"),
+        (5, "base,has", "base", "base,has,sys" if on_win else "base,has,base,sys"),
+        (5, "base,has", "has", "has,base,sys"),
+        (5, "base,has", "not", "has,base,sys"),
     ],
 )
-def test_stacking(create_stackable_envs, auto_stack, envs, run, paths):
+def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
+    which, envs = create_stackable_envs
+    stack = filter(None, stack.split(","))
+    expected = filter(None, expected.split(","))
+    expected = list(chain.from_iterable(envs[env.strip()].paths for env in expected))
     assert (
         _run_command(
             *("conda deactivate" for _ in range(5)),
             f"conda config --set auto_stack {auto_stack}",
-            *(f"conda activate {env}" for env in envs),
-            f"conda run -n {run} {'where' if on_win else 'which -a'} {PKG}",
+            *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
+            f'conda run -p "{envs[run.strip()].prefix}" {which}',
         )
-        == paths
+        == expected
     )
