@@ -35,7 +35,11 @@ class _PaddingError(Exception):
 
 
 def update_prefix(
-    path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text, subdir=context.subdir
+    path,
+    new_prefix,
+    placeholder=PREFIX_PLACEHOLDER,
+    mode=FileMode.text,
+    subdir=context.subdir,
 ):
     if on_win and mode == FileMode.text:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
@@ -80,7 +84,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
             newline_pos = data.find(b"\n")
             if newline_pos > -1:
                 shebang_line, rest_of_data = data[:newline_pos], data[newline_pos:]
-                shebang_placeholder = b"#!" + placeholder.encode('utf-8')
+                shebang_placeholder = f"#!{placeholder}".encode('utf-8')
                 if shebang_placeholder in shebang_line:
                     escaped_shebang = f"#!{new_prefix}".replace(" ", "\\ ").encode('utf-8')
                     shebang_line = shebang_line.replace(shebang_placeholder, escaped_shebang)
@@ -191,7 +195,7 @@ def replace_long_shebang(mode, data):
             whole_shebang, executable, options = shebang_match.groups()
             prefix, executable_name = executable.decode("utf-8").rsplit("/", 1)
             if len(whole_shebang) > MAX_SHEBANG_LENGTH or "\\ " in prefix:
-                new_shebang = "#!/usr/bin/env %s%s" % (executable_name, options.decode("utf-8"))
+                new_shebang = "#!/usr/bin/env {executable_name}{options.decode('utf-8')}"
                 data = data.replace(whole_shebang, new_shebang.encode("utf-8"))
 
     else:
@@ -214,8 +218,12 @@ def generate_shebang_for_entry_point(executable):
     #       * 'exec' "path/with spaces/to/python" "this file" "arguments"
     #       * ' ''' (quoted space followed by empty string)
     if len(shebang) > MAX_SHEBANG_LENGTH or " " in shebang:
-        shebang = "#!/bin/sh\n"
-        shebang += "'''exec' " + f'"{executable}" "$0" "$@"'
-        shebang += "\n' '''\n"
+        shebang = dals(
+            f"""
+            #!/bin/sh
+            '''exec' "{executable}" "$0" "$@"
+            ' '''
+            """
+        )
 
     return shebang

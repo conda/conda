@@ -138,9 +138,12 @@ def test_escaped_prefix_replaced_only_shebang(tmp_path):
     However, we must NOT escape other occurrences of the prefix in the file.
     """
     new_prefix = "/a/path/with/s p a c e s"
-    contents = f"""#!{PREFIX_PLACEHOLDER}/python
-data = "{PREFIX_PLACEHOLDER}"
-"""
+    contents = dals(
+        f"""
+        #!{PREFIX_PLACEHOLDER}/python
+        data = "{PREFIX_PLACEHOLDER}"
+        """
+    )
     script = os.path.join(tmp_path, "executable_script")
     with open(script, "wb") as f:
         f.write(contents.encode("utf-8"))
