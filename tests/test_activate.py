@@ -2680,7 +2680,7 @@ def _run_command(*lines):
     else:
         script = "\n".join(
             (
-                f"source {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}",
+                f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}",
                 *lines,
             )
         )
