@@ -2723,21 +2723,37 @@ def _run_command(*lines):
 @pytest.mark.parametrize(
     ("auto_stack", "stack", "run", "expected"),
     [
+        # no environments activated
         (0, "", "base", "base,sys"),
         (0, "", "has", "has,sys"),
         (0, "", "not", "sys"),
+        # one environment activated, no stacking
         (0, "base", "base", "base,sys"),
         (0, "base", "has", "has,sys"),
         (0, "base", "not", "sys"),
         (0, "has", "base", "base,sys"),
         (0, "has", "has", "has,sys"),
         (0, "has", "not", "sys"),
+        (0, "not", "base", "base,sys"),
+        (0, "not", "has", "has,sys"),
+        (0, "not", "not", "sys"),
+        # one environment activated, stacking allowed
         (5, "base", "base", "base,sys"),
         (5, "base", "has", "has,base,sys"),
         (5, "base", "not", "base,sys"),
+        (5, "has", "base", "base,has,sys"),
+        (5, "has", "has", "has,sys"),
+        (5, "has", "not", "has,sys"),
+        (5, "not", "base", "base,sys"),
+        (5, "not", "has", "has,sys"),
+        (5, "not", "not", "sys"),
+        # two environments activated, stacking allowed
         (5, "base,has", "base", "base,has,sys" if on_win else "base,has,base,sys"),
         (5, "base,has", "has", "has,base,sys"),
         (5, "base,has", "not", "has,base,sys"),
+        (5, "base,not", "base", "base,sys" if on_win else "base,base,sys"),
+        (5, "base,not", "has", "has,base,sys"),
+        (5, "base,not", "not", "base,sys"),
     ],
 )
 def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
