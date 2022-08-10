@@ -45,7 +45,6 @@ from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, is_conda_environment, softlink_supported
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
-from ..models.enums import MetadataSignatureStatus
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
@@ -1058,66 +1057,54 @@ class UnlinkLinkTransaction(object):
                 left_str = left_str[:37] + "~"
             builder.append("  %-18s %38s --> %s" % (display_key, left_str, right_str))
 
-        def fmt_sig_status(prec):
-            if not context.extra_safety_checks:
-                return ""
-
-            status = getattr(prec, "metadata_signature_status", None)
-            if not context.extra_safety_checks or status is None:
-                # TODO (AV): deal with virtual packages more sensibly
-                status_str = ""
-            elif status == MetadataSignatureStatus.verified:
-                # TODO (AV): replaced hard-coded signer name with data from key
-                status_str = " (INFO: package metadata is signed by Anaconda and trusted)"
-            elif status == MetadataSignatureStatus.unsigned:
-                status_str = ""
-            else:
-                status_str = " (WARNING: metadata signature verification failed)"
-            return status_str
-
         if change_report.new_precs:
             builder.append("\nThe following NEW packages will be INSTALLED:\n")
             for namekey in sorted(change_report.new_precs, key=convert_namekey):
                 link_prec = change_report.new_precs[namekey]
-                display_key = strip_global(namekey)
-                display_str = link_prec.record_id() + fmt_sig_status(link_prec)
-                add_single(display_key, display_str)
+                add_single(
+                    strip_global(namekey),
+                    f"{link_prec.record_id()} {link_prec['metadata_signature_status']}",
+                )
 
         if change_report.removed_precs:
             builder.append("\nThe following packages will be REMOVED:\n")
             for namekey in sorted(change_report.removed_precs, key=convert_namekey):
                 unlink_prec = change_report.removed_precs[namekey]
-                builder.append("  " + "-".join(
-                    (unlink_prec.name, unlink_prec.version, unlink_prec.build)
-                ))
+                builder.append(f"  {unlink_prec.name}-{unlink_prec.version}-{unlink_prec.build}")
 
         if change_report.updated_precs:
             builder.append("\nThe following packages will be UPDATED:\n")
             for namekey in sorted(change_report.updated_precs, key=convert_namekey):
                 unlink_prec, link_prec = change_report.updated_precs[namekey]
-                display_key = strip_global(namekey)
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
-                right_str += fmt_sig_status(link_prec)
-                add_double(display_key, left_str, right_str)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {link_prec['metadata_signature_status']}",
+                )
 
         if change_report.superseded_precs:
             builder.append("\nThe following packages will be SUPERSEDED "
                            "by a higher-priority channel:\n")
             for namekey in sorted(change_report.superseded_precs, key=convert_namekey):
                 unlink_prec, link_prec = change_report.superseded_precs[namekey]
-                display_key = strip_global(namekey)
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
-                right_str += fmt_sig_status(link_prec)
-                add_double(display_key, left_str, right_str)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {link_prec['metadata_signature_status']}",
+                )
 
         if change_report.downgraded_precs:
             builder.append("\nThe following packages will be DOWNGRADED:\n")
             for namekey in sorted(change_report.downgraded_precs, key=convert_namekey):
                 unlink_prec, link_prec = change_report.downgraded_precs[namekey]
-                display_key = strip_global(namekey)
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
-                right_str += fmt_sig_status(link_prec)
-                add_double(display_key, left_str, right_str)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {link_prec['metadata_signature_status']}",
+                )
         builder.append('')
         builder.append('')
         return "\n".join(builder)
