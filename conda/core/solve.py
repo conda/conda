@@ -10,7 +10,10 @@ from os.path import join
 import sys
 from textwrap import dedent
 
-from tlz.itertoolz import concat, concatv, groupby
+try:
+    from tlz.itertoolz import concat, concatv, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction

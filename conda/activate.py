@@ -11,7 +11,10 @@ import re
 import sys
 from textwrap import dedent
 
-from tlz.itertoolz import concatv, drop
+try:
+    from tlz.itertoolz import concatv, drop
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concatv, drop
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
