@@ -90,7 +90,7 @@ class SubdirDataType(type):
             if cache_key[0].startswith('file://'):
                 file_path = url_to_path(channel.url() + '/' + repodata_fn)
                 if exists(file_path):
-                    if cache_entry._mtime > getmtime(file_path):
+                    if cache_entry._mtime > getmtime(file_path): # DWH >=?
                         return cache_entry
             else:
                 return cache_entry

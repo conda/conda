@@ -73,6 +73,10 @@ class CondaSessionType(type):
             session = cls._thread_local.session = super(CondaSessionType, cls).__call__()
             return session
 
+
+def only_cache_json_jlap(response):
+    return response.url.endswith(('.json', '.jlap'))
+
 # XXX This winds up putting package requests through the cache also:::
 class CondaSession(CachedSession, metaclass=CondaSessionType):
     """
@@ -94,6 +98,7 @@ class CondaSession(CachedSession, metaclass=CondaSessionType):
             serializer=discard_serializer,  # TODO: change this serializer to something realializer
             cache_control=True,
             expire_after=CACHED_SESSION_EXPIRY,
+            filter_fn=only_cache_json_jlap
         )
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
@@ -114,10 +119,9 @@ class CondaSession(CachedSession, metaclass=CondaSessionType):
                           status_forcelist=[413, 429, 500, 503],
                           raise_on_status=False)
 
+            http_adapter : BaseAdapter = HTTPAdapter(max_retries=retry)
             if context.experimental_repodata:
-                http_adapter = jlap.JlapAdapter(max_retries=retry)
-            else:
-                http_adapter = HTTPAdapter(max_retries=retry)
+                http_adapter = jlap.JlapAdapter(base_adapter=http_adapter, max_retries=retry)
 
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)

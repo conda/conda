@@ -233,14 +233,8 @@ def static_file_headers(
     lm = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(stats.st_mtime))
     headers["Last-Modified"] = lm
 
-    # TODO: not sure what this is all all about. Need to ask dholth
-    # ims = request.environ.get("HTTP_IF_MODIFIED_SINCE")
-    # if ims:
-    #     ims = parse_date(ims.split(";")[0].strip())
-    # if ims is not None and ims >= int(stats.st_mtime):
-    #     headers["Date"] = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-    #     return FileResponse(status_code=304, headers=headers, body="")
-
-    body = ""  # TODO: to be replaced? Need to ask dholth
+    # if the response was cached, the caller should already have downloaded the
+    # response body.
+    body = ""
 
     return FileResponse(body=body, headers=headers, status_code=200)

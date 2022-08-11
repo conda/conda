@@ -21,6 +21,10 @@ log = logging.getLogger(__name__)
 
 
 class JlapAdapter(HTTPAdapter):
+    def __init__(self, base_adapter, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.base_adapter = base_adapter
+
     def send(self, request, **kwargs):
         """
         Overrides the default HTTPAdapter. When this particular HTTPAdapter is in
@@ -47,19 +51,13 @@ class JlapAdapter(HTTPAdapter):
             return self.prepare_response(response, request)
         else:
             log.debug("Skip intercept %s", request.url)
-            return super().send(request, **kwargs)
+            return self.base_adapter.send(request, **kwargs)
 
     @staticmethod
     def prepare_request(request: PreparedRequest, sync: SyncJlap) -> PreparedRequest:
         """
         We need to specially prepare the request because it's actually being diverted
         to a different location.
-
-        For example:
-            "https://repo.anaconda.com/pkgs/main/noarch/repodata.json"
-
-        Translates to:
-            "https://repodata.flydev.io/pkgs/main/noarch/repodata.jlap"
         """
         new_headers = sync.get_request_headers()
         request.url = sync.repodata_url.translate_to_jlap_url()
@@ -75,7 +73,6 @@ class JlapAdapter(HTTPAdapter):
         """
         response.request = request
         response.url = request.url
-        # response.status_code = 200  TODO: Is this really necessary? Need to ask dholth
 
         return response
 
