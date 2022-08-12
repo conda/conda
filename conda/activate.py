@@ -11,7 +11,7 @@ import re
 import sys
 from textwrap import dedent
 
-from conda.tlz import concatv, drop
+from conda.tlz import concatv
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -200,7 +200,7 @@ class _Activator(object):
             raise_invalid_command_error()
 
         command = arguments[0]
-        arguments = tuple(drop(1, arguments))
+        arguments = tuple(arguments[1:])
         help_flags = ('-h', '--help', '/?')
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
