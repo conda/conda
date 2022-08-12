@@ -84,7 +84,9 @@ To see how this process works for this project, read "[The Triaging Process at c
 
 ## Conda capitalization standards
 
-Conda should be written in lowercase, whether in reference to the tool, ecosystem, packages, or organization. References to the conda command should use code formatting (i.e. `conda`). If the use of conda is not a command and if conda is at the beginning of a sentence, conda should be uppercase.
+1. Conda should be written in lowercase, whether in reference to the tool, ecosystem, packages, or organization.
+2. References to the conda command should use code formatting (i.e. `conda`).
+3. If the use of conda is not a command and if conda is at the beginning of a sentence, conda should be uppercase.
 
 ### Examples
 
@@ -106,4 +108,4 @@ Titles and headers should use the same capitalization and formmating standards a
 
 #### In links
 
-Links should use the same capitalization conventions as sentences. Because the conda docs currently used re-structured text (RST) as a markup language, and [RST does not support nexted inline markup](https://docutils.sourceforge.io/FAQ.html#is-nested-inline-markup-possible), documentation writers should avoid using code backtick formatting inside links.
+Links should use the same capitalization conventions as sentences. Because the conda docs currently use reStructuredText (RST) as a markup language, and [RST does not support nexted inline markup](https://docutils.sourceforge.io/FAQ.html#is-nested-inline-markup-possible), documentation writers should avoid using code backtick formatting inside links.
