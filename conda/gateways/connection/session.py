@@ -75,7 +75,7 @@ class CondaSessionType(type):
 
 
 def only_cache_json_jlap(response):
-    return response.url.endswith(('.json', '.jlap'))
+    return response.url.endswith(('repodata.json', 'repodata.jlap'))
 
 # XXX This winds up putting package requests through the cache also:::
 class CondaSession(CachedSession, metaclass=CondaSessionType):
@@ -97,7 +97,7 @@ class CondaSession(CachedSession, metaclass=CondaSessionType):
             # file to be downloaded somewhere anyway.
             serializer=discard_serializer,  # TODO: change this serializer to something realializer
             cache_control=True,
-            expire_after=CACHED_SESSION_EXPIRY,
+            expire_after=CACHED_SESSION_EXPIRY, # avoids infinite cache when no cache headers are sent
             filter_fn=only_cache_json_jlap
         )
 
