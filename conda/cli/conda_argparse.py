@@ -901,6 +901,12 @@ def configure_parser_list(sub_parsers):
         help="List the revision history.",
     )
     p.add_argument(
+        "--no-pip",
+        action="store_false",
+        default=True,
+        dest="pip",
+        help="Do not include pip-only installed packages.")
+    p.add_argument(
         'regex',
         action="store",
         nargs="?",
