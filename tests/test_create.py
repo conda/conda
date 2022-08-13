@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from glob import glob
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda._vendor.toolz.itertoolz import groupby
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.models.channel import Channel
@@ -31,6 +30,7 @@ from uuid import uuid4
 
 import pytest
 import requests
+from tlz.itertoolz import groupby
 
 from conda import (
     CondaError,

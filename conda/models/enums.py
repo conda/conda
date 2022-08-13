@@ -182,10 +182,3 @@ class NoarchType(Enum):
                     Please update conda.
                     """ % val))
         return val
-
-
-class MetadataSignatureStatus(Enum):
-    # TODO (AV): more detailed error states?
-    unsigned = -1
-    verified = 0
-    error = 1

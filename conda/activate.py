@@ -11,10 +11,14 @@ import re
 import sys
 from textwrap import dedent
 
+try:
+    from tlz.itertoolz import concatv, drop
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concatv, drop
+
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
-from ._vendor.toolz import concatv, drop
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
@@ -288,6 +292,7 @@ class _Activator(object):
         return self._build_activate_stack(env_name_or_prefix, True)
 
     def _build_activate_stack(self, env_name_or_prefix, stack):
+        # get environment prefix
         if re.search(r'\\|/', env_name_or_prefix):
             prefix = expand(env_name_or_prefix)
             if not isdir(join(prefix, 'conda-meta')):
@@ -298,78 +303,73 @@ class _Activator(object):
         else:
             prefix = locate_prefix_by_name(env_name_or_prefix)
 
-        # query environment
+        # get prior shlvl and prefix
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
-        new_conda_shlvl = old_conda_shlvl + 1
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
 
+        # if the prior active prefix is this prefix we are actually doing a reactivate
         if old_conda_prefix == prefix and old_conda_shlvl > 0:
             return self.build_reactivate()
 
         activate_scripts = self._get_activate_scripts(prefix)
+        conda_shlvl = old_conda_shlvl + 1
         conda_default_env = self._default_env(prefix)
         conda_prompt_modifier = self._prompt_modifier(prefix, conda_default_env)
-        conda_environment_env_vars = self._get_environment_env_vars(prefix)
-        unset_env_vars = [k for k, v in conda_environment_env_vars.items()
-                          if v == CONDA_ENV_VARS_UNSET_VAR]
-        [conda_environment_env_vars.pop(_) for _ in unset_env_vars]
+        env_vars = {
+            name: value
+            for name, value in self._get_environment_env_vars(prefix).items()
+            if value != CONDA_ENV_VARS_UNSET_VAR
+        }
 
-        clobbering_env_vars = [k for k in conda_environment_env_vars.keys()
-                               if k in os.environ.keys()]
-
-        for cvar in clobbering_env_vars:
-            save_var = "__CONDA_SHLVL_%s_%s" % (old_conda_shlvl, cvar)
-            conda_environment_env_vars[save_var] = os.environ.get(cvar)
-
-        if clobbering_env_vars:
+        # get clobbered environment variables
+        clobber_vars = set(env_vars.keys()).intersection(os.environ.keys())
+        if clobber_vars:
             print("WARNING: overwriting environment variables set in the machine", file=sys.stderr)
-            print("overwriting variable %s" % ' '.join(clobbering_env_vars), file=sys.stderr)
+            print(f"overwriting variable {clobber_vars}", file=sys.stderr)
+        for name in clobber_vars:
+            env_vars[f"__CONDA_SHLVL_{old_conda_shlvl}_{name}"] = os.environ.get(name)
 
-        unset_vars = []
         if old_conda_shlvl == 0:
             export_vars, unset_vars = self.get_export_unset_vars(
                 path=self.pathsep_join(self._add_prefix_to_path(prefix)),
                 conda_prefix=prefix,
-                conda_shlvl=new_conda_shlvl,
+                conda_shlvl=conda_shlvl,
                 conda_default_env=conda_default_env,
                 conda_prompt_modifier=conda_prompt_modifier,
-                **conda_environment_env_vars,
+                **env_vars,
+            )
+            deactivate_scripts = ()
+        elif stack:
+            export_vars, unset_vars = self.get_export_unset_vars(
+                path=self.pathsep_join(self._add_prefix_to_path(prefix)),
+                conda_prefix=prefix,
+                conda_shlvl=conda_shlvl,
+                conda_default_env=conda_default_env,
+                conda_prompt_modifier=conda_prompt_modifier,
+                **env_vars,
+                **{
+                    f"CONDA_PREFIX_{old_conda_shlvl}": old_conda_prefix,
+                    f"CONDA_STACKED_{conda_shlvl}": "true",
+                },
             )
             deactivate_scripts = ()
         else:
-            if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl - 1)) == prefix:
-                # in this case, user is attempting to activate the previous environment,
-                #  i.e. step back down
-                return self.build_deactivate()
-            if stack:
-                deactivate_scripts = ()
-                export_vars, unset_vars = self.get_export_unset_vars(
-                    path=self.pathsep_join(self._add_prefix_to_path(prefix)),
-                    conda_prefix=prefix,
-                    conda_shlvl=new_conda_shlvl,
-                    conda_default_env=conda_default_env,
-                    conda_prompt_modifier=conda_prompt_modifier,
-                    **conda_environment_env_vars,
-                )
-                export_vars['CONDA_PREFIX_%d' % old_conda_shlvl] = old_conda_prefix
-                export_vars['CONDA_STACKED_%d' % new_conda_shlvl] = 'true'
-            else:
-                deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
-                export_vars, unset_vars = self.get_export_unset_vars(
-                    path=self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix)),
-                    conda_prefix=prefix,
-                    conda_shlvl=new_conda_shlvl,
-                    conda_default_env=conda_default_env,
-                    conda_prompt_modifier=conda_prompt_modifier,
-                    **conda_environment_env_vars,
-                )
-                export_vars['CONDA_PREFIX_%d' % old_conda_shlvl] = old_conda_prefix
+            export_vars, unset_vars = self.get_export_unset_vars(
+                path=self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix)),
+                conda_prefix=prefix,
+                conda_shlvl=conda_shlvl,
+                conda_default_env=conda_default_env,
+                conda_prompt_modifier=conda_prompt_modifier,
+                **env_vars,
+                **{
+                    f"CONDA_PREFIX_{old_conda_shlvl}": old_conda_prefix,
+                },
+            )
+            deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
         set_vars = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
-
-        self._build_activate_shell_custom(export_vars)
 
         return {
             'unset_vars': unset_vars,
@@ -521,21 +521,6 @@ class _Activator(object):
                                 clean_paths[sys.platform] if sys.platform in clean_paths else
                                 '/usr/bin')
         path_split = path.split(os.pathsep)
-        # We used to prepend sys.prefix\Library\bin to PATH on startup but not anymore.
-        # Instead, in conda 4.6 we add the full suite of entries. This is performed in
-        # condabin\conda.bat and condabin\ _conda_activate.bat. However, we
-        # need to ignore the stuff we add there, and only consider actual PATH entries.
-        prefix_dirs = tuple(self._get_path_dirs(sys.prefix))
-        start_index = 0
-        while (start_index < len(prefix_dirs) and
-               start_index < len(path_split) and
-               paths_equal(path_split[start_index], prefix_dirs[start_index])):
-            start_index += 1
-        path_split = path_split[start_index:]
-        library_bin_dir = self.path_conversion(
-                self.sep.join((sys.prefix, 'Library', 'bin')))
-        if paths_equal(path_split[0], library_bin_dir):
-            path_split = path_split[1:]
         return path_split
 
     def _get_path_dirs(self, prefix, extra_library_bin=False):
@@ -615,11 +600,6 @@ class _Activator(object):
             path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
 
         return tuple(path_list)
-
-    def _build_activate_shell_custom(self, export_vars):
-        # A method that can be overridden by shell-specific implementations.
-        # The signature of this method may change in the future.
-        pass
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         pass

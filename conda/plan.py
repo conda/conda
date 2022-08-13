@@ -16,8 +16,12 @@ from collections import defaultdict
 from logging import getLogger
 import sys
 
+try:
+    from tlz.itertoolz import concatv, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concatv, groupby
+
 from ._vendor.boltons.setutils import IndexedSet
-from ._vendor.toolz import concatv
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, stack_context_default
 from .common.io import dashlist, env_vars, time_recorder
@@ -370,7 +374,6 @@ def _plan_from_actions(actions, index):  # pragma: no cover
 def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: no cover
     from os.path import isdir
     from .models.dist import Dist
-    from ._vendor.toolz.itertoolz import groupby
     from .instructions import LINK, PROGRESSIVEFETCHEXTRACT, UNLINK, UNLINKLINKTRANSACTION
     from .core.package_cache_data import ProgressiveFetchExtract
     from .core.link import PrefixSetup, UnlinkLinkTransaction

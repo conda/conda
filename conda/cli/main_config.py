@@ -11,9 +11,13 @@ from os.path import isfile, join
 import sys
 from textwrap import wrap
 
+try:
+    from tlz.itertoolz import concat, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, groupby
+
 from .. import CondaError
 from ..auxlib.entity import EntityEncoder
-from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
                               UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
