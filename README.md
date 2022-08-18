@@ -181,8 +181,3 @@ There are many organizations, tools, and repositories created and managed by the
 
 - [IOOS conda recipes](https://github.com/ioos/conda-recipes)
 - [raspberrypi-conda-recipes](https://github.com/pelson/raspberrypi-conda-recipes)
-
-
-
-
-
