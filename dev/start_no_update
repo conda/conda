@@ -187,18 +187,20 @@ if updating; then
     #     echo "Error: failed to update development environment" 1>&2
     #     return 1
     # fi
-
+    
     if ! "${_BASEEXE}" install \
         -y \
         --prefix "${_ENV}" \
         --override-channels \
         -c http://mirrors.cloud.aliyuncs.com/anaconda/cloud/conda-forge \
-        --file "${_SRC}/tests/requirements.txt" \
+        --file "${_SRC}/tests/requirements_dev.txt" \
         $([ "$(uname)" = "Linux" ] && echo "patchelf") \
         "python=${_PYTHON}" > /dev/null; then
         echo "Error: failed to update ${_NAME}" 1>&2
         return 1
     fi
+    
+    pip install requests
 
     # update timestamp
     touch "${_UPDATED}"
