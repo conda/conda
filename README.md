@@ -136,3 +136,53 @@ to add).
 
 Contributions to conda are welcome. See the [contributing](CONTRIBUTING.md) documentation
 for instructions on setting up a development environment.
+
+## Conda Community
+There are many organizations, tools, and repositories created and managed by the amazing members of the conda community.
+
+### Organizations
+
+- [conda-forge](https://conda-forge.org/)<br>
+  A github organization containing repositories of conda recipes. Each repository, also known as a feedstock, knows how to build itself using freely available (to open source software) CI services.
+
+- [Bioconda](https://bioconda.github.io/)<br>
+  Bioconda is a distribution of bioinformatics software realized as a channel for the versatile Conda package manager.
+ 
+### Projects
+
+- [anaconda-list-distributions](https://github.com/pelson/anaconda-list-distributions)<br>
+  Give a name of an anaconda channel, and it will print out all of the distributions available, ordered by upload date. This view is helpful for managing a complex channel.
+
+- [conda-build-all](https://github.com/conda-tools/conda-build-all)<br>
+  A conda subcommand which allows multiple distributions to be built (and uploaded) in a single command. It makes use of the underlying machinery developed for conda build, but has a number of advantages.
+
+- [conda-execute](https://github.com/conda-tools/conda-execute)<br>
+  Write a script, annotate it with some comment metadata about the execution environment required, and run it with conda-execute. conda-execute will use conda to resolve and create a unique temporary environment, then run the script within it.
+
+- [conda-gitenv](https://github.com/SciTools/conda-gitenv)<br>
+  Track environment specifications using a git repo. conda gitenv is a designed to simplify the deployment centrally managed conda environments. Rather than expecting a sysadimn to administer appropriate conda commands on a live system, it decouples the conda update phase from the actual deployment, giving users the ability to review and prepare for any forthcoming changes.
+
+- [centrally-managed-conda](https://github.com/pelson/centrally-managed-conda)<br>
+  Miscellaneous tools useful to manage air-gapped conda environments.
+
+- [conda-smithy](https://github.com/conda-forge/conda-smithy)<br>
+  A tool for combining a conda recipe with configurations to build using freely hosted CI services into a single repository.
+
+- [conda-testenv](https://github.com/SciTools/conda-testenv)<br>
+  Run the tests of all packages installed in a conda environment. Especially useful for catching cases of badly installed packages, particularly those which poorly define their dependencies (e.g. a package claims to run with "numpy", but actually only runs with "numpy >=1.9").
+  
+- [xonda](https://github.com/gforsyth/xonda)<br>
+  A thin wrapper around conda for use with xonsh. It provides tab completion for most features and also will tab-complete activate/select calls for environments.
+
+- [conda-devenv](https://github.com/ESSS/conda-devenv)
+  Manage multiple `environment.yml`-like files, making it suitable to work with multiple projects in develop mode. Supports environment variables and Jinja 2 syntax.
+
+### Notable Conda Recipe Repos
+
+- [IOOS conda recipes](https://github.com/ioos/conda-recipes)
+- [raspberrypi-conda-recipes](https://github.com/pelson/raspberrypi-conda-recipes)
+
+
+
+
+
