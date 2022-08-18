@@ -23,8 +23,8 @@ If you would like more information about ``pluggy``, please refer to their docum
 for a full description of its features.
 
 
-Basic hook and entrypoint examples
-----------------------------------
+Basic hook and entry point examples
+-----------------------------------
 
 Hook
 ~~~~
