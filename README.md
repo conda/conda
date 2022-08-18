@@ -147,7 +147,7 @@ There are many organizations, tools, and repositories created and managed by the
 
 - [Bioconda](https://bioconda.github.io/)<br>
   Bioconda is a distribution of bioinformatics software realized as a channel for the versatile Conda package manager.
- 
+
 ### Projects
 
 - [anaconda-list-distributions](https://github.com/pelson/anaconda-list-distributions)<br>
@@ -170,7 +170,7 @@ There are many organizations, tools, and repositories created and managed by the
 
 - [conda-testenv](https://github.com/SciTools/conda-testenv)<br>
   Run the tests of all packages installed in a conda environment. Especially useful for catching cases of badly installed packages, particularly those which poorly define their dependencies (e.g. a package claims to run with "numpy", but actually only runs with "numpy >=1.9").
-  
+
 - [xonda](https://github.com/gforsyth/xonda)<br>
   A thin wrapper around conda for use with xonsh. It provides tab completion for most features and also will tab-complete activate/select calls for environments.
 
