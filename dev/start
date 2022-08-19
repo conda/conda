@@ -198,7 +198,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     else
         [ -f "${_DEVENV}/miniconda.exe" ] || _CMD='powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_DEVENV}/miniconda.exe' | Out-Null"'
     fi
-    if [ ${_CMD:+0} = 0 ]; then
+    if ! [ ${_CMD:-0} = 0 ]; then
         echo "Downloading miniconda..."
         eval ${_CMD}
         if ! [ $? = 0 ]; then
