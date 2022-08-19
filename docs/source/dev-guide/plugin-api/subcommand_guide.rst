@@ -22,7 +22,7 @@ Set up your working directory and files as shown below:
 
 .. code-block:: bash
 
-    string-art
+    /string-art
     │── string_art.py
     └── pyproject.toml (or setup.py)
 
@@ -88,6 +88,9 @@ Below is a code snippet that shows how to set up the ``pyproject.toml`` file to 
    requires-python = ">=3.7"
    dependencies = ["conda", "art"]
 
+   [tools.setuptools]
+   py_modules=["string_art"]
+
    [project.entry-points."conda"]
    my-conda-subcommand = "string_art"
 
@@ -140,6 +143,33 @@ by running the following commands (from the same directory where the ``pyproject
   $ py -m build
 
 
+At this point, if the custom subcommand package was built successfully, there should be a
+``dist`` directory inside of the ``string-art`` directory with the following contents:
+
+.. code-block:: bash
+
+    /dist
+    │── my-conda-subcommand-1.0.0.tar.gz
+    └── my_conda_subcommand-1.0.0-py3-none-any.whl
+
+Run the following command in order to install the ``string-art`` subcommand package:
+
+**[Unix/MacOS]**
+
+.. code-block:: bash
+
+  # Install the string-art package
+  $ python3 -m pip install dist/my_conda_subcommand-1.0.0-py3-none-any.whl
+
+
+**[Windows]**
+
+.. code-block:: bash
+
+  # Install the string-art package
+  $ py -m pip install dist\my_conda_subcommand-1.0.0-py3-none-any.whl
+
+
 .. note::
 
    For more information on ``pyproject.toml`` configuration, please read the related `PyPA documentation page`_.
@@ -176,12 +206,20 @@ Another packaging option is to utilize a ``setup.py`` file, as shown below:
    * **py_modules** The ``py_modules`` variables lets ``setup`` know exactly where to look for all of the modules which comprise your plugin source code.
 
 
-The custom ``string-art`` subcommand plugin can be installed via the ``setup.py`` entrypoint shown above
-by running the following:
+The custom ``string-art`` subcommand plugin can be installed via the ``setup.py`` example shown above
+by running the following from the directory where the ``setup.py`` file is located:
+
+**[Unix/MacOS]**
 
 .. code-block:: bash
 
-   $ pip install --editable [path to project]/string_art
+   $ python3 -m pip install --editable .
+
+**[Windows]**
+
+.. code-block:: bash
+
+   $ py -m pip install --editable .
 
 
 .. note::
