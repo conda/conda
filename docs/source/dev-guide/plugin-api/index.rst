@@ -41,11 +41,34 @@ Below is an example of a very basic plugin "hook":
    def conda_subcommands():
        ...
 
-Entrypoint namespace
-~~~~~~~~~~~~~~~~~~~~
 
-The ``setup.py`` file below is an example of an entrypoint namespace for the
-custom plugin function, decorated with the plugin hook (shown above):
+Packaging / entry point namespace
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``pyproject.toml`` file shown below is an example of a way to define and build
+a package out of the custom plugin hook shown above:
+
+.. code-block::
+   :caption: pyproject.toml
+
+   [build-system]
+   requires = ["setuptools", "setuptools-scm"]
+   build-backend = "setuptools.build_meta"
+
+   [project]
+   name = "my-conda-plugin"
+   version = "1.0.0"
+   description = "My conda plugin"
+   requires-python = ">=3.7"
+   dependencies = ["conda"]
+
+   [project.entry-points."conda"]
+   my-conda-plugin = "my_plugin"
+
+
+The ``setup.py`` file below is an alternative to the ``pyproject.toml`` file shown
+above; its main difference is the ``entry_points`` argument that is provided to the
+``setup()`` function:
 
 .. code-block:: python
    :caption: setup.py
