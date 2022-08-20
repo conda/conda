@@ -161,8 +161,15 @@ class ArgumentParser(ArgumentParserBase):
 
         super(ArgumentParser, self).error(message)
 
-    def print_help(self):
-        super(ArgumentParser, self).print_help()
+    def print_usage(self, file=None):
+        if file is None:
+            file = sys.stderr
+        super().print_usage(file)
+
+    def print_help(self, file=None):
+        if file is None:
+            file = sys.stderr
+        super().print_help(file)
 
         if sys.argv[1:] in ([], [''], ['help'], ['-h'], ['--help']):
             from .find_commands import find_commands
@@ -170,8 +177,8 @@ class ArgumentParser(ArgumentParserBase):
             if other_commands:
                 builder = ['']
                 builder.append("conda commands available from other packages:")
-                builder.extend('  %s' % cmd for cmd in sorted(other_commands))
-                print('\n'.join(builder))
+                builder.extend("  %s" % cmd for cmd in sorted(other_commands))
+                self._print_message("\n".join(builder), file)
 
 
 def _exec(executable_args, env_vars):
