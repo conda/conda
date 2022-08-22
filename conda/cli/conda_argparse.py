@@ -57,10 +57,8 @@ def generate_parser():
     sub_parsers = p.add_subparsers(
         metavar='command',
         dest='cmd',
+        required=True,
     )
-    # http://bugs.python.org/issue9253
-    # http://stackoverflow.com/a/18283730/1599393
-    sub_parsers.required = True
 
     configure_parser_clean(sub_parsers)
     configure_parser_compare(sub_parsers)
