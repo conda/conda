@@ -1136,10 +1136,7 @@ class ExceptionHandler(object):
         from .cli.main import init_loggers
 
         init_loggers(context)
-
-        content_str = "\n".join(content)
-        logger = getLogger("conda.stderr")
-        logger.info(content_str)
+        getLogger("conda.stderr").info("\n".join(content))
 
     @property
     def http_timeout(self):
