@@ -1133,14 +1133,13 @@ class ExceptionHandler(object):
 
     def write_out(self, *content):
         from .base.context import context
+        from .cli.main import init_loggers
+
+        init_loggers(context)
 
         content_str = "\n".join(content)
-        if True:
-            logger = getLogger("conda.%s" % ("stdout" if context.json else "stderr"))
-            logger.info(content_str)
-        else:
-            stream = sys.stdout if context.json else sys.stderr
-            stream.write(content_str)
+        logger = getLogger("conda.stderr")
+        logger.info(content_str)
 
     @property
     def http_timeout(self):
@@ -1340,13 +1339,18 @@ class ExceptionHandler(object):
             self._post_upload(do_upload)
 
     def _ask_upload(self):
-        self.write_out(
-            "If submitted, this report will be used by core maintainers to improve",
-            "future releases of conda.",
-            "Would you like conda to send this report to the core maintainers?",
-        )
+
         try:
-            do_upload = timeout(40, partial(input, "[y/N]: "))
+            do_upload = timeout(
+                40,
+                partial(
+                    input,
+                    "If submitted, this report will be used by core maintainers to improve\n"
+                    "future releases of conda.\n"
+                    "Would you like conda to send this report to the core maintainers? "
+                    "[y/N]: ",
+                ),
+            )
             return do_upload and boolify(do_upload)
         except Exception as e:
             log.debug("%r", e)
