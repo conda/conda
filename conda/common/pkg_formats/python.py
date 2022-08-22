@@ -18,7 +18,10 @@ import re
 import sys
 import warnings
 
-from tlz.itertoolz import concat, concatv, groupby
+try:
+    from tlz.itertoolz import concat, concatv, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
 
 from ... import CondaError
 from ..compat import odict, open
