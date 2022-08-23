@@ -68,7 +68,7 @@ while [ $# -gt 0 ]; do
             echo "  -p, --python  VERSION  Python version for the env to activate. (default: 3.8)"
             echo "  -u, --update           Force update packages. (default: update every 24 hours)"
             echo "  -d, --devenv  PATH     Path to base env install, can also be defined in ~/.condarc."
-            echo "                         Path is appended with $(uname). (default: devenv)"
+            echo "                         Path is appended with $UNAME. (default: devenv)"
             echo "  -n, --dry-run          Display env to activate. (default: false)"
             echo "  -h, --help             Display this."
             return 0
@@ -98,7 +98,7 @@ _DEVENV="${_DEVENV:-${_SRC}/devenv}"
 # tilde expansion
 _DEVENV="${_DEVENV/#\~/${HOME}}"
 # include OS
-_DEVENV="${_DEVENV}/$(uname)"
+_DEVENV="${_DEVENV}/$UNAME"
 # ensure exists and absolute path
 if [ ${_DRYRUN} = 1 ]; then
     mkdir -p "${_DEVENV}"
@@ -109,7 +109,7 @@ fi
 _NAME="devenv-${_PYTHON}-c"
 _ENV="${_DEVENV}/envs/${_NAME}"
 _UPDATED="${_ENV}/.devenv-updated"
-case "$(uname)" in
+case "$UNAME" in
     Darwin|Linux) _BASEEXE="${_DEVENV}/bin/conda" ; _ENVEXE="${_ENV}/bin/conda" ; _PYTHONEXE="${_ENV}/bin/python" ;;
                *) _BASEEXE="${_DEVENV}/Scripts/conda.exe" ; _ENVEXE="${_ENV}/Scripts/conda.exe" ; _PYTHONEXE="${_ENV}/Scripts/python.exe" ;;
 esac
@@ -138,13 +138,23 @@ if ! [ ${CONDA_SHLVL:-0} = 0 ]; then
     done
 fi
 
+UNAME="$(uname)"
+MACHINE="$(uname -m)"
+UNAME_SM="$(uname -sm)"
+
+# $ uname -sm
+# Linux x86_64
+# Linux aarch64
+# Darwin arm64
+# ...
+
 # does miniconda install exist?
 if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     # downloading miniconda
-    if [ "$(uname)" = "Darwin" ]; then
-        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh" -o "${_DEVENV}/miniconda.sh"'
-    elif [ "$(uname)" = "Linux" ]; then
-        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -o "${_DEVENV}/miniconda.sh"'
+    if [ "$UNAME" = "Darwin" ]; then
+        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${MACHINE}.sh" -o "${_DEVENV}/miniconda.sh"'
+    elif [ "$UNAME" = "Linux" ]; then
+        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${MACHINE}.sh" -o "${_DEVENV}/miniconda.sh"'
     else
         [ -f "${_DEVENV}/miniconda.exe" ] || _CMD='powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_DEVENV}/miniconda.exe' | Out-Null"'
     fi
@@ -159,7 +169,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
 
     # installing miniconda
     echo "Installing development environment..."
-    case "$(uname)" in
+    case "$UNAME" in
         Darwin|Linux) bash "${_DEVENV}/miniconda.sh" -bfp "${_DEVENV}" > /dev/null ;;
                    *) cmd.exe /c "start /wait \"\" \"${_DEVENV}\miniconda.exe\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
     esac
@@ -193,7 +203,7 @@ if updating; then
         --override-channels \
         -c defaults \
         --file "${_SRC}/tests/requirements.txt" \
-        $([ "$(uname)" = "Linux" ] && echo "patchelf") \
+        $([ "$UNAME" = "Linux" ] && echo "patchelf") \
         "python=${_PYTHON}" > /dev/null; then
         echo "Error: failed to update ${_NAME}" 1>&2
         return 1
