@@ -1336,7 +1336,6 @@ class ExceptionHandler(object):
             self._post_upload(do_upload)
 
     def _ask_upload(self):
-
         try:
             do_upload = timeout(
                 40,
