@@ -446,7 +446,13 @@ class SubdirData(metaclass=SubdirDataType):
                 (conda_packages.items(), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
             for fn, info in group:
+                # when signature verification feature is enabled we perform a deep copy of the info
+                # dict that can be passed to conda-content-trust for verification
+                # (see conda.models.records.PackageRecord.metadata and
+                # conda.trust.signature_verification._SignatureVerification.__call__)
+                # avoiding a blanketed deepcopy as it results in a 1-2s slowdown in general
                 duplicate_info = deepcopy(info) if signature_verification.enabled else None
+
                 info['fn'] = fn
                 info['url'] = join_url(channel_url, fn)
                 if copy_legacy_md5:
