@@ -14,7 +14,7 @@
 # * https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
 
 # built-in arg set via `docker build --platform $TARGETPLATFORM ...` or TARGETPLATFORM=BUILDPLATFORM
-FROM --platform=$TARGETPLATFORM debian:buster-slim AS buildbase
+FROM --platform=$TARGETPLATFORM debian:stable AS buildbase
 
 # built-in arg set by `docker build --platform linux/$TARGETARCH ...`
 ARG TARGETARCH
@@ -41,7 +41,7 @@ RUN if [ "${TARGETARCH}" = "amd64" ]; then \
     rm ~/miniconda.sh && \
     /opt/conda/bin/conda clean --all --yes
 
-FROM --platform=$TARGETPLATFORM debian:buster-slim
+FROM --platform=$TARGETPLATFORM debian:stable
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
