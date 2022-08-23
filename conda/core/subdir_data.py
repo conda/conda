@@ -60,6 +60,7 @@ from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+from ..trust.signature_verification import signature_verification
 
 try:
     import cPickle as pickle
@@ -445,7 +446,7 @@ class SubdirData(metaclass=SubdirDataType):
                 (conda_packages.items(), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
             for fn, info in group:
-                duplicate_info = deepcopy(info)
+                duplicate_info = deepcopy(info) if signature_verification.enabled else None
                 info['fn'] = fn
                 info['url'] = join_url(channel_url, fn)
                 if copy_legacy_md5:
