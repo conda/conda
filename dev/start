@@ -33,14 +33,13 @@ updating() {
 
 cleanup
 
-_UNAME="$(uname)"
-_ARCH="$(uname -m)"
-
 # $ uname -sm
 # Linux x86_64
 # Linux aarch64
 # Darwin arm64
 # ...
+_UNAME="$(uname)"
+_ARCH="$(uname -m)"
 
 # parse args
 while [ $# -gt 0 ]; do
