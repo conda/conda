@@ -218,7 +218,7 @@ class _SignatureVerification:
             raise ValueError(f"Invalid JSON returned from {signing_data_url}/{filename}")
 
     def __call__(self, record):
-        if not self.enabled or fn not in signatures:
+        if not self.enabled or not hasattr(record, 'signatures') or not record.signatures:
             return
 
         # create a signable envelope (a dict with the info and signatures)
