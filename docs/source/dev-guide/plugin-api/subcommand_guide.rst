@@ -136,20 +136,10 @@ At this point, if the custom subcommand package was built successfully, there sh
 
 Run the following command in order to install the ``string-art`` subcommand package:
 
-**[Unix/MacOS]**
-
 .. code-block:: bash
 
   # Install the string-art package
-  $ python3 -m pip install dist/my_conda_subcommand-1.0.0-py3-none-any.whl
-
-
-**[Windows]**
-
-.. code-block:: bash
-
-  # Install the string-art package
-  $ py -m pip install dist\my_conda_subcommand-1.0.0-py3-none-any.whl
+  $ python -m pip install dist/my_conda_subcommand-1.0.0-py3-none-any.whl
 
 
 .. note::
@@ -191,17 +181,10 @@ Another packaging option is to utilize a ``setup.py`` file, as shown below:
 The custom ``string-art`` subcommand plugin can be installed via the ``setup.py`` example shown above
 by running the following from the directory where the ``setup.py`` file is located:
 
-**[Unix/MacOS]**
 
 .. code-block:: bash
 
-   $ python3 -m pip install --editable .
-
-**[Windows]**
-
-.. code-block:: bash
-
-   $ py -m pip install --editable .
+   $ python -m pip install --editable .
 
 
 .. note::
