@@ -15,10 +15,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - runner: ubuntu-latest
-            subdir: linux-64
-          - runner: macos-latest
-            subdir: osx-64
+          # - runner: ubuntu-latest
+          #   subdir: linux-64
+          # - runner: macos-latest
+          #   subdir: osx-64
           - runner: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runner }}
@@ -53,6 +53,13 @@ jobs:
           clean: true
           fetch-depth: 0
 
+      - name: Debugging
+        run: |
+          git clone --bare %CD% %TMP%\clone_bare
+          dir %TMP%\clone_bare
+          git clone --mirror %CD% %TMP%\clone_mirror
+          dir %TMP%\clone_mirror
+
       - name: Create and upload review build
         uses: conda/actions/canary-release@v22.1.2
         with:
@@ -63,3 +70,6 @@ jobs:
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_TOKEN }}
           comment-headline: 'Review build status'
           comment-token: ${{ secrets.CANARY_ACTION_TOKEN }}
+
+      - name: Debugging with tmate
+        uses: mxschmitt/action-tmate@v3.11
