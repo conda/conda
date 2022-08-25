@@ -203,7 +203,7 @@ Another packaging option is to utilize a ``setup.py`` file, as shown below:
    * **name** This is the name of the package that contains your subcommand. This is also how others will find your subcommand package if you choose to upload it to PyPI.
    * **install_requires** These are all of the dependencies for your project. This should at a minimum always contain the version of ``conda`` for which your plugin is compatible with.
    * **entry_points** The entry point you list here is how ``conda`` will discover your plugin and should point to the file containing the ``conda.plugins.register`` hook. In our simple use case, it points to the ``string_art`` module contained within the ``string_art.py`` file. For more complex examples where your module is contained within a folder, it may look more like ``my_module.main`` or ``my_modules.plugin_hooks``.
-   * **py_modules** The ``py_modules`` variables lets ``setup`` know exactly where to look for all of the modules which comprise your plugin source code.
+   * **py_modules** The ``py_modules`` variables lets ``setup`` know exactly where to look for all of the modules that comprise your plugin source code.
 
 
 The custom ``string-art`` subcommand plugin can be installed via the ``setup.py`` example shown above
