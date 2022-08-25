@@ -116,31 +116,13 @@ Below is a code snippet that shows how to set up the ``pyproject.toml`` file to 
 The custom ``string-art`` subcommand plugin can be installed via ``pyproject.toml`` as shown above
 by running the following commands (from the same directory where the ``pyproject.toml`` is located):
 
-**[Unix/MacOS]**
-
 .. code-block:: bash
 
-  # Make sure you have the latest version of pip installed
-  $ python3 -m pip install --upgrade pip
-
-  # Make sure you have the latest version of PyPA’s build installed
-  $ python3 -m pip install --upgrade build
+  # Make sure you have the latest version of pip & PyPA’s build installed
+  $ python -m pip install --upgrade pip build
 
   # Run this command from the same directory where the pyproject.toml file is located
-  $ python3 -m build
-
-**[Windows]**
-
-.. code-block:: bash
-
-  # Make sure you have the latest version of pip installed
-  $ py -m pip install --upgrade pip
-
-  # Make sure you have the latest version of PyPA’s build installed
-  $ py -m pip install --upgrade build
-
-  # Run this command from the same directory where the pyproject.toml file is located
-  $ py -m build
+  $ python -m build
 
 
 At this point, if the custom subcommand package was built successfully, there should be a
