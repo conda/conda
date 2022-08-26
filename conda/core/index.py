@@ -28,6 +28,7 @@ from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
+from .. import __version__ as CONDA_VERSION
 
 log = getLogger(__name__)
 
@@ -182,6 +183,9 @@ def _supplement_index_with_system(index):
         if dist_version:
             rec = _make_virtual_package('__osx', dist_version)
             index[rec] = rec
+
+    rec = _make_virtual_package('__conda', CONDA_VERSION)
+    index[rec] = rec
 
     libc_family, libc_version = context.libc_family_version
     is_linux = context.subdir.startswith("linux-")

@@ -19,6 +19,7 @@ from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from tests.core.test_subdir_data import platform_in_record
+from conda import __version__ as CONDA_VERSION
 
 try:
     from unittest.mock import patch
@@ -55,6 +56,15 @@ def test_supplement_index_with_system_cuda():
     cuda_pkg = next(iter(_ for _ in index if _.name == '__cuda'))
     assert cuda_pkg.version == '3.2'
     assert cuda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+
+
+def test_supplement_index_with_conda():
+    index = {}
+    _supplement_index_with_system(index)
+
+    conda_pkg = next(iter(_ for _ in index if _.name == '__conda'))
+    assert conda_pkg.version == CONDA_VERSION
+    assert conda_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
 @pytest.mark.skipif(not on_mac, reason="osx-only test")
