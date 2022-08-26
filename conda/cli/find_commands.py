@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import lru_cache
 import os
 from os.path import basename, expanduser, isdir, isfile, join
 import re
 import sys
 import sysconfig
 
-from ..auxlib.decorators import memoize
 from ..common.compat import on_win
 
 
@@ -45,7 +45,7 @@ def find_executable(executable, include_others=True):
     return None
 
 
-@memoize
+@lru_cache(maxsize=None)
 def find_commands(include_others=True):
 
     if include_others:

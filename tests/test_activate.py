@@ -4,24 +4,28 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from re import escape
 from collections import OrderedDict
+from enum import Enum
+from functools import lru_cache
+from itertools import chain
+import json
 from logging import getLogger
 import os
 from os.path import dirname, isdir, join
-import subprocess
+from pathlib import Path
+from re import escape
+from subprocess import CalledProcessError, check_output
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
-import json
 
 import pytest
+from tlz.itertoolz import concatv
 
 from conda import __version__ as conda_version
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
-from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import (
     CmdExeActivator,
     CshActivator,
@@ -50,8 +54,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 
 from conda.testing.helpers import tempdir
-from conda.testing.integration import Commands, run_command, SPACER_CHARACTER
-from conda.auxlib.decorators import memoize
+from conda.testing.integration import Commands, run_command, SPACER_CHARACTER, make_temp_env
 
 log = getLogger(__name__)
 
@@ -107,7 +110,7 @@ PKG_B_ENV_VARS = '''
 }
 '''
 
-@memoize
+@lru_cache(maxsize=None)
 def bash_unsupported_because():
     bash = which("bash")
     reason = ""
@@ -115,14 +118,14 @@ def bash_unsupported_because():
         reason = "bash: was not found on PATH"
     elif on_win:
         try:
-            output = subprocess.check_output(bash + " -c " + '"uname -v"')
-        except subprocess.CalledProcessError as exc:
+            output = check_output(bash + " -c " + '"uname -v"')
+        except CalledProcessError as exc:
             reason = f"bash: something went wrong while running bash, output:\n{exc.output}\n"
         else:
             if b"Microsoft" in output:
                 reason = "bash: WSL is not yet supported. Pull requests welcome."
             else:
-                output = subprocess.check_output(bash + " --version")
+                output = check_output(bash + " --version")
                 if b"msys" not in output and b"cygwin" not in output:
                     reason = f"bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{output}\n"
                 elif bash.startswith(sys.prefix):
@@ -930,32 +933,28 @@ class ActivatorUnitTests(TestCase):
                     original_path = tuple(activator._get_starting_path_list())
                     builder = activator.build_deactivate()
 
-                    unset_vars = [
-                        'CONDA_PREFIX',
-                        'CONDA_DEFAULT_ENV',
-                        'CONDA_PROMPT_MODIFIER',
-                        'PKG_A_ENV',
-                        'PKG_B_ENV',
-                        'ENV_ONE',
-                        'ENV_TWO',
-                        'ENV_THREE'
-                    ]
-
                     new_path = activator.pathsep_join(activator.path_conversion(original_path))
-                    assert builder['set_vars'] == {
-                        'PS1': os.environ.get('PS1', ''),
-                    }
-                    export_vars = OrderedDict((
-                        ('CONDA_SHLVL', 0),
-                    ))
-                    export_path = {'PATH': new_path,}
-                    export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars,
-                                                                              conda_exe_vars=True)
-                    assert builder['export_vars'] == export_vars
-                    assert builder['unset_vars'] == unset_vars
-                    assert builder['export_path'] == export_path
-                    assert builder['activate_scripts'] == ()
-                    assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
+                    export_vars, unset_vars = activator.add_export_unset_vars(
+                        {"CONDA_SHLVL": 0},
+                        [
+                            "CONDA_PREFIX",
+                            "CONDA_DEFAULT_ENV",
+                            "CONDA_PROMPT_MODIFIER",
+                            "PKG_A_ENV",
+                            "PKG_B_ENV",
+                            "ENV_ONE",
+                            "ENV_TWO",
+                            "ENV_THREE",
+                        ],
+                    )
+                    assert builder["set_vars"] == {"PS1": os.environ.get("PS1", "")}
+                    assert builder["export_vars"] == export_vars
+                    assert builder["unset_vars"] == unset_vars
+                    assert builder["export_path"] == {"PATH": new_path}
+                    assert builder["activate_scripts"] == ()
+                    assert builder["deactivate_scripts"] == (
+                        activator.path_conversion(deactivate_d_1),
+                    )
 
     def test_get_env_vars_big_whitespace(self):
         with tempdir() as td:
@@ -1216,7 +1215,7 @@ class ShellWrapperUnitTests(TestCase):
             deactivate_data = c.stdout
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
-            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars(conda_exe_vars=True)
+            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
 
             e_deactivate_data = dals("""
             export PATH='%(new_path)s'
@@ -1397,9 +1396,8 @@ class ShellWrapperUnitTests(TestCase):
             deactivate_data = c.stdout
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
-            conda_exe_vars = ';\n'.join([activator.export_var_tmpl % (k, v) for k, v in context.conda_exe_vars_dict.items()])
 
-            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars(conda_exe_vars=True)
+            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
 
             e_deactivate_data = dals("""
             setenv PATH "%(new_path)s";
@@ -2671,3 +2669,105 @@ def test_activate_deactivate_modify_path(shell, prefix, activate_deactivate_pack
 
     assert "teststringfromactivate/bin/test" in activated_env_path
     assert original_path == os.environ.get("PATH")
+
+
+@pytest.fixture(scope="module")
+def create_stackable_envs():
+    # generate stackable environments, two with curl and one without curl
+    which = f"{'where' if on_win else 'which -a'} curl"
+
+    class Env:
+        def __init__(self, prefix=None, paths=None):
+            self.prefix = Path(prefix) if prefix else None
+
+            if not paths:
+                if on_win:
+                    path = self.prefix / "Library" / "bin" / f"curl.exe"
+                else:
+                    path = self.prefix / "bin" / "curl"
+
+                paths = (path,) if path.exists() else ()
+            self.paths = paths
+
+    sys = _run_command(
+        *("conda deactivate" for _ in range(5)),
+        "conda config --set auto_activate_base false",
+        which,
+    )
+
+    with make_temp_env("curl", name="fake_base") as base:
+        with make_temp_env("curl", name="haspkg") as haspkg:
+            with make_temp_env(name="notpkg") as notpkg:
+                yield which, {
+                    "sys": Env(paths=sys),
+                    "base": Env(prefix=base),
+                    "has": Env(prefix=haspkg),
+                    "not": Env(prefix=notpkg),
+                }
+
+
+def _run_command(*lines):
+    # create a custom run command since this is specific to the shell integration
+    if on_win:
+        join = " && ".join
+        source = f"{Path(context.root_prefix, 'condabin', 'conda_hook.bat')}"
+    else:
+        join = "\n".join
+        source = f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}"
+    script = join((source, *lines))
+    output = check_output(script, shell=True).decode().splitlines()
+    return [Path(path) for path in filter(None, output)]
+
+
+# see https://github.com/conda/conda/pull/11257#issuecomment-1050531320
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("auto_stack", "stack", "run", "expected"),
+    [
+        # no environments activated
+        (0, "", "base", "base,sys"),
+        (0, "", "has", "has,sys"),
+        (0, "", "not", "sys"),
+        # one environment activated, no stacking
+        (0, "base", "base", "base,sys"),
+        (0, "base", "has", "has,sys"),
+        (0, "base", "not", "sys"),
+        (0, "has", "base", "base,sys"),
+        (0, "has", "has", "has,sys"),
+        (0, "has", "not", "sys"),
+        (0, "not", "base", "base,sys"),
+        (0, "not", "has", "has,sys"),
+        (0, "not", "not", "sys"),
+        # one environment activated, stacking allowed
+        (5, "base", "base", "base,sys"),
+        (5, "base", "has", "has,base,sys"),
+        (5, "base", "not", "base,sys"),
+        (5, "has", "base", "base,has,sys"),
+        (5, "has", "has", "has,sys"),
+        (5, "has", "not", "has,sys"),
+        (5, "not", "base", "base,sys"),
+        (5, "not", "has", "has,sys"),
+        (5, "not", "not", "sys"),
+        # two environments activated, stacking allowed
+        (5, "base,has", "base", "base,has,sys" if on_win else "base,has,base,sys"),
+        (5, "base,has", "has", "has,base,sys"),
+        (5, "base,has", "not", "has,base,sys"),
+        (5, "base,not", "base", "base,sys" if on_win else "base,base,sys"),
+        (5, "base,not", "has", "has,base,sys"),
+        (5, "base,not", "not", "base,sys"),
+    ],
+)
+def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
+    which, envs = create_stackable_envs
+    stack = filter(None, stack.split(","))
+    expected = filter(None, expected.split(","))
+    expected = list(chain.from_iterable(envs[env.strip()].paths for env in expected))
+    assert (
+        _run_command(
+            *("conda deactivate" for _ in range(5)),
+            f"conda config --set auto_stack {auto_stack}",
+            *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
+            f'conda run -p "{envs[run.strip()].prefix}" {which}',
+        )
+        == expected
+    )

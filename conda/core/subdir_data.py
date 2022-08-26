@@ -9,35 +9,50 @@ from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
 from genericpath import getmtime, isfile
-from glob import iglob
 import hashlib
 from io import open as io_open
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
-from os import makedirs
-from os.path import basename, dirname, isdir, join, splitext, exists
+from os.path import dirname, isdir, join, splitext, exists
 import re
 from time import time
 import warnings
+
+try:
+    from tlz.itertoolz import concat, groupby, take
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, groupby, take
 
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..auxlib.logz import stringify
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, take, groupby
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
-from ..base.constants import INITIAL_TRUST_ROOT    # Where root.json is currently.
 from ..base.context import context
 from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
+from ..trust.signature_verification import signature_verification
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
-                          NotWritableError, UnavailableInvalidChannel, ProxyError)
-from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
-                                   InvalidSchema, SSLError, RequestsProxyError)
+from ..exceptions import (
+    CondaDependencyError,
+    CondaHTTPError,
+    CondaUpgradeError,
+    CondaSSLError,
+    NotWritableError,
+    UnavailableInvalidChannel,
+    ProxyError,
+)
+from ..gateways.connection import (
+    ConnectionError,
+    HTTPError,
+    InsecureRequestWarning,
+    InvalidSchema,
+    SSLError,
+    RequestsProxyError,
+)
 from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
@@ -45,23 +60,6 @@ from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
-from ..models.enums import MetadataSignatureStatus
-
-# TODO: May want to regularize these later once CCT code is vendored in.
-try:
-    import conda_content_trust as cct
-    from conda_content_trust.common import (
-        SignatureError,
-        load_metadata_from_file as load_trust_metadata_from_file,
-        write_metadata_to_file as write_trust_metadata_to_file,
-    )
-    from conda_content_trust.authentication import (
-        verify_root as verify_trust_root,
-        verify_delegation as verify_trust_delegation,
-    )
-    from conda_content_trust.signing import wrap_as_signable
-except ImportError:
-    cct = None
 
 try:
     import cPickle as pickle
@@ -112,7 +110,7 @@ class SubdirData(metaclass=SubdirDataType):
     @staticmethod
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
                   repodata_fn=REPODATA_FN):
-        from .index import check_whitelist  # TODO: fix in-line import
+        from .index import check_allowlist  # TODO: fix in-line import
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
@@ -127,7 +125,7 @@ class SubdirData(metaclass=SubdirDataType):
                 log.info("Ignoring the following channel urls because mode is offline.%s",
                          dashlist(ignored_urls))
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
-        check_whitelist(channel_urls)
+        check_allowlist(channel_urls)
         subdir_query = lambda url: tuple(SubdirData(Channel(url), repodata_fn=repodata_fn).query(
             package_ref_or_match_spec))
 
@@ -229,90 +227,6 @@ class SubdirData(metaclass=SubdirDataType):
             self.load()
         return iter(self._package_records)
 
-    def _refresh_signing_metadata(self):
-        if not isdir(context.av_data_dir):
-            log.info("creating directory for artifact verification metadata")
-            makedirs(context.av_data_dir)
-        self._refresh_signing_root()
-        self._refresh_signing_keymgr()
-
-    def _refresh_signing_root(self):
-        # TODO (AV): formalize paths for `*.root.json` and `key_mgr.json` on server-side
-        self._trusted_root = INITIAL_TRUST_ROOT
-
-        # Load current trust root metadata from filesystem
-        latest_root_id, latest_root_path = -1, None
-        for cur_path in iglob(join(context.av_data_dir, "[0-9]*.root.json")):
-            # TODO (AV): better pattern matching in above glob
-            cur_id = basename(cur_path).split(".")[0]
-            if cur_id.isdigit():
-                cur_id = int(cur_id)
-                if cur_id > latest_root_id:
-                    latest_root_id, latest_root_path = cur_id, cur_path
-
-        if latest_root_path is None:
-            log.debug(f"No root metadata in {context.av_data_dir}. "
-                      "Using built-in root metadata.")
-        else:
-            log.info(f"Loading root metadata from {latest_root_path}.")
-            self._trusted_root = load_trust_metadata_from_file(latest_root_path)
-
-        # Refresh trust root metadata
-        attempt_refresh = True
-        while attempt_refresh:
-            # TODO (AV): caching mechanism to reduce number of refresh requests
-            next_version_of_root = 1 + self._trusted_root['signed']['version']
-            next_root_fname = str(next_version_of_root) + '.root.json'
-            next_root_path = join(context.av_data_dir, next_root_fname)
-            try:
-                update_url = f"{self.channel.base_url}/{next_root_fname}"
-                log.info(f"Fetching updated trust root if it exists: {update_url}")
-
-                # TODO (AV): support fetching root data with credentials
-                untrusted_root = fetch_channel_signing_data(
-                        context.signing_metadata_url_base,
-                        next_root_fname)
-
-                verify_trust_root(self._trusted_root, untrusted_root)
-
-                # New trust root metadata checks out
-                self._trusted_root = untrusted_root
-                write_trust_metadata_to_file(self._trusted_root, next_root_path)
-
-            # TODO (AV): more error handling improvements (?)
-            except (HTTPError,) as err:
-                # HTTP 404 implies no updated root.json is available, which is
-                # not really an "error" and does not need to be logged.
-                if err.response.status_code not in (404,):
-                    log.error(err)
-                attempt_refresh = False
-            except Exception as err:
-                log.error(err)
-                attempt_refresh = False
-
-    def _refresh_signing_keymgr(self):
-        # Refresh key manager metadata
-        self._key_mgr_filename = "key_mgr.json"  # TODO (AV): make this a constant or config value
-        self._key_mgr = None
-
-        key_mgr_path = join(context.av_data_dir, self._key_mgr_filename)
-        try:
-            untrusted_key_mgr = fetch_channel_signing_data(
-                    context.signing_metadata_url_base,
-                    self._key_mgr_filename)
-            verify_trust_delegation("key_mgr", untrusted_key_mgr, self._trusted_root)
-            self._key_mgr = untrusted_key_mgr
-            write_trust_metadata_to_file(self._key_mgr, key_mgr_path)
-        except (ConnectionError, HTTPError,) as err:
-            log.warn(f"Could not retrieve {self.channel.base_url}/{self._key_mgr_filename}: {err}")
-        # TODO (AV): much more sensible error handling here
-        except Exception as err:
-            log.error(err)
-
-        # If key_mgr is unavailable from server, fall back to copy on disk
-        if self._key_mgr is None and exists(key_mgr_path):
-            self._key_mgr = load_trust_metadata_from_file(key_mgr_path)
-
     def _load(self):
         try:
             mtime = getmtime(self.cache_path_json)
@@ -358,17 +272,6 @@ class SubdirData(metaclass=SubdirDataType):
 
             log.debug("Local cache timed out for %s at %s",
                       self.url_w_repodata_fn, self.cache_path_json)
-
-        # TODO (AV): Pull contents of this conditional into a separate module/function
-        if context.extra_safety_checks:
-            if cct is None:
-                log.warn("metadata signature verification requested, "
-                         "but `conda-content-trust` is not installed.")
-            elif not context.signing_metadata_url_base:
-                log.info("metadata signature verification requested, "
-                         "but no metadata URL base has not been specified.")
-            else:
-                self._refresh_signing_metadata()
 
         try:
             raw_repodata_str = fetch_repodata_remote_request(
@@ -538,22 +441,6 @@ class SubdirData(metaclass=SubdirDataType):
             k[:-6] + _tar_bz2 for k in conda_packages.keys()
         )
 
-        if context.extra_safety_checks:
-            if cct is None:
-                log.warn("metadata signature verification requested, "
-                         "but `conda-content-trust` is not installed.")
-                verify_metadata_signatures = False
-            elif not context.signing_metadata_url_base:
-                log.info("no metadata URL base has not been specified")
-                verify_metadata_signatures = False
-            elif self._key_mgr is None:
-                log.warn("could not find key_mgr data for metadata signature verification")
-                verify_metadata_signatures = False
-            else:
-                verify_metadata_signatures = True
-        else:
-            verify_metadata_signatures = False
-
         for group, copy_legacy_md5 in (
                 (conda_packages.items(), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
@@ -562,19 +449,7 @@ class SubdirData(metaclass=SubdirDataType):
                 # Verify metadata signature before anything else so run-time
                 # updates to the info dictionary performed below do not
                 # invalidate the signatures provided in metadata.json.
-                if verify_metadata_signatures:
-                    if fn in signatures:
-                        signable = wrap_as_signable(info)
-                        signable['signatures'].update(signatures[fn])
-                        try:
-                            verify_trust_delegation('pkg_mgr', signable, self._key_mgr)
-                            info['metadata_signature_status'] = MetadataSignatureStatus.verified
-                        # TODO (AV): more granular signature errors (?)
-                        except SignatureError:
-                            log.warn(f"invalid signature for {fn}")
-                            info['metadata_signature_status'] = MetadataSignatureStatus.error
-                    else:
-                        info['metadata_signature_status'] = MetadataSignatureStatus.unsigned
+                signature_verification(info, fn, signatures)
 
                 info['fn'] = fn
                 info['url'] = join_url(channel_url, fn)
@@ -631,56 +506,6 @@ class Response304ContentUnchanged(Exception):
     pass
 
 
-# TODO (AV): move this to a more appropriate place
-def fetch_channel_signing_data(signing_data_url, filename, etag=None, mod_stamp=None):
-    if not context.ssl_verify:
-        warnings.simplefilter('ignore', InsecureRequestWarning)
-
-    session = CondaSession()
-
-    headers = {}
-    if etag:
-        headers["If-None-Match"] = etag
-    if mod_stamp:
-        headers["If-Modified-Since"] = mod_stamp
-
-    headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-    headers['Content-Type'] = 'application/json'
-
-    try:
-        timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        file_url = join_url(signing_data_url, filename)
-
-        # The `auth` argument below looks a bit weird, but passing `None` seems
-        # insufficient for suppressing modifying the URL to add an Anaconda
-        # server token; for whatever reason, we must pass an actual callable in
-        # order to suppress the HTTP auth behavior configured in the session.
-        #
-        # TODO (AV): Figure how to handle authn for obtaining trust metadata,
-        # independently of the authn used to access package repositories.
-        resp = session.get(file_url, headers=headers, proxies=session.proxies,
-                           auth=lambda r: r, timeout=timeout)
-
-        resp.raise_for_status()
-    except:
-        # TODO (AV): more sensible error handling
-        raise
-
-    # In certain cases (e.g., using `-c` access anaconda.org channels), the
-    # `CondaSession.get()` retry logic combined with the remote server's
-    # behavior can result in non-JSON content being returned.  Parse returned
-    # content here (rather than directly in the return statement) so callers of
-    # this function only have to worry about a ValueError being raised.
-    try:
-        str_data = json.loads(resp.content)
-    except json.decoder.JSONDecodeError as err:  # noqa
-        raise ValueError(f"Invalid JSON returned from {signing_data_url}/{filename}") from err
-
-    # TODO (AV): additional loading and error handling improvements?
-
-    return str_data
-
-
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
@@ -720,8 +545,33 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         else:
             raise
 
-    except (ConnectionError, HTTPError, SSLError) as e:
-        # status_code might not exist on SSLError
+    except SSLError as e:
+        # SSLError: either an invalid certificate or OpenSSL is unavailable
+        try:
+            import ssl  # noqa: F401
+        except ImportError:
+            raise CondaSSLError(
+                dals(
+                    f"""
+                    OpenSSL appears to be unavailable on this machine. OpenSSL is required to
+                    download and install packages.
+
+                    Exception: {e}
+                    """
+                )
+            )
+        else:
+            raise CondaSSLError(
+                dals(
+                    f"""
+                    Encountered an SSL error. Most likely a certificate verification issue.
+
+                    Exception: {e}
+                    """
+                )
+            )
+
+    except (ConnectionError, HTTPError) as e:
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
@@ -867,8 +717,14 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     #    are looking for the cache under keys without this.
     if repodata_fn != REPODATA_FN:
         url += repodata_fn
-    md5 = hashlib.md5(ensure_binary(url)).hexdigest()
-    return '%s.json' % (md5[:8],)
+
+    # TODO: remove try-except when conda only supports Python 3.9+, as
+    # `usedforsecurity=False` was added in 3.9.
+    try:
+        md5 = hashlib.md5(ensure_binary(url))
+    except ValueError:
+        md5 = hashlib.md5(ensure_binary(url), usedforsecurity=False)
+    return '%s.json' % (md5.hexdigest()[:8],)
 
 
 def add_http_value_to_dict(resp, http_key, d, dict_key):

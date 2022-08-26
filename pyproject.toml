@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 99
-target-version = ['py36', 'py37', 'py38']
+target-version = ['py37', 'py38', 'py39', 'py310']
 extend-exclude = '''
 ^/(
     conda/_vendor
@@ -34,11 +34,6 @@ drop = [
   '^tqdm/(_dist_ver|rich|keras|tk|dask)\.py',
   '^tqdm/(completion\.sh|tqdm\.1)',
   "tqdm/contrib",
-  '^urllib3/(_collections|fields|filepost|poolmanager|request|response)\.py',
-  '^urllib3/connection.*\.py',
-  "urllib3/contrib",
-  "urllib3/packages",
-  '^urllib3/util/(timeout|ssl_|retry|response|request|connection)\.py',
 ]
 
 [tool.vendoring.typing-stubs]
@@ -46,7 +41,6 @@ drop = [
 boltons = []
 toolz = []
 tqdm = []
-urllib3 = []
 appdirs = []
 cpuinfo = []
 distro = []
@@ -57,7 +51,6 @@ six = []
 boltons = "https://raw.githubusercontent.com/mahmoud/boltons/master/LICENSE"  # BSD
 toolz = "https://raw.githubusercontent.com/pytoolz/toolz/master/LICENSE.txt"  # BSD
 tqdm = "https://raw.githubusercontent.com/tqdm/tqdm/master/LICENCE"  # MPL, MIT
-urllib3 = "https://raw.githubusercontent.com/urllib3/urllib3/main/LICENSE.txt"  # MIT
 appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt"  # MIT
 cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE"  # MIT
 distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache

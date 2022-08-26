@@ -119,6 +119,6 @@ def get_notice_cache_filenames(ctx: Context) -> tuple[str]:
     channel_urls_and_names = get_channel_name_and_urls(get_channel_objs(ctx))
 
     return tuple(
-        ChannelNoticeResponse.get_cache_key(url, name, Path("")).name
+        ChannelNoticeResponse.get_cache_key(url, Path("")).name
         for url, name in channel_urls_and_names
     )

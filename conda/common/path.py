@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from functools import reduce
+from functools import lru_cache, reduce
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
@@ -11,10 +11,13 @@ import re
 import subprocess
 from urllib.parse import urlsplit
 
+try:
+    from tlz.itertoolz import accumulate, concat
+except ImportError:
+    from conda._vendor.toolz.itertoolz import accumulate, concat
+
 from .compat import on_win
 from .. import CondaError
-from ..auxlib.decorators import memoize
-from .._vendor.toolz import accumulate, concat
 from distutils.spawn import find_executable
 
 
@@ -53,7 +56,8 @@ def paths_equal(path1, path2):
     else:
         return abspath(path1) == abspath(path2)
 
-@memoize
+
+@lru_cache(maxsize=None)
 def url_to_path(url):
     """Convert a file:// URL to a path.
 

@@ -1,6 +1,6 @@
 package:
   name: conda
-  version: {{ GIT_DESCRIBE_TAG }}.{{ GIT_BUILD_STR }}
+  version: {{ GIT_DESCRIBE_TAG }}+{{ GIT_BUILD_STR }}
 
 source:
   # git_url is nice in that it won't capture devenv stuff.  However, it only
@@ -32,6 +32,7 @@ requirements:
     - pip
     - ruamel_yaml >=0.11.14,<0.17
     - setuptools >=31.0.1
+    - toolz >=0.8.1
   run:
     - python
     - conda-package-handling >=1.3.0
@@ -41,6 +42,7 @@ requirements:
     - requests >=2.18.4,<3
     - ruamel_yaml >=0.11.14,<0.17
     - setuptools >=31.0.1
+    - toolz >=0.8.1
   run_constrained:
     - conda-build >=3
     - conda-env >=2.6
@@ -66,7 +68,7 @@ test:
 
 about:
   home: https://conda.io
-  license: BSD 3-Clause
+  license: BSD-3-Clause
   license_file: LICENSE.txt
   summary: OS-agnostic, system-level binary package and environment manager.
   description: >

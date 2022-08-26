@@ -13,7 +13,7 @@ from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_win, on_mac, on_linux
 from conda.common.io import env_vars
-from conda.core.index import check_whitelist, get_index, get_reduced_index, _supplement_index_with_system
+from conda.core.index import check_allowlist, get_index, get_reduced_index, _supplement_index_with_system
 from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
@@ -27,24 +27,24 @@ except ImportError:
 
 log = getLogger(__name__)
 
-def test_check_whitelist():
-    whitelist = (
+def test_check_allowlist():
+    allowlist = (
         'defaults',
         'conda-forge',
         'https://beta.conda.anaconda.org/conda-test'
     )
-    with env_vars({'CONDA_WHITELIST_CHANNELS': ','.join(whitelist)}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({'CONDA_ALLOWLIST_CHANNELS': ','.join(allowlist)}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with pytest.raises(ChannelNotAllowed):
             get_index(("conda-canary",))
 
         with pytest.raises(ChannelNotAllowed):
             get_index(("https://repo.anaconda.com/pkgs/denied",))
 
-        check_whitelist(("defaults",))
-        check_whitelist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
-        check_whitelist(("https://conda.anaconda.org/conda-forge/linux-64",))
+        check_allowlist(("defaults",))
+        check_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+        check_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
 
-    check_whitelist(("conda-canary",))
+    check_allowlist(("conda-canary",))
 
 
 def test_supplement_index_with_system_cuda():

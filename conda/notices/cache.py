@@ -91,7 +91,7 @@ def get_notice_response_from_cache(
     """
     Retrieves a notice response object from cache if it exists.
     """
-    cache_key = ChannelNoticeResponse.get_cache_key(url, name, cache_dir)
+    cache_key = ChannelNoticeResponse.get_cache_key(url, cache_dir)
 
     if os.path.isfile(cache_key):
         with safe_open(cache_key, "r") as fp:
@@ -108,9 +108,7 @@ def write_notice_response_to_cache(
     """
     Writes our notice data to our local cache location
     """
-    cache_key = ChannelNoticeResponse.get_cache_key(
-        channel_notice_response.url, channel_notice_response.name, cache_dir
-    )
+    cache_key = ChannelNoticeResponse.get_cache_key(channel_notice_response.url, cache_dir)
 
     with safe_open(cache_key, "w") as fp:
         json.dump(channel_notice_response.json_data, fp)

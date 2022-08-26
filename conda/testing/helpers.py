@@ -8,6 +8,7 @@ Helpers for the tests
 from __future__ import absolute_import, division, print_function
 
 from contextlib import contextmanager
+from functools import lru_cache
 import json
 import os
 from os.path import dirname, join, abspath
@@ -28,7 +29,6 @@ except ImportError:
     from mock import patch  # noqa: F401
 
 from .. import cli
-from ..auxlib.decorators import memoize
 from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from ..common.compat import encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
@@ -43,6 +43,8 @@ from ..models.channel import Channel
 from ..models.records import PackageRecord
 from ..models.records import PrefixRecord
 from ..resolve import Resolve
+
+from conda_env.cli import main as conda_env_cli
 
 
 import pytest
@@ -103,6 +105,17 @@ def capture_json_with_argv(command, disallow_stderr=True, ignore_stderr=False, *
         raise
 
 
+@contextmanager
+def set_active_prefix(prefix: str) -> None:
+    old_prefix = os.environ["CONDA_PREFIX"]
+
+    try:
+        os.environ["CONDA_PREFIX"] = prefix
+        yield
+    finally:
+        os.environ["CONDA_PREFIX"] = old_prefix
+
+
 def assert_equals(a, b, output=""):
     output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
     assert a.lower() == b.lower(), output
@@ -120,14 +133,22 @@ def assert_in(a, b, output=""):
     assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
 
 
-def run_inprocess_conda_command(command, disallow_stderr=True):
+def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     # anything that uses this function is an integration test
     reset_context(())
+
+    # determine whether this is a conda_env command and assign appropriate main function
+    if command.startswith("conda env"):
+        command = command.replace("env", "")  # Remove 'env' because of command parser
+        main_func = conda_env_cli.main
+    else:
+        main_func = cli.main
+
     # May want to do this to command:
     with argv(encode_arguments(shlex_split_unicode(command))), captured(disallow_stderr) as c:
         initialize_logging()
         try:
-            exit_code = cli.main()
+            exit_code = main_func()
         except SystemExit:
             pass
     print(c.stderr, file=sys.stderr)
@@ -293,7 +314,7 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
     subdir_data._mtime = float("inf")
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_r_1(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index.json")) as fi:
         packages = json.load(fi)
@@ -323,7 +344,7 @@ def get_index_r_1(subdir=context.subdir):
     return index, r
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_r_2(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index2.json")) as fi:
         packages = json.load(fi)
@@ -352,7 +373,7 @@ def get_index_r_2(subdir=context.subdir):
     return index, r
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_r_4(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index4.json")) as fi:
         packages = json.load(fi)
@@ -381,7 +402,7 @@ def get_index_r_4(subdir=context.subdir):
     return index, r
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_r_5(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index5.json")) as fi:
         packages = json.load(fi)
@@ -410,7 +431,7 @@ def get_index_r_5(subdir=context.subdir):
     return index, r
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_must_unfreeze(subdir=context.subdir):
     repodata = {
         "info": {

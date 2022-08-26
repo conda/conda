@@ -16,9 +16,13 @@ from textwrap import dedent
 import time
 import warnings
 
+try:
+    from tlz.itertoolz import groupby, take
+except ImportError:
+    from conda._vendor.toolz.itertoolz import groupby, take
+
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals
-from ._vendor.toolz import groupby, take
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .base.context import context
 from .common.compat import ensure_text_type, open
