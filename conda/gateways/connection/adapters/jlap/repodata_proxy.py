@@ -83,7 +83,7 @@ def apply_patches(data, patches, have, want):
     return data
 
 
-def fetch_repodata_json(cache_path: Path, repodata_url: str, ses=None) -> Tuple[Path, str]:
+def fetch_repodata_json(cache_path: Path, repodata_url: str, ses=None) -> Tuple[Path, bytes]:
     """
     Fetch new repodata.json; cache to a gzip'd file
     """
