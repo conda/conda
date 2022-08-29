@@ -23,9 +23,9 @@ from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
 
 try:
-    from tlz.itertoolz import concatv, groupby, unique
+    from tlz.itertoolz import groupby, unique
 except ImportError:  # pragma: no cover
-    from conda._vendor.toolz.itertoolz import concatv, groupby, unique  # NOQA
+    from conda._vendor.toolz.itertoolz import groupby, unique  # NOQA
 
 
 VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')
@@ -108,13 +108,13 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
 
     precs = tuple(PrefixGraph(pd.iter_records()).graph)
     grouped_precs = groupby(lambda x: x.package_type, precs)
-    conda_precs = sorted(concatv(
+    conda_precs = sorted(chain(
         grouped_precs.get(None, ()),
         grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
         grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
     ), key=lambda x: x.name)
 
-    pip_precs = sorted(concatv(
+    pip_precs = sorted(chain(
         grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
         grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
         grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),

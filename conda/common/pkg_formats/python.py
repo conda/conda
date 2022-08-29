@@ -9,6 +9,7 @@ from csv import reader as csv_reader
 from email.parser import HeaderParser
 from errno import ENOENT
 from io import StringIO
+from itertools import chain
 from logging import getLogger
 from os import name as os_name, scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
@@ -19,9 +20,9 @@ import sys
 import warnings
 
 try:
-    from tlz.itertoolz import concat, concatv, groupby
+    from tlz.itertoolz import concat, groupby
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+    from conda._vendor.toolz.itertoolz import concat, groupby
 
 from ... import CondaError
 from ..compat import odict, open
@@ -276,7 +277,7 @@ class PythonDistribution(object):
             missing_pyc_files = (ff for ff in (
                 _pyc_path(f, py_ver_mm) for f in files_set if _py_file_re.match(f)
             ) if ff not in files_set)
-            records = sorted(concatv(records, ((pf, None, None) for pf in missing_pyc_files)))
+            records = sorted(chain(records, ((pf, None, None) for pf in missing_pyc_files)))
             return records
 
         return []

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from itertools import chain
 from errno import ENOENT
 import json
 import os
@@ -14,7 +15,7 @@ from textwrap import dedent
 try:
     from tlz.itertoolz import concatv, drop
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concatv, drop
+    from conda._vendor.toolz.itertoolz import drop
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -54,7 +55,7 @@ class _Activator(object):
     path_conversion = None
     script_extension = None
     tempfile_extension = None  # None means write instructions to stdout rather than a temp file
-    command_join = None
+    command_join: str
 
     unset_var_tmpl = None
     export_var_tmpl = None
@@ -122,7 +123,7 @@ class _Activator(object):
         return script_export_vars or '', script_unset_vars or ''
 
     def _finalize(self, commands, ext):
-        commands = concatv(commands, ('',))  # add terminating newline
+        commands = chain(commands, ('',))  # add terminating newline
         if ext is None:
             return self.command_join.join(commands)
         elif ext:

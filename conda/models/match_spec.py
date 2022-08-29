@@ -7,15 +7,16 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 from collections.abc import Mapping
 from functools import reduce
+from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from os.path import basename
 import re
 
 try:
-    from tlz.itertoolz import concat, concatv, groupby
+    from tlz.itertoolz import concat, groupby
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+    from conda._vendor.toolz.itertoolz import concat, groupby
 
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
@@ -479,7 +480,7 @@ class MatchSpec(metaclass=MatchSpecType):
             merged_specs.append(
                 reduce(lambda x, y: x._merge(y, union), group) if len(group) > 1 else group[0]
             )
-        return tuple(concatv(merged_specs, unmergeable))
+        return tuple(chain(merged_specs, unmergeable))
 
     @classmethod
     def union(cls, match_specs):

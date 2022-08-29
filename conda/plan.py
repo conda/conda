@@ -12,14 +12,15 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from itertools import chain
 from collections import defaultdict
 from logging import getLogger
 import sys
 
 try:
-    from tlz.itertoolz import concatv, groupby
+    from tlz.itertoolz import groupby
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concatv, groupby
+    from conda._vendor.toolz.itertoolz import groupby
 
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
@@ -417,7 +418,7 @@ def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     # unlink
     menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        unlink_dists = tuple(concatv(
+        unlink_dists = tuple(chain(
             unlink_dists[:menuinst_idx],
             unlink_dists[menuinst_idx+1:],
             unlink_dists[menuinst_idx:menuinst_idx+1],
@@ -426,7 +427,7 @@ def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     # link
     menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        link_dists = tuple(concatv(
+        link_dists = tuple(chain(
             link_dists[menuinst_idx:menuinst_idx+1],
             link_dists[:menuinst_idx],
             link_dists[menuinst_idx+1:],

@@ -5,15 +5,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import copy
 from genericpath import exists
+from itertools import chain
 from logging import DEBUG, getLogger
 from os.path import join
 import sys
 from textwrap import dedent
 
 try:
-    from tlz.itertoolz import concat, concatv, groupby
+    from tlz.itertoolz import concat, groupby
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+    from conda._vendor.toolz.itertoolz import concat, groupby
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -458,7 +459,7 @@ class Solver(object):
                     or prec.subdir == 'pypi'):
                 ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
 
-        prepared_specs = set(concatv(
+        prepared_specs = set(chain(
             self.specs_to_remove,
             self.specs_to_add,
             ssc.specs_from_history_map.values(),
@@ -606,7 +607,7 @@ class Solver(object):
         #    specs being added.
         explicit_pool = ssc.r._get_package_pool(self.specs_to_add)
 
-        conflict_specs = ssc.r.get_conflicting_specs(tuple(concatv(
+        conflict_specs = ssc.r.get_conflicting_specs(tuple(chain(
             (_.to_match_spec() for _ in ssc.prefix_data.iter_records()))), self.specs_to_add
         ) or tuple()
         conflict_specs = set(_.name for _ in conflict_specs)
@@ -778,7 +779,7 @@ class Solver(object):
 
     @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
-        final_environment_specs = IndexedSet(concatv(
+        final_environment_specs = IndexedSet(chain(
             ssc.specs_map.values(),
             ssc.track_features_specs,
             # pinned specs removed here - added to specs_map in _add_specs instead
@@ -941,7 +942,7 @@ class Solver(object):
             add_back = tuple(ssc.prefix_data.get(node.name, None) for node in removed_nodes
                              if node.name not in specs_to_remove_names)
             ssc.solution_precs = tuple(
-                PrefixGraph(concatv(graph.graph, filter(None, add_back))).graph
+                PrefixGraph(chain(graph.graph, filter(None, add_back))).graph
             )
 
             # TODO: check if solution is satisfiable, and emit warning if it's not
@@ -1145,7 +1146,7 @@ def get_pinned_specs(prefix):
         from_file = ()
 
     return tuple(MatchSpec(s, optional=True) for s in
-                 concatv(context.pinned_packages, from_file))
+                 chain(context.pinned_packages, from_file))
 
 
 def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reinstall=NULL):

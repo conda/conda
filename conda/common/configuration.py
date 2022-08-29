@@ -28,7 +28,7 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 try:
-    from tlz.itertoolz import concat, concatv, unique
+    from tlz.itertoolz import concat, unique
     from tlz.dicttoolz import merge, merge_with
     from tlz.functoolz import excepts
 except ImportError:
@@ -702,7 +702,7 @@ class MapLoadedParameter(LoadedParameter):
         # dump all matches in a dict
         # then overwrite with important matches
         merged_values_important_overwritten = frozendict(merge(
-            concatv([merged_values], reversed(important_maps))))
+            chain([merged_values], reversed(important_maps))))
 
         # create new parameter for the merged values
         return MapLoadedParameter(
@@ -770,13 +770,13 @@ class SequenceLoadedParameter(LoadedParameter):
         all_lines = concat(v for _, v in reversed(relevant_matches_and_values))
 
         # stack top_lines + all_lines, then de-dupe
-        top_deduped = tuple(unique(concatv(top_lines, all_lines)))
+        top_deduped = tuple(unique(chain(top_lines, all_lines)))
 
         # take the top-deduped lines, reverse them, and concat with reversed bottom_lines
         # this gives us the reverse of the order we want, but almost there
         # NOTE: for a line value marked both top and bottom, the bottom marker will win out
         #       for the top marker to win out, we'd need one additional de-dupe step
-        bottom_deduped = unique(concatv(reversed(tuple(bottom_lines)), reversed(top_deduped)))
+        bottom_deduped = unique(chain(reversed(tuple(bottom_lines)), reversed(top_deduped)))
         # just reverse, and we're good to go
         merged_values = tuple(reversed(tuple(bottom_deduped)))
 
@@ -848,7 +848,7 @@ class ObjectLoadedParameter(LoadedParameter):
         # dump all matches in a dict
         # then overwrite with important matches
         merged_values_important_overwritten = frozendict(merge(
-            concatv([merged_values], reversed(important_maps))))
+            chain([merged_values], reversed(important_maps))))
 
         # copy object and replace Parameter with LoadedParameter fields
         object_copy = copy.deepcopy(self._element_type)

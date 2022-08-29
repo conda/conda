@@ -7,6 +7,7 @@ from collections import OrderedDict
 
 from errno import ENOENT
 from functools import lru_cache
+from itertools import chain
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
@@ -112,7 +113,7 @@ def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
         )
     if on_win:
         fixed_dirs += join(user_data_dir(APP_NAME, APP_NAME), 'envs'),
-    return tuple(IndexedSet(expand(p) for p in concatv(_envs_dirs, fixed_dirs)))
+    return tuple(IndexedSet(expand(p) for p in chain(_envs_dirs, fixed_dirs)))
 
 
 def channel_alias_validation(value):
@@ -506,7 +507,7 @@ class Context(Configuration):
 
     @memoizedproperty
     def known_subdirs(self):
-        return frozenset(concatv(KNOWN_SUBDIRS, self.subdirs))
+        return frozenset(chain(KNOWN_SUBDIRS, self.subdirs))
 
     @property
     def bits(self):
@@ -732,7 +733,7 @@ class Context(Configuration):
         )
         all_multichannels = odict(
             (name, channels)
-            for name, channels in concatv(
+            for name, channels in chain(
                 custom_multichannels.items(),
                 reserved_multichannels.items(),  # order maters, reserved overrides custom
             )
@@ -746,7 +747,7 @@ class Context(Configuration):
                            for name, url in self._custom_channels.items())
         channels_from_multichannels = concat(channel for channel
                                              in self.custom_multichannels.values())
-        all_channels = odict((x.name, x) for x in (ch for ch in concatv(
+        all_channels = odict((x.name, x) for x in (ch for ch in chain(
             channels_from_multichannels,
             custom_channels,
         )))
@@ -770,7 +771,7 @@ class Context(Configuration):
                     "--override-channels."
                 )
             else:
-                return tuple(IndexedSet(concatv(local_add, self._argparse_args['channel'])))
+                return tuple(IndexedSet(chain(local_add, self._argparse_args['channel'])))
 
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and 'channel' in self._argparse_args:
@@ -783,10 +784,10 @@ class Context(Configuration):
             channel_in_config_files = any('channels' in context.raw_data[rc_file].keys()
                                           for rc_file in self.config_files)
             if argparse_channels and not channel_in_config_files:
-                return tuple(IndexedSet(concatv(local_add, argparse_channels,
-                                                (DEFAULTS_CHANNEL_NAME,))))
+                return tuple(IndexedSet(chain(local_add, argparse_channels,
+                                                        (DEFAULTS_CHANNEL_NAME,))))
 
-        return tuple(IndexedSet(concatv(local_add, self._channels)))
+        return tuple(IndexedSet(chain(local_add, self._channels)))
 
     @property
     def config_files(self):

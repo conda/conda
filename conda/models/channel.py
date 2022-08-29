@@ -8,9 +8,9 @@ from itertools import chain
 from logging import getLogger
 
 try:
-    from tlz.itertoolz import concat, concatv, drop
+    from tlz.itertoolz import concat, drop
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, drop
+    from conda._vendor.toolz.itertoolz import concat, drop
 
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
@@ -158,7 +158,7 @@ class Channel(metaclass=ChannelType):
                 cn = self.__canonical_name = self.name
                 return cn
 
-        if any(c.location == self.location for c in concatv(
+        if any(c.location == self.location for c in chain(
                 (context.channel_alias,),
                 context.migrated_channel_aliases,
         )):

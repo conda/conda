@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import itertools
 from collections import defaultdict, namedtuple
+from itertools import chain
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, join
@@ -99,7 +99,7 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
     #     transaction_context, package_cache_record, target_prefix
     # )
 
-    return tuple(concatv(
+    return tuple(chain(
         unlink_path_actions,
         directory_remove_actions,
         # unregister_private_package_actions,
@@ -248,7 +248,7 @@ class UnlinkLinkTransaction(object):
                 log.info(exceptions)
         try:
             self._verify_pre_link_message(
-                itertools.chain(
+                chain(
                     *(act.link_action_groups for act in self.prefix_action_groups.values())
                 )
             )
@@ -400,10 +400,10 @@ class UnlinkLinkTransaction(object):
                 target_prefix)
             make_menu_action_groups.append(make_menu_ag)
 
-            all_link_path_actions = concatv(link_ag.actions,
-                                            compile_ag.actions,
-                                            entry_point_ag.actions,
-                                            make_menu_ag.actions)
+            all_link_path_actions = chain(link_ag.actions,
+                                                    compile_ag.actions,
+                                                    entry_point_ag.actions,
+                                                    make_menu_ag.actions)
             record_axns.extend(CreatePrefixRecordAction.create_actions(
                 transaction_context, pkg_info, target_prefix, lt, spec, all_link_path_actions))
 
@@ -744,7 +744,7 @@ class UnlinkLinkTransaction(object):
                             excs = UnlinkLinkTransaction._reverse_actions(axngroup)
                             rollback_excs.extend(excs)
 
-                raise CondaMultiError(tuple(concatv(
+                raise CondaMultiError(tuple(chain(
                     ((e.errors[0], e.errors[2:])
                      if isinstance(e, CondaMultiError)
                      else (e,)),
@@ -783,7 +783,7 @@ class UnlinkLinkTransaction(object):
             reverse_excs = ()
             if context.rollback_enabled:
                 reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
-            return CondaMultiError(tuple(concatv(
+            return CondaMultiError(tuple(chain(
                 (e,),
                 (axngroup,),
                 reverse_excs,
@@ -803,7 +803,7 @@ class UnlinkLinkTransaction(object):
                 reverse_excs = ()
                 if context.rollback_enabled:
                     reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
-                return CondaMultiError(tuple(concatv(
+                return CondaMultiError(tuple(chain(
                     (e,),
                     (axngroup,),
                     reverse_excs,
@@ -900,7 +900,7 @@ class UnlinkLinkTransaction(object):
         #     register_private_env_actions = ()
 
         # the ordering here is significant
-        return tuple(concatv(
+        return tuple(chain(
             create_directory_actions,
             file_link_actions,
             create_nonadmin_actions,

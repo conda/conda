@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import codecs
 from collections import defaultdict
 from errno import EACCES, ENOENT, EPERM, EROFS
+from itertools import chain
 from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
@@ -194,7 +195,7 @@ class PackageCacheData(metaclass=PackageCacheType):
             lambda pc: pc.is_writable,
             (cls(pd) for pd in pkgs_dirs)
         )
-        return tuple(concatv(pc_groups.get(True, ()), pc_groups.get(False, ())))
+        return tuple(chain(pc_groups.get(True, ()), pc_groups.get(False, ())))
 
     @classmethod
     def get_all_extracted_entries(cls):
@@ -423,7 +424,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         conda_extensions = groups[_CONDA_TARBALL_EXTENSION_V2]
         tar_bz2_extensions = groups[_CONDA_TARBALL_EXTENSION_V1] - conda_extensions
         others = groups[None] - conda_extensions - tar_bz2_extensions
-        return sorted(concatv(
+        return sorted(chain(
             (p + _CONDA_TARBALL_EXTENSION_V2 for p in conda_extensions),
             (p + _CONDA_TARBALL_EXTENSION_V1 for p in tar_bz2_extensions),
             others,
