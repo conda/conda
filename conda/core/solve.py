@@ -1045,7 +1045,6 @@ class Solver:
 
                      conda install conda=version
 
-
                 """) % (CONDA_VERSION, latest_version, channel_name), file=sys.stderr)
 
     def _prepare(self, prepared_specs):
