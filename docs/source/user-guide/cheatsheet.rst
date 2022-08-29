@@ -15,7 +15,7 @@ Versions
     version as well, to keep the URL of the conda cheetsheet the same.
     Thank you!
 
-- :download:`conda 4.14.x <cheatsheets/conda-4.12.pdf>` (latest)
+- :download:`conda 4.14.x <cheatsheets/conda-4.14.pdf>` (latest)
 
 - :download:`conda 4.12.x <cheatsheets/conda-4.12.pdf>`
 
