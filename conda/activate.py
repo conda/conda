@@ -202,8 +202,7 @@ class _Activator(object):
         if arguments is None or len(arguments) < 1:
             raise_invalid_command_error()
 
-        command = arguments[0]
-        arguments = tuple(arguments[1:])
+        command, *arguments = arguments
         help_flags = ('-h', '--help', '/?')
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
