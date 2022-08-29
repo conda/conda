@@ -1006,7 +1006,7 @@ class MatchSpecMergeTests(TestCase):
         blue_prefix = MatchSpec("my_pkg=1.17.*=blue_*")
         assert not blue_prefix.match(red)
         assert blue_prefix.match(blue)
-        
+
         blue_hash_prefix = MatchSpec("my_pkg=1.17.*=blue_hdef1234_*")
         assert not blue_hash_prefix.match(red)
         assert blue_hash_prefix.match(blue)
@@ -1029,7 +1029,7 @@ class MatchSpecMergeTests(TestCase):
         build_tail_3 = MatchSpec("my_pkg=1.17.*=*_3")
         assert build_tail_3.match(red)
         assert build_tail_3.match(blue)
-        
+
         hash_build_tail_3 = MatchSpec("my_pkg=1.17.*=*_habc123_3")
         assert hash_build_tail_3.match(red)
         assert not hash_build_tail_3.match(blue)
@@ -1064,7 +1064,7 @@ class MatchSpecMergeTests(TestCase):
         assert merged.match(red)
         assert not merged.match(blue)
 
-        # prefix + prefix, we keep the longest if compatible      
+        # prefix + prefix, we keep the longest if compatible
         merged, *unmergeable = MatchSpec.merge(
             [
                 blue_prefix,
@@ -1075,7 +1075,7 @@ class MatchSpecMergeTests(TestCase):
         assert merged.match(blue)
         assert not merged.match(red)
 
-        # suffix + suffix, we keep the longest if compatible      
+        # suffix + suffix, we keep the longest if compatible
         merged, *unmergeable = MatchSpec.merge(
             [
                 build_tail_3,
@@ -1115,10 +1115,10 @@ class MatchSpecMergeTests(TestCase):
 
         with pytest.raises(ValueError):
             MatchSpec.merge([blue_prefix, red_exact])
-        
+
         with pytest.raises(ValueError):
             MatchSpec.merge([blue_prefix, red_prefix])
-        
+
         with pytest.raises(ValueError):
             MatchSpec.merge([build_tail_2, hash_build_tail_3])
 

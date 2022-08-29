@@ -6,7 +6,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from abc import ABCMeta, abstractmethod, abstractproperty
 
 from collections.abc import Mapping
-from functools import reduce
 from logging import getLogger
 from operator import attrgetter
 from os.path import basename
@@ -882,7 +881,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
         # pure globs is prefix+prefix and suffix+suffix
         # Every other combination requires computing their
         # regular expression intersection
-        # Details in https://github.com/conda/conda/pull/11612#discussion_r954545863
+        # Details in https://github.com/conda/conda/pull/11612#discussion_r954545863
 
         # Check if we have suffix+suffix or prefix+prefix
         # In these cases, we keep the longest one, since it's more restrictive
@@ -901,7 +900,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
 
         # Generalized case: regular expression intersection
         # We don't reject anything here! We just write the expression
-        # and will let the index filtering steps detect whether there's
+        # and will let the index filtering steps detect whether there's
         # a package record that matches the expression
         patterns = []
         for m in (self, other):
