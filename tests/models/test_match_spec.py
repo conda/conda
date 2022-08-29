@@ -1006,6 +1006,10 @@ class MatchSpecMergeTests(TestCase):
         blue_prefix = MatchSpec("my_pkg=1.17.*=blue_*")
         assert not blue_prefix.match(red)
         assert blue_prefix.match(blue)
+        
+        blue_hash_prefix = MatchSpec("my_pkg=1.17.*=blue_hdef1234_*")
+        assert not blue_hash_prefix.match(red)
+        assert blue_hash_prefix.match(blue)
 
         red_exact = MatchSpec(f"my_pkg=1.17.*={red['build']}")
         assert red_exact.match(red)
@@ -1021,9 +1025,14 @@ class MatchSpecMergeTests(TestCase):
         # resulting build is the regex intersection
         assert merged.get("build") == '^(?=.*red.*)(?:red_.*)$'
 
-        build_tail = MatchSpec("my_pkg=1.17.*=*_3")
-        assert build_tail.match(red)
-        assert build_tail.match(blue)
+        build_tail_2 = MatchSpec("my_pkg=1.17.*=*_2")
+        build_tail_3 = MatchSpec("my_pkg=1.17.*=*_3")
+        assert build_tail_3.match(red)
+        assert build_tail_3.match(blue)
+        
+        hash_build_tail_3 = MatchSpec("my_pkg=1.17.*=*_habc123_3")
+        assert hash_build_tail_3.match(red)
+        assert not hash_build_tail_3.match(blue)
 
         merged, *unmergeable = MatchSpec.merge(
             [
@@ -1055,6 +1064,28 @@ class MatchSpecMergeTests(TestCase):
         assert merged.match(red)
         assert not merged.match(blue)
 
+        # prefix + prefix, we keep the longest if compatible      
+        merged, *unmergeable = MatchSpec.merge(
+            [
+                blue_prefix,
+                blue_hash_prefix,
+            ]
+        )
+        assert merged.get("build") == blue_hash_prefix.get("build")
+        assert merged.match(blue)
+        assert not merged.match(red)
+
+        # suffix + suffix, we keep the longest if compatible      
+        merged, *unmergeable = MatchSpec.merge(
+            [
+                build_tail_3,
+                hash_build_tail_3,
+            ]
+        )
+        assert merged.get("build") == hash_build_tail_3.get("build")
+        assert merged.match(red)
+        assert not merged.match(blue)
+
         merged, *unmergeable = MatchSpec.merge(
             [
                 no_build,
@@ -1071,7 +1102,7 @@ class MatchSpecMergeTests(TestCase):
                 no_build,
                 red_prefix,
                 red_scalar_wild,
-                build_tail,
+                build_tail_3,
             ]
         )
         assert not unmergeable
@@ -1084,6 +1115,12 @@ class MatchSpecMergeTests(TestCase):
 
         with pytest.raises(ValueError):
             MatchSpec.merge([blue_prefix, red_exact])
+        
+        with pytest.raises(ValueError):
+            MatchSpec.merge([blue_prefix, red_prefix])
+        
+        with pytest.raises(ValueError):
+            MatchSpec.merge([build_tail_2, hash_build_tail_3])
 
     def test_build_glob_merge_channel(self):
         no_channel = {
@@ -1110,7 +1147,6 @@ class MatchSpecMergeTests(TestCase):
             MatchSpec.merge(
                 [MatchSpec(spec) for spec in (exact_channel, non_matching_star_channel)]
             )
-
 
     def test_md5_merge_with_name(self):
         specs = (MatchSpec('python[md5=deadbeef]'), MatchSpec('python=1.2.3'), MatchSpec('conda-forge::python[md5=deadbeef]'))
