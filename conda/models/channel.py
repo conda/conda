@@ -8,9 +8,9 @@ from itertools import chain
 from logging import getLogger
 
 try:
-    from tlz.itertoolz import concat, drop
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, drop
+    from conda._vendor.toolz.itertoolz import concat
 
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
@@ -442,7 +442,7 @@ def _read_channel_configuration(scheme, host, port, path):
     bump = None
     path_parts = path.strip("/").split("/")
     if path_parts and path_parts[0] == "conda":
-        bump, path = "conda", "/".join(drop(1, path_parts))
+        bump, path = "conda", "/".join(path_parts[1:])
     return (
         str(Url(hostname=host, port=port, path=bump)).rstrip("/"),
         path.strip("/") or None,
