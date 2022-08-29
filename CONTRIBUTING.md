@@ -92,12 +92,12 @@ To see how this process works for this project, read "[The Triaging Process at c
 
 #### In sentences
 
-Beginning a sentence: 
+Beginning a sentence:
 
-- Conda is an open-source package and environment management system. 
+- Conda is an open-source package and environment management system.
 - `conda install` can be used to install packages.
 
-Conda in the middle of a sentence: 
+Conda in the middle of a sentence:
 
 - If a newer version of conda is available, you can use `conda update conda` to update to that version.
 - You can find conda packages within conda channels. The `conda` command can search these channels.
