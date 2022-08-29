@@ -7,7 +7,10 @@ import operator as op
 import re
 from itertools import zip_longest
 
-from tlz.functoolz import excepts
+try:
+    from tlz.functoolz import excepts
+except ImportError:
+    from conda._vendor.toolz.functoolz import excepts
 
 from ..exceptions import InvalidVersionSpec
 
