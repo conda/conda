@@ -27,12 +27,7 @@ from subprocess import check_output
 import sys
 from tempfile import gettempdir
 from uuid import uuid4
-import urllib
 
-try:
-    import urllib.parse as urlparse
-except:
-    from urlparse import urlparse
 
 import pytest
 
