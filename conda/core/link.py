@@ -15,9 +15,9 @@ from textwrap import indent
 import warnings
 
 try:
-    from tlz.itertoolz import concat, concatv, interleave
+    from tlz.itertoolz import concat, interleave
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, interleave
+    from conda._vendor.toolz.itertoolz import concat, interleave
 
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,
@@ -400,12 +400,14 @@ class UnlinkLinkTransaction(object):
                 target_prefix)
             make_menu_action_groups.append(make_menu_ag)
 
-            all_link_path_actions = chain(link_ag.actions,
-                                                    compile_ag.actions,
-                                                    entry_point_ag.actions,
-                                                    make_menu_ag.actions)
-            record_axns.extend(CreatePrefixRecordAction.create_actions(
-                transaction_context, pkg_info, target_prefix, lt, spec, all_link_path_actions))
+            all_link_path_actions = chain(
+                link_ag.actions, compile_ag.actions, entry_point_ag.actions, make_menu_ag.actions
+            )
+            record_axns.extend(
+                CreatePrefixRecordAction.create_actions(
+                    transaction_context, pkg_info, target_prefix, lt, spec, all_link_path_actions
+                )
+            )
 
         prefix_record_groups = [ActionGroup('record', None, record_axns, target_prefix)]
 

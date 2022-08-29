@@ -32,7 +32,7 @@ try:
     from tlz.dicttoolz import merge, merge_with
     from tlz.functoolz import excepts
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, unique
+    from conda._vendor.toolz.itertoolz import concat, unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
     from conda._vendor.toolz import excepts
 

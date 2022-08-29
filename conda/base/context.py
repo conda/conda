@@ -19,9 +19,9 @@ from datetime import datetime
 import warnings
 
 try:
-    from tlz.itertoolz import concat, concatv, unique
+    from tlz.itertoolz import concat, unique
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, unique
+    from conda._vendor.toolz.itertoolz import concat, unique
 
 from .constants import (
     APP_NAME,
@@ -784,8 +784,9 @@ class Context(Configuration):
             channel_in_config_files = any('channels' in context.raw_data[rc_file].keys()
                                           for rc_file in self.config_files)
             if argparse_channels and not channel_in_config_files:
-                return tuple(IndexedSet(chain(local_add, argparse_channels,
-                                                        (DEFAULTS_CHANNEL_NAME,))))
+                return tuple(
+                    IndexedSet(chain(local_add, argparse_channels, (DEFAULTS_CHANNEL_NAME,)))
+                )
 
         return tuple(IndexedSet(chain(local_add, self._channels)))
 
