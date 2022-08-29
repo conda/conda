@@ -475,10 +475,16 @@ class MatchSpec(metaclass=MatchSpecType):
             target_groups = groupby(attrgetter('target'), group)
             target_groups.pop(None, None)
             if len(target_groups) > 1:
-                raise ValueError("Incompatible MatchSpec merge:%s" % dashlist(group))
-            merged_specs.append(
-                reduce(lambda x, y: x._merge(y, union), group) if len(group) > 1 else group[0]
-            )
+                raise ValueError(f"Incompatible MatchSpec merge:{dashlist(group)}")
+            merged = group[0]
+            for item in group[1:]:
+                try:
+                    merged = merged._merge(item, union)
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Incompatible MatchSpec merge:{dashlist(group)}\n{exc}"
+                    )
+            merged_specs.append(merged)
         return tuple(concatv(merged_specs, unmergeable))
 
     @classmethod
