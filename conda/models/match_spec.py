@@ -481,9 +481,7 @@ class MatchSpec(metaclass=MatchSpecType):
                 try:
                     merged = merged._merge(item, union)
                 except ValueError as exc:
-                    raise ValueError(
-                        f"Incompatible MatchSpec merge:{dashlist(group)}\n{exc}"
-                    )
+                    raise ValueError(f"Incompatible MatchSpec merge:{dashlist(group)}") from exc
             merged_specs.append(merged)
         return tuple(concatv(merged_specs, unmergeable))
 
