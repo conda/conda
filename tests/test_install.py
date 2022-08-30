@@ -120,10 +120,12 @@ class TestBinaryReplace(unittest.TestCase):
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
             output, error = process.communicate()
-            output = output.decode('utf-8')
-            error = error.decode('utf-8')
-            assert ("conda is a tool for managing and deploying applications, "
-                    "environments and packages.") in output
+            output = output.decode("utf-8")
+            error = error.decode("utf-8")
+            assert (
+                "conda is a tool for managing and deploying applications, "
+                "environments and packages."
+            ) in error
         except:
             raise
         finally:
