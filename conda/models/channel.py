@@ -7,8 +7,12 @@ from copy import copy
 from itertools import chain
 from logging import getLogger
 
+try:
+    from tlz.itertoolz import concat, concatv
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv
+
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, concatv, drop
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context, Context
 from ..common.compat import ensure_text_type, isiterable, odict
@@ -438,7 +442,7 @@ def _read_channel_configuration(scheme, host, port, path):
     bump = None
     path_parts = path.strip("/").split("/")
     if path_parts and path_parts[0] == "conda":
-        bump, path = "conda", "/".join(drop(1, path_parts))
+        bump, path = "conda", "/".join(path_parts[1:])
     return (
         str(Url(hostname=host, port=port, path=bump)).rstrip("/"),
         path.strip("/") or None,

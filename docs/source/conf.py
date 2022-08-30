@@ -53,6 +53,7 @@ extensions = [
     "sphinx.ext.inheritance_diagram",
     "sphinxcontrib.plantuml",
     "conda_umls",
+    "sphinx_sitemap",
 ]
 
 myst_heading_anchors = 3
@@ -137,6 +138,8 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_style = "css/custom.css"
 html_favicon = "conda-logo.png"
+# Serving the robots.txt since we want to point to the sitemap.xml file
+html_extra_path = ["robots.txt"]
 
 html_js_files = [
     "https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.js",
@@ -163,6 +166,12 @@ html_sidebars = {
     ]
 }
 
+# Setting the prod URL of the site here as the base URL.
+html_baseurl = f"https://docs.conda.io/projects/{project}/"
+# We don't have a locale set, so we can safely ignore that for the sitemaps.
+sitemap_locales = [None]
+# We're hard-coding stable here since that's what we want Google to point to.
+sitemap_url_scheme = "{lang}stable/{link}"
 
 # -- Options for HTMLHelp output ------------------------------------------
 

@@ -1403,11 +1403,17 @@ def configure_parser_rename(sub_parsers) -> None:
 
     example = dals(
         """
+
         Examples:
+
             conda rename -n test123 test321
+
             conda rename --name test123 test321
+
             conda rename -p path/to/test123 test321
+
             conda rename --prefix path/to/test123 test321
+
         """
     )
 

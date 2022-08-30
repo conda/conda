@@ -10,6 +10,11 @@ from os.path import join
 import sys
 from textwrap import dedent
 
+try:
+    from tlz.itertoolz import concat, concatv, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -18,7 +23,6 @@ from .. import CondaError, __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
                               ExperimentalSolverChoice)
 from ..base.context import context

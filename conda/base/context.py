@@ -19,6 +19,11 @@ from contextlib import contextmanager
 from datetime import datetime
 import warnings
 
+try:
+    from tlz.itertoolz import concat, concatv, unique
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, unique
+
 from .constants import (
     APP_NAME,
     ChannelPriority,
@@ -48,7 +53,6 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
-from .._vendor.toolz import concat, concatv, unique
 from ..common.compat import NoneType, odict, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,

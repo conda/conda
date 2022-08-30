@@ -42,11 +42,11 @@ repos:
       - id: blacken-docs
         additional_dependencies: [black]
   - repo: https://github.com/PyCQA/flake8
-    rev: 5.0.2
+    rev: 5.0.4
     hooks:
       - id: flake8
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.14.5
+    rev: v2.15.0
     hooks:
       - id: pylint
         args: [--exit-zero]
@@ -58,7 +58,7 @@ repos:
         # ignore all tests, not just tests data
         exclude: ^tests/
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.3.0
+    rev: v1.3.1
     hooks:
       - id: insert-license
         files: \.py$

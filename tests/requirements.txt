@@ -12,7 +12,6 @@ conda-forge::pytest-xprocess
 conda-forge::xdoctest
 conda-package-handling
 conda-verify
-cytoolz
 filelock
 flake8
 git
@@ -35,3 +34,4 @@ pytest-xdist
 requests
 responses
 ruamel_yaml
+toolz
