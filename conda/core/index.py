@@ -34,7 +34,8 @@ def check_whitelist(channel_urls):
         "future release. Please use `conda.core.index.check_allowlist` instead.",
         PendingDeprecationWarning,
     )
-    return check_whitelist(channel_urls)
+    return check_allowlist(channel_urls)
+
 
 def check_allowlist(channel_urls):
     if context.allowlist_channels:

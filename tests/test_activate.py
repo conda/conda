@@ -930,32 +930,28 @@ class ActivatorUnitTests(TestCase):
                     original_path = tuple(activator._get_starting_path_list())
                     builder = activator.build_deactivate()
 
-                    unset_vars = [
-                        'CONDA_PREFIX',
-                        'CONDA_DEFAULT_ENV',
-                        'CONDA_PROMPT_MODIFIER',
-                        'PKG_A_ENV',
-                        'PKG_B_ENV',
-                        'ENV_ONE',
-                        'ENV_TWO',
-                        'ENV_THREE'
-                    ]
-
                     new_path = activator.pathsep_join(activator.path_conversion(original_path))
-                    assert builder['set_vars'] == {
-                        'PS1': os.environ.get('PS1', ''),
-                    }
-                    export_vars = OrderedDict((
-                        ('CONDA_SHLVL', 0),
-                    ))
-                    export_path = {'PATH': new_path,}
-                    export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars,
-                                                                              conda_exe_vars=True)
-                    assert builder['export_vars'] == export_vars
-                    assert builder['unset_vars'] == unset_vars
-                    assert builder['export_path'] == export_path
-                    assert builder['activate_scripts'] == ()
-                    assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
+                    export_vars, unset_vars = activator.add_export_unset_vars(
+                        {"CONDA_SHLVL": 0},
+                        [
+                            "CONDA_PREFIX",
+                            "CONDA_DEFAULT_ENV",
+                            "CONDA_PROMPT_MODIFIER",
+                            "PKG_A_ENV",
+                            "PKG_B_ENV",
+                            "ENV_ONE",
+                            "ENV_TWO",
+                            "ENV_THREE",
+                        ],
+                    )
+                    assert builder["set_vars"] == {"PS1": os.environ.get("PS1", "")}
+                    assert builder["export_vars"] == export_vars
+                    assert builder["unset_vars"] == unset_vars
+                    assert builder["export_path"] == {"PATH": new_path}
+                    assert builder["activate_scripts"] == ()
+                    assert builder["deactivate_scripts"] == (
+                        activator.path_conversion(deactivate_d_1),
+                    )
 
     def test_get_env_vars_big_whitespace(self):
         with tempdir() as td:
@@ -1216,7 +1212,7 @@ class ShellWrapperUnitTests(TestCase):
             deactivate_data = c.stdout
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
-            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars(conda_exe_vars=True)
+            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
 
             e_deactivate_data = dals("""
             export PATH='%(new_path)s'
@@ -1397,9 +1393,8 @@ class ShellWrapperUnitTests(TestCase):
             deactivate_data = c.stdout
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
-            conda_exe_vars = ';\n'.join([activator.export_var_tmpl % (k, v) for k, v in context.conda_exe_vars_dict.items()])
 
-            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars(conda_exe_vars=True)
+            conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
 
             e_deactivate_data = dals("""
             setenv PATH "%(new_path)s";

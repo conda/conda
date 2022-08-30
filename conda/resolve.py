@@ -715,7 +715,7 @@ class Resolve(object):
                         specs.insert(0, dep)
                     specs_by_name[dep.name] = specs
 
-                while(dep_specs):
+                while dep_specs:
                     # used for debugging
                     # size_index = len(reduced_index2)
                     # specs_added = []
