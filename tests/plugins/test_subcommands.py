@@ -2,10 +2,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
-import re
-import textwrap
-
-import conda.exceptions
 from conda import plugins
 
 
