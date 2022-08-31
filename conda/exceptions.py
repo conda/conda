@@ -1054,6 +1054,10 @@ class SpecNotFound(CondaError):
         super(SpecNotFound, self).__init__(msg, *args, **kwargs)
 
 
+class PluginError(CondaError):
+    pass
+
+
 def maybe_raise(error, context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
