@@ -12,6 +12,7 @@ from argparse import (
     _CountAction,
     _HelpAction,
 )
+from functools import chain
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
@@ -121,21 +122,14 @@ class ArgumentParser(ArgumentParserBase):
             self.description += "\n\nOptions:\n"
 
         pm = context.get_plugin_manager()
-        self._subcommands = sorted(
-            (
-                subcommand
-                for subcommands in pm.hook.conda_subcommands()
-                for subcommand in subcommands
-            ),
-            key=lambda subcommand: subcommand.name,
-        )
+        self._subcommands = sorted(chain.from_iterable(pm.hook.conda_subcommands()))
 
         # Check for conflicts
         seen = set()
         conflicts = [
             subcommand
             for subcommand in self._subcommands
-            if subcommand.name in seen or seen.add(subcommand.name)
+            if subcommand in seen or seen.add(subcommand)
         ]
         if conflicts:
             raise PluginError(

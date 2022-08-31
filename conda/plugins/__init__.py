@@ -28,6 +28,24 @@ class CondaSubcommand(NamedTuple):
         Optional[int],  # return code
     ]
 
+    def __eq__(self, other):
+        return other.name == self.name if isinstance(other, type(self)) else NotImplemented
+
+    def __lt__(self, other):
+        return other.name < self.name if isinstance(other, type(self)) else NotImplemented
+
+    def __le__(self, other):
+        return other.name <= self.name if isinstance(other, type(self)) else NotImplemented
+
+    def __gt__(self, other):
+        return other.name > self.name if isinstance(other, type(self)) else NotImplemented
+
+    def __ge__(self, other):
+        return other.name >= self.name if isinstance(other, type(self)) else NotImplemented
+
+    def __hash__(self):
+        return hash(self.name)
+
 
 @_hookspec
 def conda_subcommands() -> Iterable[CondaSubcommand]:
