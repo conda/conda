@@ -19,6 +19,7 @@ nbformat
 perl
 pexpect
 pip
+pluggy
 pkginfo
 pycosat
 pycrypto
