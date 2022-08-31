@@ -23,5 +23,4 @@ def cli_main(monkeypatch):
     def run_main(*args):
         monkeypatch.setattr(sys, "argv", ["conda", *args])
         conda.cli.main()
-
     return run_main
