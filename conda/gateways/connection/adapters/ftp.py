@@ -74,7 +74,9 @@ class FTPAdapter(BaseAdapter):
             timeout = 10
 
         # Establish the connection and login if needed.
-        self.conn = ftplib.FTP()
+        # OpenRefactory Warning: The 'ftplib.FTP' method uses 'FTP' protocol which transfers data without any encryption.      
+        # Use 'ftplib.FTP_TLS' method instead.
+        self.conn = ftplib.FTP_TLS()
         self.conn.connect(host, port, timeout)
 
         if auth is not None:
