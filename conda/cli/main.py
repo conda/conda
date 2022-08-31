@@ -32,21 +32,9 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 """
 
+from .conda_argparse import generate_parser
+
 import sys
-
-PARSER = None
-
-
-def generate_parser():
-    # Generally using `global` is an anti-pattern.  But it's the lightest-weight way to memoize
-    # or do a singleton.  I'd normally use the `@memoize` decorator here, but I don't want
-    # to copy in the code or take the import hit.
-    global PARSER
-    if PARSER is not None:
-        return PARSER
-    from .conda_argparse import generate_parser
-    PARSER = generate_parser()
-    return PARSER
 
 
 def init_loggers(context=None):

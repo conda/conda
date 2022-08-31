@@ -1,6 +1,8 @@
 linkify-it-py==1.0.1
 myst-parser==0.15.2
 Pillow==8.3.2
+pluggy==1.0.0
+pylint==2.11.1
 PyYAML==5.4.1
 requests==2.26.0
 ruamel.yaml==0.17.16
@@ -17,4 +19,3 @@ sphinxcontrib-plantuml==0.21
 sphinxcontrib-programoutput==0.17
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
-pylint==2.11.1
