@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import pluggy
 import sys
 
-from typing import Callable, List, NamedTuple, Optional
-
-
-if sys.version_info < (3, 9):
-    from typing import Iterable
-else:
-    from collections.abc import Iterable
+from typing import Callable, NamedTuple, Optional
+from collections.abc import Iterable
 
 
 _hookspec = pluggy.HookspecMarker("conda")
@@ -28,7 +25,7 @@ class CondaSubcommand(NamedTuple):
     name: str
     summary: str
     action: Callable[
-        [List[str]],  # arguments
+        [list[str]],  # arguments
         Optional[int],  # return code
     ]
 
