@@ -377,7 +377,9 @@ def configure_parser_info(sub_parsers):
 def configure_parser_config(sub_parsers):
     descr = dedent("""
     Modify configuration values in .condarc.  This is modeled after the git
-    config command.  Writes to the user .condarc file (%s) by default.
+    config command.  Writes to the user .condarc file (%s) by default. Use the
+    --show-sources flag to display all identified configuration locations on
+    your computer.
 
     """) % escaped_user_rc_path
 
@@ -845,6 +847,10 @@ def configure_parser_list(sub_parsers):
 
         conda list -n myenv
 
+    List all packages that begin with the letters "py", using regex::
+
+        conda list ^py
+
     Save packages for future use::
 
         conda list --export > package-list.txt
@@ -1070,7 +1076,9 @@ def configure_parser_remove(sub_parsers, name='remove'):
         action="store_true",
         dest='ignore_pinned',
         default=NULL,
-        help="Ignore pinned file.",
+        help="Ignore pinned package(s) that apply to the current operation. "
+             "These pinned packages might come from a .condarc file or a file in "
+             "<TARGET_ENVIRONMENT>/conda-meta/pinned.",
     )
     add_parser_prune(solver_mode_options)
     add_parser_experimental_solver(solver_mode_options)
@@ -1626,12 +1634,13 @@ def add_parser_channels(p):
         "--repodata-fn",
         action="append",
         dest="repodata_fns",
-        help=("Specify name of repodata on remote server. Conda will try "
-              "whatever you specify, but will ultimately fall back to repodata.json if "
-              "your specs are not satisfiable with what you specify here. This is used "
-              "to employ repodata that is reduced in time scope. You may pass this flag "
-              "more than once. Leftmost entries are tried first, and the fallback to "
-              "repodata.json is added for you automatically.")
+        help=("Specify file name of repodata on the remote server where your channels "
+              "are configured. Conda will try whatever you specify, but will ultimately "
+              "fall back to repodata.json if your specs are not satisfiable with what "
+              "you specify here. This is used to employ repodata that is reduced in "
+              "time scope. You may pass this flag more than once. Leftmost entries are "
+              "tried first, and the fallback to repodata.json is added for you automatically. "
+              "For more information, see conda config --describe repodata_fns.")
     )
     return channel_customization_options
 
@@ -1771,7 +1780,9 @@ def add_parser_networking(p):
         "-C", "--use-index-cache",
         action="store_true",
         default=False,
-        help="Use cache of channel index files, even if it has expired.",
+        help="Use cache of channel index files, even if it has expired. This is useful "
+             "if you don't want conda to check whether a new version of the repodata "
+             "file exists, which will save bandwidth.",
     )
     networking_options.add_argument(
         "-k", "--insecure",
