@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import pluggy
-import sys
 
 from typing import Callable, NamedTuple, Optional
 from collections.abc import Iterable
