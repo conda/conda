@@ -6,10 +6,6 @@ from conda import plugins
 
 
 class SubcommandPlugin:
-    def __init__(self):
-        self.invoked = False
-        self.args = None
-
     def custom_command(self, args):
         pass
 
@@ -31,7 +27,10 @@ def plugin(mocker, plugin_manager):
     return plugin
 
 
-def test_invoked(plugin, cli_main):
+def test_invoked(plugin_manager, plugin, cli_main):
+    print(plugin_manager)
+    print(plugins.manager)
+
     cli_main('custom', 'some-arg', 'some-other-arg')
 
     plugin.custom_command.assert_called_with(['some-arg', 'some-other-arg'])

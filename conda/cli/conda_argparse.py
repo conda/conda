@@ -21,8 +21,8 @@ from textwrap import dedent
 import warnings
 
 from .. import __version__
+from .. import plugins
 from ..auxlib.ish import dals
-from ..base import context
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
@@ -120,11 +120,10 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
-        pm = context.get_plugin_manager()
         self._subcommands = sorted(
             (
                 subcommand
-                for subcommands in pm.hook.conda_subcommands()
+                for subcommands in plugins.manager.hook.conda_subcommands()
                 for subcommand in subcommands
             ),
             key=lambda subcommand: subcommand.name,
