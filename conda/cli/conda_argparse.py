@@ -12,7 +12,7 @@ from argparse import (
     _CountAction,
     _HelpAction,
 )
-from functools import chain
+from itertools import chain
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
