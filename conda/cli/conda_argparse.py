@@ -1049,7 +1049,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
             formatter_class=RawDescriptionHelpFormatter,
             description=uninstall_help,
             help=uninstall_help,
-            epilog=example % name,
+            epilog=example % {"name": name},
             add_help=False,
         )
     add_parser_help(p)
