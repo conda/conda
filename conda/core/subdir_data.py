@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from collections import defaultdict
 from contextlib import closing
+from copy import deepcopy
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
 from genericpath import getmtime, isfile
@@ -34,7 +35,6 @@ from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
 from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
-from ..trust.signature_verification import signature_verification
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (
     CondaDependencyError,
@@ -60,6 +60,7 @@ from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+from ..trust.signature_verification import signature_verification
 
 try:
     import cPickle as pickle
@@ -445,11 +446,12 @@ class SubdirData(metaclass=SubdirDataType):
                 (conda_packages.items(), True),
                 (((k, legacy_packages[k]) for k in use_these_legacy_keys), False)):
             for fn, info in group:
-
-                # Verify metadata signature before anything else so run-time
-                # updates to the info dictionary performed below do not
-                # invalidate the signatures provided in metadata.json.
-                signature_verification(info, fn, signatures)
+                # when signature verification feature is enabled we perform a deep copy of the info
+                # dict that can be passed to conda-content-trust for verification
+                # (see conda.models.records.PackageRecord.metadata and
+                # conda.trust.signature_verification._SignatureVerification.__call__)
+                # avoiding a blanketed deepcopy as it results in a 1-2s slowdown in general
+                duplicate_info = deepcopy(info) if signature_verification.enabled else None
 
                 info['fn'] = fn
                 info['url'] = join_url(channel_url, fn)
@@ -468,6 +470,8 @@ class SubdirData(metaclass=SubdirDataType):
                     continue
 
                 package_record = PackageRecord(**info)
+                package_record.info = duplicate_info
+                package_record.signatures = signatures.get(fn)
 
                 _package_records.append(package_record)
                 _names_index[package_record.name].append(package_record)
