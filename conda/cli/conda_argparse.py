@@ -770,10 +770,9 @@ def configure_parser_install(sub_parsers):
     (e.g. ./lxml-3.2.0-py27_0.tar.bz2). Using conda in this mode implies the
     --no-deps option, and should likewise be used with great caution. Explicit
     filenames and package specifications cannot be mixed in a single command.
-    """
-    )
+    """)
     example = dedent(
-        """
+    """
     Examples:
 
     Install the package 'scipy' into the currently-active environment::
@@ -788,8 +787,7 @@ def configure_parser_install(sub_parsers):
 
         conda install -p path/to/myenv python=3.7.13
 
-    """
-    )
+    """)
     p = sub_parsers.add_parser(
         'install',
         description=descr,
@@ -1627,10 +1625,10 @@ def add_parser_channels(p):
         help=("Additional channel to search for packages. These are URLs searched in the order "
               "they are given (including local directories using the 'file://' syntax or "
               "simply a path like '/home/conda/mychan' or '../mychan'). Then, the defaults "
-              "or channels from .condarc are searched (unless --override-channels is given). You can use "
-              "'defaults' to get the default packages for conda. You can also use any name and the "
-              ".condarc channel_alias value will be prepended. The default channel_alias "
-              "is https://conda.anaconda.org/.")
+              "or channels from .condarc are searched (unless --override-channels is given). "
+              "You can use 'defaults' to get the default packages for conda. You can also "
+              "use any name and the .condarc channel_alias value will be prepended. The "
+              "default channel_alias is https://conda.anaconda.org/.")
     )
     channel_customization_options.add_argument(
         "--use-local",
