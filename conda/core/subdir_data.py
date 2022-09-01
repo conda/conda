@@ -14,6 +14,7 @@ from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, isdir, join, splitext, exists
 import re
+from sys import stderr
 from time import time
 import warnings
 
@@ -60,6 +61,8 @@ from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+
+from conda.core.repo import CondaRepoInterface, Response304ContentUnchanged
 
 try:
     import cPickle as pickle
@@ -180,6 +183,8 @@ class SubdirData(metaclass=SubdirDataType):
         self._loaded = False
         self._key_mgr = None
 
+        self._repo = CondaRepoInterface(self.url_w_credentials, self.repodata_fn)
+
     def reload(self):
         self._loaded = False
         self.load()
@@ -274,20 +279,11 @@ class SubdirData(metaclass=SubdirDataType):
                       self.url_w_repodata_fn, self.cache_path_json)
 
         try:
-            raw_repodata_str = fetch_repodata_remote_request(
-                self.url_w_credentials,
+            data = self._repo.repodata(
                 mod_etag_headers.get('_etag'),
                 mod_etag_headers.get('_mod'),
-                repodata_fn=self.repodata_fn)
-            # empty file
-            if not raw_repodata_str and self.repodata_fn != REPODATA_FN:
-                raise UnavailableInvalidChannel(self.url_w_repodata_fn, 404)
-        except UnavailableInvalidChannel:
-            if self.repodata_fn != REPODATA_FN:
-                self.repodata_fn = REPODATA_FN
-                return self._load()
-            else:
-                raise
+            )
+            raw_repodata_str = json.dumps(data or {})
         except Response304ContentUnchanged:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
                       self.url_w_repodata_fn)
@@ -502,196 +498,6 @@ def get_cache_control_max_age(cache_control_value):
     return int(max_age.groups()[0]) if max_age else 0
 
 
-class Response304ContentUnchanged(Exception):
-    pass
-
-
-def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
-    if not context.ssl_verify:
-        warnings.simplefilter('ignore', InsecureRequestWarning)
-
-    session = CondaSession()
-
-    headers = {}
-    if etag:
-        headers["If-None-Match"] = etag
-    if mod_stamp:
-        headers["If-Modified-Since"] = mod_stamp
-
-    headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-    headers['Accept'] = 'application/json'
-    filename = repodata_fn
-
-    try:
-        timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
-                           timeout=timeout)
-        if log.isEnabledFor(DEBUG):
-            log.debug(stringify(resp, content_max_len=256))
-        resp.raise_for_status()
-
-    except RequestsProxyError:
-        raise ProxyError()   # see #3962
-
-    except InvalidSchema as e:
-        if 'SOCKS' in str(e):
-            message = dals("""
-            Requests has identified that your current working environment is configured
-            to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your
-            proxy configuration, run `conda install pysocks`, and then you can re-enable
-            your proxy configuration.
-            """)
-            raise CondaDependencyError(message)
-        else:
-            raise
-
-    except SSLError as e:
-        # SSLError: either an invalid certificate or OpenSSL is unavailable
-        try:
-            import ssl  # noqa: F401
-        except ImportError:
-            raise CondaSSLError(
-                dals(
-                    f"""
-                    OpenSSL appears to be unavailable on this machine. OpenSSL is required to
-                    download and install packages.
-
-                    Exception: {e}
-                    """
-                )
-            )
-        else:
-            raise CondaSSLError(
-                dals(
-                    f"""
-                    Encountered an SSL error. Most likely a certificate verification issue.
-
-                    Exception: {e}
-                    """
-                )
-            )
-
-    except (ConnectionError, HTTPError) as e:
-        status_code = getattr(e.response, 'status_code', None)
-        if status_code in (403, 404):
-            if not url.endswith('/noarch'):
-                log.info("Unable to retrieve repodata (response: %d) for %s", status_code,
-                         url + '/' + repodata_fn)
-                return None
-            else:
-                if context.allow_non_channel_urls:
-                    stderrlog.warning("Unable to retrieve repodata (response: %d) for %s",
-                                      status_code, url + '/' + repodata_fn)
-                    return None
-                else:
-                    raise UnavailableInvalidChannel(
-                        Channel(dirname(url)),
-                        status_code,
-                        response=e.response,
-                    )
-
-        elif status_code == 401:
-            channel = Channel(url)
-            if channel.token:
-                help_message = dals("""
-                The token '%s' given for the URL is invalid.
-
-                If this token was pulled from anaconda-client, you will need to use
-                anaconda-client to reauthenticate.
-
-                If you supplied this token to conda directly, you will need to adjust your
-                conda configuration to proceed.
-
-                Use `conda config --show` to view your configuration's current state.
-                Further configuration help can be found at <%s>.
-               """) % (channel.token, join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-
-            elif context.channel_alias.location in url:
-                # Note, this will not trigger if the binstar configured url does
-                # not match the conda configured one.
-                help_message = dals("""
-                The remote server has indicated you are using invalid credentials for this channel.
-
-                If the remote site is anaconda.org or follows the Anaconda Server API, you
-                will need to
-                  (a) remove the invalid token from your system with `anaconda logout`, optionally
-                      followed by collecting a new token with `anaconda login`, or
-                  (b) provide conda with a valid token directly.
-
-                Further configuration help can be found at <%s>.
-               """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
-
-            else:
-                help_message = dals("""
-                The credentials you have provided for this URL are invalid.
-
-                You will need to modify your conda configuration to proceed.
-                Use `conda config --show` to view your configuration's current state.
-                Further configuration help can be found at <%s>.
-                """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
-
-        elif status_code is not None and 500 <= status_code < 600:
-            help_message = dals("""
-            A remote server error occurred when trying to retrieve this URL.
-
-            A 500-type error (e.g. 500, 501, 502, 503, etc.) indicates the server failed to
-            fulfill a valid request.  The problem may be spurious, and will resolve itself if you
-            try your request again.  If the problem persists, consider notifying the maintainer
-            of the remote server.
-            """)
-
-        else:
-            if url.startswith("https://repo.anaconda.com/"):
-                help_message = dals("""
-                An HTTP error occurred when trying to retrieve this URL.
-                HTTP errors are often intermittent, and a simple retry will get you on your way.
-
-                If your current network has https://www.anaconda.com blocked, please file
-                a support request with your network engineering team.
-
-                %s
-                """) % maybe_unquote(repr(url))
-            else:
-                help_message = dals("""
-                An HTTP error occurred when trying to retrieve this URL.
-                HTTP errors are often intermittent, and a simple retry will get you on your way.
-                %s
-                """) % maybe_unquote(repr(url))
-
-        raise CondaHTTPError(help_message,
-                             join_url(url, filename),
-                             status_code,
-                             getattr(e.response, 'reason', None),
-                             getattr(e.response, 'elapsed', None),
-                             e.response,
-                             caused_by=e)
-
-    if resp.status_code == 304:
-        raise Response304ContentUnchanged()
-
-    def maybe_decompress(filename, resp_content):
-        return ensure_text_type(bz2.decompress(resp_content)
-                                if filename.endswith('.bz2')
-                                else resp_content).strip()
-
-    json_str = maybe_decompress(filename, resp.content)
-
-    saved_fields = {'_url': url}
-    add_http_value_to_dict(resp, 'Etag', saved_fields, '_etag')
-    add_http_value_to_dict(resp, 'Last-Modified', saved_fields, '_mod')
-    add_http_value_to_dict(resp, 'Cache-Control', saved_fields, '_cache_control')
-
-    # add extra values to the raw repodata json
-    if json_str and json_str != "{}":
-        raw_repodata_str = "{}, {}".format(
-            json.dumps(saved_fields)[:-1],  # remove trailing '}'
-            json_str[1:]  # remove first '{'
-        )
-    else:
-        raw_repodata_str = ensure_text_type(json.dumps(saved_fields))
-    return raw_repodata_str
-
-
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
     pkg_name = "%s@" % feature_name
@@ -725,12 +531,6 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     except ValueError:
         md5 = hashlib.md5(ensure_binary(url), usedforsecurity=False)
     return f"{md5.hexdigest()[:8]}.json"
-
-
-def add_http_value_to_dict(resp, http_key, d, dict_key):
-    value = resp.headers.get(http_key)
-    if value:
-        d[dict_key] = value
 
 
 def create_cache_dir():
