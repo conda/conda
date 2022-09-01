@@ -1025,11 +1025,11 @@ def configure_parser_remove(sub_parsers, name='remove'):
 
     Remove the package 'scipy' from the currently-active environment::
 
-        conda %s scipy
+        conda %(name)s scipy
 
     Remove a list of packages from an environemnt 'myenv'::
 
-        conda %s -n myenv scipy curl wheel
+        conda %(name)s -n myenv scipy curl wheel
 
     """)
 
@@ -1040,7 +1040,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
             formatter_class=RawDescriptionHelpFormatter,
             description=descr % name.capitalize(),
             help=help % name.capitalize(),
-            epilog=example % name,
+            epilog=example % {"name": name},
             add_help=False,
         )
     else:
