@@ -1635,12 +1635,13 @@ def add_parser_channels(p):
         action="append",
         dest="repodata_fns",
         help=("Specify file name of repodata on the remote server where your channels "
-              "are configured. Conda will try whatever you specify, but will ultimately "
-              "fall back to repodata.json if your specs are not satisfiable with what "
-              "you specify here. This is used to employ repodata that is reduced in "
-              "time scope. You may pass this flag more than once. Leftmost entries are "
-              "tried first, and the fallback to repodata.json is added for you automatically. "
-              "For more information, see conda config --describe repodata_fns.")
+              "are configured or within local backups. Conda will try whatever you "
+              "specify, but will ultimately fall back to repodata.json if your specs are "
+              "not satisfiable with what you specify here. This is used to employ repodata "
+              "that is smaller and reduced in time scope. You may pass this flag more than "
+              "once. Leftmost entries are tried first, and the fallback to repodata.json "
+              "is added for you automatically. For more information, see "
+              "conda config --describe repodata_fns.")
     )
     return channel_customization_options
 
