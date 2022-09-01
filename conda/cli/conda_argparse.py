@@ -574,7 +574,7 @@ def configure_parser_config(sub_parsers):
 def configure_parser_create(sub_parsers):
     help = "Create a new conda environment from a list of specified packages. "
     descr = (help + "To use the newly-created environment, use 'conda activate "
-             "envname'. This command requires either the -n NAME or - PREFIX"
+             "envname'. This command requires either the -n NAME or -p PREFIX"
              "option.")
 
     example = dedent("""
@@ -598,7 +598,7 @@ def configure_parser_create(sub_parsers):
     p.add_argument(
         "--clone",
         action="store",
-        help="Create a new environment as a copy of an existing local " "environment.",
+        help="Create a new environment as a copy of an existing local environment.",
         metavar="ENV",
     )
     solver_mode_options, package_install_options = add_parser_create_install_update(
@@ -999,7 +999,7 @@ def configure_parser_package(sub_parsers):
         "--pkg-version",
         action="store",
         default="0.0",
-        help="Designated package version of the package being created.",
+        help="Designate package version of the package being created.",
     )
     p.add_argument(
         "--pkg-build",
