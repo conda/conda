@@ -8,9 +8,12 @@ import copy
 from functools import lru_cache
 from logging import DEBUG, getLogger
 
-from .auxlib.decorators import memoizemethod
-from tlz.itertoolz import concat, groupby
+try:
+    from tlz.itertoolz import concat, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, groupby
 
+from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice

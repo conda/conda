@@ -16,7 +16,10 @@ from collections import defaultdict
 from logging import getLogger
 import sys
 
-from tlz.itertoolz import concatv
+try:
+    from tlz.itertoolz import concatv, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concatv, groupby
 
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
@@ -370,7 +373,6 @@ def _plan_from_actions(actions, index):  # pragma: no cover
 
 def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: no cover
     from os.path import isdir
-    from tlz.itertoolz import groupby
     from .models.dist import Dist
     from .instructions import LINK, PROGRESSIVEFETCHEXTRACT, UNLINK, UNLINKLINKTRANSACTION
     from .core.package_cache_data import ProgressiveFetchExtract

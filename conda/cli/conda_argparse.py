@@ -388,7 +388,9 @@ def configure_parser_config(sub_parsers):
     # keys like "- conda - defaults"). Technically the parser here still won't
     # recognize it because it removes the indentation, but at least it will be
     # valid.
-    additional_descr = dedent("""
+    additional_descr = (
+        dedent(
+            """
     See `conda config --describe` or %s/docs/config.html
     for details on all the options that can go in .condarc.
 
@@ -402,7 +404,7 @@ def configure_parser_config(sub_parsers):
 
         conda config --show-sources
 
-    Print the descriptions of all available configuration 
+    Print the descriptions of all available configuration
     options to your command line::
 
         conda config --describe
@@ -416,7 +418,7 @@ def configure_parser_config(sub_parsers):
 
         conda config --add channels conda-canary
 
-    Set the output verbosity to level 3 (highest) for 
+    Set the output verbosity to level 3 (highest) for
     the current activate environment::
 
         conda config --set verbosity 3 --env
@@ -425,7 +427,10 @@ def configure_parser_config(sub_parsers):
 
         conda config --append channels conda-forge
 
-    """) % CONDA_HOMEPAGE_URL
+    """
+        )
+        % CONDA_HOMEPAGE_URL
+    )
 
     p = sub_parsers.add_parser(
         'config',
@@ -537,7 +542,7 @@ def configure_parser_config(sub_parsers):
         "--remove",
         nargs=2,
         action="append",
-        help="""Remove a configuration value from a list key. 
+        help="""Remove a configuration value from a list key.
                 This removes all instances of the value.""",
         default=[],
         metavar=('KEY', 'VALUE'),
@@ -593,9 +598,8 @@ def configure_parser_create(sub_parsers):
     p.add_argument(
         "--clone",
         action="store",
-        help="Create a new environment as a copy of an existing local " 
-             "environment.",
-        metavar='ENV',
+        help="Create a new environment as a copy of an existing local " "environment.",
+        metavar="ENV",
     )
     solver_mode_options, package_install_options = add_parser_create_install_update(
         p, prefix_required=True
@@ -766,14 +770,16 @@ def configure_parser_install(sub_parsers):
     (e.g. ./lxml-3.2.0-py27_0.tar.bz2). Using conda in this mode implies the
     --no-deps option, and should likewise be used with great caution. Explicit
     filenames and package specifications cannot be mixed in a single command.
-    """)
-    example = dedent("""
+    """
+    )
+    example = dedent(
+        """
     Examples:
 
     Install the package 'scipy' into the currently-active environment::
 
         conda install scipy
-    
+
     Install a list of packages into an environment, myenv::
 
         conda install -n myenv scipy curl wheel
@@ -782,7 +788,8 @@ def configure_parser_install(sub_parsers):
 
         conda install -p path/to/myenv python=3.7.13
 
-    """)
+    """
+    )
     p = sub_parsers.add_parser(
         'install',
         description=descr,
@@ -925,20 +932,22 @@ def configure_parser_compare(sub_parsers):
     descr = "Compare packages between conda environments."
 
     # Note, the formatting of this is designed to work well with help2man
-    examples = dedent("""
+    examples = dedent(
+        """
     Examples:
 
-    Compare packages in the current environment with respect 
+    Compare packages in the current environment with respect
     to 'environment.yml' located in the current working directory::
 
         conda compare environment.yml
 
-    Compare packages installed into the environment 'myenv' with respect 
+    Compare packages installed into the environment 'myenv' with respect
     to 'environment.yml' in a different directory::
 
         conda compare -n myenv path/to/file/environment.yml
 
-    """)
+    """
+    )
     p = sub_parsers.add_parser(
         'compare',
         description=descr,
@@ -1396,9 +1405,13 @@ def configure_parser_rename(sub_parsers) -> None:
         Examples::
 
             conda rename -n test123 test321
+
             conda rename --name test123 test321
+
             conda rename -p path/to/test123 test321
+
             conda rename --prefix path/to/test123 test321
+
         """
     )
 

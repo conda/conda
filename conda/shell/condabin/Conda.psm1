@@ -45,35 +45,6 @@ function Get-CondaEnvironment {
 
 <#
     .SYNOPSIS
-        Adds the entries of sys.prefix to PATH and returns the old PATH.
-
-    .EXAMPLE
-        $OldPath = Add-Sys-Prefix-To-Path
-#>
-function Add-Sys-Prefix-To-Path() {
-    $OldPath = $Env:PATH;
-    if ($Env:_CE_CONDA -eq '' -And $Env:OS -eq 'Windows_NT') {
-        # Windows has a different layout for the python exe than other platforms.
-        $sysp = Split-Path $Env:CONDA_EXE -Parent;
-    } else {
-        $sysp = Split-Path $Env:CONDA_EXE -Parent;
-        $sysp = Split-Path $sysp -Parent;
-    }
-    if ($Env:OS -eq 'Windows_NT') {
-        $Env:PATH = $sysp + ';' +
-                    $sysp + '\Library\mingw-w64\bin;' +
-                    $sysp + '\Library\usr\bin;' +
-                    $sysp + '\Library\bin;' +
-                    $sysp + '\Scripts;' +
-                    $sysp + '\bin;' + $Env:PATH;
-    } else {
-        $Env:PATH = $sysp + '/bin:' + $Env:PATH;
-    }
-    return $OldPath;
-}
-
-<#
-    .SYNOPSIS
         Activates a conda environment, placing its commands and packages at
         the head of $Env:PATH.
 
@@ -95,13 +66,11 @@ function Enter-CondaEnvironment {
     );
 
     begin {
-        $OldPath = Add-Sys-Prefix-To-Path;
         If ($Stack) {
             $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
         } Else {
             $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
         }
-        $Env:PATH = $OldPath;
 
         Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
@@ -128,9 +97,7 @@ function Exit-CondaEnvironment {
     param();
 
     begin {
-        $OldPath = Add-Sys-Prefix-To-Path;
         $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate | Out-String);
-        $Env:PATH = $OldPath;
 
         # If deactivate returns an empty string, we have nothing more to do,
         # so return early.
@@ -183,9 +150,7 @@ function Invoke-Conda() {
                 # There may be a command we don't know want to handle
                 # differently in the shell wrapper, pass it through
                 # verbatim.
-                $OldPath = Add-Sys-Prefix-To-Path;
                 & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
-                $Env:PATH = $OldPath;
             }
         }
     }
