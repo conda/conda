@@ -771,8 +771,7 @@ def configure_parser_install(sub_parsers):
     --no-deps option, and should likewise be used with great caution. Explicit
     filenames and package specifications cannot be mixed in a single command.
     """)
-    example = dedent(
-    """
+    example = dedent("""
     Examples:
 
     Install the package 'scipy' into the currently-active environment::
