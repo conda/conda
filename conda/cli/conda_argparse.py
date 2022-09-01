@@ -22,7 +22,7 @@ import warnings
 
 from .. import __version__
 from ..auxlib.ish import dals
-from ..base import context
+from ..base.context import context
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
@@ -120,7 +120,7 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
-        pm = context.get_plugin_manager()
+        pm = context.plugin_manager
         self._subcommands = sorted(
             (
                 subcommand
