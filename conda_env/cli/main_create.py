@@ -11,7 +11,7 @@ import textwrap
 
 from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
-from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
+from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, add_parser_create_platform, \
     add_parser_prefix, add_parser_networking, add_parser_experimental_solver
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import SpecNotFound
@@ -92,6 +92,7 @@ def configure_parser(sub_parsers):
     add_parser_default_packages(p)
     add_parser_json(p)
     add_parser_experimental_solver(p)
+    add_parser_create_platform(p)
     p.set_defaults(func='.main_create.execute')
 
 

@@ -21,7 +21,7 @@ import os
 from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 import re
 from shutil import copyfile, rmtree
-from subprocess import CalledProcessError, check_call, check_output, Popen, PIPE, STDOUT
+from subprocess import check_call, check_output, Popen, PIPE
 import sys
 from textwrap import dedent
 from unittest import TestCase
@@ -35,8 +35,6 @@ from tlz.itertoolz import groupby
 from conda import (
     CondaError,
     CondaMultiError,
-    __version__ as CONDA_VERSION,
-    CONDA_SOURCE_ROOT,
 )
 from conda.auxlib.ish import dals
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, SafetyChecks, PREFIX_MAGIC_FILE
@@ -2325,6 +2323,36 @@ dependencies:
 
             assert(exists(filename))
             assert(exists(prefix))
+
+    def check_create_env_different_platform(self, prefix, platform):
+        assert exists(join(prefix, "bin", "xz"))
+        config_sources = context.collect_all()
+        for config in config_sources.values():
+            if "subdir" in config:
+                assert config["subdir"] == platform
+                break
+        else:
+            raise pytest.error("Configuration does not include 'subdir' key!")
+       
+        reset_context()
+        stdout, _, _ = run_command(Commands.INSTALL, prefix, "python", "--dry-run", "--json", use_exception_handler=True)
+        result = json.loads(stdout)
+        assert result["success"]
+        python = next(pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "python")
+        assert python["platform"] == platform
+    
+    @pytest.mark.integration
+    def test_create_env_different_platform_cli_flag(self):
+        platform = "linux-64" if on_mac else "osx-64"
+        with make_temp_env("xz", "--platform", platform) as prefix:
+            self.check_create_env_different_platform(prefix, platform)
+
+    @pytest.mark.integration
+    def test_create_env_different_platform_env_var(self):
+        platform = "linux-64" if on_mac else "osx-64"
+        with env_var("CONDA_SUBDIR", platform):
+            with make_temp_env("xz") as prefix:
+                self.check_create_env_different_platform(prefix, platform)
 
 
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")

@@ -492,6 +492,10 @@ class Context(Configuration):
     def subdir(self):
         if self._subdir:
             return self._subdir
+        return self._native_subdir()
+
+    @lru_cache
+    def _native_subdir(self):
         m = platform.machine()
         if m in non_x86_machines:
             return '%s-%s' % (self.platform, m)

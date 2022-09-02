@@ -9,6 +9,7 @@ from os.path import abspath, basename, exists, isdir, isfile, join
 
 from . import common
 from .common import check_non_admin
+from .python_api import Commands, run_command
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME, DepsModifier, UpdateModifier, REPODATA_FN
@@ -124,8 +125,6 @@ def install(args, parser, command='install'):
     isinstall = bool(command == 'install')
     isremove = bool(command == 'remove')
     prefix = context.target_prefix
-    if newenv:
-        check_prefix(prefix, json=context.json)
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
     if isupdate and not (args.file or args.packages
@@ -134,7 +133,11 @@ def install(args, parser, command='install'):
 # Example: conda update -n myenv scipy
 """)
 
-    if not newenv:
+    if newenv:
+        check_prefix(prefix, json=context.json)
+        if context.subdir != context._native_subdir():
+            log.info("Creating new environment for a non-native platform %s", context.subdir)
+    else:
         if isdir(prefix):
             delete_trash(prefix)
             if not isfile(join(prefix, 'conda-meta', 'history')):
@@ -362,6 +365,15 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if newenv:
         touch_nonadmin(prefix)
+        if context.subdir != context._native_subdir():
+            run_command(
+                Commands.CONFIG,
+                "--file",
+                os.path.join(prefix, ".condarc"),
+                "--set",
+                "subdir",
+                context.subdir,
+            )
         print_activate(args.name if args.name else prefix)
 
     if context.json:
