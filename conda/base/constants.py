@@ -243,6 +243,20 @@ class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, ValueEnum)):
     DISABLED = 'disabled'
 
 
+class PrereleaseBehavior(ValueEnum):
+    """Flags to specify handling of pre-release versions
+
+    * ALLOW: treat pre-release versions the same as other versions. (current default)
+    * LIMIT: only use pre-releases if already installed or no other matching version
+    * EXCLUDE: do not consider pre-release versions at all
+
+    See Python PEP 440 for details.
+    """
+    ALLOW = 'allow'
+    LIMIT = 'limit'
+    EXCLUDE = "exclude"
+
+
 class SatSolverChoice(ValueEnum):
     PYCOSAT = 'pycosat'
     PYCRYPTOSAT = 'pycryptosat'

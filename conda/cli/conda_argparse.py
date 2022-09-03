@@ -22,7 +22,7 @@ from textwrap import dedent
 from .. import __version__
 from ..auxlib.ish import dals
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
-    UpdateModifier, ExperimentalSolverChoice
+    UpdateModifier, ExperimentalSolverChoice, PrereleaseBehavior
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -1648,6 +1648,13 @@ def add_parser_solver_mode(p):
         dest='ignore_pinned',
         default=NULL,
         help="Ignore pinned file.",
+    )
+    solver_mode_options.add_argument(
+        "--prerelease-behavior",
+        dest="prerelease_behavior",
+        choices=[behavior.value for behavior in PrereleaseBehavior],
+        default=PrereleaseBehavior.ALLOW,
+        help="Specify how to treat prerelease package versions."
     )
     return solver_mode_options
 

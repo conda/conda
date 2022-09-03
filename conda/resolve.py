@@ -16,7 +16,7 @@ except ImportError:
 from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from ._vendor.tqdm import tqdm
-from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
+from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice, PrereleaseBehavior
 from .base.context import context
 from .common.compat import on_win
 from .common.io import dashlist, time_recorder
@@ -28,7 +28,7 @@ from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFou
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
-from .models.records import PackageRecord
+from .models.records import PackageRecord, PrefixRecord
 from .models.version import VersionOrder
 
 log = getLogger(__name__)
@@ -598,6 +598,11 @@ class Resolve(object):
             name = next(iter(_specs)).name
             group = self.groups.get(name, ())
 
+            if context.prerelease_behavior is PrereleaseBehavior.EXCLUDE:
+                for prec in group:
+                    if prec.is_prerelease:
+                        filter_out[prec] = "excluding prereleases"
+
             # implement strict channel priority
             if group and strict_channel_priority and name not in cp_filter_applied:
                 sole_source_channel_name = self._get_strict_channel(name)
@@ -977,6 +982,10 @@ class Resolve(object):
 
         sdict = {}  # Dict[package_name, PackageRecord]
 
+        prerelease_penalty = 0
+        if context.prerelease_behavior is not PrereleaseBehavior.ALLOW:
+            prerelease_penalty = 100
+
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             sdict.setdefault(s.name, [])
@@ -1018,17 +1027,21 @@ class Resolve(object):
                 elif not self._solver_ignore_timestamps and pkey[5] != version_key[5]:
                     it += 1
 
+                pp = 0
+                if prerelease_penalty and not isinstance(prec, PrefixRecord) and prec.is_prerelease:
+                    pp = prerelease_penalty
+
                 prec_sat_name = self.to_sat_name(prec)
-                if ic or include0:
-                    eqc[prec_sat_name] = ic
-                if iv or include0:
-                    eqv[prec_sat_name] = iv
-                if ib or include0:
-                    eqb[prec_sat_name] = ib
-                if ia or include0:
-                    eqa[prec_sat_name] = ia
-                if it or include0:
-                    eqt[prec_sat_name] = it
+                if ic or pp or include0:
+                    eqc[prec_sat_name] = ic + pp
+                if iv or pp or include0:
+                    eqv[prec_sat_name] = iv + pp
+                if ib or pp or include0:
+                    eqb[prec_sat_name] = ib + pp
+                if ia or pp or include0:
+                    eqa[prec_sat_name] = ia + pp
+                if it or pp or include0:
+                    eqt[prec_sat_name] = it + pp
                 pkey = version_key
 
         return eqc, eqv, eqb, eqa, eqt

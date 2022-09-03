@@ -32,6 +32,7 @@ def ver_eval(vtest, spec):
 
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')
+version_prerelease_re = re.compile(r'.*\.\d*(?!post\d*$)[a-zA-Z]+\d*$')
 version_cache = {}
 
 
@@ -501,6 +502,11 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
     def __init__(self, vspec):
         vspec_str, matcher, is_exact = self.get_matcher(vspec)
         super(VersionSpec, self).__init__(vspec_str, matcher, is_exact)
+
+    @property
+    def is_prerelease(self) -> bool:
+        """True if exact match and spec is for prerelease version ending with alphabetic tag other than 'post'"""
+        return self.is_exact and bool(version_prerelease_re.match(self.vspec_str))
 
     def get_matcher(self, vspec):
 

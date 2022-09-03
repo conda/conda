@@ -36,6 +36,7 @@ from .constants import (
     KNOWN_SUBDIRS,
     PREFIX_MAGIC_FILE,
     PathConflict,
+    PrereleaseBehavior,
     ROOT_ENV_NAME,
     SEARCH_PATH,
     SafetyChecks,
@@ -354,6 +355,9 @@ class Context(Configuration):
 
     unsatisfiable_hints = ParameterLoader(PrimitiveParameter(True))
     unsatisfiable_hints_check_depth = ParameterLoader(PrimitiveParameter(2))
+
+    prerelease_behavior = ParameterLoader(PrimitiveParameter(PrereleaseBehavior.ALLOW,
+                                                             element_type=PrereleaseBehavior))
 
     # conda_build
     bld_path = ParameterLoader(PrimitiveParameter(''))
@@ -975,6 +979,7 @@ class Context(Configuration):
                 "aggressive_update_packages",
                 "auto_update_conda",
                 "channel_priority",
+                "prerelease_behavior",
                 "create_default_packages",
                 "disallowed_packages",
                 "force_reinstall",
@@ -1394,6 +1399,21 @@ class Context(Configuration):
                 The list of directories where locally-available packages are linked from at
                 install time. Packages not locally available are downloaded and extracted
                 into the first writable directory.
+                """
+            ),
+            prerelease_behavior=dals(
+                """
+                Specifies how to handle prerelease versions (e.g. 1.2.3.dev3) when installing
+                or updating. The options are 'allow' (the default), 'limit', and 'exclude'.
+                 
+                When 'allow' is selected, prerelease versions are treated the same as any
+                other version.
+                 
+                When 'limit' is selected, prerelease packages will only be used if already
+                present or is the only way to satisfy a dependency.
+                
+                When 'exclude' is selected, prerelease packages will be excluded from
+                consideration.
                 """
             ),
             proxy_servers=dals(

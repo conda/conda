@@ -222,6 +222,10 @@ class MatchSpec(metaclass=MatchSpecType):
                 and 'name' in self._match_components
                 and self.name != '*')
 
+    @property
+    def is_prerelease(self) -> bool:
+        return self.version.is_prerelease
+
     def dist_str(self):
         return self.__str__()
 

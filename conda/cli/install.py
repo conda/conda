@@ -11,7 +11,7 @@ from . import common
 from .common import check_non_admin
 from .. import CondaError
 from ..auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME, DepsModifier, UpdateModifier, REPODATA_FN
+from ..base.constants import ROOT_ENV_NAME, DepsModifier, UpdateModifier, REPODATA_FN, PrereleaseBehavior
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
@@ -259,6 +259,12 @@ def install(args, parser, command='install'):
                     force_reinstall=context.force_reinstall or context.force,
                     should_retry_solve=(_should_retry_unfrozen or repodata_fn != repodata_fns[-1]),
                 )
+
+                if (context.prerelease_behavior is PrereleaseBehavior.LIMIT and
+                    repodata_fn != repodata_fns[-1] and
+                    unlink_link_transaction.adds_prereleases):
+                    continue
+
             # we only need one of these to work.  If we haven't raised an exception,
             #   we're good.
             break

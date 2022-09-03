@@ -19,7 +19,7 @@ except ImportError:
 from .. import CondaError
 from ..auxlib.entity import EntityEncoder
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
-                              UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
+                              UpdateModifier, SatSolverChoice, ExperimentalSolverChoice, PrereleaseBehavior)
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable
 from ..common.configuration import pretty_list, pretty_map
@@ -396,6 +396,9 @@ def execute_config(args, parser):
         yaml.representer.RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(
             ExperimentalSolverChoice, enum_representer
+        )
+        yaml.representer.RoundTripRepresenter.add_representer(
+            PrereleaseBehavior, enum_representer
         )
 
         try:
