@@ -361,7 +361,7 @@ class Context(Configuration):
     prerelease_allowed_packages = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str),
-            # default=("openssl <3.0",),
+            default=("openssl <=2.99.99",),
             string_delimiter='&',
         )
     )

@@ -9,7 +9,7 @@ from random import shuffle
 import unittest
 
 from conda.exceptions import InvalidVersionSpec
-from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval, treeify
+from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval, treeify, version_prerelease_re
 import pytest
 
 
@@ -324,3 +324,34 @@ class TestVersionSpec(unittest.TestCase):
         # We're going to leave the not implemented for now.
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("===3.3.2")
+
+    def test_prerelease_re(self):
+        for v in [
+            "1.2.3.dev0",
+            "1.2.3.0a3",
+            "1.2.4.b",
+            "1.2.1alpha23",
+            "1.1.1q"
+        ]:
+            assert version_prerelease_re.match(v)
+
+        for v in [
+            "1.2.3",
+            "1.2.3.post23",
+            "3.4.0post23"
+        ]:
+            assert not version_prerelease_re.match(v)
+
+    def test_is_prerelease(self):
+        for v in [
+            "1.2.3.dev0",
+            "2.3.0a",
+            "1.1.1.q"
+        ]:
+            assert VersionSpec(v).is_prerelease
+
+        for v in [
+            ">=1.2.3.dev0",
+            "1.2.3.post42"
+        ]:
+            assert not VersionSpec(v).is_prerelease

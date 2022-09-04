@@ -11,6 +11,7 @@ import unittest
 
 import pytest
 
+from conda.base.constants import PrereleaseBehavior
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
@@ -2359,3 +2360,49 @@ def test_noarch_preferred_over_arch_when_build_greater_dep():
         if d.name == 'abc':
             assert d.subdir == 'noarch'
             assert d.build_number == 1
+
+
+def test_PEP440_prerelease_behavior(reset_conda_context):
+    index = [
+        simple_rec("llvmpy", "0.8.3.dev"),
+        simple_rec("llvmpy", "0.8.3"),
+        simple_rec("llvmpy", "0.8.4.dev"),
+        simple_rec("llvmpy", "0.8.4"),
+        simple_rec("openssl", "1.1.1p"),
+        simple_rec("openssl", "1.1.1q"),
+        simple_rec("openssl", "3.0.0")
+    ]
+
+    r = Resolve({p:p for p in index})
+
+    context.prerelease_behavior = PrereleaseBehavior.LIMIT
+
+    installed = r.install(['llvmpy <0.8.4', 'openssl <3.0.0'])
+    result = [(rec.name, rec.version) for rec in installed]
+    assert ('llvmpy', '0.8.3') in result
+    assert ('openssl', '1.1.1q') in result
+
+    installed = r.install(['llvmpy >0.8.3,<0.8.4'])
+    result = [(rec.name, rec.version) for rec in installed]
+    assert ('llvmpy', '0.8.4.dev') in result
+
+    context.prerelease_behavior = PrereleaseBehavior.ALLOW
+
+    installed = r.install(['llvmpy <0.8.4'])
+    result = [(rec.name, rec.version) for rec in installed]
+    assert ('llvmpy', '0.8.4.dev') in result
+
+    context.prerelease_behavior = PrereleaseBehavior.EXCLUDE
+
+    raises(ResolvePackageNotFound, lambda: r.install(['llvmpy >8.3,<0.8.4']))
+
+    installed = r.install(['openssl <3.0.0'])
+    result = [(rec.name, rec.version) for rec in installed]
+    assert ('openssl', '1.1.1q') in result
+
+    context.prerelease_allowed_packages = ("llvmpy",)
+    context._cache_.clear()
+
+    installed = r.install(['llvmpy <0.8.4'])
+    result = [(rec.name, rec.version) for rec in installed]
+    assert ('llvmpy', '0.8.4.dev') in result

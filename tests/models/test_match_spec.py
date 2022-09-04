@@ -476,6 +476,22 @@ class MatchSpecTests(TestCase):
         assert MatchSpec("*[license='*gpl*']").match(record)
         assert MatchSpec("*[license='*v3+']").match(record)
 
+    def test_is_prerelease(self):
+        for v in [
+            "1.2.3.dev0",
+            "1.1.1q"
+        ]:
+            assert MatchSpec(f"foo {v}").is_prerelease
+
+        for v in [
+            "1.3.0",
+            "3n",
+            "1.2.post42",
+            "<2.3.dev0"
+            ""
+        ]:
+            assert not MatchSpec(f"foo {v}").is_prerelease
+
 
 class TestArg2Spec(TestCase):
 
