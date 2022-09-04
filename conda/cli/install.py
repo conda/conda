@@ -232,6 +232,7 @@ def install(args, parser, command='install'):
         UpdateModifier.UPDATE_SPECS)) and not newenv
 
     for repodata_fn in repodata_fns:
+        is_last_repodata = repodata_fn == repodata_fns[-1]
         try:
             if isinstall and args.revision:
                 index = get_index(channel_urls=index_args['channel_urls'],
@@ -261,7 +262,7 @@ def install(args, parser, command='install'):
                 )
 
                 if (context.prerelease_behavior is PrereleaseBehavior.LIMIT and
-                    repodata_fn != repodata_fns[-1] and
+                    not is_last_repodata and
                     unlink_link_transaction.adds_prereleases):
                     continue
 
@@ -271,7 +272,7 @@ def install(args, parser, command='install'):
 
         except (ResolvePackageNotFound, PackagesNotFoundError) as e:
             # end of the line.  Raise the exception
-            if repodata_fn == repodata_fns[-1]:
+            if is_last_repodata:
                 # PackagesNotFoundError is the only exception type we want to raise.
                 #    Over time, we should try to get rid of ResolvePackageNotFound
                 if isinstance(e, PackagesNotFoundError):
@@ -301,7 +302,7 @@ def install(args, parser, command='install'):
                 raise e
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
             if not hasattr(args, 'update_modifier'):
-                if repodata_fn == repodata_fns[-1]:
+                if is_last_repodata:
                     raise e
             elif _should_retry_unfrozen:
                 try:
@@ -317,9 +318,9 @@ def install(args, parser, command='install'):
                         raise CondaImportError(str(e))
                     # we want to fall through without raising if we're not at the end of the list
                     #    of fns.  That way, we fall to the next fn.
-                    if repodata_fn == repodata_fns[-1]:
+                    if is_last_repodata:
                         raise e
-            elif repodata_fn != repodata_fns[-1]:
+            elif not is_last_repodata:
                 continue  # if we hit this, we should retry with next repodata source
             else:
                 # end of the line.  Raise the exception

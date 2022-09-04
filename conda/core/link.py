@@ -193,7 +193,7 @@ class UnlinkLinkTransaction(object):
         """True if a new/updated spec is a prerelease version"""
         for stp in self.prefix_setups.values():
             for prec in list(stp.link_precs) + list(stp.update_specs):
-                if prec.is_prerelease:
+                if context.is_prerelease(prec):
                     return True
         return False
 

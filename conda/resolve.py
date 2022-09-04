@@ -600,7 +600,7 @@ class Resolve(object):
 
             if context.prerelease_behavior is PrereleaseBehavior.EXCLUDE:
                 for prec in group:
-                    if prec.is_prerelease:
+                    if context.is_prerelease(prec):
                         filter_out[prec] = "excluding prereleases"
 
             # implement strict channel priority
@@ -1028,7 +1028,7 @@ class Resolve(object):
                     it += 1
 
                 pp = 0
-                if prerelease_penalty and not isinstance(prec, PrefixRecord) and prec.is_prerelease:
+                if prerelease_penalty and not isinstance(prec, PrefixRecord) and context.is_prerelease(prec):
                     pp = prerelease_penalty
 
                 prec_sat_name = self.to_sat_name(prec)

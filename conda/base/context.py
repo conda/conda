@@ -358,6 +358,13 @@ class Context(Configuration):
 
     prerelease_behavior = ParameterLoader(PrimitiveParameter(PrereleaseBehavior.ALLOW,
                                                              element_type=PrereleaseBehavior))
+    prerelease_allowed_packages = ParameterLoader(
+        SequenceParameter(
+            PrimitiveParameter("", element_type=str),
+            # default=("openssl <3.0",),
+            string_delimiter='&',
+        )
+    )
 
     # conda_build
     bld_path = ParameterLoader(PrimitiveParameter(''))
@@ -612,6 +619,19 @@ class Context(Configuration):
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
         return tuple(MatchSpec(s) for s in self._aggressive_update_packages)
+
+    @memoizedproperty
+    def prerelease_allowed_specs(self):
+        from ..models.match_spec import MatchSpec
+        return tuple(MatchSpec(s) for s in context.prerelease_allowed_packages)
+
+    def is_prerelease(self, rec):
+        """True if PackageRecord or MatchSpec specifies a prerelease
+
+        Will return false if package is a prerelease but matches a spec in
+        prerelease_allowed_packages.
+        """
+        return rec.is_prerelease and not any(spec.match(rec) for spec in self.prerelease_allowed_specs)
 
     @property
     def target_prefix(self):
@@ -980,6 +1000,7 @@ class Context(Configuration):
                 "auto_update_conda",
                 "channel_priority",
                 "prerelease_behavior",
+                "prerelease_allowed_packages",
                 "create_default_packages",
                 "disallowed_packages",
                 "force_reinstall",
@@ -1414,6 +1435,13 @@ class Context(Configuration):
                 
                 When 'exclude' is selected, prerelease packages will be excluded from
                 consideration.
+                """
+            ),
+            prerelease_allowed_packages=dals(
+                """
+                A list of package specs of packages whose prerelease versions will be
+                accepted regardless of the chosen `prerelease_behavior`. This is primarily
+                intended to support the few packages that do not follow the PEP440 guidelines.
                 """
             ),
             proxy_servers=dals(
