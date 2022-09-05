@@ -11,9 +11,13 @@ import unittest
 
 import pytest
 
+from conda.auxlib.collection import AttrDict
+from conda.auxlib.ish import dals
 from conda.base.constants import PrereleaseBehavior
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol, reset_context
+from conda.common.configuration import YamlRawParameter
 from conda.common.io import env_var
+from conda.common.serialize import yaml_round_trip_load
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.read import read_python_record
 from conda.models.channel import Channel
@@ -2361,7 +2365,6 @@ def test_noarch_preferred_over_arch_when_build_greater_dep():
             assert d.subdir == 'noarch'
             assert d.build_number == 1
 
-
 def test_PEP440_prerelease_behavior(reset_conda_context):
     index = [
         simple_rec("llvmpy", "0.8.3.dev"),
@@ -2375,7 +2378,8 @@ def test_PEP440_prerelease_behavior(reset_conda_context):
 
     r = Resolve({p:p for p in index})
 
-    context.prerelease_behavior = PrereleaseBehavior.LIMIT
+    reset_context((), argparse_args=AttrDict(prerelease_behavior='limit'))
+    assert context.prerelease_behavior == PrereleaseBehavior.LIMIT
 
     installed = r.install(['llvmpy <0.8.4', 'openssl <3.0.0'])
     result = [(rec.name, rec.version) for rec in installed]
@@ -2386,13 +2390,15 @@ def test_PEP440_prerelease_behavior(reset_conda_context):
     result = [(rec.name, rec.version) for rec in installed]
     assert ('llvmpy', '0.8.4.dev') in result
 
-    context.prerelease_behavior = PrereleaseBehavior.ALLOW
+    reset_context((), argparse_args=AttrDict(prerelease_behavior='allow'))
+    assert context.prerelease_behavior == PrereleaseBehavior.ALLOW
 
     installed = r.install(['llvmpy <0.8.4'])
     result = [(rec.name, rec.version) for rec in installed]
     assert ('llvmpy', '0.8.4.dev') in result
 
-    context.prerelease_behavior = PrereleaseBehavior.EXCLUDE
+    reset_context((), argparse_args=AttrDict(prerelease_behavior='exclude'))
+    assert context.prerelease_behavior == PrereleaseBehavior.EXCLUDE
 
     raises(ResolvePackageNotFound, lambda: r.install(['llvmpy >8.3,<0.8.4']))
 
@@ -2400,9 +2406,17 @@ def test_PEP440_prerelease_behavior(reset_conda_context):
     result = [(rec.name, rec.version) for rec in installed]
     assert ('openssl', '1.1.1q') in result
 
-    context.prerelease_allowed_packages = ("llvmpy",)
-    context._cache_.clear()
+    string = dals("""
+    prerelease_allowed_packages:
+      - llvmpy
+    """)
+    rd = dict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+    reset_context(())
+    context._set_raw_data(rd)
+
+    assert context.prerelease_allowed_packages == ("llvmpy",)
 
     installed = r.install(['llvmpy <0.8.4'])
     result = [(rec.name, rec.version) for rec in installed]
     assert ('llvmpy', '0.8.4.dev') in result
+

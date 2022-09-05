@@ -72,10 +72,6 @@ class ContextCustomRcTests(TestCase):
           rsync: 'false'
         aggressive_update_packages: []
         channel_priority: false
-        prerelease_behavior: limit
-        prerelease_allowed_packages:
-          - foo
-          - bar <4.2
         """)
         reset_context(())
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
@@ -429,7 +425,6 @@ class ContextCustomRcTests(TestCase):
         assert context.channels == ('conda-forge',)
 
     def test_prerelease_behavior(self):
-        assert context.prerelease_behavior == PrereleaseBehavior.LIMIT
         reset_context(())
         assert context.prerelease_behavior == PrereleaseBehavior.ALLOW
         reset_context((), argparse_args=AttrDict(prerelease_behavior='limit'))
@@ -438,6 +433,21 @@ class ContextCustomRcTests(TestCase):
         assert context.prerelease_behavior == PrereleaseBehavior.EXCLUDE
 
     def test_prerelease_allowed_packages(self):
+        assert context.prerelease_allowed_packages == ("openssl <=2.99.99",)
+        assert not context.is_prerelease(MatchSpec("openssl 1.1.1q"))
+        assert context.is_prerelease(MatchSpec("openssl 3.0.0.dev0"))
+        assert context.is_prerelease(MatchSpec("foo 1.0.dev3"))
+
+        string = dals("""
+        prerelease_allowed_packages:
+          - foo
+          - bar <4.2
+        """)
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        reset_context(())
+        context._set_raw_data(rd)
+
+        context.prerelease_allowed_packages = ("foo", "bar <4.2")
         assert context.prerelease_allowed_packages == ("foo", "bar <4.2")
         assert context.is_prerelease(MatchSpec("openssl 1.1.1q"))
         assert not context.is_prerelease(MatchSpec("foo"))
@@ -447,11 +457,6 @@ class ContextCustomRcTests(TestCase):
         assert not context.is_prerelease(MatchSpec("bar 4.2.dev3"))
         assert context.is_prerelease(MatchSpec("bar 4.3.dev0"))
 
-        reset_context(())
-        assert context.prerelease_allowed_packages == ("openssl <=2.99.99",)
-        assert not context.is_prerelease(MatchSpec("openssl 1.1.1q"))
-        assert context.is_prerelease(MatchSpec("openssl 3.0.0.dev0"))
-        assert context.is_prerelease(MatchSpec("foo 1.0.dev3"))
 
     def test_expandvars(self):
         """
