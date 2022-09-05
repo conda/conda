@@ -184,6 +184,7 @@ General configuration
 * :ref:`always-yes`
 * :ref:`show-channel-urls`
 * :ref:`change-command-prompt`
+* :ref:`prerelease-behavior`
 * :ref:`add-pip-python-dependency`
 * :ref:`use-pip`
 * :ref:`config-proxy`
@@ -332,6 +333,34 @@ EXAMPLE:
 .. code-block:: yaml
 
   changeps1: False
+
+
+.. _prerelease-behavior:
+
+Specify how to handle prerelease versions (prerelease_behavior)
+---------------------------------------------------------------
+
+A prerelease package has a version containing a tag with letters
+other than ``post`` (see :ref:`supported-version-strings`). This option
+controls how prerelease versions should be treated during create, install
+and update commands in accordance with
+`PEP 440 prerelease handling recommendations <https://peps.python.org/pep-0440/#handling-of-pre-releases>`_.
+The options are:
+
+* ``allow`` - Treat prerelease versions the same as other versions. This is currently the
+  the default behavior.
+
+* ``exclude`` - Exclude prerelease versions from consideration.
+
+* ``limit`` - Only use prerelease versions either when there is no other match or
+  if the package is already present in the environment. This is the behavior
+  recommended by PEP 440.
+
+EXAMPLE:
+
+.. code-block:: yaml
+
+  prerelease_behavior: limit
 
 .. _add-pip-python-dependency:
 
