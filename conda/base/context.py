@@ -1427,13 +1427,13 @@ class Context(Configuration):
                 """
                 Specifies how to handle prerelease versions (e.g. 1.2.3.dev3) when installing
                 or updating. The options are 'allow' (the default), 'limit', and 'exclude'.
-                 
+
                 When 'allow' is selected, prerelease versions are treated the same as any
                 other version.
-                 
+
                 When 'limit' is selected, prerelease packages will only be used if already
                 present or is the only way to satisfy a dependency.
-                
+
                 When 'exclude' is selected, prerelease packages will be excluded from
                 consideration.
                 """
