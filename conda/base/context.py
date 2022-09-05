@@ -631,7 +631,8 @@ class Context(Configuration):
         Will return false if package is a prerelease but matches a spec in
         prerelease_allowed_packages.
         """
-        return rec.is_prerelease and not any(spec.match(rec) for spec in self.prerelease_allowed_specs)
+        return (rec.is_prerelease and
+                not any(spec.match(rec) for spec in self.prerelease_allowed_specs))
 
     @property
     def target_prefix(self):

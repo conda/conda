@@ -16,7 +16,8 @@ except ImportError:
 from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from ._vendor.tqdm import tqdm
-from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice, PrereleaseBehavior
+from .base.constants import (ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice,
+                             PrereleaseBehavior)
 from .base.context import context
 from .common.compat import on_win
 from .common.io import dashlist, time_recorder
@@ -1028,7 +1029,9 @@ class Resolve(object):
                     it += 1
 
                 pp = 0
-                if prerelease_penalty and not isinstance(prec, PrefixRecord) and context.is_prerelease(prec):
+                if (prerelease_penalty and
+                        not isinstance(prec, PrefixRecord) and
+                        context.is_prerelease(prec)):
                     pp = prerelease_penalty
 
                 prec_sat_name = self.to_sat_name(prec)

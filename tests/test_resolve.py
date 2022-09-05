@@ -2419,4 +2419,3 @@ def test_PEP440_prerelease_behavior(reset_conda_context):
     installed = r.install(['llvmpy <0.8.4'])
     result = [(rec.name, rec.version) for rec in installed]
     assert ('llvmpy', '0.8.4.dev') in result
-

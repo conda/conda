@@ -505,7 +505,9 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
 
     @property
     def is_prerelease(self) -> bool:
-        """True if exact match and spec is for prerelease version ending with alphabetic tag other than 'post'"""
+        """True if exact match and spec is for prerelease version ending with alphabetic
+        tag other than 'post'
+        """
         return self.is_exact() and bool(version_prerelease_re.match(self.spec_str))
 
     def get_matcher(self, vspec):

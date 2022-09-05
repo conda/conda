@@ -4,4 +4,3 @@
   New `prerelease_behavior` config and command line option may be set to allow
   prereleases (the default old behavior), exclude prereleases, or limit prereleases
   when already in the environment or when there is no other match.
-
