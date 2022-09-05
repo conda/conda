@@ -1,0 +1,7 @@
+### Enhancements
+
+* Support for handling of prerelease versions as recommended by PEP440 (#5021).
+  New `prerelease_behavior` config and command line option may be set to allow
+  prereleases (the default old behavior), exclude prereleases, or limit prereleases
+  when already in the environment or when there is no other match.
+
