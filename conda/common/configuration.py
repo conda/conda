@@ -28,13 +28,17 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 try:
-    from tlz.itertoolz import concat, unique
+    from tlz.itertoolz import unique
     from tlz.dicttoolz import merge, merge_with
     from tlz.functoolz import excepts
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, unique
+    from conda._vendor.toolz.itertoolz import unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
     from conda._vendor.toolz import excepts
+
+import itertools
+
+concat = itertools.chain.from_iterable
 
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL

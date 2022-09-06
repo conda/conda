@@ -19,9 +19,13 @@ from datetime import datetime
 import warnings
 
 try:
-    from tlz.itertoolz import concat, unique
+    from tlz.itertoolz import unique
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, unique
+    from conda._vendor.toolz.itertoolz import unique
+
+import itertools
+
+concat = itertools.chain.from_iterable
 
 from .constants import (
     APP_NAME,
