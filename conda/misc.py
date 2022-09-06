@@ -86,6 +86,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     pfe = ProgressiveFetchExtract(fetch_specs)
     pfe.execute()
 
+    # called by conda install --download-only
     if context.download_only:
         raise CondaExitZero('Package caches prepared. '
                             'UnlinkLinkTransaction cancelled with --download-only option.')
