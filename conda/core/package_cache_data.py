@@ -15,9 +15,13 @@ from sys import platform
 from tarfile import ReadError
 
 try:
-    from tlz.itertoolz import concat, groupby
+    from tlz.itertoolz import groupby
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby
+    from conda._vendor.toolz.itertoolz import groupby
+
+import itertools
+
+concat = itertools.chain.from_iterable
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler

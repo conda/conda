@@ -15,9 +15,13 @@ from textwrap import indent
 import warnings
 
 try:
-    from tlz.itertoolz import concat, interleave
+    from tlz.itertoolz import interleave
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, interleave
+    from conda._vendor.toolz.itertoolz import interleave
+
+import itertools
+
+concat = itertools.chain.from_iterable
 
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,

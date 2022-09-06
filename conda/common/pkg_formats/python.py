@@ -20,9 +20,13 @@ import sys
 import warnings
 
 try:
-    from tlz.itertoolz import concat, groupby
+    from tlz.itertoolz import groupby
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby
+    from conda._vendor.toolz.itertoolz import groupby
+
+import itertools
+
+concat = itertools.chain.from_iterable
 
 from ... import CondaError
 from ..compat import odict, open

@@ -14,9 +14,13 @@ from os.path import basename
 import re
 
 try:
-    from tlz.itertoolz import concat, groupby
+    from tlz.itertoolz import groupby
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby
+    from conda._vendor.toolz.itertoolz import groupby
+
+import itertools
+
+concat = itertools.chain.from_iterable
 
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec

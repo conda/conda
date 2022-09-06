@@ -20,9 +20,13 @@ from time import time
 import warnings
 
 try:
-    from tlz.itertoolz import concat, groupby, take
+    from tlz.itertoolz import groupby, take
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby, take
+    from conda._vendor.toolz.itertoolz import groupby, take
+
+import itertools
+
+concat = itertools.chain.from_iterable
 
 from .. import CondaError
 from ..auxlib.ish import dals
