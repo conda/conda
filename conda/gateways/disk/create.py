@@ -198,7 +198,8 @@ class ProgressFileWrapper(object):
 
 
 def extract_tarball(tarball_full_path, destination_directory=None, progress_update_callback=None):
-    import conda_package_handling.api
+    # requires version >= 0.4.0 (unreleased as of 2022-09-08)
+    import conda_package_streaming.extract
 
     if destination_directory is None:
         if tarball_full_path[-8:] == CONDA_PACKAGE_EXTENSION_V1:
@@ -215,16 +216,19 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
         log.debug("package folder %s was not empty, but we're writing there.",
                   destination_directory)
 
-    conda_package_handling.api.extract(tarball_full_path, dest_dir=destination_directory)
+    conda_package_streaming.extract.extract(tarball_full_path, dest_dir=destination_directory)
 
-    if sys.platform.startswith('linux') and os.getuid() == 0:
-        # When extracting as root, tarfile will by restore ownership
-        # of extracted files.  However, we want root to be the owner
-        # (our implementation of --no-same-owner).
-        for root, dirs, files in os.walk(destination_directory):
-            for fn in files:
-                p = join(root, fn)
-                os.lchown(p, 0, 0)
+    if False:
+        # Handled by conda_package_streaming already, with old "no libarchive" conda-package-handling code
+        # XXX better there, or here in this conda-specific location?
+        if sys.platform.startswith('linux') and os.getuid() == 0:
+            # When extracting as root, tarfile will by restore ownership
+            # of extracted files.  However, we want root to be the owner
+            # (our implementation of --no-same-owner).
+            for root, dirs, files in os.walk(destination_directory):
+                for fn in files:
+                    p = join(root, fn)
+                    os.lchown(p, 0, 0)
 
 
 def make_menu(prefix, file_path, remove=False):

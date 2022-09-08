@@ -13,6 +13,12 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 
+from concurrent.futures import as_completed
+from concurrent.futures.thread import ThreadPoolExecutor
+
+DOWNLOAD_THREADS = 10
+EXTRACT_THREADS = None  # ThreadPoolExecutor will set cpu count or max 32
+
 try:
     from tlz.itertoolz import concat, concatv, groupby
 except ImportError:
@@ -653,11 +659,22 @@ class ProgressiveFetchExtract(object):
                       '\n    '.join(str(ea) for ea in self.extract_actions))
 
         exceptions = []
-        with signal_handler(conda_signal_handler), time_recorder("fetch_extract_execute"):
+        with signal_handler(conda_signal_handler), time_recorder(
+            "fetch_extract_execute"
+        ), ThreadPoolExecutor(DOWNLOAD_THREADS) as download_pool:
+            futures = []
             for prec_or_spec, prec_actions in self.paired_actions.items():
-                exc = self._execute_actions(prec_or_spec, prec_actions)
+                # TODO execute all the download actions in one pool, and extract
+                # actions in a second pool. Older versions of this file treat
+                # these as separate lists and don't do a convoluted "pairs"
+                # action...
+                future = download_pool.submit(self._execute_actions, prec_or_spec, prec_actions)
+                futures.append(future)
+
+            for result in as_completed(futures):
+                exc = result.result()
                 if exc:
-                    log.debug('%r'.encode('utf-8'), exc, exc_info=True)
+                    log.debug("%r".encode("utf-8"), exc, exc_info=True)
                     exceptions.append(exc)
 
         if exceptions:
