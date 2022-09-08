@@ -108,7 +108,17 @@ def main_sourced(shell, *args, **kwargs):
         raise CondaError("%s is not a supported shell." % shell)
 
     activator = activator_cls(args)
-    print(activator.execute(), end="")
+    script = activator.execute()
+
+    try:
+        from os import fdopen
+
+        with fdopen(3, "w") as fh:
+            fh.write(script)
+    except OSError:
+        # the file descriptor 3 hasn't been opened so it cannot be written to, just write out
+        # to stdout instead as the user is likely running this for debugging purposes
+        print(script, end="")
     return 0
 
 
