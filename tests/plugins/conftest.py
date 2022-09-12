@@ -14,7 +14,11 @@ from conda import plugins
 def plugin_manager(mocker):
     pm = pluggy.PluginManager('conda')
     pm.add_hookspecs(plugins)
-    mocker.patch("conda.base.context.context.plugin_manager", return_value=pm)
+    mocker.patch(
+        "conda.base.context.context.plugin_manager",
+        return_value=pm,
+        new_callable=mocker.PropertyMock,
+    )
     return pm
 
 
