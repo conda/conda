@@ -58,28 +58,36 @@ class TestMisc(unittest.TestCase):
 
 # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
 # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
-@patch('conda.misc.ProgressiveFetchExtract')
+@patch("conda.misc.ProgressiveFetchExtract")
 def test_explicit_no_cache(ProgressiveFetchExtract):
     """Test that explicit() raises and notifies if none of the specs were found in the cache."""
-    with pytest.raises(AssertionError, match='No PackageCacheRecords found'):
+    with pytest.raises(AssertionError, match="No package cache records found"):
         explicit(
-            ['http://www.cont.io/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2',
-             'http://www.cont.io/pkgs/linux-64/bar-1.0.0-py_0.tar.bz2',
-             ], '')
+            [
+                "http://test/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2",
+                "http://test/pkgs/linux-64/bar-1.0.0-py_0.tar.bz2",
+            ],
+            "",
+        )
 
 
 # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
 # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
-@patch('conda.misc.ProgressiveFetchExtract')
+@patch("conda.misc.ProgressiveFetchExtract")
 def test_explicit_missing_cache_entries(ProgressiveFetchExtract):
     """Test that explicit() raises and notifies if some of the specs were not found in the cache."""
     from conda.core.package_cache_data import PackageCacheData
-    with pytest.raises(AssertionError,
-                       match="Missing PackageCacheRecords for: pkgs/linux-64::foo==1.0.0=py_0"):
+
+    with pytest.raises(
+        AssertionError, match="Missing package cache records for: pkgs/linux-64::foo==1.0.0=py_0"
+    ):
         explicit(
-            ['http://www.cont.io/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2',  # does not exist
-             PackageCacheData.get_all_extracted_entries()[0].url,        # exists
-            ], '')
+            [
+                "http://test/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2",  # does not exist
+                PackageCacheData.get_all_extracted_entries()[0].url,  # exists
+            ],
+            "",
+        )
 
 
 def make_mock_directory(tmpdir, mock_directory):

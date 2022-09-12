@@ -99,10 +99,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     specs_with_missing_pcrecs = [str(spec) for spec, pcrec in specs_pcrecs if pcrec is None]
     if specs_with_missing_pcrecs:
         if len(specs_with_missing_pcrecs) == len(specs_pcrecs):
-            raise AssertionError("No PackageCacheRecords found")
+            raise AssertionError("No package cache records found")
         else:
-            raise AssertionError("Missing PackageCacheRecords for: %s"
-                                 % ', '.join(specs_with_missing_pcrecs))
+            missing_precs_list = ", ".join(specs_with_missing_pcrecs)
+            raise AssertionError(f"Missing package cache records for: {missing_precs_list}")
 
     precs_to_remove = []
     prefix_data = PrefixData(prefix)
