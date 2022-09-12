@@ -992,8 +992,7 @@ class MatchSpecMergeTests(TestCase):
             "build": "red_habc123_3",
             "build_number": 3,
         }
-        blue = {**red}
-        blue["build"] = "blue_hdef1234_3"
+        blue = {**red, "build": "blue_hdef1234_3"}
 
         no_build = MatchSpec("my_pkg=1.17.*")
         assert no_build.match(red)
@@ -1129,12 +1128,9 @@ class MatchSpecMergeTests(TestCase):
             "build": "pyhabc123_3",
             "build_number": 3,
         }
-        exact_channel = {**no_channel}
-        exact_channel["channel"] = "conda-forge"
-        star_channel = {**no_channel}
-        star_channel["channel"] = "conda-*"
-        non_matching_star_channel = {**no_channel}
-        non_matching_star_channel["channel"] = "*-adnoc"
+        exact_channel = {**no_channel, "channel": "conda-forge"}
+        star_channel = {**no_channel, "channel": "conda-*"}
+        non_matching_star_channel = {**no_channel, "channel": "*-adnoc"}
 
         merged, *unmergeable = MatchSpec.merge(
             [MatchSpec(spec) for spec in (no_channel, exact_channel, star_channel)]

@@ -903,8 +903,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
         # and will let the index filtering steps detect whether there's
         # a package record that matches the expression
         patterns = []
-        for m in (self, other):
-            value = str(m)
+        for value in (self.raw_value, other_as_str):
             if value.startswith("^") and value.endswith("$"):
                 patterns.append(value[1:-1])
             elif "*" in value:

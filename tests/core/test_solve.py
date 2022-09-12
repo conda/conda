@@ -2530,11 +2530,11 @@ def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
 @pytest.mark.integration
 def test_globstr_matchspec_compatible(tmpdir):
     # This should work -- build strings are compatible
-    specs = MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np17*"),
+    specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np17*"))
     with get_solver(tmpdir, specs) as solver:
         solver.solve_final_state()
 
-    specs = MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=np17py27*"),
+    specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=np17py27*"))
     with get_solver(tmpdir, specs) as solver:
         solver.solve_final_state()
 
@@ -2546,7 +2546,7 @@ def test_globstr_matchspec_non_compatible(tmpdir):
     # This one fails with ValueError (glob str match_spec checks)
     # because we can anticipate the globs are not compatible. Note it
     # fails during the Solver INSTANTIATION; i.e. in get_solver(...)
-    specs = MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=np16*"),
+    specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=np16*"))
     with pytest.raises(ValueError):
         with get_solver(tmpdir, specs) as solver:
             solver.solve_final_state()
@@ -2556,13 +2556,13 @@ def test_globstr_matchspec_non_compatible(tmpdir):
     # We do know the index doesn't contain any though, so ResolvePackageNotFound
     # which is only raised when the solve starts. Note how the pytest.raises
     # context manager is now in the inner block!
-    specs = MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"),
+    specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"))
     with get_solver(tmpdir, specs) as solver:
         with pytest.raises(ResolvePackageNotFound):
             solver.solve_final_state()
 
     # Same here; the index has no accelerate pkg with BOTH np15 and py33
-    specs = MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"),
+    specs = (MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"))
     with get_solver(tmpdir, specs) as solver:
         with pytest.raises(ResolvePackageNotFound):
             solver.solve_final_state()
