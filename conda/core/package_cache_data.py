@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import codecs
 from collections import defaultdict
+from concurrent.futures import as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from json import JSONDecodeError
 from logging import getLogger
@@ -12,6 +13,8 @@ from os import scandir
 from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
+from concurrent.futures.thread import ThreadPoolExecutor as Executor
+from functools import partial
 
 try:
     from tlz.itertoolz import concat, concatv, groupby
@@ -475,6 +478,9 @@ class UrlsData(object):
 # downloading
 # ##############################
 
+class DummyAction:
+    pass
+
 class ProgressiveFetchExtract(object):
 
     @staticmethod
@@ -607,7 +613,7 @@ class ProgressiveFetchExtract(object):
         log.debug("instantiating ProgressiveFetchExtract with\n"
                   "  %s\n", '\n  '.join(pkg_rec.dist_str() for pkg_rec in link_prefs))
 
-        self.paired_actions = odict()  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
+        self.paired_actions = {}  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
 
         self._prepared = False
         self._executed = False
@@ -653,23 +659,101 @@ class ProgressiveFetchExtract(object):
                       '\n    '.join(str(ea) for ea in self.extract_actions))
 
         exceptions = []
-        with signal_handler(conda_signal_handler), time_recorder("fetch_extract_execute"):
-            for prec_or_spec, prec_actions in self.paired_actions.items():
-                exc = self._execute_actions(prec_or_spec, prec_actions)
-                if exc:
+        progress_bars = {}
+
+        def do_cache_action(prec, cache_axn, progress_bar, download_total=1.0):
+            # dummy action to simplify code
+            if not cache_axn:
+                return prec
+            cache_axn.verify()
+
+            if not cache_axn.url.startswith("file:/"):
+                def progress_update_cache_axn(pct_completed):
+                    progress_bar.update_to(pct_completed * download_total)
+            else:
+                download_total = 0
+                progress_update_cache_axn = None
+
+            cache_axn.execute(progress_update_cache_axn)
+            return prec
+
+        def do_extract_action(prec, extract_axn, progress_bar):
+            # dummy action
+            if not extract_axn:
+                return prec
+            extract_axn.verify()
+            # currently unable to do updates on extract;
+            # likely too fast to bother
+            extract_axn.execute(None)
+            progress_bar.update_to(1.0)
+            return prec
+
+        def do_cleanup(progress_bar, *actions):
+            for action in actions:
+                if action:
+                    action.cleanup()
+
+        def do_reverse(progress_bar, *actions):
+            for action in actions:
+                if action:
+                    action.reverse()
+
+        def done_callback(f, actions, progress_bar, finish=False):
+            try:
+                f.result()
+            except Exception as e:
+                do_reverse(progress_bar, *reversed(actions))
+                exceptions.append(e)
+            else:
+                do_cleanup(progress_bar, *actions)
+                if finish:
+                    progress_bar.finish()
+            finally:
+                if finish:
+                    progress_bar.close()
+
+        futures = set()
+
+        with signal_handler(conda_signal_handler), time_recorder("fetch_extract_execute"), \
+            Executor(context.fetch_threads) as fetch_executor, \
+            Executor(context.execute_threads) as extract_executor:
+
+            for prec_or_spec, (cache_action, extract_action) in self.paired_actions.items():
+                if cache_action is None and extract_action is None:
+                    # XXX will we reach this if installing an installed package?
+                    continue
+
+                progress_bar = self._progress_bar(prec_or_spec)
+                progress_bars[prec_or_spec] = progress_bar
+
+                f = fetch_executor.submit(do_cache_action, prec_or_spec, cache_action, progress_bar)
+
+                f.add_done_callback(partial(done_callback, actions=(cache_action,), progress_bar=progress_bar, finish=False))
+                futures.add(f)
+
+            for f in as_completed(futures):
+                try:
+                    prec_or_spec = f.result()
+                    cache_action, extract_action = self.paired_actions[prec_or_spec]
+                    f2 = extract_executor.submit(do_extract_action, prec_or_spec, extract_action, progress_bars[prec_or_spec])
+                    f2.add_done_callback(partial(done_callback, actions=(cache_action, extract_action), progress_bar=progress_bars[prec_or_spec], finish=True))
+
+                except Exception as exc:
                     log.debug('%r'.encode('utf-8'), exc, exc_info=True)
                     exceptions.append(exc)
+                    raise
 
         if exceptions:
             raise CondaMultiError(exceptions)
         self._executed = True
 
     @staticmethod
-    def _execute_actions(prec_or_spec, actions):
-        cache_axn, extract_axn = actions
-        if cache_axn is None and extract_axn is None:
-            return
+    def _execute_multi(prec_or_spec, fetch_executor, extract_executor, cache_axn, extract_axn):
+        if cache_axn:
+            fetch_executor.submit()
 
+    @staticmethod
+    def _progress_bar(prec_or_spec):
         desc = ''
         if prec_or_spec.name and prec_or_spec.version:
             desc = "%s-%s" % (prec_or_spec.name or '', prec_or_spec.version or '')
@@ -681,46 +765,7 @@ class ProgressiveFetchExtract(object):
             desc += "%-9s | " % size_str
 
         progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
-
-        download_total = 1.0  # fraction of progress for download; the rest goes to extract
-        try:
-            if cache_axn:
-                cache_axn.verify()
-
-                if not cache_axn.url.startswith('file:/'):
-                    def progress_update_cache_axn(pct_completed):
-                        progress_bar.update_to(pct_completed * download_total)
-                else:
-                    download_total = 0
-                    progress_update_cache_axn = None
-
-                cache_axn.execute(progress_update_cache_axn)
-
-            if extract_axn:
-                extract_axn.verify()
-
-                # this is doing nothing right now. I'm not sure how to do any
-                #   sort of progress update with libarchive.
-                def progress_update_extract_axn(pct_completed):
-                    progress_bar.update_to((1 - download_total) * pct_completed + download_total)
-
-                extract_axn.execute(progress_update_extract_axn)
-                progress_bar.update_to(1.0)
-
-        except Exception as e:
-            if extract_axn:
-                extract_axn.reverse()
-            if cache_axn:
-                cache_axn.reverse()
-            return e
-        else:
-            if cache_axn:
-                cache_axn.cleanup()
-            if extract_axn:
-                extract_axn.cleanup()
-            progress_bar.finish()
-        finally:
-            progress_bar.close()
+        return progress_bar
 
     def __hash__(self):
         return hash(self.link_precs)

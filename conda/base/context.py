@@ -8,6 +8,7 @@ from collections import OrderedDict
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
+from typing import Optional
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
@@ -181,8 +182,12 @@ class Context(Configuration):
     # multithreading in various places
     _default_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                        aliases=('default_threads',))
+    # download repodata
     _repodata_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                         aliases=('repodata_threads',))
+    # download packages
+    _fetch_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
+                                        aliases=('fetch_threads',))
     _verify_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                       aliases=('verify_threads',))
     # this one actually defaults to 1 - that is handled in the property below
@@ -461,15 +466,19 @@ class Context(Configuration):
         return _platform_map.get(sys.platform, 'unknown')
 
     @property
-    def default_threads(self):
+    def default_threads(self) -> Optional[int]:
         return self._default_threads if self._default_threads else None
 
     @property
-    def repodata_threads(self):
+    def repodata_threads(self) -> Optional[int]:
         return self._repodata_threads if self._repodata_threads else self.default_threads
 
     @property
-    def verify_threads(self):
+    def fetch_threads(self) -> Optional[int]:
+        return self._fetch_threads if self._fetch_threads else self.default_threads
+
+    @property
+    def verify_threads(self) -> Optional[int]:
         if self._verify_threads:
             threads = self._verify_threads
         elif self.default_threads:

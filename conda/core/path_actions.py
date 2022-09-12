@@ -1258,10 +1258,12 @@ class ExtractPackageAction(PathAction):
             assert url
             channel = Channel(url) if has_platform(url, context.known_subdirs) else Channel(None)
             fn = basename(url)
+            # XXX if we just downloaded it, trust that sum
             sha256 = self.sha256 or compute_sha256sum(self.source_full_path)
             size = getsize(self.source_full_path)
             if self.size is not None:
                 assert size == self.size, (size, self.size)
+            # XXX BOTH?! n.b. parallel hasher
             md5 = self.md5 or compute_md5sum(self.source_full_path)
             repodata_record = PackageRecord.from_objects(
                 raw_index_json, url=url, channel=channel, fn=fn, sha256=sha256, size=size, md5=md5,
