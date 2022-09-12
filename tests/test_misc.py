@@ -31,13 +31,13 @@ def test_cache_fn_url():
 
     # implicit repodata.json
     assert cache_fn_url(url) == "7618c8b6.json"
-    
+
     # explicit repodata.json
     assert cache_fn_url(url, "repodata.json") == "7618c8b6.json"
-    
+
     # explicit current_repodata.json
     assert cache_fn_url(url, "current_repodata.json") == "8be5dc16.json"
-    
+
     url = "http://repo.anaconda.com/pkgs/pro/osx-64/"
     assert cache_fn_url(url) == "e42afea8.json"
 
