@@ -152,6 +152,9 @@ to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
 ``CONDA_PREFIX`` is the path to the current active environment.
 
+The ``condarc`` search path can be overriden completely by setting a ``NO_CONDARC``
+environment variable to any non-empty value.
+
 Conflict merging strategy
 -------------------------
 When conflicts between configurations arise, the following strategies are employed:

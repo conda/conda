@@ -547,3 +547,24 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         else:
             actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
+
+
+def test_condarc_search_path_override(tmpdir):
+    custom_condarc = os.path.join(tmpdir, "condarc")
+    with open(custom_condarc, "w") as f:
+        f.write(
+            dals(
+                """
+                channels: ["uniquely_named_channel"]
+                """
+            )
+        )
+    # $CONDARC allows us to add one more file or directory to the search path
+    with env_var("CONDARC", custom_condarc):
+        reset_context()
+        assert "uniquely_named_channel" in context.channels
+
+        # NO_CONDARC overrides all config loading from any file, CONDARC incl.
+        with env_var("NO_CONDARC", "1"):
+            reset_context()
+            assert "uniquely_named_channel" not in context.channels

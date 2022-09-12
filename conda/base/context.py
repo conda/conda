@@ -366,7 +366,10 @@ class Context(Configuration):
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
-            search_path = SEARCH_PATH
+            if os.environ.get("NO_CONDARC"):
+                search_path = ()
+            else:
+                search_path = SEARCH_PATH
 
         if argparse_args:
             # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
@@ -1593,7 +1596,7 @@ def conda_in_private_env():
     return env_name == '_conda_' and basename(envs_dir) == 'envs'
 
 
-def reset_context(search_path=SEARCH_PATH, argparse_args=None):
+def reset_context(search_path=None, argparse_args=None):
     global context
     context.__init__(search_path, argparse_args)
     context.__dict__.pop('_Context__conda_build', None)
@@ -1604,7 +1607,7 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
 
 
 @contextmanager
-def fresh_context(env=None, search_path=SEARCH_PATH, argparse_args=None, **kwargs):
+def fresh_context(env=None, search_path=None, argparse_args=None, **kwargs):
     if env or kwargs:
         old_env = os.environ.copy()
         os.environ.update(env or {})
