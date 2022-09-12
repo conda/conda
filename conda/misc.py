@@ -23,8 +23,11 @@ from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
 from .exceptions import (
-    DisallowedPackageError, DryRunExit, PackagesNotFoundError,
-    ParseError, CondaExitZero
+    DisallowedPackageError,
+    DryRunExit,
+    PackagesNotFoundError,
+    ParseError,
+    CondaExitZero,
 )
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
@@ -40,26 +43,30 @@ def conda_installed_files(prefix, exclude_self_build=False):
     """
     res = set()
     for meta in PrefixData(prefix).iter_records():
-        if exclude_self_build and 'file_hash' in meta:
+        if exclude_self_build and "file_hash" in meta:
             continue
-        res.update(set(meta.get('files', ())))
+        res.update(set(meta.get("files", ())))
     return res
 
 
-url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
-                     r'(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))'
-                     r'(:?#(?P<md5>[0-9a-f]{32}))?$')
+url_pat = re.compile(
+    r"(?:(?P<url_p>.+)(?:[/\\]))?"
+    r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
+    r"(:?#(?P<md5>[0-9a-f]{32}))?$"
+)
+
+
 def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, index=None):
     actions = defaultdict(list)
-    actions['PREFIX'] = prefix
+    actions["PREFIX"] = prefix
 
     fetch_specs = []
     for spec in specs:
-        if spec == '@EXPLICIT':
+        if spec == "@EXPLICIT":
             continue
 
         if not is_url(spec):
-            '''
+            """
             # This does not work because url_to_path does not enforce Windows
             # backslashes. Should it? Seems like a dangerous change to make but
             # it would be cleaner.
@@ -67,14 +74,14 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             urled = path_to_url(expanded)
             pathed = url_to_path(urled)
             assert pathed == expanded
-            '''
+            """
             spec = path_to_url(expand(spec))
 
         # parse URL
         m = url_pat.match(spec)
         if m is None:
-            raise ParseError('Could not parse explicit URL: %s' % spec)
-        url_p, fn, md5sum = m.group('url_p'), m.group('fn'), m.group('md5')
+            raise ParseError("Could not parse explicit URL: %s" % spec)
+        url_p, fn, md5sum = m.group("url_p"), m.group("fn"), m.group("md5")
         url = join_url(url_p, fn)
         # url_p is everything but the tarball_basename and the md5sum
 
@@ -87,13 +94,16 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     pfe.execute()
 
     if context.download_only:
-        raise CondaExitZero('Package caches prepared. '
-                            'UnlinkLinkTransaction cancelled with --download-only option.')
+        raise CondaExitZero(
+            "Package caches prepared. "
+            "UnlinkLinkTransaction cancelled with --download-only option."
+        )
 
     # now make an UnlinkLinkTransaction with the PackageCacheRecords as inputs
     # need to add package name to fetch_specs so that history parsing keeps track of them correctly
-    specs_pcrecs = tuple([spec, next(PackageCacheData.query_all(spec), None)]
-                         for spec in fetch_specs)
+    specs_pcrecs = tuple(
+        [spec, next(PackageCacheData.query_all(spec), None)] for spec in fetch_specs
+    )
 
     # Assert that every spec has a PackageCacheRecord
     specs_with_missing_pcrecs = [str(spec) for spec, pcrec in specs_pcrecs if pcrec is None]
@@ -118,8 +128,14 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             else:
                 precs_to_remove.append(prec)
 
-    stp = PrefixSetup(prefix, precs_to_remove, tuple(sp[1] for sp in specs_pcrecs if sp[0]),
-                      (), tuple(sp[0] for sp in specs_pcrecs if sp[0]), ())
+    stp = PrefixSetup(
+        prefix,
+        precs_to_remove,
+        tuple(sp[1] for sp in specs_pcrecs if sp[0]),
+        (),
+        tuple(sp[0] for sp in specs_pcrecs if sp[0]),
+        (),
+    )
 
     txn = UnlinkLinkTransaction(stp)
     txn.execute()
@@ -128,7 +144,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 def rel_path(prefix, path, windows_forward_slashes=True):
     res = path[len(prefix) + 1:]
     if on_win and windows_forward_slashes:
-        res = res.replace('\\', '/')
+        res = res.replace("\\", "/")
     return res
 
 
@@ -138,12 +154,23 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
     """
     res = set()
     prefix = abspath(prefix)
-    ignore = {'pkgs', 'envs', 'conda-bld', 'conda-meta', '.conda_lock',
-              'users', 'LICENSE.txt', 'info', 'conda-recipes', '.index',
-              '.unionfs', '.nonadmin'}
-    binignore = {'conda', 'activate', 'deactivate'}
-    if sys.platform == 'darwin':
-        ignore.update({'python.app', 'Launcher.app'})
+    ignore = {
+        "pkgs",
+        "envs",
+        "conda-bld",
+        "conda-meta",
+        ".conda_lock",
+        "users",
+        "LICENSE.txt",
+        "info",
+        "conda-recipes",
+        ".index",
+        ".unionfs",
+        ".nonadmin",
+    }
+    binignore = {"conda", "activate", "deactivate"}
+    if sys.platform == "darwin":
+        ignore.update({"python.app", "Launcher.app"})
     for fn in (entry.name for entry in os.scandir(prefix)):
         if ignore_predefined_files and fn in ignore:
             continue
@@ -151,7 +178,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
             res.add(fn)
             continue
         for root, dirs, files in os.walk(join(prefix, fn)):
-            should_ignore = ignore_predefined_files and root == join(prefix, 'bin')
+            should_ignore = ignore_predefined_files and root == join(prefix, "bin")
             for fn2 in files:
                 if should_ignore and fn2 in binignore:
                     continue
@@ -162,7 +189,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
                     res.add(relpath(path, prefix))
 
     if on_win and windows_forward_slashes:
-        return {path.replace('\\', '/') for path in res}
+        return {path.replace("\\", "/") for path in res}
     else:
         return res
 
@@ -173,23 +200,27 @@ def untracked(prefix, exclude_self_build=False):
     """
     conda_files = conda_installed_files(prefix, exclude_self_build)
     return {
-        path for path in walk_prefix(prefix) - conda_files
+        path
+        for path in walk_prefix(prefix) - conda_files
         if not (
-            path.endswith('~')
-            or sys.platform == 'darwin' and path.endswith('.DS_Store')
-            or path.endswith('.pyc') and path[:-1] in conda_files
-        )}
+            path.endswith("~")
+            or sys.platform == "darwin"
+            and path.endswith(".DS_Store")
+            or path.endswith(".pyc")
+            and path[:-1] in conda_files
+        )
+    }
 
 
 def touch_nonadmin(prefix):
     """
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
     """
-    if on_win and exists(join(context.root_prefix, '.nonadmin')):
+    if on_win and exists(join(context.root_prefix, ".nonadmin")):
         if not isdir(prefix):
             os.makedirs(prefix)
-        with open(join(prefix, '.nonadmin'), 'w') as fo:
-            fo.write('')
+        with open(join(prefix, ".nonadmin"), "w") as fo:
+            fo.write("")
 
 
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
@@ -204,11 +235,11 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     while found:
         found = False
         for prec in PrefixData(prefix1).iter_records():
-            name = prec['name']
+            name = prec["name"]
             if name in filter:
                 continue
-            if name == 'conda':
-                filter['conda'] = prec
+            if name == "conda":
+                filter["conda"] = prec
                 found = True
                 break
             if name == "conda-env":
@@ -223,16 +254,16 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     if filter:
         if not quiet:
             fh = sys.stderr if context.json else sys.stdout
-            print('The following packages cannot be cloned out of the root environment:', file=fh)
+            print("The following packages cannot be cloned out of the root environment:", file=fh)
             for prec in filter.values():
-                print(' - ' + prec.dist_str(), file=fh)
-        drecs = {prec for prec in PrefixData(prefix1).iter_records() if prec['name'] not in filter}
+                print(" - " + prec.dist_str(), file=fh)
+        drecs = {prec for prec in PrefixData(prefix1).iter_records() if prec["name"] not in filter}
     else:
         drecs = {prec for prec in PrefixData(prefix1).iter_records()}
 
     # Resolve URLs for packages that do not have URLs
     index = {}
-    unknowns = [prec for prec in drecs if not prec.get('url')]
+    unknowns = [prec for prec in drecs if not prec.get("url")]
     notfound = []
     if unknowns:
         index_args = index_args or {}
@@ -255,7 +286,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     # Assemble the URL and channel list
     urls = {}
     for prec in drecs:
-        urls[prec] = prec['url']
+        urls[prec] = prec["url"]
 
     precs = tuple(PrefixGraph(urls).graph)
     urls = [urls[prec] for prec in precs]
@@ -266,8 +297,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
             raise DisallowedPackageError(prec)
 
     if verbose:
-        print('Packages: %d' % len(precs))
-        print('Files: %d' % len(untracked_files))
+        print("Packages: %d" % len(precs))
+        print("Files: %d" % len(untracked_files))
 
     if context.dry_run:
         raise DryRunExit()
@@ -285,22 +316,23 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
             continue
 
         try:
-            with open(src, 'rb') as fi:
+            with open(src, "rb") as fi:
                 data = fi.read()
         except IOError:
             continue
 
         try:
-            s = data.decode('utf-8')
+            s = data.decode("utf-8")
             s = s.replace(prefix1, prefix2)
-            data = s.encode('utf-8')
+            data = s.encode("utf-8")
         except UnicodeDecodeError:  # data is binary
             pass
 
-        with open(dst, 'wb') as fo:
+        with open(dst, "wb") as fo:
             fo.write(data)
         shutil.copystat(src, dst)
 
-    actions = explicit(urls, prefix2, verbose=not quiet, index=index,
-                       force_extract=False, index_args=index_args)
+    actions = explicit(
+        urls, prefix2, verbose=not quiet, index=index, force_extract=False, index_args=index_args
+    )
     return actions, untracked_files
