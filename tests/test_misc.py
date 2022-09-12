@@ -26,16 +26,20 @@ def test_Utf8NamedTemporaryFile():
         raise exc
 
 
-def test_cache_fn_url(self):
+def test_cache_fn_url():
     url = "http://repo.continuum.io/pkgs/pro/osx-64/"
+
     # implicit repodata.json
-    self.assertEqual(cache_fn_url(url), "7618c8b6.json")
+    assert cache_fn_url(url) == "7618c8b6.json"
+    
     # explicit repodata.json
-    self.assertEqual(cache_fn_url(url, "repodata.json"), "7618c8b6.json")
+    assert cache_fn_url(url, "repodata.json") == "7618c8b6.json"
+    
     # explicit current_repodata.json
-    self.assertEqual(cache_fn_url(url, "current_repodata.json"), "8be5dc16.json")
+    assert cache_fn_url(url, "current_repodata.json") == "8be5dc16.json"
+    
     url = "http://repo.anaconda.com/pkgs/pro/osx-64/"
-    self.assertEqual(cache_fn_url(url), "e42afea8.json")
+    assert cache_fn_url(url) == "e42afea8.json"
 
 
 def test_url_pat_1():
