@@ -18,24 +18,26 @@ from .yaml_file import YamlFileSpec
 
 
 def detect(**kwargs):
-    filename = kwargs.get('filename', '')
-    remote_definition = kwargs.get('name')
+    filename = kwargs.get("filename")
 
-    # Check extensions
-    all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
-    fname, ext = os.path.splitext(filename)
+    if filename is not None:
+        # Check extensions
+        all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
+        fname, ext = os.path.splitext(filename)
 
-    # First check if file exists and test the known valid extension for specs
-    file_exists = (
-        os.path.isfile(filename) or filename.split("://", 1)[0] in CONDA_SESSION_SCHEMES
-    )
-    if file_exists:
-        if ext == '' or ext not in all_valid_exts:
-            raise EnvironmentFileExtensionNotValid(filename or None)
-        elif ext in YamlFileSpec.extensions:
-            specs = [YamlFileSpec]
-        elif ext in RequirementsSpec.extensions:
-            specs = [RequirementsSpec]
+        # First check if file exists and test the known valid extension for specs
+        file_exists = (
+            os.path.isfile(filename) or filename.split("://", 1)[0] in CONDA_SESSION_SCHEMES
+        )
+        if file_exists:
+            if ext == "" or ext not in all_valid_exts:
+                raise EnvironmentFileExtensionNotValid(filename or None)
+            elif ext in YamlFileSpec.extensions:
+                specs = [YamlFileSpec]
+            elif ext in RequirementsSpec.extensions:
+                specs = [RequirementsSpec]
+        else:
+            raise EnvironmentFileNotFound(filename=filename)
     else:
         specs = [NotebookSpec, BinstarSpec]
 
@@ -47,10 +49,7 @@ def detect(**kwargs):
         if spec.can_handle():
             return spec
 
-    if not file_exists and remote_definition is None:
-        raise EnvironmentFileNotFound(filename=filename or None)
-    else:
-        raise SpecNotFound(build_message(spec_instances))
+    raise SpecNotFound(build_message(spec_instances))
 
 
 def build_message(spec_instances):

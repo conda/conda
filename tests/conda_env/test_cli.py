@@ -241,6 +241,16 @@ class IntegrationTests(unittest.TestCase):
         except Exception as e:
             self.assertIsInstance(e, EnvironmentFileNotFound)
 
+    def test_conda_env_create_no_existent_file_with_name(self):
+        """
+        Test `conda env create --file=not_a_file.txt` with a file that does not
+        exist.
+        """
+        try:
+            run_env_command(Commands.ENV_CREATE, None, "--file", "not_a_file.txt", "-n" "foo")
+        except Exception as e:
+            self.assertIsInstance(e, EnvironmentFileNotFound)
+
     def test_create_valid_remote_env(self):
         run_env_command(Commands.ENV_CREATE, None, 'conda-test/env-42')
         self.assertTrue(env_is_created(TEST_ENV_NAME_42))
