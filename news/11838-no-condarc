@@ -1,0 +1,19 @@
+### Enhancements
+
+* Setting `NO_CONDARC` will allow `conda` to run without loading any file-based configuration (#11838)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
