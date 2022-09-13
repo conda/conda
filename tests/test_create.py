@@ -2332,9 +2332,8 @@ dependencies:
                 assert config["subdir"] == platform
                 break
         else:
-            raise pytest.error("Configuration does not include 'subdir' key!")
+            raise pytest.fail("Configuration does not include 'subdir' key!")
        
-        reset_context()
         stdout, _, _ = run_command(Commands.INSTALL, prefix, "python", "--dry-run", "--json", use_exception_handler=True)
         result = json.loads(stdout)
         assert result["success"]
