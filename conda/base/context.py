@@ -964,6 +964,7 @@ class Context(Configuration):
                 "repodata_fns",
                 "use_only_tar_bz2",
                 "repodata_threads",
+                "fetch_threads",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
