@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from io import StringIO
+import functools
 import json
 from logging import getLogger
 
@@ -34,9 +35,25 @@ yaml.representer.RoundTripRepresenter.add_representer(odict, represent_ordereddi
 yaml.representer.SafeRepresenter.add_representer(odict, represent_ordereddict)
 
 
+# FUTURE: Python 3.9+, replace with functools.cache
+@functools.lru_cache(maxsize=None)
+def _yaml_round_trip():
+    parser = yaml.YAML(typ="rt")
+    parser.indent(mapping=2, offset=2, sequence=4)
+    return parser
+
+
+# FUTURE: Python 3.9+, replace with functools.cache
+@functools.lru_cache(maxsize=None)
+def _yaml_safe():
+    parser = yaml.YAML(typ="safe", pure=True)
+    parser.indent(mapping=2, offset=2, sequence=4)
+    parser.default_flow_style = False
+    return parser
+
+
 def yaml_round_trip_load(string):
-    yinst = yaml.YAML(typ="rt")
-    return yinst.load(string)
+    return _yaml_round_trip().load(string)
 
 
 def yaml_safe_load(string):
@@ -46,35 +63,24 @@ def yaml_safe_load(string):
         {'key': 'value'}
 
     """
-    yinst = yaml.YAML(typ="safe", pure=True)
-    return yinst.load(string)
+    return _yaml_safe().load(string)
 
 
 def yaml_round_trip_dump(object, stream=None):
     """dump object to string or stream"""
-    yinst = yaml.YAML(typ="rt")
-    yinst.indent(mapping=2, offset=2, sequence=4)
-    inefficient = False
-    if stream is None:
-        inefficient = True
-        stream = StringIO()
-    yinst.dump(object, stream)
-    if inefficient:
-        return stream.getvalue()
+    ostream = stream or StringIO()
+    _yaml_round_trip().dump(object, ostream)
+    if not stream:
+        return ostream.getvalue()
 
 
 def yaml_safe_dump(object, stream=None):
     """dump object to string or stream"""
-    yinst = yaml.YAML(typ="safe", pure=True)
-    yinst.indent(mapping=2, offset=2, sequence=4)
-    yinst.default_flow_style = False
-    inefficient = False
-    if stream is None:
-        inefficient = True
-        stream = StringIO()
-    yinst.dump(object, stream)
-    if inefficient:
-        return stream.getvalue()
+    ostream = stream or StringIO()
+    _yaml_safe().dump(object, ostream)
+    if not stream:
+        return ostream.getvalue()
+
 
 def json_load(string):
     return json.loads(string)
