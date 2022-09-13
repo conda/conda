@@ -12,6 +12,7 @@ from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars, env_var
 from conda.core.index import get_index
+from conda.core import package_cache_data
 from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from conda.core.path_actions import CacheUrlAction
 from conda.exceptions import ChecksumMismatchError
@@ -376,3 +377,26 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
         assert zlib_base_fn not in pkgs_dir_files
         assert zlib_tar_bz2_fn in pkgs_dir_files
         assert zlib_conda_fn in pkgs_dir_files
+
+
+def test_cover_reverse():
+    class f:
+        def result(self):
+            raise Exception()
+
+    class action:
+        def reverse(self):
+            pass
+
+    class progress:
+        def close(self):
+            pass
+
+        def finish(self):
+            pass
+
+    exceptions = []
+
+    package_cache_data.done_callback(f(), (action(),), progress(), exceptions)
+    package_cache_data.do_cache_action("dummy", None, None)
+    package_cache_data.do_extract_action("dummy", None, None)
