@@ -735,7 +735,8 @@ class ProgressiveFetchExtract(object):
                     # XXX will we reach this if installing an installed package?
                     continue
 
-                progress_bar = self._progress_bar(prec_or_spec)
+                progress_bar = self._progress_bar(prec_or_spec, leave=False)
+
                 progress_bars[prec_or_spec] = progress_bar
 
                 f = fetch_executor.submit(
@@ -775,15 +776,21 @@ class ProgressiveFetchExtract(object):
 
                 except Exception as exc:
                     log.debug("%r".encode("utf-8"), exc, exc_info=True)
-                    # done_callback saved exc in exceptions[]
+                    # done_callback saves exc in exceptions[]
                     raise
+
+        for bar in progress_bars.values():
+            bar.close()
+
+        if not context.verbosity and not context.quiet and not context.json:
+            print("\r")  # move to column 0
 
         if exceptions:
             raise CondaMultiError(exceptions)
         self._executed = True
 
     @staticmethod
-    def _progress_bar(prec_or_spec):
+    def _progress_bar(prec_or_spec, position=None, leave=False):
         desc = ""
         if prec_or_spec.name and prec_or_spec.version:
             desc = "%s-%s" % (prec_or_spec.name or "", prec_or_spec.version or "")
@@ -794,7 +801,14 @@ class ProgressiveFetchExtract(object):
         if len(size_str) > 0:
             desc += "%-9s | " % size_str
 
-        progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
+        progress_bar = ProgressBar(
+            desc,
+            not context.verbosity and not context.quiet,
+            context.json,
+            position=position,
+            leave=leave,
+        )
+
         return progress_bar
 
     def __hash__(self):
@@ -848,7 +862,7 @@ def do_reverse(progress_bar, *actions):
             action.reverse()
 
 
-def done_callback(f, actions, progress_bar, exceptions: list, finish=False):
+def done_callback(f, actions, progress_bar: ProgressBar, exceptions: list, finish=False):
     try:
         f.result()
     except Exception as e:
@@ -858,9 +872,7 @@ def done_callback(f, actions, progress_bar, exceptions: list, finish=False):
         do_cleanup(progress_bar, *actions)
         if finish:
             progress_bar.finish()
-    finally:
-        if finish:
-            progress_bar.close()
+            progress_bar.refresh()
 
 # ##############################
 # backward compatibility
