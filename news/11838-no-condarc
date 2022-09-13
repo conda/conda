@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Setting `NO_CONDARC` will allow `conda` to run without loading any file-based configuration (#11838)
+* The `CONDA_RC_SEARCH_PATH` environment variable will allow users to override the default `condarc` search path. If set to an empty string, it will disable file-based configuration loading. (#11838)
 
 ### Bug fixes
 
