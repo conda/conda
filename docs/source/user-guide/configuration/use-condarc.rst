@@ -152,11 +152,9 @@ to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
 ``CONDA_PREFIX`` is the path to the current active environment.
 
-The default ``condarc`` search path can be overriden by setting a ``CONDA_CONFIG_SEARCH_PATH``
-environment variable to a colon (Unix) or semicolon (Windows) separated list of paths.
-Each path can be either a YAML config file or directories containing YAML files.
-Paths can contain environment variables (always with ``$VARIABLE`` or ``${VARIABLE}`` syntax),
-which will be expanded.
+The default ``SEARCH_PATH`` list can be ignored by setting the
+``CONDA_NO_CONFIG_SEARCH_PATH`` environment variable to a non-empty value. 
+In this mode, only the location specified by ``$CONDARC`` (if set) is searched.
 
 Conflict merging strategy
 -------------------------

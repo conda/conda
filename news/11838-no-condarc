@@ -1,6 +1,6 @@
 ### Enhancements
 
-* The `CONDA_CONFIG_SEARCH_PATH` environment variable will allow users to override the default `condarc` search path. If set to an empty string, it will disable file-based configuration (#11838)
+* The `CONDA_NO_CONFIG_SEARCH_PATH` environment variable will allow users to override the default `condarc` search path. If set to a non-empty string, it will only search for the location specified by `$CONDARC`, if any. (#11838)
 
 ### Bug fixes
 

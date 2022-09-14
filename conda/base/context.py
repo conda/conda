@@ -366,16 +366,10 @@ class Context(Configuration):
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
-            user_search_path = os.environ.get("CONDA_CONFIG_SEARCH_PATH")
-            if user_search_path:
-                # defined and not empty -> split by : or ; and use
-                search_path = user_search_path.split(os.pathsep)
-            elif user_search_path is None:
-                # not defined, we fall back to our hardcoded default
-                search_path = SEARCH_PATH
+            if os.environ.get("CONDA_NO_CONFIG_SEARCH_PATH"):
+                search_path = ("$CONDARC",)
             else:
-                # defined, but empty -> no search path!
-                search_path = ()
+                search_path = SEARCH_PATH
 
         if argparse_args:
             # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
