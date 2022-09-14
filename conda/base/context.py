@@ -1309,6 +1309,12 @@ class Context(Configuration):
                 see much benefit here.
                 """
             ),
+            fetch_threads=dals(
+                """
+                Threads to use when downloading packages.  When not set,
+                defaults to None, which uses the default ThreadPoolExecutor behavior.
+                """
+            ),
             force_reinstall=dals(
                 """
                 Ensure that any user-requested package for the current operation is uninstalled
