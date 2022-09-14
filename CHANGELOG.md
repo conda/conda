@@ -1,5 +1,54 @@
 [//]: # (current developments)
 
+## 22.9.0 (2022-09-14)
+
+### Enhancements
+
+* Replace vendored toolz with toolz dependency. (#11589) (#11700)
+* Update bundled Python launchers for Windows (`conda/shell/cli-*.exe`) to match the ones found in conda-build. (#11676)
+* Add `win-arm64` as a known platform (subdir)
+
+### Bug fixes
+
+* Remove extra prefix injection related to the shell interface breaking `conda run` (#11666)
+* Better support for shebang instructions in prefixes with spaces. (#11676)
+* Fix `noarch` entry points in Unicode-containing prefixes on Windows. (#11694)
+* Ensure that exceptions that are raised show up properly instead of resulting in a random [y/N] prompt (#11746)
+
+### Deprecations
+
+* Mark `conda._vendor.toolz` as pending deprecation. (#11704)
+* Removes vendored version of urllib3 (#11705)
+
+### Docs
+
+* Added conda capitalization standards to CONTRIBUTING file. (#11712)
+
+### Other
+
+* Add arm64 support to development script `. ./dev/start`. (#11752)
+* Update canary-release version to resolve canary build issue. (#11761)
+* Renamed canary recipe from `conda.recipe` to `recipe`. (#11774)
+
+### Contributors
+
+* @beeankha
+* @chenghlee
+* @conda-bot
+* @dholth
+* @isuruf
+* @jaimergp
+* @jezdez
+* @razzlestorm
+* @jakirkham
+* @kathatherine
+* @kenodegard
+* @scdub
+* @travishathaway
+* @pre-commit-ci[bot]
+
+
+
 ## 4.14.0 (2022-08-02)
 
 ### Enhancements
