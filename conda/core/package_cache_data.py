@@ -721,8 +721,7 @@ class ProgressiveFetchExtract(object):
 
         exceptions = []
         progress_bars = {}
-
-        futures = set()
+        futures = []
 
         with signal_handler(conda_signal_handler), time_recorder(
             "fetch_extract_execute"
@@ -752,7 +751,7 @@ class ProgressiveFetchExtract(object):
                         finish=False,
                     )
                 )
-                futures.add(f)
+                futures.append(f)
 
             for f in as_completed(futures):
                 try:
@@ -777,6 +776,9 @@ class ProgressiveFetchExtract(object):
                 except Exception as exc:
                     log.debug("%r".encode("utf-8"), exc, exc_info=True)
                     # done_callback saves exc in exceptions[]
+                    # cancel any download that has not been started
+                    for future in futures:
+                        future.cancel()
                     raise
 
         for bar in progress_bars.values():
