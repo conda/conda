@@ -153,7 +153,7 @@ to $HOME/.config should be used.
 ``CONDA_PREFIX`` is the path to the current active environment.
 
 The default ``SEARCH_PATH`` list can be ignored by setting the
-``CONDA_NO_CONFIG_SEARCH_PATH`` environment variable to a non-empty value. 
+``CONDA_NO_CONFIG_SEARCH_PATH`` environment variable to a non-empty value.
 In this mode, only the location specified by ``$CONDARC`` (if set) is searched.
 
 Conflict merging strategy
