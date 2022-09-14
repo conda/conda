@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Remove extra prefix injection related to the shell interface breaking `conda run` (#11666)
