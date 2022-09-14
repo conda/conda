@@ -13,7 +13,7 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars, env_var
 from conda.core.index import get_index
 from conda.core import package_cache_data
-from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract, PackageRecord
+from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract, PackageRecord, PackageCacheRecord
 from conda.core.path_actions import CacheUrlAction
 from conda.exceptions import CondaHTTPError
 from conda.exports import url_path, MatchSpec
@@ -407,10 +407,40 @@ def test_cover_get_entry_to_link():
             PackageRecord(name="does-not-exist", version="4", build_number=0, build="")
         )
 
-    existing = next(
-        iter(PackageCacheData.all_caches_writable_first()[0]._package_cache_records.values())
+    exists_record = PackageRecord(
+        name="brotlipy", version="0.7.0", build_number=1003, build="py38h9ed2024_1003"
     )
-    PackageCacheData.get_entry_to_link(existing)
+
+    exists = PackageCacheRecord(
+        _hash=4599667980631885143,
+        name="brotlipy",
+        version="0.7.0",
+        build="py38h9ed2024_1003",
+        build_number=1003,
+        subdir="osx-64",
+        fn="brotlipy-0.7.0-py38h9ed2024_1003.conda",
+        url="https://repo.anaconda.com/pkgs/main/osx-64/brotlipy-0.7.0-py38h9ed2024_1003.conda",
+        sha256="8cd905ec746456419b0ba8b58003e35860f4c1205fc2be810de06002ba257418",
+        arch="x86_64",
+        platform="darwin",
+        depends=("cffi >=1.0.0", "python >=3.8,<3.9.0a0"),
+        constrains=(),
+        track_features=(),
+        features=(),
+        license="MIT",
+        license_family="MIT",
+        timestamp=1605539545.169,
+        size=339408,
+        package_tarball_full_path="/pkgs/brotlipy-0.7.0-py38h9ed2024_1003.conda",
+        extracted_package_dir="/pkgs/brotlipy-0.7.0-py38h9ed2024_1003",
+        md5="41b0bc0721aecf75336a098f4d5314b8",
+    )
+
+    with make_temp_package_cache() as pkgs_dir:
+        first_writable = PackageCacheData(pkgs_dir)
+        first_writable._package_cache_records[exists] = exists
+        PackageCacheData.get_entry_to_link(exists_record)
+        del first_writable._package_cache_records[exists]
 
 
 def test_cover_fetch_not_exists():
