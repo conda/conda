@@ -490,7 +490,8 @@ class ProgressBar(object):
         self.update_to(1)
 
     def refresh(self):
-        if self.pbar:
+        """Force refresh i.e. once 100% has been reached"""
+        if self.enabled:
             self.pbar.refresh()
 
     @swallow_broken_pipe
