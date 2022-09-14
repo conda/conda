@@ -564,13 +564,13 @@ def test_condarc_search_path_override(tmpdir):
         reset_context()
         assert "uniquely_named_channel" in context.channels
 
-        # $CONDA_RC_SEARCH_PATH overrides the default search path, but
+        # $CONDA_CONFIG_SEARCH_PATH overrides the default search path,
         # but we can still include CONDARC in that path :)
-        with env_var("CONDA_RC_SEARCH_PATH", "$CONDARC"):
+        with env_var("CONDA_CONFIG_SEARCH_PATH", "$CONDARC"):
             reset_context()
             assert "uniquely_named_channel" in context.channels
 
         # If we set it to the empty string, then no file will be loaded
-        with env_var("CONDA_RC_SEARCH_PATH", ""):
+        with env_var("CONDA_CONFIG_SEARCH_PATH", ""):
             reset_context()
             assert "uniquely_named_channel" not in context.channels

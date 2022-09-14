@@ -366,7 +366,7 @@ class Context(Configuration):
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
-            user_search_path = os.environ.get("CONDA_RC_SEARCH_PATH")
+            user_search_path = os.environ.get("CONDA_CONFIG_SEARCH_PATH")
             if user_search_path:
                 # defined and not empty -> split by : or ; and use
                 search_path = user_search_path.split(os.pathsep)
