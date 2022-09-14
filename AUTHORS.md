@@ -168,6 +168,7 @@ Authors are sorted alphabetically.
 * Jayson Messenger
 * Jeffrey Gill
 * Jeremy Liu
+* Jerimiah Willhite
 * Jesse Hamer
 * Jillian Rowe
 * Joe D
@@ -324,6 +325,7 @@ Authors are sorted alphabetically.
 * Sebastien Awwad
 * Shannon Green
 * Shaun Thompson
+* Shaun Walbridge
 * Shaun Walbridge
 * Sidhant Bansal
 * Simon Li
