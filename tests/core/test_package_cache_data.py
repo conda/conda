@@ -416,12 +416,12 @@ def test_cover_get_entry_to_link():
 def test_cover_fetch_not_exists():
     with pytest.raises(CondaHTTPError):
         ProgressiveFetchExtract(
-            [MatchSpec(url="http://localhost:8080/conda-test/zlib-1.2.12-h5a0b063_3.conda")]
+            [MatchSpec(url="http://localhost:8080/conda-test/fakepackage-1.2.12-testing_3.conda")]
         ).execute()
 
 
 def test_cover_extract_bad_package(tmp_path):
-    filename = "zlib-1.2.12-testing_3.conda"
+    filename = "fakepackage-1.2.12-testing_3.conda"
     fullpath = tmp_path / filename
     with open(fullpath, "w") as archive:
         archive.write("")
