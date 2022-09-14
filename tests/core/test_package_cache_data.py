@@ -7,20 +7,19 @@ from os.path import abspath, basename, dirname, join
 
 import pytest
 
-from conda import CondaMultiError
+from conda import CondaError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars, env_var
 from conda.core.index import get_index
 from conda.core import package_cache_data
-from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
+from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract, PackageRecord
 from conda.core.path_actions import CacheUrlAction
-from conda.exceptions import ChecksumMismatchError
-from conda.exports import url_path
+from conda.exceptions import CondaHTTPError
+from conda.exports import url_path, MatchSpec
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
-from conda.models.records import PackageRecord
 from conda.testing.integration import make_temp_package_cache
 from conda.common.compat import on_win
 import datetime
@@ -400,3 +399,30 @@ def test_cover_reverse():
     package_cache_data.done_callback(f(), (action(),), progress(), exceptions)
     package_cache_data.do_cache_action("dummy", None, None)
     package_cache_data.do_extract_action("dummy", None, None)
+
+
+def test_cover_get_entry_to_link():
+    with pytest.raises(CondaError):
+        PackageCacheData.get_entry_to_link(
+            PackageRecord(name="does-not-exist", version="4", build_number=0, build="")
+        )
+
+    existing = next(
+        iter(PackageCacheData.all_caches_writable_first()[0]._package_cache_records.values())
+    )
+    PackageCacheData.get_entry_to_link(existing)
+
+
+def test_cover_fetch_not_exists():
+    with pytest.raises(CondaHTTPError):
+        ProgressiveFetchExtract(
+            [MatchSpec(url="http://localhost:8080/conda-test/zlib-1.2.12-h5a0b063_3.conda")]
+        ).execute()
+
+
+def test_cover_extract_bad_package(tmp_path):
+    filename = "zlib-1.2.12-testing_3.conda"
+    fullpath = tmp_path / filename
+    with open(fullpath, "w") as archive:
+        archive.write("")
+    PackageCacheData.first_writable()._make_single_record(str(fullpath))
