@@ -39,14 +39,13 @@
 * @isuruf
 * @jaimergp
 * @jezdez
-* @razzlestorm
+* @razzlestorm made their first contribution in https://github.com/conda/conda/pull/11736
 * @jakirkham
 * @kathatherine
 * @kenodegard
-* @scdub
+* @scdub made their first contribution in https://github.com/conda/conda/pull/11816
 * @travishathaway
 * @pre-commit-ci[bot]
-
 
 
 ## 4.14.0 (2022-08-02)
