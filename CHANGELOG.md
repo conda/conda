@@ -4,7 +4,7 @@
 
 ### Enhancements
 
-* Replace vendored toolz with toolz dependency. (#11589) (#11700)
+* Replace vendored toolz with toolz dependency. (#11589, #11700)
 * Update bundled Python launchers for Windows (`conda/shell/cli-*.exe`) to match the ones found in conda-build. (#11676)
 * Add `win-arm64` as a known platform (subdir). (#11778)
 
