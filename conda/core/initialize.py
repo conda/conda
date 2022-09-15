@@ -452,6 +452,13 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
     shells = set(shells)
     if shells & {'bash', 'zsh'}:
         if 'bash' in shells and for_user:
+            # On Linux, when opening the terminal, .bashrc is sourced (because it is an
+            # interactive shell).
+            # On macOS on the other hand, the .bash_profile gets sourced by default when executing
+            # it in Terminal.app. Some other programs do the same on macOS so that's why we're
+            # initializing conda in .bash_profile.
+            # On Windows, there are multiple ways to open bash depending on how it was installed.
+            # Git Bash, Cygwin, and MSYS2 all use .bash_profile by default.
             bashrc_path = expand(join('~', '.bash_profile' if (on_mac or on_win) else '.bashrc'))
             plan.append({
                 'function': init_sh_user.__name__,
