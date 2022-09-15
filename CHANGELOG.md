@@ -18,7 +18,7 @@
 ### Deprecations
 
 * Mark `conda._vendor.toolz` as pending deprecation. (#11704)
-* Removes vendored version of urllib3 (#11705)
+* Removes vendored version of urllib3. (#11705)
 
 ### Docs
 
