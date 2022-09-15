@@ -13,7 +13,7 @@
 * Remove extra prefix injection related to the shell interface breaking `conda run` (#11666)
 * Better support for shebang instructions in prefixes with spaces. (#11676)
 * Fix `noarch` entry points in Unicode-containing prefixes on Windows. (#11694)
-* Ensure that exceptions that are raised show up properly instead of resulting in a random [y/N] prompt (#11746)
+* Ensure that exceptions that are raised show up properly instead of resulting in a blank `[y/N]` prompt. (#11746)
 
 ### Deprecations
 
