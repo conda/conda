@@ -23,6 +23,28 @@ class ChannelNotice(NamedTuple):
     interval: Optional[int]
 
 
+class ChannelNoticeSet(NamedTuple):
+    """
+    Represents a list of a channel notices, plus some accompanying
+    metadata such as `viewed_channel_notices`.
+    """
+
+    channel_notices: Sequence[ChannelNotice]
+    """
+    Channel notices that are included in this particular set
+    """
+
+    total_number_channel_notices: int
+    """
+    Total number of channel notices; not just the ones that will be displayed
+    """
+
+    viewed_channel_notices: int
+    """
+    The number of channel notices that have already been viewed
+    """
+
+
 class ChannelNoticeResponse(NamedTuple):
     url: str
     name: str

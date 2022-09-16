@@ -12,20 +12,20 @@ from ..models.channel import Channel, get_channel_objs
 from . import cache
 from . import views
 from . import http
-from .types import ChannelNotice, ChannelNoticeResponse
+from .types import ChannelNotice, ChannelNoticeResponse, ChannelNoticeSet
 
 # Used below in type hints
 ChannelName = str
 ChannelUrl = str
 
 
-def display_notices(
+def retrieve_notices(
     limit: Optional[int] = None,
     always_show_viewed: bool = True,
     silent: bool = False,
-) -> None:
+) -> ChannelNoticeSet:
     """
-    Entry point for displaying notices. This is called by the "notices" decorator as well
+    Function used for retrieving notices. This is called by the "notices" decorator as well
     as the sub-command "notices"
 
     Args:
@@ -47,15 +47,29 @@ def display_notices(
         num_viewed_notices = len(viewed_notices)
 
     channel_notices = filter_notices(channel_notices, limit=limit, exclude=viewed_notices)
-    if len(channel_notices) == 0:
-        return
 
-    views.print_notices(channel_notices)
+    return ChannelNoticeSet(
+        channel_notices=channel_notices,
+        viewed_channel_notices=num_viewed_notices,
+        total_number_channel_notices=num_total_notices,
+    )
+
+
+def display_notices(channel_notice_set: ChannelNoticeSet) -> None:
+    """
+    Prints the channel notices to std out
+    """
+    views.print_notices(channel_notice_set.channel_notices)
 
     # Updates cache database, marking displayed notices as "viewed"
-    cache.mark_channel_notices_as_viewed(cache_file, channel_notices)
+    cache_file = cache.get_notices_cache_file()
+    cache.mark_channel_notices_as_viewed(cache_file, channel_notice_set.channel_notices)
 
-    views.print_more_notices_message(num_total_notices, len(channel_notices), num_viewed_notices)
+    views.print_more_notices_message(
+        channel_notice_set.total_number_channel_notices,
+        len(channel_notice_set.channel_notices),
+        channel_notice_set.viewed_channel_notices,
+    )
 
 
 def notices(func):
@@ -65,19 +79,21 @@ def notices(func):
     Args:
         func: Function to be decorated
     """
-
     @wraps(func)
     def wrapper(*args, **kwargs):
-        return_value = func(*args, **kwargs)
-
         if is_channel_notices_enabled(context):
-            display_notices(
+            channel_notice_set = retrieve_notices(
                 limit=context.number_channel_notices,
                 always_show_viewed=False,
                 silent=True,
             )
+            return_value = func(*args, **kwargs)
+            display_notices(channel_notice_set)
 
-        return return_value
+            return return_value
+
+        else:
+            return func(*args, **kwargs)
 
     return wrapper
 

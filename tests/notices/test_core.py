@@ -24,7 +24,8 @@ def test_display_notices_happy_path(
     messages_json = get_test_notices(messages)
     add_resp_to_mock(notices_mock_http_session_get, status_code, messages_json)
 
-    notices.display_notices()
+    channel_notice_set = notices.retrieve_notices()
+    notices.display_notices(channel_notice_set)
     captured = capsys.readouterr()
 
     assert captured.err == ""

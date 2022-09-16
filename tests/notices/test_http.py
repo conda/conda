@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import requests
 
-from conda.notices.core import display_notices
+from conda.notices.core import display_notices, retrieve_notices
 
 from conda.testing.notices.helpers import add_resp_to_mock
 
@@ -19,7 +19,8 @@ def test_get_channel_notice_response_timeout_error(
     with patch("conda.notices.http.logger") as mock_logger:
         notices_mock_http_session_get.side_effect = requests.exceptions.Timeout
 
-        display_notices()
+        channel_notice_set = retrieve_notices()
+        display_notices(channel_notice_set)
 
         for mock_call in mock_logger.mock_calls:
             assert "Request timed out for channel" in str(mock_call)
@@ -35,7 +36,8 @@ def test_get_channel_notice_response_malformed_json(
     with patch("conda.notices.http.logger") as mock_logger:
         add_resp_to_mock(notices_mock_http_session_get, 200, messages, raise_exc=True)
 
-        display_notices()
+        channel_notice_set = retrieve_notices()
+        display_notices(channel_notice_set)
 
         expected_log_messages = (
             "Unable to parse JSON data",
