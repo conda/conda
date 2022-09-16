@@ -43,7 +43,7 @@ class CondaVirtualPackage(NamedTuple):
 
 
 @_hookspec
-def conda_cli_register_virtual_packages() -> Iterable[CondaVirtualPackage]:
+def conda_virtual_package_plugin() -> Iterable[CondaVirtualPackage]:
     """Register virtual packages in Conda.
     :return: An iterable of virtual package entries.
     """
