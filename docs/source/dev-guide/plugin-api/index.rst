@@ -120,6 +120,7 @@ API reference
    :maxdepth: 1
 
    subcommands
+   virtual packages
 
 
 .. _Pluggy: https://pluggy.readthedocs.io/en/stable/
