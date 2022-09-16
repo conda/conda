@@ -11,35 +11,44 @@ cleanup() {
     unset _AUTOBASE
     unset _BASEEXE
     unset _CMD
+    unset _DEFAULT_ARCH
+    unset _DEFAULT_DRYRUN
+    unset _DEFAULT_MACH
+    unset _DEFAULT_PYTHON
+    unset _DEFAULT_UPDATE
     unset _DEVENV
     unset _DRYRUN
     unset _ENV
     unset _ENVEXE
     unset _EXPORTED
+    unset _MACH
     unset _NAME
     unset _PYTHON
     unset _PYTHONEXE
     unset _SRC
-    unset _UNAME
     unset _UPDATE
     unset _UPDATED
 }
 updating() {
     # check if explicitly updating or if 24 hrs since last update
-    [ ${_UPDATE} = 0 ] && return 0
+    [ ${_UPDATE} = "true" ] && return 0
     [ -f "${_UPDATED}" ] || return 0
     return $(( $(( $(date +%s) - $(date -r "${_UPDATED}" +%s) )) < 86400 ))
 }
 
 cleanup
 
+# define default values
+_DEFAULT_PYTHON="3.8"
 # $ uname -sm
 # Linux x86_64
 # Linux aarch64
 # Darwin arm64
 # ...
-_UNAME="$(uname)"
-_ARCH="$(uname -m)"
+_DEFAULT_MACH="$(uname)"
+_DEFAULT_ARCH="$(uname -m)"
+_DEFAULT_UPDATE="false"
+_DEFAULT_DRYRUN="1"
 
 # parse args
 while [ $# -gt 0 ]; do
@@ -53,8 +62,26 @@ while [ $# -gt 0 ]; do
             _PYTHON="${1#*=}"
             shift
             ;;
+        --mach)
+            _MACH="$2"
+            shift
+            shift
+            ;;
+        --mach=*)
+            _MACH="${1#*=}"
+            shift
+            ;;
+        --arch)
+            _ARCH="$2"
+            shift
+            shift
+            ;;
+        --arch=*)
+            _ARCH="${1#*=}"
+            shift
+            ;;
         -u|--update)
-            _UPDATE=0
+            _UPDATE="true"
             shift
             ;;
         -d|--devenv)
@@ -67,7 +94,7 @@ while [ $# -gt 0 ]; do
             shift
             ;;
         -n|--dry-run)
-            _DRYRUN=0
+            _DRYRUN="true"
             shift
             ;;
         -h|--help)
@@ -75,11 +102,13 @@ while [ $# -gt 0 ]; do
             echo "Usage: source ${BASH_SOURCE:-$0} [options]"
             echo ""
             echo "Options:"
-            echo "  -p, --python  VERSION  Python version for the env to activate. (default: 3.8)"
-            echo "  -u, --update           Force update packages. (default: update every 24 hours)"
+            echo "  -p, --python  VERSION  Python version for the env to activate. (default: ${_DEFAULT_PYTHON})"
+            echo "      --mach    MACHINE  Python version for the env to activate. (default: ${_DEFAULT_MACH})"
+            echo "      --arch    ARCH     Python version for the env to activate. (default: ${_DEFAULT_ARCH})"
+            echo "  -u, --update           Force update packages. (default: ${_DEFAULT_UPDATE}, update every 24 hours)"
             echo "  -d, --devenv  PATH     Path to base env install, can also be defined in ~/.condarc."
-            echo "                         Path is appended with $_UNAME. (default: devenv)"
-            echo "  -n, --dry-run          Display env to activate. (default: false)"
+            echo "                         Path is appended with machine hardware name, see --mach. (default: devenv/${_DEFAULT_MACH})"
+            echo "  -n, --dry-run          Display env to activate. (default: ${_DEFAULT_DRYRUN})"
             echo "  -h, --help             Display this."
             return 0
             ;;
@@ -92,8 +121,15 @@ done
 
 # fallback to default values
 _PYTHON="${_PYTHON:-3.8}"
-_UPDATE="${_UPDATE:-1}"
-_DRYRUN="${_DRYRUN:-1}"
+# $ uname -sm
+# Linux x86_64
+# Linux aarch64
+# Darwin arm64
+# ...
+_MACH="${_MACH:-${_DEFAULT_MACH}}"
+_ARCH="${_ARCH:-${_DEFAULT_ARCH}}"
+_UPDATE="${_UPDATE:-${_DEFAULT_UPDATE}}"
+_DRYRUN="${_DRYRUN:-${_DEFAULT_DRYRUN}}"
 
 # get source path
 # since zsh is MacOS standard fallback to $0 if not in bash
@@ -108,9 +144,9 @@ _DEVENV="${_DEVENV:-${_SRC}/devenv}"
 # tilde expansion
 _DEVENV="${_DEVENV/#\~/${HOME}}"
 # include OS
-_DEVENV="${_DEVENV}/$_UNAME"
+_DEVENV="${_DEVENV}/${_MACH}/${_ARCH}"
 # ensure exists and absolute path
-if [ ${_DRYRUN} = 1 ]; then
+if [ ${_DRYRUN} = "false" ]; then
     mkdir -p "${_DEVENV}"
     _DEVENV="$( cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
 fi
@@ -119,14 +155,16 @@ fi
 _NAME="devenv-${_PYTHON}-c"
 _ENV="${_DEVENV}/envs/${_NAME}"
 _UPDATED="${_ENV}/.devenv-updated"
-case "$_UNAME" in
+case "${_MACH}" in
     Darwin|Linux) _BASEEXE="${_DEVENV}/bin/conda" ; _ENVEXE="${_ENV}/bin/conda" ; _PYTHONEXE="${_ENV}/bin/python" ;;
                *) _BASEEXE="${_DEVENV}/Scripts/conda.exe" ; _ENVEXE="${_ENV}/Scripts/conda.exe" ; _PYTHONEXE="${_ENV}/Scripts/python.exe" ;;
 esac
 
 # dryrun printout
-if [ ${_DRYRUN} = 0 ]; then
+if [ ${_DRYRUN} = "true" ]; then
     echo "Python: ${_PYTHON}"
+    echo "Machine: ${_MACH}"
+    echo "Architecture: ${_ARCH}"
     echo "Updating: $(updating && echo "[yes]" || echo "[no]")"
     echo "Devenv: ${_DEVENV} $([ -e "${_DEVENV}" ] && echo "[exists]" || echo "[pending]")"
     echo ""
@@ -151,9 +189,9 @@ fi
 # does miniconda install exist?
 if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     # downloading miniconda
-    if [ "$_UNAME" = "Darwin" ]; then
+    if [ "${_MACH}" = "Darwin" ]; then
         [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${_ARCH}.sh" -o "${_DEVENV}/miniconda.sh"'
-    elif [ "$_UNAME" = "Linux" ]; then
+    elif [ "${_MACH}" = "Linux" ]; then
         [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${_ARCH}.sh" -o "${_DEVENV}/miniconda.sh"'
     else
         [ -f "${_DEVENV}/miniconda.exe" ] || _CMD='powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_DEVENV}/miniconda.exe' | Out-Null"'
@@ -169,7 +207,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
 
     # installing miniconda
     echo "Installing development environment..."
-    case "$_UNAME" in
+    case "${_MACH}" in
         Darwin|Linux) bash "${_DEVENV}/miniconda.sh" -bfp "${_DEVENV}" > /dev/null ;;
                    *) cmd.exe /c "start /wait \"\" \"${_DEVENV}\miniconda.exe\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
     esac
@@ -203,7 +241,7 @@ if updating; then
         --override-channels \
         -c defaults \
         --file "${_SRC}/tests/requirements.txt" \
-        $([ "$_UNAME" = "Linux" ] && echo "patchelf") \
+        $([ "${_MACH}" = "Linux" ] && echo "patchelf") \
         "python=${_PYTHON}" > /dev/null; then
         echo "Error: failed to update ${_NAME}" 1>&2
         return 1
