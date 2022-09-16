@@ -3,9 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import OrderedDict
 from errno import ENOENT
-from itertools import chain
 import json
 import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, exists
@@ -13,10 +11,14 @@ import re
 import sys
 from textwrap import dedent
 
+try:
+    from tlz.itertoolz import concatv
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concatv
+
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
-from ._vendor.toolz import concatv, drop
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
@@ -65,58 +67,51 @@ class _Activator(object):
         self._raw_arguments = arguments
         self.environ = os.environ.copy()
 
-    # Once Python2 dies odargs can become kwargs again since dicts are ordered since 3.6.
-    def get_export_unset_vars(self, odargs):
+    def get_export_unset_vars(self, export_metavars=True, **kwargs):
         """
-        :param kwargs: environment variables to export. The `conda_exe_vars` meta
-                       variables are also exported by default. If you do not want
-                       this to happen then pass:
-                           conda_exe_vars=None
+        :param export_metavars: whether to export `conda_exe_vars` meta variables.
+        :param kwargs: environment variables to export.
                        .. if you pass and set any other variable to None, then it
                        emits it to the dict with a value of None.
 
-        :return: A OrderedDict of env vars to export ordered the same way as kwargs.
+        :return: A dict of env vars to export ordered the same way as kwargs.
                  And a list of env vars to unset.
         """
-        kwargs = odargs
-        conda_exe_vars_None = False if ('conda_exe_vars' not in kwargs or
-                                        kwargs['conda_exe_vars'] is not None) else True
-        conda_exe_unset_vars = []
         unset_vars = []
-        # conda_exe_vars = context.conda_exe_vars_dict.copy()
-        from collections import OrderedDict
-        conda_exe_vars_export = OrderedDict()
-        for k, v in context.conda_exe_vars_dict.items():
-            if v is None or conda_exe_vars_None:
-                conda_exe_unset_vars.append(k)
+        export_vars = {}
+
+        # split provided environment variables into exports vs unsets
+        for name, value in kwargs.items():
+            if value is None:
+                unset_vars.append(name.upper())
             else:
-                conda_exe_vars_export[k] = self.path_conversion(v) if v else v
-        from collections import OrderedDict
-        export_vars = OrderedDict()
-        for k, v in kwargs.items():
-            if k == 'conda_exe_vars':
-                continue
-            elif v is None:
-                unset_vars.append(k.upper())
-            else:
-                export_vars[k.upper()] = v
-        # Just to make writing tests a bit more ergonomic we add these to the end.
-        unset_vars += conda_exe_unset_vars
-        export_vars = OrderedDict(chain(export_vars.items(), conda_exe_vars_export.items()))
+                export_vars[name.upper()] = value
+
+        if export_metavars:
+            # split meta variables into exports vs unsets
+            for name, value in context.conda_exe_vars_dict.items():
+                if value is None:
+                    unset_vars.append(name.upper())
+                else:
+                    export_vars[name.upper()] = self.path_conversion(value) if value else value
+        else:
+            # unset all meta variables
+            unset_vars.extend(context.conda_exe_vars_dict)
+
         return export_vars, unset_vars
 
     # Used in tests only.
     def add_export_unset_vars(self, export_vars, unset_vars, **kwargs):
-        new_export_vars, new_unset_vars = self.get_export_unset_vars(odargs=OrderedDict(kwargs))
+        new_export_vars, new_unset_vars = self.get_export_unset_vars(**kwargs)
         if export_vars is not None:
-            export_vars = OrderedDict(chain(export_vars.items(), new_export_vars.items()))
+            export_vars = {**export_vars, **new_export_vars}
         if unset_vars is not None:
-            unset_vars += new_unset_vars
+            unset_vars = [*unset_vars, *new_unset_vars]
         return export_vars, unset_vars
 
     # Used in tests only.
     def get_scripts_export_unset_vars(self, **kwargs):
-        export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict(kwargs))
+        export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
         script_export_vars = script_unset_vars = None
         if export_vars:
             script_export_vars = self.command_join.join(
@@ -207,8 +202,7 @@ class _Activator(object):
         if arguments is None or len(arguments) < 1:
             raise_invalid_command_error()
 
-        command = arguments[0]
-        arguments = tuple(drop(1, arguments))
+        command, *arguments = arguments
         help_flags = ('-h', '--help', '/?')
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
@@ -297,6 +291,7 @@ class _Activator(object):
         return self._build_activate_stack(env_name_or_prefix, True)
 
     def _build_activate_stack(self, env_name_or_prefix, stack):
+        # get environment prefix
         if re.search(r'\\|/', env_name_or_prefix):
             prefix = expand(env_name_or_prefix)
             if not isdir(join(prefix, 'conda-meta')):
@@ -307,85 +302,73 @@ class _Activator(object):
         else:
             prefix = locate_prefix_by_name(env_name_or_prefix)
 
-        # query environment
+        # get prior shlvl and prefix
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
-        new_conda_shlvl = old_conda_shlvl + 1
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
 
+        # if the prior active prefix is this prefix we are actually doing a reactivate
         if old_conda_prefix == prefix and old_conda_shlvl > 0:
             return self.build_reactivate()
 
         activate_scripts = self._get_activate_scripts(prefix)
+        conda_shlvl = old_conda_shlvl + 1
         conda_default_env = self._default_env(prefix)
         conda_prompt_modifier = self._prompt_modifier(prefix, conda_default_env)
-        conda_environment_env_vars = self._get_environment_env_vars(prefix)
-        unset_env_vars = [k for k, v in conda_environment_env_vars.items()
-                          if v == CONDA_ENV_VARS_UNSET_VAR]
-        [conda_environment_env_vars.pop(_) for _ in unset_env_vars]
+        env_vars = {
+            name: value
+            for name, value in self._get_environment_env_vars(prefix).items()
+            if value != CONDA_ENV_VARS_UNSET_VAR
+        }
 
-        clobbering_env_vars = [k for k in conda_environment_env_vars.keys()
-                               if k in os.environ.keys()]
-
-        for cvar in clobbering_env_vars:
-            save_var = "__CONDA_SHLVL_%s_%s" % (old_conda_shlvl, cvar)
-            conda_environment_env_vars[save_var] = os.environ.get(cvar)
-
-        if clobbering_env_vars:
+        # get clobbered environment variables
+        clobber_vars = set(env_vars.keys()).intersection(os.environ.keys())
+        if clobber_vars:
             print("WARNING: overwriting environment variables set in the machine", file=sys.stderr)
-            print("overwriting variable %s" % ' '.join(clobbering_env_vars), file=sys.stderr)
+            print(f"overwriting variable {clobber_vars}", file=sys.stderr)
+        for name in clobber_vars:
+            env_vars[f"__CONDA_SHLVL_{old_conda_shlvl}_{name}"] = os.environ.get(name)
 
-        unset_vars = []
         if old_conda_shlvl == 0:
-            new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
-            env_vars_to_export = OrderedDict((
-                    ('path', new_path),
-                    ('conda_prefix', prefix),
-                    ('conda_shlvl', new_conda_shlvl),
-                    ('conda_default_env', conda_default_env),
-                    ('conda_prompt_modifier', conda_prompt_modifier)))
-            for k, v in conda_environment_env_vars.items():
-                env_vars_to_export[k] = v
-            export_vars, unset_vars = self.get_export_unset_vars(odargs=env_vars_to_export)
+            export_vars, unset_vars = self.get_export_unset_vars(
+                path=self.pathsep_join(self._add_prefix_to_path(prefix)),
+                conda_prefix=prefix,
+                conda_shlvl=conda_shlvl,
+                conda_default_env=conda_default_env,
+                conda_prompt_modifier=conda_prompt_modifier,
+                **env_vars,
+            )
+            deactivate_scripts = ()
+        elif stack:
+            export_vars, unset_vars = self.get_export_unset_vars(
+                path=self.pathsep_join(self._add_prefix_to_path(prefix)),
+                conda_prefix=prefix,
+                conda_shlvl=conda_shlvl,
+                conda_default_env=conda_default_env,
+                conda_prompt_modifier=conda_prompt_modifier,
+                **env_vars,
+                **{
+                    f"CONDA_PREFIX_{old_conda_shlvl}": old_conda_prefix,
+                    f"CONDA_STACKED_{conda_shlvl}": "true",
+                },
+            )
             deactivate_scripts = ()
         else:
-            if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl - 1)) == prefix:
-                # in this case, user is attempting to activate the previous environment,
-                #  i.e. step back down
-                return self.build_deactivate()
-            if stack:
-                new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
-                deactivate_scripts = ()
-                env_vars_to_export = OrderedDict((
-                    ('path', new_path),
-                    ('conda_prefix', prefix),
-                    ('conda_shlvl', new_conda_shlvl),
-                    ('conda_default_env', conda_default_env),
-                    ('conda_prompt_modifier', conda_prompt_modifier)))
-                for k, v in conda_environment_env_vars.items():
-                    env_vars_to_export[k] = v
-                export_vars, unset_vars = self.get_export_unset_vars(odargs=env_vars_to_export)
-                export_vars['CONDA_PREFIX_%d' % old_conda_shlvl] = old_conda_prefix
-                export_vars['CONDA_STACKED_%d' % new_conda_shlvl] = 'true'
-            else:
-                new_path = self.pathsep_join(
-                    self._replace_prefix_in_path(old_conda_prefix, prefix))
-                deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
-                env_vars_to_export = OrderedDict((
-                    ('path', new_path),
-                    ('conda_prefix', prefix),
-                    ('conda_shlvl', new_conda_shlvl),
-                    ('conda_default_env', conda_default_env),
-                    ('conda_prompt_modifier', conda_prompt_modifier)))
-                for k, v in conda_environment_env_vars.items():
-                    env_vars_to_export[k] = v
-                export_vars, unset_vars = self.get_export_unset_vars(odargs=env_vars_to_export)
-                export_vars['CONDA_PREFIX_%d' % old_conda_shlvl] = old_conda_prefix
+            export_vars, unset_vars = self.get_export_unset_vars(
+                path=self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix)),
+                conda_prefix=prefix,
+                conda_shlvl=conda_shlvl,
+                conda_default_env=conda_default_env,
+                conda_prompt_modifier=conda_prompt_modifier,
+                **env_vars,
+                **{
+                    f"CONDA_PREFIX_{old_conda_shlvl}": old_conda_prefix,
+                },
+            )
+            deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
         set_vars = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
-
-        self._build_activate_shell_custom(export_vars)
 
         return {
             'unset_vars': unset_vars,
@@ -403,11 +386,11 @@ class _Activator(object):
         if not old_conda_prefix or old_conda_shlvl < 1:
             # no active environment, so cannot deactivate; do nothing
             return {
-                'unset_vars': (),
-                'set_vars': OrderedDict(),
-                'export_vars': OrderedDict(),
-                'deactivate_scripts': (),
-                'activate_scripts': (),
+                "unset_vars": (),
+                "set_vars": {},
+                "export_vars": {},
+                "deactivate_scripts": (),
+                "activate_scripts": (),
             }
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
         old_conda_environment_env_vars = self._get_environment_env_vars(old_conda_prefix)
@@ -416,18 +399,19 @@ class _Activator(object):
         set_vars = {}
         if old_conda_shlvl == 1:
             new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
-            # You might think that you can remove the CONDA_EXE vars by passing conda_exe_vars=None
+            # You might think that you can remove the CONDA_EXE vars with export_metavars=False
             # here so that "deactivate means deactivate" but you cannot since the conda shell
             # scripts still refer to them and they only set them once at the top. We could change
             # that though, the conda() shell function could set them instead of doing it at the
             # top.  This would be *much* cleaner. I personally cannot abide that I have
             # deactivated conda and anything at all in my env still references it (apart from the
             # shell script, we need something I suppose!)
-            export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict((
-                ('conda_prefix', None),
-                ('conda_shlvl', new_conda_shlvl),
-                ('conda_default_env', None),
-                ('conda_prompt_modifier', None))))
+            export_vars, unset_vars = self.get_export_unset_vars(
+                conda_prefix=None,
+                conda_shlvl=new_conda_shlvl,
+                conda_default_env=None,
+                conda_prompt_modifier=None,
+            )
             conda_prompt_modifier = ''
             activate_scripts = ()
             export_path = {'PATH': new_path, }
@@ -450,14 +434,13 @@ class _Activator(object):
                     self._replace_prefix_in_path(old_conda_prefix, new_prefix)
                 )
 
-            env_vars_to_export = OrderedDict((
-                ('conda_prefix', new_prefix),
-                ('conda_shlvl', new_conda_shlvl),
-                ('conda_default_env', conda_default_env),
-                ('conda_prompt_modifier', conda_prompt_modifier)))
-            for k, v in new_conda_environment_env_vars.items():
-                env_vars_to_export[k] = v
-            export_vars, unset_vars2 = self.get_export_unset_vars(odargs=env_vars_to_export)
+            export_vars, unset_vars2 = self.get_export_unset_vars(
+                conda_prefix=new_prefix,
+                conda_shlvl=new_conda_shlvl,
+                conda_default_env=conda_default_env,
+                conda_prompt_modifier=conda_prompt_modifier,
+                **new_conda_environment_env_vars,
+            )
             unset_vars += unset_vars2
             export_path = {'PATH': new_path, }
             activate_scripts = self._get_activate_scripts(new_prefix)
@@ -486,11 +469,11 @@ class _Activator(object):
         if not conda_prefix or conda_shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
             return {
-                'unset_vars': (),
-                'set_vars': OrderedDict(),
-                'export_vars': OrderedDict(),
-                'deactivate_scripts': (),
-                'activate_scripts': (),
+                "unset_vars": (),
+                "set_vars": {},
+                "export_vars": {},
+                "deactivate_scripts": (),
+                "activate_scripts": (),
             }
         conda_default_env = self.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
         new_path = self.pathsep_join(self._replace_prefix_in_path(conda_prefix, conda_prefix))
@@ -500,11 +483,11 @@ class _Activator(object):
             self._update_prompt(set_vars, conda_prompt_modifier)
 
         env_vars_to_unset = ()
-        env_vars_to_export = OrderedDict([
-            ('PATH', new_path),
-            ('CONDA_SHLVL', conda_shlvl),
-            ('CONDA_PROMPT_MODIFIER', self._prompt_modifier(conda_prefix, conda_default_env)),
-        ])
+        env_vars_to_export = {
+            "PATH": new_path,
+            "CONDA_SHLVL": conda_shlvl,
+            "CONDA_PROMPT_MODIFIER": self._prompt_modifier(conda_prefix, conda_default_env),
+        }
         conda_environment_env_vars = self._get_environment_env_vars(conda_prefix)
         for k, v in conda_environment_env_vars.items():
             if v == CONDA_ENV_VARS_UNSET_VAR:
@@ -537,21 +520,6 @@ class _Activator(object):
                                 clean_paths[sys.platform] if sys.platform in clean_paths else
                                 '/usr/bin')
         path_split = path.split(os.pathsep)
-        # We used to prepend sys.prefix\Library\bin to PATH on startup but not anymore.
-        # Instead, in conda 4.6 we add the full suite of entries. This is performed in
-        # condabin\conda.bat and condabin\ _conda_activate.bat. However, we
-        # need to ignore the stuff we add there, and only consider actual PATH entries.
-        prefix_dirs = tuple(self._get_path_dirs(sys.prefix))
-        start_index = 0
-        while (start_index < len(prefix_dirs) and
-               start_index < len(path_split) and
-               paths_equal(path_split[start_index], prefix_dirs[start_index])):
-            start_index += 1
-        path_split = path_split[start_index:]
-        library_bin_dir = self.path_conversion(
-                self.sep.join((sys.prefix, 'Library', 'bin')))
-        if paths_equal(path_split[0], library_bin_dir):
-            path_split = path_split[1:]
         return path_split
 
     def _get_path_dirs(self, prefix, extra_library_bin=False):
@@ -631,11 +599,6 @@ class _Activator(object):
             path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
 
         return tuple(path_list)
-
-    def _build_activate_shell_custom(self, export_vars):
-        # A method that can be overridden by shell-specific implementations.
-        # The signature of this method may change in the future.
-        pass
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         pass
@@ -722,18 +685,18 @@ class _Activator(object):
     def _get_environment_env_vars(self, prefix):
         env_vars_file = join(prefix, PREFIX_STATE_FILE)
         pkg_env_var_dir = join(prefix, PACKAGE_ENV_VARS_DIR)
-        env_vars = OrderedDict()
+        env_vars = {}
 
         # First get env vars from packages
         if exists(pkg_env_var_dir):
             for pkg_env_var_path in sorted(entry.path for entry in os.scandir(pkg_env_var_dir)):
                 with open(pkg_env_var_path, 'r') as f:
-                    env_vars.update(json.loads(f.read(), object_pairs_hook=OrderedDict))
+                    env_vars.update(json.loads(f.read()))
 
         # Then get env vars from environment specification
         if exists(env_vars_file):
             with open(env_vars_file, 'r') as f:
-                prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
+                prefix_state = json.loads(f.read())
                 prefix_state_env_vars = prefix_state.get('env_vars', {})
                 dup_vars = [ev for ev in env_vars.keys() if ev in prefix_state_env_vars.keys()]
                 for dup in dup_vars:
@@ -1115,7 +1078,7 @@ class JSONFormatMixin(_Activator):
             }
 
     def get_scripts_export_unset_vars(self, **kwargs):
-        export_vars, unset_vars = self.get_export_unset_vars(odargs=OrderedDict(kwargs))
+        export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
         script_export_vars = script_unset_vars = None
         if export_vars:
             script_export_vars = dict(export_vars.items())

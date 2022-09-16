@@ -7,27 +7,17 @@ import json
 from logging import getLogger
 
 from .compat import odict, ensure_text_type
-from ..auxlib.decorators import memoize
 from ..auxlib.entity import EntityEncoder
 
-log = getLogger(__name__)
-
-
-@memoize
-def get_yaml():
+try:
+    import ruamel_yaml as yaml
+except ImportError:  # pragma: no cover
     try:
-        import ruamel_yaml as yaml
-    except ImportError:  # pragma: no cover
-        try:
-            import ruamel.yaml as yaml
-        except ImportError:
-            raise ImportError("No yaml library available.\n"
-                              "To proceed, conda install "
-                              "ruamel_yaml")
-    return yaml
+        import ruamel.yaml as yaml
+    except ImportError:
+        raise ImportError("No yaml library available. To proceed, conda install ruamel_yaml")
 
-
-yaml = get_yaml()
+log = getLogger(__name__)
 
 
 def represent_ordereddict(dumper, data):

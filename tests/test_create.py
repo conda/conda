@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from glob import glob
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda._vendor.toolz.itertoolz import groupby
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.models.channel import Channel
@@ -22,7 +21,7 @@ import os
 from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 import re
 from shutil import copyfile, rmtree
-from subprocess import check_call, check_output, Popen, PIPE
+from subprocess import CalledProcessError, check_call, check_output, Popen, PIPE, STDOUT
 import sys
 from textwrap import dedent
 from unittest import TestCase
@@ -31,6 +30,7 @@ from uuid import uuid4
 
 import pytest
 import requests
+from tlz.itertoolz import groupby
 
 from conda import (
     CondaError,
@@ -337,6 +337,8 @@ class IntegrationTests(BaseTestCase):
             if on_win:
                 exe_path += ".exe"
             assert isfile(exe_path)
+            output = check_output([exe_path, "--help"], text=True)
+            assert "Usage: flask" in output
 
             run_command(Commands.REMOVE, prefix, "flask")
 

@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import OrderedDict
 
 from errno import ENOENT
+from functools import lru_cache
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
@@ -15,6 +16,11 @@ import struct
 from contextlib import contextmanager
 from datetime import datetime
 import warnings
+
+try:
+    from tlz.itertoolz import concat, concatv, unique
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, unique
 
 from .constants import (
     APP_NAME,
@@ -41,11 +47,10 @@ from .constants import (
 )
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
-from ..auxlib.decorators import memoize, memoizedproperty
+from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
-from .._vendor.toolz import concat, concatv, unique
 from ..common.compat import NoneType, odict, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
@@ -290,8 +295,9 @@ class Context(Configuration):
     override_channels_enabled = ParameterLoader(PrimitiveParameter(True))
     show_channel_urls = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     use_local = ParameterLoader(PrimitiveParameter(False))
-    whitelist_channels = ParameterLoader(
+    allowlist_channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str)),
+        aliases=("whitelist_channels",),
         expandvars=True)
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
@@ -939,7 +945,7 @@ class Context(Configuration):
                 "channel_alias",
                 "default_channels",
                 "override_channels_enabled",
-                "whitelist_channels",
+                "allowlist_channels",
                 "custom_channels",
                 "custom_multichannels",
                 "migrated_channel_aliases",
@@ -1548,7 +1554,7 @@ class Context(Configuration):
                 defaults to 1.
                 """
             ),
-            whitelist_channels=dals(
+            allowlist_channels=dals(
                 """
                 The exclusive list of channels allowed to be used on the system. Use of any
                 other channels will result in an error. If conda-build channels are to be
@@ -1700,7 +1706,8 @@ def replace_context_default(pushing=None, argparse_args=None):
 # and not to stack_context_default.
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
-@memoize
+
+@lru_cache(maxsize=None)
 def _get_cpu_info():
     # DANGER: This is rather slow
     from .._vendor.cpuinfo import get_cpu_info

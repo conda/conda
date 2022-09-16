@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Remove Python 2.7 `conda.common.url.is_ipv6_address_win_py27` implementation. (#11573)
+* <news item>
 
 ### Docs
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Update canary-release version to resolve canary build issue. (#11761)

@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark conda.lock as pending deprecation. (#11571)
+* <news item>
 
 ### Docs
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Add arm64 support to development script `. ./dev/start`. (#11752)

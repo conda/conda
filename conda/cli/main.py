@@ -104,6 +104,7 @@ def main_sourced(shell, *args, **kwargs):
     try:
         activator_cls = _build_activator_cls(shell)
     except KeyError:
+        from ..exceptions import CondaError
         raise CondaError("%s is not a supported shell." % shell)
 
     activator = activator_cls(args)

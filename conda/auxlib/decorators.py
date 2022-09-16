@@ -4,6 +4,7 @@ try:
 except ImportError:
     from collections import Hashable
 from types import GeneratorType
+import warnings
 
 from .._vendor.six import wraps
 
@@ -48,6 +49,13 @@ def memoize(func):
     Traceback (most recent call last):
     TypeError: Can't memoize a generator or non-hashable object!
     """
+    warnings.warn(
+        "The `conda.auxlib.decorators.memoize` decorator is pending deprecation and will be "
+        "removed in a future release. Please use `functools.lru_cache` instead.",
+        PendingDeprecationWarning,
+        stacklevel=2,
+    )
+
     func._result_cache = {}  # pylint: disable-msg=W0212
 
     @wraps(func)

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Correct a misleading `conda --help` error message. (#11625)
+* Ensure that exceptions that are raised show up properly instead of resulting in a random [y/N] prompt (#11746)
 
 ### Deprecations
 

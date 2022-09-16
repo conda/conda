@@ -12,10 +12,10 @@ from tempfile import gettempdir
 from unittest import TestCase, mock
 
 import pytest
+from tlz.itertoolz import concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda._vendor.toolz.itertoolz import concat
 from conda.base.constants import PathConflict, ChannelPriority
 from conda.base.context import (
     context,
@@ -457,7 +457,7 @@ class ContextCustomRcTests(TestCase):
         for attr in [
             "channels",
             "default_channels",
-            "whitelist_channels",
+            "allowlist_channels",
         ]:
             value = _get_expandvars_context(attr, "['${TEST_VAR}']", "foo")
             assert value == ("foo",)

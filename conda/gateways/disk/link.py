@@ -79,8 +79,7 @@ else:  # pragma: no cover
     from os import getcwd
     from os.path import isfile
     import sys
-    from ...auxlib._vendor import six
-    builtins = six.moves.builtins
+    import builtins
 
     def islink(path):
         """Determine if the given path is a symlink"""

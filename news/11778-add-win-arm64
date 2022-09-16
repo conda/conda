@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add `win-arm64` as a known platform (subdir)
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* `conda.cli.common.ensure_name_or_prefix` is pending deprecation in a future release. (#11490)
+* <news item>
 
 ### Docs
 

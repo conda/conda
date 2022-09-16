@@ -4,9 +4,9 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import lru_cache
 from pprint import pprint
 
-from conda.auxlib.decorators import memoize
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import CyclicalDependencyError
@@ -23,7 +23,8 @@ try:
 except ImportError:
     from mock import Mock, patch
 
-@memoize
+
+@lru_cache(maxsize=None)
 def get_conda_build_record_set(tmpdir):
     specs = MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("intel-openmp"),
     with get_solver_4(tmpdir, specs) as solver:
@@ -31,7 +32,7 @@ def get_conda_build_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_pandas_record_set(tmpdir):
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.13")
     with get_solver_4(tmpdir, specs) as solver:
@@ -39,7 +40,7 @@ def get_pandas_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_windows_conda_build_record_set(tmpdir):
     specs = (MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("affine"),
              MatchSpec("colour"), MatchSpec("uses-spiffy-test-app"),)
@@ -48,7 +49,7 @@ def get_windows_conda_build_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_sqlite_cyclical_record_set(tmpdir):
     # sqlite-3.20.1-haaaaaaa_4
     specs = MatchSpec("sqlite=3.20.1[build_number=4]"), MatchSpec("flask"),

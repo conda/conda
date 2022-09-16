@@ -9,12 +9,17 @@ from itertools import chain
 from logging import getLogger
 import platform
 import sys
+import warnings
+
+try:
+    from tlz.itertoolz import concat, concatv
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv
 
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, concatv
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..exceptions import ChannelNotAllowed, InvalidSpec
@@ -28,13 +33,22 @@ log = getLogger(__name__)
 
 
 def check_whitelist(channel_urls):
-    if context.whitelist_channels:
-        whitelist_channel_urls = tuple(concat(
-            Channel(c).base_urls for c in context.whitelist_channels
+    warnings.warn(
+        "`conda.core.index.check_whitelist` is pending deprecation and will be removed in a "
+        "future release. Please use `conda.core.index.check_allowlist` instead.",
+        PendingDeprecationWarning,
+    )
+    return check_allowlist(channel_urls)
+
+
+def check_allowlist(channel_urls):
+    if context.allowlist_channels:
+        allowlist_channel_urls = tuple(concat(
+            Channel(c).base_urls for c in context.allowlist_channels
         ))
         for url in channel_urls:
             these_urls = Channel(url).base_urls
-            if not all(this_url in whitelist_channel_urls for this_url in these_urls):
+            if not all(this_url in allowlist_channel_urls for this_url in these_urls):
                 raise ChannelNotAllowed(Channel(url))
 
 
@@ -60,7 +74,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     del LAST_CHANNEL_URLS[:]
     LAST_CHANNEL_URLS.extend(channel_urls)
 
-    check_whitelist(channel_urls)
+    check_allowlist(channel_urls)
 
     index = fetch_index(channel_urls, use_cache=use_cache, repodata_fn=repodata_fn)
 

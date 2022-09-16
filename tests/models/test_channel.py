@@ -653,7 +653,7 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
         channels:
           - http://user22:$EXPANDED_PWD@some.url:8080
 
-        whitelist_channels:
+        allowlist_channels:
           - http://user22:$EXPANDED_PWD@some.url:8080
 
         custom_channels:
@@ -678,7 +678,7 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
             channel = Channel('expanded')
             assert channel.auth == 'user33:pass44'
             assert context.channels[0] == 'http://user22:pass44@some.url:8080'
-            assert context.whitelist_channels[0] == 'http://user22:pass44@some.url:8080'
+            assert context.allowlist_channels[0] == 'http://user22:pass44@some.url:8080'
 
 
 class ChannelAuthTokenPriorityTests(TestCase):

@@ -12,8 +12,8 @@
 
 ### Docs
 
-* Missing `pip` as a dependancy when including a pip-installed dependency
+* <news item>
 
 ### Other
 
-* <news item>
+* Renamed canary recipe from `conda.recipe` to `recipe`. (#11774)

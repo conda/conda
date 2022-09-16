@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from datetime import datetime
+import hashlib
 from pathlib import Path
-from urllib import parse
 from typing import NamedTuple, Optional, Sequence
 
 from ..base.constants import NoticeLevel
@@ -75,9 +75,12 @@ class ChannelNoticeResponse(NamedTuple):
             return None
 
     @classmethod
-    def get_cache_key(cls, url: str, name: str, cache_dir: Path) -> Path:
-        """Returns the place where this channel response will be stored as cache"""
-        url_obj = parse.urlparse(url)
-        path = url_obj.path.replace("/", "-")
-        cache_filename = f"{name}{path}"
+    def get_cache_key(cls, url: str, cache_dir: Path) -> Path:
+        """
+        Returns the place where this channel response will be stored as cache by hashing the url.
+        """
+        bytes_filename = url.encode()
+        sha256_hash = hashlib.sha256(bytes_filename)
+        cache_filename = f"{sha256_hash.hexdigest()}.json"
+
         return cache_dir.joinpath(cache_filename)

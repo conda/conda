@@ -2,15 +2,16 @@
 # run as 'conda install --file tests/requirements.txt -c defaults'
 anaconda-client
 beautifulsoup4
+boto3 # NOTE: we also need the `minio` server, installed manually in CI
 chardet
 conda
 conda-build
 conda-forge::pre-commit
 conda-forge::pytest-split
+conda-forge::pytest-xprocess
 conda-forge::xdoctest
 conda-package-handling
 conda-verify
-cytoolz
 filelock
 flake8
 git
@@ -32,4 +33,5 @@ pytest-xdist
 requests
 responses
 ruamel_yaml
+toolz
 jaimergp/label/menuinst_dev::menuinst

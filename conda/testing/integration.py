@@ -10,8 +10,9 @@ them too.
 from __future__ import unicode_literals
 
 from contextlib import contextmanager
-
+from functools import lru_cache
 import json
+from logging import getLogger
 import os
 from os.path import (
     dirname,
@@ -26,18 +27,11 @@ from subprocess import check_output
 import sys
 from tempfile import gettempdir
 from uuid import uuid4
-from logging import getLogger
-import urllib
 
-try:
-    import urllib.parse as urlparse
-except:
-    from urlparse import urlparse
 
 import pytest
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.auxlib.decorators import memoize
 from conda.auxlib.entity import EntityEncoder
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
@@ -90,7 +84,7 @@ def escape_for_winpath(p):
     return p.replace("\\", "\\\\")
 
 
-@memoize
+@lru_cache(maxsize=None)
 def running_a_python_capable_of_unicode_subprocessing():
     name = None
     # try:
@@ -355,39 +349,6 @@ def make_temp_package_cache():
         rmtree(prefix, ignore_errors=True)
         if pkgs_dir in PackageCacheData._cache_:
             del PackageCacheData._cache_[pkgs_dir]
-
-
-def fixurl(url):
-    # turn string into unicode
-    if not isinstance(url, str):
-        url = url.decode("utf8")
-
-    # parse it
-    parsed = urlparse.urlsplit(url)
-
-    # divide the netloc further
-    userpass, at, hostport = parsed.netloc.rpartition("@")
-    user, colon1, pass_ = userpass.partition(":")
-    host, colon2, port = hostport.partition(":")
-
-    # encode each component
-    scheme = parsed.scheme.encode("utf8")
-    user = urllib.quote(user.encode("utf8"))
-    colon1 = colon1.encode("utf8")
-    pass_ = urllib.quote(pass_.encode("utf8"))
-    at = at.encode("utf8")
-    host = host.encode("idna")
-    colon2 = colon2.encode("utf8")
-    port = port.encode("utf8")
-    path = "/".join(  # could be encoded slashes!
-        urllib.quote(urllib.unquote(pce).encode("utf8"), "") for pce in parsed.path.split("/")
-    )
-    query = urllib.quote(urllib.unquote(parsed.query).encode("utf8"), "=&?/")
-    fragment = urllib.quote(urllib.unquote(parsed.fragment).encode("utf8"))
-
-    # put it back together
-    netloc = "".join((user, colon1, pass_, at, host, colon2, port))
-    return urlparse.urlunsplit((scheme, netloc, path, query, fragment))
 
 
 @contextmanager
