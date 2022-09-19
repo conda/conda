@@ -98,18 +98,6 @@ For more information on which license to use for your custom plugin, please refe
 the `"Choose an Open Source License"`_ site.
 
 
-Tutorials
----------
-
-.. py:module:: conda.plugins
-
-
-.. toctree::
-   :maxdepth: 1
-
-   subcommand_guide
-
-
 API reference
 -------------
 
@@ -120,7 +108,7 @@ API reference
    :maxdepth: 1
 
    subcommands
-   virtual packages
+   virtual_packages
 
 
 .. _Pluggy: https://pluggy.readthedocs.io/en/stable/
