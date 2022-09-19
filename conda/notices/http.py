@@ -58,6 +58,9 @@ def get_channel_notice_response(url: str, name: str) -> Optional[ChannelNoticeRe
     except requests.exceptions.Timeout:
         logger.info(f"Request timed out for channel: {name} url: {url}")
         return
+    except requests.exceptions.RequestException as exc:
+        logger.error(f"Request error <{exc}> for channel: {name} url: {url}")
+        return
 
     try:
         if resp.status_code < 300:

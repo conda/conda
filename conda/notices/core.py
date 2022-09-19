@@ -110,9 +110,8 @@ def get_channel_name_and_urls(
         return parse.urljoin(ensure_endswith(value, "/"), join_val)
 
     return tuple(
-        (join_url(base_url, NOTICES_FN), channel.name or channel.location)
+        (join_url(channel.base_url, NOTICES_FN), channel.name or channel.location)
         for channel in channels
-        for base_url in channel.base_urls
     )
 
 
