@@ -2,7 +2,7 @@
 
 ## 22.9.0 (2022-09-14)
 
-### Special announcement 📢 
+### Special announcement
 
 If you have been following the conda project previously, you will notice a change in our version number for this release. We have officially switched to the [CalVer](https://calver.org/) versioning system as agreed upon in [CEP 8](https://github.com/conda-incubator/ceps/blob/main/cep-8.md) (Conda Enhancement Proposal).
 
