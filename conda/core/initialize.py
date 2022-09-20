@@ -38,6 +38,7 @@ import json
 from logging import getLogger
 import os
 from os.path import abspath, basename, dirname, exists, expanduser, isdir, isfile, join
+from pathlib import Path
 from random import randint
 import re
 import sys
@@ -193,40 +194,48 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     )
 
     if shell == "bash":
-        builder = []
-        builder += ["unset %s" % unset_env_var for unset_env_var in unset_env_vars]
-        builder += ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
         sys_executable = abspath(sys.executable)
         if on_win:
-            sys_executable = "$(cygpath '%s')" % sys_executable
-        builder += [f'eval "$("{sys_executable}" -m conda "shell.bash" "hook")"']
-        if context.auto_activate_base:
-            builder += [f"conda activate '{prefix}'"]
-        print("\n".join(builder))
-    elif shell == 'cmd.exe':
+            sys_executable = f"$(cygpath '{sys_executable}')"
+        script = "\n".join(
+            (
+                *(f"unset {envvar}" for envvar in unset_env_vars),
+                *(f"export {envvar}='{value}'" for envvar, value in sorted(env_vars.items())),
+                f'eval "$("{sys_executable}" -m conda shell.bash hook)"',
+                *((f"conda activate '{prefix}'",) if context.auto_activate_base else ()),
+            )
+        )
+        print(script)
+    elif shell == "cmd.exe":
+        dev_arg = ""
         if context.dev:
             dev_arg = '--dev'
-        else:
-            dev_arg = ''
-        builder = []
-        builder += ["@IF NOT \"%CONDA_PROMPT_MODIFIER%\" == \"\" @CALL "
-                    "SET \"PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%\""]
-        builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
-        builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
-        builder += [
-            f'@CALL "{join(prefix, "condabin", "conda_hook.bat")}" {dev_arg}',
-            '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
-        ]
-        if context.auto_activate_base:
-            builder += [
-                f'@CALL "{join(prefix, "condabin", "conda.bat")}" activate {dev_arg} "{prefix}"',
+        condabin = Path(prefix, "condabin")
+        script = "\n".join(
+            (
+                (
+                    '@IF NOT "%CONDA_PROMPT_MODIFIER%" == "" '
+                    '@CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"'
+                ),
+                *(f"@SET {envvar}=" for envvar in unset_env_vars),
+                *(f'@SET "{envvar}={value}"' for envvar, value in sorted(env_vars.items())),
+                f'@CALL "{condabin / "conda_hook.bat"}" {dev_arg}',
                 "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
-            ]
+                *(
+                    (
+                        f'@CALL "{condabin / "conda.bat"}" activate {dev_arg} "{prefix}"',
+                        "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
+                    )
+                    if context.auto_activate_base
+                    else ()
+                ),
+            )
+        )
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
-                fh.write('\n'.join(builder))
+                fh.write(script)
         if context.verbosity:
-            print('\n'.join(builder))
+            print(script)
         print("now run  > .\\dev-init.bat")
     else:
         raise NotImplementedError()
