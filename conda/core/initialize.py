@@ -41,6 +41,7 @@ from random import randint
 import re
 import sys
 import struct
+from warnings import warn
 
 try:
     FileNotFoundError
@@ -125,7 +126,7 @@ def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt, reve
         return 1
 
 
-def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
+def initialize_dev(shell, fd=None, tmp=None, dev_env_prefix=None, conda_source_root=None):
     # > alias conda-dev='eval "$(python -m conda init --dev)"'
     # > eval "$(python -m conda init --dev)"
 
@@ -192,17 +193,33 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     )
 
     if shell == "bash":
-        print("\n".join(_initialize_dev_bash(prefix, env_vars, unset_env_vars)))
+        generate_script = _initialize_dev_bash
     elif shell == "cmd.exe":
-        script = _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars)
-        if not context.dry_run:
-            with open('dev-init.bat', 'w') as fh:
-                fh.write("\n".join(script))
-        if context.verbosity:
-            print("\n".join(script))
-        print("now run  > .\\dev-init.bat")
+        generate_script = _initialize_dev_cmdexe
     else:
-        raise NotImplementedError()
+        raise NotImplementedError
+
+    script = "\n".join(generate_script(prefix, env_vars, unset_env_vars))
+
+    if fd is not None:
+        try:
+            with os.fdopen(fd, "w") as fh:
+                fh.write(script)
+        except OSError:
+            # the file descriptor hasn't been opened so it cannot be written to, just write out
+            # to stdout instead as the user is likely running this for debugging purposes
+            warn(
+                f"The file descriptor ({fd}) hasn't been opened yet and is unwritable, "
+                "writing to stdout instead."
+            )
+            print(script)
+    elif tmp is not None:
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        with tmp.open("w") as fh:
+            fh.write(script)
+    else:
+        print(script)
+
     return 0
 
 

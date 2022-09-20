@@ -14,6 +14,7 @@ from argparse import (
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
+from pathlib import Path
 from subprocess import Popen
 import sys
 from textwrap import dedent
@@ -698,7 +699,6 @@ def configure_parser_create(sub_parsers):
 def configure_parser_init(sub_parsers):
     help = "Initialize conda for shell interaction."
     descr = help
-
     epilog = dals(
         """
         Key parts of conda's functionality require that it interact directly with the shell
@@ -720,25 +720,6 @@ def configure_parser_init(sub_parsers):
         """
     )
 
-    # dev_example = dedent("""
-    #     # An example for creating an environment to develop on conda's own code. Clone the
-    #     # conda repo and install a dedicated miniconda within it. Remove all remnants of
-    #     # conda source files in the `site-packages` directory associated with
-    #     # `~/conda/devenv/bin/python`. Write a `conda.pth` file in that `site-packages`
-    #     # directory pointing to source code in `~/conda`, the current working directory.
-    #     # Write commands to stdout, suitable for bash `eval`, that sets up the current
-    #     # shell as a dev environment.
-    #
-    #         $ CONDA_PROJECT_ROOT="~/conda"
-    #         $ git clone git@github.com:conda/conda "$CONDA_PROJECT_ROOT"
-    #         $ cd "$CONDA_PROJECT_ROOT"
-    #         $ wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-    #         $ bash Miniconda3-latest-Linux-x86_64.sh -bfp ./devenv
-    #         $ eval "$(./devenv/bin/python -m conda init --dev bash)"
-    #
-    #
-    # """)
-
     p = sub_parsers.add_parser(
         'init',
         description=descr,
@@ -749,8 +730,21 @@ def configure_parser_init(sub_parsers):
     p.add_argument(
         "--dev",
         action="store_true",
-        help=SUPPRESS,
+        help="Initialize in the current shell only.",
         default=NULL,
+    )
+    dev_piping_group = p.add_mutually_exclusive_group()
+    dev_piping_group.add_argument(
+        "--fd",
+        type=int,
+        help="When --dev is specified use --fd to pipe to a file descriptor besides stdout.",
+        default=None,
+    )
+    dev_piping_group.add_argument(
+        "--tmp",
+        type=Path,
+        help="When --dev is specified use --tmp to write to a temporary file instead of stdout.",
+        default=None,
     )
 
     p.add_argument(

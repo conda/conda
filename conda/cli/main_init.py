@@ -25,7 +25,7 @@ def execute(args, parser):
     if args.dev:
         if len(selected_shells) != 1:
             raise ArgumentError("--dev can only handle one shell at a time right now")
-        return initialize_dev(selected_shells[0])
+        return initialize_dev(selected_shells[0], fd=args.fd, tmp=args.tmp)
 
     else:
         for_user = args.user
