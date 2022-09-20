@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import conda.core.index
-
 from conda.exceptions import PluginError
 from conda.base.context import context
 from conda.testing.solver_helpers import package_dict

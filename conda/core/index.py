@@ -164,6 +164,7 @@ def _supplement_index_with_features(index, features=()):
         index[rec] = rec
 
 
+<<<<<<< HEAD
 def _supplement_index_with_system(index):
     """
     Loads and populates virtual package records from conda plugins
@@ -185,6 +186,8 @@ def _supplement_index_with_system(index):
         index[rec] = rec
 
 
+=======
+>>>>>>> 535fc4a81 (Fix virtual packages unit test, update index module)
 def get_archspec_name():
     from conda.base.context import non_x86_machines, _arch_names, _platform_map
 
@@ -210,6 +213,22 @@ def get_archspec_name():
         return str(archspec.cpu.host())
     except ImportError:
         return machine
+
+
+def _supplement_index_with_system(index):
+    registered_names = []
+    for package in chain(*context.plugin_manager.hook.conda_virtual_package_plugin()):
+        if package.name in registered_names:
+            raise PluginError(
+                "Conflicting virtual package entries found for the "
+                f"`{package.name}` key. Multiple conda plugins "
+                "are registering this virtual package via the "
+                "`conda_virtual_package_plugin` hook, please make sure "
+                "you don't have any incompatible plugins installed."
+            )
+        registered_names.append(package.name)
+        rec = _make_virtual_package(f"__{package.name}", package.version)
+        index[rec] = rec
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
