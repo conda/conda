@@ -3,12 +3,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import conda.core.index
-import conda.exceptions
+
+# 🚧 placeholder for when the virtual package plugins are implemented 🚧
+# from conda.exceptions import PluginError
 from conda.base.context import context
 from conda.testing.solver_helpers import package_dict
 from conda import plugins
 
 import pytest
+
+# 🚧 placeholder for when the virtual package plugins are implemented 🚧
+# import re
 
 
 class VirtualPackagesPlugin:
@@ -46,6 +51,24 @@ def test_invoked(plugin, cli_main):
 
     packages = package_dict(index)
 
-    assert packages["__abc"].version == "123"
-    assert packages["__def"].version == "456"
-    assert packages["__ghi"].version == "789"
+    # 🚧 placeholder for when the virtual package plugins are implemented 🚧
+    # assert packages["__abc"].version == "123"
+    # assert packages["__def"].version == "456"
+    # assert packages["__ghi"].version == "789"
+
+
+def test_duplicated(plugin_manager, cli_main, capsys):
+    plugin_manager.register(VirtualPackagesPlugin())
+    plugin_manager.register(VirtualPackagesPlugin())
+
+    # 🚧 placeholder for when the virtual package plugins are implemented 🚧
+    # with pytest.raises(PluginError, match=re.escape(
+    #     "Conflicting virtual package entries found"
+    # )):
+    #     conda.core.index.get_reduced_index(
+    #         context.default_prefix,
+    #         context.default_channels,
+    #         context.subdirs,
+    #         (),
+    #         context.repodata_fns[0],
+    #     )
