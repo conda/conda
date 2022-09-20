@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Fixes a bug with entry point script shebang for OSX that was discovered during the release process.
