@@ -176,9 +176,9 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         raise CondaError("Operation failed. Privileged install disallowed for 'conda init --dev'.")
 
     env_vars = {
-        'PYTHONHASHSEED': str(randint(0, 4294967296)),
-        'PYTHON_MAJOR_VERSION': python_version[0],
-        'TEST_PLATFORM': 'win' if on_win else 'unix',
+        "PYTHONHASHSEED": randint(0, 4294967296),
+        "PYTHON_MAJOR_VERSION": python_version[0],
+        "TEST_PLATFORM": "win" if on_win else "unix",
     }
     unset_env_vars = (
         'CONDA_DEFAULT_ENV',
