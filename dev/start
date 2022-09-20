@@ -26,6 +26,7 @@ cleanup() {
     unset _NAME
     unset _PYTHON
     unset _PYTHONEXE
+    unset _SCRIPT
     unset _SRC
     unset _UPDATE
     unset _UPDATED
@@ -258,7 +259,8 @@ echo "Initializing shell integration..."
 _AUTOBASE="${CONDA_AUTO_ACTIVATE_BASE:-undefined}"
 _EXPORTED="$(export -p | grep CONDA_AUTO_ACTIVATE_BASE)"
 export CONDA_AUTO_ACTIVATE_BASE=false
-eval "$(cd "${_SRC}" ; "${_ENVEXE}" init --dev bash)" > /dev/null
+_SCRIPT="$(cd "${_SRC}" ; "${_ENVEXE}" init bash --dev --fd 3 3>&1 >&4)" 4>&1
+eval "${_SCRIPT}" >/dev/null
 if [ "${_AUTOBASE}" = "undefined" ]; then
     unset CONDA_AUTO_ACTIVATE_BASE
 elif [ -n ${_EXPORTED+x} ]; then

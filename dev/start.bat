@@ -165,7 +165,7 @@
     @SET "_AUTOBASE=%CONDA_AUTO_ACTIVATE_BASE%"
 )
 @SET "CONDA_AUTO_ACTIVATE_BASE=false"
-@CALL :CONDA "%_ENVEXE%" init --dev cmd.exe > NUL
+@CALL :CONDA "%_ENVEXE%" init cmd.exe --dev --tmp dev-init.bat > NUL
 @CALL dev-init.bat > NUL
 @IF "%_AUTOBASE%"=="undefined" (
     @SET CONDA_AUTO_ACTIVATE_BASE=

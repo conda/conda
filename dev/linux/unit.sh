@@ -5,8 +5,10 @@ set -o errtrace -o pipefail -o errexit
 TEST_SPLITS="${TEST_SPLITS:-1}"
 TEST_GROUP="${TEST_GROUP:-1}"
 
-eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+# TODO: once #11865 is merged this can be updated
+SCRIPT="$(sudo /opt/conda/bin/conda init bash --dev)"
+eval "${SCRIPT}" >/dev/null
 conda info
-# remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
-sudo rm -rf /opt/conda/pkgs/*-*-*
+conda clean -ayq
+
 pytest -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
