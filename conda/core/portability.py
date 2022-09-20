@@ -13,7 +13,7 @@ import sys
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import on_win, on_linux
+from ..common.compat import on_win, on_linux, on_mac
 from ..exceptions import CondaIOError, BinaryPrefixReplacementError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
@@ -28,7 +28,7 @@ SHEBANG_REGEX = (br'^(#!'  # pretty much the whole match string
                  br'(.*)'  # the rest of the line can contain option flags
                  br')$')  # end whole_shebang group
 
-MAX_SHEBANG_LENGTH = 127 if on_linux else 512  # Not used on Windows
+MAX_SHEBANG_LENGTH = 127 if (on_linux or on_mac) else 512  # Not used on Windows
 
 
 class _PaddingError(Exception):
