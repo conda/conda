@@ -38,12 +38,20 @@ def conda_subcommands() -> Iterable[CondaSubcommand]:
     ...
 
 class CondaVirtualPackage(NamedTuple):
+    """
+    Conda subcommand entry.
+
+    :param name: Virtual package name (e.g., ``my_custom_os``).
+    :param version: Virtual package version (e.g., ``1.2.3``).
+    """
     name: str
     version: Optional[str]
 
 
 @_hookspec
 def conda_virtual_package_plugin() -> Iterable[CondaVirtualPackage]:
-    """Register virtual packages in Conda.
+    """
+    Register virtual packages in Conda.
+
     :return: An iterable of virtual package entries.
     """

@@ -26,6 +26,7 @@ Example
 
 
 .. code-block:: python
+
    def example_command(args):
        print("Example command!")
 

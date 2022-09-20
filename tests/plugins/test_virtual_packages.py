@@ -2,12 +2,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-import re
-
 import conda.core.index
 import conda.exceptions
 from conda.base.context import context
-
+from conda.testing.solver_helpers import package_dict
 from conda import plugins
 
 import pytest
@@ -46,6 +44,8 @@ def test_invoked(plugin, cli_main):
         context.repodata_fns[0],
     )
 
-    assert index["__abc"].version == "123"
-    assert index["__def"].version == "456"
-    assert index["__ghi"].version == "789"
+    packages = package_dict(index)
+
+    assert packages["__abc"].version == "123"
+    assert packages["__def"].version == "456"
+    assert packages["__ghi"].version == "789"
