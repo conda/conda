@@ -13,7 +13,7 @@ import sys
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import on_win, on_linux, on_mac
+from ..common.compat import on_win
 from ..exceptions import CondaIOError, BinaryPrefixReplacementError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
