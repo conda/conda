@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
+import re
 from itertools import chain
 from logging import getLogger
 import platform
@@ -18,7 +20,7 @@ from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
-from ..exceptions import ChannelNotAllowed, InvalidSpec, PluginError
+from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
@@ -165,19 +167,32 @@ def _supplement_index_with_features(index, features=()):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 def _supplement_index_with_system(index):
     cuda_version = context.cuda_version
     if cuda_version is not None:
         rec = _make_virtual_package('__cuda', cuda_version)
+=======
+def _supplement_index_with_system(index):
+    cuda_version = context.cuda_version
+    if cuda_version is not None:
+        rec = _make_virtual_package("__cuda", cuda_version)
+>>>>>>> 27a7a6fb6 (Revert changes to index.py)
         index[rec] = rec
 
     dist_name, dist_version = context.os_distribution_name_version
     is_osx = context.subdir.startswith("osx-")
     if is_osx:
         # User will have to set env variable when using CONDA_SUBDIR var
+<<<<<<< HEAD
         dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
         if dist_version:
             rec = _make_virtual_package('__osx', dist_version)
+=======
+        dist_version = os.environ.get("CONDA_OVERRIDE_OSX", dist_version)
+        if dist_version:
+            rec = _make_virtual_package("__osx", dist_version)
+>>>>>>> 27a7a6fb6 (Revert changes to index.py)
             index[rec] = rec
 
     libc_family, libc_version = context.libc_family_version
@@ -189,14 +204,21 @@ def _supplement_index_with_system(index):
         # discard everything after the last digit of the third or fourth
         # numeric component; note that this breaks version ordering for
         # development (`-rcN`) kernels, but we'll deal with that later.
+<<<<<<< HEAD
         dist_version = os.environ.get('CONDA_OVERRIDE_LINUX', context.platform_system_release[1])
         m = re.match(r'\d+\.\d+(\.\d+)?(\.\d+)?', dist_version)
         rec = _make_virtual_package('__linux', m.group() if m else "0")
+=======
+        dist_version = os.environ.get("CONDA_OVERRIDE_LINUX", context.platform_system_release[1])
+        m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
+        rec = _make_virtual_package("__linux", m.group() if m else "0")
+>>>>>>> 27a7a6fb6 (Revert changes to index.py)
         index[rec] = rec
 
         if not (libc_family and libc_version):
             # Default to glibc when using CONDA_SUBDIR var
             libc_family = "glibc"
+<<<<<<< HEAD
         libc_version = os.getenv(f"CONDA_OVERRIDE_{libc_family.upper()}", libc_version)
         if libc_version:
             rec = _make_virtual_package('__' + libc_family, libc_version)
@@ -207,17 +229,36 @@ def _supplement_index_with_system(index):
         index[rec] = rec
     elif context.subdir.startswith('win-'):
         rec = _make_virtual_package('__win')
+=======
+        libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
+        if libc_version:
+            rec = _make_virtual_package("__" + libc_family, libc_version)
+            index[rec] = rec
+
+    if is_linux or is_osx:
+        rec = _make_virtual_package("__unix")
+        index[rec] = rec
+    elif context.subdir.startswith("win-"):
+        rec = _make_virtual_package("__win")
+>>>>>>> 27a7a6fb6 (Revert changes to index.py)
         index[rec] = rec
 
     archspec_name = get_archspec_name()
     archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC", archspec_name)
     if archspec_name:
+<<<<<<< HEAD
         rec = _make_virtual_package('__archspec', "1", archspec_name)
         index[rec] = rec
 
 
 =======
 >>>>>>> 535fc4a81 (Fix virtual packages unit test, update index module)
+=======
+        rec = _make_virtual_package("__archspec", "1", archspec_name)
+        index[rec] = rec
+
+
+>>>>>>> 27a7a6fb6 (Revert changes to index.py)
 def get_archspec_name():
     from conda.base.context import non_x86_machines, _arch_names, _platform_map
 
@@ -243,22 +284,6 @@ def get_archspec_name():
         return str(archspec.cpu.host())
     except ImportError:
         return machine
-
-
-def _supplement_index_with_system(index):
-    registered_names = []
-    for package in chain(*context.plugin_manager.hook.conda_virtual_package_plugin()):
-        if package.name in registered_names:
-            raise PluginError(
-                "Conflicting virtual package entries found for the "
-                f"`{package.name}` key. Multiple conda plugins "
-                "are registering this virtual package via the "
-                "`conda_virtual_package_plugin` hook, please make sure "
-                "you don't have any incompatible plugins installed."
-            )
-        registered_names.append(package.name)
-        rec = _make_virtual_package(f"__{package.name}", package.version)
-        index[rec] = rec
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
