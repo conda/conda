@@ -28,7 +28,7 @@ SHEBANG_REGEX = (br'^(#!'  # pretty much the whole match string
                  br'(.*)'  # the rest of the line can contain option flags
                  br')$')  # end whole_shebang group
 
-MAX_SHEBANG_LENGTH = 512 if on_win else 127
+MAX_SHEBANG_LENGTH = 127
 
 
 class _PaddingError(Exception):
