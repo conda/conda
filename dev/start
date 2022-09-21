@@ -12,6 +12,7 @@ cleanup() {
     unset _BASEEXE
     unset _CMD
     unset _DEFAULT_ARCH
+    unset _DEFAULT_DEVENV
     unset _DEFAULT_DRYRUN
     unset _DEFAULT_MACH
     unset _DEFAULT_PYTHON
