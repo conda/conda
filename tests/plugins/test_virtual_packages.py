@@ -4,16 +4,14 @@
 
 import conda.core.index
 
-# 🚧 placeholder for when the virtual package plugins are implemented 🚧
-# from conda.exceptions import PluginError
+from conda.exceptions import PluginError
 from conda.base.context import context
 from conda.testing.solver_helpers import package_dict
 from conda import plugins
 
 import pytest
 
-# 🚧 placeholder for when the virtual package plugins are implemented 🚧
-# import re
+import re
 
 
 class VirtualPackagesPlugin:
@@ -40,6 +38,7 @@ def plugin(plugin_manager):
     return plugin
 
 
+@pytest.mark.xfail(reason="virtual package plugins need to be implemented for this test to pass")
 def test_invoked(plugin, cli_main):
     index = conda.core.index.get_reduced_index(
         context.default_prefix,
@@ -51,24 +50,21 @@ def test_invoked(plugin, cli_main):
 
     packages = package_dict(index)
 
-    # 🚧 placeholder for when the virtual package plugins are implemented 🚧
-    # assert packages["__abc"].version == "123"
-    # assert packages["__def"].version == "456"
-    # assert packages["__ghi"].version == "789"
+    assert packages["__abc"].version == "123"
+    assert packages["__def"].version == "456"
+    assert packages["__ghi"].version == "789"
 
 
+@pytest.mark.xfail(reason="virtual package plugins need to be implemented for this test to pass")
 def test_duplicated(plugin_manager, cli_main, capsys):
     plugin_manager.register(VirtualPackagesPlugin())
     plugin_manager.register(VirtualPackagesPlugin())
 
-    # 🚧 placeholder for when the virtual package plugins are implemented 🚧
-    # with pytest.raises(PluginError, match=re.escape(
-    #     "Conflicting virtual package entries found"
-    # )):
-    #     conda.core.index.get_reduced_index(
-    #         context.default_prefix,
-    #         context.default_channels,
-    #         context.subdirs,
-    #         (),
-    #         context.repodata_fns[0],
-    #     )
+    with pytest.raises(PluginError, match=re.escape("Conflicting virtual package entries found")):
+        conda.core.index.get_reduced_index(
+            context.default_prefix,
+            context.default_channels,
+            context.subdirs,
+            (),
+            context.repodata_fns[0],
+        )
