@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Removed allow_other_channels config option from documentation, as the option no longer exists.
+
+### Other
+
+* <news item>
