@@ -38,6 +38,10 @@ updating() {
 
 cleanup
 
+# get source path
+# since zsh is MacOS standard fallback to $0 if not in bash
+_SRC="$(cd "$(dirname "$(dirname "${BASH_SOURCE:-$0}")")" 2>&1 > /dev/null; pwd -P)"
+
 # define default values
 _DEFAULT_PYTHON="3.8"
 # $ uname -sm
@@ -48,6 +52,7 @@ _DEFAULT_PYTHON="3.8"
 _DEFAULT_MACH="$(uname)"
 _DEFAULT_ARCH="$(uname -m)"
 _DEFAULT_UPDATE="false"
+_DEFAULT_DEVENV="${_SRC}/devenv"
 _DEFAULT_DRYRUN="false"
 
 # parse args
@@ -107,7 +112,7 @@ while [ $# -gt 0 ]; do
             echo "  -a, --arch    ARCH     Python version for the env to activate. (default: ${_DEFAULT_ARCH})"
             echo "  -u, --update           Force update packages. (default: ${_DEFAULT_UPDATE}, update every 24 hours)"
             echo "  -d, --devenv  PATH     Path to base env install, can also be defined in ~/.condarc."
-            echo "                         Path is appended with machine hardware name, see --mach. (default: devenv/${_DEFAULT_MACH})"
+            echo "                         Path is appended with machine hardware name, see --mach. (default: ${_DEFAULT_DEVENV})"
             echo "  -n, --dry-run          Display env to activate. (default: ${_DEFAULT_DRYRUN})"
             echo "  -h, --help             Display this."
             return 0
@@ -131,16 +136,12 @@ _ARCH="${_ARCH:-${_DEFAULT_ARCH}}"
 _UPDATE="${_UPDATE:-${_DEFAULT_UPDATE}}"
 _DRYRUN="${_DRYRUN:-${_DEFAULT_DRYRUN}}"
 
-# get source path
-# since zsh is MacOS standard fallback to $0 if not in bash
-_SRC="$(cd "$(dirname "$(dirname "${BASH_SOURCE:-$0}")")" 2>&1 > /dev/null; pwd -P)"
-
 # read devenv key from ~/.condarc
 if [ -f ~/.condarc ]; then
     _DEVENV="${_DEVENV:-$(grep "^devenv:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
 fi
 # fallback to devenv in source default
-_DEVENV="${_DEVENV:-${_SRC}/devenv}"
+_DEVENV="${_DEVENV:-${_DEFAULT_DEVENV}}"
 # tilde expansion
 _DEVENV="${_DEVENV/#\~/${HOME}}"
 # include OS
