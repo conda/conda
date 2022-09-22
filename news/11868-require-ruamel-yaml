@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Require `ruamel.yaml`. (#11868)
+* Require `ruamel.yaml`. (#11868, #11837)
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Drop `ruamel_yaml` and `ruamel_yaml_conda` in favor of `ruamel.yaml`. (#11837)
 
 ### Docs
 
