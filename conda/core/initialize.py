@@ -194,52 +194,60 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     )
 
     if shell == "bash":
-        sys_executable = abspath(sys.executable)
-        if on_win:
-            sys_executable = f"$(cygpath '{sys_executable}')"
-        script = "\n".join(
-            (
-                *(f"unset {envvar}" for envvar in unset_env_vars),
-                *(f"export {envvar}='{value}'" for envvar, value in sorted(env_vars.items())),
-                f'eval "$("{sys_executable}" -m conda shell.bash hook)"',
-                *((f"conda activate '{prefix}'",) if context.auto_activate_base else ()),
-            )
-        )
-        print(script)
+        print("\n".join(_initialize_dev_bash(prefix, env_vars, unset_env_vars)))
     elif shell == "cmd.exe":
-        dev_arg = ""
-        if context.dev:
-            dev_arg = '--dev'
-        condabin = Path(prefix, "condabin")
-        script = "\n".join(
-            (
-                (
-                    '@IF NOT "%CONDA_PROMPT_MODIFIER%" == "" '
-                    '@CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"'
-                ),
-                *(f"@SET {envvar}=" for envvar in unset_env_vars),
-                *(f'@SET "{envvar}={value}"' for envvar, value in sorted(env_vars.items())),
-                f'@CALL "{condabin / "conda_hook.bat"}" {dev_arg}',
-                "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
-                *(
-                    (
-                        f'@CALL "{condabin / "conda.bat"}" activate {dev_arg} "{prefix}"',
-                        "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
-                    )
-                    if context.auto_activate_base
-                    else ()
-                ),
-            )
-        )
+        script = _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars)
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
-                fh.write(script)
+                fh.write("\n".join(script))
         if context.verbosity:
-            print(script)
+            print("\n".join(script))
         print("now run  > .\\dev-init.bat")
     else:
         raise NotImplementedError()
     return 0
+
+
+def _initialize_dev_bash(prefix, env_vars, unset_env_vars):
+    sys_executable = abspath(sys.executable)
+    if on_win:
+        sys_executable = f"$(cygpath '{sys_executable}')"
+
+    # unset/set environment variables
+    yield from (f"unset {envvar}" for envvar in unset_env_vars)
+    yield from (f"export {envvar}='{value}'" for envvar, value in sorted(env_vars.items()))
+
+    # initialize shell interface
+    yield f'eval "$("{sys_executable}" -m conda shell.bash hook)"'
+
+    # optionally activate environment
+    if context.auto_activate_base:
+        yield f"conda activate '{prefix}'"
+
+
+def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
+    dev_arg = ""
+    if context.dev:
+        dev_arg = "--dev"
+    condabin = Path(prefix, "condabin")
+
+    yield (
+        '@IF NOT "%CONDA_PROMPT_MODIFIER%" == "" '
+        '@CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"'
+    )
+
+    # unset/set environment variables
+    yield from (f"@SET {envvar}=" for envvar in unset_env_vars)
+    yield from (f'@SET "{envvar}={value}"' for envvar, value in sorted(env_vars.items()))
+
+    # initialize shell interface
+    yield f'@CALL "{condabin / "conda_hook.bat"}" {dev_arg}'
+    yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
+
+    # optionally activate environment
+    if context.auto_activate_base:
+        yield f'@CALL "{condabin / "conda.bat"}" activate {dev_arg} "{prefix}"'
+        yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
 
 
 # #####################################################
