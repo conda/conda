@@ -75,10 +75,10 @@ System configuration file
 
      $ cat /tmp/miniconda/.condarc
 
-     channels:          #!final
+     channels:                                   #!final
        - admin
 
-     channel_alias: https://conda.anaconda.org/ #final
+     channel_alias: https://conda.anaconda.org/  #!final
 
 The ``#!final`` flag is very similar to the ``!important``
 rule in CSS; any parameter within the ``.condarc`` that is
