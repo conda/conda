@@ -83,13 +83,13 @@ System configuration file
 The ``#!final`` flag is very similar to the ``!important``
 rule in CSS; any parameter within the ``.condarc`` that is
 trailed by the ``#!final`` cannot be overwritten by any other
-``.condarc`` source. For more information on this flag, see the 
-`Anaconda Blog <https://www.anaconda.com/blog/conda-configuration-engine-power-users>`_ 
+``.condarc`` source. For more information on this flag, see the
+`Anaconda Blog <https://www.anaconda.com/blog/conda-configuration-engine-power-users>`_
 on the subject.
 
-Because the ``#!final`` flag has been used and the channel 
-defaults are not explicitly specified, users are disallowed 
-from downloading packages from the default channels. You can 
+Because the ``#!final`` flag has been used and the channel
+defaults are not explicitly specified, users are disallowed
+from downloading packages from the default channels. You can
 check this in the next procedure.
 
 .. _admin-inst-user:
