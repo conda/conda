@@ -18,6 +18,8 @@ CALL \conda_bin\scripts\activate.bat || goto :error
 CALL conda create -n conda-test-env -y python=%PYTHON% pywin32 --file=tests\requirements.txt || goto :error
 CALL conda activate conda-test-env || goto :error
 CALL conda update openssl ca-certificates certifi || goto :error
+REM TODO:  Remove before merge, temporary:
+CALL conda install "jaimergp/label/menuinst_dev::menuinst=2" --no-deps || goto :error
 python -m conda init --install || goto :error
 python -m conda init cmd.exe --dev || goto :error
 
