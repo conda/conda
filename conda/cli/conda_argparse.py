@@ -533,11 +533,8 @@ def configure_parser_config(sub_parsers):
     )
     config_modifiers.add_argument(
         "--clear",
-        nargs=1,
         action="append",
-        help="""Clear a list key. This clears out
-    all values for the key.""",
-        default=[],
+        help="Clear a list key. This clears out all values for the key.",
         metavar="KEY",
     )
     config_modifiers.add_argument(
