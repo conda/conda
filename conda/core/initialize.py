@@ -462,7 +462,9 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                 },
             })
 
-        if for_system:
+        from ..common._os import is_admin 
+
+        if for_system or is_admin():
             plan.append({
                 'function': init_sh_system.__name__,
                 'kwargs': {
@@ -470,7 +472,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'conda_prefix': conda_prefix,
                     'reverse': reverse,
                 },
-            })
+            })     
 
     if 'fish' in shells:
         if for_user:
