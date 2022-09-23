@@ -6,8 +6,8 @@ import unittest
 
 from .. import support_file
 
-from conda_env import env
-from conda_env.specs.requirements import RequirementsSpec
+from conda import env
+from conda.env.specs.requirements import RequirementsSpec
 
 
 class TestRequiremets(unittest.TestCase):

@@ -7,11 +7,10 @@ from contextlib import contextmanager
 from tempfile import mkdtemp
 
 from conda.gateways.disk.delete import rm_rf
-
-from conda_env.cli.main import do_call as do_call_conda_env
-from conda_env.cli.main_create import configure_parser as create_configure_parser
-from conda_env.cli.main_update import configure_parser as update_configure_parser
-from conda_env.cli.main_export import configure_parser as export_configure_parser
+from conda.cli.argparse import do_call
+from conda.cli.env.create._parser import configure_parser as create_configure_parser
+from conda.cli.env.update._parser import configure_parser as update_configure_parser
+from conda.cli.env.export._parser import configure_parser as export_configure_parser
 
 from conda.utils import massage_arguments
 
@@ -46,4 +45,4 @@ def run_command(command, env_name, *arguments):
     parser_config[command](sub_parsers)
     args = p.parse_args(args)
 
-    do_call_conda_env(args, p)
+    do_call(args, p)

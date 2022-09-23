@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import unittest
-from conda_env import env
-from conda_env.specs.notebook import NotebookSpec
+from conda import env
+from conda.env.specs.notebook import NotebookSpec
 from .. import support_file
 
 

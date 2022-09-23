@@ -12,7 +12,7 @@ except ImportError:
     import mock
 
 from conda.exceptions import SpecNotFound
-from conda_env import specs
+from conda.env import specs
 
 
 true_func = mock.Mock(return_value=True)

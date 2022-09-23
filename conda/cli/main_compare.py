@@ -14,7 +14,7 @@ from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import is_conda_environment
 from ..models.match_spec import MatchSpec
-from conda_env import specs
+from ..env import specs
 
 log = logging.getLogger(__name__)
 

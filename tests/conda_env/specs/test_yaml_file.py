@@ -9,8 +9,8 @@ try:
 except ImportError:
     import mock
 
-from conda_env import env
-from conda_env.specs.yaml_file import YamlFileSpec
+from conda import env
+from conda.env.specs.yaml_file import YamlFileSpec
 
 
 class TestYAMLFile(unittest.TestCase):

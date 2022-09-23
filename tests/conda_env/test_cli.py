@@ -13,7 +13,6 @@ import unittest
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
-from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser
 from conda.common.compat import odict
 from conda.common.io import captured
@@ -28,7 +27,8 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
-from conda_env.cli.main import create_parser, do_call as do_call_conda_env
+from conda.cli.env._parser import configure_parser
+from conda.cli.argparse import do_call
 
 # Environment names we use during our tests
 TEST_ENV_NAME_1 = "env-1"
@@ -153,12 +153,12 @@ def run_env_command(command, prefix, *arguments, use_prefix_flag: bool = False):
         arguments[1:1] = ["--yes", flag, prefix]
     elif command is Commands.ENV_UPDATE:
         arguments[1:1] = [flag, prefix]
-    p = create_parser()
+    p = configure_parser()
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
 
     with captured() as c:
-        do_call_conda_env(args, p)
+        do_call(args, p)
 
     return c.stdout, c.stderr
 

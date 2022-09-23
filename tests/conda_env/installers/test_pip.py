@@ -9,7 +9,7 @@ except ImportError:
     import mock
 
 import os
-from conda_env.installers import pip
+from conda.env.installers import pip
 from conda.exceptions import CondaValueError
 
 
