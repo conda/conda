@@ -1029,10 +1029,6 @@ class Solver(object):
 
                     $ conda update -n base -c %s conda
 
-                Or to minimize the number of packages updated during the conda update use
-
-                     conda install conda=version
-
                 """) % (CONDA_VERSION, latest_version, channel_name), file=sys.stderr)
 
     def _prepare(self, prepared_specs):
