@@ -3,16 +3,21 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 
-from .. import env
+from .. import Environment
 
 
 class RequirementsSpec(object):
-    '''
+    """
     Reads dependencies from a requirements.txt file
     and returns an Environment object from it.
-    '''
+    """
+
     msg = None
-    extensions = set(['.txt', ])
+    extensions = set(
+        [
+            ".txt",
+        ]
+    )
 
     def __init__(self, filename=None, name=None, **kwargs):
         self.filename = filename
@@ -42,10 +47,7 @@ class RequirementsSpec(object):
         with open(self.filename) as reqfile:
             for line in reqfile:
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
                 dependencies.append(line)
-        return env.Environment(
-            name=self.name,
-            dependencies=dependencies
-        )
+        return Environment(name=self.name, dependencies=dependencies)

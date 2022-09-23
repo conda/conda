@@ -6,7 +6,6 @@ import json
 import os
 import sys
 from typing import TYPE_CHECKING
-import textwrap
 
 from ....base.context import context, determine_target_prefix
 from ....cli import install as cli_install
@@ -15,9 +14,9 @@ from ....exceptions import SpecNotFound
 from ....gateways.disk.delete import rm_rf
 from ....notices import notices
 from ....misc import touch_nonadmin
-from ..installers.base import InvalidInstaller, get_installer
-from .. import specs
-from .common import print_result, get_filename
+from ....env.installers.base import InvalidInstaller, get_installer
+from ....env import specs
+from ..common import print_result, get_filename
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -72,7 +71,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> None:
             installer = get_installer(installer_type)
             result[installer_type] = installer.install(prefix, args_packages, args, env)
 
-        if len(env.dependencies.items()) == 0:
+        if env.dependencies:
             installer_type = "conda"
             pkg_specs = []
             installer = get_installer(installer_type)
@@ -83,19 +82,18 @@ def execute(args: Namespace, parser: ArgumentParser) -> None:
                     installer = get_installer(installer_type)
                     result[installer_type] = installer.install(prefix, pkg_specs, args, env)
                 except InvalidInstaller:
-                    sys.stderr.write(
-                        textwrap.dedent(
-                            """
-                        Unable to install package for {0}.
+                    print(
+                        dals(
+                            f"""
+                            Unable to install package for {installer_type}.
 
-                        Please double check and ensure your dependencies file has
-                        the correct spelling.  You might also try installing the
-                        conda-env-{0} package to see if provides the required
-                        installer.
-                        """
-                        )
-                        .lstrip()
-                        .format(installer_type)
+                            Please double check and ensure your dependencies file has
+                            the correct spelling.  You might also try installing the
+                            conda-env-{installer_type} package to see if provides the required
+                            installer.
+                            """
+                        ),
+                        file=sys.stderr,
                     )
                     return -1
 

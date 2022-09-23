@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
-
-from .. import env
+from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
+from .. import from_file
 
 
 class YamlFileSpec(object):
     _environment = None
-    extensions = set(('.yaml', '.yml'))
+    extensions = set((".yaml", ".yml"))
 
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
@@ -16,7 +15,7 @@ class YamlFileSpec(object):
 
     def can_handle(self):
         try:
-            self._environment = env.from_file(self.filename)
+            self._environment = from_file(self.filename)
             return True
         except EnvironmentFileNotFound as e:
             self.msg = str(e)

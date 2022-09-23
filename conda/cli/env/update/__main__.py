@@ -12,9 +12,9 @@ from ....core.prefix_data import PrefixData
 from ....exceptions import CondaEnvException, SpecNotFound
 from ....misc import touch_nonadmin
 from ....notices import notices
-from .. import specs as install_specs
-from ..installers.base import InvalidInstaller, get_installer
-from .common import print_result, get_filename
+from ....env import specs
+from ....env.installers.base import InvalidInstaller, get_installer
+from ..common import print_result, get_filename
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -25,9 +25,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> None:
     name = args.remote_definition or args.name
 
     try:
-        spec = install_specs.detect(
-            name=name, filename=get_filename(args.file), directory=os.getcwd()
-        )
+        spec = specs.detect(name=name, filename=get_filename(args.file), directory=os.getcwd())
         env = spec.environment
     except SpecNotFound:
         raise
@@ -88,9 +86,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> None:
             return -1
 
     result = {"conda": None, "pip": None}
-    for installer_type, specs in env.dependencies.items():
+    for installer_type, pkg_specs in env.dependencies.items():
         installer = installers[installer_type]
-        result[installer_type] = installer.install(prefix, specs, args, env)
+        result[installer_type] = installer.install(prefix, pkg_specs, args, env)
 
     if env.variables:
         pd = PrefixData(prefix)

@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ....base.context import context, determine_target_prefix, env_name
-from ....cli.common import stdout_json
-from ..env import from_environment
+from ....env import from_environment
+from ...common import stdout_json
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace

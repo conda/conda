@@ -4,12 +4,12 @@
 
 import os
 
-from conda.exceptions import (
+from ...exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
     SpecNotFound,
 )
-from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
+from ...gateways.connection.session import CONDA_SESSION_SCHEMES
 
 from .binstar import BinstarSpec
 from .notebook import NotebookSpec
@@ -18,19 +18,17 @@ from .yaml_file import YamlFileSpec
 
 
 def detect(**kwargs):
-    filename = kwargs.get('filename', '')
-    remote_definition = kwargs.get('name')
+    filename = kwargs.get("filename", "")
+    remote_definition = kwargs.get("name")
 
     # Check extensions
     all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
     fname, ext = os.path.splitext(filename)
 
     # First check if file exists and test the known valid extension for specs
-    file_exists = (
-        os.path.isfile(filename) or filename.split("://", 1)[0] in CONDA_SESSION_SCHEMES
-    )
+    file_exists = os.path.isfile(filename) or filename.split("://", 1)[0] in CONDA_SESSION_SCHEMES
     if file_exists:
-        if ext == '' or ext not in all_valid_exts:
+        if ext == "" or ext not in all_valid_exts:
             raise EnvironmentFileExtensionNotValid(filename or None)
         elif ext in YamlFileSpec.extensions:
             specs = [YamlFileSpec]

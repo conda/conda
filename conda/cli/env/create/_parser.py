@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ....auxlib.ish import dals
+from ...argparse import ArgumentParser
 from ...helpers import (
     add_parser_prefix,
     add_parser_networking,
