@@ -36,6 +36,6 @@ def configure_parser(parent: _SubParsersAction | None = None, name: str = "env")
     configure_parser_config(subparsers)
 
     # set executable for this scope
-    parser.set_defaults(func=".env.__main__.execute")
+    parser.set_defaults(func="conda.cli.env.__main__.execute")
 
     return parser

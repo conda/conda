@@ -65,6 +65,6 @@ def configure_parser(
     )
 
     # set executable for this scope
-    parser.set_defaults(func=".main_export.execute")
+    parser.set_defaults(func="conda.cli.env.export.__main__.execute")
 
     return parser

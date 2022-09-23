@@ -5,9 +5,9 @@ from __future__ import annotations
 from os.path import lexists
 from typing import TYPE_CHECKING
 
-from conda.base.context import context, determine_target_prefix
-from conda.core.prefix_data import PrefixData
-from conda.exceptions import EnvironmentLocationNotFound
+from ......base.context import context, determine_target_prefix
+from ......core.prefix_data import PrefixData
+from ......exceptions import EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -26,8 +26,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> None:
 
 
 if __name__ == "__main__":
+    from .....argparse import do_call
     from ._parser import configure_parser
 
     parser = configure_parser()
     args = parser.parse_args()
-    execute(args, parser)
+    do_call(args, parser)

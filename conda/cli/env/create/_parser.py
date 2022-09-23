@@ -94,6 +94,6 @@ def configure_parser(
     add_parser_experimental_solver(parser)
 
     # set executable for this scope
-    parser.set_defaults(func=".env.create.__main__.execute")
+    parser.set_defaults(func="conda.cli.env.create.__main__.execute")
 
     return parser

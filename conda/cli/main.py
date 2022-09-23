@@ -82,7 +82,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     if post_parse_hook:
         post_parse_hook(args, p)
 
-    from .conda_argparse import do_call
+    from .argparse import do_call
     exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code

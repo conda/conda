@@ -139,3 +139,17 @@ class ArgumentParser(ArgumentParserBase):
                 builder.append("conda commands available from other packages:")
                 builder.extend("  %s" % cmd for cmd in sorted(other_commands))
                 print("\n".join(builder))
+
+
+def do_call(args, parser):
+    from importlib import import_module
+
+    path, func = args.func.rsplit(".", 1)
+    if path.startswith("."):
+        # relative import
+        module = import_module(path, __name__.rsplit(".", 1)[0])
+    else:
+        # absolute import
+        module = import_module(path)
+
+    return getattr(module, func)(args, parser)

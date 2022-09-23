@@ -34,6 +34,6 @@ def configure_parser(
     add_parser_json(parser)
 
     # set executable for this scope
-    parser.set_defaults(func=".main_vars.execute_list")
+    parser.set_defaults(func="conda.cli.env.config.vars.list.__main__.execute")
 
     return parser

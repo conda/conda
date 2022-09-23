@@ -4,13 +4,14 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
+from ....base.context import context
+from ...main_remove import execute_remove
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> None:
-    import conda.cli.main_remove
-
     args = vars(args)
     args.update(
         {
@@ -26,16 +27,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> None:
         }
     )
     args = Namespace(**args)
-    from conda.base.context import context
 
     context.__init__(argparse_args=args)
-
-    conda.cli.main_remove.execute(args, parser)
+    execute_remove(args, parser)
 
 
 if __name__ == "__main__":
+    from ...argparse import do_call
     from ._parser import configure_parser
 
     parser = configure_parser()
     args = parser.parse_args()
-    execute(args, parser)
+    do_call(args, parser)

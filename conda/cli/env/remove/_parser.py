@@ -49,6 +49,6 @@ def configure_parser(
     add_output_and_prompt_options(parser)
 
     # set executable for this scope
-    parser.set_defaults(func=".main_remove.execute")
+    parser.set_defaults(func="conda.cli.env.remove.__main__.execute")
 
     return parser

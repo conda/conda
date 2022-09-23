@@ -19,7 +19,7 @@ from .. import __version__
 from ..auxlib.ish import dals
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, on_win
 from ..common.constants import NULL
-from .argparse import ArgumentParser, ExtendConstAction, NullCountAction
+from .argparse import ArgumentParser, ExtendConstAction, NullCountAction, do_call  # noqa: F401
 from .env._parser import configure_parser as configure_parser_env
 from .helpers import (
     add_output_and_prompt_options,
@@ -96,15 +96,6 @@ def generate_parser():
     configure_parser_env(sub_parsers)
 
     return p
-
-
-def do_call(args, parser):
-    relative_mod, func_name = args.func.rsplit('.', 1)
-    # func_name should always be 'execute'
-    from importlib import import_module
-    module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
-
-    return getattr(module, func_name)(args, parser)
 
 
 def find_builtin_commands(parser):

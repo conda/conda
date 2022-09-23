@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 def configure_parser(
-    parent: _SubParsersAction | None = None, name: str = "vars"
+    parent: _SubParsersAction | None = None, name: str = "unset"
 ) -> ArgumentParser:
     help_ = description = "Unset environment variables for a conda environment"
     epilog = dals(
@@ -39,6 +39,6 @@ def configure_parser(
     add_parser_prefix(parser)
 
     # set executable for this scope
-    parser.set_defaults(func=".main_vars.execute_unset")
+    parser.set_defaults(func="conda.cli.env.config.vars.unset.__main__.execute")
 
     return parser

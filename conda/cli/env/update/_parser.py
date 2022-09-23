@@ -59,6 +59,6 @@ def configure_parser(
     add_parser_experimental_solver(parser)
 
     # set executable for this scope
-    parser.set_defaults(func=".main_update.execute")
+    parser.set_defaults(func="conda.cli.env.update.__main__.execute")
 
     return parser

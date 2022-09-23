@@ -37,6 +37,6 @@ def configure_parser(parent: _SubParsersAction | None = None, name: str = "set")
     add_parser_prefix(parser)
 
     # set executable for this scope
-    parser.set_defaults(func=".main_vars.execute_set")
+    parser.set_defaults(func="conda.cli.env.config.vars.set.__main__.execute")
 
     return parser

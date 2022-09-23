@@ -9,12 +9,13 @@ if TYPE_CHECKING:
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> None:
-    pass
+    parser.print_help()
 
 
 if __name__ == "__main__":
+    from ....argparse import do_call
     from ._parser import configure_parser
 
     parser = configure_parser()
     args = parser.parse_args()
-    execute(args, parser)
+    do_call(args, parser)

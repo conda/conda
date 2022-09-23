@@ -5,10 +5,10 @@ from __future__ import annotations
 from os.path import lexists
 from typing import TYPE_CHECKING
 
-from conda.base.context import context, determine_target_prefix
-from conda.cli import common
-from conda.core.prefix_data import PrefixData
-from conda.exceptions import EnvironmentLocationNotFound
+from ......base.context import context, determine_target_prefix
+from ......core.prefix_data import PrefixData
+from ......exceptions import EnvironmentLocationNotFound
+from .....common import stdout_json
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -23,15 +23,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> None:
 
     env_vars = pd.get_environment_env_vars()
     if args.json:
-        common.stdout_json(env_vars)
+        stdout_json(env_vars)
     else:
         for k, v in env_vars.items():
             print("%s = %s" % (k, v))
 
 
 if __name__ == "__main__":
+    from .....argparse import do_call
     from ._parser import configure_parser
 
     parser = configure_parser()
     args = parser.parse_args()
-    execute(args, parser)
+    do_call(args, parser)

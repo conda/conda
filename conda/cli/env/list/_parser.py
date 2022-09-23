@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 def configure_parser(
-    parent: _SubParsersAction | None = None, name: str = "vars"
+    parent: _SubParsersAction | None = None, name: str = "list"
 ) -> ArgumentParser:
     help_ = description = "List the Conda environments"
     epilog = dals(
@@ -34,6 +34,6 @@ def configure_parser(
     add_parser_json(parser)
 
     # set executable for this scope
-    parser.set_defaults(func=".main_list.execute")
+    parser.set_defaults(func="conda.cli.env.list.__main__.execute")
 
     return parser
