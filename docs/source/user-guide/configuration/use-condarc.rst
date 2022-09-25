@@ -225,36 +225,6 @@ path may be::
 
   ~/miniconda3/envs/flowers/.condarc
 
-.. _allow-other-channels:
-
-Allow other channels (allow_other_channels)
--------------------------------------------
-
-The system-level ``.condarc`` file may specify a set of allowed
-channels, and it may allow users to install packages from other
-channels with the boolean flag ``allow_other_channels``. The default
-is ``True``.
-
-If ``allow_other_channels`` is set to ``False``, only those channels
-explicitly specified in the system ``.condarc`` file are allowed:
-
-.. code-block:: yaml
-
-  allow_other_channels: False
-
-When ``allow_other_channels`` is set to ``True`` or not specified,
-each user has access to the default channels and to any channels
-that the user specifies in their local ``.condarc`` file. When
-``allow_other_channels`` is set to ``false``, if the user specifies
-other channels, the other channels are blocked and the user
-receives a message reporting that channels are blocked. For more
-information, see :ref:`admin-inst`.
-
-If the system ``.condarc`` file specifies a ``channel_alias``,
-it overrides any channel aliases set in a user's ``.condarc``
-file. See :ref:`channel-alias`.
-
-
 .. _default-channels:
 
 Default channels (default_channels)
