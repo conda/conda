@@ -239,26 +239,9 @@ def make_menu(prefix, file_path, remove=False):
         log.warn("Environment name starts with underscore '_'. Skipping menu installation.")
         return
 
-    import menuinst.api
-
     try:
-        json_path = join(prefix, win_path_ok(file_path))
-        with open(json_path) as f:
-            metadata = json.load(f)
-        if "$id" not in metadata:  # old style JSON
-            if not on_win:
-                log.warn(
-                    "menuinst._legacy is only supported on Windows. "
-                    "Switch to the new-style menu definitions for cross-platform compatibility."
-                )
-            else:
-                from menuinst._legacy import install
-
-                install(json_path, remove, prefix)
-        elif remove:
-            menuinst.api.remove(metadata, prefix)
-        else:
-            menuinst.api.install(metadata, prefix)
+        import menuinst
+        menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
     except Exception:
         stdoutlog.error("menuinst Exception", exc_info=True)
 
