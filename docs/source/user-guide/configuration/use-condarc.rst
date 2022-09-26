@@ -749,9 +749,9 @@ the root build directory (``root-dir``).
 .. pkg_format:
 
 Specify conda-build package version (pkg_version)
-----------------------------------------------------------------------
+-------------------------------------------------
 
-Conda package version to create. ``2`` for ``.conda``, otherwise ``.tar.bz2``.
+Conda package version to create. Use ``2`` for ``.conda`` packages. If not set, conda-build defaults to ``.tar.bz2``.
 
 .. code-block:: yaml
 
