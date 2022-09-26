@@ -260,13 +260,9 @@ class Environment(object):
 
     def to_yaml(self, stream=None):
         d = self.to_dict()
-        out = yaml_safe_dump(d)
+        out = yaml_safe_dump(d, stream)
         if stream is None:
             return out
-        try:
-            stream.write(bytes(out, encoding="utf-8"))
-        except TypeError:
-            stream.write(out)
 
     def save(self):
         with open(self.filename, "wb") as fp:
