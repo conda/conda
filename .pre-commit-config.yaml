@@ -30,6 +30,7 @@ repos:
       # catch git merge/rebase problems
       - id: check-merge-conflict
       - id: fix-encoding-pragma
+        args: [--remove]
         exclude: ^conda/auxlib/
   - repo: https://github.com/akaihola/darker
     rev: 1.5.1
