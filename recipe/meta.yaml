@@ -62,6 +62,7 @@ test:
     - m2-filesystem  # [win]
     - m2-bash        # [win]
     - m2-base        # [win]
+    - menuinst       # [win]
   imports:
     - conda
     - conda_env
