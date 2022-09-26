@@ -32,6 +32,6 @@ pytest-timeout
 pytest-xdist
 requests
 responses
-ruamel_yaml
+ruamel.yaml
 toolz
 jaimergp/label/menuinst_dev::menuinst
