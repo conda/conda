@@ -96,7 +96,7 @@ def fetch_repodata_remote_request(
     add_http_value_to_dict(resp, "Cache-Control", saved_fields, "_cache_control")
 
     # DON'T add extra values to the raw repodata json
-    state_fn.
+    # state_fn.
 
     return json_str
 
