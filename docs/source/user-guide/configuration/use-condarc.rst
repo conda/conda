@@ -745,7 +745,7 @@ the root build directory (``root-dir``).
 
    conda-build:
        output_folder: conda-bld
-       
+
 .. pkg_format:
 
 Specify conda-build package version (pkg_version)
