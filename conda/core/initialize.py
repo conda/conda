@@ -70,8 +70,8 @@ from .portability import generate_shebang_for_entry_point
 if on_win:
     import winreg
     try:
-        from menuinst._legacy.knownfolders import get_folder_path, FOLDERID
-        from menuinst._legacy.winshortcut import create_shortcut
+        from menuinst.platforms.win_utils.knownfolders import get_folder_path, FOLDERID
+        from menuinst.platforms.win_utils.winshortcut import create_shortcut
     except ImportError:  # menuinst <2
         from menuinst.knownfolders import get_folder_path, FOLDERID
         from menuinst.winshortcut import create_shortcut
