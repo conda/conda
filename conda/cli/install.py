@@ -267,9 +267,11 @@ def install(args, parser, command='install'):
                     should_retry_solve=(_should_retry_unfrozen or repodata_fn != repodata_fns[-1]),
                 )
 
-                if (context.prerelease_behavior is PrereleaseBehavior.LIMIT and
-                        not is_last_repodata and
-                        unlink_link_transaction.adds_prereleases):
+                if (
+                    context.prerelease_behavior is PrereleaseBehavior.LIMIT 
+                    and not is_last_repodata
+                    and unlink_link_transaction.adds_prereleases
+                ):
                     continue
 
             # we only need one of these to work.  If we haven't raised an exception,
