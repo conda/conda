@@ -28,7 +28,8 @@ requirements:
   host:
     - python
     - conda-package-handling >=1.3.0
-    # - menuinst >=2.0a
+    - menuinst  # [win]
+    # - menuinst >=2.0a
     - pip
     - ruamel.yaml >=0.11.14,<0.17
     - setuptools >=31.0.1
@@ -36,7 +37,8 @@ requirements:
   run:
     - python
     - conda-package-handling >=1.3.0
-    # - menuinst >=2.0a
+    - menuinst  # [win]
+    # - menuinst >=2.0a
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
     - requests >=2.18.4,<3
@@ -62,7 +64,6 @@ test:
     - m2-filesystem  # [win]
     - m2-bash        # [win]
     - m2-base        # [win]
-    - menuinst       # [win]
   imports:
     - conda
     - conda_env
