@@ -33,5 +33,4 @@ pytest-xdist
 requests
 responses
 ruamel.yaml
-ruamel_yaml
 toolz
