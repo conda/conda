@@ -4,6 +4,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
+import os
+
 from collections import defaultdict
 from concurrent.futures import as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
@@ -59,13 +61,15 @@ from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
 
 log = getLogger(__name__)
+
+FileNotFoundError = IOError
+
 try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
+    from conda_package_handling.api import THREADSAFE_EXTRACT
+except ImportError:
+    THREADSAFE_EXTRACT = False
 
-
-CONDA_PACKAGE_HANDLING_NOT_THREADSAFE = 1
+EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
 
 
 class PackageCacheType(type):
@@ -726,7 +730,7 @@ class ProgressiveFetchExtract(object):
         with signal_handler(conda_signal_handler), time_recorder(
             "fetch_extract_execute"
         ), Executor(context.fetch_threads) as fetch_executor, Executor(
-            min(CONDA_PACKAGE_HANDLING_NOT_THREADSAFE, context.execute_threads)
+            EXTRACT_THREADS
         ) as extract_executor:
 
             for prec_or_spec, (cache_action, extract_action) in self.paired_actions.items():
@@ -738,11 +742,11 @@ class ProgressiveFetchExtract(object):
 
                 progress_bars[prec_or_spec] = progress_bar
 
-                f = fetch_executor.submit(
+                future = fetch_executor.submit(
                     do_cache_action, prec_or_spec, cache_action, progress_bar
                 )
 
-                f.add_done_callback(
+                future.add_done_callback(
                     partial(
                         done_callback,
                         actions=(cache_action,),
@@ -751,19 +755,19 @@ class ProgressiveFetchExtract(object):
                         finish=False,
                     )
                 )
-                futures.append(f)
+                futures.append(future)
 
-            for f in as_completed(futures):
+            for completed_future in as_completed(futures):
                 try:
-                    prec_or_spec = f.result()
+                    prec_or_spec = completed_future.result()
                     cache_action, extract_action = self.paired_actions[prec_or_spec]
-                    f2 = extract_executor.submit(
+                    extract_future = extract_executor.submit(
                         do_extract_action,
                         prec_or_spec,
                         extract_action,
                         progress_bars[prec_or_spec],
                     )
-                    f2.add_done_callback(
+                    extract_future.add_done_callback(
                         partial(
                             done_callback,
                             actions=(cache_action, extract_action),
@@ -864,9 +868,9 @@ def do_reverse(progress_bar, *actions):
             action.reverse()
 
 
-def done_callback(f, actions, progress_bar: ProgressBar, exceptions: list, finish=False):
+def done_callback(future, actions, progress_bar: ProgressBar, exceptions: list, finish=False):
     try:
-        f.result()
+        future.result()
     except Exception as e:
         do_reverse(progress_bar, *reversed(actions))
         exceptions.append(e)

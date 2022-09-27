@@ -185,9 +185,9 @@ class Context(Configuration):
     # download repodata
     _repodata_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                         aliases=('repodata_threads',))
-    # download packages
+    # download packages; determined experimentally
     _fetch_threads = ParameterLoader(
-        PrimitiveParameter(0, element_type=int), aliases=("fetch_threads",)
+        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
     )
     _verify_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
