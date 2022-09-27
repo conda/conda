@@ -742,11 +742,11 @@ class ProgressiveFetchExtract(object):
 
                 progress_bars[prec_or_spec] = progress_bar
 
-                f = fetch_executor.submit(
+                future = fetch_executor.submit(
                     do_cache_action, prec_or_spec, cache_action, progress_bar
                 )
 
-                f.add_done_callback(
+                future.add_done_callback(
                     partial(
                         done_callback,
                         actions=(cache_action,),
@@ -755,19 +755,19 @@ class ProgressiveFetchExtract(object):
                         finish=False,
                     )
                 )
-                futures.append(f)
+                futures.append(future)
 
-            for f in as_completed(futures):
+            for completed_future in as_completed(futures):
                 try:
-                    prec_or_spec = f.result()
+                    prec_or_spec = completed_future.result()
                     cache_action, extract_action = self.paired_actions[prec_or_spec]
-                    f2 = extract_executor.submit(
+                    extract_future = extract_executor.submit(
                         do_extract_action,
                         prec_or_spec,
                         extract_action,
                         progress_bars[prec_or_spec],
                     )
-                    f2.add_done_callback(
+                    extract_future.add_done_callback(
                         partial(
                             done_callback,
                             actions=(cache_action, extract_action),
