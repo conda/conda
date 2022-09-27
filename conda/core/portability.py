@@ -143,6 +143,7 @@ def binary_replace(data, a, b, encoding="utf-8"):
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
 
+    return data
 
 def has_pyzzer_entry_point(data):
     pos = data.rfind(b'PK\x05\x06')
