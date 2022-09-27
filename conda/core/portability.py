@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# force encodings to be available when updating python.
+# xref.: https://github.com/conda-forge/conda-feedstock/pull/135
 from logging import getLogger
 from os.path import realpath
 import re
@@ -77,34 +79,52 @@ def update_prefix(
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
-    if mode == FileMode.text:
-        if not on_win:
-            # if new_prefix contains spaces, it might break the shebang!
-            # handle this by escaping the spaces early, which will trigger a
-            # /usr/bin/env replacement later on
-            newline_pos = data.find(b"\n")
-            if newline_pos > -1:
-                shebang_line, rest_of_data = data[:newline_pos], data[newline_pos:]
-                shebang_placeholder = f"#!{placeholder}".encode('utf-8')
-                if shebang_placeholder in shebang_line:
-                    escaped_shebang = f"#!{new_prefix}".replace(" ", "\\ ").encode('utf-8')
-                    shebang_line = shebang_line.replace(shebang_placeholder, escaped_shebang)
-                    data = shebang_line + rest_of_data
-        # the rest of the file can be replaced normally
-        data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
-    elif mode == FileMode.binary:
-        data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
-    else:
-        raise CondaIOError("Invalid mode: %r" % mode)
+    popular_encodings = [
+        "utf-8",
+        # Make sure to specify -le and -be so that the UTF endian prefix
+        # doesn't show up in the string
+        "utf-16-le",
+        "utf-16-be",
+        "utf-32-le",
+        "utf-32-be",
+    ]
+    for encoding in popular_encodings:
+        if mode == FileMode.text:
+            if not on_win:
+                # if new_prefix contains spaces, it might break the shebang!
+                # handle this by escaping the spaces early, which will trigger a
+                # /usr/bin/env replacement later on
+                newline_pos = data.find(b"\n")
+                if newline_pos > -1:
+                    shebang_line, rest_of_data = data[:newline_pos], data[newline_pos:]
+                    shebang_placeholder = f"#!{placeholder}".encode(encoding)
+                    if shebang_placeholder in shebang_line:
+                        escaped_shebang = f"#!{new_prefix}".replace(" ", "\\ ").encode(encoding)
+                        shebang_line = shebang_line.replace(shebang_placeholder, escaped_shebang)
+                        data = shebang_line + rest_of_data
+            # the rest of the file can be replaced normally
+            data = data.replace(placeholder.encode(encoding), new_prefix.encode(encoding))
+        elif mode == FileMode.binary:
+            data = binary_replace(
+                data, placeholder.encode(encoding), new_prefix.encode(encoding), encoding=encoding
+            )
+        else:
+            raise CondaIOError("Invalid mode: %r" % mode)
     return data
 
 
-def binary_replace(data, a, b):
+def binary_replace(data, a, b, encoding="utf-8"):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
+
+    Parameters
+    ----------
+    encoding: str
+        The encoding of the expected string in the binary.
     """
+    zeros = "\0".encode(encoding)
     if on_win:
         # on Windows for binary files, we currently only replace a pyzzer-type entry point
         #   we skip all other prefix replacement
@@ -121,7 +141,7 @@ def binary_replace(data, a, b):
         return match.group().replace(a, b) + b'\0' * padding
 
     original_data_len = len(data)
-    pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
+    pat = re.compile(re.escape(a) + b"(?:(?!(?:" + zeros + b")).)*" + zeros)
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
 

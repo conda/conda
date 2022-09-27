@@ -34,9 +34,12 @@ class TestBinaryReplace(unittest.TestCase):
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_simple(self):
-        self.assertEqual(
-            binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbb'),
-            b'xxxbbbbbxyz\x00zz')
+        for encoding in ["utf-8", "utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"]:
+            a = "aaaaa".encode(encoding)
+            b = "bbbb".encode(encoding)
+            data = "xxxaaaaaxyz\0zz".encode(encoding)
+            result = "xxxbbbbxyz\0\0zz".encode(encoding)
+            self.assertEqual(binary_replace(data, a, b, encoding=encoding), result)
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_shorter(self):
