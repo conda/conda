@@ -250,10 +250,14 @@ class SatSolverChoice(ValueEnum):
     PYSAT = 'pysat'
 
 
-class ExperimentalSolverChoice(ValueEnum):
+class SolverChoice(ValueEnum):
     CLASSIC = 'classic'
     LIBMAMBA = 'libmamba'
     LIBMAMBA_DRAFT = 'libmamba-draft'
+
+
+# TODO: Remove in a later release - compatibility alias
+ExperimentalSolverChoice = SolverChoice
 
 
 class NoticeLevel(ValueEnum):

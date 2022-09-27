@@ -40,7 +40,7 @@ from .constants import (
     SEARCH_PATH,
     SafetyChecks,
     SatSolverChoice,
-    ExperimentalSolverChoice,
+    SolverChoice,
     UpdateModifier,
     CONDA_LOGS_DIR,
     PREFIX_NAME_DISALLOWED_CHARS,
@@ -333,9 +333,20 @@ class Context(Configuration):
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
     solver_ignore_timestamps = ParameterLoader(PrimitiveParameter(False))
-    experimental_solver = ParameterLoader(
-        PrimitiveParameter(ExperimentalSolverChoice.CLASSIC, element_type=ExperimentalSolverChoice)
+    solver = ParameterLoader(
+        PrimitiveParameter(SolverChoice.CLASSIC, element_type=SolverChoice),
+        aliases=('experimental_solver',),
     )
+
+    @property
+    def experimental_solver(self):
+        # TODO: Remove in a later release
+        warnings.warn(
+            "'context.experimental_solver' is deprecated and will be removed. "
+            "Please use 'context.solver' instead.", 
+            DeprecationWarning
+        )
+        return self.solver
 
     # # CLI-only
     # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
@@ -831,17 +842,17 @@ class Context(Configuration):
         builder.append("%s/%s" % self.os_distribution_name_version)
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
-        if self.experimental_solver.value != "classic":
+        if self.solver.value != "classic":
             from ..core.solve import _get_solver_class
 
-            user_agent_str = "solver/%s" % self.experimental_solver.value
+            user_agent_str = "solver/%s" % self.solver.value
             try:
                 # Solver.user_agent has to be a static or class method
                 user_agent_str += f" {_get_solver_class().user_agent()}"
             except Exception as exc:
                 log.debug(
                     "User agent could not be fetched from solver class '%s'.",
-                    self.experimental_solver.value,
+                    self.solver.value,
                     exc_info=exc
                 )
             builder.append(user_agent_str)

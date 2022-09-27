@@ -63,8 +63,6 @@ def init_loggers(context=None):
     if context:
         if context.verbosity:
             set_verbosity(context.verbosity)
-        if context.experimental_solver.value != "classic":
-            set_file_logging(logger_name="conda", level=DEBUG, path=context._logfile_path)
 
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):
