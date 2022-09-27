@@ -868,9 +868,9 @@ def do_reverse(progress_bar, *actions):
             action.reverse()
 
 
-def done_callback(f, actions, progress_bar: ProgressBar, exceptions: list, finish=False):
+def done_callback(future, actions, progress_bar: ProgressBar, exceptions: list, finish=False):
     try:
-        f.result()
+        future.result()
     except Exception as e:
         do_reverse(progress_bar, *reversed(actions))
         exceptions.append(e)
