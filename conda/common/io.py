@@ -14,7 +14,7 @@ import sys
 from io import BytesIO, StringIO
 from itertools import cycle
 import json
-import logging  # lgtm [py/import-and-import-from]
+import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join
@@ -335,11 +335,10 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
         logr.propagate = propagate
 
 
-def timeout(timeout_secs, func, *args, **kwargs):
+def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
     """Enforce a maximum time for a callable to complete.
     Not yet implemented on Windows.
     """
-    default_return = kwargs.pop('default_return', None)
     if on_win:
         # Why does Windows have to be so difficult all the time? Kind of gets old.
         # Guess we'll bypass Windows timeouts for now.

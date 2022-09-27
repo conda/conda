@@ -4,18 +4,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
+from functools import lru_cache
 from genericpath import exists
 from logging import getLogger
 from os import scandir
 import sys
 
-from ...auxlib.decorators import memoize
-
 
 log = getLogger(__name__)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def linux_get_libc_version():
     """
     If on linux, returns (libc_family, version), otherwise (None, None).

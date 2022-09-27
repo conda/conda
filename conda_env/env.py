@@ -10,7 +10,7 @@ import re
 import json
 
 from conda.base.context import context
-from conda.exceptions import EnvironmentFileNotFound
+from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.compat import odict
 from conda.common.serialize import yaml_safe_load, yaml_safe_dump
@@ -23,7 +23,7 @@ from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
 
 try:
-    from cytoolz.itertoolz import concatv, groupby
+    from tlz.itertoolz import concatv, groupby
 except ImportError:  # pragma: no cover
     from conda._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
@@ -141,6 +141,9 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
 def from_yaml(yamlstr, **kwargs):
     """Load and return a ``Environment`` from a given ``yaml string``"""
     data = yaml_safe_load(yamlstr)
+    filename = kwargs.get("filename")
+    if data is None:
+        raise EnvironmentFileEmpty(filename)
     data = validate_keys(data, kwargs)
 
     if kwargs is not None:
@@ -167,7 +170,7 @@ def from_file(filename):
 
 
 # TODO test explicitly
-class Dependencies(OrderedDict):  # lgtm [py/missing-equals]
+class Dependencies(OrderedDict):
     def __init__(self, raw, *args, **kwargs):
         super(Dependencies, self).__init__(*args, **kwargs)
         self.raw = raw
@@ -257,13 +260,9 @@ class Environment(object):
 
     def to_yaml(self, stream=None):
         d = self.to_dict()
-        out = yaml_safe_dump(d)
+        out = yaml_safe_dump(d, stream)
         if stream is None:
             return out
-        try:
-            stream.write(bytes(out, encoding="utf-8"))
-        except TypeError:
-            stream.write(out)
 
     def save(self):
         with open(self.filename, "wb") as fp:

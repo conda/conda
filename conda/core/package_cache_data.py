@@ -13,11 +13,15 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 
+try:
+    from tlz.itertoolz import concat, concatv, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.decorators import memoizemethod
-from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_EXTENSION_V1,
                               CONDA_PACKAGE_EXTENSION_V2, PACKAGE_CACHE_MAGIC_FILE)
 from ..base.context import context
@@ -326,7 +330,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
                 #   python 2.7 raises ValueError instead of JsonDecodeError
                 #   ValueError("No JSON object could be decoded")
-                log.debug("unable to read %s\n  because",
+                log.debug("unable to read %s\n  because %r",
                           join(extracted_package_dir, 'info', 'index.json'), e)
 
                 if isdir(extracted_package_dir) and not isfile(package_tarball_full_path):

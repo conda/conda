@@ -7,10 +7,14 @@ from copy import copy
 from itertools import chain
 from logging import getLogger
 
+try:
+    from tlz.itertoolz import concat, concatv
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv
+
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, concatv, drop
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
-from ..base.context import context
+from ..base.context import context, Context
 from ..common.compat import ensure_text_type, isiterable, odict
 from ..common.path import is_package_file, is_path, win_path_backout
 from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
@@ -438,7 +442,7 @@ def _read_channel_configuration(scheme, host, port, path):
     bump = None
     path_parts = path.strip("/").split("/")
     if path_parts and path_parts[0] == "conda":
-        bump, path = "conda", "/".join(drop(1, path_parts))
+        bump, path = "conda", "/".join(path_parts[1:])
     return (
         str(Url(hostname=host, port=port, path=bump)).rstrip("/"),
         path.strip("/") or None,
@@ -501,6 +505,11 @@ def all_channel_urls(channels, subdirs=None, with_credentials=True):
 
 def offline_keep(url):
     return not context.offline or not is_url(url) or url.startswith('file:/')
+
+
+def get_channel_objs(ctx: Context):
+    """Return current channels as Channel objects"""
+    return tuple(Channel(chn) for chn in ctx.channels)
 
 
 context.register_reset_callaback(Channel._reset_state)

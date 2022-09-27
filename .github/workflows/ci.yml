@@ -8,7 +8,7 @@ on:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - 'docs/**'
 
@@ -38,7 +38,7 @@ jobs:
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
     env:
-      OS: 'win-64'
+      OS: Windows
       PYTHON: ${{ matrix.python-version }}
       CONDA_SUBDIR: ${{ matrix.conda-subdir }}
       TEST_SPLITS: 3
@@ -70,6 +70,18 @@ jobs:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
 
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+          # when locally dowloading and comparing results of different workflow runs.
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.conda-subdir }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          path: |
+            .coverage
+            test-report.xml
+          retention-days: 1
+
   linux:
     runs-on: ubuntu-latest
     strategy:
@@ -79,7 +91,7 @@ jobs:
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
     env:
-      OS: 'linux'
+      OS: Linux
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
@@ -94,13 +106,25 @@ jobs:
           --rm -v ${PWD}:/opt/conda-src
           -e TEST_SPLITS
           -e TEST_GROUP
-          ghcr.io/conda/conda-ci:master-linux-python${{ matrix.python-version }}
+          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
           /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+          # when locally dowloading and comparing results of different workflow runs.
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          path: |
+            .coverage
+            test-report.xml
+          retention-days: 1
 
   macos:
     runs-on: macos-latest
@@ -111,7 +135,7 @@ jobs:
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
     env:
-      OS: 'macos'
+      OS: macOS
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
@@ -140,20 +164,47 @@ jobs:
       - name: Setup environment
         shell: bash -l {0}
         run: |
-          # restoring the default for changeps1 to have parity with dev
-          conda config --set changeps1 true
-          # make sure the caching works correctly
-          conda config --set use_only_tar_bz2 true
-          # install all test requirements
-          conda install --name conda-test-env --yes --file tests/requirements.txt
-          conda update openssl ca-certificates certifi
+          ./dev/macos/setup.sh
 
       - name: Python ${{ matrix.python-version }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: bash -l {0}
-        run : |
+        run: |
           ./dev/macos/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v2
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+          # when locally dowloading and comparing results of different workflow runs.
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          path: |
+            .coverage
+            test-report.xml
+          retention-days: 1
+
+  analyze:
+    needs: [windows, linux, macos]
+    name: Analyze test results
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v3
+      - name: Upload combined test results
+        # provides one downloadable archive of all .coverage/test-report.xml files
+        # of all matrix runs for further analysis.
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ github.sha }}-all
+          path: test-results-${{ github.sha }}-*
+          retention-days: 90  # default: 90
+      - name: Test Summary
+        uses: test-summary/action@v1
+        with:
+          paths: ./test-results-${{ github.sha }}-**/test-report*.xml

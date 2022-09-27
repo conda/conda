@@ -10,6 +10,11 @@ from os.path import join
 import sys
 from textwrap import dedent
 
+try:
+    from tlz.itertoolz import concat, concatv, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -18,7 +23,6 @@ from .. import CondaError, __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
                               ExperimentalSolverChoice)
 from ..base.context import context
@@ -1015,7 +1019,6 @@ class Solver(object):
                 latest_version = conda_newer_precs[-1].version
                 # If conda comes from defaults, ensure we're giving instructions to users
                 # that should resolve release timing issues between defaults and conda-forge.
-                add_channel = "-c defaults " if channel_name == "defaults" else ""
                 print(dedent("""
 
                 ==> WARNING: A newer version of conda exists. <==
@@ -1024,9 +1027,9 @@ class Solver(object):
 
                 Please update conda by running
 
-                    $ conda update -n base %sconda
+                    $ conda update -n base -c %s conda
 
-                """) % (CONDA_VERSION, latest_version, add_channel), file=sys.stderr)
+                """) % (CONDA_VERSION, latest_version, channel_name), file=sys.stderr)
 
     def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further

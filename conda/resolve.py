@@ -5,16 +5,21 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict, OrderedDict, deque
 import copy
+from functools import lru_cache
 from logging import DEBUG, getLogger
 
-from .auxlib.decorators import memoize, memoizemethod
+try:
+    from tlz.itertoolz import concat, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, groupby
+
+from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
-from ._vendor.toolz import concat, groupby
 from ._vendor.tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import on_win
-from .common.io import time_recorder
+from .common.io import dashlist, time_recorder
 from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolver, TRUE,
                            minimal_unsatisfiable_subset)
 from .common.toposort import toposort
@@ -40,7 +45,7 @@ _sat_solvers = {
 }
 
 
-@memoize
+@lru_cache(maxsize=None)
 def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     def try_out_solver(sat_solver):
         c = Clauses(sat_solver=sat_solver)
@@ -69,10 +74,6 @@ def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
             log.debug("Falling back to SAT solver interface '%s'.", sat_solver_choice)
             return sat_solver
     raise CondaDependencyError("Cannot run solver. No functioning SAT implementations available.")
-
-
-def dashlist(iterable, indent=2):
-    return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
 
 
 def exactness_and_number_of_deps(resolve_obj, ms):
@@ -718,7 +719,7 @@ class Resolve(object):
                         specs.insert(0, dep)
                     specs_by_name[dep.name] = specs
 
-                while(dep_specs):
+                while dep_specs:
                     # used for debugging
                     # size_index = len(reduced_index2)
                     # specs_added = []

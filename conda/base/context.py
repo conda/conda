@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import OrderedDict
 
 from errno import ENOENT
+from functools import lru_cache
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
@@ -14,6 +15,12 @@ import sys
 import struct
 from contextlib import contextmanager
 from datetime import datetime
+import warnings
+
+try:
+    from tlz.itertoolz import concat, concatv, unique
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, unique
 
 from .constants import (
     APP_NAME,
@@ -36,14 +43,14 @@ from .constants import (
     ExperimentalSolverChoice,
     UpdateModifier,
     CONDA_LOGS_DIR,
+    PREFIX_NAME_DISALLOWED_CHARS,
 )
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
-from ..auxlib.decorators import memoize, memoizedproperty
+from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
-from .._vendor.toolz import concat, concatv, unique
 from ..common.compat import NoneType, odict, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
@@ -288,8 +295,9 @@ class Context(Configuration):
     override_channels_enabled = ParameterLoader(PrimitiveParameter(True))
     show_channel_urls = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     use_local = ParameterLoader(PrimitiveParameter(False))
-    whitelist_channels = ParameterLoader(
+    allowlist_channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str)),
+        aliases=("whitelist_channels",),
         expandvars=True)
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
@@ -314,6 +322,7 @@ class Context(Configuration):
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
     report_errors = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     shortcuts = ParameterLoader(PrimitiveParameter(True))
+    number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
 
@@ -933,7 +942,7 @@ class Context(Configuration):
                 "channel_alias",
                 "default_channels",
                 "override_channels_enabled",
-                "whitelist_channels",
+                "allowlist_channels",
                 "custom_channels",
                 "custom_multichannels",
                 "migrated_channel_aliases",
@@ -1009,6 +1018,7 @@ class Context(Configuration):
                 "verbosity",
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
+                "number_channel_notices",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1536,7 +1546,7 @@ class Context(Configuration):
                 defaults to 1.
                 """
             ),
-            whitelist_channels=dals(
+            allowlist_channels=dals(
                 """
                 The exclusive list of channels allowed to be used on the system. Use of any
                 other channels will result in an error. If conda-build channels are to be
@@ -1565,6 +1575,13 @@ class Context(Configuration):
                 conda. A solver logic takes care of turning your requested packages into a
                 list of specs to add and/or remove from a given environment, based on their
                 dependencies and specified constraints.
+                """
+            ),
+            number_channel_notices=dals(
+                """
+                Sets the number of channel notices to be displayed when running commands
+                the "install", "create", "update", "env create", and "env update" . Defaults
+                to 5. In order to completely suppress channel notices, set this to 0.
                 """
             ),
         )
@@ -1681,7 +1698,8 @@ def replace_context_default(pushing=None, argparse_args=None):
 # and not to stack_context_default.
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
-@memoize
+
+@lru_cache(maxsize=None)
 def _get_cpu_info():
     # DANGER: This is rather slow
     from .._vendor.cpuinfo import get_cpu_info
@@ -1721,6 +1739,34 @@ def locate_prefix_by_name(name, envs_dirs=None):
     raise EnvironmentNameNotFound(name)
 
 
+def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:
+    """Run various validations to make sure prefix_name is valid"""
+    from ..exceptions import CondaValueError
+
+    if PREFIX_NAME_DISALLOWED_CHARS.intersection(prefix_name):
+        raise CondaValueError(
+            dals(
+                f"""
+                Invalid environment name: {prefix_name!r}
+                Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
+                """
+            )
+        )
+
+    if prefix_name in (ROOT_ENV_NAME, "root"):
+        if allow_base:
+            return ctx.root_prefix
+        else:
+            raise CondaValueError("Use of 'base' as environment name is not allowed here.")
+
+    else:
+        from ..exceptions import EnvironmentNameNotFound
+        try:
+            return locate_prefix_by_name(prefix_name)
+        except EnvironmentNameNotFound:
+            return join(_first_writable_envs_dir(), prefix_name)
+
+
 def determine_target_prefix(ctx, args=None):
     """Get the prefix to operate in.  The prefix may not yet exist.
 
@@ -1755,20 +1801,7 @@ def determine_target_prefix(ctx, args=None):
     elif prefix_path is not None:
         return expand(prefix_path)
     else:
-        disallowed_chars = ('/', ' ', ':', '#')
-        if any(_ in prefix_name for _ in disallowed_chars):
-            from ..exceptions import CondaValueError
-            builder = ["Invalid environment name: '" + prefix_name + "'"]
-            builder.append("  Characters not allowed: {}".format(disallowed_chars))
-            raise CondaValueError("\n".join(builder))
-        if prefix_name in (ROOT_ENV_NAME, 'root'):
-            return ctx.root_prefix
-        else:
-            from ..exceptions import EnvironmentNameNotFound
-            try:
-                return locate_prefix_by_name(prefix_name)
-            except EnvironmentNameNotFound:
-                return join(_first_writable_envs_dir(), prefix_name)
+        return validate_prefix_name(prefix_name, ctx=ctx)
 
 
 def _first_writable_envs_dir():
@@ -1802,6 +1835,11 @@ def _first_writable_envs_dir():
 
 # backward compatibility for conda-build
 def get_prefix(ctx, args, search=True):  # pragma: no cover
+    warnings.warn(
+        "`conda.base.context.get_prefix` is pending deprecation and will be removed in a future "
+        "release. Please use `conda.base.context.determine_target_prefix` instead.",
+        PendingDeprecationWarning,
+    )
     return determine_target_prefix(ctx or context, args)
 
 

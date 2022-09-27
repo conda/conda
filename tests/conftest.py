@@ -6,6 +6,13 @@ import subprocess
 
 import pytest
 
+pytest_plugins = (
+    # Add testing fixtures and internal pytest plugins here
+    "conda.testing.gateways.fixtures",
+    "conda.testing.notices.fixtures",
+    "conda.testing.fixtures",
+)
+
 
 def _conda_build_recipe(recipe):
     subprocess.run(

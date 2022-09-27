@@ -3,15 +3,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from functools import partial
-import logging  # lgtm [py/import-and-import-from]
+from functools import lru_cache, partial
+import logging
 from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 import re
 import sys
 from datetime import datetime
 
 from .. import CondaError
-from ..auxlib.decorators import memoize
 from ..common.io import attach_stderr_handler, _FORMATTER
 
 log = getLogger(__name__)
@@ -149,7 +148,8 @@ class StdStreamHandler(StreamHandler):
 # cli.python_api! There we want the user to have control over their logging,
 # e.g., using their own levels, handlers, formatters and propagation settings.
 
-@memoize
+
+@lru_cache(maxsize=None)
 def initialize_logging():
     # root gets level ERROR; 'conda' gets level WARN and propagates to root.
     initialize_root_logger()
@@ -214,7 +214,7 @@ def set_all_logger_level(level=DEBUG):
     attach_stderr_handler(level, 'requests.packages.urllib3')
 
 
-@memoize
+@lru_cache(maxsize=None)
 def set_file_logging(logger_name=None, level=DEBUG, path=None):
     if path is None:
         timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")

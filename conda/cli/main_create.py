@@ -13,10 +13,12 @@ from ..common.path import paths_equal
 from ..exceptions import CondaValueError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import is_conda_environment
+from ..notices import notices
 
 log = getLogger(__name__)
 
 
+@notices
 def execute(args, parser):
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):

@@ -27,6 +27,15 @@ from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
+try:
+    from tlz.itertoolz import concat, concatv, unique
+    from tlz.dicttoolz import merge, merge_with
+    from tlz.functoolz import excepts
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, unique
+    from conda._vendor.toolz.dicttoolz import merge, merge_with
+    from conda._vendor.toolz import excepts
+
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL
 from .path import expand
@@ -37,16 +46,18 @@ from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.toolz import concat, concatv, excepts, merge, merge_with, unique
 
-try:  # pragma: no cover
-    from ruamel_yaml.comments import CommentedSeq, CommentedMap
-    from ruamel_yaml.reader import ReaderError
-    from ruamel_yaml.scanner import ScannerError
-except ImportError:  # pragma: no cover
-    from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
+try:
+    from ruamel.yaml.comments import CommentedSeq, CommentedMap
     from ruamel.yaml.reader import ReaderError
     from ruamel.yaml.scanner import ScannerError
+except ImportError:
+    try:
+        from ruamel_yaml.comments import CommentedSeq, CommentedMap
+        from ruamel_yaml.reader import ReaderError
+        from ruamel_yaml.scanner import ScannerError
+    except ImportError:
+        raise ImportError("No yaml library available. To proceed, conda install ruamel.yaml")
 
 log = getLogger(__name__)
 
@@ -1166,9 +1177,9 @@ class ParameterLoader(object):
     def _set_name(self, name):
         # this is an explicit method, and not a descriptor/setter
         # it's meant to be called by the Configuration metaclass
-        self._name = name  # lgtm [py/mutable-descriptor]
+        self._name = name
         _names = frozenset(x for x in chain(self.aliases, (name, )))
-        self._names = _names  # lgtm [py/mutable-descriptor]
+        self._names = _names
         return name
 
     @property
@@ -1212,8 +1223,8 @@ class ParameterLoader(object):
         else:
             errors.extend(expanded.collect_errors(instance, result, "<<merged>>"))
         raise_errors(errors)
-        instance._cache_[self.name] = result  # lgtm [py/uninitialized-local-variable]
-        return result  # lgtm [py/uninitialized-local-variable]
+        instance._cache_[self.name] = result
+        return result
 
     def _raw_parameters_from_single_source(self, raw_parameters):
         return ParameterLoader.raw_parameters_from_single_source(

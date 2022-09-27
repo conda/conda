@@ -19,8 +19,15 @@ import logging
 import os
 from os.path import abspath, basename, dirname, isdir, join
 import time
+import warnings
 
 from .exceptions import LockError
+
+warnings.warn(
+    "The `conda.lock` module is pending deprecation and will be removed in a future release. "
+    "Please use `filelock` instead.",
+    PendingDeprecationWarning,
+)
 
 LOCK_EXTENSION = 'conda_lock'
 

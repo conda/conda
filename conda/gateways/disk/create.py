@@ -27,7 +27,7 @@ from ...common.compat import on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
-from ...models.enums import FileMode, LinkType
+from ...models.enums import LinkType
 
 
 # we have our own TemporaryDirectory implementation both for historical reasons and because
@@ -128,16 +128,15 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
         'import_name': import_name,
     }
     if python_full_path is not None:
-        shebang = u'#!%s\n' % python_full_path
+        from ...core.portability import generate_shebang_for_entry_point
 
-        from ...core.portability import replace_long_shebang  # TODO: must be in wrong spot
-        shebang = replace_long_shebang(FileMode.text, shebang)
+        shebang = generate_shebang_for_entry_point(python_full_path)
     else:
         shebang = None
 
     with codecs.open(target_full_path, mode='wb', encoding='utf-8') as fo:
         if shebang is not None:
-            fo.write(shebang.decode('utf-8'))
+            fo.write(shebang)
         fo.write(pyscript)
 
     if shebang is not None:

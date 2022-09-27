@@ -14,23 +14,22 @@ from unittest import TestCase
 from uuid import uuid4
 
 import pytest
+from tlz.itertoolz import groupby
 
+from conda.auxlib.ish import dals
 from conda.auxlib.collection import AttrDict
-from conda._vendor.toolz.itertoolz import groupby
 from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.path import get_bin_directory_short_path, get_python_noarch_target_path, \
     get_python_short_path, get_python_site_packages_short_path, parse_entry_point_def, pyc_path, \
     win_path_ok
 from conda.core.path_actions import CompileMultiPycAction, CreatePythonEntryPointAction, LinkPathAction
-from conda.exceptions import ParseError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
 from conda.gateways.disk.test import softlink_supported
-from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.records import PathDataV1
 
@@ -217,12 +216,24 @@ class PathActionsTests(TestCase):
         if not on_win:
             assert is_executable(py_ep_axn.target_full_path)
         with open(py_ep_axn.target_full_path) as fh:
-            lines = fh.readlines()
-            first_line = lines[0].strip()
-            last_line = lines[-1].strip()
+            lines = fh.read()
+            last_line = lines.splitlines()[-1].strip()
         if not on_win:
             python_full_path = join(self.prefix, get_python_short_path(target_python_version))
-            assert first_line == "#!%s" % python_full_path
+            if " " in self.prefix:
+                # spaces in prefix break shebang! we use this python/shell workaround
+                # also seen in virtualenv
+                assert lines.startswith(
+                    dals(
+                        f"""
+                        #!/bin/sh
+                        '''exec' "{python_full_path}" "$0" "$@"
+                        ' '''
+                        """
+                    )
+                )
+            else:
+                assert lines.startswith(f"#!{python_full_path}\n")
         assert last_line == "sys.exit(%s())" % func
 
         py_ep_axn.reverse()

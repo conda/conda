@@ -49,9 +49,12 @@ def check_prefix(prefix, json=False):
         raise CondaValueError(error, json)
 
     if ' ' in prefix:
-        stderrlog.warning("WARNING: A space was detected in your requested environment path\n"
-                          "'%s'\n"
-                          "Spaces in paths can sometimes be problematic." % prefix)
+        stderrlog.warning(
+            "WARNING: A space was detected in your requested environment path:\n"
+            f"'{prefix}'\n"
+            "Spaces in paths can sometimes be problematic. To minimize issues,\n"
+            "make sure you activate your environment before running any executables!\n"
+        )
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
@@ -60,8 +63,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         if not isdir(src_prefix):
             raise DirectoryNotFoundError(src_arg)
     else:
-        assert context._argparse_args.clone is not None
-        src_prefix = locate_prefix_by_name(context._argparse_args.clone)
+        src_prefix = locate_prefix_by_name(src_arg)
 
     if not json:
         print("Source:      %s" % src_prefix)
@@ -83,16 +85,18 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 def print_activate(env_name_or_prefix):  # pragma: no cover
     if not context.quiet and not context.json:
-        message = dals("""
+        if " " in env_name_or_prefix:
+            env_name_or_prefix = f'"{env_name_or_prefix}"'
+        message = dals(f"""
         #
         # To activate this environment, use
         #
-        #     $ conda activate %s
+        #     $ conda activate {env_name_or_prefix}
         #
         # To deactivate an active environment, use
         #
         #     $ conda deactivate
-        """) % env_name_or_prefix
+        """)
         print(message)  # TODO: use logger
 
 
@@ -119,8 +123,6 @@ def install(args, parser, command='install'):
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
     isremove = bool(command == 'remove')
-    if newenv:
-        common.ensure_name_or_prefix(args, command)
     prefix = context.target_prefix
     if newenv:
         check_prefix(prefix, json=context.json)

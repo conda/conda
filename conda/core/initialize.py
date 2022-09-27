@@ -65,6 +65,7 @@ from ..gateways.disk.link import lexists
 from ..gateways.disk.permissions import make_executable
 from ..gateways.disk.read import compute_md5sum
 from ..gateways.subprocess import subprocess_call
+from .portability import generate_shebang_for_entry_point
 
 if on_win:
     import winreg
@@ -733,6 +734,7 @@ def print_plan_results(plan, stream=None):
 # #####################################################
 
 def make_entry_point(target_path, conda_prefix, module, func):
+    # 'ep' in this function refers to 'entry point'
     # target_path: join(conda_prefix, 'bin', 'conda')
     conda_ep_path = target_path
 
@@ -746,7 +748,8 @@ def make_entry_point(target_path, conda_prefix, module, func):
         # no shebang needed on windows
         new_ep_content = ""
     else:
-        new_ep_content = "#!%s\n" % join(conda_prefix, get_python_short_path())
+        python_path = join(conda_prefix, get_python_short_path())
+        new_ep_content = generate_shebang_for_entry_point(python_path)
 
     conda_extra = dals("""
     # Before any more imports, leave cwd out of sys.path for internal 'conda shell.*' commands.

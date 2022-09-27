@@ -4,12 +4,11 @@
 from argparse import RawDescriptionHelpFormatter
 from os.path import lexists
 
+from conda.base.context import context, determine_target_prefix
 from conda.cli import common
 from conda.cli.conda_argparse import add_parser_prefix, add_parser_json
 from conda.core.prefix_data import PrefixData
-from conda.base.context import context
 from conda.exceptions import EnvironmentLocationNotFound
-from .common import get_prefix
 
 var_description = '''
 Interact with environment variables associated with Conda environments
@@ -104,7 +103,7 @@ def configure_parser(sub_parsers):
 
 
 def execute_list(args, parser):
-    prefix = get_prefix(args, search=False) or context.active_prefix
+    prefix = determine_target_prefix(context, args)
     if not lexists(prefix):
         raise EnvironmentLocationNotFound(prefix)
 
@@ -118,7 +117,7 @@ def execute_list(args, parser):
             print('%s = %s' % (k, v))
 
 def execute_set(args, parser):
-    prefix = get_prefix(args, search=False) or context.active_prefix
+    prefix = determine_target_prefix(context, args)
     pd = PrefixData(prefix)
     if not lexists(prefix):
         raise EnvironmentLocationNotFound(prefix)
@@ -133,7 +132,7 @@ def execute_set(args, parser):
 
 
 def execute_unset(args, parser):
-    prefix = get_prefix(args, search=False) or context.active_prefix
+    prefix = determine_target_prefix(context, args)
     pd = PrefixData(prefix)
     if not lexists(prefix):
         raise EnvironmentLocationNotFound(prefix)

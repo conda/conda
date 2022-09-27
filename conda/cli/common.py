@@ -4,13 +4,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join
+from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
+from warnings import warn
 
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
-from ..base.context import context
+from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
@@ -67,10 +68,26 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
 
 
 def ensure_name_or_prefix(args, command):
+    warn(
+        "conda.cli.common.ensure_name_or_prefix is pending deprecation in a future release.",
+        PendingDeprecationWarning,
+    )
     if not (args.name or args.prefix):
         from ..exceptions import CondaValueError
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
                               'try "conda %s -h" for more details' % command)
+
+def is_active_prefix(prefix):
+    """
+    Determines whether the args we pass in are pointing to the active prefix.
+    Can be used a validation step to make sure operations are not being
+    performed on the active prefix.
+    """
+    return (
+        paths_equal(prefix, context.active_prefix)
+        # normcasing our prefix check for Windows, for case insensitivity
+        or normcase(prefix) == normcase(env_name(context.active_prefix))
+    )
 
 
 def arg2spec(arg, json=False, update=False):
@@ -94,14 +111,18 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-spec_pat = re.compile(r'(?P<name>[^=<>!\s]+)'  # package name  # lgtm [py/regex/unmatchable-dollar]
-                      r'\s*'  # ignore spaces
-                      r'('
-                      r'(?P<cc>=[^=]+(=[^=]+)?)'  # conda constraint
-                      r'|'
-                      r'(?P<pc>(?:[=!]=|[><]=?|~=).+)'  # new (pip-style) constraint(s)
-                      r')?$',
-                      re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
+spec_pat = re.compile(
+    r"""
+    (?P<name>[^=<>!\s]+)                # package name
+    \s*                                 # ignore spaces
+    (
+        (?P<cc>=[^=]+(=[^=]+)?)         # conda constraint
+        |
+        (?P<pc>(?:[=!]=|[><]=?|~=).+)   # new pip-style constraints
+    )?$
+    """,
+    re.VERBOSE,
+)
 
 
 def strip_comment(line):
@@ -194,7 +215,7 @@ def print_envs_list(known_conda_prefixes, output=True):
 
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
-        default = '*' if prefix == context.default_prefix else ' '
+        active = '*' if prefix == context.active_prefix else ' '
         if prefix == context.root_prefix:
             name = ROOT_ENV_NAME
         elif any(paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs):
@@ -202,7 +223,7 @@ def print_envs_list(known_conda_prefixes, output=True):
         else:
             name = ''
         if output:
-            print(fmt % (name, default, prefix))
+            print(fmt % (name, active, prefix))
 
     for prefix in known_conda_prefixes:
         disp_env(prefix)

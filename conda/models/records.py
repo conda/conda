@@ -17,7 +17,6 @@ from os.path import basename, join
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
-from .enums import MetadataSignatureStatus
 from .match_spec import MatchSpec
 from ..auxlib.entity import (
     BooleanField,
@@ -259,7 +258,9 @@ class PackageRecord(DictSafeMixin, Entity):
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
 
-    metadata_signature_status = EnumField(MetadataSignatureStatus, required=False)
+    metadata_signature_status = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
 
     @property
     def schannel(self):

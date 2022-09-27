@@ -35,8 +35,8 @@ source.
 """
 install_requires = [
     "pycosat >=0.6.3",
-    "requests >=2.12.4",
-    "ruamel_yaml_conda >=0.11.14",
+    "requests >=2.20.1",
+    "ruamel.yaml >=0.11.14",
     "menuinst ; platform_system=='Windows'",
 ]
 

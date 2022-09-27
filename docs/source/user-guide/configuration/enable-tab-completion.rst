@@ -32,4 +32,4 @@ To enable tab completion in your Bash shell:
          conda install
 
 To get tab completion in Zsh, see `conda-zsh-completion
-<https://github.com/esc/conda-zsh-completion>`_.
+<https://github.com/conda-incubator/conda-zsh-completion>`_.

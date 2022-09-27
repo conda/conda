@@ -18,6 +18,11 @@ import re
 import sys
 import warnings
 
+try:
+    from tlz.itertoolz import concat, concatv, groupby
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+
 from ... import CondaError
 from ..compat import odict, open
 from ..path import (
@@ -25,7 +30,6 @@ from ..path import (
 )
 from ...auxlib.decorators import memoizedproperty
 from ..._vendor.frozendict import frozendict
-from ..._vendor.toolz import concat, concatv, groupby
 
 log = getLogger(__name__)
 

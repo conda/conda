@@ -4,15 +4,13 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from datetime import datetime
-
 from conda.base.context import context
+from conda.common.compat import on_win
 from conda.core.package_cache_data import download
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
 from conda.gateways.disk.delete import move_path_to_trash
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
-from conda.utils import on_win
 from os import chdir, getcwd, makedirs
 from os.path import exists, join, relpath
 import pytest
@@ -158,10 +156,9 @@ class FileTests(unittest.TestCase):
 
     @pytest.mark.skipif(on_win, reason="test is invalid on windows")
     def test_long_default_text(self):
-        with open(self.tmpfname, 'w') as fo:
-            fo.write('#!/opt/anaconda1anaconda2anaconda3/bin/python -O\n'
-                     'echo "Hello"\n')
-        new_prefix = '/usr/local/{0}'.format('1234567890'*12)
+        with open(self.tmpfname, "w") as fo:
+            fo.write("#!/opt/anaconda1anaconda2anaconda3/bin/python -O\n" 'echo "Hello"\n')
+        new_prefix = "/usr/local/{0}".format("1234567890" * 52)
         update_prefix(self.tmpfname, new_prefix)
         with open(self.tmpfname, 'r') as fi:
             data = fi.read()

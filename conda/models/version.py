@@ -7,7 +7,11 @@ import operator as op
 import re
 from itertools import zip_longest
 
-from .._vendor.toolz import excepts
+try:
+    from tlz.functoolz import excepts
+except ImportError:
+    from conda._vendor.toolz.functoolz import excepts
+
 from ..exceptions import InvalidVersionSpec
 
 log = getLogger(__name__)
@@ -491,7 +495,7 @@ class BaseSpec(object):
         return True
 
 
-class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/missing-equals]
+class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
     _cache_ = {}
 
     def __init__(self, vspec):
@@ -601,7 +605,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/miss
 VersionMatch = VersionSpec
 
 
-class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):  # lgtm [py/missing-equals]
+class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
     _cache_ = {}
 
     def __init__(self, vspec):

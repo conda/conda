@@ -28,6 +28,7 @@ class Commands:
     SEARCH = "search"
     UPDATE = "update"
     RUN = "run"
+    NOTICES = "notices"
 
 
 STRING = CaptureTarget.STRING
