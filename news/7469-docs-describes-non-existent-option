@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Added conda capitalization standards to CONTRIBUTING file. (#11712)
+* Removed `allow_other_channels` config option from documentation, as the option no longer exists. (#11866)
 
 ### Other
 

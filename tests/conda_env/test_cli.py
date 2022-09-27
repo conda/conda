@@ -5,7 +5,6 @@
 import json
 import os
 import tempfile
-import yaml
 
 import pytest
 import unittest
@@ -281,7 +280,7 @@ class IntegrationTests(unittest.TestCase):
         else:
             pytest.fail("Didn't find YAML data in output")
 
-        output = yaml.safe_load('\n'.join(lines[lineno:]))
+        output = yaml_safe_load('\n'.join(lines[lineno:]))
         assert output['name'] == 'env-1'
         assert len(output['dependencies']) > 0
 
