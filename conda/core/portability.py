@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# force encodings to be available when updating python.
-# xref.: https://github.com/conda-forge/conda-feedstock/pull/135
 from logging import getLogger
 from os.path import realpath
 import re
