@@ -28,14 +28,6 @@ SHEBANG_REGEX = (br'^(#!'  # pretty much the whole match string
                  br'(.*)'  # the rest of the line can contain option flags
                  br')$')  # end whole_shebang group
 
-popular_encodings = [
-    'utf-8',
-    # Make sure to specify -le and -be so that the UTF endian prefix
-    # doesn't show up in the string
-    'utf-16-le', 'utf-16-be',
-    'utf-32-le', 'utf-32-be'
-]
-
 MAX_SHEBANG_LENGTH = 127 if on_linux else 512  # Not used on Windows
 
 
