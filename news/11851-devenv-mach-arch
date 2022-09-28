@@ -16,4 +16,4 @@
 
 ### Other
 
-* Update canary-release version to resolve canary build issue. (#11761)
+* Add `--mach` and `--arch` options to `dev/start`. (#11851)

@@ -80,6 +80,7 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "osx-arm64",
     "win-32",
     "win-64",
+    "win-arm64",
     "zos-z",
 )
 
@@ -108,7 +109,7 @@ ROOT_ENV_NAME = 'base'
 ROOT_NO_RM = (
     'python',
     'pycosat',
-    'ruamel_yaml',
+    'ruamel.yaml',
     'conda',
     'openssl',
     'requests',

@@ -33,5 +33,5 @@ pytest-timeout
 pytest-xdist
 requests
 responses
-ruamel_yaml
+ruamel.yaml
 toolz
