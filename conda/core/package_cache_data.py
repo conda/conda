@@ -7,7 +7,7 @@ import codecs
 import os
 
 from collections import defaultdict
-from concurrent.futures import as_completed
+from concurrent.futures import as_completed, ThreadPoolExecutor
 from errno import EACCES, ENOENT, EPERM, EROFS
 from json import JSONDecodeError
 from logging import getLogger
@@ -15,8 +15,8 @@ from os import scandir
 from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
-from concurrent.futures.thread import ThreadPoolExecutor as Executor
 from functools import partial
+from threading import Thread
 
 try:
     from tlz.itertoolz import concat, concatv, groupby
@@ -729,7 +729,7 @@ class ProgressiveFetchExtract(object):
 
         with signal_handler(conda_signal_handler), time_recorder(
             "fetch_extract_execute"
-        ), Executor(context.fetch_threads) as fetch_executor, Executor(
+        ), ThreadPoolExecutor(context.fetch_threads) as fetch_executor, ThreadPoolExecutor(
             EXTRACT_THREADS
         ) as extract_executor:
 
