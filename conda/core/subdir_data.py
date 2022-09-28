@@ -3,71 +3,52 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import bz2
-from collections import defaultdict
-from contextlib import closing
-from errno import EACCES, ENODEV, EPERM, EROFS
-from functools import partial
-from genericpath import getmtime, isfile
 import hashlib
-from io import open as io_open
+import itertools
 import json
-from logging import DEBUG, getLogger
-from mmap import ACCESS_READ, mmap
-from os.path import dirname, isdir, join, splitext, exists
+import pathlib
 import re
-from sys import stderr
+import base64
+from collections import defaultdict
+from errno import EACCES, EPERM, EROFS
+from functools import partial
+from io import open as io_open
+from logging import getLogger
+from os.path import dirname, exists, isdir, join, splitext
 from time import time
-import warnings
+
+from genericpath import getmtime, isfile
 
 try:
-    from tlz.itertoolz import concat, groupby, take
+    from tlz.itertoolz import groupby
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby, take
+    from conda._vendor.toolz.itertoolz import groupby
+
+from conda.core.repo import CondaRepoInterface, Response304ContentUnchanged
 
 from .. import CondaError
-from ..auxlib.ish import dals
-from ..auxlib.logz import stringify
 from .._vendor.boltons.setutils import IndexedSet
-from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
+from ..auxlib.ish import dals
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
-from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
-from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
+from ..common.compat import ensure_binary
+from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
-from ..trust.signature_verification import signature_verification
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (
-    CondaDependencyError,
-    CondaHTTPError,
     CondaUpgradeError,
-    CondaSSLError,
     NotWritableError,
-    UnavailableInvalidChannel,
-    ProxyError,
 )
-from ..gateways.connection import (
-    ConnectionError,
-    HTTPError,
-    InsecureRequestWarning,
-    InvalidSchema,
-    SSLError,
-    RequestsProxyError,
-)
-from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+from ..trust.signature_verification import signature_verification
 
-from conda.core.repo import CondaRepoInterface, Response304ContentUnchanged
-
-try:
-    import cPickle as pickle
-except ImportError:  # pragma: no cover
-    import pickle  # NOQA
+import pickle
 
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
@@ -114,6 +95,7 @@ class SubdirData(metaclass=SubdirDataType):
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
                   repodata_fn=REPODATA_FN):
         from .index import check_allowlist  # TODO: fix in-line import
+
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
@@ -137,7 +119,7 @@ class SubdirData(metaclass=SubdirDataType):
                     else partial(ThreadLimitedThreadPoolExecutor,
                                  max_workers=context.repodata_threads))
         with Executor() as executor:
-            result = tuple(concat(executor.map(subdir_query, channel_urls)))
+            result = tuple(itertools.chain.from_iterable(executor.map(subdir_query, channel_urls)))
         return result
 
     def query(self, package_ref_or_match_spec):
@@ -154,7 +136,7 @@ class SubdirData(metaclass=SubdirDataType):
                         yield prec
             elif param.get_exact_value('track_features'):
                 track_features = param.get_exact_value('track') or ()
-                candidates = concat(self._track_features_index[feature_name]
+                candidates = itertools.chain.from_iterable(self._track_features_index[feature_name]
                                     for feature_name in track_features)
                 for prec in candidates:
                     if param.match(prec):
@@ -176,8 +158,9 @@ class SubdirData(metaclass=SubdirDataType):
             del parts['package_filename']
             channel = Channel(**parts)
         self.channel = channel
-        self.url_w_subdir = self.channel.url(with_credentials=False)
-        self.url_w_credentials = self.channel.url(with_credentials=True)
+        # disallow None (typing)
+        self.url_w_subdir = self.channel.url(with_credentials=False) or ""
+        self.url_w_credentials = self.channel.url(with_credentials=True) or ""
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
         self._loaded = False
@@ -203,6 +186,13 @@ class SubdirData(metaclass=SubdirDataType):
     @property
     def cache_path_json(self):
         return self.cache_path_base + ('1' if context.use_only_tar_bz2 else '') + '.json'
+
+    @property
+    def cache_path_state(self):
+        """
+        Out-of-band etag and other state needed by the RepoInterface.
+        """
+        return self.cache_path_base + ".state.json"
 
     @property
     def cache_path_pickle(self):
@@ -232,6 +222,20 @@ class SubdirData(metaclass=SubdirDataType):
             self.load()
         return iter(self._package_records)
 
+    # replaces old in-band mod_and_etag headers
+    def _load_state(self):
+        try:
+            state_path = pathlib.Path(self.cache_path_state)
+            state = json.loads(state_path.read_text())
+            log.debug("Load state from %s", state_path)
+            return state
+        except:
+            log.debug("Could not load state", exc_info=True)
+            return {}
+
+    def _save_state(self, state):
+        return pathlib.Path(self.cache_path_state).write_text(json.dumps(state))
+
     def _load(self):
         try:
             mtime = getmtime(self.cache_path_json)
@@ -250,14 +254,13 @@ class SubdirData(metaclass=SubdirDataType):
             else:
                 mod_etag_headers = {}
         else:
-            mod_etag_headers = read_mod_and_etag(self.cache_path_json)
+            mod_etag_headers = self._load_state()
 
             if context.use_index_cache:
                 log.debug("Using cached repodata for %s at %s because use_cache=True",
                           self.url_w_repodata_fn, self.cache_path_json)
 
-                _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
-                                                           mod_etag_headers.get('_mod'))
+                _internal_state = self._read_local_repodata(mod_etag_headers)
                 return _internal_state
 
             if context.local_repodata_ttl > 1:
@@ -271,32 +274,30 @@ class SubdirData(metaclass=SubdirDataType):
             if (timeout > 0 or context.offline) and not self.url_w_subdir.startswith('file://'):
                 log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                           self.url_w_repodata_fn, self.cache_path_json, timeout)
-                _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
-                                                           mod_etag_headers.get('_mod'))
+                _internal_state = self._read_local_repodata(mod_etag_headers)
                 return _internal_state
 
             log.debug("Local cache timed out for %s at %s",
                       self.url_w_repodata_fn, self.cache_path_json)
 
         try:
-            data = self._repo.repodata(
-                mod_etag_headers.get('_etag'),
-                mod_etag_headers.get('_mod'),
-            )
-            raw_repodata_str = json.dumps(data or {})
+            raw_repodata_str = self._repo.repodata(mod_etag_headers)
         except Response304ContentUnchanged:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
                       self.url_w_repodata_fn)
             touch(self.cache_path_json)
-            _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
-                                                       mod_etag_headers.get('_mod'))
+            _internal_state = self._read_local_repodata(mod_etag_headers)
             return _internal_state
         else:
             if not isdir(dirname(self.cache_path_json)):
                 mkdir_p(dirname(self.cache_path_json))
             try:
-                with io_open(self.cache_path_json, 'w') as fh:
-                    fh.write(raw_repodata_str or '{}')
+                cache_path_json = self.cache_path_json
+                with io_open(cache_path_json, 'w') as fh:
+                    fh.write(raw_repodata_str or "{}")
+                # quick thing to check for 'json matches stat', or store, check a message digest:
+                mod_etag_headers["mtime"] = pathlib.Path(cache_path_json).stat().st_mtime
+                self._save_state(mod_etag_headers)
             except (IOError, OSError) as e:
                 if e.errno in (EACCES, EPERM, EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
@@ -316,9 +317,9 @@ class SubdirData(metaclass=SubdirDataType):
         except Exception:
             log.debug("Failed to dump pickled repodata.", exc_info=True)
 
-    def _read_local_repdata(self, etag, mod_stamp):
+    def _read_local_repodata(self, state):
         # first try reading pickled data
-        _pickled_state = self._read_pickled(etag, mod_stamp)
+        _pickled_state = self._read_pickled(state)
         if _pickled_state:
             return _pickled_state
 
@@ -342,7 +343,7 @@ class SubdirData(metaclass=SubdirDataType):
                 self._pickle_me()
                 return _internal_state
 
-    def _read_pickled(self, etag, mod_stamp):
+    def _read_pickled(self, state):
 
         if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
             # Don't trust pickled data if there is no accompanying json data
@@ -362,14 +363,14 @@ class SubdirData(metaclass=SubdirDataType):
             yield _pickled_state.get('_url') == self.url_w_credentials
             yield _pickled_state.get('_schannel') == self.channel.canonical_name
             yield _pickled_state.get('_add_pip') == context.add_pip_as_python_dependency
-            yield _pickled_state.get('_mod') == mod_stamp
-            yield _pickled_state.get('_etag') == etag
+            yield _pickled_state.get('_mod') == state.get('_mod')
+            yield _pickled_state.get('_etag') == state.get('_etag')
             yield _pickled_state.get('_pickle_version') == REPODATA_PICKLE_VERSION
             yield _pickled_state.get('fn') == self.repodata_fn
 
         if not all(_check_pickled_valid()):
-            log.debug("Pickle load validation failed for %s at %s.",
-                      self.url_w_repodata_fn, self.cache_path_json)
+            log.debug("Pickle load validation failed for %s at %s. %r",
+                      self.url_w_repodata_fn, self.cache_path_json, tuple(_check_pickled_valid()))
             return None
 
         return _pickled_state
@@ -474,25 +475,6 @@ class SubdirData(metaclass=SubdirDataType):
         return _internal_state
 
 
-def read_mod_and_etag(path):
-    with open(path, 'rb') as f:
-        try:
-            with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
-                result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
-                return result
-        except (BufferError, ValueError):  # pragma: no cover
-            # BufferError: cannot close exported pointers exist
-            #   https://github.com/conda/conda/issues/4592
-            # ValueError: cannot mmap an empty file
-            return {}
-        except OSError as e:  # pragma: no cover
-            # OSError: [Errno 19] No such device
-            if e.errno == ENODEV:
-                return {}
-            raise
-
-
 def get_cache_control_max_age(cache_control_value):
     max_age = re.search(r"max-age=(\d+)", cache_control_value)
     return int(max_age.groups()[0]) if max_age else 0
@@ -524,13 +506,10 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     if repodata_fn != REPODATA_FN:
         url += repodata_fn
 
-    # TODO: remove try-except when conda only supports Python 3.9+, as
-    # `usedforsecurity=False` was added in 3.9.
-    try:
-        md5 = hashlib.md5(ensure_binary(url))
-    except ValueError:
-        md5 = hashlib.md5(ensure_binary(url), usedforsecurity=False)
-    return '%s.json' % (md5.hexdigest()[:8],)
+    hash = hashlib.sha256(ensure_binary(url))
+
+    # multiples of 5 will produce unpadded base32 strings
+    return '%s.json' % base64.b32hexencode(hash.digest()[:5]).decode('utf-8')
 
 
 def create_cache_dir():

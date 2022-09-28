@@ -27,13 +27,13 @@ class TestMisc(unittest.TestCase):
     def test_cache_fn_url(self):
         url = "http://repo.continuum.io/pkgs/pro/osx-64/"
         # implicit repodata.json
-        self.assertEqual(cache_fn_url(url), '7618c8b6.json')
+        self.assertEqual(cache_fn_url(url), '37121N4D.json')
         # explicit repodata.json
-        self.assertEqual(cache_fn_url(url, 'repodata.json'), '7618c8b6.json')
+        self.assertEqual(cache_fn_url(url, 'repodata.json'), '37121N4D.json')
         # explicit current_repodata.json
-        self.assertEqual(cache_fn_url(url, "current_repodata.json"), '8be5dc16.json')
+        self.assertEqual(cache_fn_url(url, "current_repodata.json"), 'B9MFIEC9.json')
         url = "http://repo.anaconda.com/pkgs/pro/osx-64/"
-        self.assertEqual(cache_fn_url(url), 'e42afea8.json')
+        self.assertEqual(cache_fn_url(url), 'H086G4TJ.json')
 
     def test_url_pat_1(self):
         m = url_pat.match('http://www.cont.io/pkgs/linux-64/foo.tar.bz2'
