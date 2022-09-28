@@ -12,8 +12,14 @@
 
 ### Docs
 
-* <news item>
+* Removed `allow_other_channels` config option from documentation, as the option no longer exists. (#11866)
 
 ### Other
 
+<<<<<<<< HEAD:news/11851-devenv-mach-arch
 * Add `--mach` and `--arch` options to `dev/start`. (#11851)
+|||||||| parent of 14a27c191 (Update `feature/plugins` Feature Branch (#11892)):news/11761-use-canary-releasev22.8.0
+* Update canary-release version to resolve canary build issue. (#11761)
+========
+* <news item>
+>>>>>>>> 14a27c191 (Update `feature/plugins` Feature Branch (#11892)):news/7469-docs-describes-non-existent-option
