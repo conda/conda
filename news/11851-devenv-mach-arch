@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Removed `allow_other_channels` config option from documentation, as the option no longer exists. (#11866)
 
 ### Other
 
-* Add `--mach` and `--arch` options to `dev/start`. (#11851)
+* <news item>
