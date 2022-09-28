@@ -68,15 +68,16 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True):
     response.raise_for_status()
 
     if "range" in headers:
-        print("request headers: ", end="")
-        pprint.pprint(dict(response.request.headers))
-        print("\nresponse headers: ", end="")
-        pprint.pprint(
-            {
-                k: v
-                for k, v in response.headers.items()
-                if any(map(k.lower().__contains__, ("content", "last", "range", "encoding")))
-            }
+        log.debug("request headers: %s", pprint.pformat(response.request.headers))
+        log.debug(
+            "response headers: %s",
+            pprint.pformat(
+                {
+                    k: v
+                    for k, v in response.headers.items()
+                    if any(map(k.lower().__contains__, ("content", "last", "range", "encoding")))
+                }
+            ),
         )
         pprint.pprint("status: %d" % response.status_code)
         assert response.status_code == 206, "server returned full response"
@@ -136,6 +137,7 @@ def find_patches(patches, have, want):
         if have == want:
             break
         if patch["to"] == want:
+            log.info("Collect %s \N{LEFTWARDS ARROW} %s", hf(want), hf(patch["from"]))
             apply.append(patch)
             want = patch["from"]
 
@@ -182,10 +184,15 @@ def download_and_hash(hasher, url, json_path):
     log.info("Download %d bytes %r", length, response.request.headers)
 
 
-def request_url_jlap(url, get_place=get_place):
+def request_url_jlap(url, get_place=get_place, full_download=False):
     """
     Complete save complete json / save place / update with jlap sequence.
     """
+    JLAP = "jlap"
+    HEADERS = "headers"
+    NOMINAL_HASH = "have"
+    ON_DISK_HASH = "have_hash"
+    LATEST = "latest"
 
     state_path = get_place(url, ".s")
     try:
@@ -193,26 +200,26 @@ def request_url_jlap(url, get_place=get_place):
     except FileNotFoundError:
         state = {}
 
-    jlap_state = state.get("jlap", {})
-    headers = jlap_state.get("headers", {})
+    jlap_state = state.get(JLAP, {})
+    headers = jlap_state.get(HEADERS, {})
 
     json_path = get_place(url)
 
     buffer = []  # type checks
 
-    if not ("have" in state and json_path.exists()):
+    if full_download or not (NOMINAL_HASH in state and json_path.exists()):
         hasher = hfunc()
         with timeme("Download "):
             download_and_hash(hasher, withext(url, ".json"), json_path)
 
-        have = have_hash = state["have"] = state["have_hash"] = hasher.hexdigest()
+        have = have_hash = state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
 
         # trick code even though there is no jlap yet? buffer with zero patches.
-        buffer = [[-1, b"", ""], [0, json.dumps({"latest": have}), ""], [1, b"", ""]]
+        buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1, b"", ""]]
 
     else:
-        have = state["have"]
-        have_hash = state.get("have_hash")
+        have = state[NOMINAL_HASH]
+        have_hash = state.get(ON_DISK_HASH)
 
         need_jlap = True
         try:
@@ -286,15 +293,17 @@ def request_url_jlap(url, get_place=get_place):
             #
             # XXX or skip jlap at top of fn; make sure it is not
             # possible to download the complete json twice
-            log.warn(
-                "Current repodata.json not found in patchset. (Would) re-download repodata.json"
-            )
-            if False:
-                hasher = hfunc()
-                download_and_hash(hasher, withext(url, ".json"), json_path)
-                state["have"] = hasher.hexdigest()
+            log.info("Current repodata.json %s not found in patchset. Re-download repodata.json")
 
-        state = {k: v for k, v in state.items() if k in ("have", "have_hash", "jlap")}
+            assert not full_download, "Recursion error"
+
+            ## debugging
+            json_new_path = json_path.with_suffix(".json.old")
+            log.warning("Rename to %s for debugging", json_new_path)
+            json_path.rename(json_new_path)
+            return request_url_jlap(url, get_place=get_place, full_download=True)
+
+        state = {k: v for k, v in state.items() if k in (NOMINAL_HASH, ON_DISK_HASH, JLAP)}
 
         state_path.write_text(json.dumps(state, indent=True))
 
