@@ -7,19 +7,19 @@ from os.path import abspath, basename, dirname, join
 
 import pytest
 
-from conda import CondaMultiError
+from conda import CondaError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars, env_var
 from conda.core.index import get_index
-from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
+from conda.core import package_cache_data
+from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract, PackageRecord, PackageCacheRecord
 from conda.core.path_actions import CacheUrlAction
-from conda.exceptions import ChecksumMismatchError
-from conda.exports import url_path
+from conda.exceptions import CondaHTTPError
+from conda.exports import url_path, MatchSpec
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
-from conda.models.records import PackageRecord
 from conda.testing.integration import make_temp_package_cache
 from conda.common.compat import on_win
 import datetime
@@ -376,3 +376,83 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
         assert zlib_base_fn not in pkgs_dir_files
         assert zlib_tar_bz2_fn in pkgs_dir_files
         assert zlib_conda_fn in pkgs_dir_files
+
+
+def test_cover_reverse():
+    class f:
+        def result(self):
+            raise Exception()
+
+    class action:
+        def reverse(self):
+            pass
+
+    class progress:
+        def close(self):
+            pass
+
+        def finish(self):
+            pass
+
+    exceptions = []
+
+    package_cache_data.done_callback(f(), (action(),), progress(), exceptions)
+    package_cache_data.do_cache_action("dummy", None, None)
+    package_cache_data.do_extract_action("dummy", None, None)
+
+
+def test_cover_get_entry_to_link():
+    with pytest.raises(CondaError):
+        PackageCacheData.get_entry_to_link(
+            PackageRecord(name="does-not-exist", version="4", build_number=0, build="")
+        )
+
+    exists_record = PackageRecord(
+        name="brotlipy", version="0.7.0", build_number=1003, build="py38h9ed2024_1003"
+    )
+
+    exists = PackageCacheRecord(
+        _hash=4599667980631885143,
+        name="brotlipy",
+        version="0.7.0",
+        build="py38h9ed2024_1003",
+        build_number=1003,
+        subdir="osx-64",
+        fn="brotlipy-0.7.0-py38h9ed2024_1003.conda",
+        url="https://repo.anaconda.com/pkgs/main/osx-64/brotlipy-0.7.0-py38h9ed2024_1003.conda",
+        sha256="8cd905ec746456419b0ba8b58003e35860f4c1205fc2be810de06002ba257418",
+        arch="x86_64",
+        platform="darwin",
+        depends=("cffi >=1.0.0", "python >=3.8,<3.9.0a0"),
+        constrains=(),
+        track_features=(),
+        features=(),
+        license="MIT",
+        license_family="MIT",
+        timestamp=1605539545.169,
+        size=339408,
+        package_tarball_full_path="/pkgs/brotlipy-0.7.0-py38h9ed2024_1003.conda",
+        extracted_package_dir="/pkgs/brotlipy-0.7.0-py38h9ed2024_1003",
+        md5="41b0bc0721aecf75336a098f4d5314b8",
+    )
+
+    with make_temp_package_cache() as pkgs_dir:
+        first_writable = PackageCacheData(pkgs_dir)
+        first_writable._package_cache_records[exists] = exists
+        PackageCacheData.get_entry_to_link(exists_record)
+        del first_writable._package_cache_records[exists]
+
+
+def test_cover_fetch_not_exists():
+    with pytest.raises(CondaHTTPError):
+        ProgressiveFetchExtract(
+            [MatchSpec(url="http://localhost:8080/conda-test/fakepackage-1.2.12-testing_3.conda")]
+        ).execute()
+
+
+def test_cover_extract_bad_package(tmp_path):
+    filename = "fakepackage-1.2.12-testing_3.conda"
+    fullpath = tmp_path / filename
+    with open(fullpath, "w") as archive:
+        archive.write("")
+    PackageCacheData.first_writable()._make_single_record(str(fullpath))

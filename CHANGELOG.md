@@ -1,5 +1,59 @@
 [//]: # (current developments)
 
+## 22.9.0 (2022-09-14)
+
+### Special announcement
+
+If you have been following the conda project previously, you will notice a change in our version number for this release. We have officially switched to the [CalVer](https://calver.org/) versioning system as agreed upon in [CEP 8](https://github.com/conda-incubator/ceps/blob/main/cep-8.md) (Conda Enhancement Proposal).
+
+Please read that CEP for more information, but here is a quick synopsis. We hope that this versioning system and our release schedule will help make our releases more predictable and transparent to the community going forward. We are now committed to making at least one release every two months, but keep in mind that we can (and most likely will) be making minor version releases within this window.
+
+### Enhancements
+
+* Replace vendored toolz with toolz dependency. (#11589, #11700)
+* Update bundled Python launchers for Windows (`conda/shell/cli-*.exe`) to match the ones found in conda-build. (#11676)
+* Add `win-arm64` as a known platform (subdir). (#11778)
+
+### Bug fixes
+
+* Remove extra prefix injection related to the shell interface breaking `conda run`. (#11666)
+* Better support for shebang instructions in prefixes with spaces. (#11676)
+* Fix `noarch` entry points in Unicode-containing prefixes on Windows. (#11694)
+* Ensure that exceptions that are raised show up properly instead of resulting in a blank `[y/N]` prompt. (#11746)
+
+### Deprecations
+
+* Mark `conda._vendor.toolz` as pending deprecation. (#11704)
+* Removes vendored version of urllib3. (#11705)
+
+### Docs
+
+* Added conda capitalization standards to CONTRIBUTING file. (#11712)
+
+### Other
+
+* Add arm64 support to development script `. ./dev/start`. (#11752)
+* Update canary-release version to resolve canary build issue. (#11761)
+* Renamed canary recipe from `conda.recipe` to `recipe`. (#11774)
+
+### Contributors
+
+* @beeankha
+* @chenghlee
+* @conda-bot
+* @dholth
+* @isuruf
+* @jaimergp
+* @jezdez
+* @razzlestorm made their first contribution in https://github.com/conda/conda/pull/11736
+* @jakirkham
+* @kathatherine
+* @kenodegard
+* @scdub made their first contribution in https://github.com/conda/conda/pull/11816
+* @travishathaway
+* @pre-commit-ci[bot]
+
+
 ## 4.14.0 (2022-08-02)
 
 ### Enhancements
