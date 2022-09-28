@@ -1,13 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from functools import wraps
-from typing import Sequence, Tuple, Optional, Set
+import time
+from typing import Sequence, Optional, Union
 from urllib import parse
 
 from ..base.context import context, Context
-from ..base.constants import NOTICES_FN
-from ..models.channel import Channel, get_channel_objs
+from ..base.constants import NOTICES_FN, NOTICES_DECORATOR_DISPLAY_INTERVAL
+from ..models.channel import Channel, MultiChannel, get_channel_objs
 
 from . import cache
 from . import views
@@ -40,6 +42,11 @@ def retrieve_notices(
     num_total_notices = len(channel_notices)
 
     cache_file = cache.get_notices_cache_file()
+
+    # We always want to modify the mtime attribute of the file if we are trying to retrieve notices
+    # This is used later in "is_channel
+    cache_file.touch()
+
     viewed_notices = None
     num_viewed_notices = 0
     if not always_show_viewed:
@@ -81,7 +88,7 @@ def notices(func):
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if is_channel_notices_enabled(context):
+        if is_channel_notices_enabled(context) and is_channel_notices_cache_expired():
             channel_notice_set = retrieve_notices(
                 limit=context.number_channel_notices,
                 always_show_viewed=False,
@@ -99,8 +106,8 @@ def notices(func):
 
 
 def get_channel_name_and_urls(
-    channels: [Sequence[Channel]],
-) -> Sequence[Tuple[ChannelUrl, ChannelName]]:
+    channels: Sequence[Union[Channel, MultiChannel]],
+) -> Sequence[tuple[ChannelUrl, ChannelName]]:
     """Return a sequence of Channel URL and name"""
 
     def ensure_endswith(value: str, ends: str) -> str:
@@ -109,10 +116,19 @@ def get_channel_name_and_urls(
     def join_url(value: str, join_val: str) -> str:
         return parse.urljoin(ensure_endswith(value, "/"), join_val)
 
-    return tuple(
-        (join_url(channel.base_url, NOTICES_FN), channel.name or channel.location)
-        for channel in channels
-    )
+    channel_name_and_urls = []
+
+    for channel in channels:
+        name = channel.name or channel.location
+
+        if type(channel) is Channel:
+            channel_name_and_urls.append((join_url(channel.base_url, NOTICES_FN), name))
+
+        elif type(channel) is MultiChannel:
+            for url in channel.base_urls:
+                channel_name_and_urls.append((join_url(url, NOTICES_FN), name))
+
+    return channel_name_and_urls
 
 
 def flatten_notice_responses(
@@ -129,7 +145,7 @@ def flatten_notice_responses(
 def filter_notices(
     channel_notices: Sequence[ChannelNotice],
     limit: Optional[int] = None,
-    exclude: Optional[Set[str]] = None,
+    exclude: Optional[set[str]] = None,
 ) -> Sequence[ChannelNotice]:
     """
     Perform filtering actions for the provided sequence of ChannelNotice objects.
@@ -149,12 +165,30 @@ def filter_notices(
 
 def is_channel_notices_enabled(ctx: Context) -> bool:
     """
-    Determines whether channel notices should be displayed for `notices` decorator.
+    Determines whether channel notices are enabled and therefore displayed when
+    invoking the `notices` command decorator.
 
-    This only happens when offline is False and number_channel_notices is greater
-    than 0.
+    This only happens when:
+     - offline is False
+     - number_channel_notices is greater than 0
 
     Args:
         ctx: The conda context object
     """
     return ctx.number_channel_notices > 0 and not ctx.offline and not ctx.json
+
+
+def is_channel_notices_cache_expired() -> bool:
+    """
+    Checks to see if the notices cache file we use to keep track of
+    displayed notices is expired. This involves checking the mtime
+    attribute of the file. Anything older than what is specified as
+    the NOTICES_DECORATOR_DISPLAY_INTERVAL is considered expired.
+    """
+    cache_file = cache.get_notices_cache_file()
+
+    cache_file_stat = cache_file.stat()
+    now = time.time()
+    seconds_since_checked = now - cache_file_stat.st_mtime
+
+    return seconds_since_checked >= NOTICES_DECORATOR_DISPLAY_INTERVAL

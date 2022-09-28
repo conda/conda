@@ -9,14 +9,31 @@ from unittest import mock
 import pytest
 
 from conda.base.context import context
+from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.cli import main_notices as notices
 from conda.cli import conda_argparse
+from conda.testing.helpers import run_inprocess_conda_command as run
+from conda.testing.integration import make_temp_local_channel
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
     get_test_notices,
     get_notice_cache_filenames,
+    offset_cache_file_mtime,
 )
+
+
+@pytest.fixture
+def env_one(notices_cache_dir):
+    env_name = "env-one"
+
+    # Setup
+    run(f"conda create -n {env_name} -y --offline")
+
+    yield env_name
+
+    # Teardown
+    run(f"conda remove --all -y -n {env_name}", disallow_stderr=False)
 
 
 @pytest.mark.parametrize("status_code", (200, 404))
@@ -214,3 +231,32 @@ def test_cache_names_appear_as_expected(
 
         assert len(cache_files) == 1
         assert os.path.basename(cache_files[0]) == expected_cache_filename
+
+
+def test_notices_appear_once_when_running_decorated_commands(tmpdir, env_one, notices_cache_dir):
+    """
+    As a user, I want to make sure when I run commands like "install" and "update"
+    that the channels are only appearing according to the specified interval in:
+        conda.base.constants.NOTICES_DECORATOR_DISPLAY_INTERVAL
+
+    This should only be once per 24 hours according to the current setting.
+    """
+    # create our mock channel directory
+    channel_tar_location = "tests/data/local_channels/dummy-channel.tar.bz2"
+    channel_dir = make_temp_local_channel(tmpdir, channel_tar_location)
+
+    offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
+
+    # First run of install; notices should be retrieved
+    out, err, exit_code = run(
+        f"conda install -n {env_one} -c {channel_dir} --override-channels -y dummy=0.1.0"
+    )
+
+    assert "Retrieving notices" in out
+
+    # Second run of install; notices should not be retrieved
+    out, err, exit_code = run(
+        f"conda install -n {env_one} -c {channel_dir} --override-channels -y dummy=0.1.0"
+    )
+
+    assert "Retrieving notices" not in out

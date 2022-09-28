@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
 
+from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.notices import core as notices
 
 from conda.testing.notices.helpers import (
@@ -9,6 +10,7 @@ from conda.testing.notices.helpers import (
     notices_decorator_assert_message_in_stdout,
     DummyArgs,
     get_test_notices,
+    offset_cache_file_mtime,
 )
 
 
@@ -47,6 +49,8 @@ def test_notices_decorator(capsys, notices_cache_dir, notices_mock_http_session_
     add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
     dummy_mesg = "Dummy mesg"
 
+    offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
+
     @notices.notices
     def dummy(args, parser):
         print(dummy_mesg)
@@ -74,6 +78,8 @@ def test__conda_user_story__only_see_once(
     dummy_mesg = "Dummy Mesg"
     messages_json = get_test_notices(messages)
     add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
+
+    offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
 
     @notices.notices
     def dummy(args, parser):
@@ -128,6 +134,8 @@ def test__conda_user_story__more_notices_message(
     messages = tuple(f"Test {idx}" for idx in range(1, 11, 1))
     messages_json = get_test_notices(messages)
     add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
+
+    offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
 
     @notices.notices
     def dummy(args, parser):

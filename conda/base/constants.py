@@ -11,9 +11,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from enum import Enum, EnumMeta
 from os.path import join
+import urllib.parse
 import struct
 
 from ..common.compat import on_win, six_with_metaclass
+
+# Add s3:// support to urllib.parse
+urllib.parse.uses_netloc.append("s3")
+urllib.parse.uses_relative.append("s3")
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -166,6 +171,9 @@ NOTICES_CACHE_FN = "notices.cache"
 
 #: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR = "notices"
+
+#: Determines the subdir for notices cache
+NOTICES_DECORATOR_DISPLAY_INTERVAL = 86400  # in seconds
 
 DRY_RUN_PREFIX = "Dry run action:"
 PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
