@@ -9,10 +9,7 @@ import re
 import subprocess
 from urllib.parse import urlsplit
 
-try:
-    from tlz.itertoolz import accumulate, concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import accumulate, concat
+from itertools import accumulate, chain
 
 from .compat import on_win
 from .. import CondaError
@@ -116,7 +113,7 @@ def explode_directories(child_directories, already_split=False):
     # get all directories including parents
     # use already_split=True for the result of get_all_directories()
     maybe_split = lambda x: x if already_split else x.split('/')
-    return set(concat(accumulate(join, maybe_split(directory))
+    return set(chain.from_iterable(accumulate(maybe_split(directory), join)
                       for directory in child_directories if directory))
 
 
