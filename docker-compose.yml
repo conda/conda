@@ -9,6 +9,7 @@ x-base: &base
       - python_version=${CONDA_DOCKER_PYTHON:-3.9}
   volumes:
     - .:/opt/conda-src
+    - tmpfs:/tmp
   container_name: conda-linux-python-${CONDA_DOCKER_PYTHON:-3.9}
 
 services:
@@ -23,3 +24,9 @@ services:
   unit-tests:
     <<: *base
     command: ["bash", "/opt/conda-src/dev/linux/unit.sh"]
+
+volumes:
+  tmpfs:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
