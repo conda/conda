@@ -40,9 +40,9 @@ class OSSAdapter(BaseAdapter):
         https_proxy = os.environ.get("ALL_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
         self._proxies = {}
         if http_proxy and len(http_proxy) > 0:
-            self._proxies["http_proxy"] = http_proxy
+            self._proxies["http"] = http_proxy.split("://")[1]
         if https_proxy and len(https_proxy) > 0:
-            self._proxies["https_proxy"] = https_proxy
+            self._proxies["https"] = https_proxy.split("://")[1]
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
         resp = Response()
