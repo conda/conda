@@ -451,7 +451,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
     """
     Creates a plan for initializing conda in shells.
 
-    Bash: 
+    Bash:
     On Linux, when opening the terminal, .bashrc is sourced (because it is an interactive shell).
     On macOS on the other hand, the .bash_profile gets sourced by default when executing it in
     Terminal.app. Some other programs do the same on macOS so that's why we're initializing conda
