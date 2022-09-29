@@ -14,7 +14,7 @@ from ..models.channel import Channel, MultiChannel, get_channel_objs
 from . import cache
 from . import views
 from . import http
-from .types import ChannelNotice, ChannelNoticeResponse, ChannelNoticeSet
+from .types import ChannelNotice, ChannelNoticeResponse, ChannelNoticeResultSet
 
 # Used below in type hints
 ChannelName = str
@@ -25,7 +25,7 @@ def retrieve_notices(
     limit: Optional[int] = None,
     always_show_viewed: bool = True,
     silent: bool = False,
-) -> ChannelNoticeSet:
+) -> ChannelNoticeResultSet:
     """
     Function used for retrieving notices. This is called by the "notices" decorator as well
     as the sub-command "notices"
@@ -44,7 +44,7 @@ def retrieve_notices(
     cache_file = cache.get_notices_cache_file()
 
     # We always want to modify the mtime attribute of the file if we are trying to retrieve notices
-    # This is used later in "is_channel
+    # This is used later in "is_channel_notices_cache_expired"
     cache_file.touch()
 
     viewed_notices = None
@@ -55,14 +55,14 @@ def retrieve_notices(
 
     channel_notices = filter_notices(channel_notices, limit=limit, exclude=viewed_notices)
 
-    return ChannelNoticeSet(
+    return ChannelNoticeResultSet(
         channel_notices=channel_notices,
         viewed_channel_notices=num_viewed_notices,
         total_number_channel_notices=num_total_notices,
     )
 
 
-def display_notices(channel_notice_set: ChannelNoticeSet) -> None:
+def display_notices(channel_notice_set: ChannelNoticeResultSet) -> None:
     """
     Prints the channel notices to std out
     """

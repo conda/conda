@@ -23,7 +23,7 @@ class ChannelNotice(NamedTuple):
     interval: Optional[int]
 
 
-class ChannelNoticeSet(NamedTuple):
+class ChannelNoticeResultSet(NamedTuple):
     """
     Represents a list of a channel notices, plus some accompanying
     metadata such as `viewed_channel_notices`.

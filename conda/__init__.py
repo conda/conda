@@ -149,6 +149,7 @@ def _default(self, obj):
 _default.default = JSONEncoder().default
 JSONEncoder.default = _default
 
-# Add s3:// support to urllib.parse
+# Add s3:// support to urllib.parse, this allows us to use urllib.parse.urljoin
+# with s3 urls.
 urllib.parse.uses_netloc.append("s3")
 urllib.parse.uses_relative.append("s3")
