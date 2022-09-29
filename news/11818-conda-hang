@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* conda env update would ask for user input and hang when working with pip
+* `conda env update` would ask for user input and hang when working with pip
 installs of git repos and the repo was previously checked out. Tell pip not to
 ask for user input for that case.  (#11818)
 

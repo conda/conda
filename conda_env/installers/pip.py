@@ -48,6 +48,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         requirements.write('\n'.join(specs))
         requirements.close()
         # pip command line...
+        # see https://pip.pypa.io/en/stable/cli/pip/#exists-action-option
         pip_cmd = ['install', '-U', '-r', requirements.name, '--exists-action=b']
         stdout, stderr = pip_subprocess(pip_cmd, prefix, cwd=pip_workdir)
     finally:
