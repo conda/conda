@@ -24,7 +24,6 @@ from random import sample
 from shutil import copyfile, rmtree
 from subprocess import check_output
 import sys
-import tarfile
 from tempfile import gettempdir
 from uuid import uuid4
 
@@ -392,27 +391,6 @@ def make_temp_channel(packages):
             f.write(json.dumps({}, cls=EntityEncoder))
 
         yield channel
-
-
-def make_temp_local_channel(
-    temp_dir, channel_tar_location: str, channel_dir: str = "channel"
-) -> str:
-    """
-    Creates a temporary local channel based on the existing tar ball we have available.
-
-    This channel contains a single python package called "dummy" that is noarch and has
-    no other dependencies. It is intentionally kept as a very simple channel.
-    """
-    with tarfile.open(channel_tar_location) as tar:
-        tar.extractall(temp_dir)
-
-    dir_list = os.listdir(temp_dir)
-    assert channel_dir in dir_list, (
-        "channel_dir is not present in the temp dir; check the tar ball to ensure"
-        "everything is named correctly"
-    )
-
-    return temp_dir / "channel"
 
 
 def create_temp_location():

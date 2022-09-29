@@ -13,7 +13,7 @@ from ..models.channel import Channel, MultiChannel, get_channel_objs
 
 from . import cache
 from . import views
-from . import http
+from . import fetch
 from .types import ChannelNotice, ChannelNoticeResponse, ChannelNoticeResultSet
 
 # Used below in type hints
@@ -37,7 +37,7 @@ def retrieve_notices(
         silent: Whether to use a spinner when fetching and caching notices.
     """
     channel_name_urls = get_channel_name_and_urls(get_channel_objs(context))
-    channel_notice_responses = http.get_notice_responses(channel_name_urls, silent=silent)
+    channel_notice_responses = fetch.get_notice_responses(channel_name_urls, silent=silent)
     channel_notices = flatten_notice_responses(channel_notice_responses)
     num_total_notices = len(channel_notices)
 

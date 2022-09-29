@@ -12,8 +12,8 @@ from conda.base.context import context
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.cli import main_notices as notices
 from conda.cli import conda_argparse
+from conda.notices import fetch
 from conda.testing.helpers import run_inprocess_conda_command as run
-from conda.testing.integration import make_temp_local_channel
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
@@ -233,30 +233,46 @@ def test_cache_names_appear_as_expected(
         assert os.path.basename(cache_files[0]) == expected_cache_filename
 
 
-def test_notices_appear_once_when_running_decorated_commands(tmpdir, env_one, notices_cache_dir):
+def test_notices_appear_once_when_running_decorated_commands(
+    tmpdir, env_one, notices_cache_dir, pre_link_messages_package
+):
     """
     As a user, I want to make sure when I run commands like "install" and "update"
     that the channels are only appearing according to the specified interval in:
         conda.base.constants.NOTICES_DECORATOR_DISPLAY_INTERVAL
 
     This should only be once per 24 hours according to the current setting.
-    """
-    # create our mock channel directory
-    channel_tar_location = "tests/data/local_channels/dummy-channel.tar.bz2"
-    channel_dir = make_temp_local_channel(tmpdir, channel_tar_location)
 
+    To ensure this test runs appropriately, we rely on using a pass-thru mock
+    of the `conda.notices.fetch.get_notice_responses` function. If this function
+    was called and called correctly we can assume everything is working well.
+    """
     offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
 
-    # First run of install; notices should be retrieved
-    out, err, exit_code = run(
-        f"conda install -n {env_one} -c {channel_dir} --override-channels -y dummy=0.1.0"
-    )
+    with mock.patch(
+        "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
+    ) as fetch_mock:
+        # First run of install; notices should be retrieved
+        run(
+            f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
+        )
 
-    assert "Retrieving notices" in out
+        # make sure our fetch function was called correctly
+        assert len(fetch_mock.mock_calls) == 1
 
-    # Second run of install; notices should not be retrieved
-    out, err, exit_code = run(
-        f"conda install -n {env_one} -c {channel_dir} --override-channels -y dummy=0.1.0"
-    )
+        mock_call, *_ = fetch_mock.mock_calls
+        # unpack the arguments from the mock call; mock nests it a little deep!
+        ((arg_1, arg_2), *_), *_ = mock_call.args
 
-    assert "Retrieving notices" not in out
+        assert arg_1.startswith("file://")
+        assert arg_2 == "local"
+
+    with mock.patch(
+        "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
+    ) as fetch_mock:
+        # Second run of install; notices should not be retrieved
+        run(
+            f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
+        )
+
+        assert len(fetch_mock.mock_calls) == 0

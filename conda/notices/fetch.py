@@ -24,6 +24,7 @@ def get_notice_responses(
     ChannelNoticeResponse objects.
 
     Args:
+        url_and_names: channel url and the channel name
         silent: turn off "loading animation" (defaults to False)
         max_workers: increase worker number in thread executor (defaults to 10)
     Returns:
