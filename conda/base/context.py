@@ -59,11 +59,11 @@ from ..common.configuration import (Configuration, ConfigurationLoadError, MapPa
 from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-from ..common.decorators import env_override
 
 from .. import CONDA_SOURCE_ROOT
 
 from .. import plugins
+from ..plugins import archspec, cuda, linux, osx, windows
 
 try:
     os.getcwd()
@@ -157,6 +157,11 @@ def ssl_verify_validation(value):
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager():
     pm = pluggy.PluginManager('conda')
+    pm.register(archspec)
+    pm.register(cuda)
+    pm.register(linux)
+    pm.register(osx)
+    pm.register(windows)
     pm.add_hookspecs(plugins)
     pm.load_setuptools_entrypoints('conda')
     return pm
@@ -961,12 +966,6 @@ class Context(Configuration):
         # DANGER: This is rather slow
         info = _get_cpu_info()
         return info['flags']
-
-    @memoizedproperty
-    @env_override('CONDA_OVERRIDE_CUDA', convert_empty_to_none=True)
-    def cuda_version(self):
-        from conda.common.cuda import cuda_detect
-        return cuda_detect()
 
     @property
     def category_map(self):

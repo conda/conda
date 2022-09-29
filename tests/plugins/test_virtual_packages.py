@@ -10,7 +10,6 @@ from conda.testing.solver_helpers import package_dict
 from conda import plugins
 
 import pytest
-
 import re
 
 
@@ -38,7 +37,6 @@ def plugin(plugin_manager):
     return plugin
 
 
-@pytest.mark.xfail(reason="virtual package plugins need to be implemented for this test to pass")
 def test_invoked(plugin, cli_main):
     index = conda.core.index.get_reduced_index(
         context.default_prefix,
@@ -55,7 +53,6 @@ def test_invoked(plugin, cli_main):
     assert packages["__ghi"].version == "789"
 
 
-@pytest.mark.xfail(reason="virtual package plugins need to be implemented for this test to pass")
 def test_duplicated(plugin_manager, cli_main, capsys):
     plugin_manager.register(VirtualPackagesPlugin())
     plugin_manager.register(VirtualPackagesPlugin())

@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-import os
-import re
 from itertools import chain
 from logging import getLogger
 import platform
@@ -20,7 +18,7 @@ from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
-from ..exceptions import ChannelNotAllowed, InvalidSpec
+from ..exceptions import ChannelNotAllowed, InvalidSpec, PluginError
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
@@ -168,6 +166,7 @@ def _supplement_index_with_features(index, features=()):
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 def _supplement_index_with_system(index):
     cuda_version = context.cuda_version
     if cuda_version is not None:
@@ -259,6 +258,8 @@ def _supplement_index_with_system(index):
 
 
 >>>>>>> 27a7a6fb6 (Revert changes to index.py)
+=======
+>>>>>>> 726555d0b (Remove virtual package code from index.py, add plugins and register them in context.py)
 def get_archspec_name():
     from conda.base.context import non_x86_machines, _arch_names, _platform_map
 
@@ -284,6 +285,22 @@ def get_archspec_name():
         return str(archspec.cpu.host())
     except ImportError:
         return machine
+
+
+def _supplement_index_with_system(index):
+    registered_names = []
+    for package in chain(*context.plugin_manager.hook.conda_virtual_package_plugin()):
+        if package.name in registered_names:
+            raise PluginError(
+                "Conflicting virtual package entries found for the "
+                f"`{package.name}` key. Multiple conda plugins "
+                "are registering this virtual package via the "
+                "`conda_virtual_package_plugin` hook, please make sure "
+                "you don't have any incompatible plugins installed."
+            )
+        registered_names.append(package.name)
+        rec = _make_virtual_package(f"__{package.name}", package.version)
+        index[rec] = rec
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
