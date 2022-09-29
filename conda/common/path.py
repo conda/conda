@@ -112,9 +112,14 @@ def get_leaf_directories(files):
 def explode_directories(child_directories, already_split=False):
     # get all directories including parents
     # use already_split=True for the result of get_all_directories()
-    maybe_split = lambda x: x if already_split else x.split('/')
-    return set(chain.from_iterable(accumulate(maybe_split(directory), join)
-                      for directory in child_directories if directory))
+    maybe_split = lambda x: x if already_split else x.split("/")
+    return set(
+        chain.from_iterable(
+            accumulate(maybe_split(directory), join)
+            for directory in child_directories
+            if directory
+        )
+    )
 
 
 def pyc_path(py_path, python_major_minor_version):
