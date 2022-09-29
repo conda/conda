@@ -68,7 +68,7 @@ try:
     from conda_package_handling.api import THREADSAFE_EXTRACT
 except ImportError:
     THREADSAFE_EXTRACT = False
-
+#: Number of threads to use for package extracts; defaults to either the number of available CPUs, three or one
 EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
 
 
@@ -824,8 +824,10 @@ class ProgressiveFetchExtract(object):
         return hash(self) == hash(other)
 
 
-# called from ProgressiveFetchExtract.execute()
 def do_cache_action(prec, cache_axn, progress_bar, download_total=1.0):
+    """
+    This is function gets called from `ProgressiveFetchExtract.execute`
+    """
     # dummy action to simplify code
     if not cache_axn:
         return prec
@@ -868,7 +870,7 @@ def do_reverse(progress_bar, *actions):
             action.reverse()
 
 
-def done_callback(future, actions, progress_bar: ProgressBar, exceptions: list, finish=False):
+def done_callback(future: Future, actions: tuple[Union[CacheUrlAction, ExtractPackageAction], ...], progress_bar: ProgressBar, exceptions: list[Exception], finish: bool = False):
     try:
         future.result()
     except Exception as e:
