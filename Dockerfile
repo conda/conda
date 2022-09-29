@@ -56,7 +56,7 @@ ARG python_version=3.9
 COPY ./tests/requirements.txt /tmp
 
 # conda and test dependencies
-RUN /opt/conda/bin/conda install --update-all -y -c defaults \
+RUN /opt/conda/bin/conda install --update-all -y -c defaults -c py311_bs \
     python=$python_version \
     --file /tmp/requirements.txt && \
     /opt/conda/bin/conda clean --all --yes

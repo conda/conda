@@ -15,7 +15,7 @@ mklink /J \conda_src "%CONDA_SRC_PATH%" || goto :error
 
 cd \conda_src || goto :error
 CALL \conda_bin\scripts\activate.bat || goto :error
-CALL conda create -n conda-test-env -y python=%PYTHON% pywin32 --file=tests\requirements.txt || goto :error
+CALL conda create -n conda-test-env -c defaults -c py311_bs -y python=%PYTHON% pywin32 --file=tests\requirements.txt || goto :error
 CALL conda activate conda-test-env || goto :error
 CALL conda update openssl ca-certificates certifi || goto :error
 python -m conda init --install || goto :error
