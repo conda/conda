@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `--fd` and `--tmp` options (file descriptor and temporary file respectively) to `conda init --dev` so it'll be easier to control how/where to receive the generated script. (#11865)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
