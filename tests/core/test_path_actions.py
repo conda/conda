@@ -554,11 +554,20 @@ def test_explode_directories():
     def old_explode_directories(child_directories, already_split=False):
         # get all directories including parents
         # use already_split=True for the result of get_all_directories()
-        maybe_split = lambda x: x if already_split else x.split('/')
-        return set(toolz.concat(toolz.accumulate(join, maybe_split(directory))
-                        for directory in child_directories if directory))
+        maybe_split = lambda x: x if already_split else x.split("/")
+        return set(
+            toolz.concat(
+                toolz.accumulate(join, maybe_split(directory))
+                for directory in child_directories
+                if directory
+            )
+        )
 
-    old_version = old_explode_directories(sys.path)
-    new_version = explode_directories(sys.path)
+    old_version = old_explode_directories(
+        (os.path.split(path) for path in sys.path), already_split=True
+    )
+    new_version = explode_directories(
+        (os.path.split(path) for path in sys.path), already_split=True
+    )
 
     assert new_version == old_version
