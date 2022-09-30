@@ -1,0 +1,17 @@
+name: Auto Approve
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+
+jobs:
+  auto-approve:
+    name: Automatic Workflow Approve
+    if: '!github.event.repository.fork'
+    runs-on: ubuntu-latest
+    steps:
+      - name: approve
+        uses: mheap/automatic-approve-action@v1
+        with:
+          token: ${{ secrets.PAT }}
+          workflows: "ci.yml,cla.yml"
+          dangerous_files: "integration.sh,setup.sh,unit.sh,integration.bat,setup.bat,unit.bat"
