@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Executor, Future, _base, as_completed  # NOQA
@@ -45,7 +44,7 @@ class DeltaSecondsFormatter(Formatter):
     """
     def __init__(self, fmt=None, datefmt=None):
         self.prev_time = time()
-        super(DeltaSecondsFormatter, self).__init__(fmt=fmt, datefmt=datefmt)
+        super().__init__(fmt=fmt, datefmt=datefmt)
 
     def format(self, record):
         now = time()
@@ -53,7 +52,7 @@ class DeltaSecondsFormatter(Formatter):
         self.prev_time = max(self.prev_time, now)
         record.delta_secs = now - prev_time
         record.relative_created_secs = record.relativeCreated / 1000
-        return super(DeltaSecondsFormatter, self).format(record)
+        return super().format(record)
 
 
 if boolify(os.environ.get('CONDA_TIMED_LOGGING')):
@@ -71,7 +70,7 @@ def dashlist(iterable, indent=2):
     return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
 
 
-class ContextDecorator(object):
+class ContextDecorator:
     """Base class for a context manager class (implementing __enter__() and __exit__()) that also
     makes it a decorator.
     """
@@ -210,7 +209,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         else:
             self.old_write(to_write)
 
-    class CapturedText(object):
+    class CapturedText:
         pass
     # sys.stdout.write(u'unicode out')
     # sys.stdout.write(bytes('bytes out', encoding='utf-8'))
@@ -363,7 +362,7 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
             return default_return
 
 
-class Spinner(object):
+class Spinner:
     """
     Args:
         message (str):
@@ -410,7 +409,7 @@ class Spinner(object):
                 self.fh.flush()
                 sleep(0.10)
                 self.fh.write('\b' * self._indicator_length)
-        except EnvironmentError as e:
+        except OSError as e:
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.stop()
             else:
@@ -434,7 +433,7 @@ class Spinner(object):
                 sys.stdout.flush()
 
 
-class ProgressBar(object):
+class ProgressBar:
 
     def __init__(self, description, enabled=True, json=False, position=None, leave=True):
         """
@@ -466,7 +465,7 @@ class ProgressBar(object):
                     position=position,
                     leave=leave,
                 )
-            except EnvironmentError as e:
+            except OSError as e:
                 if e.errno in (EPIPE, ESHUTDOWN):
                     self.enabled = False
                 else:
@@ -479,7 +478,7 @@ class ProgressBar(object):
                                  % (self.description, fraction))
             elif self.enabled:
                 self.pbar.update(fraction - self.pbar.n)
-        except EnvironmentError as e:
+        except OSError as e:
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.enabled = False
             else:
@@ -537,7 +536,7 @@ class DummyExecutor(Executor):
 class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
 
     def __init__(self, max_workers=10):
-        super(ThreadLimitedThreadPoolExecutor, self).__init__(max_workers)
+        super().__init__(max_workers)
 
     def submit(self, fn, *args, **kwargs):
         """
@@ -604,7 +603,7 @@ class time_recorder(ContextDecorator):  # pragma: no cover
 
     def __call__(self, f):
         self._set_entry_name(f)
-        return super(time_recorder, self).__call__(f)
+        return super().__call__(f)
 
     def __enter__(self):
         enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
@@ -621,7 +620,7 @@ class time_recorder(ContextDecorator):  # pragma: no cover
             self.total_run_time[entry_name] += run_time
             self._ensure_dir()
             with open(self.record_file, 'a') as fh:
-                fh.write("%s,%f\n" % (entry_name, run_time))
+                fh.write("{},{:f}\n".format(entry_name, run_time))
             # total_call_num = self.total_call_num[entry_name]
             # total_run_time = self.total_run_time[entry_name]
             # log.debug('%s %9.3f %9.3f %d', entry_name, run_time, total_run_time, total_call_num)

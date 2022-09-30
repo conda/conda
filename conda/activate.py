@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import ENOENT
 import json
@@ -25,7 +24,7 @@ from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
 
 
-class _Activator(object):
+class _Activator:
     # Activate and deactivate have three tasks
     #   1. Set and unset environment variables
     #   2. Execute/source activate.d/deactivate.d scripts
@@ -449,7 +448,7 @@ class _Activator(object):
 
         for env_var in old_conda_environment_env_vars.keys():
             unset_vars.append(env_var)
-            save_var = "__CONDA_SHLVL_%s_%s" % (new_conda_shlvl, env_var)
+            save_var = "__CONDA_SHLVL_{}_{}".format(new_conda_shlvl, env_var)
             if save_var in os.environ.keys():
                 export_vars[env_var] = os.environ[save_var]
         return {
@@ -580,7 +579,7 @@ class _Activator(object):
                     last_idx = index_of_path(path_list, prefix_dirs[prefix_dirs_idx])
                     if last_idx is None:
                         print(
-                            "Did not find path entry {0}".format(prefix_dirs[prefix_dirs_idx]),
+                            f"Did not find path entry {prefix_dirs[prefix_dirs_idx]}",
                             file=sys.stderr
                         )
                     prefix_dirs_idx = prefix_dirs_idx - 1
@@ -617,10 +616,8 @@ class _Activator(object):
                 if i == old_shlvl:
                     env_i = self._default_env(self.environ.get('CONDA_PREFIX', ''))
                 else:
-                    env_i = self._default_env(
-                        self.environ.get('CONDA_PREFIX_{}'.format(i), '').rstrip()
-                    )
-                stacked_i = bool(self.environ.get('CONDA_STACKED_{}'.format(i), '').rstrip())
+                    env_i = self._default_env(self.environ.get(f"CONDA_PREFIX_{i}", "").rstrip())
+                stacked_i = bool(self.environ.get(f"CONDA_STACKED_{i}", "").rstrip())
                 env_stack.append(env_i)
                 if not stacked_i:
                     prompt_stack = prompt_stack[0:-1]
@@ -632,7 +629,7 @@ class _Activator(object):
             if deactivate:
                 prompt_stack = prompt_stack[0:-1]
                 env_stack = env_stack[0:-1]
-                stacked = bool(self.environ.get('CONDA_STACKED_{}'.format(old_shlvl), '').rstrip())
+                stacked = bool(self.environ.get(f"CONDA_STACKED_{old_shlvl}", "").rstrip())
                 if not stacked and env_stack:
                     prompt_stack.append(env_stack[-1])
             elif reactivate:
@@ -661,7 +658,7 @@ class _Activator(object):
             paths = (
                 entry.path for entry in os.scandir(join(prefix, "etc", "conda", "activate.d"))
             )
-        except EnvironmentError:
+        except OSError:
             return ()
         return self.path_conversion(sorted(
             p for p in paths if p[se_len:] == _script_extension
@@ -674,7 +671,7 @@ class _Activator(object):
             paths = (
                 entry.path for entry in os.scandir(join(prefix, "etc", "conda", "deactivate.d"))
             )
-        except EnvironmentError:
+        except OSError:
             return ()
         return self.path_conversion(sorted(
             (p for p in paths if p[se_len:] == _script_extension),
@@ -689,12 +686,12 @@ class _Activator(object):
         # First get env vars from packages
         if exists(pkg_env_var_dir):
             for pkg_env_var_path in sorted(entry.path for entry in os.scandir(pkg_env_var_dir)):
-                with open(pkg_env_var_path, 'r') as f:
+                with open(pkg_env_var_path) as f:
                     env_vars.update(json.loads(f.read()))
 
         # Then get env vars from environment specification
         if exists(env_vars_file):
-            with open(env_vars_file, 'r') as f:
+            with open(env_vars_file) as f:
                 prefix_state = json.loads(f.read())
                 prefix_state_env_vars = prefix_state.get('env_vars', {})
                 dup_vars = [ev for ev in env_vars.keys() if ev in prefix_state_env_vars.keys()]
@@ -753,7 +750,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
 
     try:
         p = Popen(shlex_split_unicode(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno != ENOENT:
             raise
         # This code path should (hopefully) never be hit be real conda installs. It's here
@@ -771,7 +768,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
         stdout, stderr = p.communicate(input=joined)
         rc = p.returncode
         if rc != 0 or stderr:
-            message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
+            message = "\n  stdout: {}\n  stderr: {}\n  rc: {}\n".format(stdout, stderr, rc)
             print(message, file=sys.stderr)
             raise CalledProcessError(rc, command, message)
         if hasattr(stdout, 'decode'):
@@ -807,7 +804,7 @@ class PosixActivator(_Activator):
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')
 
-        super(PosixActivator, self).__init__(arguments)
+        super().__init__(arguments)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         ps1 = self.environ.get('PS1', '')
@@ -859,7 +856,7 @@ class CshActivator(_Activator):
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.csh')
 
-        super(CshActivator, self).__init__(arguments)
+        super().__init__(arguments)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         prompt = self.environ.get('prompt', '')
@@ -926,7 +923,7 @@ class XonshActivator(_Activator):
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
 
-        super(XonshActivator, self).__init__(arguments)
+        super().__init__(arguments)
 
     def _hook_preamble(self):
         return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
@@ -951,7 +948,7 @@ class CmdExeActivator(_Activator):
         # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
         #       Like, for cmd.exe only, put a special directory containing only conda.bat on PATH?
 
-        super(CmdExeActivator, self).__init__(arguments)
+        super().__init__(arguments)
 
     # def _hook_preamble(self):
     #     if on_win:
@@ -976,7 +973,7 @@ class FishActivator(_Activator):
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d',
                                      'conda.fish')
 
-        super(FishActivator, self).__init__(arguments)
+        super().__init__(arguments)
 
     def _hook_preamble(self):
         if on_win:
@@ -1016,7 +1013,7 @@ class PowerShellActivator(_Activator):
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda-hook.ps1')
 
-        super(PowerShellActivator, self).__init__(arguments)
+        super().__init__(arguments)
 
     def _hook_preamble(self):
         if context.dev:
@@ -1055,7 +1052,7 @@ class JSONFormatMixin(_Activator):
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
         self.command_join = list
 
-        super(JSONFormatMixin, self).__init__(arguments)
+        super().__init__(arguments)
 
     def _hook_preamble(self):
         if context.dev:
@@ -1158,5 +1155,5 @@ def _build_activator_cls(shell):
     for f in formatters:
         bases.append(formatter_map[f])
 
-    cls = type(str('Activator'), tuple(bases), {})
+    cls = type("Activator", tuple(bases), {})
     return cls

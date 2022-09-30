@@ -5,9 +5,9 @@ from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from .. import env
 
 
-class YamlFileSpec(object):
+class YamlFileSpec:
     _environment = None
-    extensions = set(('.yaml', '.yml'))
+    extensions = {".yaml", ".yml"}
 
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
@@ -24,7 +24,7 @@ class YamlFileSpec(object):
             self.msg = e.message
             return False
         except TypeError:
-            self.msg = "{} is not a valid yaml file.".format(self.filename)
+            self.msg = f"{self.filename} is not a valid yaml file."
             return False
 
     @property

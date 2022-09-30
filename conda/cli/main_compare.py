@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import os
@@ -28,7 +27,7 @@ def _get_name_tuple(pkg):
     return pkg.name, pkg
 
 def _to_str(pkg):
-    return "%s==%s=%s" % (pkg.name, pkg.version, pkg.build)
+    return "{}=={}={}".format(pkg.name, pkg.version, pkg.build)
 
 def compare_packages(active_pkgs, specification_pkgs):
     output = []
@@ -44,7 +43,7 @@ def compare_packages(active_pkgs, specification_pkgs):
                               .format(name, pkg, _to_str(active_pkgs[name])))
         else:
             ok = False
-            output.append("{} not found".format(name))
+            output.append(f"{name} not found")
     if ok:
         output.append("Success. All the packages in the \
 specification file are present in the environment \

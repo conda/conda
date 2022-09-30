@@ -13,7 +13,7 @@ from conda.exceptions import CondaFileIOError
 try:
     from unittest.mock import patch
 except ImportError:
-    from mock import patch
+    from unittest.mock import patch
 
 
 def test_expected_operation_order():

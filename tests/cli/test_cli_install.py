@@ -14,7 +14,7 @@ from conda.gateways.disk.delete import rm_rf
 try:
     from unittest.mock import patch
 except ImportError:
-    from mock import patch
+    from unittest.mock import patch
 
 
 @pytest.fixture

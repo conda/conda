@@ -36,7 +36,7 @@ index = index.copy()  # create a shallow copy so this module can mutate state
 try:
     from unittest.mock import patch
 except ImportError:
-    from mock import patch
+    from unittest.mock import patch
 
 
 def get_matchspec_from_index(index, match_spec_str):
@@ -1089,9 +1089,10 @@ def generate_mocked_resolve(pkgs, install=None):
     index = {}
     groups = defaultdict(list)
     for preferred_env, name, schannel, version in pkgs:
-        dist = Dist.from_string('%s-%s-0' % (name, version), channel_override=schannel)
-        pkg = mock_package(preferred_env=preferred_env, name=name, schannel=schannel,
-                           version=version, fn=name)
+        dist = Dist.from_string("{}-{}-0".format(name, version), channel_override=schannel)
+        pkg = mock_package(
+            preferred_env=preferred_env, name=name, schannel=schannel, version=version, fn=name
+        )
         groups[name].append(dist)
         index[dist] = pkg
 

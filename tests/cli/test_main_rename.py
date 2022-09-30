@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import mock
+from unittest import mock
 import os.path
 import pathlib
 import tempfile

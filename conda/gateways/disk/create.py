@@ -1,10 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
 from errno import EACCES, EPERM, EROFS
-from io import open
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, isfile, join, splitext
@@ -31,7 +29,7 @@ from ...models.enums import LinkType
 
 # we have our own TemporaryDirectory implementation both for historical reasons and because
 #     using our rm_rf function is more robust than the shutil equivalent
-class TemporaryDirectory(object):
+class TemporaryDirectory:
     """Create and return a temporary directory.  This has the same
     behavior as mkdtemp but can be used as a context manager.  For
     example:
@@ -51,7 +49,7 @@ class TemporaryDirectory(object):
         self.name = tempfile.mkdtemp(suffix, prefix, dir)
 
     def __repr__(self):
-        return "<{} {!r}>".format(self.__class__.__name__, self.name)
+        return f"<{self.__class__.__name__} {self.name!r}>"
 
     def __enter__(self):
         return self.name
@@ -62,7 +60,7 @@ class TemporaryDirectory(object):
             try:
                 _rm_rf(self.name)
             except (TypeError, AttributeError) as ex:
-                if "None" not in '%s' % (ex,):
+                if "None" not in "{}".format(ex):
                     raise
                 _rm_rf(self.name)
             self._closed = True
@@ -159,7 +157,7 @@ def create_application_entry_point(source_full_path, target_full_path, python_fu
     }
     if not isdir(dirname(target_full_path)):
         mkdir_p(dirname(target_full_path))
-    with open(target_full_path, str("w")) as fo:
+    with open(target_full_path, "w") as fo:
         if ' ' in python_full_path:
             python_full_path = ensure_pad(python_full_path, '"')
         fo.write('#!%s\n' % python_full_path)
@@ -167,7 +165,7 @@ def create_application_entry_point(source_full_path, target_full_path, python_fu
     make_executable(target_full_path)
 
 
-class ProgressFileWrapper(object):
+class ProgressFileWrapper:
     def __init__(self, fileobj, progress_update_callback):
         self.progress_file = fileobj
         self.progress_update_callback = progress_update_callback
@@ -179,7 +177,7 @@ class ProgressFileWrapper(object):
 
     def __setattr__(self, name, value):
         if name.startswith("progress_"):
-            super(ProgressFileWrapper, self).__setattr__(name, value)
+            super().__setattr__(name, value)
         else:
             setattr(self.progress_file, name, value)
 
@@ -248,20 +246,22 @@ def make_menu(prefix, file_path, remove=False):
 
 def create_hard_link_or_copy(src, dst):
     if islink(src):
-        message = dals("""
+        message = dals(
+            """
         Cannot hard link a soft link
-          source: %(source_path)s
-          destination: %(destination_path)s
-        """ % {
-            'source_path': src,
-            'destination_path': dst,
-        })
+          source: {source_path}
+          destination: {destination_path}
+        """.format(
+                source_path=src,
+                destination_path=dst,
+            )
+        )
         raise CondaOSError(message)
 
     try:
         log.trace("creating hard link %s => %s", src, dst)
         link(src, dst)
-    except (IOError, OSError):
+    except OSError:
         log.info('hard link failed, so copying %s => %s', src, dst)
         _do_copy(src, dst)
 
@@ -323,7 +323,7 @@ def _do_copy(src, dst):
 
     try:
         copystat(src, dst)
-    except (IOError, OSError) as e:  # pragma: no cover
+    except OSError as e:  # pragma: no cover
         # shutil.copystat gives a permission denied when using the os.setxattr function
         # on the security.selinux property.
         log.debug('%r', e)
@@ -357,7 +357,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         try:
             log.trace("hard linking %s => %s", src, dst)
             link(src, dst)
-        except (IOError, OSError) as e:
+        except OSError as e:
             log.debug("%r", e)
             log.debug("hard-link failed. falling back to copy\n"
                       "  error: %r\n"
@@ -432,7 +432,7 @@ def create_package_cache_directory(pkgs_dir):
         sudo_safe = expand(pkgs_dir).startswith(expand('~'))
         touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE), mkdir=True, sudo_safe=sudo_safe)
         touch(join(pkgs_dir, 'urls'), sudo_safe=sudo_safe)
-    except (IOError, OSError) as e:
+    except OSError as e:
         if e.errno in (EACCES, EPERM, EROFS):
             log.trace("cannot create package cache directory '%s'", pkgs_dir)
             return False
@@ -452,7 +452,7 @@ def create_envs_directory(envs_dir):
         log.trace("creating envs directory '%s'", envs_dir)
         sudo_safe = expand(envs_dir).startswith(expand('~'))
         touch(join(envs_dir, envs_dir_magic_file), mkdir=True, sudo_safe=sudo_safe)
-    except (IOError, OSError) as e:
+    except OSError as e:
         if e.errno in (EACCES, EPERM, EROFS):
             log.trace("cannot create envs directory '%s'", envs_dir)
             return False

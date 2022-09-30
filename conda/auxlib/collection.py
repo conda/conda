@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 """Common collection classes."""
-from __future__ import print_function, division, absolute_import
 from functools import reduce
 try:
     from collections.abc import Mapping, Set
 except ImportError:
-    from collections import Mapping, Set
+    from collections.abc import Mapping, Set
 
 from .compat import isiterable
 from .._vendor.frozendict import frozendict
@@ -43,7 +41,7 @@ class AttrDict(dict):
         (2, 2)
     """
     def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__dict__ = self
 
 

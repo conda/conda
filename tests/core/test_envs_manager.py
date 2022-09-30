@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 import os
@@ -28,7 +27,7 @@ import pytest
 try:
     from unittest.mock import patch
 except ImportError:
-    from mock import patch
+    from unittest.mock import patch
 
 log = getLogger(__name__)
 
@@ -49,9 +48,11 @@ class EnvsManagerUnitTests(TestCase):
 
     def test_register_unregister_location_env(self):
         user_environments_txt_file = get_user_environments_txt_file()
-        if (not os.path.exists(user_environments_txt_file)
-            or user_environments_txt_file == os.devnull):
-            pytest.skip('user environments.txt file {} does not exist'.format(user_environments_txt_file))
+        if (
+            not os.path.exists(user_environments_txt_file)
+            or user_environments_txt_file == os.devnull
+        ):
+            pytest.skip(f"user environments.txt file {user_environments_txt_file} does not exist")
 
         gascon_location = join(self.prefix, 'gascon')
         touch(join(gascon_location, PREFIX_MAGIC_FILE), mkdir=True)

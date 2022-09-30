@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from email.utils import formatdate
 import json
@@ -27,7 +26,7 @@ class LocalFSAdapter(BaseAdapter):
 
         try:
             stats = stat(pathname)
-        except (IOError, OSError) as exc:
+        except OSError as exc:
             resp.status_code = 404
             message = {
                 "error": "file does not exist",

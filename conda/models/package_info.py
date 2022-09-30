@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 
@@ -22,7 +21,7 @@ log = getLogger(__name__)
 
 class NoarchField(EnumField):
     def box(self, instance, instance_type, val):
-        return super(NoarchField, self).box(instance, instance_type, NoarchType.coerce(val))
+        return super().box(instance, instance_type, NoarchType.coerce(val))
 
 
 class Noarch(Entity):
@@ -60,7 +59,9 @@ class PackageInfo(ImmutableEntity):
     paths_data = ComposableField(PathsData)
 
     def dist_str(self):
-        return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
+        return "{}::{}-{}-{}".format(
+            self.channel.canonical_name, self.name, self.version, self.build
+        )
 
     @property
     def name(self):

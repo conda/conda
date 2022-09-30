@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 from datetime import datetime
@@ -73,7 +72,7 @@ def execute(args, parser):
     if not matches and spec.get_exact_value("name"):
         flex_spec = MatchSpec(spec, name="*%s*" % spec.name)
         if not context.json:
-            print("No match found for: %s. Search: %s" % (spec, flex_spec))
+            print("No match found for: {}. Search: {}".format(spec, flex_spec))
         matches = sorted(SubdirData.query_all(flex_spec, channel_urls, subdirs),
                          key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 

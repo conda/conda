@@ -4,7 +4,6 @@
 """
 Helpers for the tests
 """
-from __future__ import absolute_import, division, print_function
 
 from contextlib import contextmanager
 from functools import lru_cache
@@ -24,8 +23,8 @@ try:
     from unittest import mock  # noqa: F401
     from unittest.mock import patch  # noqa: F401
 except ImportError:
-    import mock  # noqa: F401
-    from mock import patch  # noqa: F401
+    from unittest import mock
+    from unittest.mock import patch  # noqa: F401
 
 from .. import cli
 from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
@@ -116,12 +115,12 @@ def set_active_prefix(prefix: str) -> None:
 
 
 def assert_equals(a, b, output=""):
-    output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
+    output = "{!r} != {!r}".format(a.lower(), b.lower()) + "\n\n" + output
     assert a.lower() == b.lower(), output
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "%s %r should not be found in %r" % (
+    assert a.lower() not in b.lower(), "{} {!r} should not be found in {!r}".format(
         output,
         a.lower(),
         b.lower(),
@@ -129,7 +128,9 @@ def assert_not_in(a, b, output=""):
 
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
+    assert a.lower() in b.lower(), "{} {!r} cannot be found in {!r}".format(
+        output, a.lower(), b.lower()
+    )
 
 
 def run_inprocess_conda_command(command, disallow_stderr: bool = True):
@@ -193,7 +194,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
     platform = repodata_info.get("platform")
     subdir = repodata_info.get("subdir")
     if not subdir:
-        subdir = "%s-%s" % (repodata_info["platform"], repodata_info["arch"])
+        subdir = "{}-{}".format(repodata_info["platform"], repodata_info["arch"])
     auth = channel.auth
     for fn, info in repodata["packages"].items():
         rec = PackageRecord.from_objects(

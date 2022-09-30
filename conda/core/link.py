@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import itertools
 from collections import defaultdict, namedtuple
@@ -80,13 +79,16 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
             extracted_package_dir = basename(prefix_record.link.source)
         except AttributeError:
             # for backward compatibility only
-            extracted_package_dir = '%s-%s-%s' % (prefix_record.name, prefix_record.version,
-                                                  prefix_record.build)
+            extracted_package_dir = "{}-{}-{}".format(
+                prefix_record.name, prefix_record.version, prefix_record.build
+            )
 
-    meta_short_path = '%s/%s' % ('conda-meta', extracted_package_dir + '.json')
-    remove_conda_meta_actions = (RemoveLinkedPackageRecordAction(transaction_context,
-                                                                 prefix_record,
-                                                                 target_prefix, meta_short_path),)
+    meta_short_path = "{}/{}".format("conda-meta", extracted_package_dir + ".json")
+    remove_conda_meta_actions = (
+        RemoveLinkedPackageRecordAction(
+            transaction_context, prefix_record, target_prefix, meta_short_path
+        ),
+    )
 
     _all_d = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
     all_directories = sorted(explode_directories(_all_d, already_split=True), reverse=True)
@@ -160,7 +162,7 @@ ChangeReport = namedtuple("ChangeReport", (
 ))
 
 
-class UnlinkLinkTransaction(object):
+class UnlinkLinkTransaction:
 
     def __init__(self, *setups):
         self.prefix_setups = odict((stp.target_prefix, stp) for stp in setups)
@@ -303,7 +305,7 @@ class UnlinkLinkTransaction(object):
         if not isdir(target_prefix):
             try:
                 mkdir_p(target_prefix)
-            except (IOError, OSError) as e:
+            except OSError as e:
                 log.debug(repr(e))
                 raise CondaError("Unable to create prefix directory '%s'.\n"
                                  "Check that you have sufficient permissions."
@@ -469,10 +471,12 @@ class UnlinkLinkTransaction(object):
         prefix_record_groups = prefix_action_group.prefix_record_groups
 
         lower_on_win = lambda p: p.lower() if on_win else p
-        unlink_paths = set(lower_on_win(axn.target_short_path)
-                           for grp in unlink_action_groups
-                           for axn in grp.actions
-                           if isinstance(axn, UnlinkPathAction))
+        unlink_paths = {
+            lower_on_win(axn.target_short_path)
+            for grp in unlink_action_groups
+            for axn in grp.actions
+            if isinstance(axn, UnlinkPathAction)
+        }
         # we can get all of the paths being linked by looking only at the
         #   CreateLinkedPackageRecordAction actions
         create_lpr_actions = (axn
@@ -603,7 +607,7 @@ class UnlinkLinkTransaction(object):
             try:
                 dir_existed = mkdir_p(dirname(test_path))
                 open(test_path, "a").close()
-            except EnvironmentError:
+            except OSError:
                 if dir_existed is False:
                     rm_rf(dirname(test_path))
                 yield EnvironmentNotWritableError(prefix_setup.target_prefix)
@@ -729,9 +733,11 @@ class UnlinkLinkTransaction(object):
                 prec = axngroup.pkg_data
 
                 if prec:
-                    log.error("An error occurred while %s package '%s'." % (
-                            'uninstalling' if is_unlink else 'installing',
-                            prec.dist_str()))
+                    log.error(
+                        "An error occurred while {} package '{}'.".format(
+                            "uninstalling" if is_unlink else "installing", prec.dist_str()
+                        )
+                    )
 
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
@@ -933,7 +939,7 @@ class UnlinkLinkTransaction(object):
             actions = defaultdict(list)
             if q == 0:
                 self._pfe.prepare()
-                download_urls = set(axn.url for axn in self._pfe.cache_actions)
+                download_urls = {axn.url for axn in self._pfe.cache_actions}
                 actions['FETCH'].extend(prec for prec in self._pfe.link_precs
                                         if prec.url in download_urls)
 
@@ -953,7 +959,7 @@ class UnlinkLinkTransaction(object):
     def print_transaction_summary(self):
         legacy_action_groups = self._make_legacy_action_groups()
 
-        download_urls = set(axn.url for axn in self._pfe.cache_actions)
+        download_urls = {axn.url for axn in self._pfe.cache_actions}
 
         for actions, (prefix, stp) in zip(legacy_action_groups, self.prefix_setups.items()):
             change_report = self._calculate_change_report(prefix, stp.unlink_precs, stp.link_precs,
@@ -1149,7 +1155,7 @@ class UnlinkLinkTransaction(object):
             else:
                 superseded_precs[namekey] = (unlink_prec, link_prec)
 
-        fetch_precs = set(prec for prec in link_precs if prec.url in download_urls)
+        fetch_precs = {prec for prec in link_precs if prec.url in download_urls}
         change_report = ChangeReport(prefix, specs_to_remove, specs_to_add, removed_precs,
                                      new_precs, updated_precs, downgraded_precs, superseded_precs,
                                      fetch_precs)
@@ -1161,9 +1167,11 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
-    path = join(prefix,
-                'Scripts' if on_win else 'bin',
-                '.%s-%s.%s' % (prec.name, action, 'bat' if on_win else 'sh'))
+    path = join(
+        prefix,
+        "Scripts" if on_win else "bin",
+        ".{}-{}.{}".format(prec.name, action, "bat" if on_win else "sh"),
+    )
     if not isfile(path):
         return True
 
@@ -1238,7 +1246,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
                 if 'openssl' in prec.dist_str():
                     # this is a hack for conda-build string parsing in the conda_build/build.py
                     #   create_env function
-                    message = "%s failed for: %s" % (action, prec)
+                    message = "{} failed for: {}".format(action, prec)
                 else:
                     message = dals("""
                     %s script failed for package %s

@@ -7,7 +7,6 @@ Think of this as a "more static" source of configuration information.
 
 Another important source of "static" configuration is conda/models/enums.py.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from enum import Enum, EnumMeta
 from os.path import join
@@ -215,7 +214,7 @@ class ChannelPriorityMeta(EnumMeta):
 
     def __call__(cls, value, *args, **kwargs):
         try:
-            return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
+            return super().__call__(value, *args, **kwargs)
         except ValueError:
             if isinstance(value, str):
                 from ..auxlib.type_coercion import typify
@@ -224,7 +223,7 @@ class ChannelPriorityMeta(EnumMeta):
                 value = 'flexible'
             elif value is False:
                 value = cls.DISABLED
-            return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
+            return super().__call__(value, *args, **kwargs)
 
 
 class ValueEnum(Enum):

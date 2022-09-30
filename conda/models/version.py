@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 from logging import getLogger
 import operator as op
 import re
@@ -43,10 +42,10 @@ class SingleStrArgCachingType(type):
             try:
                 return cls._cache_[arg]
             except KeyError:
-                val = cls._cache_[arg] = super(SingleStrArgCachingType, cls).__call__(arg)
+                val = cls._cache_[arg] = super().__call__(arg)
                 return val
         else:
-            return super(SingleStrArgCachingType, cls).__call__(arg)
+            return super().__call__(arg)
 
 
 class VersionOrder(metaclass=SingleStrArgCachingType):
@@ -244,7 +243,7 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
         return self.norm_version
 
     def __repr__(self):
-        return "%s(\"%s\")" % (self.__class__.__name__, self)
+        return '{}("{}")'.format(self.__class__.__name__, self)
 
     def _eq(self, t1, t2):
         for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
@@ -431,7 +430,7 @@ OPERATOR_MAP = {
 }
 OPERATOR_START = frozenset(('=', '<', '>', '!', '~'))
 
-class BaseSpec(object):
+class BaseSpec:
 
     def __init__(self, spec_str, matcher, is_exact):
         self.spec_str = spec_str
@@ -462,7 +461,7 @@ class BaseSpec(object):
         return self.spec
 
     def __repr__(self):
-        return "%s('%s')" % (self.__class__.__name__, self.spec)
+        return "{}('{}')".format(self.__class__.__name__, self.spec)
 
     @property
     def raw_value(self):
@@ -499,7 +498,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
 
     def __init__(self, vspec):
         vspec_str, matcher, is_exact = self.get_matcher(vspec)
-        super(VersionSpec, self).__init__(vspec_str, matcher, is_exact)
+        super().__init__(vspec_str, matcher, is_exact)
 
     def get_matcher(self, vspec):
 
@@ -594,7 +593,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
 
     def union(self, other):
         assert isinstance(other, self.__class__)
-        options = set((self.raw_value, other.raw_value))
+        options = {self.raw_value, other.raw_value}
         # important: we only return a string here because the parens get gobbled otherwise
         #    this info is for visual display only, not for feeding into actual matches
         return '|'.join(sorted(options))
@@ -609,7 +608,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
 
     def __init__(self, vspec):
         vspec_str, matcher, is_exact = self.get_matcher(vspec)
-        super(BuildNumberMatch, self).__init__(vspec_str, matcher, is_exact)
+        super().__init__(vspec_str, matcher, is_exact)
 
     def get_matcher(self, vspec):
         try:
@@ -660,7 +659,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
         return self.raw_value
 
     def union(self, other):
-        options = set((self.raw_value, other.raw_value))
+        options = {self.raw_value, other.raw_value}
         return '|'.join(options)
 
     @property

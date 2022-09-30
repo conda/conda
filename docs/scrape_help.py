@@ -9,7 +9,7 @@ from collections import OrderedDict
 
 from concurrent.futures import ThreadPoolExecutor
 
-from pipes import quote
+from shlex import quote
 
 import sys
 import json
@@ -47,7 +47,7 @@ def run_command(*args, **kwargs):
         print("%r failed with error code %s" %
               (' '.join(map(quote, args[0])), p.returncode), file=sys.stderr)
     elif err:
-        print("%r gave stderr output: %s" % (' '.join(*args), err))
+        print("{!r} gave stderr output: {}".format(" ".join(*args), err))
 
     return out
 
@@ -122,8 +122,7 @@ def external_commands():
             if start:
                 m = subcommands_re.match(line)
                 if m:
-                    commands.extend(['%s %s' % (command, i) for i in
-                                     m.group(1).split(',')])
+                    commands.extend(["{} {}".format(command, i) for i in m.group(1).split(",")])
                 break
     return commands
 
@@ -194,8 +193,8 @@ def generate_html(command):
 
 
 def write_rst(command, sep=None):
-    command_file = command.replace(' ', '-')
-    with open(join(manpath, 'conda-%s.html' % command_file), 'r') as f:
+    command_file = command.replace(" ", "-")
+    with open(join(manpath, "conda-%s.html" % command_file)) as f:
         html = f.read()
 
     rp = rstpath

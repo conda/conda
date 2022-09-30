@@ -9,7 +9,7 @@ try:
     skip_mock = False
 except ImportError:
     try:
-        import mock
+        from unittest import mock
         mock
         skip_mock = False
     except ImportError:

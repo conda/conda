@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import importlib.util
 from logging import getLogger
@@ -202,9 +201,9 @@ class PathActionsTests(TestCase):
         command, module, func = parse_entry_point_def('command1=some.module:main')
         assert command == 'command1'
         if on_win:
-            target_short_path = "%s\\%s-script.py" % (get_bin_directory_short_path(), command)
+            target_short_path = "{}\\{}-script.py".format(get_bin_directory_short_path(), command)
         else:
-            target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+            target_short_path = "{}/{}".format(get_bin_directory_short_path(), command)
         assert py_ep_axn.target_full_path == join(self.prefix, target_short_path)
         assert py_ep_axn.module == module == 'some.module'
         assert py_ep_axn.func == func == 'main'
@@ -240,7 +239,7 @@ class PathActionsTests(TestCase):
 
         if on_win:
             windows_exe_axn = windows_exe_axns[0]
-            target_short_path = "%s\\%s.exe" % (get_bin_directory_short_path(), command)
+            target_short_path = "{}\\{}.exe".format(get_bin_directory_short_path(), command)
             assert windows_exe_axn.target_full_path == join(self.prefix, target_short_path)
 
             mkdir_p(dirname(windows_exe_axn.target_full_path))

@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from conda.common.compat import on_win
 
@@ -22,9 +21,9 @@ def test_conda_subprocess():
     except TypeError:
         for k, v in os.environ.items():
             if type(k) != str or type(v) != str:
-                print("%s (%s): %s (%s)" % (k, type(k), v, type(v)))
+                print("{} ({}): {} ({})".format(k, type(k), v, type(v)))
         raise
     stdout, stderr = p.communicate()
     rc = p.returncode
     if rc != 0:
-        raise CalledProcessError(rc, command, "stdout: {0}\nstderr: {1}".format(stdout, stderr))
+        raise CalledProcessError(rc, command, f"stdout: {stdout}\nstderr: {stderr}")

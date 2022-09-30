@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
-
 from collections import OrderedDict as odict  # noqa: F401
 from itertools import chain
 import os
@@ -26,7 +23,7 @@ def isiterable(obj):
     try:
         from collections.abc import Iterable
     except ImportError:
-        from collections import Iterable
+        from collections.abc import Iterable
     return not isinstance(obj, string_types) and isinstance(obj, Iterable)
 
 

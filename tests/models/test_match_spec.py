@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from unittest import TestCase
 
@@ -836,14 +835,16 @@ class SpecStrParsingTests(TestCase):
 
     def test_dist_str(self):
         for ext in (CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2):
-            m1 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0{1}".format(context.subdir, ext))
-            m2 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0".format(context.subdir))
-            m3 = MatchSpec.from_dist_str("https://someurl.org/anaconda/{0}::python-3.6.6-0{1}".format(context.subdir, ext))
-            m4 = MatchSpec.from_dist_str("python-3.6.6-0{0}".format(ext))
-            m5 = MatchSpec.from_dist_str("https://someurl.org/anaconda::python-3.6.6-0{0}".format(ext))
+            m1 = MatchSpec.from_dist_str(f"anaconda/{context.subdir}::python-3.6.6-0{ext}")
+            m2 = MatchSpec.from_dist_str(f"anaconda/{context.subdir}::python-3.6.6-0")
+            m3 = MatchSpec.from_dist_str(
+                f"https://someurl.org/anaconda/{context.subdir}::python-3.6.6-0{ext}"
+            )
+            m4 = MatchSpec.from_dist_str(f"python-3.6.6-0{ext}")
+            m5 = MatchSpec.from_dist_str(f"https://someurl.org/anaconda::python-3.6.6-0{ext}")
 
-            pref = DPkg("anaconda::python-3.6.6-0{0}".format(ext))
-            pref.url = "https://someurl.org/anaconda/{0}".format(context.subdir)
+            pref = DPkg(f"anaconda::python-3.6.6-0{ext}")
+            pref.url = f"https://someurl.org/anaconda/{context.subdir}"
 
             assert m1.match(pref)
             assert m2.match(pref)
@@ -852,14 +853,14 @@ class SpecStrParsingTests(TestCase):
             pref.url = "https://someurl.org/anaconda"
 
             pref_dict = {
-                'name': 'python',
-                'version': '3.6.6',
-                'build': '0',
-                'build_number': 0,
-                'channel': Channel("anaconda"),
-                'fn': 'python-3.6.6-0{0}'.format(ext),
-                'md5': '012345789',
-                'url': 'https://someurl.org/anaconda'
+                "name": "python",
+                "version": "3.6.6",
+                "build": "0",
+                "build_number": 0,
+                "channel": Channel("anaconda"),
+                "fn": f"python-3.6.6-0{ext}",
+                "md5": "012345789",
+                "url": "https://someurl.org/anaconda",
             }
             assert m5.match(pref_dict)
 

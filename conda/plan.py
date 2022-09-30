@@ -9,7 +9,6 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 from logging import getLogger
@@ -157,7 +156,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         for pkg in packages:
             # That's right. I'm using old-style string formatting to generate a
             # string with new-style string formatting.
-            oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
+            oldfmt[pkg] = "{{pkg:<{}}} {{vers[0]:<{}}}".format(maxpkg, maxoldver)
             if maxoldchannels:
                 oldfmt[pkg] += ' {channels[0]:<%s}' % maxoldchannels
             if features[pkg][0]:
@@ -347,13 +346,13 @@ def _plan_from_actions(actions, index):  # pragma: no cover
     axn = actions.get('ACTION') or None
     specs = actions.get('SPECS', [])
 
-    log.debug("Adding plans for operations: {0}".format(op_order))
+    log.debug(f"Adding plans for operations: {op_order}")
     for op in op_order:
         if op not in actions:
-            log.trace("action {0} not in actions".format(op))
+            log.trace(f"action {op} not in actions")
             continue
         if not actions[op]:
-            log.trace("action {0} has None value".format(op))
+            log.trace(f"action {op} has None value")
             continue
         if '_' not in op:
             plan.append((PRINT, '%sing packages ...' % op.capitalize()))
@@ -362,7 +361,7 @@ def _plan_from_actions(actions, index):  # pragma: no cover
         if op in PROGRESS_COMMANDS:
             plan.append((PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
-            log.debug("appending value {0} for action {1}".format(arg, op))
+            log.debug(f"appending value {arg} for action {op}")
             plan.append((op, arg))
 
     plan = _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs)
