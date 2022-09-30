@@ -6,16 +6,14 @@ Replacements for parts the toolz library.
 """
 
 import itertools
-
+import collections
 
 def groupby_to_dict(keyfunc, sequence):
     """
     toolz-style groupby, returns a dictionary of { key: [group] } instead of
     iterators.
     """
-    result = {}
+    result = collections.defaultdict(lambda: [])
     for key, group in itertools.groupby(sequence, keyfunc):
-        value = result.get(key, [])
-        value.extend(group)
-        result[key] = value
-    return result
+        result[key].extend(group)
+    return dict(result)
