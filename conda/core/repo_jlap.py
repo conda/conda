@@ -1,5 +1,6 @@
 import logging
 import warnings
+import pathlib
 from typing import Optional
 
 from conda.auxlib.logz import stringify
@@ -19,53 +20,44 @@ import logging
 
 log = logging.getLogger(__name__)
 
+try:
+    from rich.console import Console
+
+    console = Console()
+except ImportError:
+    import pprint
+
+    class console:
+        @staticmethod
+        def print_json(data={}):
+            log.info("%s", pprint.pformat(data))
+
 
 class CondaRepoJLAP(RepoInterface):
-    def __init__(self, url: str, repodata_fn: Optional[str]) -> None:
+    def __init__(self, url: str, repodata_fn: Optional[str], **kwargs) -> None:
+        log.debug("Using CondaRepoJLAP")
+
         self._url = url
         self._repodata_fn = repodata_fn
 
         self._log = logging.getLogger(__name__)
         self._stderrlog = logging.getLogger("conda.stderrlog")
 
+        # TODO is there a better way to share these paths
+        self._cache_path_json = pathlib.Path(kwargs["cache_path_json"])
+        self._cache_path_state = pathlib.Path(kwargs["cache_path_state"])
+
     def repodata(self, state: dict) -> str:
-        if not context.ssl_verify:
-            warnings.simplefilter("ignore", InsecureRequestWarning)
+        console.print_json(data=state)
 
-        session = CondaSession()
+        repodata_url = f"{self._url}/{self._repodata_fn}"
+        jlap_url = f"{self._url}/{self._repodata_fn}"[: -len(".json")] + ".jlap"
 
-        headers = {}
-        etag = state.get("_etag")
-        last_modified = state.get("_mod")
-        if etag:
-            headers["If-None-Match"] = etag
-        if last_modified:
-            headers["If-Modified-Since"] = last_modified
-        filename = self._repodata_fn
+        def get_place(url, extra=""):
+            if url == repodata_url and extra == "":
+                return self._cache_path_json
+            raise NotImplementedError("Unexpected URL", url)
 
-        url = join_url(self._url, filename)
-        with conda_http_errors(url, filename):
-            timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-            resp = session.get(url, headers=headers, proxies=session.proxies, timeout=timeout)
-            if self._log.isEnabledFor(logging.DEBUG):
-                self._log.debug(stringify(resp, content_max_len=256))
-            resp.raise_for_status()
+        jlapper.request_url_jlap_state(repodata_url, state, get_place=get_place)
 
-        if resp.status_code == 304:
-            raise Response304ContentUnchanged()
-
-        # We explictly no longer add these tags to the large `resp.content` json
-        saved_fields = {"_url": self._url}
-        self._add_http_value_to_dict(resp, "Etag", saved_fields, "_etag")
-        self._add_http_value_to_dict(resp, "Last-Modified", saved_fields, "_mod")
-        self._add_http_value_to_dict(resp, "Cache-Control", saved_fields, "_cache_control")
-
-        state.clear()
-        state.update(saved_fields)
-
-        return resp.content
-
-    def _add_http_value_to_dict(self, resp, http_key, d, dict_key):
-        value = resp.headers.get(http_key)
-        if value:
-            d[dict_key] = value
+        return pathlib.Path(self._cache_path_json).read_text()

@@ -8,6 +8,7 @@ import json
 import pathlib
 import re
 import base64
+import os
 from collections import defaultdict
 from errno import EACCES, EPERM, EROFS
 from functools import partial
@@ -23,7 +24,14 @@ try:
 except ImportError:
     from conda._vendor.toolz.itertoolz import groupby
 
-from conda.core.repo import CondaRepoInterface, Response304ContentUnchanged
+from conda.core.repo import Response304ContentUnchanged
+
+try:
+    if os.environ.get("CONDA_NO_JLAP", False):
+        raise ImportError("skip jlap")
+    from conda.core.repo_jlap import CondaRepoJLAP as CondaRepoInterface
+except ImportError:
+    from conda.core.repo import CondaRepoInterface
 
 from .. import CondaError
 from .._vendor.boltons.setutils import IndexedSet
@@ -165,7 +173,11 @@ class SubdirData(metaclass=SubdirDataType):
         self._loaded = False
         self._key_mgr = None
 
-        self._repo = CondaRepoInterface(self.url_w_credentials, self.repodata_fn)
+        self._repo = CondaRepoInterface(
+            self.url_w_credentials,
+            self.repodata_fn,
+            cache_path_json=self.cache_path_json,
+            cache_path_state=self.cache_path_state)
 
     def reload(self):
         self._loaded = False

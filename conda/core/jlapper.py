@@ -22,6 +22,13 @@ log = logging.getLogger(__name__)
 DIGEST_SIZE = 32  # 160 bits a minimum 'for security' length?
 MAX_LINEID_BYTES = 64
 
+JLAP = "jlap"
+HEADERS = "headers"
+NOMINAL_HASH = "have"
+ON_DISK_HASH = "have_hash"
+LATEST = "latest"
+JLAP_UNAVAILABLE = "jlap_unavailable"
+
 
 def bhfunc(data: bytes, key: bytes):
     """
@@ -38,6 +45,9 @@ def hfunc():
 
 
 def get_place(url, extra=""):
+    from .repo_jlap import console
+
+    console.print_json(data=dict(url=url, extra=extra))
     if "current_repodata" in url:
         extra = f".c{extra}"
     return pathlib.Path("-".join(url.split("/")[-3:-1])).with_suffix(f"{extra}.json")
@@ -188,17 +198,20 @@ def request_url_jlap(url, get_place=get_place, full_download=False):
     """
     Complete save complete json / save place / update with jlap sequence.
     """
-    JLAP = "jlap"
-    HEADERS = "headers"
-    NOMINAL_HASH = "have"
-    ON_DISK_HASH = "have_hash"
-    LATEST = "latest"
-
     state_path = get_place(url, ".s")
     try:
         state = json.loads(state_path.read_text())
     except FileNotFoundError:
         state = {}
+
+    request_url_jlap_state(url, state, get_place=get_place, full_download=False)
+
+    state = {k: v for k, v in state.items() if k in (NOMINAL_HASH, ON_DISK_HASH, JLAP)}
+
+    state_path.write_text(json.dumps(state, indent=True))
+
+
+def request_url_jlap_state(url, state: dict, get_place=get_place, full_download=False):
 
     jlap_state = state.get(JLAP, {})
     headers = jlap_state.get(HEADERS, {})
@@ -207,9 +220,15 @@ def request_url_jlap(url, get_place=get_place, full_download=False):
 
     buffer = []  # type checks
 
-    if full_download or not (NOMINAL_HASH in state and json_path.exists()):
+    if (
+        full_download
+        or not (NOMINAL_HASH in state and json_path.exists())
+        or state.get(JLAP_UNAVAILABLE)
+    ):
         hasher = hfunc()
         with timeme("Download "):
+            # TODO use Etag, Last-Modified caching headers if file exists
+            # otherwise we re-download every time, if jlap is unavailable.
             download_and_hash(hasher, withext(url, ".json"), json_path)
 
         have = have_hash = state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
@@ -233,7 +252,12 @@ def request_url_jlap(url, get_place=get_place, full_download=False):
             need_jlap = False
         except ValueError:
             log.info("Checksum not OK")
-        except requests.HTTPError:  # especially 416 Requested Range Not Satisfiable
+        except requests.HTTPError as e:
+            # If we get a 416 Requested range not satisfiable, the server-side
+            # file may have been truncated and we need to fetch from 0
+            if e.response.status_code == 404:
+                state[JLAP_UNAVAILABLE] = time.time()
+                return request_url_jlap_state(url, state, get_place=get_place, full_download=True)
             log.exception("Requests error")
 
         if need_jlap:  # retry for some reason
@@ -302,10 +326,6 @@ def request_url_jlap(url, get_place=get_place, full_download=False):
             log.warning("Rename to %s for debugging", json_new_path)
             json_path.rename(json_new_path)
             return request_url_jlap(url, get_place=get_place, full_download=True)
-
-        state = {k: v for k, v in state.items() if k in (NOMINAL_HASH, ON_DISK_HASH, JLAP)}
-
-        state_path.write_text(json.dumps(state, indent=True))
 
 
 if __name__ == "__main__":

@@ -76,7 +76,7 @@ class Response304ContentUnchanged(Exception):
 
 
 class CondaRepoInterface(RepoInterface):
-    def __init__(self, url: str, repodata_fn: Optional[str]) -> None:
+    def __init__(self, url: str, repodata_fn: Optional[str], **kwargs) -> None:
         self._url = url
         self._repodata_fn = repodata_fn
 
