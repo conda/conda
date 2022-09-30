@@ -8,6 +8,7 @@ from os.path import isdir, join, lexists
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
+from unittest.mock import patch
 
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PREFIX_MAGIC_FILE
@@ -24,10 +25,6 @@ from conda.gateways.disk.update import touch
 
 import pytest
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from unittest.mock import patch
 
 log = getLogger(__name__)
 

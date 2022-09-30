@@ -12,6 +12,7 @@ import warnings
 # necessary for conda-build
 from ._vendor.six import PY3, iteritems, string_types, text_type  # noqa: F401
 from io import StringIO  # noqa: F401
+from builtins import input  # noqa: F401
 
 from . import CondaError  # noqa: F401
 from .base.context import reset_context

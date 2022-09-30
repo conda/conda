@@ -20,10 +20,7 @@ primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool
 
 def isiterable(obj):
     # and not a string
-    try:
-        from collections.abc import Iterable
-    except ImportError:
-        from collections.abc import Iterable
+    from collections.abc import Iterable
     return not isinstance(obj, string_types) and isinstance(obj, Iterable)
 
 

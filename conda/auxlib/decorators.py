@@ -1,7 +1,4 @@
-try:
-    from collections.abc import Hashable
-except ImportError:
-    from collections.abc import Hashable
+from collections.abc import Hashable
 from types import GeneratorType
 import warnings
 

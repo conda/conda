@@ -235,10 +235,7 @@ Chapter X: The del and null Weeds
 
 """
 
-try:
-    from collections.abc import Mapping, Sequence
-except ImportError:
-    from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from functools import reduce
 from json import JSONEncoder, dumps as json_dumps, loads as json_loads

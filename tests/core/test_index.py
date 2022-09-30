@@ -4,6 +4,7 @@
 
 from logging import getLogger
 from unittest import TestCase
+from unittest.mock import patch
 
 import pytest
 
@@ -17,11 +18,6 @@ from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from tests.core.test_subdir_data import platform_in_record
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from unittest.mock import patch
 
 log = getLogger(__name__)
 

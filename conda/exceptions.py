@@ -337,8 +337,7 @@ class DirectoryNotACondaEnvironmentError(CondaError):
         The target directory exists, but it is not a conda environment.
         Use 'conda create' to convert the directory to a conda environment.
           target directory: %(target_directory)s
-        """
-        )
+        """)
         super().__init__(message, target_directory=target_directory)
 
 
@@ -423,8 +422,7 @@ class ChannelNotAllowed(ChannelError):
         Channel not included in allowlist:
           channel name: %(channel_name)s
           channel url: %(channel_url)s
-        """
-        )
+        """)
         super().__init__(message, channel_url=channel_url, channel_name=channel_name)
 
 
@@ -446,8 +444,7 @@ class UnavailableInvalidChannel(ChannelError):
             You will need to adjust your conda configuration to proceed.
             Use `conda config --show channels` to view your configuration's current state,
             and use `conda config --show-sources` to view config file locations.
-            """
-        )
+            """)
         if channel.scheme == "file":
             url = join_url(channel.location, channel.name)
             message += dedent(
@@ -456,8 +453,7 @@ class UnavailableInvalidChannel(ChannelError):
                 associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
                 empty. Use `conda index {url}`, or create `noarch/repodata.json`
                 and associated `noarch/repodata.json.bz2`.
-                """
-            )
+                """)
 
         # if response includes a valid json body we prefer the reason/message defined there
         try:
@@ -539,8 +535,7 @@ class PackageNotInstalledError(CondaError):
         Package is not installed in prefix.
           prefix: %(prefix)s
           package name: %(package_name)s
-        """
-        )
+        """)
         super().__init__(message, prefix=prefix, package_name=package_name)
 
 

@@ -37,6 +37,7 @@ repos:
     hooks:
       - id: pyupgrade
         args: ["--py37-plus", "--keep-runtime-typing"]
+        exclude: ^conda/exports.py
   - repo: https://github.com/akaihola/darker
     rev: 1.5.1
     hooks:

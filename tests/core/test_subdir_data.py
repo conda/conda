@@ -6,6 +6,7 @@ from logging import getLogger
 from os.path import dirname, join
 from unittest import TestCase
 from time import sleep
+from unittest.mock import patch
 
 import pytest
 
@@ -19,11 +20,6 @@ from conda.core.index import get_index
 from conda.core.subdir_data import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
     SubdirData, fetch_repodata_remote_request, UnavailableInvalidChannel
 from conda.models.channel import Channel
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from unittest.mock import patch
 
 log = getLogger(__name__)
 

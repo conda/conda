@@ -15,12 +15,9 @@ from os.path import join, isfile, lexists
 from stat import S_IRUSR, S_IRGRP, S_IROTH
 from stat import S_IRWXG, S_IRWXO, S_IRWXU
 from stat import S_IXUSR, S_IXGRP, S_IXOTH
-from conda.gateways.disk.update import touch
+from unittest.mock import patch
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from unittest.mock import patch
+from conda.gateways.disk.update import touch
 
 
 def create_temp_location():

@@ -54,7 +54,6 @@ test:
     - tests
     - setup.cfg
   requires:
-    - mock
     - pytest
     - pexpect
     - responses

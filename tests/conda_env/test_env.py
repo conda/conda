@@ -6,6 +6,7 @@ import os
 from os.path import join
 import random
 import unittest
+from unittest.mock import patch
 from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
@@ -21,12 +22,6 @@ from .utils import make_temp_envs_dir, Commands, run_command
 from tests.test_utils import is_prefix_activated_PATHwise
 
 from conda_env.env import from_environment
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from unittest.mock import patch
-
 
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
 

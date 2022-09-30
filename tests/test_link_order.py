@@ -8,13 +8,9 @@ import pytest
 import os
 import shutil
 import tempfile
+from unittest.mock import patch
 
 from conda.testing.integration import run_command, Commands
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from unittest.mock import patch
 
 log = getLogger(__name__)
 

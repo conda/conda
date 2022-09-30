@@ -1,8 +1,5 @@
 """Collection of functions to coerce conversion of types with an intelligent guess."""
-try:
-    from collections.abc import Mapping
-except ImportError:
-    from collections.abc import Mapping
+from collections.abc import Mapping
 from itertools import chain
 from re import IGNORECASE, compile
 

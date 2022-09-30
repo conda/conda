@@ -36,7 +36,7 @@ def unix_path_to_win(path, root_prefix=""):
     def _translation(found_path):
         group = found_path.group(0)
         return "{}:{}".format(
-            group[len(root_prefix) + 1], group[len(root_prefix) + 2 :].replace("/", "\\")
+            group[len(root_prefix) + 1], group[len(root_prefix) + 2:].replace("/", "\\")
         )
 
     translation = re.sub(path_re, _translation, path)
@@ -374,8 +374,8 @@ def wrap_subprocess_call(
             fh.write(f"{silencer}SET PYTHONIOENCODING=utf-8\n")
             fh.write(f"{silencer}SET PYTHONUTF8=1\n")
             fh.write(
-                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'
-            )  # NOQA
+                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'  # noqa
+            )
             fh.write(f"{silencer}chcp 65001 > NUL\n")
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT

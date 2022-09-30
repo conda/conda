@@ -1,9 +1,6 @@
 """Common collection classes."""
 from functools import reduce
-try:
-    from collections.abc import Mapping, Set
-except ImportError:
-    from collections.abc import Mapping, Set
+from collections.abc import Mapping, Set
 
 from .compat import isiterable
 from .._vendor.frozendict import frozendict

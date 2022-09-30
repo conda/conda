@@ -3,10 +3,7 @@
 
 import unittest
 import random
-try:
-    from unittest import mock
-except ImportError:
-    from unittest import mock
+from unittest import mock
 
 from conda_env import env
 from conda_env.specs.yaml_file import YamlFileSpec

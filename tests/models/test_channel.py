@@ -7,6 +7,7 @@ from logging import getLogger
 from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
+from unittest.mock import patch
 
 from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
@@ -21,11 +22,6 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from unittest.mock import patch
 
 initialize_logging()
 log = getLogger(__name__)
