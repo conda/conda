@@ -876,7 +876,11 @@ def do_reverse(actions):
             action.reverse()
 
 
-def done_callback(future: Future, actions: tuple[Union[CacheUrlAction, ExtractPackageAction], ...], progress_bar: ProgressBar, exceptions: list[Exception], finish: bool = False):
+def done_callback(future: Future,
+    actions: tuple[Union[CacheUrlAction, ExtractPackageAction], ...],
+    progress_bar: ProgressBar,
+    exceptions: list[Exception],
+    finish: bool = False):
     try:
         future.result()
     except Exception as e:
