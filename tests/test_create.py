@@ -28,7 +28,8 @@ from uuid import uuid4
 
 import pytest
 import requests
-from tlz.itertoolz import groupby
+
+from conda.tlz import groupby_to_dict as groupby
 
 from conda import (
     CondaError,

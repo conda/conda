@@ -6,10 +6,12 @@ import copy
 from functools import lru_cache
 from logging import DEBUG, getLogger
 
+from conda.tlz import groupby_to_dict as groupby
+
 try:
-    from tlz.itertoolz import concat, groupby
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby
+    from conda._vendor.toolz.itertoolz import concat
 
 from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
