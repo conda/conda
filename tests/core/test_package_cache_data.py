@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,7 +12,12 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars, env_var
 from conda.core.index import get_index
 from conda.core import package_cache_data
-from conda.core.package_cache_data import PackageCacheData, ProgressiveFetchExtract, PackageRecord, PackageCacheRecord
+from conda.core.package_cache_data import (
+    PackageCacheData,
+    ProgressiveFetchExtract,
+    PackageRecord,
+    PackageCacheRecord,
+)
 from conda.core.path_actions import CacheUrlAction
 from conda.exceptions import CondaHTTPError
 from conda.exports import url_path, MatchSpec
@@ -24,69 +28,75 @@ from conda.testing.integration import make_temp_package_cache
 from conda.common.compat import on_win
 import datetime
 
-CHANNEL_DIR = abspath(join(dirname(__file__), '..', 'data', 'conda_format_repo'))
+CHANNEL_DIR = abspath(join(dirname(__file__), "..", "data", "conda_format_repo"))
 CONDA_PKG_REPO = url_path(CHANNEL_DIR)
 
 subdir = "win-64"
 zlib_base_fn = "zlib-1.2.11-h62dcd97_3"
 zlib_tar_bz2_fn = "zlib-1.2.11-h62dcd97_3.tar.bz2"
-zlib_tar_bz2_prec = PackageRecord.from_objects({
-      "build": "h62dcd97_3",
-      "build_number": 3,
-      "depends": [
-        "vc >=14.1,<15.0a0"
-      ],
-      "license": "zlib",
-      "license_family": "Other",
-      "md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
-      "name": "zlib",
-      "sha256": "10363f6c023d7fb3d11fdb4cc8de59b5ad5c6affdf960210dd95a252a3fced2b",
-      "size": 131285,
-      "subdir": "win-64",
-      "timestamp": 1542815182812,
-      "version": "1.2.11"
+zlib_tar_bz2_prec = PackageRecord.from_objects(
+    {
+        "build": "h62dcd97_3",
+        "build_number": 3,
+        "depends": ["vc >=14.1,<15.0a0"],
+        "license": "zlib",
+        "license_family": "Other",
+        "md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
+        "name": "zlib",
+        "sha256": "10363f6c023d7fb3d11fdb4cc8de59b5ad5c6affdf960210dd95a252a3fced2b",
+        "size": 131285,
+        "subdir": "win-64",
+        "timestamp": 1542815182812,
+        "version": "1.2.11",
     },
     fn=zlib_tar_bz2_fn,
     url="%s/%s/%s" % (CONDA_PKG_REPO, subdir, zlib_tar_bz2_fn),
 )
 zlib_conda_fn = "zlib-1.2.11-h62dcd97_3.conda"
-zlib_conda_prec = PackageRecord.from_objects({
-      "build": "h62dcd97_3",
-      "build_number": 3,
-      "depends": [
-        "vc >=14.1,<15.0a0"
-      ],
-      "legacy_bz2_md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
-      "legacy_bz2_size": 131285,
-      "license": "zlib",
-      "license_family": "Other",
-      "md5": "edad165fc3d25636d4f0a61c42873fbc",
-      "name": "zlib",
-      "sha256": "2fb5900c4a2ca7e0f509ebc344b3508815d7647c86cfb6721a1690365222e55a",
-      "size": 112305,
-      "subdir": "win-64",
-      "timestamp": 1542815182812,
-      "version": "1.2.11"
+zlib_conda_prec = PackageRecord.from_objects(
+    {
+        "build": "h62dcd97_3",
+        "build_number": 3,
+        "depends": ["vc >=14.1,<15.0a0"],
+        "legacy_bz2_md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
+        "legacy_bz2_size": 131285,
+        "license": "zlib",
+        "license_family": "Other",
+        "md5": "edad165fc3d25636d4f0a61c42873fbc",
+        "name": "zlib",
+        "sha256": "2fb5900c4a2ca7e0f509ebc344b3508815d7647c86cfb6721a1690365222e55a",
+        "size": 112305,
+        "subdir": "win-64",
+        "timestamp": 1542815182812,
+        "version": "1.2.11",
     },
     fn=zlib_conda_fn,
     url="%s/%s/%s" % (CONDA_PKG_REPO, subdir, zlib_conda_fn),
 )
 
+
 def test_ProgressiveFetchExtract_prefers_conda_v2_format():
     # force this to False, because otherwise tests fail when run with old conda-build
-    with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    # zlib is available in local "linux-64" subdir
+    with env_vars(
+        {"CONDA_USE_ONLY_TAR_BZ2": False, "CONDA_SUBDIR": "linux-64"},
+        False,
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
         index = get_index([CONDA_PKG_REPO], prepend=False)
         rec = next(iter(index))
         for rec in index:
             # zlib is the one package in the test index that has a .conda file record
-            if rec.name == 'zlib' and rec.version == '1.2.11':
+            if rec.name == "zlib" and rec.version == "1.2.11":
                 break
         cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(rec)
-    assert cache_action.target_package_basename.endswith('.conda')
-    assert extract_action.source_full_path.endswith('.conda')
+    assert cache_action.target_package_basename.endswith(".conda")
+    assert extract_action.source_full_path.endswith(".conda")
 
 
-@pytest.mark.skipif(on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb")
+@pytest.mark.skipif(
+    on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb"
+)
 def test_tar_bz2_in_pkg_cache_used_instead_of_conda_pkg():
     """
     Test that if a .tar.bz2 package is downloaded and extracted in a package cache, the
@@ -133,8 +143,9 @@ def test_tar_bz2_in_pkg_cache_doesnt_overwrite_conda_pkg():
     Test that if a .tar.bz2 package is downloaded and extracted in a package cache, the
     complementary .conda package replaces it if that's what is requested.
     """
-    with env_vars({'CONDA_SEPARATE_FORMAT_CACHE': True},
-                  stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_vars(
+        {"CONDA_SEPARATE_FORMAT_CACHE": True}, stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         with make_temp_package_cache() as pkgs_dir:
             # Cache the .tar.bz2 file in the package cache and extract it
             pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
@@ -189,8 +200,9 @@ def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2():
     Test that if a .conda package is downloaded and extracted in a package cache, the
     complementary .tar.bz2 package replaces it if that's what is requested.
     """
-    with env_vars({'CONDA_SEPARATE_FORMAT_CACHE': True},
-                  stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_vars(
+        {"CONDA_SEPARATE_FORMAT_CACHE": True}, stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         with make_temp_package_cache() as pkgs_dir:
             # Cache the .conda file in the package cache and extract it
             pfe = ProgressiveFetchExtract((zlib_conda_prec,))
@@ -256,7 +268,10 @@ def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2():
 #         assert isinstance(exc.value.errors[0], ChecksumMismatchError)
 #         assert "expected sha256: 0000000000" in repr(exc.value.errors[0])
 
-@pytest.mark.skipif(on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb")
+
+@pytest.mark.skipif(
+    on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb"
+)
 def test_tar_bz2_in_cache_not_extracted():
     """
     Test that if a .tar.bz2 exists in the package cache (not extracted), and the complementary
@@ -282,7 +297,10 @@ def test_tar_bz2_in_cache_not_extracted():
         assert len(pfe.cache_actions) == 0
         assert len(pfe.extract_actions) == 0
 
-@pytest.mark.skipif(on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb")
+
+@pytest.mark.skipif(
+    on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb"
+)
 def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist():
     """
     If both .tar.bz2 and .conda packages exist in a writable package cache, but neither is

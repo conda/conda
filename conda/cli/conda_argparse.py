@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -21,6 +20,7 @@ from textwrap import dedent
 
 from .. import __version__
 from ..auxlib.ish import dals
+from ..auxlib.compat import isiterable
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier, ExperimentalSolverChoice
 from ..common.constants import NULL
@@ -172,6 +172,14 @@ class ArgumentParser(ArgumentParserBase):
                 builder.append("conda commands available from other packages:")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
+
+    def _check_value(self, action, value):
+        # extend to properly handle when we accept multiple choices and the default is a list
+        if action.choices is not None and isiterable(value):
+            for element in value:
+                super()._check_value(action, element)
+        else:
+            super()._check_value(action, value)
 
 
 def _exec(executable_args, env_vars):
@@ -723,10 +731,14 @@ def configure_parser_init(sub_parsers):
     p.add_argument(
         'shells',
         nargs='*',
-        help="One or more shells to be initialized. If not given, the default value is "
-             "'bash' on unix and 'cmd.exe' on Windows. Use the '--all' flag to initialize "
-             "all shells. Currently compatible shells are {%s}."
-             % ", ".join(sorted(COMPATIBLE_SHELLS)),
+        choices=COMPATIBLE_SHELLS,
+        metavar="SHELLS",
+        help=(
+            "One or more shells to be initialized. If not given, the default value is 'bash' on "
+            "unix and 'cmd.exe' & 'powershell' on Windows. Use the '--all' flag to initialize all "
+            f"shells. Available shells: {sorted(COMPATIBLE_SHELLS)}"
+        ),
+        default=["cmd.exe", "powershell"] if on_win else ["bash"],
     )
 
     if on_win:

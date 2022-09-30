@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals, annotations
 
 import codecs
 import os
 
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed, ThreadPoolExecutor, Future
 from errno import EACCES, ENOENT, EPERM, EROFS
 from json import JSONDecodeError
 from logging import getLogger
@@ -16,6 +15,7 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 from functools import partial
+from typing import Union
 
 try:
     from tlz.itertoolz import concat, concatv, groupby
@@ -67,7 +67,7 @@ try:
     from conda_package_handling.api import THREADSAFE_EXTRACT
 except ImportError:
     THREADSAFE_EXTRACT = False
-
+# On the machines we tested, extraction doesn't get any faster after 3 threads
 EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
 
 
@@ -587,7 +587,7 @@ class ProgressiveFetchExtract(object):
             and pcrec_from_writable_cache.get("url")
         ):
             # extract in place
-            extract_axn = ExtractPackageAction(
+            extract_action = ExtractPackageAction(
                 source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
                 target_pkgs_dir=dirname(pcrec_from_writable_cache.package_tarball_full_path),
                 target_extracted_dirname=basename(pcrec_from_writable_cache.extracted_package_dir),
@@ -596,7 +596,7 @@ class ProgressiveFetchExtract(object):
                 size=pcrec_from_writable_cache.size or size,
                 md5=pcrec_from_writable_cache.md5 or md5,
             )
-            return None, extract_axn
+            return None, extract_action
 
         pcrec_from_read_only_cache = next(
             (
@@ -614,7 +614,7 @@ class ProgressiveFetchExtract(object):
             # we found a tarball, but it's in a read-only package cache
             # we need to link the tarball into the first writable package cache,
             #   and then extract
-            cache_axn = CacheUrlAction(
+            cache_action = CacheUrlAction(
                 url=path_to_url(pcrec_from_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
@@ -623,8 +623,8 @@ class ProgressiveFetchExtract(object):
                 md5=pcrec_from_read_only_cache.get("md5") or md5,
             )
             trgt_extracted_dirname = strip_pkg_extension(pcrec_from_read_only_cache.fn)[0]
-            extract_axn = ExtractPackageAction(
-                source_full_path=cache_axn.target_full_path,
+            extract_action = ExtractPackageAction(
+                source_full_path=cache_action.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_extracted_dirname=trgt_extracted_dirname,
                 record_or_spec=pcrec_from_read_only_cache,
@@ -632,14 +632,14 @@ class ProgressiveFetchExtract(object):
                 size=pcrec_from_read_only_cache.get("size") or size,
                 md5=pcrec_from_read_only_cache.get("md5") or md5,
             )
-            return cache_axn, extract_axn
+            return cache_action, extract_action
 
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
         url = pref_or_spec.get("url")
         assert url
 
-        cache_axn = CacheUrlAction(
+        cache_action = CacheUrlAction(
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=pref_or_spec.fn,
@@ -647,8 +647,8 @@ class ProgressiveFetchExtract(object):
             size=size,
             md5=md5,
         )
-        extract_axn = ExtractPackageAction(
-            source_full_path=cache_axn.target_full_path,
+        extract_action = ExtractPackageAction(
+            source_full_path=cache_action.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
             record_or_spec=pref_or_spec,
@@ -656,7 +656,7 @@ class ProgressiveFetchExtract(object):
             size=size,
             md5=md5,
         )
-        return cache_axn, extract_axn
+        return cache_action, extract_action
 
     def __init__(self, link_prefs):
         """
@@ -698,6 +698,10 @@ class ProgressiveFetchExtract(object):
         return tuple(axns[1] for axns in self.paired_actions.values() if axns[1])
 
     def execute(self):
+        """
+        Run each action in self.paired_actions. Each action in cache_actions
+        runs before its corresponding extract_actions.
+        """
         if self._executed:
             return
         if not self._prepared:
@@ -705,11 +709,10 @@ class ProgressiveFetchExtract(object):
 
         assert not context.dry_run
 
-        if not self.cache_actions and not self.extract_actions:
+        if not self.paired_actions:
             return
 
         if not context.verbosity and not context.quiet and not context.json:
-            # TODO: use logger
             print("\nDownloading and Extracting Packages")
         else:
             log.debug(
@@ -734,7 +737,7 @@ class ProgressiveFetchExtract(object):
 
             for prec_or_spec, (cache_action, extract_action) in self.paired_actions.items():
                 if cache_action is None and extract_action is None:
-                    # XXX will we reach this if installing an installed package?
+                    # Not sure when this is reached.
                     continue
 
                 progress_bar = self._progress_bar(prec_or_spec, leave=False)
@@ -823,58 +826,69 @@ class ProgressiveFetchExtract(object):
         return hash(self) == hash(other)
 
 
-# called from ProgressiveFetchExtract.execute()
-def do_cache_action(prec, cache_axn, progress_bar, download_total=1.0):
-    # dummy action to simplify code
-    if not cache_axn:
+def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):
+    """
+    This function gets called from `ProgressiveFetchExtract.execute`
+    """
+    # pass None if already cached (simplifies code)
+    if not cache_action:
         return prec
-    cache_axn.verify()
+    cache_action.verify()
 
-    if not cache_axn.url.startswith("file:/"):
+    if not cache_action.url.startswith("file:/"):
 
-        def progress_update_cache_axn(pct_completed):
+        def progress_update_cache_action(pct_completed):
             progress_bar.update_to(pct_completed * download_total)
 
     else:
         download_total = 0
-        progress_update_cache_axn = None
+        progress_update_cache_action = None
 
-    cache_axn.execute(progress_update_cache_axn)
+    cache_action.execute(progress_update_cache_action)
     return prec
 
 
-def do_extract_action(prec, extract_axn, progress_bar):
-    # dummy action
-    if not extract_axn:
+def do_extract_action(prec, extract_action, progress_bar):
+    """
+    This function gets called after do_cache_action completes.
+    """
+    # pass None if already extracted (simplifies code)
+    if not extract_action:
         return prec
-    extract_axn.verify()
+    extract_action.verify()
     # currently unable to do updates on extract;
     # likely too fast to bother
-    extract_axn.execute(None)
+    extract_action.execute(None)
     progress_bar.update_to(1.0)
     return prec
 
 
-def do_cleanup(progress_bar, *actions):
+def do_cleanup(actions):
     for action in actions:
         if action:
             action.cleanup()
 
 
-def do_reverse(progress_bar, *actions):
+def do_reverse(actions):
     for action in actions:
         if action:
             action.reverse()
 
 
-def done_callback(future, actions, progress_bar: ProgressBar, exceptions: list, finish=False):
+def done_callback(
+    future: Future,
+    actions: tuple[Union[CacheUrlAction, ExtractPackageAction], ...],
+    progress_bar: ProgressBar,
+    exceptions: list[Exception],
+    finish: bool = False,
+):
     try:
         future.result()
     except Exception as e:
-        do_reverse(progress_bar, *reversed(actions))
+        do_reverse(reversed(actions))
         exceptions.append(e)
     else:
-        do_cleanup(progress_bar, *actions)
+        do_cleanup(actions)
         if finish:
             progress_bar.finish()
             progress_bar.refresh()
