@@ -102,7 +102,7 @@ class Resolve:
         self._channel_priority = context.channel_priority
         self._solver_ignore_timestamps = context.solver_ignore_timestamps
 
-        groups = groupby("name", index.values())
+        groups = groupby(lambda x: x.name, index.values())
         trackers = defaultdict(list)
 
         for name in groups:
