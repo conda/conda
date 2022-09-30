@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Replacements for parts the toolz library.
+Replacements for parts of the toolz library.
 """
 
 import itertools
