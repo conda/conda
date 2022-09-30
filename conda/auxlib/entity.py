@@ -434,9 +434,7 @@ class Field:
         if self.immutable and instance._initd:
             raise AttributeError(f"The {self.name} field is immutable.")
         elif self.required:
-            raise AttributeError(
-                "The {} field is required and cannot be deleted.".format(self.name)
-            )
+            raise AttributeError(f"The {self.name} field is required and cannot be deleted.")
         elif not self.nullable:
             # tricky edge case
             # given a field Field(default='some value', required=False, nullable=False)
@@ -885,15 +883,13 @@ class ImmutableEntity(Entity):
     def __setattr__(self, attribute, value):
         if self._initd:
             raise AttributeError(
-                "Assignment not allowed. {} is immutable.".format(self.__class__.__name__)
+                f"Assignment not allowed. {self.__class__.__name__} is immutable."
             )
         super().__setattr__(attribute, value)
 
     def __delattr__(self, item):
         if self._initd:
-            raise AttributeError(
-                "Deletion not allowed. {} is immutable.".format(self.__class__.__name__)
-            )
+            raise AttributeError(f"Deletion not allowed. {self.__class__.__name__} is immutable.")
         super().__delattr__(item)
 
 

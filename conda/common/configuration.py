@@ -66,13 +66,13 @@ def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
     if not isiterable(iterable):
         iterable = [iterable]
     try:
-        return "\n".join("{}- {}".format(padding, item) for item in iterable)
+        return "\n".join(f"{padding}- {item}" for item in iterable)
     except TypeError:
         return pretty_list([iterable], padding)
 
 
 def pretty_map(dictionary, padding="  "):
-    return "\n".join("{}{}: {}".format(padding, key, value) for key, value in dictionary.items())
+    return "\n".join(f"{padding}{key}: {value}" for key, value in dictionary.items())
 
 
 def expand_environment_variables(unexpanded):

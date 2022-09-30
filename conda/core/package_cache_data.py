@@ -329,7 +329,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         return self._package_cache_records.values()
 
     def __repr__(self):
-        args = ("{}={!r}".format(key, getattr(self, key)) for key in ("pkgs_dir",))
+        args = (f"{key}={getattr(self, key)!r}" for key in ("pkgs_dir",))
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
     def _make_single_record(self, package_filename):

@@ -243,7 +243,7 @@ class PythonDistribution:
                 seen = []
                 records = []
                 for row in reader:
-                    cleaned_path = posix_normpath("{}{}{}".format(sp_dir, path_prepender, row[0]))
+                    cleaned_path = posix_normpath(f"{sp_dir}{path_prepender}{row[0]}")
                     if len(row) == 3:
                         checksum, size = row[1:]
                         if checksum:
@@ -321,11 +321,7 @@ class PythonDistribution:
 
         def pyspec_to_norm_req(pyspec):
             conda_name = pypi_name_to_conda_name(norm_package_name(pyspec.name))
-            return (
-                "{} {}".format(conda_name, pyspec.constraints)
-                if pyspec.constraints
-                else conda_name
-            )
+            return f"{conda_name} {pyspec.constraints}" if pyspec.constraints else conda_name
 
         reqs = self.get_dist_requirements()
         pyspecs = tuple(parse_specification(req) for req in reqs)
@@ -880,7 +876,7 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
             anchor_file = "{}/{}/{}".format(site_packages_dir, fname, "RECORD")
         elif fname.endswith(".egg-info"):
             if isfile(join(site_packages_path, fname)):
-                anchor_file = "{}/{}".format(site_packages_dir, fname)
+                anchor_file = f"{site_packages_dir}/{fname}"
             else:
                 anchor_file = "{}/{}/{}".format(site_packages_dir, fname, "PKG-INFO")
         elif fname.endswith(".egg"):
@@ -892,7 +888,7 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
             # able. Do this once and leave the directory, and remove the egg
             # (which is a zip file in disguise?)
         elif fname.endswith('.egg-link'):
-            anchor_file = "{}/{}".format(site_packages_dir, fname)
+            anchor_file = f"{site_packages_dir}/{fname}"
         elif fname.endswith('.pth'):
             continue
         else:
@@ -1106,7 +1102,7 @@ class Evaluator:
             elhs = expr["lhs"]
             erhs = expr["rhs"]
             if _is_literal(expr["lhs"]) and _is_literal(expr["rhs"]):
-                raise SyntaxError("invalid comparison: {} {} {}".format(elhs, op, erhs))
+                raise SyntaxError(f"invalid comparison: {elhs} {op} {erhs}")
 
             lhs = self.evaluate(elhs, context)
             rhs = self.evaluate(erhs, context)
@@ -1130,7 +1126,7 @@ def get_default_marker_context():
     """Return the default context dictionary to use when parsing markers."""
 
     def format_full_version(info):
-        version = "{}.{}.{}".format(info.major, info.minor, info.micro)
+        version = f"{info.major}.{info.minor}.{info.micro}"
         kind = info.releaselevel
         if kind != 'final':
             version += kind[0] + str(info.serial)
@@ -1185,10 +1181,10 @@ def interpret(marker, execution_context=None):
     try:
         expr, rest = parse_marker(marker)
     except Exception as e:
-        raise SyntaxError("Unable to interpret marker syntax: {}: {}".format(marker, e))
+        raise SyntaxError(f"Unable to interpret marker syntax: {marker}: {e}")
 
     if rest and rest[0] != "#":
-        raise SyntaxError("unexpected trailing data in marker: {}: {}".format(marker, rest))
+        raise SyntaxError(f"unexpected trailing data in marker: {marker}: {rest}")
 
     context = DEFAULT_MARKER_CONTEXT.copy()
     if execution_context:

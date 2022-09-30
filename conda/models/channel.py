@@ -199,9 +199,9 @@ class Channel(metaclass=ChannelType):
 
         bases = (join_url(base, p) for p in _platforms())
         if with_credentials and self.auth:
-            return ["{}://{}@{}".format(self.scheme, self.auth, b) for b in bases]
+            return [f"{self.scheme}://{self.auth}@{b}" for b in bases]
         else:
-            return ["{}://{}".format(self.scheme, b) for b in bases]
+            return [f"{self.scheme}://{b}" for b in bases]
 
     def url(self, with_credentials=False):
         if self.canonical_name == UNKNOWN_CHANNEL:
@@ -222,15 +222,15 @@ class Channel(metaclass=ChannelType):
         base = join_url(*base)
 
         if with_credentials and self.auth:
-            return "{}://{}@{}".format(self.scheme, self.auth, base)
+            return f"{self.scheme}://{self.auth}@{base}"
         else:
-            return "{}://{}".format(self.scheme, base)
+            return f"{self.scheme}://{base}"
 
     @property
     def base_url(self):
         if self.canonical_name == UNKNOWN_CHANNEL:
             return None
-        return "{}://{}".format(self.scheme, join_url(self.location, self.name))
+        return f"{self.scheme}://{join_url(self.location, self.name)}"
 
     @property
     def base_urls(self):

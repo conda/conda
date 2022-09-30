@@ -364,7 +364,7 @@ class Solver:
                         if "," in m_dep.version.spec:
                             constricting.extend(
                                 [
-                                    (prec.name, MatchSpec("{} {}".format(m_dep.name, v)))
+                                    (prec.name, MatchSpec(f"{m_dep.name} {v}"))
                                     for v in m_dep.version.tup
                                     if "<" in v.spec
                                 ]
@@ -1012,7 +1012,7 @@ class Solver:
                 channel_name = "defaults"
 
             # only look for a newer conda in the channel conda is currently installed from
-            conda_newer_spec = MatchSpec("{}::conda>{}".format(channel_name, CONDA_VERSION))
+            conda_newer_spec = MatchSpec(f"{channel_name}::conda>{CONDA_VERSION}")
 
             if paths_equal(self.prefix, context.conda_prefix):
                 if any(conda_newer_spec.match(prec) for prec in link_precs):

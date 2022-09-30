@@ -1246,7 +1246,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
                 if 'openssl' in prec.dist_str():
                     # this is a hack for conda-build string parsing in the conda_build/build.py
                     #   create_env function
-                    message = "{} failed for: {}".format(action, prec)
+                    message = f"{action} failed for: {prec}"
                 else:
                     message = dals("""
                     %s script failed for package %s

@@ -448,7 +448,7 @@ class _Activator:
 
         for env_var in old_conda_environment_env_vars.keys():
             unset_vars.append(env_var)
-            save_var = "__CONDA_SHLVL_{}_{}".format(new_conda_shlvl, env_var)
+            save_var = f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"
             if save_var in os.environ.keys():
                 export_vars[env_var] = os.environ[save_var]
         return {
@@ -768,7 +768,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
         stdout, stderr = p.communicate(input=joined)
         rc = p.returncode
         if rc != 0 or stderr:
-            message = "\n  stdout: {}\n  stderr: {}\n  rc: {}\n".format(stdout, stderr, rc)
+            message = f"\n  stdout: {stdout}\n  stderr: {stderr}\n  rc: {rc}\n"
             print(message, file=sys.stderr)
             raise CalledProcessError(rc, command, message)
         if hasattr(stdout, 'decode'):

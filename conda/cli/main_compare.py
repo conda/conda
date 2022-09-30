@@ -27,7 +27,7 @@ def _get_name_tuple(pkg):
     return pkg.name, pkg
 
 def _to_str(pkg):
-    return "{}=={}={}".format(pkg.name, pkg.version, pkg.build)
+    return f"{pkg.name}=={pkg.version}={pkg.build}"
 
 def compare_packages(active_pkgs, specification_pkgs):
     output = []

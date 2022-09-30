@@ -159,7 +159,7 @@ class SubdirField(StringField):
             elif platform:
                 if "x86" in arch:
                     arch = "64" if "64" in arch else "32"
-                return self.unbox(instance, instance_type, "{}-{}".format(platform, arch))
+                return self.unbox(instance, instance_type, f"{platform}-{arch}")
             else:
                 return self.unbox(instance, instance_type, context.subdir)
 
@@ -179,7 +179,7 @@ class FilenameField(StringField):
                 if not fn:
                     raise AttributeError()
             except AttributeError:
-                fn = "{}-{}-{}".format(instance.name, instance.version, instance.build)
+                fn = f"{instance.name}-{instance.version}-{instance.build}"
             assert fn
             return self.unbox(instance, instance_type, fn)
 

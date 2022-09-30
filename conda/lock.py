@@ -67,9 +67,9 @@ class FileLock:
         """
         self.path_to_lock = abspath(path_to_lock)
         self.retries = retries
-        self.lock_file_path = "{}.pid{{0}}.{}".format(self.path_to_lock, LOCK_EXTENSION)
+        self.lock_file_path = f"{self.path_to_lock}.pid{{0}}.{LOCK_EXTENSION}"
         # e.g. if locking path `/conda`, lock file will be `/conda.pidXXXX.conda_lock`
-        self.lock_file_glob_str = "{}.pid*.{}".format(self.path_to_lock, LOCK_EXTENSION)
+        self.lock_file_glob_str = f"{self.path_to_lock}.pid*.{LOCK_EXTENSION}"
         assert isdir(dirname(self.path_to_lock)), f"{self.path_to_lock} doesn't exist"
         assert "::" not in self.path_to_lock, self.path_to_lock
 
@@ -116,9 +116,9 @@ class DirectoryLock(FileLock):  # lgtm [py/missing-call-to-init]
         directory_name = basename(self.directory_path)
         self.retries = retries
         lock_path_pre = join(self.directory_path, directory_name)
-        self.lock_file_path = "{}.pid{{0}}.{}".format(lock_path_pre, LOCK_EXTENSION)
+        self.lock_file_path = f"{lock_path_pre}.pid{{0}}.{LOCK_EXTENSION}"
         # e.g. if locking directory `/conda`, lock file will be `/conda/conda.pidXXXX.conda_lock`
-        self.lock_file_glob_str = "{}.pid*.{}".format(lock_path_pre, LOCK_EXTENSION)
+        self.lock_file_glob_str = f"{lock_path_pre}.pid*.{LOCK_EXTENSION}"
         # make sure '/' exists
         assert isdir(dirname(self.directory_path)), f"{self.directory_path} doesn't exist"
         if not isdir(self.directory_path):

@@ -1089,7 +1089,7 @@ def generate_mocked_resolve(pkgs, install=None):
     index = {}
     groups = defaultdict(list)
     for preferred_env, name, schannel, version in pkgs:
-        dist = Dist.from_string("{}-{}-0".format(name, version), channel_override=schannel)
+        dist = Dist.from_string(f"{name}-{version}-0", channel_override=schannel)
         pkg = mock_package(
             preferred_env=preferred_env, name=name, schannel=schannel, version=version, fn=name
         )

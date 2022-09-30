@@ -201,9 +201,9 @@ class PathActionsTests(TestCase):
         command, module, func = parse_entry_point_def('command1=some.module:main')
         assert command == 'command1'
         if on_win:
-            target_short_path = "{}\\{}-script.py".format(get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}-script.py"
         else:
-            target_short_path = "{}/{}".format(get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}/{command}"
         assert py_ep_axn.target_full_path == join(self.prefix, target_short_path)
         assert py_ep_axn.module == module == 'some.module'
         assert py_ep_axn.func == func == 'main'
@@ -239,7 +239,7 @@ class PathActionsTests(TestCase):
 
         if on_win:
             windows_exe_axn = windows_exe_axns[0]
-            target_short_path = "{}\\{}.exe".format(get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}.exe"
             assert windows_exe_axn.target_full_path == join(self.prefix, target_short_path)
 
             mkdir_p(dirname(windows_exe_axn.target_full_path))

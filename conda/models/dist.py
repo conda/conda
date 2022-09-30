@@ -135,7 +135,7 @@ class Dist(Entity, metaclass=DistType):
         return parts[0], parts[1], parts[2], self.channel or DEFAULTS_CHANNEL_NAME
 
     def __str__(self):
-        return "{}::{}".format(self.channel, self.dist_name) if self.channel else self.dist_name
+        return f"{self.channel}::{self.dist_name}" if self.channel else self.dist_name
 
     @property
     def is_feature_package(self):
@@ -157,7 +157,7 @@ class Dist(Entity, metaclass=DistType):
     def to_match_spec(self):
         from .match_spec import MatchSpec
         base = '='.join(self.quad[:3])
-        return MatchSpec("{}::{}".format(self.channel, base) if self.channel else base)
+        return MatchSpec(f"{self.channel}::{base}" if self.channel else base)
 
     @classmethod
     def from_string(cls, string, channel_override=NULL):
@@ -300,7 +300,7 @@ class Dist(Entity, metaclass=DistType):
     def rsplit(self, sep=None, maxsplit=-1):
         assert sep == '-'
         assert maxsplit == 2
-        name = "{}::{}".format(self.channel, self.quad[0]) if self.channel else self.quad[0]
+        name = f"{self.channel}::{self.quad[0]}" if self.channel else self.quad[0]
         return name, self.quad[1], self.quad[2]
 
     def startswith(self, match):

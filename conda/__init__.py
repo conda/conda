@@ -60,7 +60,7 @@ class CondaError(Exception):
         super().__init__(message)
 
     def __repr__(self):
-        return "{}: {}".format(self.__class__.__name__, str(self))
+        return f"{self.__class__.__name__}: {str(self)}"
 
     def __str__(self):
         try:

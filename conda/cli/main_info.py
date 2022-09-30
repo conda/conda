@@ -349,7 +349,7 @@ def execute(args, parser):
             print('')
 
             for name, value in sorted(info_dict['env_vars'].items()):
-                print("{}: {}".format(name, value))
+                print(f"{name}: {value}")
             print('')
 
     if context.json:

@@ -63,11 +63,11 @@ def pretty_diff(diff):
             added[name.lower()] = version
     changed = set(added) & set(removed)
     for name in sorted(changed):
-        yield " {}  {{{} -> {}}}".format(name, removed[name], added[name])
+        yield f" {name}  {{{removed[name]} -> {added[name]}}}"
     for name in sorted(set(removed) - changed):
-        yield "-{}-{}".format(name, removed[name])
+        yield f"-{name}-{removed[name]}"
     for name in sorted(set(added) - changed):
-        yield "+{}-{}".format(name, added[name])
+        yield f"+{name}-{added[name]}"
 
 
 def pretty_content(content):
@@ -109,7 +109,7 @@ class History:
             try:
                 last = set(self.get_state())
             except CondaHistoryError as e:
-                warnings.warn("Error in {}: {}".format(self.path, e), CondaHistoryWarning)
+                warnings.warn(f"Error in {self.path}: {e}", CondaHistoryWarning)
                 return
             pd = PrefixData(self.prefix)
             curr = {prefix_rec.dist_str() for prefix_rec in pd.iter_records()}

@@ -124,7 +124,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
     else:
         dependencies = ['='.join((a.name, a.version, a.build)) for a in conda_precs]
     if pip_precs:
-        dependencies.append({"pip": ["{}=={}".format(a.name, a.version) for a in pip_precs]})
+        dependencies.append({"pip": [f"{a.name}=={a.version}" for a in pip_precs]})
 
     channels = list(context.channels)
     if not ignore_channels:

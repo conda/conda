@@ -275,7 +275,7 @@ class MatchSpec(metaclass=MatchSpecType):
             return None
 
     def __repr__(self):
-        builder = ['{}("{}"'.format(self.__class__.__name__, self)]
+        builder = [f'{self.__class__.__name__}("{self}"']
         if self.target:
             builder.append(", target=\"%s\"" % self.target)
         if self.optional:
@@ -347,9 +347,9 @@ class MatchSpec(metaclass=MatchSpecType):
                     continue
                 value = str(self._match_components[key])
                 if any(s in value for s in ', ='):
-                    brackets.append("{}='{}'".format(key, value))
+                    brackets.append(f"{key}='{value}'")
                 else:
-                    brackets.append("{}={}".format(key, value))
+                    brackets.append(f"{key}={value}")
 
         if brackets:
             builder.append('[%s]' % ','.join(brackets))
@@ -486,7 +486,7 @@ class MatchSpec(metaclass=MatchSpecType):
     def _merge(self, other, union=False):
 
         if self.optional != other.optional or self.target != other.target:
-            raise ValueError("Incompatible MatchSpec merge:  - {}\n  - {}".format(self, other))
+            raise ValueError(f"Incompatible MatchSpec merge:  - {self}\n  - {other}")
 
         final_components = {}
         component_names = set(self._match_components) | set(other._match_components)
@@ -504,7 +504,7 @@ class MatchSpec(metaclass=MatchSpecType):
                     try:
                         final = this_component.union(that_component)
                     except (AttributeError, ValueError, TypeError):
-                        final = "{}|{}".format(this_component, that_component)
+                        final = f"{this_component}|{that_component}"
                 else:
                     final = this_component.merge(that_component)
                 final_components[component_name] = final
@@ -772,7 +772,7 @@ class _StrMatchMixin:
         return self._raw_value
 
     def __repr__(self):
-        return "{}('{}')".format(self.__class__.__name__, self._raw_value)
+        return f"{self.__class__.__name__}('{self._raw_value}')"
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self._raw_value == other._raw_value

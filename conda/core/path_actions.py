@@ -92,7 +92,7 @@ class PathAction(metaclass=ABCMeta):
 
     def __repr__(self):
         args = (
-            "{}={!r}".format(key, value)
+            f"{key}={value!r}"
             for key, value in vars(self).items()
             if key not in REPR_IGNORE_KWARGS
         )
@@ -132,7 +132,7 @@ class MultiPathAction(metaclass=ABCMeta):
 
     def __repr__(self):
         args = (
-            "{}={!r}".format(key, value)
+            f"{key}={value!r}"
             for key, value in vars(self).items()
             if key not in REPR_IGNORE_KWARGS
         )
@@ -688,7 +688,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
-                target_short_path = "{}/{}".format(get_bin_directory_short_path(), command)
+                target_short_path = f"{get_bin_directory_short_path()}/{command}"
                 if on_win:
                     target_short_path += "-script.py"
                 return target_short_path, module, func

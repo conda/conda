@@ -21,7 +21,7 @@ def test_conda_subprocess():
     except TypeError:
         for k, v in os.environ.items():
             if type(k) != str or type(v) != str:
-                print("{} ({}): {} ({})".format(k, type(k), v, type(v)))
+                print(f"{k} ({type(k)}): {v} ({type(v)})")
         raise
     stdout, stderr = p.communicate()
     rc = p.returncode

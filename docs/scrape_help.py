@@ -122,7 +122,7 @@ def external_commands():
             if start:
                 m = subcommands_re.match(line)
                 if m:
-                    commands.extend(["{} {}".format(command, i) for i in m.group(1).split(",")])
+                    commands.extend([f"{command} {i}" for i in m.group(1).split(",")])
                 break
     return commands
 

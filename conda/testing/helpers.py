@@ -115,7 +115,7 @@ def set_active_prefix(prefix: str) -> None:
 
 
 def assert_equals(a, b, output=""):
-    output = "{!r} != {!r}".format(a.lower(), b.lower()) + "\n\n" + output
+    output = f"{a.lower()!r} != {b.lower()!r}" + "\n\n" + output
     assert a.lower() == b.lower(), output
 
 

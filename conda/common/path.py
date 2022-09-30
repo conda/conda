@@ -133,9 +133,7 @@ def pyc_path(py_path, python_major_minor_version):
     else:
         directory, py_file = split(py_path)
         basename_root, extension = splitext(py_file)
-        pyc_file = (
-            "__pycache__" + "/" + "{}.cpython-{}{}c".format(basename_root, pyver_string, extension)
-        )
+        pyc_file = "__pycache__" + "/" + f"{basename_root}.cpython-{pyver_string}{extension}c"
         return "{}{}{}".format(directory, "/", pyc_file) if directory else pyc_file
 
 
@@ -245,7 +243,7 @@ def ensure_pad(name, pad="_"):
     if not name or name[0] == name[-1] == pad:
         return name
     else:
-        return "{}{}{}".format(pad, name, pad)
+        return f"{pad}{name}{pad}"
 
 
 def is_private_env_name(env_name):

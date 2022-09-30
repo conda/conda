@@ -24,7 +24,7 @@ class TestImportAllConda(unittest.TestCase):
         module_prefix = 'conda'
         if subpackage:
             prefix = os.path.join(prefix, subpackage)
-            module_prefix = "{}.{}".format(module_prefix, subpackage)
+            module_prefix = f"{module_prefix}.{subpackage}"
 
         # Try importing root
         __import__(module_prefix)

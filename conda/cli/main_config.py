@@ -166,7 +166,7 @@ def execute_config(args, parser):
             # Add in custom formatting
             if 'custom_channels' in d:
                 d['custom_channels'] = {
-                    channel.name: "{}://{}".format(channel.scheme, channel.location)
+                    channel.name: f"{channel.scheme}://{channel.location}"
                     for channel in d['custom_channels'].values()
                 }
             if 'custom_multichannels' in d:
@@ -326,7 +326,7 @@ def execute_config(args, parser):
                     isinstance(arglist, str)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
-                raise CouldntParseError("key {!r} should be a list, not {}.".format(key, bad))
+                raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
             if item in arglist:
                 message_key = key + "." + subkey if subkey is not None else key
                 # Right now, all list keys should not contain duplicates

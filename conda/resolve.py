@@ -849,7 +849,7 @@ class Resolve:
 
     @staticmethod
     def to_feature_metric_id(prec_dist_str, feat):
-        return "@fm@{}@{}".format(prec_dist_str, feat)
+        return f"@fm@{prec_dist_str}@{feat}"
 
     def push_MatchSpec(self, C, spec):
         spec = MatchSpec(spec)
@@ -1076,7 +1076,7 @@ class Resolve:
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
-            specs.append(MatchSpec("{} {} {}".format(prec.name, prec.version, prec.build)))
+            specs.append(MatchSpec(f"{prec.name} {prec.version} {prec.build}"))
         r2 = Resolve(OrderedDict((prec, prec) for prec in installed), True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
@@ -1122,7 +1122,7 @@ class Resolve:
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
-            specs.append(MatchSpec("{} {} {}".format(prec.name, prec.version, prec.build)))
+            specs.append(MatchSpec(f"{prec.name} {prec.version} {prec.build}"))
         new_index = {prec: prec for prec in sat_name_map.values()}
         name_map = {p.name: p for p in new_index}
         if 'python' in name_map and 'pip' not in name_map:

@@ -60,7 +60,7 @@ class TemporaryDirectory:
             try:
                 _rm_rf(self.name)
             except (TypeError, AttributeError) as ex:
-                if "None" not in "{}".format(ex):
+                if "None" not in f"{ex}":
                     raise
                 _rm_rf(self.name)
             self._closed = True

@@ -722,7 +722,7 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
         md5 = hashlib.md5(ensure_binary(url))
     except ValueError:
         md5 = hashlib.md5(ensure_binary(url), usedforsecurity=False)
-    return "{}.json".format(md5.hexdigest()[:8])
+    return f"{md5.hexdigest()[:8]}.json"
 
 
 def add_http_value_to_dict(resp, http_key, d, dict_key):

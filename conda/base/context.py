@@ -502,7 +502,7 @@ class Context(Configuration):
             return self._subdir
         m = platform.machine()
         if m in non_x86_machines:
-            return "{}-{}".format(self.platform, m)
+            return f"{self.platform}-{m}"
         elif self.platform == "zos":
             return "zos-z"
         else:
@@ -833,7 +833,7 @@ class Context(Configuration):
 
     @memoizedproperty
     def user_agent(self):
-        builder = ["conda/{} requests/{}".format(CONDA_VERSION, self.requests_version)]
+        builder = [f"conda/{CONDA_VERSION} requests/{self.requests_version}"]
         builder.append("%s/%s" % self.python_implementation_name_version)
         builder.append("%s/%s" % self.platform_system_release)
         builder.append("%s/%s" % self.os_distribution_name_version)

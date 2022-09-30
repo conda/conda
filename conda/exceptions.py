@@ -146,7 +146,7 @@ class ClobberError(CondaError):
 
     def __repr__(self):
         clz_name = "ClobberWarning" if self.path_conflict == PathConflict.warn else "ClobberError"
-        return "{}: {}\n".format(clz_name, self)
+        return f"{clz_name}: {self}\n"
 
 
 class BasicClobberError(ClobberError):
@@ -399,14 +399,14 @@ class CondaFileIOError(CondaIOError):
     def __init__(self, filepath, message, *args):
         self.filepath = filepath
 
-        msg = "'{}'. {}".format(filepath, message)
+        msg = f"'{filepath}'. {message}"
         super().__init__(msg, *args)
 
 
 class CondaKeyError(CondaError, KeyError):
     def __init__(self, key, message, *args):
         self.key = key
-        self.msg = "'{}': {}".format(key, message)
+        self.msg = f"'{key}': {message}"
         super().__init__(self.msg, *args)
 
 

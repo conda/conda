@@ -39,7 +39,7 @@ def file_path_is_writable(path):
 
 @lru_cache(maxsize=None)
 def hardlink_supported(source_file, dest_dir):
-    test_file = join(dest_dir, ".tmp.{}.{}".format(basename(source_file), str(uuid4())[:8]))
+    test_file = join(dest_dir, f".tmp.{basename(source_file)}.{str(uuid4())[:8]}")
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
     if lexists(test_file):

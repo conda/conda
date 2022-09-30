@@ -1813,7 +1813,7 @@ class InteractiveShell:
         "zsh": {
             "base_shell": "posix",  # inheritance implemented in __init__
             "init_command": (
-                'env | sort && eval "$({} -m conda shell.zsh hook {})"'.format(exe_quoted, dev_arg)
+                f'env | sort && eval "$({exe_quoted} -m conda shell.zsh hook {dev_arg})"'
             ),
         },
         # It should be noted here that we use the latest hook with whatever conda.exe is installed
@@ -2564,9 +2564,7 @@ class ShellWrapperIntegrationTests(TestCase):
             prefix2_p = activator.path_conversion(self.prefix2)
             prefix3_p = activator.path_conversion(self.prefix3)
             shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT_p)
-            shell.sendline(
-                'source "${{_CONDA_ROOT}}/bin/activate" {} "{}"'.format(dev_arg, prefix2_p)
-            )
+            shell.sendline(f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix2_p}"')
             PATH0 = shell.get_env_var("PATH")
             assert 'charizard' in PATH0
 
@@ -2576,9 +2574,7 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline("conda --version")
             shell.p.expect_exact("conda " + conda_version)
 
-            shell.sendline(
-                'source "${{_CONDA_ROOT}}/bin/activate" {} "{}"'.format(dev_arg, prefix3_p)
-            )
+            shell.sendline(f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix3_p}"')
 
             PATH1 = shell.get_env_var("PATH")
             assert 'venusaur' in PATH1
