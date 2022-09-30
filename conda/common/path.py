@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from functools import lru_cache, reduce
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
+from typing import Iterable, Sequence
 from urllib.parse import urlsplit
 
 from itertools import accumulate, chain
@@ -81,14 +81,13 @@ def tokenized_startswith(test_iterable, startswith_iterable):
     return all(t == sw for t, sw in zip(test_iterable, startswith_iterable))
 
 
-def get_all_directories(files):
+def get_all_directories(files: Iterable[str]) -> list[tuple[str]]:
     return sorted({tuple(f.split("/")[:-1]) for f in files} - {()})
 
 
-def get_leaf_directories(files):
-    # type: (List[str]) -> List[str]
-    # give this function a list of files, and it will hand back a list of leaf directories to
-    #   pass to os.makedirs()
+def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
+    # give this function a list of files, and it will hand back a list of leaf
+    # directories to pass to os.makedirs()
     directories = get_all_directories(files)
     if not directories:
         return ()
@@ -109,15 +108,12 @@ def get_leaf_directories(files):
     return tuple('/'.join(leaf) for leaf in leaves)
 
 
-def explode_directories(child_directories, already_split=False):
+def explode_directories(child_directories: Iterable[tuple[str, ...]]):
     # get all directories including parents
-    # use already_split=True for the result of get_all_directories()
-    maybe_split = lambda x: x if already_split else x.split("/")
+    # child_directories must already be split with os.path.split
     return set(
         chain.from_iterable(
-            accumulate(maybe_split(directory), join)
-            for directory in child_directories
-            if directory
+            accumulate(directory, join) for directory in child_directories if directory
         )
     )
 
