@@ -32,6 +32,11 @@ repos:
       - id: fix-encoding-pragma
         args: [--remove]
         exclude: ^conda/auxlib/
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.38.2
+    hooks:
+      - id: pyupgrade
+        args: ["--py37-plus", "--keep-runtime-typing"]
   - repo: https://github.com/akaihola/darker
     rev: 1.5.1
     hooks:
