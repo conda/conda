@@ -302,7 +302,7 @@ class SubdirData(metaclass=SubdirDataType):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
                     raise
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str)
+            _internal_state = self._process_raw_repodata_str(raw_repodata_str, mod_etag_headers)
             self._internal_state = _internal_state
             self._pickle_me()
             return _internal_state
@@ -324,6 +324,8 @@ class SubdirData(metaclass=SubdirDataType):
 
         # pickled data is bad or doesn't exist; load cached json
         log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
+
+        # TODO allow repo plugin to load this data; don't require verbatim JSON on disk?
         with open(self.cache_path_json) as fh:
             try:
                 raw_repodata_str = fh.read()
@@ -337,7 +339,7 @@ class SubdirData(metaclass=SubdirDataType):
                 """)
                 raise CondaError(message)
             else:
-                _internal_state = self._process_raw_repodata_str(raw_repodata_str)
+                _internal_state = self._process_raw_repodata_str(raw_repodata_str, self._load_state())
                 self._internal_state = _internal_state
                 self._pickle_me()
                 return _internal_state
@@ -358,27 +360,34 @@ class SubdirData(metaclass=SubdirDataType):
             rm_rf(self.cache_path_pickle)
             return None
 
+        def _pickle_valid_checks():
+            yield '_url', _pickled_state.get('_url'), self.url_w_credentials
+            yield '_schannel', _pickled_state.get('_schannel'), self.channel.canonical_name
+            yield '_add_pip', _pickled_state.get('_add_pip'), context.add_pip_as_python_dependency
+            yield '_mod', _pickled_state.get('_mod'), state.get('_mod')
+            yield '_etag', _pickled_state.get('_etag'), state.get('_etag')
+            yield '_pickle_version', _pickled_state.get('_pickle_version'), REPODATA_PICKLE_VERSION
+            yield 'fn', _pickled_state.get('fn'), self.repodata_fn
+
         def _check_pickled_valid():
-            yield _pickled_state.get('_url') == self.url_w_credentials
-            yield _pickled_state.get('_schannel') == self.channel.canonical_name
-            yield _pickled_state.get('_add_pip') == context.add_pip_as_python_dependency
-            yield _pickled_state.get('_mod') == state.get('_mod')
-            yield _pickled_state.get('_etag') == state.get('_etag')
-            yield _pickled_state.get('_pickle_version') == REPODATA_PICKLE_VERSION
-            yield _pickled_state.get('fn') == self.repodata_fn
+            for _, left, right in _pickle_valid_checks():
+                yield left == right
 
         if not all(_check_pickled_valid()):
             log.debug("Pickle load validation failed for %s at %s. %r",
-                      self.url_w_repodata_fn, self.cache_path_json, tuple(_check_pickled_valid()))
+                      self.url_w_repodata_fn, self.cache_path_json, tuple(_pickle_valid_checks()))
             return None
 
         return _pickled_state
 
-    def _process_raw_repodata_str(self, raw_repodata_str):
+    def _process_raw_repodata_str(self, raw_repodata_str, state={}):
+        """
+        state contains information that was previously in-band in raw_repodata_str.
+        """
         json_obj = json.loads(raw_repodata_str or '{}')
-        return self._process_raw_repodata(json_obj)
+        return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(self, repodata):
+    def _process_raw_repodata(self, repodata, state={}):
         subdir = repodata.get('info', {}).get('subdir') or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
@@ -401,14 +410,14 @@ class SubdirData(metaclass=SubdirDataType):
             '_names_index': _names_index,
             '_track_features_index': _track_features_index,
 
-            '_etag': repodata.get('_etag'),
-            '_mod': repodata.get('_mod'),
-            '_cache_control': repodata.get('_cache_control'),
-            '_url': repodata.get('_url'),
+            '_etag': state.get('_etag'),
+            '_mod': state.get('_mod'),
+            '_cache_control': state.get('_cache_control'),
+            '_url': state.get('_url'),
             '_add_pip': add_pip,
             '_pickle_version': REPODATA_PICKLE_VERSION,
             '_schannel': schannel,
-            'repodata_version': repodata.get('repodata_version', 0),
+            'repodata_version': state.get('repodata_version', 0),
         }
         if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
             raise CondaUpgradeError(dals("""

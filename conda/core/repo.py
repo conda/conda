@@ -116,6 +116,7 @@ class CondaRepoInterface(RepoInterface):
 
         json_str = maybe_decompress(filename, resp.content)
 
+        # We explictly no longer add these tags to the large `resp.content` json
         saved_fields = {"_url": self._url}
         self._add_http_value_to_dict(resp, "Etag", saved_fields, "_etag")
         self._add_http_value_to_dict(resp, "Last-Modified", saved_fields, "_mod")
