@@ -877,7 +877,7 @@ def do_reverse(actions):
 
 def done_callback(
     future: Future,
-    actions: tuple[Union[CacheUrlAction, ExtractPackageAction], ...],
+    actions: tuple[CacheUrlAction | ExtractPackageAction, ...],
     progress_bar: ProgressBar,
     exceptions: list[Exception],
     finish: bool = False,
