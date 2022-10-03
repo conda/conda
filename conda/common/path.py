@@ -108,7 +108,7 @@ def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
     return tuple('/'.join(leaf) for leaf in leaves)
 
 
-def explode_directories(child_directories: Iterable[tuple[str, ...]]):
+def explode_directories(child_directories: Iterable[tuple[str, ...]]) -> set[str]:
     # get all directories including parents
     # child_directories must already be split with os.path.split
     return set(
