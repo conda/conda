@@ -2,7 +2,7 @@
 Plugins
 =======
 
-As of version ``4.14.0``, ``conda`` has support for user plugins, enabling extension and/or
+As of version ``22.11.0``, ``conda`` has support for user plugins, enabling extension and/or
 alterations to some of its functionality.
 
 An overview of ``pluggy``
