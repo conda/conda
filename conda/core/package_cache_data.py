@@ -15,7 +15,6 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 from functools import partial
-from typing import Union
 
 try:
     from tlz.itertoolz import concat, concatv, groupby
