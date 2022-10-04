@@ -258,14 +258,14 @@ def test_notices_appear_once_when_running_decorated_commands(
         )
 
         # make sure our fetch function was called correctly
-        assert len(fetch_mock.mock_calls) == 1
+        fetch_mock.assert_called_once()
+        args, kwargs = fetch_mock.call_args
+        # "wraps" probably makes this more nested than it normally would be, but the docs
+        # were not clear on that.
+        ((url, name), *_), *_ = args
 
-        mock_call, *_ = fetch_mock.mock_calls
-        # unpack the arguments from the mock call; mock nests it a little deep!
-        ((arg_1, arg_2), *_), *_ = mock_call.args
-
-        assert arg_1.startswith("file://")
-        assert arg_2 == "local"
+        assert url.startswith("file://")
+        assert name == "local"
 
     with mock.patch(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
@@ -289,8 +289,8 @@ def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_sessi
 
     run(f"conda notices -c {s3_channel} --override-channels")
 
-    mock_call, *other_calls = notices_mock_http_session_get.mock_calls
-    assert len(other_calls) == 0
+    notices_mock_http_session_get.assert_called_once()
+    args, kwargs = notices_mock_http_session_get.call_args
 
-    arg_1, *_ = mock_call.args
+    arg_1, *_ = args
     assert arg_1 == "s3://conda-org/notices.json"
