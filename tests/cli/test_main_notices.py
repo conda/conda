@@ -275,7 +275,7 @@ def test_notices_appear_once_when_running_decorated_commands(
             f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
         )
 
-        assert len(fetch_mock.mock_calls) == 0
+        assert fetch_mock.assert_not_called()
 
 
 def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_session_get):

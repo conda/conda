@@ -113,7 +113,7 @@ def notices(func):
 
 def get_channel_name_and_urls(
     channels: Sequence[Union[Channel, MultiChannel]],
-) -> Sequence[tuple[ChannelUrl, ChannelName]]:
+) -> list[tuple[ChannelUrl, ChannelName]]:
     """
     Return a sequence of Channel URL and name tuples.
 
