@@ -245,7 +245,7 @@ class SubdirData(metaclass=SubdirDataType):
             return {}
 
     def _save_state(self, state):
-        return pathlib.Path(self.cache_path_state).write_text(json.dumps(state))
+        return pathlib.Path(self.cache_path_state).write_text(json.dumps(state, indent=True))
 
     def _load(self):
         try:

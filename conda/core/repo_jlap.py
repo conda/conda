@@ -60,4 +60,12 @@ class CondaRepoJLAP(RepoInterface):
 
         jlapper.request_url_jlap_state(repodata_url, state, get_place=get_place)
 
+        # XXX do headers come from a different place when fetched with jlap vs
+        # fetched with complete download?
+        headers = state.get("jlap", {}).get("headers")
+        if headers:
+            state["_etag"] = headers.get("etag")
+            state["_mod"] = headers.get("last-modified")
+            state["_cache_control"] = headers.get("cache-control")
+
         return pathlib.Path(self._cache_path_json).read_text()
