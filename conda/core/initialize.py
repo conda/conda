@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -38,6 +37,7 @@ import json
 from logging import getLogger
 import os
 from os.path import abspath, basename, dirname, exists, expanduser, isdir, isfile, join
+from pathlib import Path
 from random import randint
 import re
 import sys
@@ -65,6 +65,7 @@ from ..gateways.disk.link import lexists
 from ..gateways.disk.permissions import make_executable
 from ..gateways.disk.read import compute_md5sum
 from ..gateways.subprocess import subprocess_call
+from .portability import generate_shebang_for_entry_point
 
 if on_win:
     import winreg
@@ -174,9 +175,9 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         raise CondaError("Operation failed. Privileged install disallowed for 'conda init --dev'.")
 
     env_vars = {
-        'PYTHONHASHSEED': str(randint(0, 4294967296)),
-        'PYTHON_MAJOR_VERSION': python_version[0],
-        'TEST_PLATFORM': 'win' if on_win else 'unix',
+        "PYTHONHASHSEED": randint(0, 4294967296),
+        "PYTHON_MAJOR_VERSION": python_version[0],
+        "TEST_PLATFORM": "win" if on_win else "unix",
     }
     unset_env_vars = (
         'CONDA_DEFAULT_ENV',
@@ -192,44 +193,60 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     )
 
     if shell == "bash":
-        builder = []
-        builder += ["unset %s" % unset_env_var for unset_env_var in unset_env_vars]
-        builder += ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
-        sys_executable = abspath(sys.executable)
-        if on_win:
-            sys_executable = "$(cygpath '%s')" % sys_executable
-        builder += [f'eval "$("{sys_executable}" -m conda "shell.bash" "hook")"']
-        if context.auto_activate_base:
-            builder += [f"conda activate '{prefix}'"]
-        print("\n".join(builder))
-    elif shell == 'cmd.exe':
-        if context.dev:
-            dev_arg = '--dev'
-        else:
-            dev_arg = ''
-        builder = []
-        builder += ["@IF NOT \"%CONDA_PROMPT_MODIFIER%\" == \"\" @CALL "
-                    "SET \"PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%\""]
-        builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
-        builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
-        builder += [
-            f'@CALL "{join(prefix, "condabin", "conda_hook.bat")}" {dev_arg}',
-            '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
-        ]
-        if context.auto_activate_base:
-            builder += [
-                f'@CALL "{join(prefix, "condabin", "conda.bat")}" activate {dev_arg} "{prefix}"',
-                "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
-            ]
+        print("\n".join(_initialize_dev_bash(prefix, env_vars, unset_env_vars)))
+    elif shell == "cmd.exe":
+        script = _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars)
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
-                fh.write('\n'.join(builder))
+                fh.write("\n".join(script))
         if context.verbosity:
-            print('\n'.join(builder))
+            print("\n".join(script))
         print("now run  > .\\dev-init.bat")
     else:
         raise NotImplementedError()
     return 0
+
+
+def _initialize_dev_bash(prefix, env_vars, unset_env_vars):
+    sys_executable = abspath(sys.executable)
+    if on_win:
+        sys_executable = f"$(cygpath '{sys_executable}')"
+
+    # unset/set environment variables
+    yield from (f"unset {envvar}" for envvar in unset_env_vars)
+    yield from (f"export {envvar}='{value}'" for envvar, value in sorted(env_vars.items()))
+
+    # initialize shell interface
+    yield f'eval "$("{sys_executable}" -m conda shell.bash hook)"'
+
+    # optionally activate environment
+    if context.auto_activate_base:
+        yield f"conda activate '{prefix}'"
+
+
+def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
+    dev_arg = ""
+    if context.dev:
+        dev_arg = "--dev"
+    condabin = Path(prefix, "condabin")
+
+    yield (
+        '@IF NOT "%CONDA_PROMPT_MODIFIER%" == "" '
+        '@CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"'
+    )
+
+    # unset/set environment variables
+    yield from (f"@SET {envvar}=" for envvar in unset_env_vars)
+    yield from (f'@SET "{envvar}={value}"' for envvar, value in sorted(env_vars.items()))
+
+    # initialize shell interface
+    yield f'@CALL "{condabin / "conda_hook.bat"}" {dev_arg}'
+    yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
+
+    # optionally activate environment
+    if context.auto_activate_base:
+        yield f'@CALL "{condabin / "conda.bat"}" activate {dev_arg} "{prefix}"'
+        yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
 
 
 # #####################################################
@@ -733,6 +750,7 @@ def print_plan_results(plan, stream=None):
 # #####################################################
 
 def make_entry_point(target_path, conda_prefix, module, func):
+    # 'ep' in this function refers to 'entry point'
     # target_path: join(conda_prefix, 'bin', 'conda')
     conda_ep_path = target_path
 
@@ -746,7 +764,8 @@ def make_entry_point(target_path, conda_prefix, module, func):
         # no shebang needed on windows
         new_ep_content = ""
     else:
-        new_ep_content = "#!%s\n" % join(conda_prefix, get_python_short_path())
+        python_path = join(conda_prefix, get_python_short_path())
+        new_ep_content = generate_shebang_for_entry_point(python_path)
 
     conda_extra = dals("""
     # Before any more imports, leave cwd out of sys.path for internal 'conda shell.*' commands.

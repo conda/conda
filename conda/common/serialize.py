@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from io import StringIO
+import functools
 import json
 from logging import getLogger
 
@@ -10,12 +11,12 @@ from .compat import odict, ensure_text_type
 from ..auxlib.entity import EntityEncoder
 
 try:
-    import ruamel_yaml as yaml
-except ImportError:  # pragma: no cover
+    import ruamel.yaml as yaml
+except ImportError:
     try:
-        import ruamel.yaml as yaml
+        import ruamel_yaml as yaml
     except ImportError:
-        raise ImportError("No yaml library available. To proceed, conda install ruamel_yaml")
+        raise ImportError("No yaml library available. To proceed, conda install ruamel.yaml")
 
 log = getLogger(__name__)
 
@@ -36,8 +37,25 @@ yaml.representer.RoundTripRepresenter.add_representer(odict, represent_ordereddi
 yaml.representer.SafeRepresenter.add_representer(odict, represent_ordereddict)
 
 
+# FUTURE: Python 3.9+, replace with functools.cache
+@functools.lru_cache(maxsize=None)
+def _yaml_round_trip():
+    parser = yaml.YAML(typ="rt")
+    parser.indent(mapping=2, offset=2, sequence=4)
+    return parser
+
+
+# FUTURE: Python 3.9+, replace with functools.cache
+@functools.lru_cache(maxsize=None)
+def _yaml_safe():
+    parser = yaml.YAML(typ="safe", pure=True)
+    parser.indent(mapping=2, offset=2, sequence=4)
+    parser.default_flow_style = False
+    return parser
+
+
 def yaml_round_trip_load(string):
-    return yaml.round_trip_load(string, version="1.2")
+    return _yaml_round_trip().load(string)
 
 
 def yaml_safe_load(string):
@@ -47,21 +65,23 @@ def yaml_safe_load(string):
         {'key': 'value'}
 
     """
-    return yaml.safe_load(string, version="1.2")
+    return _yaml_safe().load(string)
 
 
-def yaml_round_trip_dump(object):
-    """dump object to string"""
-    return yaml.round_trip_dump(
-        object, block_seq_indent=2, default_flow_style=False, indent=2
-    )
+def yaml_round_trip_dump(object, stream=None):
+    """dump object to string or stream"""
+    ostream = stream or StringIO()
+    _yaml_round_trip().dump(object, ostream)
+    if not stream:
+        return ostream.getvalue()
 
 
-def yaml_safe_dump(object):
-    """dump object to string"""
-    return yaml.safe_dump(
-        object, block_seq_indent=2, default_flow_style=False, indent=2
-    )
+def yaml_safe_dump(object, stream=None):
+    """dump object to string or stream"""
+    ostream = stream or StringIO()
+    _yaml_safe().dump(object, ostream)
+    if not stream:
+        return ostream.getvalue()
 
 
 def json_load(string):

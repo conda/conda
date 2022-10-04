@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,7 +35,7 @@ source.
 install_requires = [
     "pycosat >=0.6.3",
     "requests >=2.20.1",
-    "ruamel_yaml_conda >=0.11.14",
+    "ruamel.yaml >=0.11.14",
     "menuinst ; platform_system=='Windows'",
 ]
 

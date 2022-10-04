@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -12,9 +11,9 @@ import sys
 from textwrap import dedent
 
 try:
-    from tlz.itertoolz import concatv, drop
+    from tlz.itertoolz import concatv
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concatv, drop
+    from conda._vendor.toolz.itertoolz import concatv
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -202,8 +201,7 @@ class _Activator(object):
         if arguments is None or len(arguments) < 1:
             raise_invalid_command_error()
 
-        command = arguments[0]
-        arguments = tuple(drop(1, arguments))
+        command, *arguments = arguments
         help_flags = ('-h', '--help', '/?')
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)

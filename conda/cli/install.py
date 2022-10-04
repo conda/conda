@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -49,9 +48,12 @@ def check_prefix(prefix, json=False):
         raise CondaValueError(error, json)
 
     if ' ' in prefix:
-        stderrlog.warning("WARNING: A space was detected in your requested environment path\n"
-                          "'%s'\n"
-                          "Spaces in paths can sometimes be problematic." % prefix)
+        stderrlog.warning(
+            "WARNING: A space was detected in your requested environment path:\n"
+            f"'{prefix}'\n"
+            "Spaces in paths can sometimes be problematic. To minimize issues,\n"
+            "make sure you activate your environment before running any executables!\n"
+        )
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
@@ -82,16 +84,18 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 def print_activate(env_name_or_prefix):  # pragma: no cover
     if not context.quiet and not context.json:
-        message = dals("""
+        if " " in env_name_or_prefix:
+            env_name_or_prefix = f'"{env_name_or_prefix}"'
+        message = dals(f"""
         #
         # To activate this environment, use
         #
-        #     $ conda activate %s
+        #     $ conda activate {env_name_or_prefix}
         #
         # To deactivate an active environment, use
         #
         #     $ conda deactivate
-        """) % env_name_or_prefix
+        """)
         print(message)  # TODO: use logger
 
 

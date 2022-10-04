@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
@@ -79,8 +78,7 @@ else:  # pragma: no cover
     from os import getcwd
     from os.path import isfile
     import sys
-    from ...auxlib._vendor import six
-    builtins = six.moves.builtins
+    import builtins
 
     def islink(path):
         """Determine if the given path is a symlink"""

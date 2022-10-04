@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Fixed bad URL to Introduction to conda for Data Scientists course in conda docs. (#9782)
 
 ### Other
 
-* Add arm64 support to development script `. ./dev/start`. (#11752)
+* <news item>

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -90,8 +89,7 @@ def minio_s3_server(xprocess, tmp_path):
     minio = Minio()
 
     class Starter(ProcessStarter):
-
-        pattern = "https://docs.min.io"
+        pattern = "MinIO Object Storage Server"
         terminate_on_interrupt = True
         timeout = 10
         args = [

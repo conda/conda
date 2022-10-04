@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -437,7 +436,7 @@ class Spinner(object):
 
 class ProgressBar(object):
 
-    def __init__(self, description, enabled=True, json=False):
+    def __init__(self, description, enabled=True, json=False, position=None, leave=True):
         """
         Args:
             description (str):
@@ -458,8 +457,15 @@ class ProgressBar(object):
         elif enabled:
             bar_format = "{desc}{bar} | {percentage:3.0f}% "
             try:
-                self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1,
-                                 file=sys.stdout)
+                self.pbar = tqdm(
+                    desc=description,
+                    bar_format=bar_format,
+                    ascii=True,
+                    total=1,
+                    file=sys.stdout,
+                    position=position,
+                    leave=leave,
+                )
             except EnvironmentError as e:
                 if e.errno in (EPIPE, ESHUTDOWN):
                     self.enabled = False
@@ -481,6 +487,11 @@ class ProgressBar(object):
 
     def finish(self):
         self.update_to(1)
+
+    def refresh(self):
+        """Force refresh i.e. once 100% has been reached"""
+        if self.enabled and not self.json:
+            self.pbar.refresh()
 
     @swallow_broken_pipe
     def close(self):
