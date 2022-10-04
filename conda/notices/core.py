@@ -119,13 +119,10 @@ def get_channel_name_and_urls(
 
     This function handles both Channel and MultiChannel object types.
     """
-
-    def ensure_endswith(value: str, ends: str) -> str:
-        return value if value.endswith(ends) else f"{value}{ends}"
-
     def join_url(value: str, join_val: str) -> str:
         """Using this method because urllib.parse.urljoin does not support s3:// URLs"""
-        value = ensure_endswith(value, "/")
+        ending = "/"
+        value = value if value.endswith(ending) else f"{value}{ending}"
         return f"{value}{join_val}"
 
     channel_name_and_urls = []
