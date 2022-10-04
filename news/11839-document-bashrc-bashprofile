@@ -16,4 +16,4 @@
 
 ### Other
 
-* Added a comment to the code that explains why .bashrc is modified on Linux and .bash_profile is modified on Windows/macOS when executing `conda init`.
+* Added a comment to the code that explains why .bashrc is modified on Linux and .bash_profile is modified on Windows/macOS when executing `conda init`. (#11849)
