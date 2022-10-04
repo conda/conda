@@ -130,12 +130,8 @@ def get_channel_name_and_urls(
     for channel in channels:
         name = channel.name or channel.location
 
-        if type(channel) is Channel:
-            channel_name_and_urls.append((join_url(channel.base_url, NOTICES_FN), name))
-
-        elif type(channel) is MultiChannel:
-            for url in channel.base_urls:
-                channel_name_and_urls.append((join_url(url, NOTICES_FN), name))
+        for url in channel.base_urls:
+            channel_name_and_urls.append((join_url(url, NOTICES_FN), name))
 
     return channel_name_and_urls
 
