@@ -468,8 +468,6 @@ class SubdirData(metaclass=SubdirDataType):
                 # invalidate the signatures provided in metadata.json.
                 signature_verification(info, fn, signatures)
 
-                info['fn'] = fn
-                info['url'] = join_url(channel_url, fn)
                 if copy_legacy_md5:
                     counterpart = fn.replace('.conda', '.tar.bz2')
                     if counterpart in legacy_packages:
@@ -484,7 +482,8 @@ class SubdirData(metaclass=SubdirDataType):
                               info["record_version"], info['url'])
                     continue
 
-                package_record = PackageRecord(**info)
+                package_record = PackageRecord(**dict(info.items()),
+                    fn=fn, url=join_url(channel_url, fn))
 
                 _package_records.append(package_record)
                 _names_index[package_record.name].append(package_record)
@@ -529,7 +528,7 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     hash = hashlib.sha256(ensure_binary(url))
 
     # multiples of 5 will produce unpadded base32 strings
-    return '%s.json' % base64.b32hexencode(hash.digest()[:5]).decode('utf-8')
+    return '%s.json' % base64.b32encode(hash.digest()[:5]).decode('utf-8')
 
 
 def create_cache_dir():
