@@ -276,3 +276,21 @@ def test_notices_appear_once_when_running_decorated_commands(
         )
 
         assert len(fetch_mock.mock_calls) == 0
+
+
+def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_session_get):
+    """
+    As a user, I want notices to be correctly retrieved from channels with s3 URLs.
+    """
+    s3_channel = "s3://conda-org"
+    messages = ("Test One", "Test Two")
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
+
+    run(f"conda notices -c {s3_channel} --override-channels")
+
+    mock_call, *other_calls = notices_mock_http_session_get.mock_calls
+    assert len(other_calls) == 0
+
+    arg_1, *_ = mock_call.args
+    assert arg_1 == "s3://conda-org/notices.json"
