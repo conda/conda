@@ -8,7 +8,7 @@ from .. import plugins
 
 
 @plugins.register
-def conda_virtual_package_plugin():
+def conda_virtual_packages():
     if platform.system() != "Windows":
         return
 

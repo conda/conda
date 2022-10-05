@@ -14,7 +14,7 @@ Reference
 .. py:module:: conda.plugins
    :noindex:
 
-.. autofunction:: conda_virtual_package_plugin
+.. autofunction:: conda_virtual_packages
 
 .. autoclass:: CondaVirtualPackage
    :members:
@@ -32,7 +32,7 @@ Example
 
 
    @conda.plugins.register
-   def conda_virtual_package_plugin(self):
+   def conda_virtual_packages(self):
        yield plugins.CondaVirtualPackage(
            name="my_custom_os",
            version="1.2.3",

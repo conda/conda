@@ -11,7 +11,7 @@ from conda.common._os.linux import linux_get_libc_version
 
 
 @plugins.register
-def conda_virtual_package_plugin():
+def conda_virtual_packages():
     if platform.system() != "Linux":
         return
 

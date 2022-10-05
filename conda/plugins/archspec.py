@@ -6,7 +6,7 @@ from .. import plugins
 
 
 @plugins.register
-def conda_virtual_package_plugin():
+def conda_virtual_packages():
     from conda.core.index import get_archspec_name
 
     yield plugins.CondaVirtualPackage("archspec", get_archspec_name())

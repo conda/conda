@@ -289,13 +289,13 @@ def get_archspec_name():
 
 def _supplement_index_with_system(index):
     registered_names = []
-    for package in chain(*context.plugin_manager.hook.conda_virtual_package_plugin()):
+    for package in chain(*context.plugin_manager.hook.conda_virtual_packages()):
         if package.name in registered_names:
             raise PluginError(
                 "Conflicting virtual package entries found for the "
                 f"`{package.name}` key. Multiple conda plugins "
                 "are registering this virtual package via the "
-                "`conda_virtual_package_plugin` hook, please make sure "
+                "`conda_virtual_packages` hook, please make sure "
                 "you don't have any incompatible plugins installed."
             )
         registered_names.append(package.name)

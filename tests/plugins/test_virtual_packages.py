@@ -15,7 +15,7 @@ import re
 
 class VirtualPackagesPlugin:
     @plugins.register
-    def conda_virtual_package_plugin(self):
+    def conda_virtual_packages(self):
         yield plugins.CondaVirtualPackage(
             name="abc",
             version="123",

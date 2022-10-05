@@ -83,5 +83,5 @@ def cuda_version():
 
 
 @plugins.register
-def conda_virtual_package_plugin():
+def conda_virtual_packages():
     yield plugins.CondaVirtualPackage("cuda", cuda_version())
