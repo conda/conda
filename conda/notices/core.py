@@ -119,19 +119,14 @@ def get_channel_name_and_urls(
 
     This function handles both Channel and MultiChannel object types.
     """
-    def join_url(value: str, join_val: str) -> str:
-        """Using this method because urllib.parse.urljoin does not support s3:// URLs"""
-        ending = "/"
-        value = value if value.endswith(ending) else f"{value}{ending}"
-        return f"{value}{join_val}"
-
     channel_name_and_urls = []
 
     for channel in channels:
         name = channel.name or channel.location
 
         for url in channel.base_urls:
-            channel_name_and_urls.append((join_url(url, NOTICES_FN), name))
+            full_url = url.rstrip("/")
+            channel_name_and_urls.append((f"{full_url}/{NOTICES_FN}", name))
 
     return channel_name_and_urls
 
