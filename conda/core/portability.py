@@ -4,7 +4,6 @@ from __future__ import absolute_import, annotations, division, print_function, u
 
 from logging import getLogger
 from os.path import realpath
-from typing import Literal
 import re
 import struct
 import subprocess
@@ -87,10 +86,7 @@ def update_prefix(
         subprocess.run(['/usr/bin/codesign', '-s', '-', '-f', realpath(path)], capture_output=True)
 
 
-Mode = Literal[FileMode.text, FileMode.binary]
-
-
-def replace_prefix(mode: Mode, data: bytes, placeholder: str, new_prefix: str) -> bytes:
+def replace_prefix(mode: FileMode, data: bytes, placeholder: str, new_prefix: str) -> bytes:
     """
     Replaces `placeholder` text with the `new_prefix` provided. The `mode` provided can
     either be text or binary.
