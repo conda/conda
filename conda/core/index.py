@@ -288,6 +288,11 @@ def get_archspec_name():
 
 
 def _supplement_index_with_system(index):
+    """
+    Loads and populates virtual package records from conda plugins
+    and adds them to the provided index, unless there is a naming
+    conflict.
+    """
     registered_names = []
     for package in chain(*context.plugin_manager.hook.conda_virtual_packages()):
         if package.name in registered_names:
