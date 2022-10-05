@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import wraps
 import time
-from typing import Sequence, Optional, Union
+from typing import Sequence, Optional
 
 from ..base.context import context, Context
 from ..base.constants import NOTICES_FN, NOTICES_DECORATOR_DISPLAY_INTERVAL
@@ -112,7 +112,7 @@ def notices(func):
 
 
 def get_channel_name_and_urls(
-    channels: Sequence[Union[Channel, MultiChannel]],
+    channels: Sequence[Channel | MultiChannel],
 ) -> list[tuple[ChannelUrl, ChannelName]]:
     """
     Return a sequence of Channel URL and name tuples.
