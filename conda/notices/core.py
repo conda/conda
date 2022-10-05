@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import wraps
 import time
-from typing import Sequence, Optional
+from typing import Sequence
 
 from ..base.context import context, Context
 from ..base.constants import NOTICES_FN, NOTICES_DECORATOR_DISPLAY_INTERVAL
@@ -21,7 +21,7 @@ ChannelUrl = str
 
 
 def retrieve_notices(
-    limit: Optional[int] = None,
+    limit: int | None = None,
     always_show_viewed: bool = True,
     silent: bool = False,
 ) -> ChannelNoticeResultSet:
@@ -144,8 +144,8 @@ def flatten_notice_responses(
 
 def filter_notices(
     channel_notices: Sequence[ChannelNotice],
-    limit: Optional[int] = None,
-    exclude: Optional[set[str]] = None,
+    limit: int | None = None,
+    exclude: set[str] | None = None,
 ) -> Sequence[ChannelNotice]:
     """
     Perform filtering actions for the provided sequence of ChannelNotice objects.
