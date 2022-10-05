@@ -178,7 +178,6 @@ General configuration
 =====================
 
 * :ref:`config-channels`
-* :ref:`allow-other-channels`
 * :ref:`default-channels`
 * :ref:`auto-update-conda`
 * :ref:`always-yes`

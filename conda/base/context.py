@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -8,6 +7,7 @@ from collections import OrderedDict
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
+from typing import Optional
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
@@ -181,10 +181,16 @@ class Context(Configuration):
     # multithreading in various places
     _default_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                        aliases=('default_threads',))
+    # download repodata
     _repodata_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                         aliases=('repodata_threads',))
-    _verify_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
-                                      aliases=('verify_threads',))
+    # download packages; determined experimentally
+    _fetch_threads = ParameterLoader(
+        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
+    )
+    _verify_threads = ParameterLoader(
+        PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
+    )
     # this one actually defaults to 1 - that is handled in the property below
     _execute_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                        aliases=('execute_threads',))
@@ -461,15 +467,19 @@ class Context(Configuration):
         return _platform_map.get(sys.platform, 'unknown')
 
     @property
-    def default_threads(self):
+    def default_threads(self) -> Optional[int]:
         return self._default_threads if self._default_threads else None
 
     @property
-    def repodata_threads(self):
+    def repodata_threads(self) -> Optional[int]:
         return self._repodata_threads if self._repodata_threads else self.default_threads
 
     @property
-    def verify_threads(self):
+    def fetch_threads(self) -> Optional[int]:
+        return self._fetch_threads if self._fetch_threads else self.default_threads
+
+    @property
+    def verify_threads(self) -> Optional[int]:
         if self._verify_threads:
             threads = self._verify_threads
         elif self.default_threads:
@@ -953,6 +963,7 @@ class Context(Configuration):
                 "repodata_fns",
                 "use_only_tar_bz2",
                 "repodata_threads",
+                "fetch_threads",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1295,6 +1306,12 @@ class Context(Configuration):
                 Threads to use when performing the unlink/link transaction.  When not set,
                 defaults to 1.  This step is pretty strongly I/O limited, and you may not
                 see much benefit here.
+                """
+            ),
+            fetch_threads=dals(
+                """
+                Threads to use when downloading packages.  When not set,
+                defaults to None, which uses the default ThreadPoolExecutor behavior.
                 """
             ),
             force_reinstall=dals(
