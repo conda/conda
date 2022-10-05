@@ -188,10 +188,11 @@ def get_info_dict(system=False):
         info_dict['GID'] = os.getegid()
 
     env_var_keys = {
-        'CIO_TEST',
-        'CURL_CA_BUNDLE',
-        'REQUESTS_CA_BUNDLE',
-        'SSL_CERT_FILE',
+        "CIO_TEST",
+        "CURL_CA_BUNDLE",
+        "REQUESTS_CA_BUNDLE",
+        "SSL_CERT_FILE",
+        "LD_PRELOAD",
     }
 
     # add all relevant env vars, e.g. startswith('CONDA') or endswith('PATH')
