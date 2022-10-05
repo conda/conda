@@ -1,9 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, annotations, division, print_function, unicode_literals
 
 from logging import getLogger
 from os.path import realpath
+from typing import Literal
 import re
 import struct
 import subprocess
@@ -28,6 +29,17 @@ SHEBANG_REGEX = (br'^(#!'  # pretty much the whole match string
                  br')$')  # end whole_shebang group
 
 MAX_SHEBANG_LENGTH = 127 if on_linux else 512  # Not used on Windows
+
+# These are the most common file encodings that we run across when having to replace our
+# PREFIX_PLACEHOLDER string. They apply to binary and text formats.
+# More information/discussion: https://github.com/conda/conda/pull/9946
+POPULAR_ENCODINGS = (
+    "utf-8",
+    "utf-16-le",
+    "utf-16-be",
+    "utf-32-le",
+    "utf-32-be",
+)
 
 
 class _PaddingError(Exception):
@@ -75,17 +87,22 @@ def update_prefix(
         subprocess.run(['/usr/bin/codesign', '-s', '-', '-f', realpath(path)], capture_output=True)
 
 
-def replace_prefix(mode, data, placeholder, new_prefix):
-    popular_encodings = [
-        "utf-8",
-        # Make sure to specify -le and -be so that the UTF endian prefix
-        # doesn't show up in the string
-        "utf-16-le",
-        "utf-16-be",
-        "utf-32-le",
-        "utf-32-be",
-    ]
-    for encoding in popular_encodings:
+Mode = Literal[FileMode.text, FileMode.binary]
+
+
+def replace_prefix(mode: Mode, data: bytes, placeholder: str, new_prefix: str) -> bytes:
+    """
+    Replaces `placeholder` text with the `new_prefix` provided. The `mode` provided can
+    either be text or binary.
+
+    We use the `POPULAR_ENCODINGS` module level constant defined above to make several
+    passes at replacing the placeholder. We do this to account for as many encodings as
+    possible. If this causes any performance problems in the future, it could potentially
+    be removed (i.e. just using the most popular "utf-8" encoding").
+
+    More information/discussion available here: https://github.com/conda/conda/pull/9946
+    """
+    for encoding in POPULAR_ENCODINGS:
         if mode == FileMode.text:
             if not on_win:
                 # if new_prefix contains spaces, it might break the shebang!
@@ -110,14 +127,22 @@ def replace_prefix(mode, data, placeholder, new_prefix):
     return data
 
 
-def binary_replace(data, a, b, encoding="utf-8"):
+def binary_replace(
+    data: bytes, search: bytes, replacement: bytes, encoding: str = "utf-8"
+) -> bytes:
     """
-    Perform a binary replacement of `data`, where the placeholder `a` is
-    replaced with `b` and the remaining string is padded with null characters.
+    Perform a binary replacement of `data`, where the placeholder `search` is
+    replaced with `replacement` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
 
     Parameters
     ----------
+    data:
+        The bytes object that will be searched and replaced
+    search:
+        The bytes object to find
+    replacement:
+        The bytes object that will replace `search`
     encoding: str
         The encoding of the expected string in the binary.
     """
@@ -126,19 +151,19 @@ def binary_replace(data, a, b, encoding="utf-8"):
         # on Windows for binary files, we currently only replace a pyzzer-type entry point
         #   we skip all other prefix replacement
         if has_pyzzer_entry_point(data):
-            return replace_pyzzer_entry_point_shebang(data, a, b)
+            return replace_pyzzer_entry_point_shebang(data, search, replacement)
         else:
             return data
 
     def replace(match):
-        occurrences = match.group().count(a)
-        padding = (len(a) - len(b)) * occurrences
+        occurrences = match.group().count(search)
+        padding = (len(search) - len(replacement)) * occurrences
         if padding < 0:
             raise _PaddingError
-        return match.group().replace(a, b) + b'\0' * padding
+        return match.group().replace(search, replacement) + b"\0" * padding
 
     original_data_len = len(data)
-    pat = re.compile(re.escape(a) + b"(?:(?!(?:" + zeros + b")).)*" + zeros)
+    pat = re.compile(re.escape(search) + b"(?:(?!(?:" + zeros + b")).)*" + zeros)
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
 
