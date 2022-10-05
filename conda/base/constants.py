@@ -167,6 +167,9 @@ NOTICES_CACHE_FN = "notices.cache"
 #: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR = "notices"
 
+#: Determines the subdir for notices cache
+NOTICES_DECORATOR_DISPLAY_INTERVAL = 86400  # in seconds
+
 DRY_RUN_PREFIX = "Dry run action:"
 PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
 
