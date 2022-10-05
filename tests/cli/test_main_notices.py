@@ -267,15 +267,15 @@ def test_notices_appear_once_when_running_decorated_commands(
         assert url.startswith("file://")
         assert name == "local"
 
-    with mock.patch(
-        "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
-    ) as fetch_mock:
+        # Reset our mock for another call to "conda install"
+        fetch_mock.reset_mock()
+
         # Second run of install; notices should not be retrieved
         run(
             f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
         )
 
-        assert fetch_mock.assert_not_called()
+        fetch_mock.assert_not_called()
 
 
 def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_session_get):
