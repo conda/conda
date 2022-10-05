@@ -51,12 +51,12 @@ def my_OR(*args):
        x     OR y -> None'''
     if any(v == TRUE for v in args):
         return TRUE
-    args = set([v for v in args if v != FALSE])
+    args = {v for v in args if v != FALSE}
     if len(args) == 0:
         return FALSE
     if len(args) == 1:
         return next(v for v in args)
-    if len(set([v if v is None else my_ABS(v) for v in args])) < len(args):
+    if len({v if v is None else my_ABS(v) for v in args}) < len(args):
         return TRUE
     return None
 

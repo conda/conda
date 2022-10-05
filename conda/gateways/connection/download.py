@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib
 from logging import DEBUG, getLogger
@@ -74,7 +73,7 @@ def download(
                     streamed_bytes = resp.raw.tell()
                     try:
                         fh.write(chunk)
-                    except IOError as e:
+                    except OSError as e:
                         message = "Failed to write to %(target_path)s\n  errno: %(errno)d"
                         # TODO: make this CondaIOError
                         raise CondaError(message, target_path=target_full_path, errno=e.errno)
@@ -99,7 +98,7 @@ def download(
                                  content_length=content_length,
                                  downloaded_bytes=streamed_bytes)
 
-        except (IOError, OSError) as e:
+        except OSError as e:
             if e.errno == 104:
                 # Connection reset by peer
                 log.debug("%s, trying again" % e)
@@ -219,7 +218,7 @@ def download_text(url):
     return response.text
 
 
-class TmpDownload(object):
+class TmpDownload:
     """
     Context manager to handle downloads to a tempfile
     """

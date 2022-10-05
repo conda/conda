@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from pprint import pprint
 import platform
@@ -27,7 +26,7 @@ from conda.testing.helpers import add_subdir_to_iter, get_solver, get_solver_2, 
 try:
     from unittest.mock import Mock, patch
 except ImportError:
-    from mock import Mock, patch
+    from unittest.mock import Mock, patch
 
 Solver = _get_solver_class()
 

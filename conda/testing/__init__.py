@@ -77,7 +77,7 @@ def conda_move_to_front_of_PATH():
                     found_condabin = True
                     if join(sys.prefix, 'condabin') != pe:
                         condabin_path = join(sys.prefix, 'condabin')
-                        print("Incorrect condabin, swapping {} to {}".format(pe, condabin_path))
+                        print(f"Incorrect condabin, swapping {pe} to {condabin_path}")
                         new_p.append(condabin_path)
                     else:
                         new_p.append(pe)
@@ -106,7 +106,7 @@ def conda_check_versions_aligned():
     import conda
     version_file = normpath(join(dirname(conda.__file__), '.version'))
     if isfile(version_file):
-        version_from_file = open(version_file, 'rt').read().split('\n')[0]
+        version_from_file = open(version_file).read().split("\n")[0]
     else:
         version_from_file = None
 

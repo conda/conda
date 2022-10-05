@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
 from functools import lru_cache, wraps
@@ -36,8 +35,10 @@ def unix_path_to_win(path, root_prefix=""):
 
     def _translation(found_path):
         group = found_path.group(0)
-        return "{0}:{1}".format(group[len(root_prefix)+1],
-                                group[len(root_prefix)+2:].replace("/", "\\"))
+        return "{}:{}".format(
+            group[len(root_prefix) + 1], group[len(root_prefix) + 2:].replace("/", "\\")
+        )
+
     translation = re.sub(path_re, _translation, path)
     translation = re.sub(":([a-zA-Z]):\\\\",
                          lambda match: ";" + match.group(0)[1] + ":\\",
@@ -369,21 +370,24 @@ def wrap_subprocess_call(
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix,
                                     suffix='.bat', delete=False) as fh:
             silencer = "" if debug_wrapper_scripts else "@"
-            fh.write("{}ECHO OFF\n".format(silencer))
-            fh.write("{}SET PYTHONIOENCODING=utf-8\n".format(silencer))
-            fh.write("{}SET PYTHONUTF8=1\n".format(silencer))
-            fh.write('{}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'.format(silencer))  # NOQA
-            fh.write("{}chcp 65001 > NUL\n".format(silencer))
+            fh.write(f"{silencer}ECHO OFF\n")
+            fh.write(f"{silencer}SET PYTHONIOENCODING=utf-8\n")
+            fh.write(f"{silencer}SET PYTHONUTF8=1\n")
+            fh.write(
+                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'  # noqa
+            )
+            fh.write(f"{silencer}chcp 65001 > NUL\n")
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
-                fh.write("{}SET CONDA_DEV=1\n".format(silencer))
+
+                fh.write(f"{silencer}SET CONDA_DEV=1\n")
                 # In dev mode, conda is really:
                 # 'python -m conda'
                 # *with* PYTHONPATH set.
-                fh.write("{}SET PYTHONPATH={}\n".format(silencer, CONDA_SOURCE_ROOT))
-                fh.write("{}SET CONDA_EXE={}\n".format(silencer, sys.executable))
-                fh.write("{}SET _CE_M=-m\n".format(silencer))
-                fh.write("{}SET _CE_CONDA=conda\n".format(silencer))
+                fh.write(f"{silencer}SET PYTHONPATH={CONDA_SOURCE_ROOT}\n")
+                fh.write(f"{silencer}SET CONDA_EXE={sys.executable}\n")
+                fh.write(f"{silencer}SET _CE_M=-m\n")
+                fh.write(f"{silencer}SET _CE_CONDA=conda\n")
             if debug_wrapper_scripts:
                 fh.write('echo *** environment before *** 1>&2\n')
                 fh.write('SET 1>&2\n')
@@ -391,15 +395,15 @@ def wrap_subprocess_call(
             # after all!
             # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
             # fh.write('@chcp 65001>NUL\n')
-            fh.write('{0}CALL \"{1}\" activate \"{2}\"\n'.format(silencer, conda_bat, prefix))
-            fh.write("{}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n".format(silencer))
+            fh.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"\n')
+            fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
                 fh.write('echo *** environment after *** 1>&2\n')
                 fh.write('SET 1>&2\n')
             if multiline:
                 # No point silencing the first line. If that's what's wanted then
                 # it needs doing for each line and the caller may as well do that.
-                fh.write("{0}\n".format(arguments[0]))
+                fh.write(f"{arguments[0]}\n")
             else:
                 assert not any("\n" in arg for arg in arguments), (
                     "Support for scripts where arguments contain newlines not implemented.\n"
@@ -409,9 +413,9 @@ def wrap_subprocess_call(
                     ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
                     "requirements)"
                 )
-                fh.write("{0}{1}\n".format(silencer, quote_for_shell(*arguments)))
-            fh.write("{}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n".format(silencer))
-            fh.write("{}chcp %_CONDA_OLD_CHCP%>NUL\n".format(silencer))
+                fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
+            fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+            fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
     else:
@@ -438,17 +442,17 @@ def wrap_subprocess_call(
             hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment before ***'\n" ">&2 env\n")
-                fh.write('>&2 echo "$({0})"\n'.format(hook_quoted))
-            fh.write('eval "$({0})"\n'.format(hook_quoted))
-            fh.write("conda activate {0} {1}\n".format(dev_arg, quote_for_shell(prefix)))
+                fh.write(f'>&2 echo "$({hook_quoted})"\n')
+            fh.write(f'eval "$({hook_quoted})"\n')
+            fh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n" ">&2 env\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
-                fh.write("{0}\n".format(" ".join(arguments)))
+                fh.write("{}\n".format(" ".join(arguments)))
             else:
-                fh.write("{0}\n".format(quote_for_shell(*arguments)))
+                fh.write(f"{quote_for_shell(*arguments)}\n")
             script_caller = fh.name
         if debug_wrapper_scripts:
             command_args = [shell_path, "-x", script_caller]

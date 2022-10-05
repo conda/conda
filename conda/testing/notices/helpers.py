@@ -8,7 +8,7 @@ import json
 import os
 from itertools import chain
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Sequence
 from unittest import mock
 
 from conda.base.context import Context

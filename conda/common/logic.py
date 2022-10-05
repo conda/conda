@@ -26,7 +26,6 @@ is probably best if you do not take advantage of this directly, but rather
 through the Require and Prevent functions.
 
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
 
@@ -46,7 +45,7 @@ PyCryptoSatSolver = "pycryptosat"
 PySatSolver = "pysat"
 
 
-class Clauses(object):
+class Clauses:
     def __init__(self, m=0, sat_solver=PycoSatSolver):
         self.names = {}
         self.indices = {}
@@ -69,7 +68,7 @@ class Clauses(object):
     def _check_variable(self, variable):
         if 0 < abs(variable) <= self.m:
             return variable
-        raise ValueError("SAT variable out of bounds: {} (max_var: {})".format(variable, self.m))
+        raise ValueError(f"SAT variable out of bounds: {variable} (max_var: {self.m})")
 
     def _check_literal(self, literal):
         if literal in {TRUE, FALSE}:
@@ -123,7 +122,7 @@ class Clauses(object):
         try:
             return self.names[name]
         except KeyError:
-            raise ValueError("Unregistered SAT variable name: {}".format(name))
+            raise ValueError(f"Unregistered SAT variable name: {name}")
 
     def _eval(self, func, args, no_literal_args, polarity, name):
         args = self._convert(args)
@@ -225,7 +224,7 @@ class Clauses(object):
         if solution is None:
             return None
         if names:
-            return set(nm for nm in (self.indices.get(s) for s in solution) if nm and nm[0] != '!')
+            return {nm for nm in (self.indices.get(s) for s in solution) if nm and nm[0] != "!"}
         return solution
 
     def itersolve(self, constraints=None, m=None):

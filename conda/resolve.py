@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict, OrderedDict, deque
 import copy
@@ -52,7 +51,7 @@ def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
         c.Require(c.And, *required)
         solution = set(c.sat())
         if not required.issubset(solution):
-            raise RuntimeError("Wrong SAT solution: {}. Required: {}".format(solution, required))
+            raise RuntimeError(f"Wrong SAT solution: {solution}. Required: {required}")
 
     sat_solver = _sat_solvers[sat_solver_choice]
     try:
@@ -91,7 +90,7 @@ def exactness_and_number_of_deps(resolve_obj, ms):
     return value
 
 
-class Resolve(object):
+class Resolve:
 
     def __init__(self, index, processed=False, channels=()):
         self.index = index
@@ -134,15 +133,16 @@ class Resolve(object):
             self.groups[name] = sorted(group, key=self.version_key, reverse=True)
 
     def __hash__(self):
-        return (super(Resolve, self).__hash__() ^
-                hash(frozenset(self.channels)) ^
-                hash(frozendict(self._channel_priorities_map)) ^
-                hash(self._channel_priority) ^
-                hash(self._solver_ignore_timestamps) ^
-                hash(frozendict((k, tuple(v)) for k, v in self.groups.items())) ^
-                hash(frozendict((k, tuple(v)) for k, v in self.trackers.items())) ^
-                hash(frozendict((k, tuple(v)) for k, v in self.ms_depends_.items()))
-                )
+        return (
+            super().__hash__()
+            ^ hash(frozenset(self.channels))
+            ^ hash(frozendict(self._channel_priorities_map))
+            ^ hash(self._channel_priority)
+            ^ hash(self._solver_ignore_timestamps)
+            ^ hash(frozendict((k, tuple(v)) for k, v in self.groups.items()))
+            ^ hash(frozendict((k, tuple(v)) for k, v in self.trackers.items()))
+            ^ hash(frozendict((k, tuple(v)) for k, v in self.ms_depends_.items()))
+        )
 
     def default_filter(self, features=None, filter=None):
         # TODO: fix this import; this is bad
@@ -294,8 +294,8 @@ class Resolve(object):
                    'direct': set(),
                    'virtual_package': set(),
                    }
-        specs_to_add = set(MatchSpec(_) for _ in specs_to_add or [])
-        history_specs = set(MatchSpec(_) for _ in history_specs or [])
+        specs_to_add = {MatchSpec(_) for _ in specs_to_add or []}
+        history_specs = {MatchSpec(_) for _ in history_specs or []}
         for chain in bad_deps:
             # sometimes chains come in as strings
             if len(chain) > 1 and chain[-1].name == 'python' and \
@@ -446,7 +446,7 @@ class Resolve(object):
 
         specs = set(specs) | (specs_to_add or set())
         # Remove virtual packages
-        specs = set([spec for spec in specs if not spec.name.startswith('__')])
+        specs = {spec for spec in specs if not spec.name.startswith("__")}
         if len(specs) == 1:
             matches = self.find_matches(next(iter(specs)))
             if len(matches) == 1:
@@ -460,7 +460,7 @@ class Resolve(object):
         with tqdm(total=len(specs), desc="Building graph of deps",
                   leave=False, disable=context.json) as t:
             for spec in specs:
-                t.set_description("Examining {}".format(spec))
+                t.set_description(f"Examining {spec}")
                 t.update()
                 dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
                 dep_graph.update(dep_graph_for_spec)
@@ -497,7 +497,7 @@ class Resolve(object):
                 lroots = [_ for _ in roots]
                 current_shortest_chain = []
                 shortest_node = None
-                requested_spec_unsat = frozenset(nodes).intersection(set(_.name for _ in roots))
+                requested_spec_unsat = frozenset(nodes).intersection({_.name for _ in roots})
                 if requested_spec_unsat:
                     chains.append([_ for _ in roots if _.name in requested_spec_unsat])
                     shortest_node = chains[-1][0]
@@ -534,7 +534,7 @@ class Resolve(object):
             channel_name = self._strict_channel_cache[package_name]
         except KeyError:
             if package_name in self.groups:
-                all_channel_names = set(prec.channel.name for prec in self.groups[package_name])
+                all_channel_names = {prec.channel.name for prec in self.groups[package_name]}
                 by_cp = {self._channel_priorities_map.get(cn, 1): cn for cn in all_channel_names}
                 highest_priority = sorted(by_cp)[0]  # highest priority is the lowest number
                 channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
@@ -849,7 +849,7 @@ class Resolve(object):
 
     @staticmethod
     def to_feature_metric_id(prec_dist_str, feat):
-        return '@fm@%s@%s' % (prec_dist_str, feat)
+        return f"@fm@{prec_dist_str}@{feat}"
 
     def push_MatchSpec(self, C, spec):
         spec = MatchSpec(spec)
@@ -1039,7 +1039,7 @@ class Resolve(object):
         digraph = {}  # Dict[package_name, Set[dependent_package_names]]
         for package_name, prec in must_have.items():
             if prec in self.index:
-                digraph[package_name] = set(ms.name for ms in self.ms_depends(prec))
+                digraph[package_name] = {ms.name for ms in self.ms_depends(prec)}
 
         # There are currently at least three special cases to be aware of.
         # 1. The `toposort()` function, called below, contains special case code to remove
@@ -1076,7 +1076,7 @@ class Resolve(object):
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
-            specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
+            specs.append(MatchSpec(f"{prec.name} {prec.version} {prec.build}"))
         r2 = Resolve(OrderedDict((prec, prec) for prec in installed), True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
@@ -1122,7 +1122,7 @@ class Resolve(object):
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
-            specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
+            specs.append(MatchSpec(f"{prec.name} {prec.version} {prec.build}"))
         new_index = {prec: prec for prec in sat_name_map.values()}
         name_map = {p.name: p for p in new_index}
         if 'python' in name_map and 'pip' not in name_map:
@@ -1216,7 +1216,7 @@ class Resolve(object):
                 nspecs.append(MatchSpec(s, version='@', optional=True))
             else:
                 nspecs.append(MatchSpec(s, optional=True))
-        snames = set(s.name for s in nspecs if s.name)
+        snames = {s.name for s in nspecs if s.name}
         limit, _ = self.bad_installed(installed, nspecs)
         preserve = []
         for prec in installed:

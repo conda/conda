@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from ast import literal_eval
 import codecs
@@ -64,11 +63,11 @@ def pretty_diff(diff):
             added[name.lower()] = version
     changed = set(added) & set(removed)
     for name in sorted(changed):
-        yield ' %s  {%s -> %s}' % (name, removed[name], added[name])
+        yield f" {name}  {{{removed[name]} -> {added[name]}}}"
     for name in sorted(set(removed) - changed):
-        yield '-%s-%s' % (name, removed[name])
+        yield f"-{name}-{removed[name]}"
     for name in sorted(set(added) - changed):
-        yield '+%s-%s' % (name, added[name])
+        yield f"+{name}-{added[name]}"
 
 
 def pretty_content(content):
@@ -78,7 +77,7 @@ def pretty_content(content):
         return iter(sorted(content))
 
 
-class History(object):
+class History:
 
     com_pat = re.compile(r'#\s*cmd:\s*(.+)')
     spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
@@ -110,13 +109,12 @@ class History(object):
             try:
                 last = set(self.get_state())
             except CondaHistoryError as e:
-                warnings.warn("Error in %s: %s" % (self.path, e),
-                              CondaHistoryWarning)
+                warnings.warn(f"Error in {self.path}: {e}", CondaHistoryWarning)
                 return
             pd = PrefixData(self.prefix)
-            curr = set(prefix_rec.dist_str() for prefix_rec in pd.iter_records())
+            curr = {prefix_rec.dist_str() for prefix_rec in pd.iter_records()}
             self.write_changes(last, curr)
-        except EnvironmentError as e:
+        except OSError as e:
             if e.errno in (EACCES, EPERM, EROFS):
                 raise NotWritableError(self.path, e.errno)
             else:
@@ -281,23 +279,23 @@ class History(object):
             for spec in remove_specs:
                 spec_map.pop(spec.name, None)
             update_specs = (MatchSpec(spec) for spec in request.get('update_specs', ()))
-            spec_map.update(((s.name, s) for s in update_specs))
+            spec_map.update((s.name, s) for s in update_specs)
             # here is where the neutering takes effect, overriding past values
             neutered_specs = (MatchSpec(spec) for spec in request.get('neutered_specs', ()))
-            spec_map.update(((s.name, s) for s in neutered_specs))
+            spec_map.update((s.name, s) for s in neutered_specs)
 
         # Conda hasn't always been good about recording when specs have been removed from
         # environments.  If the package isn't installed in the current environment, then we
         # shouldn't try to force it here.
-        prefix_recs = set(_.name for _ in PrefixData(self.prefix).iter_records())
-        return dict((name, spec) for name, spec in spec_map.items() if name in prefix_recs)
+        prefix_recs = {_.name for _ in PrefixData(self.prefix).iter_records()}
+        return {name: spec for name, spec in spec_map.items() if name in prefix_recs}
 
     def construct_states(self):
         """
         return a list of tuples(datetime strings, set of distributions)
         """
         res = []
-        cur = set([])
+        cur = set()
         for dt, cont, unused_com in self.parse():
             if not is_diff(cont):
                 cur = cont
@@ -322,7 +320,7 @@ class History(object):
         """
         states = self.construct_states()
         if not states:
-            return set([])
+            return set()
         times, pkgs = zip(*states)
         return pkgs[rev]
 

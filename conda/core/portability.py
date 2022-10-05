@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from os.path import realpath
@@ -84,7 +83,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
             newline_pos = data.find(b"\n")
             if newline_pos > -1:
                 shebang_line, rest_of_data = data[:newline_pos], data[newline_pos:]
-                shebang_placeholder = f"#!{placeholder}".encode('utf-8')
+                shebang_placeholder = f"#!{placeholder}".encode()
                 if shebang_placeholder in shebang_line:
                     escaped_shebang = f"#!{new_prefix}".replace(" ", "\\ ").encode('utf-8')
                     shebang_line = shebang_line.replace(shebang_placeholder, escaped_shebang)

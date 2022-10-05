@@ -101,7 +101,7 @@ def get_prefix_containing_test_programs(test_programs=()):
     for test_program in test_programs:
         test_program_on_path = which(test_program)
         if not test_program_on_path:
-            log.warning("{} not found on PATH".format(test_program))
+            log.warning(f"{test_program} not found on PATH")
             return None
         else:
             test_program_in_prefix = []
@@ -117,7 +117,7 @@ def get_prefix_containing_test_programs(test_programs=()):
                     log.warning("{} not found in any conda prefixes ({}) on PATH", test_program, prefixes)
                     return None
             if len(set(test_program_in_prefix))!=1:
-                log.warning("test_programs ({}) not all found in the same prefix".format(test_programs))
+                log.warning(f"test_programs ({test_programs}) not all found in the same prefix")
                 return None
             return prefixes[test_program_in_prefix[0]]
     return prefixes[0] if prefixes else None
