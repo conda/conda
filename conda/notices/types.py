@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from datetime import datetime
 import hashlib
+from datetime import datetime
 from pathlib import Path
 from typing import NamedTuple, Optional, Sequence
 

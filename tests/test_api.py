@@ -9,8 +9,14 @@ except ImportError:
 
 import pytest
 
-from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData, \
-    UpdateModifier
+from conda.api import (
+    DepsModifier,
+    PackageCacheData,
+    PrefixData,
+    Solver,
+    SubdirData,
+    UpdateModifier,
+)
 from conda.base.context import context
 from conda.common.compat import isiterable, odict
 from conda.common.constants import NULL

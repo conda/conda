@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+import unittest
 from copy import copy
 from random import shuffle
-import unittest
+
+import pytest
 
 from conda.exceptions import InvalidVersionSpec
-from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval, treeify
-import pytest
+from conda.models.version import VersionOrder, VersionSpec, normalized_version, treeify, ver_eval
 
 
 class TestVersionSpec(unittest.TestCase):

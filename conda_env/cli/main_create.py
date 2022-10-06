@@ -1,24 +1,30 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from argparse import RawDescriptionHelpFormatter
 import json
 import os
 import sys
 import textwrap
+from argparse import RawDescriptionHelpFormatter
 
 from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
-from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
-    add_parser_prefix, add_parser_networking, add_parser_experimental_solver
+from conda.cli.conda_argparse import (
+    add_parser_default_packages,
+    add_parser_experimental_solver,
+    add_parser_json,
+    add_parser_networking,
+    add_parser_prefix,
+)
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import SpecNotFound
 from conda.gateways.disk.delete import rm_rf
-from conda.notices import notices
 from conda.misc import touch_nonadmin
-from .common import print_result, get_filename
+from conda.notices import notices
+
 from .. import specs
 from ..installers.base import InvalidInstaller, get_installer
+from .common import get_filename, print_result
 
 description = """
 Create an environment based on an environment definition file.

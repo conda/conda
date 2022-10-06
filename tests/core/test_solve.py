@@ -2,26 +2,35 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-from pprint import pprint
+import copy
 import platform
 import sys
-import copy
+from pprint import pprint
 
 import pytest
 
 from conda.auxlib.ish import dals
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars
-from conda.core.solve import DepsModifier, _get_solver_class, UpdateModifier
-from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
+from conda.core.solve import DepsModifier, UpdateModifier, _get_solver_class
+from conda.exceptions import SpecsConfigurationConflictError, UnsatisfiableError
 from conda.models.channel import Channel
-from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
+from conda.models.records import PrefixRecord
 from conda.resolve import MatchSpec
-from conda.testing.helpers import add_subdir_to_iter, get_solver, get_solver_2, get_solver_4, \
-    get_solver_aggregate_1, get_solver_aggregate_2, get_solver_cuda, get_solver_must_unfreeze, \
-    convert_to_dist_str, CHANNEL_DIR
+from conda.testing.helpers import (
+    CHANNEL_DIR,
+    add_subdir_to_iter,
+    convert_to_dist_str,
+    get_solver,
+    get_solver_2,
+    get_solver_4,
+    get_solver_aggregate_1,
+    get_solver_aggregate_2,
+    get_solver_cuda,
+    get_solver_must_unfreeze,
+)
 
 try:
     from unittest.mock import Mock, patch

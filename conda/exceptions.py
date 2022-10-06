@@ -1,26 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import getpass
+import json
+import os
+import sys
 from datetime import timedelta
 from errno import ENOSPC
 from functools import lru_cache, partial
-import json
 from json.decoder import JSONDecodeError
 from logging import getLogger
-import os
 from os.path import join
-import sys
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
-import getpass
 
 try:
     from tlz.itertoolz import groupby
 except ImportError:
     from conda._vendor.toolz.itertoolz import groupby
 
-from .models.channel import Channel
-from .common.url import join_url, maybe_unquote
 from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
@@ -30,6 +28,8 @@ from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import ensure_text_type, on_win
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
+from .common.url import join_url, maybe_unquote
+from .models.channel import Channel
 
 log = getLogger(__name__)
 
@@ -283,6 +283,7 @@ class CommandNotFoundError(CondaError):
             message = "To use 'conda %(command)s', install conda-build."
         else:
             from difflib import get_close_matches
+
             from .cli.find_commands import find_commands
             message = "No command 'conda %(command)s'."
             choices = activate_commands | conda_commands | build_commands | set(find_commands())

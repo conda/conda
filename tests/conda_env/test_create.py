@@ -11,18 +11,17 @@ from uuid import uuid4
 import pytest
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
+from conda.common.compat import on_win
 from conda.common.io import dashlist, env_var, env_vars
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
-from conda.common.compat import on_win
-
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
-from conda.testing.integration import run_command as run_conda_command, \
-    Commands as CondaCommands
+from conda.testing.integration import Commands as CondaCommands
+from conda.testing.integration import run_command as run_conda_command
 
 from . import support_file
-from .utils import make_temp_envs_dir, Commands, run_command
+from .utils import Commands, make_temp_envs_dir, run_command
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 from tests.test_utils import is_prefix_activated_PATHwise

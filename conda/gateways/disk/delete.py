@@ -1,21 +1,21 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from errno import ENOENT
 import fnmatch
+import shutil
+import sys
+from errno import ENOENT
 from logging import getLogger
 from os import environ, getcwd, makedirs, rename, rmdir, scandir, unlink, walk
 from os.path import abspath, basename, dirname, exists, isdir, isfile, join, normpath, split
-import shutil
-from subprocess import CalledProcessError, STDOUT, check_output
-import sys
+from subprocess import STDOUT, CalledProcessError, check_output
 
-from . import MAX_TRIES, exp_backoff_fn
-from .link import islink, lexists
-from .permissions import make_writable, recursive_make_writable
 from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
+from . import MAX_TRIES, exp_backoff_fn
+from .link import islink, lexists
+from .permissions import make_writable, recursive_make_writable
 
 if not on_win:
     from ...common.path import which

@@ -2,34 +2,41 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import copy
-from genericpath import exists
+import sys
 from logging import DEBUG, getLogger
 from os.path import join
-import sys
 from textwrap import dedent
+
+from genericpath import exists
 
 try:
     from tlz.itertoolz import concat, concatv, groupby
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv, groupby
 
-from .index import get_reduced_index, _supplement_index_with_system
-from .link import PrefixSetup, UnlinkLinkTransaction
-from .prefix_data import PrefixData
-from .subdir_data import SubdirData
-from .. import CondaError, __version__ as CONDA_VERSION
+from .. import CondaError
+from .. import __version__ as CONDA_VERSION
+from .._vendor.boltons.setutils import IndexedSet
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
-from .._vendor.boltons.setutils import IndexedSet
-from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
-                              ExperimentalSolverChoice)
+from ..base.constants import (
+    REPODATA_FN,
+    UNKNOWN_CHANNEL,
+    DepsModifier,
+    ExperimentalSolverChoice,
+    UpdateModifier,
+)
 from ..base.context import context
 from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
-                          UnsatisfiableError, CondaImportError)
+from ..exceptions import (
+    CondaImportError,
+    PackagesNotFoundError,
+    SpecsConfigurationConflictError,
+    UnsatisfiableError,
+)
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -37,6 +44,10 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..resolve import Resolve
+from .index import _supplement_index_with_system, get_reduced_index
+from .link import PrefixSetup, UnlinkLinkTransaction
+from .prefix_data import PrefixData
+from .subdir_data import SubdirData
 
 log = getLogger(__name__)
 

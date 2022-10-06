@@ -15,7 +15,7 @@
 
 import os
 import sys
-from os.path import dirname, normpath, join, isfile
+from os.path import dirname, isfile, join, normpath
 from subprocess import check_output
 
 
@@ -46,7 +46,7 @@ def conda_ensure_sys_python_is_base_env_python():
 
 def conda_move_to_front_of_PATH():
     if 'CONDA_PREFIX' in os.environ:
-        from conda.activate import (PosixActivator, CmdExeActivator)
+        from conda.activate import CmdExeActivator, PosixActivator
         if os.name == 'nt':
             activator_cls = CmdExeActivator
         else:

@@ -4,12 +4,11 @@ import pytest
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.notices import core as notices
-
 from conda.testing.notices.helpers import (
-    add_resp_to_mock,
-    notices_decorator_assert_message_in_stdout,
     DummyArgs,
+    add_resp_to_mock,
     get_test_notices,
+    notices_decorator_assert_message_in_stdout,
     offset_cache_file_mtime,
 )
 

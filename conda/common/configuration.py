@@ -13,45 +13,45 @@ Easily extensible to other source formats, e.g. json and ini
 
 """
 
+import copy
+import sys
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
-import copy
 from enum import Enum, EnumMeta
 from itertools import chain
 from logging import getLogger
 from os import environ, scandir, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
-import sys
 
 try:
-    from tlz.itertoolz import concat, concatv, unique
     from tlz.dicttoolz import merge, merge_with
     from tlz.functoolz import excepts
+    from tlz.itertoolz import concat, concatv, unique
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv, unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
     from conda._vendor.toolz import excepts
 
+from .. import CondaError, CondaMultiError
+from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.frozendict import frozendict
+from ..auxlib.collection import AttrDict, first, last, make_immutable
+from ..auxlib.exceptions import ThisShouldNeverHappenError
+from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
-from .. import CondaError, CondaMultiError
-from ..auxlib.collection import AttrDict, first, last, make_immutable
-from ..auxlib.exceptions import ThisShouldNeverHappenError
-from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
-from .._vendor.frozendict import frozendict
-from .._vendor.boltons.setutils import IndexedSet
 
 try:
-    from ruamel.yaml.comments import CommentedSeq, CommentedMap
+    from ruamel.yaml.comments import CommentedMap, CommentedSeq
     from ruamel.yaml.reader import ReaderError
     from ruamel.yaml.scanner import ScannerError
 except ImportError:
     try:
-        from ruamel_yaml.comments import CommentedSeq, CommentedMap
+        from ruamel_yaml.comments import CommentedMap, CommentedSeq
         from ruamel_yaml.reader import ReaderError
         from ruamel_yaml.scanner import ScannerError
     except ImportError:

@@ -5,14 +5,15 @@ import logging
 import os
 from os.path import abspath, expanduser, expandvars
 
-from .common import stdout_json
+from conda_env import specs
+
 from ..base.context import context
 from ..core.prefix_data import PrefixData
 from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import is_conda_environment
 from ..models.match_spec import MatchSpec
-from conda_env import specs
+from .common import stdout_json
 
 log = logging.getLogger(__name__)
 

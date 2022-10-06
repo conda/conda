@@ -2,22 +2,33 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-from conda.common.io import env_var, env_vars
-
-from conda.auxlib.ish import dals
-from conda.common.compat import odict
-from conda.common.configuration import (Configuration, ConfigurationObject, ObjectParameter,
-                                        ParameterFlag, ParameterLoader, PrimitiveParameter,
-                                        MapParameter, SequenceParameter, YamlRawParameter,
-                                        load_file_configs, InvalidTypeError, CustomValidationError)
-from conda.common.serialize import yaml_round_trip_load
-from conda.common.configuration import ValidationError
 from os import environ, mkdir
 from os.path import join
-from pytest import raises
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
+
+from pytest import raises
+
+from conda.auxlib.ish import dals
+from conda.common.compat import odict
+from conda.common.configuration import (
+    Configuration,
+    ConfigurationObject,
+    CustomValidationError,
+    InvalidTypeError,
+    MapParameter,
+    ObjectParameter,
+    ParameterFlag,
+    ParameterLoader,
+    PrimitiveParameter,
+    SequenceParameter,
+    ValidationError,
+    YamlRawParameter,
+    load_file_configs,
+)
+from conda.common.io import env_var, env_vars
+from conda.common.serialize import yaml_round_trip_load
 
 test_yaml_raw = {
     'file1': dals("""

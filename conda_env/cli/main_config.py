@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from argparse import RawDescriptionHelpFormatter
 
-
 from .main_vars import configure_parser as configure_vars_parser
 
 config_description = '''

@@ -28,35 +28,52 @@ how that strategy is implemented.
 
 """
 
+import json
+import os
+import re
+import struct
+import sys
 from difflib import unified_diff
 from errno import ENOENT
 from glob import glob
 from itertools import chain
-import json
 from logging import getLogger
-import os
 from os.path import abspath, basename, dirname, exists, expanduser, isdir, isfile, join
 from pathlib import Path
 from random import randint
-import re
-import sys
-import struct
 
 try:
     FileNotFoundError
 except NameError:
     FileNotFoundError = IOError
 
-from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
+from .. import CONDA_PACKAGE_ROOT, CondaError
+from .. import __version__ as CONDA_VERSION
+from ..activate import (
+    CshActivator,
+    FishActivator,
+    PosixActivator,
+    PowerShellActivator,
+    XonshActivator,
+)
 from ..auxlib.compat import Utf8NamedTemporaryFile
 from ..auxlib.ish import dals
-from ..activate import (CshActivator, FishActivator,
-                        PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_utf8_encoding,
-                             ensure_text_type, on_mac, on_win, open)
-from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
-                           get_python_site_packages_short_path, win_path_ok)
+from ..common.compat import (
+    ensure_binary,
+    ensure_text_type,
+    ensure_utf8_encoding,
+    on_mac,
+    on_win,
+    open,
+)
+from ..common.path import (
+    expand,
+    get_bin_directory_short_path,
+    get_python_short_path,
+    get_python_site_packages_short_path,
+    win_path_ok,
+)
 from ..exceptions import CondaValueError
 from ..gateways.disk.create import copy, mkdir_p
 from ..gateways.disk.delete import rm_rf
@@ -68,7 +85,8 @@ from .portability import generate_shebang_for_entry_point
 
 if on_win:
     import winreg
-    from menuinst.knownfolders import get_folder_path, FOLDERID
+
+    from menuinst.knownfolders import FOLDERID, get_folder_path
     from menuinst.winshortcut import create_shortcut
 
 

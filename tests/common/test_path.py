@@ -4,8 +4,12 @@
 
 from logging import getLogger
 
-from conda.common.path import (get_major_minor_version, missing_pyc_files, url_to_path,
-                               win_path_backout)
+from conda.common.path import (
+    get_major_minor_version,
+    missing_pyc_files,
+    url_to_path,
+    win_path_backout,
+)
 
 log = getLogger(__name__)
 

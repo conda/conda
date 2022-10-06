@@ -4,14 +4,14 @@
 from logging import getLogger
 from os.path import isdir
 
-from .common import confirm_yn
-from .install import install
 from ..base.context import context
 from ..common.path import paths_equal
 from ..exceptions import CondaValueError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import is_conda_environment
 from ..notices import notices
+from .common import confirm_yn
+from .install import install
 
 log = getLogger(__name__)
 

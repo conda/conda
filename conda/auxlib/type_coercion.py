@@ -1,9 +1,8 @@
 """Collection of functions to coerce conversion of types with an intelligent guess."""
 from collections.abc import Mapping
+from enum import Enum
 from itertools import chain
 from re import IGNORECASE, compile
-
-from enum import Enum
 
 from .compat import NoneType, integer_types, isiterable
 from .decorators import memoizedproperty

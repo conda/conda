@@ -4,8 +4,8 @@
 from argparse import RawDescriptionHelpFormatter
 
 from conda.base.context import context, determine_target_prefix, env_name
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.cli.common import stdout_json
+from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 
 from ..env import from_environment
 

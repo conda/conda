@@ -5,12 +5,12 @@
 # into other places
 
 
-from collections import defaultdict
 import os
-from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 import re
 import shutil
 import sys
+from collections import defaultdict
+from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 
 from .base.context import context
 from .common.compat import on_win, open
@@ -21,11 +21,11 @@ from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
 from .exceptions import (
+    CondaExitZero,
     DisallowedPackageError,
     DryRunExit,
     PackagesNotFoundError,
     ParseError,
-    CondaExitZero,
 )
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink

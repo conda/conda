@@ -1,16 +1,20 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections import OrderedDict
 import json
-from logging import getLogger
 import os
-from os.path import basename, isdir, isfile, join, lexists
 import re
+from collections import OrderedDict
+from logging import getLogger
+from os.path import basename, isdir, isfile, join, lexists
 
-from ..base.constants import PREFIX_STATE_FILE
 from ..auxlib.exceptions import ValidationError
-from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
+from ..base.constants import (
+    CONDA_ENV_VARS_UNSET_VAR,
+    CONDA_PACKAGE_EXTENSIONS,
+    PREFIX_MAGIC_FILE,
+    PREFIX_STATE_FILE,
+)
 from ..base.context import context
 from ..common.compat import odict
 from ..common.constants import NULL
@@ -19,7 +23,10 @@ from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
 from ..exceptions import (
-    BasicClobberError, CondaDependencyError, CorruptedEnvironmentError, maybe_raise,
+    BasicClobberError,
+    CondaDependencyError,
+    CorruptedEnvironmentError,
+    maybe_raise,
 )
 from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf

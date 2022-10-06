@@ -4,9 +4,9 @@
 import json
 import os
 import tempfile
+import unittest
 
 import pytest
-import unittest
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
@@ -18,15 +18,16 @@ from conda.common.io import captured
 from conda.common.serialize import yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import (
-    EnvironmentLocationNotFound,
     CondaEnvException,
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
+    EnvironmentLocationNotFound,
     SpecNotFound,
 )
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
-from conda_env.cli.main import create_parser, do_call as do_call_conda_env
+from conda_env.cli.main import create_parser
+from conda_env.cli.main import do_call as do_call_conda_env
 
 # Environment names we use during our tests
 TEST_ENV_NAME_1 = "env-1"

@@ -39,12 +39,7 @@ environment, please open a bug report at:
     else:
         raise e
 
-from . import main_create
-from . import main_export
-from . import main_list
-from . import main_remove
-from . import main_update
-from . import main_config
+from . import main_config, main_create, main_export, main_list, main_remove, main_update
 
 
 # TODO: This belongs in a helper library somewhere

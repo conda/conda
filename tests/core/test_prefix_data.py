@@ -9,16 +9,18 @@ from uuid import uuid4
 
 import pytest
 
-from conda.common.compat import on_win, odict
-from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from tests.data.env_metadata import (
-    PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
-)
 from conda.base.constants import PREFIX_STATE_FILE
+from conda.common.compat import odict, on_win
+from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
+from conda.exceptions import CorruptedEnvironmentError
 from conda.gateways.disk import mkdir_p
 from conda.gateways.disk.delete import rm_rf
-from conda.exceptions import CorruptedEnvironmentError
-
+from tests.data.env_metadata import (
+    PATH_TEST_ENV_1,
+    PATH_TEST_ENV_2,
+    PATH_TEST_ENV_3,
+    PATH_TEST_ENV_4,
+)
 
 ENV_VARS_FILE = '''
 {

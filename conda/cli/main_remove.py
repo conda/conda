@@ -2,20 +2,24 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import logging
-from os.path import isfile, join
 import sys
+from os.path import isfile, join
 
-from .common import check_non_admin, specs_from_args
-from .install import handle_txn
 from ..base.context import context
 from ..core.envs_manager import unregister_env
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import _get_solver_class
-from ..exceptions import CondaEnvironmentError, CondaValueError, DirectoryNotACondaEnvironmentError
-from ..gateways.disk.delete import rm_rf, path_is_clean
+from ..exceptions import (
+    CondaEnvironmentError,
+    CondaValueError,
+    DirectoryNotACondaEnvironmentError,
+    PackagesNotFoundError,
+)
+from ..gateways.disk.delete import path_is_clean, rm_rf
 from ..models.match_spec import MatchSpec
-from ..exceptions import PackagesNotFoundError
+from .common import check_non_admin, specs_from_args
+from .install import handle_txn
 
 log = logging.getLogger(__name__)
 

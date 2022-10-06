@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import json
-from unittest import mock
 import os.path
 import pathlib
 import tempfile
+from unittest import mock
 
 import pytest
 
 from conda.base.context import context, locate_prefix_by_name
 from conda.exceptions import CondaError, EnvironmentNameNotFound
-from conda.testing.helpers import run_inprocess_conda_command as run, set_active_prefix
+from conda.testing.helpers import run_inprocess_conda_command as run
+from conda.testing.helpers import set_active_prefix
 
 TEST_ENV_NAME_1 = "env-1"
 TEST_ENV_NAME_2 = "env-2"

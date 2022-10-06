@@ -12,7 +12,8 @@ def test_exports():
 
 def test_conda_subprocess():
     import os
-    from subprocess import Popen, PIPE
+    from subprocess import PIPE, Popen
+
     import conda
 
     try:

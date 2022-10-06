@@ -2,20 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import codecs
-from errno import EACCES, EPERM, EROFS
-from logging import getLogger
 import os
-from os.path import basename, dirname, isdir, isfile, join, splitext
-from shutil import copyfileobj, copystat
 import sys
 import tempfile
 import warnings as _warnings
+from errno import EACCES, EPERM, EROFS
+from logging import getLogger
+from os.path import basename, dirname, isdir, isfile, join, splitext
+from shutil import copyfileobj, copystat
 
-from . import mkdir_p
-from .delete import path_is_clean, rm_rf
-from .link import islink, lexists, link, readlink, symlink
-from .permissions import make_executable
-from .update import touch
 from ... import CondaError
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_PACKAGE_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FILE
@@ -25,6 +20,11 @@ from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.enums import LinkType
+from . import mkdir_p
+from .delete import path_is_clean, rm_rf
+from .link import islink, lexists, link, readlink, symlink
+from .permissions import make_executable
+from .update import touch
 
 
 # we have our own TemporaryDirectory implementation both for historical reasons and because
@@ -396,6 +396,7 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, pr
         # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
         log.trace(command)
         from conda.gateways.subprocess import any_subprocess
+
         # from conda.common.io import env_vars
         # This stack does not maintain its _argparse_args correctly?
         # from conda.base.context import stack_context_default

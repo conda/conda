@@ -1,9 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from logging import getLogger
 import operator as op
 import re
 from itertools import zip_longest
+from logging import getLogger
 
 try:
     from tlz.functoolz import excepts

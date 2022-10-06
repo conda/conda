@@ -2,21 +2,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+from logging import getLogger
 from os.path import join
 from tempfile import gettempdir
+from unittest import TestCase
+
+import pytest
 
 from conda.base.constants import UNKNOWN_CHANNEL
-
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
 from conda.common.url import join_url, path_to_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.models.dist import Dist
-from logging import getLogger
-from unittest import TestCase
-
-import pytest
 
 log = getLogger(__name__)
 

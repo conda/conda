@@ -1,32 +1,33 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
+import random
+import unittest
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 from functools import partial
-import os
 from os.path import join
-import random
-import unittest
 from unittest import mock
 from unittest.mock import patch
 
 import pytest
 
+import conda.instructions as inst
 from conda import CondaError
-from conda.base.context import context, stack_context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, stack_context
 from conda.cli.python_api import Commands, run_command
 from conda.common.io import env_var
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import PackagesNotFoundError
+from conda.exports import execute_plan
 from conda.gateways.disk.create import mkdir_p
-import conda.instructions as inst
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.records import PackageRecord
 from conda.models.match_spec import MatchSpec
-from conda.plan import display_actions, add_unlink, add_defaults_to_specs, _update_old_plan as update_old_plan
-from conda.exports import execute_plan
+from conda.models.records import PackageRecord
+from conda.plan import _update_old_plan as update_old_plan
+from conda.plan import add_defaults_to_specs, add_unlink, display_actions
 from conda.testing.helpers import captured, get_index_r_1, tempdir
 
 from .gateways.disk.test_permissions import tempdir

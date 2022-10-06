@@ -1,25 +1,25 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from contextlib import contextmanager
-from errno import EINVAL, EXDEV, EPERM
-from logging import getLogger
 import os
-from os.path import dirname, isdir, split, basename, join, exists
 import re
-from shutil import move
-from subprocess import Popen, PIPE
 import tempfile
+from contextlib import contextmanager
+from errno import EINVAL, EPERM, EXDEV
+from logging import getLogger
+from os.path import basename, dirname, exists, isdir, join, split
+from shutil import move
+from subprocess import PIPE, Popen
 from typing import Optional
 
-from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
-from .delete import rm_rf
-from .link import lexists
-from ...base.context import context
 from ...base.constants import DRY_RUN_PREFIX
+from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import expand
 from ...exceptions import NotWritableError
+from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
+from .delete import rm_rf
+from .link import lexists
 
 log = getLogger(__name__)
 

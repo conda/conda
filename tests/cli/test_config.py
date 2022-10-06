@@ -2,20 +2,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
-import pytest
-
 from contextlib import contextmanager
 from textwrap import dedent
+
 import pytest
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-
 from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
 from conda.cli.python_api import Commands, run_command
 from conda.common.configuration import ConfigurationLoadError
-from conda.common.serialize import yaml_round_trip_load, yaml_round_trip_dump
+from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.gateways.disk.delete import rm_rf
-
 
 # use condarc from source tree to run these tests against
 

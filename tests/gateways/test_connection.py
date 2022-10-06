@@ -18,7 +18,7 @@ from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_tok
 from conda.gateways.connection.session import CondaHttpAuth, CondaSession
 from conda.gateways.disk.delete import rm_rf
 from conda.testing.gateways.fixtures import MINIO_EXE
-from conda.testing.integration import make_temp_env, env_var
+from conda.testing.integration import env_var, make_temp_env
 
 log = getLogger(__name__)
 

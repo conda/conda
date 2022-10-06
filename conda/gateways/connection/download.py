@@ -2,15 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import hashlib
-from logging import DEBUG, getLogger
-from os.path import basename, exists, join
 import tempfile
 import warnings
+from logging import DEBUG, getLogger
+from os.path import basename, exists, join
 
-from . import (ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema,
-               SSLError, RequestsProxyError)
-from .session import CondaSession
-from ..disk.delete import rm_rf
 from ... import CondaError
 from ...auxlib.ish import dals
 from ...auxlib.logz import stringify
@@ -18,13 +14,23 @@ from ...base.context import context
 from ...common.io import time_recorder
 from ...exceptions import (
     BasicClobberError,
+    ChecksumMismatchError,
     CondaDependencyError,
     CondaHTTPError,
     CondaSSLError,
-    ChecksumMismatchError,
-    maybe_raise,
     ProxyError,
+    maybe_raise,
 )
+from ..disk.delete import rm_rf
+from . import (
+    ConnectionError,
+    HTTPError,
+    InsecureRequestWarning,
+    InvalidSchema,
+    RequestsProxyError,
+    SSLError,
+)
+from .session import CondaSession
 
 log = getLogger(__name__)
 

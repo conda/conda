@@ -2,20 +2,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+import errno
 import os
 import uuid
-
-import errno
-import pytest
-from errno import ENOENT, EACCES, EROFS, EPERM
-from shutil import rmtree
 from contextlib import contextmanager
+from errno import EACCES, ENOENT, EPERM, EROFS
+from os.path import isfile, join, lexists
+from shutil import rmtree
+from stat import S_IRGRP, S_IROTH, S_IRUSR, S_IRWXG, S_IRWXO, S_IRWXU, S_IXGRP, S_IXOTH, S_IXUSR
 from tempfile import gettempdir
-from os.path import join, isfile, lexists
-from stat import S_IRUSR, S_IRGRP, S_IROTH
-from stat import S_IRWXG, S_IRWXO, S_IRWXU
-from stat import S_IXUSR, S_IXGRP, S_IXOTH
 from unittest.mock import patch
+
+import pytest
 
 from conda.gateways.disk.update import touch
 

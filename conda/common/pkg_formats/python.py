@@ -1,6 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import platform
+import re
+import sys
+import warnings
 from collections import namedtuple
 from configparser import ConfigParser
 from csv import reader as csv_reader
@@ -8,13 +12,10 @@ from email.parser import HeaderParser
 from errno import ENOENT
 from io import StringIO
 from logging import getLogger
-from os import name as os_name, scandir, strerror
+from os import name as os_name
+from os import scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
-import platform
 from posixpath import normpath as posix_normpath
-import re
-import sys
-import warnings
 
 try:
     from tlz.itertoolz import concat, concatv, groupby
@@ -22,12 +23,15 @@ except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv, groupby
 
 from ... import CondaError
+from ..._vendor.frozendict import frozendict
+from ...auxlib.decorators import memoizedproperty
 from ..compat import odict, open
 from ..path import (
-    get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
+    get_major_minor_version,
+    get_python_site_packages_short_path,
+    pyc_path,
+    win_path_ok,
 )
-from ...auxlib.decorators import memoizedproperty
-from ..._vendor.frozendict import frozendict
 
 log = getLogger(__name__)
 

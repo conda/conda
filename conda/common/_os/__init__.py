@@ -5,7 +5,6 @@ from logging import getLogger
 
 from ..compat import on_win
 
-
 if on_win:
     from .windows import get_free_space_on_windows as get_free_space
     from .windows import is_admin_on_windows as is_admin

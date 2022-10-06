@@ -3,9 +3,6 @@
 
 from logging import getLogger
 
-from .channel import Channel
-from .enums import NoarchType
-from .records import PackageRecord, PathsData
 from ..auxlib.entity import (
     ComposableField,
     Entity,
@@ -15,6 +12,9 @@ from ..auxlib.entity import (
     ListField,
     StringField,
 )
+from .channel import Channel
+from .enums import NoarchType
+from .records import PackageRecord, PathsData
 
 log = getLogger(__name__)
 

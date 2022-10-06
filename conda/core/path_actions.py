@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import re
+import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from json import JSONDecodeError
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, join
-import re
-import sys
 from uuid import uuid4
 
 try:
@@ -14,37 +14,66 @@ try:
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat
 
-from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
-from .portability import _PaddingError, update_prefix
-from .prefix_data import PrefixData
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
 from ..common.compat import on_win
-from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
-                           get_python_noarch_target_path, get_python_short_path,
-                           parse_entry_point_def,
-                           pyc_path, url_to_path, win_path_ok)
+from ..common.path import (
+    get_bin_directory_short_path,
+    get_leaf_directories,
+    get_python_noarch_target_path,
+    get_python_short_path,
+    parse_entry_point_def,
+    pyc_path,
+    url_to_path,
+    win_path_ok,
+)
 from ..common.url import has_platform, path_to_url
-from ..exceptions import (CondaUpgradeError, CondaVerificationError, NotWritableError,
-                          PaddingError, SafetyError)
+from ..exceptions import (
+    CondaUpgradeError,
+    CondaVerificationError,
+    NotWritableError,
+    PaddingError,
+    SafetyError,
+)
 from ..gateways.connection.download import download
-from ..gateways.disk.create import (compile_multiple_pyc, copy,
-                                    create_hard_link_or_copy, create_link,
-                                    create_python_entry_point, extract_tarball,
-                                    make_menu, mkdir_p, write_as_json_to_file)
+from ..gateways.disk.create import (
+    compile_multiple_pyc,
+    copy,
+    create_hard_link_or_copy,
+    create_link,
+    create_python_entry_point,
+    extract_tarball,
+    make_menu,
+    mkdir_p,
+    write_as_json_to_file,
+)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.permissions import make_writable
-from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
-                                  read_index_json)
+from ..gateways.disk.read import (
+    compute_md5sum,
+    compute_sha256sum,
+    islink,
+    lexists,
+    read_index_json,
+)
 from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import LinkType, NoarchType, PathType
 from ..models.match_spec import MatchSpec
-from ..models.records import (Link, PackageCacheRecord, PackageRecord, PathDataV1, PathsData,
-                              PrefixRecord)
+from ..models.records import (
+    Link,
+    PackageCacheRecord,
+    PackageRecord,
+    PathDataV1,
+    PathsData,
+    PrefixRecord,
+)
+from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
+from .portability import _PaddingError, update_prefix
+from .prefix_data import PrefixData
 
 try:
     FileNotFoundError

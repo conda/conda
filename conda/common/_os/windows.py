@@ -9,9 +9,22 @@ from ..compat import ensure_binary, on_win
 log = getLogger(__name__)
 
 if on_win:
-    from ctypes import (POINTER, Structure, WinError, byref, c_ulong, c_char_p, c_int, c_ulonglong,
-                        c_void_p, c_wchar_p, pointer, sizeof, windll)
-    from ctypes.wintypes import HANDLE, BOOL, DWORD, HWND, HINSTANCE, HKEY
+    from ctypes import (
+        POINTER,
+        Structure,
+        WinError,
+        byref,
+        c_char_p,
+        c_int,
+        c_ulong,
+        c_ulonglong,
+        c_void_p,
+        c_wchar_p,
+        pointer,
+        sizeof,
+        windll,
+    )
+    from ctypes.wintypes import BOOL, DWORD, HANDLE, HINSTANCE, HKEY, HWND
     PHANDLE = POINTER(HANDLE)
     PDWORD = POINTER(DWORD)
     SEE_MASK_NOCLOSEPROCESS = 0x00000040

@@ -2,29 +2,32 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-from logging import getLogger
 import os
+from logging import getLogger
 from os.path import isdir, join, lexists
 from tempfile import gettempdir
 from unittest import TestCase
-from uuid import uuid4
 from unittest.mock import patch
+from uuid import uuid4
+
+import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PREFIX_MAGIC_FILE
-from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import env_var
 from conda.common.path import paths_equal
-from conda.core.envs_manager import list_all_known_prefixes, register_env, \
-    get_user_environments_txt_file, \
-    unregister_env, _clean_environments_txt
+from conda.core.envs_manager import (
+    _clean_environments_txt,
+    get_user_environments_txt_file,
+    list_all_known_prefixes,
+    register_env,
+    unregister_env,
+)
 from conda.gateways.disk import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import yield_lines
 from conda.gateways.disk.update import touch
-
-import pytest
-
 
 log = getLogger(__name__)
 

@@ -2,15 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import logging
-from os.path import isdir, isfile
 import re
+from os.path import isdir, isfile
 
-from .common import disp_features, stdout_json
 from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..core.prefix_data import PrefixData
 from ..gateways.disk.test import is_conda_environment
 from ..history import History
+from .common import disp_features, stdout_json
 
 log = logging.getLogger(__name__)
 

@@ -12,12 +12,12 @@ globally (such as downloading packages).
 We don't raise an error if the lock is named with the current PID
 """
 
-from glob import glob
 import logging
 import os
-from os.path import abspath, basename, dirname, isdir, join
 import time
 import warnings
+from glob import glob
+from os.path import abspath, basename, dirname, isdir, join
 
 from .exceptions import LockError
 

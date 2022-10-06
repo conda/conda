@@ -1,18 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from logging import getLogger
-from os.path import realpath
 import re
 import struct
 import subprocess
 import sys
+from logging import getLogger
+from os.path import realpath
 
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import on_win, on_linux
-from ..exceptions import CondaIOError, BinaryPrefixReplacementError
+from ..common.compat import on_linux, on_win
+from ..exceptions import BinaryPrefixReplacementError, CondaIOError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
 

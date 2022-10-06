@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from functools import lru_cache, reduce
-from logging import getLogger
 import os
-from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
+from functools import lru_cache, reduce
+from logging import getLogger
+from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 from urllib.parse import urlsplit
 
 try:
@@ -14,10 +14,10 @@ try:
 except ImportError:
     from conda._vendor.toolz.itertoolz import accumulate, concat
 
-from .compat import on_win
-from .. import CondaError
 from distutils.spawn import find_executable
 
+from .. import CondaError
+from .compat import on_win
 
 log = getLogger(__name__)
 

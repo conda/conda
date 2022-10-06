@@ -8,7 +8,6 @@ from conda.models.version import normalized_version
 
 from .. import env
 
-
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
 

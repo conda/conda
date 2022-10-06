@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections.abc import Mapping, Sequence
 import json
-from logging import getLogger
 import os
-from os.path import isfile, join
 import sys
+from collections.abc import Mapping, Sequence
+from logging import getLogger
+from os.path import isfile, join
 from textwrap import wrap
 
 try:
@@ -16,8 +16,15 @@ except ImportError:
 
 from .. import CondaError
 from ..auxlib.entity import EntityEncoder
-from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
-                              UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
+from ..base.constants import (
+    ChannelPriority,
+    DepsModifier,
+    ExperimentalSolverChoice,
+    PathConflict,
+    SafetyChecks,
+    SatSolverChoice,
+    UpdateModifier,
+)
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable
 from ..common.configuration import pretty_list, pretty_map
@@ -151,8 +158,8 @@ def execute_config(args, parser):
             all_names = context.list_parameters()
             not_params = set(paramater_names) - set(all_names)
             if not_params:
-                from ..exceptions import ArgumentError
                 from ..common.io import dashlist
+                from ..exceptions import ArgumentError
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
         else:
             paramater_names = context.list_parameters()
@@ -186,8 +193,8 @@ def execute_config(args, parser):
             all_names = context.list_parameters()
             not_params = set(paramater_names) - set(all_names)
             if not_params:
-                from ..exceptions import ArgumentError
                 from ..common.io import dashlist
+                from ..exceptions import ArgumentError
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
             if context.json:
                 stdout_write(json.dumps(

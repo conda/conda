@@ -4,10 +4,12 @@
 #   which is MIT licensed by Jason R. Coombs.
 # https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
 
+import sys
 from logging import getLogger
 from os import chmod as os_chmod
-from os.path import abspath, isdir, islink as os_islink, lexists as os_lexists
-import sys
+from os.path import abspath, isdir
+from os.path import islink as os_islink
+from os.path import lexists as os_lexists
 
 from ...common.compat import on_win
 from ...exceptions import CondaOSError, ParseError
@@ -71,13 +73,12 @@ if not (on_win and PYPY):
     readlink = readlink
 
 else:  # pragma: no cover
-    from ctypes import (POINTER, Structure, byref, c_uint64, cast, windll,
-                        wintypes)
+    import builtins
     import inspect
+    import sys
+    from ctypes import POINTER, Structure, byref, c_uint64, cast, windll, wintypes
     from os import getcwd
     from os.path import isfile
-    import sys
-    import builtins
 
     def islink(path):
         """Determine if the given path is a symlink"""
@@ -304,7 +305,7 @@ else:  # pragma: no cover
     CloseHandle.argtypes = (wintypes.HANDLE,)
     CloseHandle.restype = wintypes.BOOLEAN
 
-    from ctypes import Array, create_string_buffer, c_byte, c_ulong, c_ushort, sizeof
+    from ctypes import Array, c_byte, c_ulong, c_ushort, create_string_buffer, sizeof
 
     class REPARSE_DATA_BUFFER(Structure):
         _fields_ = [

@@ -4,7 +4,6 @@
 
 import json
 from logging import getLogger
-
 from os.path import isdir
 
 from conda.cli.python_api import Commands, run_command

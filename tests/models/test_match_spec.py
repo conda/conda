@@ -7,17 +7,16 @@ from unittest import TestCase
 import pytest
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.common import arg2spec, spec_from_line
-from conda.common.io import env_unmodified
 from conda.common.compat import on_win
+from conda.common.io import env_unmodified
 from conda.exceptions import CondaValueError, InvalidMatchSpec, InvalidSpec
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.records import PackageRecord
 from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
+from conda.models.records import PackageRecord
 from conda.models.version import VersionSpec
-
 
 blas_value = 'accelerate' if context.subdir == 'osx-64' else 'openblas'
 

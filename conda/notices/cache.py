@@ -16,10 +16,9 @@ from pathlib import Path
 from typing import Optional, Sequence, Set
 
 from .._vendor.appdirs import user_cache_dir
-from ..base.constants import APP_NAME, NOTICES_CACHE_SUBDIR, NOTICES_CACHE_FN
+from ..base.constants import APP_NAME, NOTICES_CACHE_FN, NOTICES_CACHE_SUBDIR
 from ..utils import ensure_dir_exists, safe_open
-
-from .types import ChannelNoticeResponse, ChannelNotice
+from .types import ChannelNotice, ChannelNoticeResponse
 
 logger = logging.getLogger(__name__)
 

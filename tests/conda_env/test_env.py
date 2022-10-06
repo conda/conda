@@ -1,27 +1,26 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections import OrderedDict
 import os
-from os.path import join
 import random
 import unittest
+from collections import OrderedDict
+from os.path import join
 from unittest.mock import patch
 from uuid import uuid4
 
-from conda.core.prefix_data import PrefixData
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
-from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
-from conda.models.match_spec import MatchSpec
+from conda.common.compat import on_win
 from conda.common.io import env_vars
 from conda.common.serialize import yaml_round_trip_load
-from conda.common.compat import on_win
-
-from . import support_file
-from .utils import make_temp_envs_dir, Commands, run_command
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
+from conda.models.match_spec import MatchSpec
+from conda_env.env import from_environment
 from tests.test_utils import is_prefix_activated_PATHwise
 
-from conda_env.env import from_environment
+from . import support_file
+from .utils import Commands, make_temp_envs_dir, run_command
 
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
 

@@ -11,12 +11,12 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from ..exceptions import PackagesNotFoundError, ResolvePackageNotFound, UnsatisfiableError
 from ..base.context import context
 from ..core.solve import Solver
+from ..exceptions import PackagesNotFoundError, ResolvePackageNotFound, UnsatisfiableError
 from ..models.channel import Channel
-from ..models.records import PackageRecord
 from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord
 from . import helpers
 
 

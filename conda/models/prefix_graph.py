@@ -1,15 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict, defaultdict
 from logging import getLogger
 
-from .enums import NoarchType
-from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import odict, on_win
 from ..exceptions import CyclicalDependencyError
+from .enums import NoarchType
+from .match_spec import MatchSpec
 
 log = getLogger(__name__)
 

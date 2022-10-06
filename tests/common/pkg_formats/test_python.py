@@ -2,23 +2,35 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Test for python distribution information and metadata handling."""
 
+import os
+import tempfile
 from datetime import datetime
 from errno import ENOENT
-import os
 from os.path import basename, lexists
 from pprint import pprint
-import tempfile
+
+import pytest
 
 from conda.common.compat import odict
 from conda.common.path import get_python_site_packages_short_path
 from conda.common.pkg_formats.python import (
-    MetadataWarning, PySpec, PythonDistribution, PythonDistributionMetadata,
-    PythonEggInfoDistribution, PythonInstalledDistribution, get_default_marker_context,
-    get_dist_file_from_egg_link, get_site_packages_anchor_files, interpret, norm_package_name,
-    norm_package_version, parse_specification, pypi_name_to_conda_name, split_spec,
+    MetadataWarning,
+    PySpec,
+    PythonDistribution,
+    PythonDistributionMetadata,
+    PythonEggInfoDistribution,
+    PythonInstalledDistribution,
+    get_default_marker_context,
+    get_dist_file_from_egg_link,
+    get_site_packages_anchor_files,
+    interpret,
+    norm_package_name,
+    norm_package_version,
+    parse_specification,
+    pypi_name_to_conda_name,
+    split_spec,
 )
 from conda.common.url import join_url
-import pytest
 from tests.data.env_metadata import METADATA_VERSION_PATHS
 
 

@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
+import sys
 from errno import EACCES, EEXIST, ENOENT, ENOTEMPTY, EPERM, errorcode
 from logging import getLogger
-import os
-from os.path import basename, isdir, dirname
+from os.path import basename, dirname, isdir
 from subprocess import CalledProcessError
-import sys
 from time import sleep
 
 from ...common.compat import on_win
@@ -23,6 +23,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
         return fn(*args, **kwargs)
 
     import random
+
     # with max_tries = 6, max total time ~= 3.2 sec
     # with max_tries = 7, max total time ~= 6.5 sec
 

@@ -1,15 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from functools import lru_cache, partial
 import logging
-from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 import re
 import sys
 from datetime import datetime
+from functools import lru_cache, partial
+from logging import DEBUG, ERROR, INFO, WARN, Filter, Formatter, StreamHandler, getLogger
 
 from .. import CondaError
-from ..common.io import attach_stderr_handler, _FORMATTER
+from ..common.io import _FORMATTER, attach_stderr_handler
 
 log = getLogger(__name__)
 TRACE = 5  # TRACE LOG LEVEL

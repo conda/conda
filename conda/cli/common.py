@@ -1,10 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
+from logging import getLogger
+from os.path import basename, dirname, isdir, isfile, join, normcase
 from warnings import warn
 
 from ..auxlib.ish import dals
@@ -14,8 +14,8 @@ from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
+from ..exceptions import DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound
 from ..models.match_spec import MatchSpec
-from ..exceptions import EnvironmentLocationNotFound, DirectoryNotACondaEnvironmentError
 
 
 def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):

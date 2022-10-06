@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-import unittest
 import random
+import unittest
 from unittest import mock
 
 from conda_env import env

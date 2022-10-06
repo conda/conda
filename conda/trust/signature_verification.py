@@ -1,13 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import json
+import warnings
 from functools import lru_cache
 from glob import glob
-import json
 from logging import getLogger
 from os import makedirs
-from os.path import basename, isdir, join, exists
-import warnings
+from os.path import basename, exists, isdir, join
 
 from ..base.context import context
 from ..common.url import join_url
@@ -16,11 +16,11 @@ from ..gateways.connection.session import CondaSession
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
 try:
-    from conda_content_trust.authentication import verify_root, verify_delegation
+    from conda_content_trust.authentication import verify_delegation, verify_root
     from conda_content_trust.common import (
+        SignatureError,
         load_metadata_from_file,
         write_metadata_to_file,
-        SignatureError,
     )
     from conda_content_trust.signing import wrap_as_signable
 except ImportError:

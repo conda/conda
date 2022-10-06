@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+import unittest
 from collections import OrderedDict
 from os.path import isdir, join
 from pprint import pprint
-import unittest
 
 import pytest
 
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.read import read_python_record
@@ -17,8 +17,14 @@ from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
-from conda.testing.helpers import TEST_DATA_DIR, add_subdir, add_subdir_to_iter, \
-    get_index_r_1, get_index_r_4, raises
+from conda.testing.helpers import (
+    TEST_DATA_DIR,
+    add_subdir,
+    add_subdir_to_iter,
+    get_index_r_1,
+    get_index_r_4,
+    raises,
+)
 
 (
     index,

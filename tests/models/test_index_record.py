@@ -4,7 +4,7 @@
 from logging import getLogger
 from unittest import TestCase
 
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_unmodified
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord, PrefixRecord

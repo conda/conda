@@ -2,20 +2,21 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import bz2
+import hashlib
+import json
+import re
+import warnings
 from collections import defaultdict
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
-from genericpath import getmtime, isfile
-import hashlib
 from io import open as io_open
-import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
-from os.path import dirname, isdir, join, splitext, exists
-import re
+from os.path import dirname, exists, isdir, join, splitext
 from time import time
-import warnings
+
+from genericpath import getmtime, isfile
 
 try:
     from tlz.itertoolz import concat, groupby, take
@@ -23,33 +24,32 @@ except ImportError:
     from conda._vendor.toolz.itertoolz import concat, groupby, take
 
 from .. import CondaError
+from .._vendor.boltons.setutils import IndexedSet
 from ..auxlib.ish import dals
 from ..auxlib.logz import stringify
-from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
 from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
-from ..common.io import ThreadLimitedThreadPoolExecutor, DummyExecutor, dashlist
+from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
-from ..trust.signature_verification import signature_verification
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import (
     CondaDependencyError,
     CondaHTTPError,
-    CondaUpgradeError,
     CondaSSLError,
+    CondaUpgradeError,
     NotWritableError,
-    UnavailableInvalidChannel,
     ProxyError,
+    UnavailableInvalidChannel,
 )
 from ..gateways.connection import (
     ConnectionError,
     HTTPError,
     InsecureRequestWarning,
     InvalidSchema,
-    SSLError,
     RequestsProxyError,
+    SSLError,
 )
 from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
@@ -58,6 +58,7 @@ from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+from ..trust.signature_verification import signature_verification
 
 try:
     import cPickle as pickle
@@ -109,6 +110,7 @@ class SubdirData(metaclass=SubdirDataType):
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None,
                   repodata_fn=REPODATA_FN):
         from .index import check_allowlist  # TODO: fix in-line import
+
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:

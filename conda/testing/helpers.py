@@ -5,23 +5,29 @@
 Helpers for the tests
 """
 
-from contextlib import contextmanager
-from functools import lru_cache
 import json
 import os
-from os.path import dirname, join, abspath
 import re
-from conda.auxlib.compat import shlex_split_unicode
 import sys
-from tempfile import gettempdir, mkdtemp
-from uuid import uuid4
+from contextlib import contextmanager
+from functools import lru_cache
+from os.path import abspath, dirname, join
 from pathlib import Path
+from tempfile import gettempdir, mkdtemp
 from unittest.mock import patch
+from uuid import uuid4
+
+import pytest
+
+from conda.auxlib.compat import shlex_split_unicode
+from conda_env.cli import main as conda_env_cli
 
 from .. import cli
-from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..common.compat import encode_arguments
-from ..common.io import argv, captured as common_io_captured, env_var
+from ..common.io import argv
+from ..common.io import captured as common_io_captured
+from ..common.io import env_var
 from ..core.prefix_data import PrefixData
 from ..core.solve import _get_solver_class
 from ..core.subdir_data import SubdirData, make_feature_record
@@ -30,15 +36,8 @@ from ..gateways.disk.read import lexists
 from ..gateways.logging import initialize_logging
 from ..history import History
 from ..models.channel import Channel
-from ..models.records import PackageRecord
-from ..models.records import PrefixRecord
+from ..models.records import PackageRecord, PrefixRecord
 from ..resolve import Resolve
-
-from conda_env.cli import main as conda_env_cli
-
-
-import pytest
-
 
 # The default value will only work if we have installed conda in development mode!
 TEST_DATA_DIR = os.environ.get(

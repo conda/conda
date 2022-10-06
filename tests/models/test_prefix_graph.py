@@ -5,16 +5,16 @@
 from functools import lru_cache
 from pprint import pprint
 
+import pytest
+
+import conda.models.prefix_graph
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import CyclicalDependencyError
 from conda.models.match_spec import MatchSpec
-import conda.models.prefix_graph
-from conda.models.prefix_graph import PrefixGraph, GeneralGraph
+from conda.models.prefix_graph import GeneralGraph, PrefixGraph
 from conda.models.records import PackageRecord
 from conda.testing.helpers import add_subdir_to_iter, get_solver_4, get_solver_5
-
-import pytest
 
 try:
     from unittest.mock import Mock, patch

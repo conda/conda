@@ -10,6 +10,7 @@ Created to test py3k compatibility.
 import os
 import sys
 import unittest
+
 import conda
 from conda.utils import on_win
 

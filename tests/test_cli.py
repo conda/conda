@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import json
-import unittest
-import uuid
 import os
 import stat
+import unittest
+import uuid
 from unittest.mock import patch
 
 import pytest
@@ -15,7 +15,7 @@ from conda.base.context import context
 from conda.common.io import captured
 from conda.gateways.disk.delete import rm_rf
 from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
-from conda.testing.integration import Commands, run_command, make_temp_env, make_temp_prefix
+from conda.testing.integration import Commands, make_temp_env, make_temp_prefix, run_command
 
 
 @pytest.mark.usefixtures("tmpdir")

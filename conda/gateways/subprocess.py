@@ -1,21 +1,22 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
+import sys
 from collections import namedtuple
 from logging import getLogger
-import os
 from os.path import abspath
-from conda.auxlib.compat import shlex_split_unicode
-import sys
-from subprocess import CalledProcessError, PIPE, Popen
-from ..utils import wrap_subprocess_call
+from subprocess import PIPE, CalledProcessError, Popen
 
-from .logging import TRACE
+from conda.auxlib.compat import shlex_split_unicode
+
 from .. import ACTIVE_SUBPROCESSES
 from ..auxlib.ish import dals
+from ..base.context import context
 from ..common.compat import encode_arguments, encode_environment, isiterable
 from ..gateways.disk.delete import rm_rf
-from ..base.context import context
+from ..utils import wrap_subprocess_call
+from .logging import TRACE
 
 log = getLogger(__name__)
 Response = namedtuple('Response', ('stdout', 'stderr', 'rc'))

@@ -8,17 +8,17 @@ from unittest import mock
 
 import pytest
 
-from conda.base.context import context
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
-from conda.cli import main_notices as notices
+from conda.base.context import context
 from conda.cli import conda_argparse
+from conda.cli import main_notices as notices
 from conda.notices import fetch
 from conda.testing.helpers import run_inprocess_conda_command as run
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
-    get_test_notices,
     get_notice_cache_filenames,
+    get_test_notices,
     offset_cache_file_mtime,
 )
 

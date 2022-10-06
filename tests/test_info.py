@@ -3,9 +3,9 @@
 
 
 import json
+import sys
 
 import pytest
-import sys
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.cli.python_api import Commands, run_command

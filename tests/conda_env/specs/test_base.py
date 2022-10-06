@@ -1,15 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from contextlib import contextmanager
 import random
 import types
 import unittest
+from contextlib import contextmanager
 from unittest import mock
 
 from conda.exceptions import SpecNotFound
 from conda_env import specs
-
 
 true_func = mock.Mock(return_value=True)
 false_func = mock.Mock(return_value=False)

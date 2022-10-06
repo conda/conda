@@ -7,14 +7,13 @@ from datetime import datetime
 from .._vendor.boltons.timeutils import UTC
 from ..base.context import context
 from ..cli.common import stdout_json
-from ..common.io import Spinner
+from ..common.io import Spinner, dashlist
 from ..core.envs_manager import query_all_prefixes
 from ..core.index import calculate_channel_urls
 from ..core.subdir_data import SubdirData
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 from ..models.version import VersionOrder
-from ..common.io import dashlist
 from ..utils import human_bytes
 
 

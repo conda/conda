@@ -8,16 +8,13 @@ from os.path import dirname, join
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from conda import utils, CondaError
-from conda.common.path import win_path_to_unix
-from conda.testing.helpers import assert_equals
-
-from conda.activate import CmdExeActivator, PosixActivator
-from conda.common.path import which
-from conda.common.compat import on_win
-
 import pytest
 
+from conda import CondaError, utils
+from conda.activate import CmdExeActivator, PosixActivator
+from conda.common.compat import on_win
+from conda.common.path import which, win_path_to_unix
+from conda.testing.helpers import assert_equals
 
 SOME_PREFIX = "/some/prefix"
 SOME_FILES = ["a", "b", "c"]

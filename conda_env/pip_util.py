@@ -7,16 +7,15 @@ NOTE: This modules used to in conda, as conda/pip.py
 """
 
 import json
-from logging import getLogger
 import os
 import re
 import sys
+from logging import getLogger
 
-from conda.exceptions import CondaEnvException
-from conda.gateways.subprocess import any_subprocess
-from conda.exports import on_win
 from conda.base.context import context
-
+from conda.exceptions import CondaEnvException
+from conda.exports import on_win
+from conda.gateways.subprocess import any_subprocess
 
 log = getLogger(__name__)
 

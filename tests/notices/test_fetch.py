@@ -6,7 +6,6 @@ from unittest.mock import patch
 import requests
 
 from conda.notices.core import display_notices, retrieve_notices
-
 from conda.testing.notices.helpers import add_resp_to_mock
 
 

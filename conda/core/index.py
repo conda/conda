@@ -2,21 +2,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
-import re
-from itertools import chain
-from logging import getLogger
 import platform
+import re
 import sys
 import warnings
+from itertools import chain
+from logging import getLogger
 
 try:
     from tlz.itertoolz import concat, concatv
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv
 
-from .package_cache_data import PackageCacheData
-from .prefix_data import PrefixData
-from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
@@ -26,6 +23,9 @@ from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
+from .package_cache_data import PackageCacheData
+from .prefix_data import PrefixData
+from .subdir_data import SubdirData, make_feature_record
 
 log = getLogger(__name__)
 
@@ -218,7 +218,7 @@ def _supplement_index_with_system(index):
 
 
 def get_archspec_name():
-    from conda.base.context import non_x86_machines, _arch_names, _platform_map
+    from conda.base.context import _arch_names, _platform_map, non_x86_machines
 
     target_plat, target_arch = context.subdir.split("-")
     # This has to reverse what Context.subdir is doing

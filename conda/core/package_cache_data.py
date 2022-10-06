@@ -4,31 +4,29 @@ from __future__ import annotations
 
 import codecs
 import os
-
 from collections import defaultdict
-from concurrent.futures import as_completed, ThreadPoolExecutor, Future
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
+from functools import partial
 from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
-from functools import partial
 
 try:
     from tlz.itertoolz import concat, concatv, groupby
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv, groupby
 
-from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.decorators import memoizemethod
 from ..base.constants import (
-    CONDA_PACKAGE_EXTENSIONS,
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
+    CONDA_PACKAGE_EXTENSIONS,
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
@@ -37,7 +35,7 @@ from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
-from ..exceptions import NoWritablePkgsDirError, NotWritableError
+from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
     create_package_cache_directory,
     extract_tarball,
@@ -57,6 +55,7 @@ from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
+from .path_actions import CacheUrlAction, ExtractPackageAction
 
 log = getLogger(__name__)
 

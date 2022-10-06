@@ -1,6 +1,6 @@
+import warnings
 from collections.abc import Hashable
 from types import GeneratorType
-import warnings
 
 from .._vendor.six import wraps
 

@@ -1,33 +1,44 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from logging import getLogger
 import os
+from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 
-from . import common
-from .common import check_non_admin
 from .. import CondaError
 from ..auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME, DepsModifier, UpdateModifier, REPODATA_FN
+from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
-from ..common.path import paths_equal, is_package_file
+from ..common.path import is_package_file, paths_equal
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
 from ..core.solve import _get_solver_class
-from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
-                          CondaValueError, DirectoryNotACondaEnvironmentError,
-                          DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
-                          NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
-                          TooManyArgumentsError, UnsatisfiableError,
-                          SpecsConfigurationConflictError)
+from ..exceptions import (
+    CondaExitZero,
+    CondaImportError,
+    CondaOSError,
+    CondaSystemExit,
+    CondaValueError,
+    DirectoryNotACondaEnvironmentError,
+    DirectoryNotFoundError,
+    DryRunExit,
+    EnvironmentLocationNotFound,
+    NoBaseEnvironmentError,
+    PackageNotInstalledError,
+    PackagesNotFoundError,
+    SpecsConfigurationConflictError,
+    TooManyArgumentsError,
+    UnsatisfiableError,
+)
 from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..plan import revert_actions
 from ..resolve import ResolvePackageNotFound
+from . import common
+from .common import check_non_admin
 
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderr')

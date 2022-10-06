@@ -1,13 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import sys
 from logging import getLogger
 from os import lstat, walk
 from os.path import isdir, join
 from typing import Any, Dict, Iterable, List, Tuple
-import sys
 
-from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS, CONDA_LOGS_DIR
+from ..base.constants import CONDA_LOGS_DIR, CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS
 from ..base.context import context
 
 log = getLogger(__name__)
@@ -124,8 +124,8 @@ def rm_pkgs(
     dry_run: bool,
     name: str,
 ) -> None:
-    from .common import confirm_yn
     from ..utils import human_bytes
+    from .common import confirm_yn
 
     if verbose and warnings:
         for fn, exception in warnings:

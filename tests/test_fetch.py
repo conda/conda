@@ -2,20 +2,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
+from os.path import exists, isfile
+from tempfile import mktemp
 from unittest import TestCase
 
 import pytest
 import responses
-from os.path import exists, isfile
-from tempfile import mktemp
 
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
+from conda.core.package_cache_data import download
+from conda.core.subdir_data import fetch_repodata_remote_request
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.download import TmpDownload
-from conda.core.subdir_data import fetch_repodata_remote_request
-from conda.core.package_cache_data import download
 
 
 @pytest.mark.integration

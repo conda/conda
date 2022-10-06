@@ -1,27 +1,26 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from argparse import (
-    ArgumentParser as ArgumentParserBase,
-    REMAINDER,
-    RawDescriptionHelpFormatter,
-    SUPPRESS,
-    Action,
-    _CountAction,
-    _HelpAction,
-)
-from logging import getLogger
 import os
+import sys
+from argparse import REMAINDER, SUPPRESS, Action
+from argparse import ArgumentParser as ArgumentParserBase
+from argparse import RawDescriptionHelpFormatter, _CountAction, _HelpAction
+from logging import getLogger
 from os.path import abspath, expanduser, join
 from subprocess import Popen
-import sys
 from textwrap import dedent
 
 from .. import __version__
-from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
-from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
-    UpdateModifier, ExperimentalSolverChoice
+from ..auxlib.ish import dals
+from ..base.constants import (
+    COMPATIBLE_SHELLS,
+    CONDA_HOMEPAGE_URL,
+    DepsModifier,
+    ExperimentalSolverChoice,
+    UpdateModifier,
+)
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -133,6 +132,7 @@ class ArgumentParser(ArgumentParserBase):
 
     def error(self, message):
         import re
+
         from .find_commands import find_executable
         exc = sys.exc_info()[1]
         if exc:

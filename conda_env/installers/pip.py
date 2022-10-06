@@ -3,13 +3,13 @@
 
 import os
 import os.path as op
-from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
-from conda_env.pip_util import pip_subprocess, get_pip_installed_packages
-from conda.common.io import Spinner
-from conda.base.context import context
 from logging import getLogger
 
+from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.base.context import context
+from conda.common.io import Spinner
+from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
+from conda_env.pip_util import get_pip_installed_packages, pip_subprocess
 
 log = getLogger(__name__)
 

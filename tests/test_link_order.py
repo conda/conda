@@ -2,15 +2,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-from logging import getLogger
-import unittest
-import pytest
 import os
 import shutil
 import tempfile
+import unittest
+from logging import getLogger
 from unittest.mock import patch
 
-from conda.testing.integration import run_command, Commands
+import pytest
+
+from conda.testing.integration import Commands, run_command
 
 log = getLogger(__name__)
 

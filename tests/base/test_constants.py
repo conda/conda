@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+from logging import getLogger
+
 from conda.base.constants import ChannelPriority
 from conda.common.constants import NULL
-from logging import getLogger
 
 log = getLogger(__name__)
 

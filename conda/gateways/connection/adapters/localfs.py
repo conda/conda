@@ -1,16 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from email.utils import formatdate
 import json
+from email.utils import formatdate
 from logging import getLogger
 from mimetypes import guess_type
 from os import stat
 from tempfile import SpooledTemporaryFile
 
-from .. import BaseAdapter, CaseInsensitiveDict, Response
 from ....common.compat import ensure_binary
 from ....common.path import url_to_path
+from .. import BaseAdapter, CaseInsensitiveDict, Response
 
 log = getLogger(__name__)
 

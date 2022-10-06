@@ -4,9 +4,10 @@
 
 import fileinput
 import os
-import requests
 import shutil
 import sys
+
+import requests
 from pylint.pyreverse.main import Run
 
 here = os.path.dirname(__file__)

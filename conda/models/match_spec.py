@@ -1,31 +1,30 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import re
 from abc import ABCMeta, abstractmethod, abstractproperty
-
 from collections.abc import Mapping
 from functools import reduce
 from logging import getLogger
 from operator import attrgetter
 from os.path import basename
-import re
 
 try:
     from tlz.itertoolz import concat, concatv, groupby
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv, groupby
 
-from .channel import Channel
-from .version import BuildNumberMatch, VersionSpec
 from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
+from ..base.context import context
 from ..common.compat import isiterable
 from ..common.io import dashlist
-from ..common.path import expand, url_to_path, strip_pkg_extension, is_package_file
+from ..common.path import expand, is_package_file, strip_pkg_extension, url_to_path
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec
-from ..base.context import context
+from .channel import Channel
+from .version import BuildNumberMatch, VersionSpec
 
 log = getLogger(__name__)
 

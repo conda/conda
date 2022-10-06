@@ -2,9 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
-
 from logging import getLogger
-
 
 log = getLogger(__name__)
 

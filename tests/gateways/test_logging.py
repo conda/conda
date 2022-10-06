@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+from logging import getLogger
+
 from conda.auxlib.ish import dals
 from conda.gateways.logging import TokenURLFilter
-from logging import getLogger
 
 log = getLogger(__name__)
 

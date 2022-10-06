@@ -1,6 +1,6 @@
+import os
 from collections import OrderedDict as odict  # noqa: F401
 from itertools import chain
-import os
 from shlex import split
 from tempfile import NamedTemporaryFile
 

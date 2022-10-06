@@ -1,10 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from contextlib import contextmanager
-from logging import getLogger
 import signal
 import threading
+from contextlib import contextmanager
+from logging import getLogger
 
 log = getLogger(__name__)
 

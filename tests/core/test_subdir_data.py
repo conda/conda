@@ -4,21 +4,27 @@
 
 from logging import getLogger
 from os.path import dirname, join
-from unittest import TestCase
 from time import sleep
+from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
 
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
+from conda.core.index import get_index
+from conda.core.subdir_data import (
+    Response304ContentUnchanged,
+    SubdirData,
+    UnavailableInvalidChannel,
+    cache_fn_url,
+    fetch_repodata_remote_request,
+    read_mod_and_etag,
+)
 from conda.exceptions import CondaSSLError
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
-from conda.core.index import get_index
-from conda.core.subdir_data import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
-    SubdirData, fetch_repodata_remote_request, UnavailableInvalidChannel
 from conda.models.channel import Channel
 
 log = getLogger(__name__)

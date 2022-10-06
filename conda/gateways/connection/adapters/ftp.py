@@ -17,16 +17,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from base64 import b64decode
 import cgi
 import ftplib
+import os
+from base64 import b64decode
 from io import BytesIO, StringIO
 from logging import getLogger
-import os
 
-from .. import BaseAdapter, Response, dispatch_hook
 from ....common.url import urlparse
 from ....exceptions import AuthenticationError
+from .. import BaseAdapter, Response, dispatch_hook
 
 log = getLogger(__name__)
 

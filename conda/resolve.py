@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections import defaultdict, OrderedDict, deque
 import copy
+from collections import OrderedDict, defaultdict, deque
 from functools import lru_cache
 from logging import DEBUG, getLogger
 
@@ -11,18 +11,28 @@ try:
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, groupby
 
-from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from ._vendor.tqdm import tqdm
-from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
+from .auxlib.decorators import memoizemethod
+from .base.constants import MAX_CHANNEL_PRIORITY, ChannelPriority, SatSolverChoice
 from .base.context import context
 from .common.compat import on_win
 from .common.io import dashlist, time_recorder
-from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolver, TRUE,
-                           minimal_unsatisfiable_subset)
+from .common.logic import (
+    TRUE,
+    Clauses,
+    PycoSatSolver,
+    PyCryptoSatSolver,
+    PySatSolver,
+    minimal_unsatisfiable_subset,
+)
 from .common.toposort import toposort
-from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFound,
-                         UnsatisfiableError)
+from .exceptions import (
+    CondaDependencyError,
+    InvalidSpec,
+    ResolvePackageNotFound,
+    UnsatisfiableError,
+)
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec

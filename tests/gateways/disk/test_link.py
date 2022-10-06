@@ -1,19 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from logging import getLogger
 import os
-from os.path import join, isdir, lexists, isfile, exists
+import uuid
+from logging import getLogger
+from os.path import exists, isdir, isfile, join, lexists
 from tempfile import gettempdir
 from unittest import TestCase
-import uuid
 
 import pytest
 
 from conda.common.compat import on_win
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.link import link, islink, readlink, symlink
+from conda.gateways.disk.link import islink, link, readlink, symlink
 from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 

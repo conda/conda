@@ -7,12 +7,12 @@ from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
-from .create import create_link
-from .delete import rm_rf
-from .link import islink, lexists
 from ...base.constants import PREFIX_MAGIC_FILE
 from ...common.path import expand
 from ...models.enums import LinkType
+from .create import create_link
+from .delete import rm_rf
+from .link import islink, lexists
 
 log = getLogger(__name__)
 

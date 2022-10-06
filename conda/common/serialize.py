@@ -1,13 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from io import StringIO
 import functools
 import json
+from io import StringIO
 from logging import getLogger
 
-from .compat import odict, ensure_text_type
 from ..auxlib.entity import EntityEncoder
+from .compat import ensure_text_type, odict
 
 try:
     import ruamel.yaml as yaml

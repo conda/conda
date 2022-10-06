@@ -3,8 +3,8 @@
 
 from logging import getLogger
 
-from .enums import LeasedPathType
 from ..auxlib.entity import Entity, EnumField, StringField
+from .enums import LeasedPathType
 
 log = getLogger(__name__)
 

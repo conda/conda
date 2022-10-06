@@ -1,6 +1,6 @@
 from itertools import islice
 from json import JSONEncoder, dumps
-from logging import getLogger, INFO, Formatter, StreamHandler, DEBUG
+from logging import DEBUG, INFO, Formatter, StreamHandler, getLogger
 from sys import stderr
 
 from . import NullHandler

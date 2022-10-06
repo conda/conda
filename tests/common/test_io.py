@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-from conda.common.io import attach_stderr_handler, captured, CaptureTarget
+import sys
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
-import sys
+
+from conda.common.io import CaptureTarget, attach_stderr_handler, captured
 
 
 def test_captured():

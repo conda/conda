@@ -1,16 +1,17 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import warnings
+
 import py
 import pytest
 
-from conda.gateways.disk.create import TemporaryDirectory
-from conda.core.subdir_data import SubdirData
 from conda.auxlib.ish import dals
-from conda.base.context import reset_context, context
-from conda.common.configuration import YamlRawParameter
+from conda.base.context import context, reset_context
 from conda.common.compat import odict
+from conda.common.configuration import YamlRawParameter
 from conda.common.serialize import yaml_round_trip_load
+from conda.core.subdir_data import SubdirData
+from conda.gateways.disk.create import TemporaryDirectory
 
 
 @pytest.fixture(autouse=True)

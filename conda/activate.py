@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from errno import ENOENT
 import json
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, exists
 import re
 import sys
+from errno import ENOENT
+from os.path import abspath, basename, dirname, exists, expanduser, expandvars, isdir, join
 from textwrap import dedent
 
 try:
@@ -18,7 +18,7 @@ except ImportError:
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from .auxlib.compat import Utf8NamedTemporaryFile
-from .base.constants import PREFIX_STATE_FILE, PACKAGE_ENV_VARS_DIR, CONDA_ENV_VARS_UNSET_VAR
+from .base.constants import CONDA_ENV_VARS_UNSET_VAR, PACKAGE_ENV_VARS_DIR, PREFIX_STATE_FILE
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
@@ -171,8 +171,9 @@ class _Activator:
         This method is generally only used by tab-completion.
         """
         # Import locally to reduce impact on initialization time.
+        from .cli.conda_argparse import find_builtin_commands, generate_parser
         from .cli.find_commands import find_commands
-        from .cli.conda_argparse import generate_parser, find_builtin_commands
+
         # return value meant to be written to stdout
         # Hidden commands to provide metadata to shells.
         return "\n".join(sorted(
@@ -730,8 +731,10 @@ def native_path_to_unix(paths):  # pragma: unix no cover
         return path_identity(paths)
     if paths is None:
         return None
-    from subprocess import CalledProcessError, PIPE, Popen
+    from subprocess import PIPE, CalledProcessError, Popen
+
     from conda.auxlib.compat import shlex_split_unicode
+
     # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
     # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
     # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at

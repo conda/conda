@@ -1,24 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections import OrderedDict
-from itertools import chain
+import json
 import os
 import re
-import json
+from collections import OrderedDict
+from itertools import chain
 
 from conda.base.context import context
-from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.compat import odict
-from conda.common.serialize import yaml_safe_load, yaml_safe_dump
+from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.core.prefix_data import PrefixData
+from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.gateways.connection.download import download_text
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
+from conda.history import History
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
-from conda.history import History
 
 try:
     from tlz.itertoolz import concatv, groupby

@@ -6,8 +6,8 @@ import os
 import socket
 from pathlib import Path
 
-import pytest
 import boto3
+import pytest
 from botocore.client import Config
 from xprocess import ProcessStarter
 

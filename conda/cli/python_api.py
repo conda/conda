@@ -3,14 +3,14 @@
 
 from logging import getLogger
 
-from .conda_argparse import do_call
-from ..common.compat import encode_arguments
-from .main import generate_parser
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
+from ..common.compat import encode_arguments
 from ..common.io import CaptureTarget, argv, captured
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
+from .conda_argparse import do_call
+from .main import generate_parser
 
 log = getLogger(__name__)
 

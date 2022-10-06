@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from pathlib import Path
-
 from unittest import mock
+
 import pytest
 
 from conda.base.constants import NOTICES_CACHE_SUBDIR

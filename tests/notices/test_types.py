@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from conda.notices.types import ChannelNoticeResponse
-
 from conda.testing.notices.helpers import get_test_notices
 
 

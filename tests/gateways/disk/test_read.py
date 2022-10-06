@@ -1,18 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from os.path import isdir, join, dirname
+from os.path import dirname, isdir, join
 from pprint import pprint
+
+import pytest
 
 from conda.common.compat import on_win
 from conda.common.path import get_python_site_packages_short_path
 from conda.common.serialize import json_dump, json_load
 from conda.gateways.disk.read import read_python_record
-import pytest
 from tests.data.env_metadata import (
-    METADATA_VERSION_PATHS, PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
-    __file__ as env_metadata_file,
+    METADATA_VERSION_PATHS,
+    PATH_TEST_ENV_1,
+    PATH_TEST_ENV_2,
+    PATH_TEST_ENV_3,
+    PATH_TEST_ENV_4,
 )
+from tests.data.env_metadata import __file__ as env_metadata_file
+
 ENV_METADATA_DIR = dirname(env_metadata_file)
 
 

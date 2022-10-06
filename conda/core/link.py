@@ -2,28 +2,21 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import itertools
+import os
+import sys
+import warnings
 from collections import defaultdict, namedtuple
 from logging import getLogger
-import os
 from os.path import basename, dirname, isdir, join
-import sys
 from pathlib import Path
-from traceback import format_exception_only
 from textwrap import indent
-import warnings
+from traceback import format_exception_only
 
 try:
     from tlz.itertoolz import concat, concatv, interleave
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv, interleave
 
-from .package_cache_data import PackageCacheData
-from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,
-                           CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                           RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
-                           RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
-                           UpdateHistoryAction, AggregateCompileMultiPycAction)
-from .prefix_data import PrefixData, get_python_version_for_prefix
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.ish import dals
@@ -31,15 +24,31 @@ from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChe
 from ..base.context import context
 from ..cli.common import confirm_yn
 from ..common.compat import ensure_text_type, odict, on_win
-from ..common.io import Spinner, dashlist, time_recorder
-from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
-from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
-                           get_python_site_packages_short_path)
+from ..common.io import (
+    DummyExecutor,
+    Spinner,
+    ThreadLimitedThreadPoolExecutor,
+    dashlist,
+    time_recorder,
+)
+from ..common.path import (
+    explode_directories,
+    get_all_directories,
+    get_major_minor_version,
+    get_python_site_packages_short_path,
+)
 from ..common.signals import signal_handler
-from ..exceptions import (DisallowedPackageError, EnvironmentNotWritableError,
-                          KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
-                          CondaSystemExit)
+from ..exceptions import (
+    CondaSystemExit,
+    DisallowedPackageError,
+    EnvironmentNotWritableError,
+    KnownPackageClobberError,
+    LinkError,
+    RemoveError,
+    SharedLinkPathClobberError,
+    UnknownPackageClobberError,
+    maybe_raise,
+)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -49,6 +58,23 @@ from ..models.enums import LinkType
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
+from .package_cache_data import PackageCacheData
+from .path_actions import (
+    AggregateCompileMultiPycAction,
+    CompileMultiPycAction,
+    CreateNonadminAction,
+    CreatePrefixRecordAction,
+    CreatePythonEntryPointAction,
+    LinkPathAction,
+    MakeMenuAction,
+    RegisterEnvironmentLocationAction,
+    RemoveLinkedPackageRecordAction,
+    RemoveMenuAction,
+    UnlinkPathAction,
+    UnregisterEnvironmentLocationAction,
+    UpdateHistoryAction,
+)
+from .prefix_data import PrefixData, get_python_version_for_prefix
 
 log = getLogger(__name__)
 

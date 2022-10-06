@@ -1,18 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from ast import literal_eval
 import codecs
-from errno import EACCES, EPERM, EROFS
 import logging
-from operator import itemgetter
 import os
-from os.path import isdir, isfile, join
 import re
 import sys
-from textwrap import dedent
 import time
 import warnings
+from ast import literal_eval
+from errno import EACCES, EPERM, EROFS
+from operator import itemgetter
+from os.path import isdir, isfile, join
+from textwrap import dedent
 
 try:
     from tlz.itertoolz import groupby, take
@@ -29,8 +29,8 @@ from .core.prefix_data import PrefixData
 from .exceptions import CondaHistoryError, NotWritableError
 from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
-from .models.version import VersionOrder, version_relation_re
 from .models.match_spec import MatchSpec
+from .models.version import VersionOrder, version_relation_re
 
 log = logging.getLogger(__name__)
 
@@ -405,6 +405,7 @@ class History:
 
 if __name__ == '__main__':
     from pprint import pprint
+
     # Don't use in context manager mode---it augments the history every time
     h = History(sys.prefix)
     pprint(h.get_user_requests())

@@ -2,34 +2,33 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-import json
-from unittest import TestCase
-
-import sys
-import os
 import getpass
+import json
+import os
+import sys
+from unittest import TestCase
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.compat import on_win
 from conda.common.io import captured, env_var
 from conda.exceptions import (
     BasicClobberError,
     BinaryPrefixReplacementError,
+    ChecksumMismatchError,
     CommandNotFoundError,
     CondaHTTPError,
     CondaKeyError,
     DirectoryNotFoundError,
+    ExceptionHandler,
     KnownPackageClobberError,
-    ChecksumMismatchError,
     PackagesNotFoundError,
     PathNotFoundError,
     SharedLinkPathClobberError,
     TooManyArgumentsError,
     UnknownPackageClobberError,
     conda_exception_handler,
-    ExceptionHandler,
 )
 
 try:

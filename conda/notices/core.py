@@ -2,17 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from functools import wraps
 import time
+from functools import wraps
 from typing import Sequence
 
-from ..base.context import context, Context
-from ..base.constants import NOTICES_FN, NOTICES_DECORATOR_DISPLAY_INTERVAL
+from ..base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL, NOTICES_FN
+from ..base.context import Context, context
 from ..models.channel import Channel, MultiChannel, get_channel_objs
-
-from . import cache
-from . import views
-from . import fetch
+from . import cache, fetch, views
 from .types import ChannelNotice, ChannelNoticeResponse, ChannelNoticeResultSet
 
 # Used below in type hints

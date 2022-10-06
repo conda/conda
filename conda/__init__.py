@@ -3,14 +3,12 @@
 """OS-agnostic, system-level binary package manager."""
 
 import os
-from os.path import abspath, dirname
 import sys
 import warnings
-
 from json import JSONEncoder
+from os.path import abspath, dirname
 
 from .auxlib.packaging import get_version
-
 
 __all__ = (
     "__name__", "__version__", "__author__", "__email__", "__license__", "__summary__", "__url__",

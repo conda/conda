@@ -8,15 +8,15 @@ from typing import NamedTuple, Union
 import pytest
 
 from conda.common.url import (
+    Url,
     add_username_and_password,
     is_ip_address,
     is_ipv6_address,
     is_url,
     maybe_add_auth,
     split_scheme_auth_token,
-    urlparse,
-    Url,
     url_to_s3_info,
+    urlparse,
 )
 
 log = getLogger(__name__)

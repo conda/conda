@@ -1,15 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import unittest
 from os.path import dirname
 from pprint import pprint
-import unittest
 from unittest import mock
 
+from conda.history import History
 from conda.testing.cases import BaseTestCase
 from conda.testing.integration import make_temp_prefix
-
-from conda.history import History
 
 
 class HistoryTestCase(BaseTestCase):

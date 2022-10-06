@@ -1,15 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-import unittest
-from logging import getLogger, Handler, DEBUG
 import os
+import unittest
+from logging import DEBUG, Handler, getLogger
 from unittest.mock import patch
 
 from conda import instructions
+from conda.exceptions import CondaFileIOError
 from conda.exports import execute_instructions
 from conda.instructions import commands
-from conda.exceptions import CondaFileIOError
 
 
 def test_expected_operation_order():

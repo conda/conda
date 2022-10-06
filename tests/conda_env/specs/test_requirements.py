@@ -3,10 +3,10 @@
 
 import unittest
 
-from .. import support_file
-
 from conda_env import env
 from conda_env.specs.requirements import RequirementsSpec
+
+from .. import support_file
 
 
 class TestRequiremets(unittest.TestCase):

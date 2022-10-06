@@ -1,13 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from logging import getLogger
 import os
 import sys
+from logging import getLogger
 
-from .main import main as main_main
 from .. import CondaError
 from ..auxlib.ish import dals
+from .main import main as main_main
 
 log = getLogger(__name__)
 

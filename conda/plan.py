@@ -10,9 +10,9 @@ NOTE:
     module.
 """
 
+import sys
 from collections import defaultdict
 from logging import getLogger
-import sys
 
 try:
     from tlz.itertoolz import concatv, groupby
@@ -28,7 +28,7 @@ from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
 from .exceptions import CondaIndexError, PackagesNotFoundError
 from .history import History
-from .instructions import (FETCH, LINK, SYMLINK_CONDA, UNLINK)
+from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
@@ -371,10 +371,12 @@ def _plan_from_actions(actions, index):  # pragma: no cover
 
 def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: no cover
     from os.path import isdir
-    from .models.dist import Dist
-    from .instructions import LINK, PROGRESSIVEFETCHEXTRACT, UNLINK, UNLINKLINKTRANSACTION
-    from .core.package_cache_data import ProgressiveFetchExtract
+
     from .core.link import PrefixSetup, UnlinkLinkTransaction
+    from .core.package_cache_data import ProgressiveFetchExtract
+    from .instructions import LINK, PROGRESSIVEFETCHEXTRACT, UNLINK, UNLINKLINKTRANSACTION
+    from .models.dist import Dist
+
     # this is only used for conda-build at this point
     first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
     if first_unlink_link_idx >= 0:
@@ -444,6 +446,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         'CONDA_SOLVER_IGNORE_TIMESTAMPS': 'false',
     }, stack_callback=stack_context_default):
         from os.path import basename
+
         from ._vendor.boltons.setutils import IndexedSet
         from .core.solve import _get_solver_class
         from .models.channel import Channel
@@ -481,8 +484,19 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
 def get_blank_actions(prefix):  # pragma: no cover
     from collections import defaultdict
-    from .instructions import (CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
-                               RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK)
+
+    from .instructions import (
+        CHECK_EXTRACT,
+        CHECK_FETCH,
+        EXTRACT,
+        FETCH,
+        LINK,
+        PREFIX,
+        RM_EXTRACTED,
+        RM_FETCHED,
+        SYMLINK_CONDA,
+        UNLINK,
+    )
     actions = defaultdict(list)
     actions[PREFIX] = prefix
     actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
@@ -509,8 +523,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):  # pr
     :param _commands: (For testing only) dict mapping an instruction to executable if None
     then the default commands will be used
     """
-    from .instructions import commands, PROGRESS_COMMANDS
     from .base.context import context
+    from .instructions import PROGRESS_COMMANDS, commands
     from .models.dist import Dist
     if _commands is None:
         _commands = commands

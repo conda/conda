@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-from itertools import chain
 import os
-from os.path import join, abspath
+from itertools import chain
+from os.path import abspath, join
 from pathlib import Path
 from tempfile import gettempdir
 from unittest import TestCase, mock
@@ -14,30 +14,29 @@ from tlz.itertoolz import concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda.base.constants import PathConflict, ChannelPriority
+from conda.base.constants import ChannelPriority, PathConflict
 from conda.base.context import (
+    conda_tests_ctxt_mgmt_def_pol,
     context,
     reset_context,
-    conda_tests_ctxt_mgmt_def_pol,
     validate_prefix_name,
 )
 from conda.common.compat import odict, on_win
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
-from conda.common.url import join_url, path_to_url
 from conda.common.serialize import yaml_round_trip_load
+from conda.common.url import join_url, path_to_url
 from conda.core.package_cache_data import PackageCacheData
-from conda.exceptions import EnvironmentNameNotFound, CondaValueError
-from conda.gateways.disk.create import mkdir_p, create_package_cache_directory
+from conda.exceptions import CondaValueError, EnvironmentNameNotFound
+from conda.gateways.disk.create import create_package_cache_directory, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.update import touch
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.utils import on_win
-
 from conda.testing.helpers import tempdir
+from conda.utils import on_win
 
 
 class ContextCustomRcTests(TestCase):

@@ -16,9 +16,9 @@ except ImportError:
     except ImportError:
         pass
 
-from .. import BaseAdapter, CaseInsensitiveDict, Response
 from ....common.compat import ensure_binary
 from ....common.url import url_to_s3_info
+from .. import BaseAdapter, CaseInsensitiveDict, Response
 
 log = getLogger(__name__)
 stderrlog = LoggerAdapter(getLogger('conda.stderrlog'), extra=dict(terminator="\n"))

@@ -1,9 +1,9 @@
 """Common collection classes."""
-from functools import reduce
 from collections.abc import Mapping, Set
+from functools import reduce
 
-from .compat import isiterable
 from .._vendor.frozendict import frozendict
+from .compat import isiterable
 
 
 def make_immutable(value):

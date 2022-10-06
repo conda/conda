@@ -14,6 +14,7 @@ from conda.models.channel import Channel, prioritize_channels
 
 from ..env import Environment
 
+
 def _solve(prefix, specs, args, env, *_, **kwargs):
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults

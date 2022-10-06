@@ -1,21 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from argparse import RawDescriptionHelpFormatter
 import os
 import sys
 import textwrap
+from argparse import RawDescriptionHelpFormatter
 
 from conda.base.context import context, determine_target_prefix
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, \
-    add_parser_experimental_solver
+from conda.cli.conda_argparse import (
+    add_parser_experimental_solver,
+    add_parser_json,
+    add_parser_prefix,
+)
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaEnvException, SpecNotFound
 from conda.misc import touch_nonadmin
 from conda.notices import notices
 
-from .common import print_result, get_filename
 from .. import specs as install_specs
 from ..installers.base import InvalidInstaller, get_installer
+from .common import get_filename, print_result
 
 description = """
 Update the current environment based on environment file

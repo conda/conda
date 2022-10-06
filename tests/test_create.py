@@ -3,24 +3,28 @@
 
 
 
-from glob import glob
-
-from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.gateways.disk.permissions import make_read_only
-from conda.gateways.disk.create import compile_multiple_pyc
-from conda.models.channel import Channel
-from conda.resolve import Resolve
-
-from itertools import chain
 import json
+import os
+import re
+import sys
+from glob import glob
+from itertools import chain
 from json import loads as json_loads
 from logging import getLogger
-import os
-from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
-import re
+from os.path import (
+    abspath,
+    basename,
+    dirname,
+    exists,
+    isdir,
+    isfile,
+    islink,
+    join,
+    lexists,
+    relpath,
+)
 from shutil import copyfile, rmtree
-from subprocess import CalledProcessError, check_call, check_output, Popen, PIPE, STDOUT
-import sys
+from subprocess import PIPE, STDOUT, CalledProcessError, Popen, check_call, check_output
 from textwrap import dedent
 from unittest import TestCase
 from unittest.mock import Mock, patch
@@ -30,54 +34,65 @@ import pytest
 import requests
 from tlz.itertoolz import groupby
 
-from conda import (
-    CondaError,
-    CondaMultiError,
-    __version__ as CONDA_VERSION,
-    CONDA_SOURCE_ROOT,
-)
+from conda import CONDA_SOURCE_ROOT, CondaError, CondaMultiError
+from conda import __version__ as CONDA_VERSION
+from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.auxlib.ish import dals
-from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, SafetyChecks, PREFIX_MAGIC_FILE
-from conda.base.context import Context, context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import ensure_text_type, on_win, on_mac
-from conda.common.io import env_var, stderr_log_level, env_vars
-from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
-    pyc_path
-from conda.common.serialize import yaml_round_trip_load, json_dump
+from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, SafetyChecks
+from conda.base.context import Context, conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from conda.common.compat import ensure_text_type, on_mac, on_win
+from conda.common.io import env_var, env_vars, stderr_log_level
+from conda.common.path import (
+    get_bin_directory_short_path,
+    get_python_site_packages_short_path,
+    pyc_path,
+)
+from conda.common.serialize import json_dump, yaml_round_trip_load
 from conda.core.index import get_reduced_index
-from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
+from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.subdir_data import create_cache_dir
-from conda.exceptions import ArgumentError, DryRunExit, OperationNotAllowed, \
-    PackagesNotFoundError, RemoveError, PackageNotInstalledError, \
-    DisallowedPackageError, DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound, \
-    CondaValueError
+from conda.exceptions import (
+    ArgumentError,
+    CondaValueError,
+    DirectoryNotACondaEnvironmentError,
+    DisallowedPackageError,
+    DryRunExit,
+    EnvironmentLocationNotFound,
+    OperationNotAllowed,
+    PackageNotInstalledError,
+    PackagesNotFoundError,
+    RemoveError,
+)
 from conda.gateways.anaconda_client import read_binstar_tokens
-from conda.gateways.disk.delete import rm_rf, path_is_clean
+from conda.gateways.disk.create import compile_multiple_pyc
+from conda.gateways.disk.delete import path_is_clean, rm_rf
+from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.update import touch
-from conda.gateways.subprocess import subprocess_call, subprocess_call_with_clean_env, Response
+from conda.gateways.subprocess import Response, subprocess_call, subprocess_call_with_clean_env
+from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
-
+from conda.resolve import Resolve
 from conda.testing.cases import BaseTestCase
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
+    Commands,
+    cp_or_copy,
     create_temp_location,
+    env_or_set,
     get_shortcut_dir,
     make_temp_channel,
+    make_temp_env,
     make_temp_package_cache,
     make_temp_prefix,
+    package_is_installed,
     reload_config,
     run_command,
-    Commands,
-    package_is_installed,
-    make_temp_env,
     tempdir,
     which_or_where,
-    cp_or_copy,
-    env_or_set,
 )
 
 log = getLogger(__name__)
@@ -461,6 +476,7 @@ class IntegrationTests(BaseTestCase):
 
     def test_list_with_pip_no_binary(self):
         from conda.exports import rm_rf as _rm_rf
+
         # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
         # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
         # We elect to test the more complex of the two options.
@@ -1873,8 +1889,8 @@ dependencies:
             rmtree(prefix, ignore_errors=True)
 
     def test_use_index_cache(self):
-        from conda.gateways.connection.session import CondaSession
         from conda.core.subdir_data import SubdirData
+        from conda.gateways.connection.session import CondaSession
         SubdirData._cache_.clear()
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])

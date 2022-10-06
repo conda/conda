@@ -2,18 +2,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from subprocess import check_output, PIPE, Popen, STDOUT
-from os.path import join, dirname, abspath, isdir
-from os import makedirs, pathsep
-from collections import OrderedDict
-
-from concurrent.futures import ThreadPoolExecutor
-
-from shlex import quote
-
-import sys
 import json
 import re
+import sys
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
+from os import makedirs, pathsep
+from os.path import abspath, dirname, isdir, join
+from shlex import quote
+from subprocess import PIPE, STDOUT, Popen, check_output
 
 manpath = join(dirname(__file__), 'build', 'man')
 if not isdir(manpath):

@@ -8,9 +8,9 @@ Think of this as a "more static" source of configuration information.
 Another important source of "static" configuration is conda/models/enums.py.
 """
 
+import struct
 from enum import Enum, EnumMeta
 from os.path import join
-import struct
 
 from ..common.compat import on_win, six_with_metaclass
 

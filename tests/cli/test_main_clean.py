@@ -4,12 +4,14 @@
 from datetime import datetime
 from json import loads as json_loads
 from os import walk
-from os.path import basename, isdir, join, exists
+from os.path import basename, exists, isdir, join
 from shutil import copy
-from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS, CONDA_LOGS_DIR
+
+from conda.base.constants import CONDA_LOGS_DIR, CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.disk.create import mkdir_p
-from conda.testing.integration import make_temp_package_cache, run_command, Commands, make_temp_env
+from conda.testing.integration import Commands, make_temp_env, make_temp_package_cache, run_command
+
 
 def _get_pkgs(pkgs_dir):
     _, dirs, _ = next(walk(pkgs_dir))

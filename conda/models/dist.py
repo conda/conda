@@ -1,13 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import re
 from collections import namedtuple
 from logging import getLogger
-import re
 
-from .channel import Channel
-from .package_info import PackageInfo
-from .records import PackageRecord
 from .. import CondaError
 from ..auxlib.entity import Entity, EntityType, IntegerField, StringField
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
@@ -15,6 +12,9 @@ from ..base.context import context
 from ..common.compat import ensure_text_type
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
+from .channel import Channel
+from .package_info import PackageInfo
+from .records import PackageRecord
 
 log = getLogger(__name__)
 DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',

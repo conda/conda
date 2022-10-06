@@ -1,13 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import sys
 from collections import OrderedDict
 from functools import lru_cache
-from genericpath import exists
 from logging import getLogger
 from os import scandir
-import sys
 
+from genericpath import exists
 
 log = getLogger(__name__)
 

@@ -3,10 +3,11 @@
 import codecs
 import sys
 from unittest.mock import patch
+
 import pytest
 
 from conda.core.subdir_data import cache_fn_url
-from conda.misc import url_pat, explicit, walk_prefix
+from conda.misc import explicit, url_pat, walk_prefix
 from conda.utils import Utf8NamedTemporaryFile
 
 

@@ -3,13 +3,12 @@
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Sequence, Tuple, Optional
+from typing import Optional, Sequence, Tuple
 
 import requests
 
 from ..common.io import Spinner
 from ..gateways.connection.session import CondaSession
-
 from .cache import cached_response
 from .types import ChannelNoticeResponse
 

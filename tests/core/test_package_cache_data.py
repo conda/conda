@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import datetime
 import json
 from os.path import abspath, basename, dirname, join
 
@@ -9,24 +10,23 @@ import pytest
 from conda import CondaError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
-from conda.common.io import env_vars, env_var
-from conda.core.index import get_index
+from conda.common.compat import on_win
+from conda.common.io import env_var, env_vars
 from conda.core import package_cache_data
+from conda.core.index import get_index
 from conda.core.package_cache_data import (
     PackageCacheData,
-    ProgressiveFetchExtract,
-    PackageRecord,
     PackageCacheRecord,
+    PackageRecord,
+    ProgressiveFetchExtract,
 )
 from conda.core.path_actions import CacheUrlAction
 from conda.exceptions import CondaHTTPError
-from conda.exports import url_path, MatchSpec
+from conda.exports import MatchSpec, url_path
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
 from conda.testing.integration import make_temp_package_cache
-from conda.common.compat import on_win
-import datetime
 
 CHANNEL_DIR = abspath(join(dirname(__file__), "..", "data", "conda_format_repo"))
 CONDA_PKG_REPO = url_path(CHANNEL_DIR)

@@ -1,65 +1,70 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
+import platform
+import struct
+import sys
+import warnings
 from collections import OrderedDict
-
+from contextlib import contextmanager
+from datetime import datetime
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
+from os.path import abspath, basename, expanduser, isdir, isfile, join
+from os.path import split as path_split
 from typing import Optional
-import os
-from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
-import platform
-import sys
-import struct
-from contextlib import contextmanager
-from datetime import datetime
-import warnings
 
 try:
     from tlz.itertoolz import concat, concatv, unique
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv, unique
 
+from .. import CONDA_SOURCE_ROOT
+from .. import __version__ as CONDA_VERSION
+from .._vendor.appdirs import user_data_dir
+from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.frozendict import frozendict
+from ..auxlib.decorators import memoizedproperty
+from ..auxlib.ish import dals
+from ..common._os.linux import linux_get_libc_version
+from ..common.compat import NoneType, odict, on_win
+from ..common.configuration import (
+    Configuration,
+    ConfigurationLoadError,
+    MapParameter,
+    ParameterLoader,
+    PrimitiveParameter,
+    SequenceParameter,
+    ValidationError,
+)
+from ..common.decorators import env_override
+from ..common.path import expand, paths_equal
+from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from .constants import (
     APP_NAME,
-    ChannelPriority,
-    DEFAULTS_CHANNEL_NAME,
-    REPODATA_FN,
+    CONDA_LOGS_DIR,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
-    DEFAULT_CHANNELS,
     DEFAULT_CHANNEL_ALIAS,
+    DEFAULT_CHANNELS,
     DEFAULT_CUSTOM_CHANNELS,
-    DepsModifier,
+    DEFAULTS_CHANNEL_NAME,
     ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
     PREFIX_MAGIC_FILE,
-    PathConflict,
+    PREFIX_NAME_DISALLOWED_CHARS,
+    REPODATA_FN,
     ROOT_ENV_NAME,
     SEARCH_PATH,
+    ChannelPriority,
+    DepsModifier,
+    ExperimentalSolverChoice,
+    PathConflict,
     SafetyChecks,
     SatSolverChoice,
-    ExperimentalSolverChoice,
     UpdateModifier,
-    CONDA_LOGS_DIR,
-    PREFIX_NAME_DISALLOWED_CHARS,
 )
-from .. import __version__ as CONDA_VERSION
-from .._vendor.appdirs import user_data_dir
-from ..auxlib.decorators import memoizedproperty
-from ..auxlib.ish import dals
-from .._vendor.boltons.setutils import IndexedSet
-from .._vendor.frozendict import frozendict
-from ..common.compat import NoneType, odict, on_win
-from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
-                                    ParameterLoader, PrimitiveParameter, SequenceParameter,
-                                    ValidationError)
-from ..common._os.linux import linux_get_libc_version
-from ..common.path import expand, paths_equal
-from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-from ..common.decorators import env_override
-
-from .. import CONDA_SOURCE_ROOT
 
 try:
     os.getcwd()
@@ -803,10 +808,11 @@ class Context(Configuration):
 
     @property
     def use_only_tar_bz2(self):
-        from ..models.version import VersionOrder
         # we avoid importing this at the top to avoid PATH issues.  Ensure that this
         #    is only called when use_only_tar_bz2 is first called.
         import conda_package_handling.api
+
+        from ..models.version import VersionOrder
         use_only_tar_bz2 = False
         if self._use_only_tar_bz2 is None:
             try:

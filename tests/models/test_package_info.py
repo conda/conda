@@ -6,8 +6,8 @@ from unittest import TestCase
 from conda.base.context import context
 from conda.models.channel import Channel
 from conda.models.enums import FileMode, PathType
-from conda.models.records import PackageRecord, PathData, PathsData
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
+from conda.models.records import PackageRecord, PathData, PathsData
 
 
 class DefaultPackageInfo(TestCase):

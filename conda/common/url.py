@@ -2,32 +2,28 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import codecs
+import re
+import socket
+import warnings
 from collections import namedtuple
 from functools import lru_cache
 from getpass import getpass
 from os.path import abspath, expanduser
-import re
-import socket
-import warnings
 
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
 try:  # pragma: py2 no cover
     # Python 3
-    from urllib.parse import (
-        quote,
-        quote_plus,
-        unquote,
-        unquote_plus,  # NOQA
-        urlparse as _urlparse,
-        urlunparse as _urlunparse,
-        ParseResult,
-    )
+    from urllib.parse import unquote_plus  # NOQA
+    from urllib.parse import ParseResult, quote, quote_plus, unquote
+    from urllib.parse import urlparse as _urlparse
+    from urllib.parse import urlunparse as _urlunparse
 except ImportError:  # pragma: py3 no cover
     # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus,  # NOQA
-                        urlparse as _urlparse, urlunparse as _urlunparse)
+    from urllib import quote, quote_plus, unquote, unquote_plus
+    from urllib import urlparse as _urlparse  # NOQA
+    from urllib import urlunparse as _urlunparse
 
 
 def hex_octal_to_int(ho):

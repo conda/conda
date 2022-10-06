@@ -3,7 +3,9 @@
 
 from contextlib import contextmanager
 from os import unlink
+
 from ..auxlib.compat import Utf8NamedTemporaryFile
+
 
 @contextmanager
 def temporary_content_in_file(content, suffix=""):

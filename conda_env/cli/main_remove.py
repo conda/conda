@@ -3,8 +3,11 @@
 
 from argparse import Namespace, RawDescriptionHelpFormatter
 
-from conda.cli.conda_argparse import add_output_and_prompt_options, add_parser_prefix, \
-    add_parser_experimental_solver
+from conda.cli.conda_argparse import (
+    add_output_and_prompt_options,
+    add_parser_experimental_solver,
+    add_parser_prefix,
+)
 
 _help = "Remove an environment"
 _description = _help + """

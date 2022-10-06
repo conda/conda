@@ -2,15 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-from logging import getLogger
 import os
 import sys
+from logging import getLogger
 
 from ..base.context import context
-from ..utils import wrap_subprocess_call
-from ..gateways.disk.delete import rm_rf
 from ..common.compat import encode_environment
+from ..gateways.disk.delete import rm_rf
 from ..gateways.subprocess import subprocess_call
+from ..utils import wrap_subprocess_call
 from .common import validate_prefix
 
 

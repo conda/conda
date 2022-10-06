@@ -1,32 +1,39 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import json
+import logging
+import os
+import signal
+import sys
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Executor, Future, _base, as_completed  # NOQA
+from concurrent.futures import (  # NOQA
+    Executor,
+    Future,
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    _base,
+    as_completed,
+)
 from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
-import sys
 from io import BytesIO, StringIO
 from itertools import cycle
-import json
-import logging
-from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
-import os
+from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
-import signal
-from threading import Event, Thread, Lock
+from threading import Event, Lock, Thread
 from time import sleep, time
 
-from .compat import on_win, encode_environment
-from .constants import NULL
-from .path import expand
+from .._vendor.tqdm import tqdm
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
-from .._vendor.tqdm import tqdm
+from .compat import encode_environment, on_win
+from .constants import NULL
+from .path import expand
 
 log = getLogger(__name__)
 

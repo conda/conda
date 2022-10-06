@@ -2,27 +2,40 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-from distutils.sysconfig import get_python_lib
-from logging import getLogger
 import ntpath
 import os
-from os.path import abspath, dirname, isfile, join, realpath
 import sys
+from distutils.sysconfig import get_python_lib
+from logging import getLogger
+from os.path import abspath, dirname, isfile, join, realpath
 from unittest import TestCase
 
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
-from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open
 from conda.common.io import captured, env_var, env_vars
 from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
-from conda.core.initialize import Result, _get_python_info, init_sh_system, init_sh_user, \
-    initialize_dev, install, install_conda_csh, install_conda_fish, \
-    install_conda_sh, install_conda_xsh, make_entry_point, make_entry_point_exe, \
-    make_initialize_plan, make_install_plan, install_condabin_conda_bat
+from conda.core.initialize import (
+    Result,
+    _get_python_info,
+    init_sh_system,
+    init_sh_user,
+    initialize_dev,
+    install,
+    install_conda_csh,
+    install_conda_fish,
+    install_conda_sh,
+    install_conda_xsh,
+    install_condabin_conda_bat,
+    make_entry_point,
+    make_entry_point_exe,
+    make_initialize_plan,
+    make_install_plan,
+)
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType

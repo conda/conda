@@ -6,9 +6,9 @@
 # If it's only used in one module, keep it in that module, preferably near the top.
 # This module should contain ONLY stdlib imports.
 
+import sys
 from itertools import chain
 from operator import methodcaller
-import sys
 from tempfile import mkdtemp
 
 on_win = bool(sys.platform == "win32")
@@ -46,6 +46,7 @@ def encode_arguments(arguments):
 from collections.abc import Iterable
 from io import StringIO
 
+
 def isiterable(obj):
     return not isinstance(obj, str) and isinstance(obj, Iterable)
 
@@ -55,7 +56,6 @@ def isiterable(obj):
 # #############################
 
 from collections import OrderedDict as odict  # NOQA
-
 from io import open as io_open  # NOQA
 
 

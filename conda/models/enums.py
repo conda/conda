@@ -1,10 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from platform import machine
 import sys
-
 from enum import Enum
+from platform import machine
 
 from ..auxlib.decorators import classproperty
 from ..auxlib.ish import dals

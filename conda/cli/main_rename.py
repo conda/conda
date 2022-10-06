@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from functools import partial
 import os
+from functools import partial
 
-from ..base.context import context, locate_prefix_by_name, validate_prefix_name
 from ..base.constants import DRY_RUN_PREFIX
+from ..base.context import context, locate_prefix_by_name, validate_prefix_name
 from ..cli import common, install
 from ..common.path import expand, paths_equal
 from ..exceptions import CondaEnvException

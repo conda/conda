@@ -7,46 +7,32 @@ but were refactored here so downstream projects can benefit from
 them too.
 """
 
+import json
+import os
+import sys
 from contextlib import contextmanager
 from functools import lru_cache
-import json
 from logging import getLogger
-import os
-from os.path import (
-    dirname,
-    exists,
-    isdir,
-    join,
-    lexists,
-)
+from os.path import dirname, exists, isdir, join, lexists
 from random import sample
 from shutil import copyfile, rmtree
 from subprocess import check_output
-import sys
 from tempfile import gettempdir
 from uuid import uuid4
-
 
 import pytest
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.auxlib.entity import EntityEncoder
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
-from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import encode_arguments, on_win
-from conda.common.io import (
-    argv,
-    captured,
-    dashlist,
-    disable_logger,
-    env_var,
-    stderr_log_level,
-)
-from conda.common.url import path_to_url, escape_channel_url
-from conda.core.prefix_data import PrefixData
+from conda.common.io import argv, captured, dashlist, disable_logger, env_var, stderr_log_level
+from conda.common.url import escape_channel_url, path_to_url
 from conda.core.package_cache_data import PackageCacheData
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import conda_exception_handler
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -56,7 +42,6 @@ from conda.gateways.logging import DEBUG
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.utils import massage_arguments
-
 
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"

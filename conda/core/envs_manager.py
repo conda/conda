@@ -1,18 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from errno import EACCES, EROFS, ENOENT
-from logging import getLogger
 import os
+from errno import EACCES, ENOENT, EROFS
+from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normpath
 
-from .prefix_data import PrefixData
 from ..base.context import context
-from ..common.compat import ensure_text_type, on_win, open
 from ..common._os import is_admin
+from ..common.compat import ensure_text_type, on_win, open
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import is_conda_environment
+from .prefix_data import PrefixData
 
 log = getLogger(__name__)
 

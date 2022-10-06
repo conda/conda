@@ -4,10 +4,10 @@
 import hashlib
 import json
 import os
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 import re
 import tarfile
 import tempfile
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 from ..auxlib.entity import EntityEncoder
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, PREFIX_PLACEHOLDER

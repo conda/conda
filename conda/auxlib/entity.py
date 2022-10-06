@@ -237,15 +237,16 @@ Chapter X: The del and null Weeds
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime
+from enum import Enum
 from functools import reduce
-from json import JSONEncoder, dumps as json_dumps, loads as json_loads
+from json import JSONEncoder
+from json import dumps as json_dumps
+from json import loads as json_loads
 from logging import getLogger
 
-from enum import Enum
-
-from . import NULL
 from .._vendor.boltons.timeutils import isoparse
 from .._vendor.frozendict import frozendict
+from . import NULL
 from .collection import AttrDict, make_immutable
 from .compat import integer_types, isiterable, odict
 from .exceptions import Raise, ValidationError

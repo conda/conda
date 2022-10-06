@@ -2,14 +2,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from os.path import exists, join
-from conda.auxlib.compat import Utf8NamedTemporaryFile
 from unittest import TestCase
 
-from conda.gateways.disk.delete import rm_rf
 import pytest
 
-from conda.testing.integration import Commands, PYTHON_BINARY, make_temp_env, make_temp_prefix, \
-    package_is_installed, run_command
+from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.gateways.disk.delete import rm_rf
+from conda.testing.integration import (
+    PYTHON_BINARY,
+    Commands,
+    make_temp_env,
+    make_temp_prefix,
+    package_is_installed,
+    run_command,
+)
 
 
 @pytest.mark.integration

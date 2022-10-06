@@ -5,7 +5,7 @@ from os.path import lexists
 
 from conda.base.context import context, determine_target_prefix
 from conda.cli import common
-from conda.cli.conda_argparse import add_parser_prefix, add_parser_json
+from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
 

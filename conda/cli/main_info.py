@@ -1,16 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections import OrderedDict
 import json
-from logging import getLogger
 import os
-from os.path import exists, expanduser, isfile, join
 import re
 import sys
+from collections import OrderedDict
+from logging import getLogger
+from os.path import exists, expanduser, isfile, join
 
-from .common import print_envs_list, stdout_json
-from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
+from .. import CONDA_PACKAGE_ROOT
+from .. import __version__ as conda_version
 from ..base.context import conda_in_private_env, context, env_name, sys_rc_path, user_rc_path
 from ..common.compat import on_win
 from ..common.url import mask_anaconda_token
@@ -18,6 +18,7 @@ from ..core.index import _supplement_index_with_system
 from ..models.channel import all_channel_urls, offline_keep
 from ..models.match_spec import MatchSpec
 from ..utils import human_bytes
+from .common import print_envs_list, stdout_json
 
 log = getLogger(__name__)
 
@@ -102,6 +103,7 @@ def print_package_info(packages):
 def get_info_dict(system=False):
     try:
         from requests import __version__ as requests_version
+
         # These environment variables can influence requests' behavior, along with configuration
         # in a .netrc file
         #   CURL_CA_BUNDLE

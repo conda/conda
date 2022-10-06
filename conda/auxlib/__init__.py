@@ -25,7 +25,9 @@ and replace auxlib. As a first step of this process we moved conda._vendor.auxli
 """
 
 # don't mess up logging for library users
-from logging import getLogger, Handler
+from logging import Handler, getLogger
+
+
 class NullHandler(Handler):  # NOQA
     def emit(self, record):
         pass
