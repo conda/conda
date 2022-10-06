@@ -35,6 +35,10 @@ repos:
       - id: pyupgrade
         args: ["--py37-plus"]
         exclude: ^conda/exports.py
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
   - repo: https://github.com/akaihola/darker
     rev: 1.5.1
     hooks:

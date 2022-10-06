@@ -8,6 +8,11 @@ extend-exclude = '''
 )/
 '''
 
+[tool.isort]
+profile = "black"
+line_length = 99
+skip = ["conda/exports.py"]
+
 [tool.vendoring]
 destination = "conda/_vendor/"
 requirements = "conda/_vendor/vendor.txt"
