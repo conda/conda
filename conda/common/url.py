@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
 from collections import namedtuple
@@ -171,7 +169,7 @@ class Url(namedtuple("Url", url_attrs)):
             scheme = scheme.lower()
         if hostname:
             hostname = hostname.lower()
-        return super(Url, cls).__new__(
+        return super().__new__(
             cls, scheme, path, query, fragment, username, password, hostname, port
         )
 
@@ -272,7 +270,7 @@ def is_ipv4_address(string_ip):
     """
     try:
         socket.inet_aton(string_ip)
-    except socket.error:
+    except OSError:
         return False
     return string_ip.count('.') == 3
 
@@ -287,7 +285,7 @@ def is_ipv6_address(string_ip):
     """
     try:
         socket.inet_pton(socket.AF_INET6, string_ip)
-    except socket.error:
+    except OSError:
         return False
     return True
 

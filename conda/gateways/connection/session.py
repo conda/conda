@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from threading import local
@@ -52,20 +50,20 @@ class CondaSessionType(type):
 
     def __new__(mcs, name, bases, dct):
         dct['_thread_local'] = local()
-        return super(CondaSessionType, mcs).__new__(mcs, name, bases, dct)
+        return super().__new__(mcs, name, bases, dct)
 
     def __call__(cls):
         try:
             return cls._thread_local.session
         except AttributeError:
-            session = cls._thread_local.session = super(CondaSessionType, cls).__call__()
+            session = cls._thread_local.session = super().__call__()
             return session
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
 
     def __init__(self):
-        super(CondaSession, self).__init__()
+        super().__init__()
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
 
@@ -169,11 +167,17 @@ class CondaHttpAuth(AuthBase):
 
         proxy_scheme = urlparse(response.url).scheme
         if proxy_scheme not in proxies:
-            raise ProxyError(dals("""
-            Could not find a proxy for %r. See
-            %s/docs/html#configure-conda-for-use-behind-a-proxy-server
+            raise ProxyError(
+                dals(
+                    """
+            Could not find a proxy for {!r}. See
+            {}/docs/html#configure-conda-for-use-behind-a-proxy-server
             for more information on how to configure proxies.
-            """ % (proxy_scheme, CONDA_HOMEPAGE_URL)))
+            """.format(
+                        proxy_scheme, CONDA_HOMEPAGE_URL
+                    )
+                )
+            )
 
         # fix-up proxy_url with username & password
         proxy_url = proxies[proxy_scheme]

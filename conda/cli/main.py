@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """conda is a tool for managing environments and packages.
@@ -32,7 +31,6 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .conda_argparse import generate_parser
 

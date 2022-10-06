@@ -24,7 +24,7 @@ jobs:
     runs-on: windows-2019
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9']
+        python-version: ['3.7', '3.8', '3.9', '3.10']
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
@@ -35,9 +35,18 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9']
+        python-version: ['3.7', '3.8', '3.9', '3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
+    steps:
+      - run: 'echo "No build required"'
+
+  linux-qemu:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10']
+        platform: ['arm64', 'ppc64le']
     steps:
       - run: 'echo "No build required"'
 

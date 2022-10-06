@@ -29,8 +29,12 @@ repos:
         exclude: ^(conda\.)?recipe/meta.yaml
       # catch git merge/rebase problems
       - id: check-merge-conflict
-      - id: fix-encoding-pragma
-        exclude: ^conda/auxlib/
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.38.2
+    hooks:
+      - id: pyupgrade
+        args: ["--py37-plus"]
+        exclude: ^conda/exports.py
   - repo: https://github.com/akaihola/darker
     rev: 1.5.1
     hooks:
@@ -62,5 +66,5 @@ repos:
     hooks:
       - id: insert-license
         files: \.py$
-        args: [--license-filepath, .github/disclaimer.txt]
+        args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
         exclude: ^conda/auxlib/

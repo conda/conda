@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from io import StringIO
 import functools
@@ -31,7 +29,7 @@ def represent_ordereddict(dumper, data):
 
         value.append((node_key, node_value))
 
-    return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
+    return yaml.nodes.MappingNode("tag:yaml.org,2002:map", value)
 
 
 yaml.representer.RoundTripRepresenter.add_representer(odict, represent_ordereddict)

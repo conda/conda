@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
 from collections import defaultdict
@@ -92,7 +90,7 @@ class SubdirDataType(type):
                         return cache_entry
             else:
                 return cache_entry
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, repodata_fn)
+        subdir_data_instance = super().__call__(channel, repodata_fn)
         subdir_data_instance._mtime = now
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
@@ -230,7 +228,7 @@ class SubdirData(metaclass=SubdirDataType):
     def _load(self):
         try:
             mtime = getmtime(self.cache_path_json)
-        except (IOError, OSError):
+        except OSError:
             log.debug("No local cache found for %s at %s", self.url_w_repodata_fn,
                       self.cache_path_json)
             if context.use_index_cache or (context.offline
@@ -301,7 +299,7 @@ class SubdirData(metaclass=SubdirDataType):
             try:
                 with io_open(self.cache_path_json, 'w') as fh:
                     fh.write(raw_repodata_str or '{}')
-            except (IOError, OSError) as e:
+            except OSError as e:
                 if e.errno in (EACCES, EPERM, EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
@@ -437,9 +435,9 @@ class SubdirData(metaclass=SubdirDataType):
         conda_packages = {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
 
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
-        use_these_legacy_keys = set(legacy_packages.keys()) - set(
+        use_these_legacy_keys = set(legacy_packages.keys()) - {
             k[:-6] + _tar_bz2 for k in conda_packages.keys()
-        )
+        }
 
         for group, copy_legacy_md5 in (
                 (conda_packages.items(), True),
@@ -683,7 +681,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
 
     # add extra values to the raw repodata json
     if json_str and json_str != "{}":
-        raw_repodata_str = u"%s, %s" % (
+        raw_repodata_str = "{}, {}".format(
             json.dumps(saved_fields)[:-1],  # remove trailing '}'
             json_str[1:]  # remove first '{'
         )
@@ -724,7 +722,7 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
         md5 = hashlib.md5(ensure_binary(url))
     except ValueError:
         md5 = hashlib.md5(ensure_binary(url), usedforsecurity=False)
-    return '%s.json' % (md5.hexdigest()[:8],)
+    return f"{md5.hexdigest()[:8]}.json"
 
 
 def add_http_value_to_dict(resp, http_key, d, dict_key):
