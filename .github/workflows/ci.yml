@@ -240,6 +240,7 @@ jobs:
     steps:
       - name: Download test results
         uses: actions/download-artifact@v3
+
       - name: Upload combined test results
         # provides one downloadable archive of all .coverage/test-report.xml files
         # of all matrix runs for further analysis.
@@ -248,7 +249,13 @@ jobs:
           name: test-results-${{ github.sha }}-all
           path: test-results-${{ github.sha }}-*
           retention-days: 90  # default: 90
+
       - name: Test Summary
         uses: test-summary/action@v1
         with:
           paths: ./test-results-${{ github.sha }}-**/test-report*.xml
+
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
