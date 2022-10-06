@@ -291,21 +291,6 @@ class ContextCustomRcTests(TestCase):
     def test_channel_priority(self):
         assert context.channel_priority == ChannelPriority.DISABLED
 
-    def test_cuda_detection(self):
-        # confirm that CUDA detection doesn't raise exception
-        version = context.cuda_version
-        assert version is None or isinstance(version, str)
-
-    def test_cuda_override(self):
-        with env_var('CONDA_OVERRIDE_CUDA', '4.5'):
-            version = context.cuda_version
-            assert version == '4.5'
-
-    def test_cuda_override_none(self):
-        with env_var('CONDA_OVERRIDE_CUDA', ''):
-            version = context.cuda_version
-            assert version is None
-
     def test_threads(self):
         default_value = None
         assert context.default_threads == default_value
