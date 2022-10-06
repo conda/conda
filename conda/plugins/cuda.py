@@ -56,7 +56,7 @@ def cuda_version():
         try:
             libcuda = dll.LoadLibrary(lib_filename)
             break
-        except:
+        except Exception:
             pass
     if libcuda is None:
         return None
@@ -78,7 +78,7 @@ def cuda_version():
         # Convert version integer to version string
         value = version_int.value
         return "%d.%d" % (value // 1000, (value % 1000) // 10)
-    except:
+    except Exception:
         return None
 
 
