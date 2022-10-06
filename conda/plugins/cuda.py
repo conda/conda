@@ -13,7 +13,6 @@ from .. import plugins
 from conda.common.decorators import env_override
 
 
-@functools.lru_cache(maxsize=1)
 @env_override("CONDA_OVERRIDE_CUDA", convert_empty_to_none=True)
 def cuda_version():
     """
@@ -82,6 +81,14 @@ def cuda_version():
         return None
 
 
+@functools.lru_cache(maxsize=1)
+def cached_cuda_version():
+    """"
+    A cached version of the cuda detection system.
+    """
+    return cuda_version()
+
+
 @plugins.register
 def conda_virtual_packages():
-    yield plugins.CondaVirtualPackage("cuda", cuda_version())
+    yield plugins.CondaVirtualPackage("cuda", cached_cuda_version())
