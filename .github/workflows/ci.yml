@@ -9,14 +9,10 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'docs/**'
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
-    paths-ignore:
-      - 'docs/**'
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
