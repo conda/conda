@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict, OrderedDict
 from logging import getLogger
@@ -16,7 +14,7 @@ from ..exceptions import CyclicalDependencyError
 log = getLogger(__name__)
 
 
-class PrefixGraph(object):
+class PrefixGraph:
     """
     A directed graph structure used for sorting packages (prefix_records) in prefixes and
     manipulating packages within prefixes (e.g. removing and pruning).
@@ -37,10 +35,10 @@ class PrefixGraph(object):
         self.spec_matches = spec_matches = {}  # Dict[PrefixRecord, Set[MatchSpec]]
         for node in records:
             parent_match_specs = tuple(MatchSpec(d) for d in node.depends)
-            parent_nodes = set(
+            parent_nodes = {
                 rec for rec in records
                 if any(m.match(rec) for m in parent_match_specs)
-            )
+            }
             graph[node] = parent_nodes
             matching_specs = IndexedSet(s for s in specs if s.match(node))
             if matching_specs:
@@ -59,7 +57,7 @@ class PrefixGraph(object):
             Tuple[PrefixRecord]: The removed nodes.
 
         """
-        node_matches = set(node for node in self.graph if spec.match(node))
+        node_matches = {node for node in self.graph if spec.match(node)}
 
         # If the spec was a track_features spec, then we need to also remove every
         # package with a feature that matches the track_feature.
@@ -90,16 +88,13 @@ class PrefixGraph(object):
         """
         graph = self.graph
         spec_matches = self.spec_matches
-        inverted_graph = {
-            node: set(key for key in graph if node in graph[key])
-            for node in graph
-        }
-        youngest_nodes_with_specs = tuple(node for node, children in inverted_graph.items()
-                                          if not children and node in spec_matches)
-        removed_nodes = tuple(filter(
-            lambda node: node in youngest_nodes_with_specs,
-            self.graph
-        ))
+        inverted_graph = {node: {key for key in graph if node in graph[key]} for node in graph}
+        youngest_nodes_with_specs = tuple(
+            node
+            for node, children in inverted_graph.items()
+            if not children and node in spec_matches
+        )
+        removed_nodes = tuple(filter(lambda node: node in youngest_nodes_with_specs, self.graph))
         for node in removed_nodes:
             self._remove_node(node)
         self._toposort()
@@ -122,12 +117,12 @@ class PrefixGraph(object):
 
         removed_nodes = set()
         while True:
-            inverted_graph = {
-                node: set(key for key in graph if node in graph[key])
-                for node in graph
-            }
-            prunable_nodes = tuple(node for node, children in inverted_graph.items()
-                                   if not children and node not in spec_matches)
+            inverted_graph = {node: {key for key in graph if node in graph[key]} for node in graph}
+            prunable_nodes = tuple(
+                node
+                for node, children in inverted_graph.items()
+                if not children and node not in spec_matches
+            )
             if not prunable_nodes:
                 break
             for node in prunable_nodes:
@@ -146,10 +141,7 @@ class PrefixGraph(object):
 
     def all_descendants(self, node):
         graph = self.graph
-        inverted_graph = {
-            node: set(key for key in graph if node in graph[key])
-            for node in graph
-        }
+        inverted_graph = {node: {key for key in graph if node in graph[key]} for node in graph}
 
         nodes = [node]
         nodes_seen = set()
@@ -238,14 +230,13 @@ class PrefixGraph(object):
             v.discard(k)
 
         # disconnected nodes go first
-        nodes_that_are_parents = set(node for parents in graph.values() for node in parents)
+        nodes_that_are_parents = {node for parents in graph.values() for node in parents}
         nodes_without_parents = (node for node in graph if not graph[node])
         disconnected_nodes = sorted(
             (node for node in nodes_without_parents if node not in nodes_that_are_parents),
             key=lambda x: x.name
         )
-        for node in disconnected_nodes:
-            yield node
+        yield from disconnected_nodes
 
         t = cls._toposort_raise_on_cycles(graph)
 
@@ -392,7 +383,7 @@ class GeneralGraph(PrefixGraph):
 
     def __init__(self, records, specs=()):
         records = tuple(records)
-        super(GeneralGraph, self).__init__(records, specs)
+        super().__init__(records, specs)
         self.specs_by_name = defaultdict(dict)
         for node in records:
             parent_dict = self.specs_by_name.get(node.name, OrderedDict())

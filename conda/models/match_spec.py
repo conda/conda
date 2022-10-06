@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 
@@ -44,7 +42,7 @@ class MatchSpecType(type):
                 new_kwargs.setdefault('target', spec_arg.target)
                 new_kwargs['_original_spec_str'] = spec_arg.original_spec_str
                 new_kwargs.update(**kwargs)
-                return super(MatchSpecType, cls).__call__(**new_kwargs)
+                return super().__call__(**new_kwargs)
             elif isinstance(spec_arg, str):
                 parsed = _parse_spec_str(spec_arg)
                 if kwargs:
@@ -53,10 +51,10 @@ class MatchSpecType(type):
                         # if kwargs has anything but optional and target,
                         # strip out _original_spec_str from parsed
                         parsed.pop('_original_spec_str', None)
-                return super(MatchSpecType, cls).__call__(**parsed)
+                return super().__call__(**parsed)
             elif isinstance(spec_arg, Mapping):
                 parsed = dict(spec_arg, **kwargs)
-                return super(MatchSpecType, cls).__call__(**parsed)
+                return super().__call__(**parsed)
             elif hasattr(spec_arg, 'to_match_spec'):
                 spec = spec_arg.to_match_spec()
                 if kwargs:
@@ -67,7 +65,7 @@ class MatchSpecType(type):
                 raise CondaValueError("Invalid MatchSpec:\n  spec_arg=%s\n  kwargs=%s"
                                       % (spec_arg, kwargs))
         else:
-            return super(MatchSpecType, cls).__call__(**kwargs)
+            return super().__call__(**kwargs)
 
 
 class MatchSpec(metaclass=MatchSpecType):
@@ -277,7 +275,7 @@ class MatchSpec(metaclass=MatchSpecType):
             return None
 
     def __repr__(self):
-        builder = ["%s(\"%s\"" % (self.__class__.__name__, self)]
+        builder = [f'{self.__class__.__name__}("{self}"']
         if self.target:
             builder.append(", target=\"%s\"" % self.target)
         if self.optional:
@@ -349,9 +347,9 @@ class MatchSpec(metaclass=MatchSpecType):
                     continue
                 value = str(self._match_components[key])
                 if any(s in value for s in ', ='):
-                    brackets.append("%s='%s'" % (key, value))
+                    brackets.append(f"{key}='{value}'")
                 else:
-                    brackets.append("%s=%s" % (key, value))
+                    brackets.append(f"{key}={value}")
 
         if brackets:
             builder.append('[%s]' % ','.join(brackets))
@@ -488,7 +486,7 @@ class MatchSpec(metaclass=MatchSpecType):
     def _merge(self, other, union=False):
 
         if self.optional != other.optional or self.target != other.target:
-            raise ValueError("Incompatible MatchSpec merge:  - %s\n  - %s" % (self, other))
+            raise ValueError(f"Incompatible MatchSpec merge:  - {self}\n  - {other}")
 
         final_components = {}
         component_names = set(self._match_components) | set(other._match_components)
@@ -506,7 +504,7 @@ class MatchSpec(metaclass=MatchSpecType):
                     try:
                         final = this_component.union(that_component)
                     except (AttributeError, ValueError, TypeError):
-                        final = '%s|%s' % (this_component, that_component)
+                        final = f"{this_component}|{that_component}"
                 else:
                     final = this_component.merge(that_component)
                 final_components[component_name] = final
@@ -764,17 +762,17 @@ class MatchInterface(metaclass=ABCMeta):
         return self.raw_value
 
     def union(self, other):
-        options = set((self.raw_value, other.raw_value))
+        options = {self.raw_value, other.raw_value}
         return '|'.join(options)
 
 
-class _StrMatchMixin(object):
+class _StrMatchMixin:
 
     def __str__(self):
         return self._raw_value
 
     def __repr__(self):
-        return "%s('%s')" % (self.__class__.__name__, self._raw_value)
+        return f"{self.__class__.__name__}('{self._raw_value}')"
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self._raw_value == other._raw_value
@@ -791,7 +789,7 @@ class ExactStrMatch(_StrMatchMixin, MatchInterface):
     __slots__ = '_raw_value',
 
     def __init__(self, value):
-        super(ExactStrMatch, self).__init__(value)
+        super().__init__(value)
 
     def match(self, other):
         try:
@@ -804,7 +802,7 @@ class ExactStrMatch(_StrMatchMixin, MatchInterface):
 class ExactLowerStrMatch(ExactStrMatch):
 
     def __init__(self, value):
-        super(ExactLowerStrMatch, self).__init__(value.lower())
+        super().__init__(value.lower())
 
     def match(self, other):
         try:
@@ -818,7 +816,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
     __slots__ = '_raw_value', '_re_match'
 
     def __init__(self, value):
-        super(GlobStrMatch, self).__init__(value)
+        super().__init__(value)
         self._re_match = None
 
         if value.startswith('^') and value.endswith('$'):
@@ -850,14 +848,14 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
 class GlobLowerStrMatch(GlobStrMatch):
 
     def __init__(self, value):
-        super(GlobLowerStrMatch, self).__init__(value.lower())
+        super().__init__(value.lower())
 
 
 class SplitStrMatch(MatchInterface):
     __slots__ = '_raw_value',
 
     def __init__(self, value):
-        super(SplitStrMatch, self).__init__(self._convert(value))
+        super().__init__(self._convert(value))
 
     def _convert(self, value):
         try:
@@ -898,7 +896,7 @@ class FeatureMatch(MatchInterface):
     __slots__ = '_raw_value',
 
     def __init__(self, value):
-        super(FeatureMatch, self).__init__(self._convert(value))
+        super().__init__(self._convert(value))
 
     def _convert(self, value):
         if not value:

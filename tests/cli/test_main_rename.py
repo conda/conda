@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
 import json
-import mock
+from unittest import mock
 import os.path
 import pathlib
 import tempfile

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
 
@@ -9,6 +7,7 @@ import functools
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
+from typing import Optional
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
@@ -68,7 +67,7 @@ from .. import plugins
 
 try:
     os.getcwd()
-except (IOError, OSError) as e:
+except OSError as e:
     if e.errno == ENOENT:
         # FileNotFoundError can occur when cwd has been deleted out from underneath the process.
         # To resolve #6584, let's go with setting cwd to sys.prefix, and see how far we get.
@@ -193,10 +192,16 @@ class Context(Configuration):
     # multithreading in various places
     _default_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                        aliases=('default_threads',))
+    # download repodata
     _repodata_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                         aliases=('repodata_threads',))
-    _verify_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
-                                      aliases=('verify_threads',))
+    # download packages; determined experimentally
+    _fetch_threads = ParameterLoader(
+        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
+    )
+    _verify_threads = ParameterLoader(
+        PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
+    )
     # this one actually defaults to 1 - that is handled in the property below
     _execute_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                        aliases=('execute_threads',))
@@ -395,8 +400,7 @@ class Context(Configuration):
                         os.environ['CONDA_PREFIX'] = determine_target_prefix(context,
                                                                              argparse_args)
 
-        super(Context, self).__init__(search_path=search_path, app_name=APP_NAME,
-                                      argparse_args=argparse_args)
+        super().__init__(search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args)
 
         # Add plugin support
         self._plugin_manager = get_plugin_manager()
@@ -481,15 +485,19 @@ class Context(Configuration):
         return _platform_map.get(sys.platform, 'unknown')
 
     @property
-    def default_threads(self):
+    def default_threads(self) -> Optional[int]:
         return self._default_threads if self._default_threads else None
 
     @property
-    def repodata_threads(self):
+    def repodata_threads(self) -> Optional[int]:
         return self._repodata_threads if self._repodata_threads else self.default_threads
 
     @property
-    def verify_threads(self):
+    def fetch_threads(self) -> Optional[int]:
+        return self._fetch_threads if self._fetch_threads else self.default_threads
+
+    @property
+    def verify_threads(self) -> Optional[int]:
         if self._verify_threads:
             threads = self._verify_threads
         elif self.default_threads:
@@ -514,9 +522,9 @@ class Context(Configuration):
             return self._subdir
         m = platform.machine()
         if m in non_x86_machines:
-            return '%s-%s' % (self.platform, m)
-        elif self.platform == 'zos':
-            return 'zos-z'
+            return f"{self.platform}-{m}"
+        elif self.platform == "zos":
+            return "zos-z"
         else:
             return '%s-%d' % (self.platform, self.bits)
 
@@ -549,7 +557,7 @@ class Context(Configuration):
         if isfile(path):
             try:
                 fh = open(path, 'a+')
-            except (IOError, OSError) as e:
+            except OSError as e:
                 log.debug(e)
                 return False
             else:
@@ -845,7 +853,7 @@ class Context(Configuration):
 
     @memoizedproperty
     def user_agent(self):
-        builder = ["conda/%s requests/%s" % (CONDA_VERSION, self.requests_version)]
+        builder = [f"conda/{CONDA_VERSION} requests/{self.requests_version}"]
         builder.append("%s/%s" % self.python_implementation_name_version)
         builder.append("%s/%s" % self.platform_system_release)
         builder.append("%s/%s" % self.os_distribution_name_version)
@@ -973,6 +981,7 @@ class Context(Configuration):
                 "repodata_fns",
                 "use_only_tar_bz2",
                 "repodata_threads",
+                "fetch_threads",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1317,6 +1326,12 @@ class Context(Configuration):
                 see much benefit here.
                 """
             ),
+            fetch_threads=dals(
+                """
+                Threads to use when downloading packages.  When not set,
+                defaults to None, which uses the default ThreadPoolExecutor behavior.
+                """
+            ),
             force_reinstall=dals(
                 """
                 Ensure that any user-requested package for the current operation is uninstalled
@@ -1636,7 +1651,7 @@ def fresh_context(env=None, search_path=SEARCH_PATH, argparse_args=None, **kwarg
         reset_context()
 
 
-class ContextStackObject(object):
+class ContextStackObject:
 
     def __init__(self, search_path=SEARCH_PATH, argparse_args=None):
         self.set_value(search_path, argparse_args)
@@ -1649,7 +1664,7 @@ class ContextStackObject(object):
         reset_context(self.search_path, self.argparse_args)
 
 
-class ContextStack(object):
+class ContextStack:
 
     def __init__(self):
         self._stack = [ContextStackObject() for _ in range(3)]
@@ -1841,7 +1856,7 @@ def _first_writable_envs_dir():
             try:
                 open(envs_dir_magic_file, 'a').close()
                 return envs_dir
-            except (IOError, OSError):
+            except OSError:
                 log.trace("Tried envs_dir but not writable: %s", envs_dir)
         else:
             from ..gateways.disk.create import create_envs_directory

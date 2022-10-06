@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from unittest import TestCase
+from unittest.mock import patch
 
 import pytest
 
@@ -19,11 +18,6 @@ from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from tests.core.test_subdir_data import platform_in_record
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
 
 log = getLogger(__name__)
 

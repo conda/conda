@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from argparse import (
     ArgumentParser as ArgumentParserBase,
@@ -21,6 +19,7 @@ from textwrap import dedent
 import warnings
 
 from .. import __version__
+from ..auxlib.compat import isiterable
 from ..auxlib.ish import dals
 from ..base import context
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
@@ -112,7 +111,7 @@ class ArgumentParser(ArgumentParserBase):
             kwargs['add_help'] = False
         else:
             add_custom_help = False
-        super(ArgumentParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if add_custom_help:
             add_parser_help(self)
@@ -211,12 +210,12 @@ class ArgumentParser(ArgumentParserBase):
                         args.extend(sys.argv[2:])
                         _exec(args, os.environ)
 
-        super(ArgumentParser, self).error(message)
+        super().error(message)
 
     def print_help(self):
         # This code path is pending deprecation; it should be removed when subcommands
         # via executables goes away
-        super(ArgumentParser, self).print_help()
+        super().print_help()
 
         if sys.argv[1:] in ([], [''], ['help'], ['-h'], ['--help']):
             from .find_commands import find_commands
@@ -226,6 +225,14 @@ class ArgumentParser(ArgumentParserBase):
                 builder.append("conda commands available from other packages (legacy):")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
+
+    def _check_value(self, action, value):
+        # extend to properly handle when we accept multiple choices and the default is a list
+        if action.choices is not None and isiterable(value):
+            for element in value:
+                super()._check_value(action, element)
+        else:
+            super()._check_value(action, value)
 
 
 def _exec(executable_args, env_vars):
@@ -777,10 +784,14 @@ def configure_parser_init(sub_parsers):
     p.add_argument(
         'shells',
         nargs='*',
-        help="One or more shells to be initialized. If not given, the default value is "
-             "'bash' on unix and 'cmd.exe' on Windows. Use the '--all' flag to initialize "
-             "all shells. Currently compatible shells are {%s}."
-             % ", ".join(sorted(COMPATIBLE_SHELLS)),
+        choices=COMPATIBLE_SHELLS,
+        metavar="SHELLS",
+        help=(
+            "One or more shells to be initialized. If not given, the default value is 'bash' on "
+            "unix and 'cmd.exe' & 'powershell' on Windows. Use the '--all' flag to initialize all "
+            f"shells. Available shells: {sorted(COMPATIBLE_SHELLS)}"
+        ),
+        default=["cmd.exe", "powershell"] if on_win else ["bash"],
     )
 
     if on_win:

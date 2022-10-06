@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
 from os.path import isdir, join
@@ -22,8 +20,11 @@ from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
 from conda.testing.helpers import TEST_DATA_DIR, add_subdir, add_subdir_to_iter, \
     get_index_r_1, get_index_r_4, raises
 
-index, r, = get_index_r_1()
-f_mkl = set(['mkl'])
+(
+    index,
+    r,
+) = get_index_r_1()
+f_mkl = {"mkl"}
 
 
 class TestSolve(unittest.TestCase):
@@ -666,30 +667,38 @@ def test_nonexistent_deps():
     index2 = {key: value for key, value in index2.items()}
     r = Resolve(index2)
 
-    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('mypackage'))) == add_subdir_to_iter({
-        'defaults::mypackage-1.0-py33_0',
-        'defaults::mypackage-1.1-py33_0',
-    })
-    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), ))) == add_subdir_to_iter({
-        'defaults::mypackage-1.1-py33_0',
-        'channel-1::nose-1.1.2-py33_0',
-        'channel-1::nose-1.2.1-py33_0',
-        'channel-1::nose-1.3.0-py33_0',
-        'channel-1::openssl-1.0.1c-0',
-        'channel-1::python-3.3.0-2',
-        'channel-1::python-3.3.0-3',
-        'channel-1::python-3.3.0-4',
-        'channel-1::python-3.3.0-pro0',
-        'channel-1::python-3.3.0-pro1',
-        'channel-1::python-3.3.1-0',
-        'channel-1::python-3.3.2-0',
-        'channel-1::readline-6.2-0',
-        'channel-1::sqlite-3.7.13-0',
-        'channel-1::system-5.8-0',
-        'channel-1::system-5.8-1',
-        'channel-1::tk-8.5.13-0',
-        'channel-1::zlib-1.2.7-0',
-    })
+    assert {
+        prec.dist_str() for prec in r.find_matches(MatchSpec("mypackage"))
+    } == add_subdir_to_iter(
+        {
+            "defaults::mypackage-1.0-py33_0",
+            "defaults::mypackage-1.1-py33_0",
+        }
+    )
+    assert {
+        prec.dist_str() for prec in r.get_reduced_index((MatchSpec("mypackage"),))
+    } == add_subdir_to_iter(
+        {
+            "defaults::mypackage-1.1-py33_0",
+            "channel-1::nose-1.1.2-py33_0",
+            "channel-1::nose-1.2.1-py33_0",
+            "channel-1::nose-1.3.0-py33_0",
+            "channel-1::openssl-1.0.1c-0",
+            "channel-1::python-3.3.0-2",
+            "channel-1::python-3.3.0-3",
+            "channel-1::python-3.3.0-4",
+            "channel-1::python-3.3.0-pro0",
+            "channel-1::python-3.3.0-pro1",
+            "channel-1::python-3.3.1-0",
+            "channel-1::python-3.3.2-0",
+            "channel-1::readline-6.2-0",
+            "channel-1::sqlite-3.7.13-0",
+            "channel-1::system-5.8-0",
+            "channel-1::system-5.8-1",
+            "channel-1::tk-8.5.13-0",
+            "channel-1::zlib-1.2.7-0",
+        }
+    )
 
     target_result = r.install(['mypackage'])
     assert target_result == r.install(['mypackage 1.1'])
@@ -792,31 +801,38 @@ def test_nonexistent_deps():
     index3 = {key: value for key, value in index3.items()}
     r = Resolve(index3)
 
-    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('mypackage'))) == add_subdir_to_iter({
-        'defaults::mypackage-1.0-py33_0',
-        'defaults::mypackage-1.1-py33_0',
-        })
-    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), )).keys()) ==\
-           add_subdir_to_iter({
-        'defaults::mypackage-1.0-py33_0',
-        'channel-1::nose-1.1.2-py33_0',
-        'channel-1::nose-1.2.1-py33_0',
-        'channel-1::nose-1.3.0-py33_0',
-        'channel-1::openssl-1.0.1c-0',
-        'channel-1::python-3.3.0-2',
-        'channel-1::python-3.3.0-3',
-        'channel-1::python-3.3.0-4',
-        'channel-1::python-3.3.0-pro0',
-        'channel-1::python-3.3.0-pro1',
-        'channel-1::python-3.3.1-0',
-        'channel-1::python-3.3.2-0',
-        'channel-1::readline-6.2-0',
-        'channel-1::sqlite-3.7.13-0',
-        'channel-1::system-5.8-0',
-        'channel-1::system-5.8-1',
-        'channel-1::tk-8.5.13-0',
-        'channel-1::zlib-1.2.7-0',
-    })
+    assert {
+        prec.dist_str() for prec in r.find_matches(MatchSpec("mypackage"))
+    } == add_subdir_to_iter(
+        {
+            "defaults::mypackage-1.0-py33_0",
+            "defaults::mypackage-1.1-py33_0",
+        }
+    )
+    assert {
+        prec.dist_str() for prec in r.get_reduced_index((MatchSpec("mypackage"),)).keys()
+    } == add_subdir_to_iter(
+        {
+            "defaults::mypackage-1.0-py33_0",
+            "channel-1::nose-1.1.2-py33_0",
+            "channel-1::nose-1.2.1-py33_0",
+            "channel-1::nose-1.3.0-py33_0",
+            "channel-1::openssl-1.0.1c-0",
+            "channel-1::python-3.3.0-2",
+            "channel-1::python-3.3.0-3",
+            "channel-1::python-3.3.0-4",
+            "channel-1::python-3.3.0-pro0",
+            "channel-1::python-3.3.0-pro1",
+            "channel-1::python-3.3.1-0",
+            "channel-1::python-3.3.2-0",
+            "channel-1::readline-6.2-0",
+            "channel-1::sqlite-3.7.13-0",
+            "channel-1::system-5.8-0",
+            "channel-1::system-5.8-1",
+            "channel-1::tk-8.5.13-0",
+            "channel-1::zlib-1.2.7-0",
+        }
+    )
 
     target_result = r.install(['mypackage'])
     target_result = [rec.dist_str() for rec in target_result]
@@ -953,15 +969,23 @@ def test_circular_dependencies():
     index2 = {key: value for key, value in index2.items()}
     r = Resolve(index2)
 
-    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == add_subdir_to_iter({
-        'defaults::package1-1.0-0',
-    })
-    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == add_subdir_to_iter({
-        'defaults::package1-1.0-0',
-        'defaults::package2-1.0-0',
-    })
-    result = r.install(['package1', 'package2'])
-    assert r.install(['package1']) == r.install(['package2']) == result
+    assert {
+        prec.dist_str() for prec in r.find_matches(MatchSpec("package1"))
+    } == add_subdir_to_iter(
+        {
+            "defaults::package1-1.0-0",
+        }
+    )
+    assert {
+        prec.dist_str() for prec in r.get_reduced_index((MatchSpec("package1"),)).keys()
+    } == add_subdir_to_iter(
+        {
+            "defaults::package1-1.0-0",
+            "defaults::package2-1.0-0",
+        }
+    )
+    result = r.install(["package1", "package2"])
+    assert r.install(["package1"]) == r.install(["package2"]) == result
     result = [r.dist_str() for r in result]
     assert result == add_subdir_to_iter([
         'defaults::package1-1.0-0',
@@ -1011,14 +1035,22 @@ def test_optional_dependencies():
     index2 = {key: value for key, value in index2.items()}
     r = Resolve(index2)
 
-    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == add_subdir_to_iter({
-        'defaults::package1-1.0-0',
-    })
-    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == add_subdir_to_iter({
-        'defaults::package1-1.0-0',
-        'defaults::package2-2.0-0',
-    })
-    result = r.install(['package1'])
+    assert {
+        prec.dist_str() for prec in r.find_matches(MatchSpec("package1"))
+    } == add_subdir_to_iter(
+        {
+            "defaults::package1-1.0-0",
+        }
+    )
+    assert {
+        prec.dist_str() for prec in r.get_reduced_index((MatchSpec("package1"),)).keys()
+    } == add_subdir_to_iter(
+        {
+            "defaults::package1-1.0-0",
+            "defaults::package2-2.0-0",
+        }
+    )
+    result = r.install(["package1"])
     result = [rec.dist_str() for rec in result]
     assert result == add_subdir_to_iter([
         'defaults::package1-1.0-0',
@@ -1783,7 +1815,7 @@ def test_channel_priority_2():
             'channel-4::sqlite-3.22.0-h1bed415_0': 2,
             'channel-4::sqlite-3.23.1-he433501_0': 1,
         })
-        installed_wo_priority = set([prec.dist_str() for prec in this_r.install(spec)])
+        installed_wo_priority = {prec.dist_str() for prec in this_r.install(spec)}
         pprint(installed_wo_priority)
         assert installed_wo_priority == add_subdir_to_iter({
             'channel-4::blas-1.0-mkl',
@@ -1966,8 +1998,8 @@ def test_surplus_features_1():
         }),
     )
     r = Resolve(OrderedDict((prec, prec) for prec in index))
-    install = r.install(['package2', 'feature'])
-    assert 'package1' not in set(d.name for d in install)
+    install = r.install(["package2", "feature"])
+    assert "package1" not in {d.name for d in install}
 
 
 def test_surplus_features_2():
@@ -2003,8 +2035,8 @@ def test_surplus_features_2():
         }),
     )
     r = Resolve(OrderedDict((prec, prec) for prec in index))
-    install = r.install(['package2', 'feature'])
-    assert 'package1' not in set(d.name for d in install)
+    install = r.install(["package2", "feature"])
+    assert "package1" not in {d.name for d in install}
 
 
 def test_get_reduced_index_broadening_with_unsatisfiable_early_dep():
@@ -2048,10 +2080,10 @@ def test_get_reduced_index_broadening_with_unsatisfiable_early_dep():
     )
     r = Resolve(OrderedDict((prec, prec) for prec in index))
 
-    install = r.install(['a'])
-    assert 'a' in set(d.name for d in install)
-    assert 'b' in set(d.name for d in install)
-    assert 'c' in set(d.name for d in install)
+    install = r.install(["a"])
+    assert "a" in {d.name for d in install}
+    assert "b" in {d.name for d in install}
+    assert "c" in {d.name for d in install}
 
 
 def test_get_reduced_index_broadening_preferred_solution():
@@ -2103,10 +2135,10 @@ def test_get_reduced_index_broadening_preferred_solution():
 
     install = r.install(['top'])
     for d in install:
-        if d.name == 'top':
-            assert d.version == '2.0', "top version should be 2.0, but is {}".format(d.version)
-        elif d.name == 'bottom':
-            assert d.version == '2.5', "bottom version should be 2.5, but is {}".format(d.version)
+        if d.name == "top":
+            assert d.version == "2.0", f"top version should be 2.0, but is {d.version}"
+        elif d.name == "bottom":
+            assert d.version == "2.5", f"bottom version should be 2.5, but is {d.version}"
 
 
 def test_arch_preferred_when_otherwise_identical_dependencies():
@@ -2142,9 +2174,9 @@ def test_arch_preferred_when_otherwise_identical_dependencies():
 
     matches = r.find_matches(MatchSpec('package1'))
     assert len(matches) == 2
-    assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
-        'defaults/noarch::package1-1.0-0',
-        add_subdir('defaults::package1-1.0-0')
+    assert {prec.dist_str() for prec in r.find_matches(MatchSpec("package1"))} == {
+        "defaults/noarch::package1-1.0-0",
+        add_subdir("defaults::package1-1.0-0"),
     }
 
     result = r.install(['package1'])
