@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, annotations, division, print_function, unicode_literals
+from __future__ import annotations
 
 from logging import getLogger
 from os.path import realpath

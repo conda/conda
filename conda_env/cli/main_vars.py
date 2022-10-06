@@ -113,7 +113,8 @@ def execute_list(args, parser):
         common.stdout_json(env_vars)
     else:
         for k, v in env_vars.items():
-            print('%s = %s' % (k, v))
+            print(f"{k} = {v}")
+
 
 def execute_set(args, parser):
     prefix = determine_target_prefix(context, args)

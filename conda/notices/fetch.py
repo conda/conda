@@ -24,6 +24,7 @@ def get_notice_responses(
     ChannelNoticeResponse objects.
 
     Args:
+        url_and_names: channel url and the channel name
         silent: turn off "loading animation" (defaults to False)
         max_workers: increase worker number in thread executor (defaults to 10)
     Returns:
@@ -57,6 +58,9 @@ def get_channel_notice_response(url: str, name: str) -> Optional[ChannelNoticeRe
         resp = session.get(url, allow_redirects=False, timeout=5)  # timeout: connect, read
     except requests.exceptions.Timeout:
         logger.info(f"Request timed out for channel: {name} url: {url}")
+        return
+    except requests.exceptions.RequestException as exc:
+        logger.error(f"Request error <{exc}> for channel: {name} url: {url}")
         return
 
     try:

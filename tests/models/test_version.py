@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, print_function
 
 from copy import copy
 from random import shuffle

@@ -12,7 +12,6 @@ Features include:
 Easily extensible to other source formats, e.g. json and ini
 
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -67,13 +66,13 @@ def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
     if not isiterable(iterable):
         iterable = [iterable]
     try:
-        return '\n'.join("%s- %s" % (padding, item) for item in iterable)
+        return "\n".join(f"{padding}- {item}" for item in iterable)
     except TypeError:
         return pretty_list([iterable], padding)
 
 
-def pretty_map(dictionary, padding='  '):
-    return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in dictionary.items())
+def pretty_map(dictionary, padding="  "):
+    return "\n".join(f"{padding}{key}: {value}" for key, value in dictionary.items())
 
 
 def expand_environment_variables(unexpanded):
@@ -90,8 +89,7 @@ class ConfigurationError(CondaError):
 class ConfigurationLoadError(ConfigurationError):
     def __init__(self, path, message_addition='', **kwargs):
         message = "Unable to load configuration file.\n  path: %(path)s\n"
-        super(ConfigurationLoadError, self).__init__(message + message_addition, path=path,
-                                                     **kwargs)
+        super().__init__(message + message_addition, path=path, **kwargs)
 
 
 class ValidationError(ConfigurationError):
@@ -100,7 +98,7 @@ class ValidationError(ConfigurationError):
         self.parameter_name = parameter_name
         self.parameter_value = parameter_value
         self.source = source
-        super(ValidationError, self).__init__(msg, **kwargs)
+        super().__init__(msg, **kwargs)
 
 
 class MultipleKeysError(ValidationError):
@@ -111,7 +109,7 @@ class MultipleKeysError(ValidationError):
         msg = ("Multiple aliased keys in file %s:\n"
                "%s"
                "Must declare only one. Prefer '%s'" % (source, pretty_list(keys), preferred_key))
-        super(MultipleKeysError, self).__init__(preferred_key, None, source, msg=msg)
+        super().__init__(preferred_key, None, source, msg=msg)
 
 
 class InvalidTypeError(ValidationError):
@@ -122,32 +120,43 @@ class InvalidTypeError(ValidationError):
             msg = ("Parameter %s = %r declared in %s has type %s.\n"
                    "Valid types:\n%s" % (parameter_name, parameter_value,
                                          source, wrong_type, pretty_list(valid_types)))
-        super(InvalidTypeError, self).__init__(parameter_name, parameter_value, source, msg=msg)
+        super().__init__(parameter_name, parameter_value, source, msg=msg)
 
 
 class InvalidElementTypeError(InvalidTypeError):
     def __init__(self, parameter_name, parameter_value, source, wrong_type,
                  valid_types, index_or_key):
         qualifier = "at index" if isinstance(index_or_key, int) else "for key"
-        msg = ("Parameter %s declared in %s has invalid element %r %s %s.\n"
-               "Valid element types:\n"
-               "%s." % (parameter_name, source, parameter_value, qualifier,
-                        index_or_key, pretty_list(valid_types)))
-        super(InvalidElementTypeError, self).__init__(parameter_name, parameter_value, source,
-                                                      wrong_type, valid_types, msg=msg)
+        msg = (
+            "Parameter %s declared in %s has invalid element %r %s %s.\n"
+            "Valid element types:\n"
+            "%s."
+            % (
+                parameter_name,
+                source,
+                parameter_value,
+                qualifier,
+                index_or_key,
+                pretty_list(valid_types),
+            )
+        )
+        super().__init__(parameter_name, parameter_value, source, wrong_type, valid_types, msg=msg)
 
 
 class CustomValidationError(ValidationError):
     def __init__(self, parameter_name, parameter_value, source, custom_message):
-        msg = ("Parameter %s = %r declared in %s is invalid.\n"
-               "%s" % (parameter_name, parameter_value, source, custom_message))
-        super(CustomValidationError, self).__init__(parameter_name, parameter_value, source,
-                                                    msg=msg)
+        msg = "Parameter %s = %r declared in %s is invalid.\n" "%s" % (
+            parameter_name,
+            parameter_value,
+            source,
+            custom_message,
+        )
+        super().__init__(parameter_name, parameter_value, source, msg=msg)
 
 
 class MultiValidationError(CondaMultiError, ConfigurationError):
     def __init__(self, errors, *args, **kwargs):
-        super(MultiValidationError, self).__init__(errors, *args, **kwargs)
+        super().__init__(errors, *args, **kwargs)
 
 
 def raise_errors(errors):
@@ -213,7 +222,7 @@ class RawParameter(metaclass=ABCMeta):
     @classmethod
     def make_raw_parameters(cls, source, from_map):
         if from_map:
-            return dict((key, cls(source, key, from_map[key])) for key in from_map)
+            return {key: cls(source, key, from_map[key]) for key in from_map}
         return EMPTY_MAP
 
 
@@ -250,10 +259,13 @@ class EnvRawParameter(RawParameter):
 
     @classmethod
     def make_raw_parameters(cls, appname):
-        keystart = "{0}_".format(appname.upper())
-        raw_env = dict((k.replace(keystart, '', 1).lower(), v)
-                       for k, v in environ.items() if k.startswith(keystart))
-        return super(EnvRawParameter, cls).make_raw_parameters(EnvRawParameter.source, raw_env)
+        keystart = f"{appname.upper()}_"
+        raw_env = {
+            k.replace(keystart, "", 1).lower(): v
+            for k, v in environ.items()
+            if k.startswith(keystart)
+        }
+        return super().make_raw_parameters(EnvRawParameter.source, raw_env)
 
 
 class ArgParseRawParameter(RawParameter):
@@ -279,8 +291,7 @@ class ArgParseRawParameter(RawParameter):
 
     @classmethod
     def make_raw_parameters(cls, args_from_argparse):
-        return super(ArgParseRawParameter, cls).make_raw_parameters(ArgParseRawParameter.source,
-                                                                    args_from_argparse)
+        return super().make_raw_parameters(ArgParseRawParameter.source, args_from_argparse)
 
 
 class YamlRawParameter(RawParameter):
@@ -288,7 +299,7 @@ class YamlRawParameter(RawParameter):
 
     def __init__(self, source, key, raw_value, key_comment):
         self._key_comment = key_comment
-        super(YamlRawParameter, self).__init__(source, key, raw_value)
+        super().__init__(source, key, raw_value)
 
         if isinstance(self._raw_value, CommentedSeq):
             value_comments = self._get_yaml_list_comments(self._raw_value)
@@ -300,8 +311,9 @@ class YamlRawParameter(RawParameter):
             self._value = tuple(children_values)
         elif isinstance(self._raw_value, CommentedMap):
             value_comments = self._get_yaml_map_comments(self._raw_value)
-            self._value_flags = dict((k, ParameterFlag.from_string(v))
-                                     for k, v in value_comments.items() if v is not None)
+            self._value_flags = {
+                k: ParameterFlag.from_string(v) for k, v in value_comments.items() if v is not None
+            }
             children_values = {}
             for k, v in self._raw_value.items():
                 children_values[k] = YamlRawParameter(self.source, self.key, v, value_comments[k])
@@ -351,23 +363,27 @@ class YamlRawParameter(RawParameter):
 
     @staticmethod
     def _get_yaml_map_comments(value):
-        return dict((key, excepts((AttributeError, KeyError),
-                                  lambda k: value.ca.items[k][2].value.strip() or None,
-                                  lambda _: None  # default value on exception
-                                  )(key))
-                    for key in value)
+        return {
+            key: excepts(
+                (AttributeError, KeyError),
+                lambda k: value.ca.items[k][2].value.strip() or None,
+                lambda _: None,  # default value on exception
+            )(key)
+            for key in value
+        }
 
     @classmethod
     def make_raw_parameters(cls, source, from_map):
         if from_map:
-            return dict((key, cls(source, key, from_map[key],
-                                  cls._get_yaml_key_comment(from_map, key)))
-                        for key in from_map)
+            return {
+                key: cls(source, key, from_map[key], cls._get_yaml_key_comment(from_map, key))
+                for key in from_map
+            }
         return EMPTY_MAP
 
     @classmethod
     def make_raw_parameters_from_file(cls, filepath):
-        with open(filepath, 'r') as fh:
+        with open(filepath) as fh:
             try:
                 yaml_obj = yaml_round_trip_load(fh)
             except ScannerError as err:
@@ -391,7 +407,7 @@ class DefaultValueRawParameter(RawParameter):
     """
 
     def __init__(self, source, key, raw_value):
-        super(DefaultValueRawParameter, self).__init__(source, key, raw_value)
+        super().__init__(source, key, raw_value)
 
         if isinstance(self._raw_value, Mapping):
             children_values = {}
@@ -578,7 +594,7 @@ class LoadedParameter(metaclass=ABCMeta):
             msg = str(e)
             if issubclass(element_type, Enum):
                 choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
-                msg += "\nValid choices for {}: {}".format(self._name, choices)
+                msg += f"\nValid choices for {self._name}: {choices}"
             raise CustomValidationError(self._name, e.value, source, msg)
 
     @staticmethod
@@ -629,8 +645,7 @@ class PrimitiveLoadedParameter(LoadedParameter):
         """
         self._type = element_type
         self._element_type = element_type
-        super(PrimitiveLoadedParameter, self).__init__(
-            name, value, key_flag, value_flags, validation)
+        super().__init__(name, value, key_flag, value_flags, validation)
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -665,10 +680,10 @@ class MapLoadedParameter(LoadedParameter):
             value_flags (Mapping): Map of priority value flags.
         """
         self._element_type = element_type
-        super(MapLoadedParameter, self).__init__(name, value, key_flag, value_flags, validation)
+        super().__init__(name, value, key_flag, value_flags, validation)
 
     def collect_errors(self, instance, typed_value, source="<<merged>>"):
-        errors = super(MapLoadedParameter, self).collect_errors(instance, typed_value, self.value)
+        errors = super().collect_errors(instance, typed_value, self.value)
 
         # recursively validate the values in the map
         if isinstance(self.value, Mapping):
@@ -691,10 +706,11 @@ class MapLoadedParameter(LoadedParameter):
         # map keys with important values
         def key_is_important(match, key):
             return match.value_flags.get(key) == ParameterFlag.final
-        important_maps = tuple(dict((k, v)
-                                    for k, v in match_value.items()
-                                    if key_is_important(match, k))
-                               for match, match_value in relevant_matches_and_values)
+
+        important_maps = tuple(
+            {k: v for k, v in match_value.items() if key_is_important(match, k)}
+            for match, match_value in relevant_matches_and_values
+        )
 
         # map each value by recursively calling merge on any entries with the same key
         merged_values = frozendict(merge_with(
@@ -730,12 +746,10 @@ class SequenceLoadedParameter(LoadedParameter):
             value_flags (Sequence): Sequence of priority value_flags.
         """
         self._element_type = element_type
-        super(SequenceLoadedParameter, self).__init__(
-            name, value, key_flag, value_flags, validation)
+        super().__init__(name, value, key_flag, value_flags, validation)
 
     def collect_errors(self, instance, typed_value, source="<<merged>>"):
-        errors = super(SequenceLoadedParameter, self).collect_errors(
-            instance, typed_value, self.value)
+        errors = super().collect_errors(instance, typed_value, self.value)
         # recursively collect errors on the elements in the sequence
         for idx, element in enumerate(self.value):
             errors.extend(element.collect_errors(instance, typed_value[idx], source))
@@ -805,12 +819,10 @@ class ObjectLoadedParameter(LoadedParameter):
             value_flags (Sequence): Sequence of priority value_flags.
         """
         self._element_type = element_type
-        super(ObjectLoadedParameter, self).__init__(
-            name, value, key_flag, value_flags, validation)
+        super().__init__(name, value, key_flag, value_flags, validation)
 
     def collect_errors(self, instance, typed_value, source="<<merged>>"):
-        errors = super(ObjectLoadedParameter, self).collect_errors(
-            instance, typed_value, self.value)
+        errors = super().collect_errors(instance, typed_value, self.value)
 
         # recursively validate the values in the object fields
         if isinstance(self.value, ConfigurationObject):
@@ -837,10 +849,11 @@ class ObjectLoadedParameter(LoadedParameter):
         # map keys with important values
         def key_is_important(match, key):
             return match.value_flags.get(key) == ParameterFlag.final
-        important_maps = tuple(dict((k, v)
-                                    for k, v in match_value.items()
-                                    if key_is_important(match, k))
-                               for match, match_value in relevant_matches_and_values)
+
+        important_maps = tuple(
+            {k: v for k, v in match_value.items() if key_is_important(match, k)}
+            for match, match_value in relevant_matches_and_values
+        )
 
         # map each value by recursively calling merge on any entries with the same key
         merged_values = frozendict(merge_with(
@@ -867,7 +880,7 @@ class ObjectLoadedParameter(LoadedParameter):
             validation=self._validation)
 
 
-class ConfigurationObject(object):
+class ConfigurationObject:
     """
     Dummy class to mark whether a Python object has config parameters within.
     """
@@ -946,7 +959,7 @@ class Parameter(metaclass=ABCMeta):
             msg = str(e)
             if issubclass(element_type, Enum):
                 choices = ", ".join(map("'{}'".format, element_type.__members__.values()))
-                msg += "\nValid choices for {}: {}".format(name, choices)
+                msg += f"\nValid choices for {name}: {choices}"
             raise CustomValidationError(name, e.value, source, msg)
 
 
@@ -967,7 +980,7 @@ class PrimitiveParameter(Parameter):
         """
         self._type = type(default) if element_type is None else element_type
         self._element_type = self._type
-        super(PrimitiveParameter, self).__init__(default, validation)
+        super().__init__(default, validation)
 
     def load(self, name, match):
         return PrimitiveLoadedParameter(
@@ -993,11 +1006,11 @@ class MapParameter(Parameter):
         """
         self._element_type = element_type
         default = default and frozendict(default) or frozendict()
-        super(MapParameter, self).__init__(default, validation=validation)
+        super().__init__(default, validation=validation)
 
     def get_all_matches(self, name, names, instance):
         # it also config settings like `proxy_servers: ~`
-        matches, exceptions = super(MapParameter, self).get_all_matches(name, names, instance)
+        matches, exceptions = super().get_all_matches(name, names, instance)
         matches = tuple(m for m in matches if m._raw_value is not None)
         return matches, exceptions
 
@@ -1046,13 +1059,13 @@ class SequenceParameter(Parameter):
         """
         self._element_type = element_type
         self.string_delimiter = string_delimiter
-        super(SequenceParameter, self).__init__(default, validation)
+        super().__init__(default, validation)
 
     def get_all_matches(self, name, names, instance):
         # this is necessary to handle argparse `action="append"`, which can't be set to a
         #   default value of NULL
         # it also config settings like `channels: ~`
-        matches, exceptions = super(SequenceParameter, self).get_all_matches(name, names, instance)
+        matches, exceptions = super().get_all_matches(name, names, instance)
         matches = tuple(m for m in matches if m._raw_value is not None)
         return matches, exceptions
 
@@ -1099,11 +1112,11 @@ class ObjectParameter(Parameter):
             default (Sequence): default value, empty tuple if not given.
         """
         self._element_type = element_type
-        super(ObjectParameter, self).__init__(default, validation)
+        super().__init__(default, validation)
 
     def get_all_matches(self, name, names, instance):
         # it also config settings like `proxy_servers: ~`
-        matches, exceptions = super(ObjectParameter, self).get_all_matches(name, names, instance)
+        matches, exceptions = super().get_all_matches(name, names, instance)
         matches = tuple(m for m in matches if m._raw_value is not None)
         return matches, exceptions
 
@@ -1154,7 +1167,7 @@ class ObjectParameter(Parameter):
             validation=self._validation)
 
 
-class ParameterLoader(object):
+class ParameterLoader:
     """
     ParameterLoader class contains the top level logic needed to load a parameter from start to
     finish.
@@ -1252,7 +1265,7 @@ class ConfigurationType(type):
     """metaclass for Configuration"""
 
     def __init__(cls, name, bases, attr):
-        super(ConfigurationType, cls).__init__(name, bases, attr)
+        super().__init__(name, bases, attr)
 
         # call _set_name for each parameter
         cls.parameter_names = tuple(p._set_name(name) for name, p in cls.__dict__.items()

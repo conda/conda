@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 
 from glob import glob
@@ -94,7 +93,7 @@ class IntegrationTests(BaseTestCase):
 
     def test_install_python2_and_search(self):
         with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
-            log.warning("Creating empty temporary environment txt file {}".format(env_txt))
+            log.warning(f"Creating empty temporary environment txt file {env_txt}")
             environment_txt = env_txt.name
 
         with patch('conda.core.envs_manager.get_user_environments_txt_file',
@@ -623,14 +622,14 @@ dependencies:
                 from conda.gateways.connection.download import download
                 download('https://repo.anaconda.com/pkgs/main/' + bzip2_data.subdir + '/' + bzip2_fname,
                          tar_old_path, None)
-            assert isfile(tar_old_path), "Failed to cache:\n{}".format(tar_old_path)
+            assert isfile(tar_old_path), f"Failed to cache:\n{tar_old_path}"
             # It would be nice to be able to do this, but the cache folder name comes from
             # the file name and that is then all out of whack with the metadata.
             # tar_new_path = join(prefix, '家' + bzip2_fname)
             tar_new_path = join(prefix, bzip2_fname)
 
             run_command(Commands.RUN, prefix, cp_or_copy, tar_old_path, tar_new_path)
-            assert isfile(tar_new_path), "Failed to copy:\n{}\nto:\n{}".format(tar_old_path, tar_new_path)
+            assert isfile(tar_new_path), f"Failed to copy:\n{tar_old_path}\nto:\n{tar_new_path}"
             run_command(Commands.INSTALL, prefix, tar_new_path)
             assert package_is_installed(prefix, 'bzip2')
 
@@ -998,8 +997,14 @@ dependencies:
 
                 assert len(exc.value.errors) == 2
                 str_exc_value = str(exc.value)
-                assert str("must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs") in str_exc_value
-                assert str("default_python value 'anaconda' not of the form '[23].[0-9][0-9]?'") in str_exc_value
+                assert (
+                    "must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs"
+                    in str_exc_value
+                )
+                assert (
+                    "default_python value 'anaconda' not of the form '[23].[0-9][0-9]?'"
+                    in str_exc_value
+                )
             finally:
                 reset_context()
 
@@ -1211,7 +1216,7 @@ dependencies:
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         shortcut_dir = get_shortcut_dir()
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
         with make_temp_env(prefix=prefix):
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "console_shortcut",
                                          "--no-shortcuts")
@@ -1222,17 +1227,20 @@ dependencies:
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
         shortcut_dir = get_shortcut_dir()
-        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
-                                          "".format(sys.version_info.major, context.bits))
+        shortcut_dir = join(
+            shortcut_dir, "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits)
+        )
 
         prefix = make_temp_prefix(str(uuid4())[:7])
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
         try:
             with make_temp_env("console_shortcut", prefix=prefix):
-                assert package_is_installed(prefix, 'console_shortcut')
-                assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
-                                               "Contents of dir:\n"
-                                               "{0}".format(os.listdir(shortcut_dir)))
+                assert package_is_installed(prefix, "console_shortcut")
+                assert isfile(shortcut_file), (
+                    "Shortcut not found in menu dir. "
+                    "Contents of dir:\n"
+                    "{}".format(os.listdir(shortcut_dir))
+                )
 
                 # make sure that cleanup without specifying --shortcuts still removes shortcuts
                 run_command(Commands.REMOVE, prefix, 'console_shortcut')
@@ -1246,11 +1254,12 @@ dependencies:
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_does_not_barf_on_uninstall(self):
         shortcut_dir = get_shortcut_dir()
-        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
-                                          "".format(sys.version_info.major, context.bits))
+        shortcut_dir = join(
+            shortcut_dir, "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits)
+        )
 
         prefix = make_temp_prefix(str(uuid4())[:7])
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
         assert not isfile(shortcut_file)
 
         try:
@@ -1271,11 +1280,12 @@ dependencies:
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_when_condarc_set(self):
         shortcut_dir = get_shortcut_dir()
-        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
-                                          "".format(sys.version_info.major, context.bits))
+        shortcut_dir = join(
+            shortcut_dir, "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits)
+        )
 
         prefix = make_temp_prefix(str(uuid4())[:7])
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
         assert not isfile(shortcut_file)
 
         # set condarc shortcuts: False
@@ -1371,7 +1381,7 @@ dependencies:
             run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json")
         output, _, _ = run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json", use_exception_handler=True)
         loaded = json.loads(output)
-        names = set(d['name'] for d in loaded['actions']['LINK'])
+        names = {d["name"] for d in loaded["actions"]["LINK"]}
         assert "python" in names
         assert "flask" in names
 
@@ -1443,7 +1453,7 @@ dependencies:
                                          "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n" \
                                          "for a likely place to add more fixes".format(prefix, output)
             output, _, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
-            pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
+            pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
             assert "six==1.9.0" in pkgs
 
             py_ver = get_python_version_for_prefix(prefix)
@@ -1468,7 +1478,7 @@ dependencies:
             }
             assert package_is_installed(prefix, "six=1.10.0")
             output, err, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
-            pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
+            pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
             assert "six==1.10.0" in pkgs
 
             six_record = next(PrefixData(prefix).query("six"))
@@ -1567,7 +1577,7 @@ dependencies:
             assert not stderr
             assert package_is_installed(prefix, "six>=1.11")
             output, err, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
-            pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
+            pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
             six_record = next(PrefixData(prefix).query("six"))
             assert "six==%s" % six_record.version in pkgs
 
@@ -1929,8 +1939,8 @@ dependencies:
 
                         result_dict = {}
                         def side_effect(self, url, **kwargs):
-                            if not url.startswith('file://'):
-                                raise AssertionError('Attempt to fetch repodata: {}'.format(url))
+                            if not url.startswith("file://"):
+                                raise AssertionError(f"Attempt to fetch repodata: {url}")
                             if url.startswith(channel):
                                 result_dict['local_channel_seen'] = True
                             return orig_get(self, url, **kwargs)
