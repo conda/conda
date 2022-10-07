@@ -2,13 +2,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-# Copyright (C) 2021 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 import ctypes
 import functools
 import platform
 
+from contextlib import suppress
 from .. import plugins
 from conda.common.decorators import env_override
 
@@ -78,7 +76,7 @@ def cuda_version():
         return None
 
 
-@functools.lru_cache(maxsize=1)
+@functools.lru_cache(maxsize=None)
 def cached_cuda_version():
     """"
     A cached version of the cuda detection system.

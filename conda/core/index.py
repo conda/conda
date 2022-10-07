@@ -164,104 +164,6 @@ def _supplement_index_with_features(index, features=()):
         index[rec] = rec
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-def _supplement_index_with_system(index):
-    cuda_version = context.cuda_version
-    if cuda_version is not None:
-        rec = _make_virtual_package('__cuda', cuda_version)
-=======
-def _supplement_index_with_system(index):
-    cuda_version = context.cuda_version
-    if cuda_version is not None:
-        rec = _make_virtual_package("__cuda", cuda_version)
->>>>>>> 27a7a6fb6 (Revert changes to index.py)
-        index[rec] = rec
-
-    dist_name, dist_version = context.os_distribution_name_version
-    is_osx = context.subdir.startswith("osx-")
-    if is_osx:
-        # User will have to set env variable when using CONDA_SUBDIR var
-<<<<<<< HEAD
-        dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
-        if dist_version:
-            rec = _make_virtual_package('__osx', dist_version)
-=======
-        dist_version = os.environ.get("CONDA_OVERRIDE_OSX", dist_version)
-        if dist_version:
-            rec = _make_virtual_package("__osx", dist_version)
->>>>>>> 27a7a6fb6 (Revert changes to index.py)
-            index[rec] = rec
-
-    libc_family, libc_version = context.libc_family_version
-    is_linux = context.subdir.startswith("linux-")
-    if is_linux:
-        # By convention, the kernel release string should be three or four
-        # numeric components, separated by dots, followed by vendor-specific
-        # bits.  For the purposes of versioning the `__linux` virtual package,
-        # discard everything after the last digit of the third or fourth
-        # numeric component; note that this breaks version ordering for
-        # development (`-rcN`) kernels, but we'll deal with that later.
-<<<<<<< HEAD
-        dist_version = os.environ.get('CONDA_OVERRIDE_LINUX', context.platform_system_release[1])
-        m = re.match(r'\d+\.\d+(\.\d+)?(\.\d+)?', dist_version)
-        rec = _make_virtual_package('__linux', m.group() if m else "0")
-=======
-        dist_version = os.environ.get("CONDA_OVERRIDE_LINUX", context.platform_system_release[1])
-        m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
-        rec = _make_virtual_package("__linux", m.group() if m else "0")
->>>>>>> 27a7a6fb6 (Revert changes to index.py)
-        index[rec] = rec
-
-        if not (libc_family and libc_version):
-            # Default to glibc when using CONDA_SUBDIR var
-            libc_family = "glibc"
-<<<<<<< HEAD
-        libc_version = os.getenv(f"CONDA_OVERRIDE_{libc_family.upper()}", libc_version)
-        if libc_version:
-            rec = _make_virtual_package('__' + libc_family, libc_version)
-            index[rec] = rec
-
-    if is_linux or is_osx:
-        rec = _make_virtual_package('__unix')
-        index[rec] = rec
-    elif context.subdir.startswith('win-'):
-        rec = _make_virtual_package('__win')
-=======
-        libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
-        if libc_version:
-            rec = _make_virtual_package("__" + libc_family, libc_version)
-            index[rec] = rec
-
-    if is_linux or is_osx:
-        rec = _make_virtual_package("__unix")
-        index[rec] = rec
-    elif context.subdir.startswith("win-"):
-        rec = _make_virtual_package("__win")
->>>>>>> 27a7a6fb6 (Revert changes to index.py)
-        index[rec] = rec
-
-    archspec_name = get_archspec_name()
-    archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC", archspec_name)
-    if archspec_name:
-<<<<<<< HEAD
-        rec = _make_virtual_package('__archspec', "1", archspec_name)
-        index[rec] = rec
-
-
-=======
->>>>>>> 535fc4a81 (Fix virtual packages unit test, update index module)
-=======
-        rec = _make_virtual_package("__archspec", "1", archspec_name)
-        index[rec] = rec
-
-
->>>>>>> 27a7a6fb6 (Revert changes to index.py)
-=======
->>>>>>> 726555d0b (Remove virtual package code from index.py, add plugins and register them in context.py)
-=======
 def _supplement_index_with_system(index):
     """
     Loads and populates virtual package records from conda plugins
@@ -283,7 +185,6 @@ def _supplement_index_with_system(index):
         index[rec] = rec
 
 
->>>>>>> 8b1ec621f (Move _supplement_index_with_system back up to where it was previous to refactoring)
 def get_archspec_name():
     from conda.base.context import non_x86_machines, _arch_names, _platform_map
 
