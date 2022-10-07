@@ -50,14 +50,11 @@ def cuda_version():
         dll = ctypes.windll
     else:
         dll = ctypes.cdll
-    libcuda = None
     for lib_filename in lib_filenames:
-        try:
+        with suppress(Exception):
             libcuda = dll.LoadLibrary(lib_filename)
             break
-        except Exception:
-            pass
-    if libcuda is None:
+    else:
         return None
 
     # Get CUDA version
