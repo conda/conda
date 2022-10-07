@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +6,7 @@ import os
 from os.path import join
 import random
 import unittest
+from unittest.mock import patch
 from uuid import uuid4
 
 from conda.core.prefix_data import PrefixData
@@ -23,13 +23,7 @@ from tests.test_utils import is_prefix_activated_PATHwise
 
 from conda_env.env import from_environment
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
-
-
-PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
+PYTHON_BINARY = "python.exe" if on_win else "bin/python"
 
 
 try:
@@ -42,12 +36,12 @@ import pytest
 from conda_env import env
 
 
-class FakeStream(object):
+class FakeStream:
     def __init__(self):
-        self.output = ''
+        self.output = ""
 
     def write(self, chunk):
-        self.output += chunk.decode('utf-8')
+        self.output += chunk.decode("utf-8")
 
 
 def get_environment(filename):
@@ -114,7 +108,7 @@ class EnvironmentTestCase(unittest.TestCase):
 
     def test_has_filename_if_provided(self):
         r = random.randint(100, 200)
-        random_filename = '/path/to/random/environment-{}.yml'.format(r)
+        random_filename = f"/path/to/random/environment-{r}.yml"
         e = env.Environment(filename=random_filename)
         self.assertEqual(e.filename, random_filename)
 
@@ -123,7 +117,7 @@ class EnvironmentTestCase(unittest.TestCase):
         self.assertEqual(e.name, None)
 
     def test_has_name_if_provided(self):
-        random_name = 'random-{}'.format(random.randint(100, 200))
+        random_name = f"random-{random.randint(100, 200)}"
         e = env.Environment(name=random_name)
         self.assertEqual(e.name, random_name)
 
@@ -178,12 +172,8 @@ class EnvironmentTestCase(unittest.TestCase):
         self.assertEqual(e.channels, random_channels)
 
     def test_to_dict_returns_dictionary_of_data(self):
-        random_name = 'random{}'.format(random.randint(100, 200))
-        e = env.Environment(
-            name=random_name,
-            channels=['javascript'],
-            dependencies=['nodejs']
-        )
+        random_name = f"random{random.randint(100, 200)}"
+        e = env.Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
 
         expected = {
             'name': random_name,
@@ -193,54 +183,40 @@ class EnvironmentTestCase(unittest.TestCase):
         self.assertEqual(e.to_dict(), expected)
 
     def test_to_dict_returns_just_name_if_only_thing_present(self):
-        e = env.Environment(name='simple')
-        expected = {'name': 'simple'}
+        e = env.Environment(name="simple")
+        expected = {"name": "simple"}
         self.assertEqual(e.to_dict(), expected)
 
     def test_to_yaml_returns_yaml_parseable_string(self):
-        random_name = 'random{}'.format(random.randint(100, 200))
-        e = env.Environment(
-            name=random_name,
-            channels=['javascript'],
-            dependencies=['nodejs']
-        )
+        random_name = f"random{random.randint(100, 200)}"
+        e = env.Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
 
-        expected = {
-            'name': random_name,
-            'channels': ['javascript'],
-            'dependencies': ['nodejs']
-        }
+        expected = {"name": random_name, "channels": ["javascript"], "dependencies": ["nodejs"]}
 
         actual = yaml_round_trip_load(StringIO(e.to_yaml()))
         self.assertEqual(expected, actual)
 
     def test_to_yaml_returns_proper_yaml(self):
-        random_name = 'random{}'.format(random.randint(100, 200))
-        e = env.Environment(
-            name=random_name,
-            channels=['javascript'],
-            dependencies=['nodejs']
-        )
+        random_name = f"random{random.randint(100, 200)}"
+        e = env.Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
 
-        expected = '\n'.join([
-            "name: %s" % random_name,
-            "channels:",
-            "  - javascript",
-            "dependencies:",
-            "  - nodejs",
-            ""
-        ])
+        expected = "\n".join(
+            [
+                "name: %s" % random_name,
+                "channels:",
+                "  - javascript",
+                "dependencies:",
+                "  - nodejs",
+                "",
+            ]
+        )
 
         actual = e.to_yaml()
         self.assertEqual(expected, actual)
 
     def test_to_yaml_takes_stream(self):
-        random_name = 'random{}'.format(random.randint(100, 200))
-        e = env.Environment(
-            name=random_name,
-            channels=['javascript'],
-            dependencies=['nodejs']
-        )
+        random_name = f"random{random.randint(100, 200)}"
+        e = env.Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
 
         s = FakeStream()
         e.to_yaml(stream=s)
@@ -382,21 +358,23 @@ class EnvironmentSaveTestCase(unittest.TestCase):
         self.assertTrue(os.path.exists(self.env_file))
 
     def _test_saves_yaml_representation_of_file(self):
-        e = env.Environment(filename=self.env_file, name='simple')
+        e = env.Environment(filename=self.env_file, name="simple")
         e.save()
 
         with open(self.env_file, "rb") as fp:
             actual = fp.read()
 
-        self.assert_(len(actual) > 0, msg='sanity check')
+        self.assertTrue(len(actual) > 0, msg="sanity check")
         self.assertEqual(e.to_yaml(), actual)
 
 
 class SaveExistingEnvTestCase(unittest.TestCase):
-    @unittest.skipIf(not is_prefix_activated_PATHwise(),
-                      "You are running `pytest` outside of proper activation. "
-                      "The entries necessary for conda to operate correctly "
-                      "are not on PATH.  Please use `conda activate`")
+    @unittest.skipIf(
+        not is_prefix_activated_PATHwise(),
+        "You are running `pytest` outside of proper activation. "
+        "The entries necessary for conda to operate correctly "
+        "are not on PATH.  Please use `conda activate`",
+    )
     @pytest.mark.integration
     def test_create_advanced_pip(self):
         with make_temp_envs_dir() as envs_dir:

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
 from itertools import chain
@@ -48,8 +46,8 @@ def validate_keys(data, kwargs):
               "'{filename}' {verb} invalid and will be ignored:"
               "".format(filename=filename, plural=plural, verb=verb))
         for key in invalid_keys:
-            print(' - {}'.format(key))
-        print('')
+            print(f" - {key}")
+        print("")
 
     deps = data.get('dependencies', [])
     depsplit = re.compile(r"[<>~\s=]")
@@ -126,7 +124,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
     else:
         dependencies = ['='.join((a.name, a.version, a.build)) for a in conda_precs]
     if pip_precs:
-        dependencies.append({'pip': ["%s==%s" % (a.name, a.version) for a in pip_precs]})
+        dependencies.append({"pip": [f"{a.name}=={a.version}" for a in pip_precs]})
 
     channels = list(context.channels)
     if not ignore_channels:
@@ -172,7 +170,7 @@ def from_file(filename):
 # TODO test explicitly
 class Dependencies(OrderedDict):
     def __init__(self, raw, *args, **kwargs):
-        super(Dependencies, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.raw = raw
         self.parse()
 
@@ -225,7 +223,7 @@ def unique(seq, key=None):
                 yield item
 
 
-class Environment(object):
+class Environment:
     def __init__(self, name=None, filename=None, channels=None,
                  dependencies=None, prefix=None, variables=None):
         self.name = name

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -61,7 +60,7 @@ def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeRespo
         return expired_at < now
 
     return any(
-        (is_channel_notice_expired(chn.expired_at) for chn in channel_notice_response.notices)
+        is_channel_notice_expired(chn.expired_at) for chn in channel_notice_response.notices
     )
 
 
@@ -120,7 +119,7 @@ def mark_channel_notices_as_viewed(
     """
     Insert channel notice into our database marking it as read.
     """
-    notice_ids = set(chn.id for chn in channel_notices)
+    notice_ids = {chn.id for chn in channel_notices}
 
     with safe_open(cache_file, "r") as fp:
         contents: str = fp.read()
@@ -139,7 +138,7 @@ def get_viewed_channel_notice_ids(
     """
     Return the ids of the channel notices which have already been seen.
     """
-    notice_ids = set(chn.id for chn in channel_notices)
+    notice_ids = {chn.id for chn in channel_notices}
 
     with safe_open(cache_file, "r") as fp:
         contents: str = fp.read()

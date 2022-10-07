@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from conda.base.context import context
 from conda.common.compat import on_win
@@ -20,8 +18,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-
-from conda.testing.helpers import mock
+from unittest import mock
 
 patch = mock.patch if mock else None
 
@@ -144,19 +141,18 @@ class FileTests(unittest.TestCase):
             fo.write('#!/opt/anaconda1anaconda2anaconda3/bin/python\n'
                      'echo "Hello"\n')
         update_prefix(self.tmpfname, '/usr/local')
-        with open(self.tmpfname, 'r') as fi:
+        with open(self.tmpfname) as fi:
             data = fi.read()
             self.assertEqual(data, '#!/usr/local/bin/python\n'
                                    'echo "Hello"\n')
 
     @pytest.mark.skipif(on_win, reason="test is invalid on windows")
     def test_long_default_text(self):
-        with open(self.tmpfname, 'w') as fo:
-            fo.write('#!/opt/anaconda1anaconda2anaconda3/bin/python -O\n'
-                     'echo "Hello"\n')
-        new_prefix = '/usr/local/{0}'.format('1234567890' * 52)
+        with open(self.tmpfname, "w") as fo:
+            fo.write("#!/opt/anaconda1anaconda2anaconda3/bin/python -O\n" 'echo "Hello"\n')
+        new_prefix = "/usr/local/{}".format("1234567890" * 52)
         update_prefix(self.tmpfname, new_prefix)
-        with open(self.tmpfname, 'r') as fi:
+        with open(self.tmpfname) as fi:
             data = fi.read()
             self.assertEqual(data, '#!/usr/bin/env python -O\n'
                                    'echo "Hello"\n')
@@ -177,7 +173,7 @@ class FileTests(unittest.TestCase):
     def test_trash_outside_prefix(self):
         tmp_dir = tempfile.mkdtemp()
         rel = relpath(tmp_dir, context.root_dir)
-        self.assertTrue(rel.startswith(u'..'))
+        self.assertTrue(rel.startswith(".."))
         move_path_to_trash(tmp_dir)
         self.assertFalse(exists(tmp_dir))
         makedirs(tmp_dir)

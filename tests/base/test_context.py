@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
 import os
@@ -121,7 +119,7 @@ class ContextCustomRcTests(TestCase):
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
-        assert len(context.default_channels) is 0
+        assert len(context.default_channels) == 0
         assert context.signing_metadata_url_base is None
 
 

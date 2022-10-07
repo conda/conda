@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EACCES, ENOENT, EPERM, EROFS
 from itertools import chain
@@ -64,7 +62,7 @@ def recursive_make_writable(path, max_tries=MAX_TRIES):
             for path in chain.from_iterable((files, dirs)):
                 try:
                     exp_backoff_fn(make_writable, join(root, path), max_tries=max_tries)
-                except (IOError, OSError) as e:
+                except OSError as e:
                     if e.errno == ENOENT:
                         log.debug("no such file or directory: %s", path)
                     else:

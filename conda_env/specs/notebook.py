@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 try:
@@ -9,7 +8,7 @@ from ..env import Environment
 from .binstar import BinstarSpec
 
 
-class NotebookSpec(object):
+class NotebookSpec:
     msg = None
 
     def __init__(self, name=None, **kwargs):
@@ -30,10 +29,10 @@ class NotebookSpec(object):
             return 'environment' in self.nb['metadata']
         except AttributeError:
             self.msg = "Please install nbformat:\n\tconda install nbformat"
-        except IOError:
-            self.msg = "{} does not exist or can't be accessed".format(self.name)
+        except OSError:
+            self.msg = f"{self.name} does not exist or can't be accessed"
         except (nbformat.reader.NotJSONError, KeyError):
-            self.msg = "{} does not looks like a notebook file".format(self.name)
+            self.msg = f"{self.name} does not looks like a notebook file"
         except Exception:
             return False
         return False

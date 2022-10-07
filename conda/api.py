@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .base.constants import DepsModifier as _DepsModifier, UpdateModifier as _UpdateModifier
 from .common.constants import NULL
@@ -18,7 +16,7 @@ UpdateModifier = _UpdateModifier
 """Flags to enable alternate handling for updates of existing packages in the environment."""
 
 
-class Solver(object):
+class Solver:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -151,7 +149,7 @@ class Solver(object):
                                                     ignore_pinned, force_remove, force_reinstall)
 
 
-class SubdirData(object):
+class SubdirData:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -241,7 +239,7 @@ class SubdirData(object):
         return self
 
 
-class PackageCacheData(object):
+class PackageCacheData:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -369,7 +367,7 @@ class PackageCacheData(object):
         return self
 
 
-class PrefixData(object):
+class PrefixData:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
