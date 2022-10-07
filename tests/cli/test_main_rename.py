@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from unittest import mock
 import json
-import mock
 import os.path
 import pathlib
 import tempfile
