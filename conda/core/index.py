@@ -167,6 +167,7 @@ def _supplement_index_with_features(index, features=()):
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 def _supplement_index_with_system(index):
     cuda_version = context.cuda_version
     if cuda_version is not None:
@@ -260,6 +261,29 @@ def _supplement_index_with_system(index):
 >>>>>>> 27a7a6fb6 (Revert changes to index.py)
 =======
 >>>>>>> 726555d0b (Remove virtual package code from index.py, add plugins and register them in context.py)
+=======
+def _supplement_index_with_system(index):
+    """
+    Loads and populates virtual package records from conda plugins
+    and adds them to the provided index, unless there is a naming
+    conflict.
+    """
+    registered_names = []
+    for package in chain(*context.plugin_manager.hook.conda_virtual_packages()):
+        if package.name in registered_names:
+            raise PluginError(
+                "Conflicting virtual package entries found for the "
+                f"`{package.name}` key. Multiple conda plugins "
+                "are registering this virtual package via the "
+                "`conda_virtual_packages` hook, please make sure "
+                "you don't have any incompatible plugins installed."
+            )
+        registered_names.append(package.name)
+        rec = _make_virtual_package(f"__{package.name}", package.version)
+        index[rec] = rec
+
+
+>>>>>>> 8b1ec621f (Move _supplement_index_with_system back up to where it was previous to refactoring)
 def get_archspec_name():
     from conda.base.context import non_x86_machines, _arch_names, _platform_map
 
@@ -285,27 +309,6 @@ def get_archspec_name():
         return str(archspec.cpu.host())
     except ImportError:
         return machine
-
-
-def _supplement_index_with_system(index):
-    """
-    Loads and populates virtual package records from conda plugins
-    and adds them to the provided index, unless there is a naming
-    conflict.
-    """
-    registered_names = []
-    for package in chain(*context.plugin_manager.hook.conda_virtual_packages()):
-        if package.name in registered_names:
-            raise PluginError(
-                "Conflicting virtual package entries found for the "
-                f"`{package.name}` key. Multiple conda plugins "
-                "are registering this virtual package via the "
-                "`conda_virtual_packages` hook, please make sure "
-                "you don't have any incompatible plugins installed."
-            )
-        registered_names.append(package.name)
-        rec = _make_virtual_package(f"__{package.name}", package.version)
-        index[rec] = rec
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
