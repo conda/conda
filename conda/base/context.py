@@ -1001,7 +1001,7 @@ class Context(Configuration):
                 "pinned_packages",
                 "pip_interop_enabled",
                 "track_features",
-                "experimental_solver",
+                "solver",
             ),
             "Package Linking and Install-time Configuration": (
                 "allow_softlinks",
@@ -1595,7 +1595,7 @@ class Context(Configuration):
                 longer the generation of the unsat hint will take. Defaults to 3.
                 """
             ),
-            experimental_solver=dals(
+            solver=dals(
                 """
                 A string to choose between the different solver logics implemented in
                 conda. A solver logic takes care of turning your requested packages into a
