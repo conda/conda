@@ -8,7 +8,8 @@ from conda.plugins import cuda
 def cuda_detect():
     warnings.warn(
         "`conda.common.cuda.cuda_detect` is pending deprecation and "
-        "will be removed in a future release.",
+        "will be removed in a future release. Please use "
+        "`conda.plugins.cuda.cuda_version` instead.",
         PendingDeprecationWarning,
     )
     return cuda.cuda_version()
