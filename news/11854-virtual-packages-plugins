@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new plugin hook for virtual packages
+* Add a new plugin hook for virtual packages. (#11854)
 
 ### Bug fixes
 
