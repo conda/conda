@@ -5,7 +5,7 @@ import bz2
 import logging
 import warnings
 from contextlib import contextmanager
-from typing import Dict, List, Optional, TypedDict
+from typing import Dict, List, Optional
 
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL
@@ -34,36 +34,41 @@ from conda.models.channel import Channel
 log = logging.getLogger(__name__)
 
 
-Repodata = TypedDict(
-    "Repodata",
-    {  # TODO: Use more specific types
-        "info": TypedDict(
-            "RepodataInfo",
-            {
-                "subdir": str,
-            },
-        ),
-        "packages": Dict[
-            str,  # filename
-            TypedDict(
-                "RepodataPackage",
+try:
+    from typing import TypedDict    # since Python 3.8
+
+    Repodata = TypedDict(
+        "Repodata",
+        {  # TODO: Use more specific types
+            "info": TypedDict(
+                "RepodataInfo",
                 {
-                    "build": str,
-                    "build_number": int,
-                    "depends": List[str],
-                    "license": str,
-                    "md5": str,
-                    "name": str,
-                    "sha256": str,
-                    "size": int,
                     "subdir": str,
-                    "timestamp": int,
-                    "version": str,
                 },
             ),
-        ],
-    },
-)
+            "packages": Dict[
+                str,  # filename
+                TypedDict(
+                    "RepodataPackage",
+                    {
+                        "build": str,
+                        "build_number": int,
+                        "depends": List[str],
+                        "license": str,
+                        "md5": str,
+                        "name": str,
+                        "sha256": str,
+                        "size": int,
+                        "subdir": str,
+                        "timestamp": int,
+                        "version": str,
+                    },
+                ),
+            ],
+        },
+    )
+except ImportError:
+    pass
 
 
 class RepoInterface(abc.ABC):
