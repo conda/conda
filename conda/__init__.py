@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """OS-agnostic, system-level binary package manager."""
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 from os.path import abspath, dirname
@@ -28,8 +27,8 @@ __copyright__ = "Copyright (c) 2012, Anaconda, Inc."
 __summary__ = __doc__
 __url__ = "https://github.com/conda/conda"
 
-if os.getenv('CONDA_ROOT') is None:
-    os.environ[str('CONDA_ROOT')] = sys.prefix
+if os.getenv("CONDA_ROOT") is None:
+    os.environ["CONDA_ROOT"] = sys.prefix
 
 #: The conda package directory.
 CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
@@ -58,10 +57,10 @@ class CondaError(Exception):
         self.message = message
         self._kwargs = kwargs
         self._caused_by = caused_by
-        super(CondaError, self).__init__(message)
+        super().__init__(message)
 
     def __repr__(self):
-        return '%s: %s' % (self.__class__.__name__, str(self))
+        return f"{self.__class__.__name__}: {str(self)}"
 
     def __str__(self):
         try:
@@ -79,13 +78,15 @@ class CondaError(Exception):
             raise
 
     def dump_map(self):
-        result = dict((k, v) for k, v in vars(self).items() if not k.startswith('_'))
-        result.update(exception_type=str(type(self)),
-                      exception_name=self.__class__.__name__,
-                      message=str(self),
-                      error=repr(self),
-                      caused_by=repr(self._caused_by),
-                      **self._kwargs)
+        result = {k: v for k, v in vars(self).items() if not k.startswith("_")}
+        result.update(
+            exception_type=str(type(self)),
+            exception_name=self.__class__.__name__,
+            message=str(self),
+            error=repr(self),
+            caused_by=repr(self._caused_by),
+            **self._kwargs
+        )
         return result
 
 
@@ -93,7 +94,7 @@ class CondaMultiError(CondaError):
 
     def __init__(self, errors):
         self.errors = errors
-        super(CondaMultiError, self).__init__(None)
+        super().__init__(None)
 
     def __repr__(self):
         errs = []
@@ -109,7 +110,7 @@ class CondaMultiError(CondaError):
         return res
 
     def __str__(self):
-        return str('\n').join(str(e) for e in self.errors) + str('\n')
+        return "\n".join(str(e) for e in self.errors) + "\n"
 
     def dump_map(self):
         return dict(exception_type=str(type(self)),

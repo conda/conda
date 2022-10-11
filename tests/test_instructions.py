@@ -4,16 +4,12 @@
 import unittest
 from logging import getLogger, Handler, DEBUG
 import os
+from unittest.mock import patch
 
 from conda import instructions
 from conda.exports import execute_instructions
 from conda.instructions import commands
 from conda.exceptions import CondaFileIOError
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
 
 
 def test_expected_operation_order():

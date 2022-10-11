@@ -7,7 +7,6 @@ Think of this as a "more static" source of configuration information.
 
 Another important source of "static" configuration is conda/models/enums.py.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from enum import Enum, EnumMeta
 from os.path import join
@@ -167,6 +166,9 @@ NOTICES_CACHE_FN = "notices.cache"
 #: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR = "notices"
 
+#: Determines the subdir for notices cache
+NOTICES_DECORATOR_DISPLAY_INTERVAL = 86400  # in seconds
+
 DRY_RUN_PREFIX = "Dry run action:"
 PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
 
@@ -215,7 +217,7 @@ class ChannelPriorityMeta(EnumMeta):
 
     def __call__(cls, value, *args, **kwargs):
         try:
-            return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
+            return super().__call__(value, *args, **kwargs)
         except ValueError:
             if isinstance(value, str):
                 from ..auxlib.type_coercion import typify
@@ -224,7 +226,7 @@ class ChannelPriorityMeta(EnumMeta):
                 value = 'flexible'
             elif value is False:
                 value = cls.DISABLED
-            return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
+            return super().__call__(value, *args, **kwargs)
 
 
 class ValueEnum(Enum):

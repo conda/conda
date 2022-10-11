@@ -13,7 +13,7 @@ ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
 
 
-class BinstarSpec(object):
+class BinstarSpec:
     """
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False

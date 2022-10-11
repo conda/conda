@@ -573,9 +573,9 @@ def main():
         'r-zip',
 
     )
-    all_package_names = set(info['name'] for info in keep.values())
-    for fn, info in r4json['packages'].items():
-        if info['name'] in keep_list:
+    all_package_names = {info["name"] for info in keep.values()}
+    for fn, info in r4json["packages"].items():
+        if info["name"] in keep_list:
             _keep[fn] = info
             for dep in info['depends']:
                 dep = dep.split()[0]
@@ -598,12 +598,10 @@ def main():
     r5json = read_data_source("conda-forge_linux-64")
     _keep = {}
     missing_in_allowlist = set()
-    keep_list = (
-        'perl',
-    )
-    all_package_names = set(info['name'] for info in keep.values())
-    for fn, info in r5json['packages'].items():
-        if info['name'] in keep_list:
+    keep_list = ("perl",)
+    all_package_names = {info["name"] for info in keep.values()}
+    for fn, info in r5json["packages"].items():
+        if info["name"] in keep_list:
             _keep[fn] = info
             for dep in info['depends']:
                 dep = dep.split()[0]
@@ -678,9 +676,9 @@ def main():
         'perl-test-harness',
 
     )
-    all_package_names = set(info['name'] for info in keep.values())
-    for fn, info in r6json['packages'].items():
-        if info['name'] in keep_list:
+    all_package_names = {info["name"] for info in keep.values()}
+    for fn, info in r6json["packages"].items():
+        if info["name"] in keep_list:
             _keep[fn] = info
             for dep in info['depends']:
                 dep = dep.split()[0]
@@ -878,9 +876,7 @@ def main():
                                if info['name'] == "python" and info["version"] == "3.6.2")
     assert not any(info["build_number"] > 19 for info in python_362_records)
 
-
-
-    all_package_names = set(info['name'] for info in keep.values())
+    all_package_names = {info["name"] for info in keep.values()}
     ignore_names = {
         'nlopt',
     }

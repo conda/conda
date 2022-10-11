@@ -79,7 +79,7 @@ class ExportIntegrationTests(TestCase):
             assert not error
             assert "conda-forge" in output
 
-            urls1 = set(url for url in output.split() if url.startswith("http"))
+            urls1 = {url for url in output.split() if url.startswith("http")}
 
             try:
                 with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
@@ -92,7 +92,7 @@ class ExportIntegrationTests(TestCase):
                     assert package_is_installed(prefix2, "six")
                 output2, error2, _ = run_command(Commands.LIST, prefix2, "--explicit")
                 assert not error2
-                urls2 = set(url for url in output2.split() if url.startswith("http"))
+                urls2 = {url for url in output2.split() if url.startswith("http")}
                 assert urls1 == urls2
             finally:
                 rm_rf(env_txt.name)

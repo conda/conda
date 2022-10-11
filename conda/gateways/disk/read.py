@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from base64 import b64encode
 from collections import namedtuple
@@ -52,7 +51,7 @@ def yield_lines(path):
                 if not line or line.startswith('#'):
                     continue
                 yield line
-    except (IOError, OSError) as e:
+    except OSError as e:
         if e.errno == ENOENT:
             pass
         else:
@@ -139,7 +138,7 @@ def read_package_metadata(extracted_package_directory):
     if not path:
         return None
     else:
-        with open(path, 'r') as f:
+        with open(path) as f:
             data = json.loads(f.read())
             if data.get('package_metadata_version') != 1:
                 raise CondaUpgradeError(dals("""

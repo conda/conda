@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib
 import itertools
@@ -83,7 +82,7 @@ class SubdirDataType(type):
                         return cache_entry
             else:
                 return cache_entry
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, repodata_fn)
+        subdir_data_instance = super().__call__(channel, repodata_fn)
         subdir_data_instance._mtime = now
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
@@ -250,7 +249,7 @@ class SubdirData(metaclass=SubdirDataType):
     def _load(self):
         try:
             mtime = getmtime(self.cache_path_json)
-        except (IOError, OSError):
+        except OSError:
             log.debug("No local cache found for %s at %s", self.url_w_repodata_fn,
                       self.cache_path_json)
             if context.use_index_cache or (context.offline
@@ -454,9 +453,9 @@ class SubdirData(metaclass=SubdirDataType):
         conda_packages = {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
 
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
-        use_these_legacy_keys = set(legacy_packages.keys()) - set(
+        use_these_legacy_keys = set(legacy_packages.keys()) - {
             k[:-6] + _tar_bz2 for k in conda_packages.keys()
-        )
+        }
 
         for group, copy_legacy_md5 in (
                 (conda_packages.items(), True),

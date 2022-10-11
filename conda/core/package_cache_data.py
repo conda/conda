@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals, annotations
+from __future__ import annotations
 
 import codecs
 import os
@@ -15,7 +15,6 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 from functools import partial
-from typing import Union
 
 try:
     from tlz.itertoolz import concat, concatv, groupby
@@ -82,7 +81,7 @@ class PackageCacheType(type):
         elif pkgs_dir in PackageCacheData._cache_:
             return PackageCacheData._cache_[pkgs_dir]
         else:
-            package_cache_instance = super(PackageCacheType, cls).__call__(pkgs_dir)
+            package_cache_instance = super().__call__(pkgs_dir)
             PackageCacheData._cache_[pkgs_dir] = package_cache_instance
             return package_cache_instance
 
@@ -223,7 +222,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         package_caches = (cls(pd) for pd in context.pkgs_dirs)
         return tuple(
             pc_entry
-            for pc_entry in concat((package_cache.values() for package_cache in package_caches))
+            for pc_entry in concat(package_cache.values() for package_cache in package_caches)
             if pc_entry.is_extracted
         )
 
@@ -329,8 +328,8 @@ class PackageCacheData(metaclass=PackageCacheType):
         return self._package_cache_records.values()
 
     def __repr__(self):
-        args = ("%s=%r" % (key, getattr(self, key)) for key in ("pkgs_dir",))
-        return "%s(%s)" % (self.__class__.__name__, ", ".join(args))
+        args = (f"{key}={getattr(self, key)!r}" for key in ("pkgs_dir",))
+        return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
     def _make_single_record(self, package_filename):
         # delay-load this to help make sure libarchive can be found
@@ -349,7 +348,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (EnvironmentError, JSONDecodeError, ValueError, FileNotFoundError) as e:
+        except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
             # EnvironmentError if info/repodata_record.json doesn't exists
             # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
             #   python 2.7 raises ValueError instead of JsonDecodeError
@@ -363,7 +362,7 @@ class PackageCacheData(metaclass=PackageCacheType):
             # try reading info/index.json
             try:
                 raw_json_record = read_index_json(extracted_package_dir)
-            except (EnvironmentError, JSONDecodeError, ValueError, FileNotFoundError) as e:
+            except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
                 # EnvironmentError if info/index.json doesn't exist
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
                 #   python 2.7 raises ValueError instead of JsonDecodeError
@@ -388,7 +387,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                             rm_rf(extracted_package_dir)
                         try:
                             extract_tarball(package_tarball_full_path, extracted_package_dir)
-                        except (EnvironmentError, InvalidArchiveError) as e:
+                        except (OSError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
                                 # FileNotFoundError(2, 'No such file or directory')
                                 # At this point, we can assume the package tarball is bad.
@@ -399,7 +398,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                                 return None
                         try:
                             raw_json_record = read_index_json(extracted_package_dir)
-                        except (IOError, OSError, JSONDecodeError, FileNotFoundError):
+                        except (OSError, JSONDecodeError, FileNotFoundError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
                             rm_rf(package_tarball_full_path)
@@ -443,7 +442,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                 repodata_record_path = join(extracted_package_dir, "info", "repodata_record.json")
                 try:
                     write_as_json_to_file(repodata_record_path, repodata_record)
-                except (IOError, OSError) as e:
+                except OSError as e:
                     if e.errno in (EACCES, EPERM, EROFS) and isdir(dirname(repodata_record_path)):
                         raise NotWritableError(repodata_record_path, e.errno, caused_by=e)
                     else:
@@ -477,7 +476,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         )
 
 
-class UrlsData(object):
+class UrlsData:
     # this is a class to manage urls.txt
     # it should basically be thought of as a sequence
     # in this class I'm breaking the rule that all disk access goes through conda.gateways
@@ -523,7 +522,7 @@ class UrlsData(object):
 # ##############################
 
 
-class ProgressiveFetchExtract(object):
+class ProgressiveFetchExtract:
     @staticmethod
     def make_actions_for_record(pref_or_spec):
         assert pref_or_spec is not None
@@ -780,7 +779,7 @@ class ProgressiveFetchExtract(object):
                     )
 
                 except Exception as exc:
-                    log.debug("%r".encode("utf-8"), exc, exc_info=True)
+                    log.debug(b"%r", exc, exc_info=True)
                     # done_callback saves exc in exceptions[]
                     # cancel any download that has not been started
                     for future in futures:
@@ -801,7 +800,7 @@ class ProgressiveFetchExtract(object):
     def _progress_bar(prec_or_spec, position=None, leave=False):
         desc = ""
         if prec_or_spec.name and prec_or_spec.version:
-            desc = "%s-%s" % (prec_or_spec.name or "", prec_or_spec.version or "")
+            desc = "{}-{}".format(prec_or_spec.name or "", prec_or_spec.version or "")
         size = getattr(prec_or_spec, "size", None)
         size_str = size and human_bytes(size) or ""
         if len(desc) > 0:
@@ -877,7 +876,7 @@ def do_reverse(actions):
 
 def done_callback(
     future: Future,
-    actions: tuple[Union[CacheUrlAction, ExtractPackageAction], ...],
+    actions: tuple[CacheUrlAction | ExtractPackageAction, ...],
     progress_bar: ProgressBar,
     exceptions: list[Exception],
     finish: bool = False,

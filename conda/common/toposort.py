@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import reduce as _reduce
 from logging import getLogger
@@ -29,7 +28,7 @@ items in the preceding sets.
     data.update({item: set() for item in extra_items_in_deps})
     while True:
 
-        ordered = sorted(set(item for item, dep in data.items() if len(dep) == 0))
+        ordered = sorted({item for item, dep in data.items() if len(dep) == 0})
         if not ordered:
             break
 

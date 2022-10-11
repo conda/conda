@@ -9,14 +9,10 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'docs/**'
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
-    paths-ignore:
-      - 'docs/**'
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
@@ -126,6 +122,54 @@ jobs:
             test-report.xml
           retention-days: 1
 
+  linux-qemu:
+    # Run one single fast test per docker+qemu emulated linux platform to test that
+    # test execution is possible there (container+tools+dependencies work). Can be
+    # changed / extended to run specific tests in case there are platform related
+    # things to test. Running more tests is time consuming due to emulation
+    # (factor 2-10x slower).
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10']
+        platform: ['arm64', 'ppc64le']
+    env:
+      OS: linux-${{ matrix.platform }}
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        # Equivalent to locally run:
+        #   `docker run --privileged --rm tonistiigi/binfmt --install all`
+
+      - name: Python linux-${{ matrix.platform }} ${{ matrix.python-version }} tests
+        run: >
+          docker run
+          --rm -v ${PWD}:/opt/conda-src
+          --platform linux/${{ matrix.platform }}
+          -e TEST_SPLITS
+          -e TEST_GROUP
+          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
+          bash -c "source /opt/conda/etc/profile.d/conda.sh; \
+                   pytest -k test_DepsModifier_contract"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+          # when locally dowloading and comparing results of different workflow runs.
+          name: test-results-${{ github.sha }}-linux-${{ matrix.platform }}-qemu-${{ matrix.python-version }}
+          path: |
+            .coverage
+            test-report.xml
+          retention-days: 1
+
   macos:
     runs-on: macos-latest
     strategy:
@@ -189,13 +233,14 @@ jobs:
           retention-days: 1
 
   analyze:
-    needs: [windows, linux, macos]
+    needs: [windows, linux, linux-qemu, macos]
     name: Analyze test results
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Download test results
         uses: actions/download-artifact@v3
+
       - name: Upload combined test results
         # provides one downloadable archive of all .coverage/test-report.xml files
         # of all matrix runs for further analysis.
@@ -204,7 +249,13 @@ jobs:
           name: test-results-${{ github.sha }}-all
           path: test-results-${{ github.sha }}-*
           retention-days: 90  # default: 90
+
       - name: Test Summary
         uses: test-summary/action@v1
         with:
           paths: ./test-results-${{ github.sha }}-**/test-report*.xml
+
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}

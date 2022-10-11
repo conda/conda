@@ -8,6 +8,8 @@ import os
 from os.path import join
 import random
 import unittest
+from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
@@ -25,18 +27,12 @@ from conda.models.records import PackageRecord
 from conda.models.match_spec import MatchSpec
 from conda.plan import display_actions, add_unlink, add_defaults_to_specs, _update_old_plan as update_old_plan
 from conda.exports import execute_plan
-from conda.testing.decorators import skip_if_no_mock
-from conda.testing.helpers import captured, get_index_r_1, mock, tempdir
+from conda.testing.helpers import captured, get_index_r_1, tempdir
 
 from .gateways.disk.test_permissions import tempdir
 
 index, r, = get_index_r_1()
 index = index.copy()  # create a shallow copy so this module can mutate state
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
 
 
 def get_matchspec_from_index(index, match_spec_str):
@@ -74,7 +70,6 @@ class add_unlink_TestCase(unittest.TestCase):
             sys.platform = "win32" if windows else "not win32"
             yield sys
 
-    @skip_if_no_mock
     def test_simply_adds_unlink_on_non_windows(self):
         actions = {}
         dist = Dist.from_string(self.generate_random_dist())
@@ -83,7 +78,6 @@ class add_unlink_TestCase(unittest.TestCase):
         self.assertIn(inst.UNLINK, actions)
         self.assertEqual(actions[inst.UNLINK], [dist, ])
 
-    @skip_if_no_mock
     def test_adds_to_existing_actions(self):
         actions = {inst.UNLINK: [{"foo": "bar"}]}
         dist = Dist.from_string(self.generate_random_dist())
@@ -1089,9 +1083,10 @@ def generate_mocked_resolve(pkgs, install=None):
     index = {}
     groups = defaultdict(list)
     for preferred_env, name, schannel, version in pkgs:
-        dist = Dist.from_string('%s-%s-0' % (name, version), channel_override=schannel)
-        pkg = mock_package(preferred_env=preferred_env, name=name, schannel=schannel,
-                           version=version, fn=name)
+        dist = Dist.from_string(f"{name}-{version}-0", channel_override=schannel)
+        pkg = mock_package(
+            preferred_env=preferred_env, name=name, schannel=schannel, version=version, fn=name
+        )
         groups[name].append(dist)
         index[dist] = pkg
 

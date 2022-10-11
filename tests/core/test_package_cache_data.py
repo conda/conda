@@ -50,7 +50,7 @@ zlib_tar_bz2_prec = PackageRecord.from_objects(
         "version": "1.2.11",
     },
     fn=zlib_tar_bz2_fn,
-    url="%s/%s/%s" % (CONDA_PKG_REPO, subdir, zlib_tar_bz2_fn),
+    url=f"{CONDA_PKG_REPO}/{subdir}/{zlib_tar_bz2_fn}",
 )
 zlib_conda_fn = "zlib-1.2.11-h62dcd97_3.conda"
 zlib_conda_prec = PackageRecord.from_objects(
@@ -71,7 +71,7 @@ zlib_conda_prec = PackageRecord.from_objects(
         "version": "1.2.11",
     },
     fn=zlib_conda_fn,
-    url="%s/%s/%s" % (CONDA_PKG_REPO, subdir, zlib_conda_fn),
+    url=f"{CONDA_PKG_REPO}/{subdir}/{zlib_conda_fn}",
 )
 
 
@@ -309,7 +309,7 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist():
     with make_temp_package_cache() as pkgs_dir:
         # copy .tar.bz2 to package cache
         cache_action = CacheUrlAction(
-            "%s/%s/%s" % (CONDA_PKG_REPO, subdir, zlib_tar_bz2_fn),
+            f"{CONDA_PKG_REPO}/{subdir}/{zlib_tar_bz2_fn}",
             pkgs_dir,
             zlib_tar_bz2_fn,
         )
@@ -319,7 +319,7 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist():
 
         # copy .conda to package cache
         cache_action = CacheUrlAction(
-            "%s/%s/%s" % (CONDA_PKG_REPO, subdir, zlib_conda_fn),
+            f"{CONDA_PKG_REPO}/{subdir}/{zlib_conda_fn}",
             pkgs_dir,
             zlib_conda_fn,
         )
@@ -357,7 +357,7 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
 
         # copy .tar.bz2 to package cache
         cache_action = CacheUrlAction(
-            "%s/%s/%s" % (CONDA_PKG_REPO, subdir, zlib_tar_bz2_fn),
+            f"{CONDA_PKG_REPO}/{subdir}/{zlib_tar_bz2_fn}",
             pkgs_dir,
             zlib_tar_bz2_fn,
         )
@@ -367,7 +367,7 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
 
         # copy .conda to package cache
         cache_action = CacheUrlAction(
-            "%s/%s/%s" % (CONDA_PKG_REPO, subdir, zlib_conda_fn),
+            f"{CONDA_PKG_REPO}/{subdir}/{zlib_conda_fn}",
             pkgs_dir,
             zlib_conda_fn,
         )

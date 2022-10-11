@@ -8,7 +8,6 @@ import functools
 import json
 import pathlib
 from tempfile import TemporaryDirectory
-from typing import Type
 
 import pytest
 

@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import ENOENT
 import fnmatch
@@ -39,8 +38,7 @@ def rmtree(path, *args, **kwargs):
             # out = check_output('DEL /F/Q/S *.* > NUL 2> NUL'.format(path), shell=True,
             #                    stderr=STDOUT, cwd=path)
 
-            out = check_output('RD /S /Q "{}" > NUL 2> NUL'.format(path), shell=True,
-                               stderr=STDOUT)
+            out = check_output(f'RD /S /Q "{path}" > NUL 2> NUL', shell=True, stderr=STDOUT)
         except:
             try:
                 # Try to delete in Unicode
@@ -49,14 +47,14 @@ def rmtree(path, *args, **kwargs):
                 from conda.utils import quote_for_shell
 
                 with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as batch_file:
-                    batch_file.write("RD /S {}\n".format(quote_for_shell(path)))
+                    batch_file.write(f"RD /S {quote_for_shell(path)}\n")
                     batch_file.write("chcp 65001\n")
-                    batch_file.write("RD /S {}\n".format(quote_for_shell(path)))
+                    batch_file.write(f"RD /S {quote_for_shell(path)}\n")
                     batch_file.write("EXIT 0\n")
                     name = batch_file.name
                 # If the above is bugged we can end up deleting hard-drives, so we check
                 # that 'path' appears in it. This is not bulletproof but it could save you (me).
-                with open(name, 'r') as contents:
+                with open(name) as contents:
                     content = contents.read()
                     assert path in content
                 comspec = environ['COMSPEC']
@@ -110,10 +108,10 @@ def unlink_or_rename_to_trash(path):
     try:
         make_writable(path)
         unlink(path)
-    except EnvironmentError:
+    except OSError:
         try:
             rename(path, path + ".conda_trash")
-        except EnvironmentError:
+        except OSError:
             if on_win:
                 # on windows, it is important to use the rename program, as just using python's
                 #    rename leads to permission errors when files are in use.
@@ -124,7 +122,7 @@ def unlink_or_rename_to_trash(path):
                     dest_fn = path + ".conda_trash"
                     counter = 1
                     while isfile(dest_fn):
-                        dest_fn = dest_fn.splitext[0] + '.conda_trash_{}'.format(counter)
+                        dest_fn = dest_fn.splitext[0] + f".conda_trash_{counter}"
                         counter += 1
                     out = "< empty >"
                     try:
@@ -186,7 +184,7 @@ try_rmdir_all_empty = move_to_trash = move_path_to_trash = rm_rf
 def delete_trash(prefix):
     if not prefix:
         prefix = sys.prefix
-    exclude = set(['envs', 'pkgs'])
+    exclude = {"envs", "pkgs"}
     for root, dirs, files in walk(prefix, topdown=True):
         dirs[:] = [d for d in dirs if d not in exclude]
         for fn in files:
@@ -196,7 +194,7 @@ def delete_trash(prefix):
                 try:
                     unlink(filename)
                     remove_empty_parent_paths(filename)
-                except (OSError, IOError) as e:
+                except OSError as e:
                     log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, filename)
 
 
@@ -214,7 +212,7 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
         try:
             recursive_make_writable(path)
             exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
-        except (IOError, OSError) as e:
+        except OSError as e:
             if e.errno == ENOENT:
                 log.trace("no such file or directory: %s", path)
             else:

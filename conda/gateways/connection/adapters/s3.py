@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
 from logging import LoggerAdapter, getLogger
@@ -28,7 +27,7 @@ stderrlog = LoggerAdapter(getLogger('conda.stderrlog'), extra=dict(terminator="\
 class S3Adapter(BaseAdapter):
 
     def __init__(self):
-        super(S3Adapter, self).__init__()
+        super().__init__()
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
         resp = Response()

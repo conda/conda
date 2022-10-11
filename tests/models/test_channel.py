@@ -1,13 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
 from logging import getLogger
 from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
+from unittest.mock import patch
 
 from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
@@ -22,11 +22,6 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
 
 initialize_logging()
 log = getLogger(__name__)
@@ -147,7 +142,7 @@ class DefaultConfigChannelTests(TestCase):
         assert channel.location == "conda-01"
         assert channel.platform is None
         assert channel.canonical_name == url
-        assert channel.name is ''
+        assert channel.name == ""
 
         assert channel.base_url == url
         assert channel.url() == join_url(url, context.subdir)
