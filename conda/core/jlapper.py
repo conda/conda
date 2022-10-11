@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 # Lappin' up the jlap
 from __future__ import annotations
 from concurrent.futures import process
@@ -321,7 +323,7 @@ def request_url_jlap_state(url, state: dict, get_place=get_place, full_download=
 
             assert not full_download, "Recursion error"
 
-            ## debugging
+            # XXX debugging
             json_new_path = json_path.with_suffix(".json.old")
             log.warning("Rename to %s for debugging", json_new_path)
             json_path.rename(json_new_path)

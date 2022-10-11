@@ -308,7 +308,7 @@ class SubdirData(metaclass=SubdirDataType):
                 # quick thing to check for 'json matches stat', or store, check a message digest:
                 mod_etag_headers["mtime"] = pathlib.Path(cache_path_json).stat().st_mtime
                 self._save_state(mod_etag_headers)
-            except (IOError, OSError) as e:
+            except OSError as e:
                 if e.errno in (EACCES, EPERM, EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
