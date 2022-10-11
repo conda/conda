@@ -347,9 +347,9 @@ class Context(Configuration):
     def experimental_solver(self):
         # TODO: Remove in a later release
         warnings.warn(
-            "'context.experimental_solver' is deprecated and will be removed. "
-            "Please use 'context.solver' instead.",
-            DeprecationWarning
+            "'context.experimental_solver' is pending deprecation and will be removed. "
+            "Please consider use 'context.solver' instead.",
+            PendingDeprecationWarning
         )
         return self.solver
 

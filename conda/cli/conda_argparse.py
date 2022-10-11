@@ -247,6 +247,12 @@ class ExtendConstAction(Action):
         setattr(namespace, self.dest, items)
 
 
+class PendingDeprecationAction(Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        warnings.warn(f"Option {self.option_strings} is pending deprecation.", PendingDeprecationWarning)
+        super().__call__(parser, namespace, values, option_string)
+
+
 class DeprecatedAction(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         warnings.warn(f"Option {self.option_strings} is deprecated!", DeprecationWarning)
@@ -1805,7 +1811,7 @@ def add_parser_solver(p):
     )
     group.add_argument(
         "--experimental-solver",
-        action=DeprecatedAction,
+        action=PendingDeprecationAction,
         dest="solver",
         choices=[v.value for v in SolverChoice],
         help="DEPRECATED. Please use '--solver' instead.",
