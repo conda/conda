@@ -15,7 +15,7 @@ conda-package-handling
 conda-verify
 filelock
 flake8
-flask
+conda-forge::flask >=2.2
 git
 nbformat
 perl

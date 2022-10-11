@@ -16,7 +16,18 @@ from hashlib import blake2b
 from typing import Iterator
 
 import jsonpatch
-import requests
+
+from conda.gateways.connection import (
+    ConnectionError,
+    HTTPError,
+    InsecureRequestWarning,
+    InvalidSchema,
+    RequestsProxyError,
+    SSLError,
+    Response,
+    Session
+)
+from conda.gateways.connection.session import CondaSession
 
 log = logging.getLogger(__name__)
 
@@ -55,18 +66,20 @@ def get_place(url, extra=""):
     return pathlib.Path("-".join(url.split("/")[-3:-1])).with_suffix(f"{extra}.json")
 
 
-def line_and_pos(response: requests.Response, pos=0) -> Iterator[tuple[int, bytes]]:
+def line_and_pos(response: Response, pos=0) -> Iterator[tuple[int, bytes]]:
     for line in response.iter_lines(delimiter=b"\n"):
-        yield pos, line
+        # iter_lines yields either bytes or str
+        yield pos, line # type: ignore
         pos += len(line) + 1
 
 
 def fetch_jlap(url, pos=0, etag=None, iv=b"", ignore_etag=True):
-    response = request_jlap(url, pos=pos, etag=etag, ignore_etag=ignore_etag)
+    session = CondaSession()
+    response = request_jlap(url, pos=pos, etag=etag, ignore_etag=ignore_etag, session=session)
     return process_jlap_response(response, pos=pos, iv=iv)
 
 
-def request_jlap(url, pos=0, etag=None, ignore_etag=True):
+def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | None = None):
     # XXX max-age seconds; return dummy buffer if 304 not modified?
     headers = {}
     if pos:
@@ -76,7 +89,10 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True):
 
     log.info("%s", headers)
 
-    response = requests.get(url, stream=True, headers=headers)
+    if session is None:
+        session = CondaSession()
+
+    response = session.get(url, stream=True, headers=headers)
     response.raise_for_status()
 
     if "range" in headers:
@@ -181,11 +197,11 @@ def timeme(message):
     log.info("%sTook %0.02fs", message, end - begin)
 
 
-def download_and_hash(hasher, url, json_path):
+def download_and_hash(hasher, url, json_path, session: Session):
     """
     Download url if it doesn't exist, passing bytes through hasher.update()
     """
-    response = requests.get(url, stream=True)
+    response = session.get(url, stream=True)
     response.raise_for_status()
     length = 0
     with json_path.open("wb") as repodata:
@@ -213,7 +229,11 @@ def request_url_jlap(url, get_place=get_place, full_download=False):
     state_path.write_text(json.dumps(state, indent=True))
 
 
-def request_url_jlap_state(url, state: dict, get_place=get_place, full_download=False):
+def request_url_jlap_state(
+    url, state: dict, get_place=get_place, full_download=False, session: Session | None = None
+):
+    if session is None:
+        session = CondaSession()
 
     jlap_state = state.get(JLAP, {})
     headers = jlap_state.get(HEADERS, {})
@@ -231,7 +251,7 @@ def request_url_jlap_state(url, state: dict, get_place=get_place, full_download=
         with timeme("Download "):
             # TODO use Etag, Last-Modified caching headers if file exists
             # otherwise we re-download every time, if jlap is unavailable.
-            download_and_hash(hasher, withext(url, ".json"), json_path)
+            download_and_hash(hasher, withext(url, ".json"), json_path, session=session)
 
         have = have_hash = state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
 
