@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,7 +7,7 @@ try:
     from io import StringIO
 except ImportError:
     from StringIO import StringIO
-from mock import patch, MagicMock
+from unittest.mock import patch, MagicMock
 from binstar_client import errors
 
 from conda_env.specs import binstar
@@ -54,7 +53,7 @@ class TestBinstarSpec(unittest.TestCase):
         fake_package = {
             'files': [{'type': 'env', 'version': '1', 'basename': 'environment.yml'}]
         }
-        fake_req = MagicMock(text=u"name: env")
+        fake_req = MagicMock(text="name: env")
         with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
             package = MagicMock(return_value=fake_package)
             downloader = MagicMock(return_value=fake_req)
@@ -72,7 +71,7 @@ class TestBinstarSpec(unittest.TestCase):
                 {'type': 'env', 'version': '0.2.0', 'basename': 'environment.yml'},
             ]
         }
-        fake_req = MagicMock(text=u"name: env")
+        fake_req = MagicMock(text="name: env")
         with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
             package = MagicMock(return_value=fake_package)
             downloader = MagicMock(return_value=fake_req)

@@ -15,7 +15,6 @@ conda-verify
 filelock
 flake8
 git
-mock
 nbformat
 perl
 pexpect

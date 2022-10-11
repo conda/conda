@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import datetime
@@ -10,14 +9,31 @@ from unittest import mock
 import pytest
 
 from conda.base.context import context
+from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.cli import main_notices as notices
 from conda.cli import conda_argparse
+from conda.notices import fetch
+from conda.testing.helpers import run_inprocess_conda_command as run
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
     get_test_notices,
     get_notice_cache_filenames,
+    offset_cache_file_mtime,
 )
+
+
+@pytest.fixture
+def env_one(notices_cache_dir):
+    env_name = "env-one"
+
+    # Setup
+    run(f"conda create -n {env_name} -y --offline")
+
+    yield env_name
+
+    # Teardown
+    run(f"conda remove --all -y -n {env_name}", disallow_stderr=False)
 
 
 @pytest.mark.parametrize("status_code", (200, 404))
@@ -215,3 +231,66 @@ def test_cache_names_appear_as_expected(
 
         assert len(cache_files) == 1
         assert os.path.basename(cache_files[0]) == expected_cache_filename
+
+
+def test_notices_appear_once_when_running_decorated_commands(
+    tmpdir, env_one, notices_cache_dir, pre_link_messages_package
+):
+    """
+    As a user, I want to make sure when I run commands like "install" and "update"
+    that the channels are only appearing according to the specified interval in:
+        conda.base.constants.NOTICES_DECORATOR_DISPLAY_INTERVAL
+
+    This should only be once per 24 hours according to the current setting.
+
+    To ensure this test runs appropriately, we rely on using a pass-thru mock
+    of the `conda.notices.fetch.get_notice_responses` function. If this function
+    was called and called correctly we can assume everything is working well.
+    """
+    offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
+
+    with mock.patch(
+        "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
+    ) as fetch_mock:
+        # First run of install; notices should be retrieved
+        run(
+            f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
+        )
+
+        # make sure our fetch function was called correctly
+        fetch_mock.assert_called_once()
+        args, kwargs = fetch_mock.call_args
+        # "wraps" probably makes this more nested than it normally would be, but the docs
+        # were not clear on that.
+        ((url, name), *_), *_ = args
+
+        assert url.startswith("file://")
+        assert name == "local"
+
+        # Reset our mock for another call to "conda install"
+        fetch_mock.reset_mock()
+
+        # Second run of install; notices should not be retrieved
+        run(
+            f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
+        )
+
+        fetch_mock.assert_not_called()
+
+
+def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_session_get):
+    """
+    As a user, I want notices to be correctly retrieved from channels with s3 URLs.
+    """
+    s3_channel = "s3://conda-org"
+    messages = ("Test One", "Test Two")
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
+
+    run(f"conda notices -c {s3_channel} --override-channels")
+
+    notices_mock_http_session_get.assert_called_once()
+    args, kwargs = notices_mock_http_session_get.call_args
+
+    arg_1, *_ = args
+    assert arg_1 == "s3://conda-org/notices.json"
