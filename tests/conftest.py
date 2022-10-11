@@ -5,6 +5,8 @@ import subprocess
 
 import pytest
 
+from .fixtures_jlap import package_server   # NOQA
+
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
     "conda.testing.gateways.fixtures",
