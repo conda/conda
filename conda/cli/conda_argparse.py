@@ -307,7 +307,6 @@ class PendingDeprecationAction(_StoreAction):
 class DeprecatedAction(_StoreAction):
     def __call__(self, parser, namespace, values, option_string=None):
         warnings.warn(f"Option {self.option_strings} is deprecated!", DeprecationWarning)
-        super().__call__(parser, namespace, values, option_string)
 
 
 # #############################################################################################
