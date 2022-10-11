@@ -1,22 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import logging
-import warnings
 import pathlib
 from typing import Optional
 
-from conda.auxlib.logz import stringify
-from conda.base.context import context
-from conda.common.compat import ensure_text_type
-from conda.common.url import join_url
-from conda.gateways.connection import (
-    InsecureRequestWarning,
-)
-from conda.gateways.connection.session import CondaSession
-from conda.models.channel import Channel
-
 from . import jlapper
-from .repo import RepoInterface, Response304ContentUnchanged, conda_http_errors
+from .repo import RepoInterface, conda_http_errors
 
 import logging
 
@@ -60,7 +49,8 @@ class CondaRepoJLAP(RepoInterface):
                 return self._cache_path_json
             raise NotImplementedError("Unexpected URL", url)
 
-        jlapper.request_url_jlap_state(repodata_url, state, get_place=get_place)
+        with conda_http_errors(repodata_url, repodata_fn=self._repodata_fn):
+            jlapper.request_url_jlap_state(repodata_url, state, get_place=get_place)
 
         # XXX do headers come from a different place when fetched with jlap vs
         # fetched with complete download?

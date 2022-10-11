@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Lappin' up the jlap
 from __future__ import annotations
-from concurrent.futures import process
 
 import json
 import logging
@@ -11,21 +10,17 @@ import pprint
 import re
 import sys
 import time
+from concurrent.futures import process
 from contextlib import contextmanager
 from hashlib import blake2b
 from typing import Iterator
 
 import jsonpatch
 
+from conda.base.context import context
 from conda.gateways.connection import (
-    ConnectionError,
-    HTTPError,
-    InsecureRequestWarning,
-    InvalidSchema,
-    RequestsProxyError,
-    SSLError,
     Response,
-    Session
+    Session,
 )
 from conda.gateways.connection.session import CondaSession
 
@@ -69,7 +64,7 @@ def get_place(url, extra=""):
 def line_and_pos(response: Response, pos=0) -> Iterator[tuple[int, bytes]]:
     for line in response.iter_lines(delimiter=b"\n"):
         # iter_lines yields either bytes or str
-        yield pos, line # type: ignore
+        yield pos, line  # type: ignore
         pos += len(line) + 1
 
 
@@ -92,7 +87,8 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
     if session is None:
         session = CondaSession()
 
-    response = session.get(url, stream=True, headers=headers)
+    timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+    response = session.get(url, stream=True, headers=headers, timeout=timeout)
     response.raise_for_status()
 
     if "range" in headers:
@@ -201,7 +197,8 @@ def download_and_hash(hasher, url, json_path, session: Session):
     """
     Download url if it doesn't exist, passing bytes through hasher.update()
     """
-    response = session.get(url, stream=True)
+    timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+    response = session.get(url, stream=True, timeout=timeout)
     response.raise_for_status()
     length = 0
     with json_path.open("wb") as repodata:
