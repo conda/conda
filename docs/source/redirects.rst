@@ -28,7 +28,6 @@ Redirects
    test-drive
    travis
    troubleshooting
-   winxp-proxy
    help/conda-pip-virtualenv-translator
    help/silent
    install/central
