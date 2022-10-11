@@ -17,11 +17,9 @@ from tarfile import ReadError
 from functools import partial
 
 try:
-    from tlz.itertoolz import concat, concatv
+    from tlz.itertoolz import concat, concatv, groupby
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv
-
-from conda.common.iterators import groupby_to_dict as groupby
+    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
@@ -763,32 +761,30 @@ class ProgressiveFetchExtract:
             for completed_future in as_completed(futures):
                 try:
                     prec_or_spec = completed_future.result()
-                except Exception:
-                    # Special handling for exceptions thrown inside future, not
-                    # by futures handling code. Cancel any download that has not
-                    # been started. In-progress futures will continue.
+                    cache_action, extract_action = self.paired_actions[prec_or_spec]
+                    extract_future = extract_executor.submit(
+                        do_extract_action,
+                        prec_or_spec,
+                        extract_action,
+                        progress_bars[prec_or_spec],
+                    )
+                    extract_future.add_done_callback(
+                        partial(
+                            done_callback,
+                            actions=(cache_action, extract_action),
+                            exceptions=exceptions,
+                            progress_bar=progress_bars[prec_or_spec],
+                            finish=True,
+                        )
+                    )
+
+                except Exception as exc:
+                    log.debug(b"%r", exc, exc_info=True)
+                    # done_callback saves exc in exceptions[]
+                    # cancel any download that has not been started
                     for future in futures:
                         future.cancel()
-
-                    # break, not raise. CondaMultiError() raised if exceptions.
-                    break
-
-                cache_action, extract_action = self.paired_actions[prec_or_spec]
-                extract_future = extract_executor.submit(
-                    do_extract_action,
-                    prec_or_spec,
-                    extract_action,
-                    progress_bars[prec_or_spec],
-                )
-                extract_future.add_done_callback(
-                    partial(
-                        done_callback,
-                        actions=(cache_action, extract_action),
-                        exceptions=exceptions,
-                        progress_bar=progress_bars[prec_or_spec],
-                        finish=True,
-                    )
-                )
+                    raise
 
         for bar in progress_bars.values():
             bar.close()
@@ -798,7 +794,6 @@ class ProgressiveFetchExtract:
 
         if exceptions:
             raise CondaMultiError(exceptions)
-
         self._executed = True
 
     @staticmethod
