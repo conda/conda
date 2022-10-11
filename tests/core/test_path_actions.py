@@ -566,6 +566,6 @@ def test_explode_directories():
     old_version = old_explode_directories(
         (os.path.split(path) for path in sys.path), already_split=True
     )
-    new_version = explode_directories((os.path.split(path) for path in sys.path))
+    new_version = explode_directories(os.path.split(path) for path in sys.path)
 
     assert new_version == old_version
