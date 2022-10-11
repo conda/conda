@@ -20,6 +20,7 @@ from textwrap import dedent
 import warnings
 
 from .. import __version__
+from ..auxlib.compat import isiterable
 from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
 from ..base import context
