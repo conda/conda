@@ -9,10 +9,14 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
+    paths-ignore:
+      - 'docs/**'
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
@@ -40,7 +44,7 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
@@ -61,7 +65,7 @@ jobs:
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
 
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v2
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
@@ -92,7 +96,7 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
@@ -105,7 +109,7 @@ jobs:
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
           /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v2
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
@@ -138,7 +142,7 @@ jobs:
       OS: linux-${{ matrix.platform }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
@@ -184,9 +188,19 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
+      # - name: Cache conda
+      #   uses: actions/cache@v2
+      #   env:
+      #     # Increase this value to reset cache if tests/requirements.txt has not changed
+      #     CACHE_NUMBER: 0
+      #   with:
+      #     path: ~/conda_pkgs_dir
+      #     key:
+      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('tests/requirements.txt') }}
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
@@ -205,7 +219,7 @@ jobs:
         run: |
           ./dev/macos/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v2
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
@@ -230,7 +244,6 @@ jobs:
     steps:
       - name: Download test results
         uses: actions/download-artifact@v3
-
       - name: Upload combined test results
         # provides one downloadable archive of all .coverage/test-report.xml files
         # of all matrix runs for further analysis.
@@ -239,13 +252,7 @@ jobs:
           name: test-results-${{ github.sha }}-all
           path: test-results-${{ github.sha }}-*
           retention-days: 90  # default: 90
-
       - name: Test Summary
         uses: test-summary/action@v1
         with:
           paths: ./test-results-${{ github.sha }}-**/test-report*.xml
-
-      - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@release/v1
-        with:
-          jobs: ${{ toJSON(needs) }}
