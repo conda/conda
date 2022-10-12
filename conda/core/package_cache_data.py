@@ -784,6 +784,7 @@ class ProgressiveFetchExtract:
                     # cancel any download that has not been started
                     for future in futures:
                         future.cancel()
+
                     raise
 
         for bar in progress_bars.values():
@@ -794,6 +795,7 @@ class ProgressiveFetchExtract:
 
         if exceptions:
             raise CondaMultiError(exceptions)
+
         self._executed = True
 
     @staticmethod
