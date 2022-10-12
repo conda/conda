@@ -174,7 +174,10 @@ class SubdirData(metaclass=SubdirDataType):
         self._loaded = False
         self._key_mgr = None
 
-        self._repo = CondaRepoInterface(
+    @property
+    def _repo(self):
+        # XXX one for `current_repodata.json` and one for `repodata.json`
+        return CondaRepoInterface(
             self.url_w_credentials,
             self.repodata_fn,
             cache_path_json=self.cache_path_json,
@@ -313,6 +316,7 @@ class SubdirData(metaclass=SubdirDataType):
 
         try:
             raw_repodata_str = self._repo.repodata(mod_etag_headers)
+
             # empty file
             if not raw_repodata_str and self.repodata_fn != REPODATA_FN:
                 # awkward exception adapter. raise-able from inside self._repo?
