@@ -49,7 +49,7 @@ class CondaRepoJLAP(RepoInterface):
                 return self._cache_path_json
             raise NotImplementedError("Unexpected URL", url)
 
-        with conda_http_errors(repodata_url, repodata_fn=self._repodata_fn):
+        with conda_http_errors(self._url, self._repodata_fn):
             jlapper.request_url_jlap_state(repodata_url, state, get_place=get_place)
 
         # XXX do headers come from a different place when fetched with jlap vs

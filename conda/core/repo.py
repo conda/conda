@@ -106,7 +106,7 @@ class CondaRepoInterface(RepoInterface):
         filename = self._repodata_fn
 
         url = join_url(self._url, filename)
-        with conda_http_errors(url, filename):
+        with conda_http_errors(self._url, filename):
             timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
             resp = session.get(url, headers=headers, proxies=session.proxies, timeout=timeout)
             if self._log.isEnabledFor(logging.DEBUG):
