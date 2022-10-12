@@ -5,9 +5,7 @@ import pathlib
 from typing import Optional
 
 from . import jlapper
-from .repo import RepoInterface, conda_http_errors
-
-import logging
+from .repo import RepodataIsNone, RepoInterface, conda_http_errors
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +36,7 @@ class CondaRepoJLAP(RepoInterface):
         self._cache_path_json = pathlib.Path(kwargs["cache_path_json"])
         self._cache_path_state = pathlib.Path(kwargs["cache_path_state"])
 
-    def repodata(self, state: dict) -> str:
+    def repodata(self, state: dict) -> str | None:
         console.print_json(data=state)
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
@@ -49,8 +47,11 @@ class CondaRepoJLAP(RepoInterface):
                 return self._cache_path_json
             raise NotImplementedError("Unexpected URL", url)
 
-        with conda_http_errors(self._url, self._repodata_fn):
-            jlapper.request_url_jlap_state(repodata_url, state, get_place=get_place)
+        try:
+            with conda_http_errors(self._url, self._repodata_fn):
+                jlapper.request_url_jlap_state(repodata_url, state, get_place=get_place)
+        except RepodataIsNone:
+            return None
 
         # XXX do headers come from a different place when fetched with jlap vs
         # fetched with complete download?

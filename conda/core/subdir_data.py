@@ -45,7 +45,7 @@ from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import CondaUpgradeError, NotWritableError
+from ..exceptions import CondaUpgradeError, NotWritableError, UnavailableInvalidChannel
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
@@ -313,6 +313,17 @@ class SubdirData(metaclass=SubdirDataType):
 
         try:
             raw_repodata_str = self._repo.repodata(mod_etag_headers)
+            # empty file
+            if not raw_repodata_str and self.repodata_fn != REPODATA_FN:
+                # awkward exception adapter. raise-able from inside self._repo?
+                raise UnavailableInvalidChannel(self.url_w_repodata_fn, 404)
+
+        except UnavailableInvalidChannel:
+            if self.repodata_fn != REPODATA_FN:
+                self.repodata_fn = REPODATA_FN
+                return self._load()
+            else:
+                raise
         except Response304ContentUnchanged:
             log.debug(
                 "304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",

@@ -1,11 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import abc
 import bz2
 import logging
 import warnings
 from contextlib import contextmanager
 from typing import Dict, List, Optional
+from os.path import dirname
 
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL
@@ -30,12 +33,20 @@ from conda.gateways.connection import (
 from conda.gateways.connection.session import CondaSession
 from conda.models.channel import Channel
 
-
 log = logging.getLogger(__name__)
+stderrlog = logging.getLogger("conda.stderrlog")
+
+
+class RepodataIsNone(Exception):
+    """
+    Adapt context manager to old "raw repodata string is None" result.
+    """
+
+    pass
 
 
 try:
-    from typing import TypedDict    # since Python 3.8
+    from typing import TypedDict  # since Python 3.8
 
     Repodata = TypedDict(
         "Repodata",
@@ -90,7 +101,7 @@ class CondaRepoInterface(RepoInterface):
         self._log = logging.getLogger(__name__)
         self._stderrlog = logging.getLogger("conda.stderrlog")
 
-    def repodata(self, state: dict) -> str:
+    def repodata(self, state: dict) -> str | None:
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
 
@@ -106,12 +117,15 @@ class CondaRepoInterface(RepoInterface):
         filename = self._repodata_fn
 
         url = join_url(self._url, filename)
-        with conda_http_errors(self._url, filename):
-            timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-            resp = session.get(url, headers=headers, proxies=session.proxies, timeout=timeout)
-            if self._log.isEnabledFor(logging.DEBUG):
-                self._log.debug(stringify(resp, content_max_len=256))
-            resp.raise_for_status()
+        try:
+            with conda_http_errors(self._url, filename):
+                timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+                resp = session.get(url, headers=headers, proxies=session.proxies, timeout=timeout)
+                if self._log.isEnabledFor(logging.DEBUG):
+                    self._log.debug(stringify(resp, content_max_len=256))
+                resp.raise_for_status()
+        except RepodataIsNone:
+            return None
 
         if resp.status_code == 304:
             raise Response304ContentUnchanged()
@@ -193,7 +207,7 @@ Exception: {e}
                     status_code,
                     url + "/" + repodata_fn,
                 )
-                return None
+                raise RepodataIsNone()
             else:
                 if context.allow_non_channel_urls:
                     stderrlog.warning(
@@ -201,7 +215,7 @@ Exception: {e}
                         status_code,
                         url + "/" + repodata_fn,
                     )
-                    return None
+                    raise RepodataIsNone()
                 else:
                     raise UnavailableInvalidChannel(
                         Channel(dirname(url)),

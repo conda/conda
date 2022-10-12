@@ -1427,6 +1427,7 @@ dependencies:
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
+    # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
     @pytest.mark.skipif(context.subdir == "win-32", reason="metadata is wrong; give python2.7")
     def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
