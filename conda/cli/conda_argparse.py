@@ -312,7 +312,6 @@ class DeprecatedAction(_StoreAction):
         super().__call__(parser, namespace, values, option_string)
 
 
-
 # #############################################################################################
 #
 # sub-parsers
