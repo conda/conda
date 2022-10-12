@@ -370,9 +370,9 @@ def _read_windows_registry_key(key_name, field_name):
 def _check_arch():
 	arch, bits = _parse_arch(DataSource.arch_string_raw)
 	if not arch in ['X86_32', 'X86_64', 'ARM_7', 'ARM_8',
-	               'PPC_64', 'S390X', 'MIPS_32', 'MIPS_64']:
+	               'PPC_64', 'S390X', 'MIPS_32', 'MIPS_64', 'LOONGARCH64']:
 		raise Exception("py-cpuinfo currently only works on X86 "
-		                "and some ARM/PPC/S390X/MIPS CPUs.")
+		                "and some ARM/PPC/S390X/MIPS/LOONGARCH64 CPUs.")
 
 def _obj_to_b64(thing):
 	import pickle
@@ -820,6 +820,9 @@ def _parse_arch(arch_string_raw):
 	# S390X
 	elif re.match(r'^s390x$', arch_string_raw):
 		arch = 'S390X'
+		bits = 64
+	elif re.match(r'^loongarch64$', arch_string_raw):
+		arch = 'loongarch64'
 		bits = 64
 	elif arch_string_raw == 'mips':
 		arch = 'MIPS_32'

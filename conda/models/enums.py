@@ -24,6 +24,7 @@ class Arch(Enum):
     ppc64 = 'ppc64'
     ppc64le = 'ppc64le'
     s390x = 's390x'
+    loongarch64 = 'loongarch64'
     z = 'z'
 
     @classmethod
