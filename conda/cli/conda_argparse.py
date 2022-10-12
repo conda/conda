@@ -250,14 +250,16 @@ class ExtendConstAction(Action):
 
 class PendingDeprecationAction(_StoreAction):
     def __call__(self, parser, namespace, values, option_string=None):
-        warnings.warn(f"Option {self.option_strings} is pending deprecation.", PendingDeprecationWarning)
+        warnings.warn(
+            f"Option {self.option_strings} is pending deprecation.",
+             PendingDeprecationWarning,
+        )
         super().__call__(parser, namespace, values, option_string)
 
 class DeprecatedAction(_StoreAction):
     def __call__(self, parser, namespace, values, option_string=None):
         warnings.warn(f"Option {self.option_strings} is deprecated!", DeprecationWarning)
         super().__call__(parser, namespace, values, option_string)
-
 
 
 # #############################################################################################
