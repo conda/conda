@@ -73,6 +73,25 @@ zlib_conda_prec = PackageRecord.from_objects(
 )
 
 
+def test_ProgressiveFetchExtract_prefers_conda_v2_format():
+    # force this to False, because otherwise tests fail when run with old conda-build
+    # zlib is available in local "linux-64" subdir
+    with env_vars(
+        {"CONDA_USE_ONLY_TAR_BZ2": False, "CONDA_SUBDIR": "linux-64"},
+        False,
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        index = get_index([CONDA_PKG_REPO], prepend=False)
+        rec = next(iter(index))
+        for rec in index:
+            # zlib is the one package in the test index that has a .conda file record
+            if rec.name == "zlib" and rec.version == "1.2.11":
+                break
+        cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(rec)
+    assert cache_action.target_package_basename.endswith(".conda")
+    assert extract_action.source_full_path.endswith(".conda")
+
+
 @pytest.mark.skipif(
     on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb"
 )
