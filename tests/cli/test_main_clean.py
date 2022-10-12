@@ -187,7 +187,7 @@ def test_clean_tempfiles(clear_cache):
 def test_clean_logfiles(clear_cache):
     """Logfiles are found in pkgs_dir/.logs.
 
-    Since these log files are uniquely implemented for the experimental libmamba release we will
+    Since these log files are uniquely implemented for the new libmamba release we will
     mock the log files.
     """
     pkg = "bzip2"

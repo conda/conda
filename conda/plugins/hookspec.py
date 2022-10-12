@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 import pluggy
 
-from ..models.plugins import CondaSubcommand, CondaVirtualPackage
+from ..models.plugins import CondaSolver, CondaSubcommand, CondaVirtualPackage
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -15,6 +15,14 @@ hookimpl = pluggy.HookimplMarker(spec_name)
 
 
 class CondaSpecs:
+
+    @_hookspec
+    def conda_solvers() -> Iterable[CondaSolver]:
+        """
+        Register solvers in conda.
+
+        :return: An iterable of solvers entries.
+        """
 
     @_hookspec
     def conda_subcommands() -> Iterable[CondaSubcommand]:

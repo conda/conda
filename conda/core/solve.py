@@ -23,21 +23,21 @@ from .. import CondaError, __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
-from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
-                              SolverChoice)
+from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN
 from ..base.context import context
 from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
-                          UnsatisfiableError, CondaImportError)
+                          UnsatisfiableError)
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
+from ..plugins.solvers import get_available_solvers
 from ..resolve import Resolve
 
 log = getLogger(__name__)
@@ -45,37 +45,25 @@ log = getLogger(__name__)
 
 def _get_solver_class(key=None):
     """
-    Temporary function to load the correct solver backend.
+    Load the correct solver backend.
 
-    See ``context.solver`` and
-    ``base.constants.SolverChoice`` for more details.
-
-    TODO: This should be replaced by the plugin mechanism in the future.
+    See ``context.solver`` for more details.
     """
+    solvers = get_available_solvers()
     key = (key or context.solver.value).lower()
 
-    # These keys match conda.base.constants.SolverChoice
-    if key == "classic":
-        return Solver
+    solvers_mapping = {}
+    for solver in solvers:
+        solvers_mapping[solver.name.lower()] = solvers.backend
 
-    if key.startswith("libmamba"):
-        try:
-            from conda_libmamba_solver import get_solver_class
-
-            return get_solver_class(key)
-        except ImportError as exc:
-            raise CondaImportError(
-                f"You have chosen a non-default solver backend ({key}) "
-                f"but it could not be imported:\n\n"
-                f"  {exc.__class__.__name__}: {exc}\n\n"
-                f"Try (re)installing conda-libmamba-solver."
-            )
-
-    raise ValueError(
-        f"You have chosen a non-default solver backend ({key}) "
-        f"but it was not recognized. Choose one of "
-        f"{[v.value for v in SolverChoice]}"
-    )
+    if key in solvers_mapping:
+        return solvers_mapping[key]
+    else:
+        raise ValueError(
+            f"You have chosen a non-default solver backend ({key}) "
+            f"but it was not recognized. Choose one of: "
+            f"{', '.join(solvers_mapping.keys())}"
+        )
 
 
 class Solver:

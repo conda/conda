@@ -60,9 +60,8 @@ from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
-from .. import CONDA_SOURCE_ROOT
+from .. import CONDA_SOURCE_ROOT, DEFAULT_SOLVER
 
-from .. import plugins
 
 try:
     os.getcwd()
@@ -151,14 +150,6 @@ def ssl_verify_validation(value):
                     "certificate bundle file, or a path to a directory containing "
                     "certificates of trusted CAs." % value)
     return True
-
-
-@functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
-def get_plugin_manager():
-    pm = pluggy.PluginManager('conda')
-    pm.add_hookspecs(plugins)
-    pm.load_setuptools_entrypoints('conda')
-    return pm
 
 
 class Context(Configuration):
@@ -350,8 +341,8 @@ class Context(Configuration):
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
     solver_ignore_timestamps = ParameterLoader(PrimitiveParameter(False))
     solver = ParameterLoader(
-        PrimitiveParameter(SolverChoice.CLASSIC, element_type=SolverChoice),
-        aliases=('experimental_solver',),
+        PrimitiveParameter(DEFAULT_SOLVER, element_type=SolverChoice),
+        aliases=("experimental_solver",),
     )
 
     @property
@@ -411,14 +402,6 @@ class Context(Configuration):
                                                                              argparse_args)
 
         super().__init__(search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args)
-
-        # Add plugin support
-        self._plugin_manager = get_plugin_manager()
-
-    @property
-    @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
-    def plugin_manager(self):
-        return self._plugin_manager
 
     def post_build_validation(self):
         errors = []
@@ -602,21 +585,6 @@ class Context(Configuration):
         from ..gateways.disk.create import mkdir_p
         mkdir_p(trash_dir)
         return trash_dir
-
-    @memoizedproperty
-    def _logfile_path(self):
-        # TODO: This property is only temporary during libmamba experimental release phase
-        # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
-        from ..core.package_cache_data import PackageCacheData
-
-        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
-        logs = join(pkgs_dir, CONDA_LOGS_DIR)
-        from ..gateways.disk.create import mkdir_p
-
-        mkdir_p(logs)
-
-        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
-        return os.path.join(logs, f"{timestamp}.log")
 
     @property
     def default_prefix(self):

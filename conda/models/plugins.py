@@ -30,3 +30,17 @@ class CondaVirtualPackage(NamedTuple):
     """
     name: str
     version: str | None
+
+
+class CondaSolver(NamedTuple):
+    """
+    Conda solver.
+
+    :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
+    :param backend: Callable that will instantiated as the solver backend.
+    """
+    name: str
+    backend: Callable[
+        [list[str]],
+        int | None,
+    ]

@@ -4,7 +4,7 @@ import functools
 
 import pluggy
 
-from . import virtual_packages
+from . import solvers, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 
 
@@ -12,6 +12,7 @@ from .hookspec import CondaSpecs, spec_name
 def get_plugin_manager() -> pluggy.PluginManager:
     pm = pluggy.PluginManager(spec_name)
     pm.add_hookspecs(CondaSpecs)
+    solvers.register(pm)
     virtual_packages.register(pm)
     pm.load_setuptools_entrypoints(spec_name)
     return pm
