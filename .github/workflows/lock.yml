@@ -27,7 +27,7 @@ jobs:
       #   uses: conda/actions/read-yaml@v22.2.1
       #   with:
       #     path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
-      - uses: dessant/lock-threads@v2
+      - uses: dessant/lock-threads@v3
         with:
           # Number of days of inactivity before a closed issue is locked
           issue-lock-inactive-days: 365
