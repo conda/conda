@@ -389,11 +389,12 @@ class InitializeTests(TestCase):
             from conda.activate import PosixActivator
             activator = PosixActivator()
 
-            line0, line1, line2, line3, _, remainder = created_file_contents.split('\n', 5)
-            assert line0 == "export CONDA_EXE='%s'" % activator.path_conversion(context.conda_exe)
-            assert line1 == "export _CE_M=''"
-            assert line2 == "export _CE_CONDA=''"
-            assert line3.startswith("export CONDA_PYTHON_EXE=")
+            *lines, remainder = created_file_contents.split('\n', 5)
+            assert lines[0] == "export CONDA_EXE='%s'" % activator.path_conversion(context.conda_exe)
+            assert lines[1] == "export _CE_I='-I'"
+            assert lines[2] == "export _CE_M='-m'"
+            assert lines[3] == "export _CE_CONDA='conda'"
+            assert lines[4] == "export CONDA_PYTHON_EXE='%s'" % activator.path_conversion(sys.executable)
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')) as fh:
                 original_contents = fh.read()
@@ -412,19 +413,22 @@ class InitializeTests(TestCase):
             with open(target_path) as fh:
                 created_file_contents = fh.read()
 
-            first_line, second_line, third_line, fourth_line, remainder = created_file_contents.split('\n', 4)
+            *lines, remainder = created_file_contents.split('\n', 7)
+            assert lines[1] == 'set -gx _CE_I "-I"'
+            assert lines[2] == 'set -gx _CE_M "-m"'
+            assert lines[3] == 'set -gx _CE_CONDA "conda"'
             if on_win:
                 win_conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
                 win_py_exe = join(conda_prefix, 'python.exe')
-                assert first_line == 'set -gx CONDA_EXE (cygpath "%s")' % win_conda_exe
-                assert second_line == 'set _CONDA_ROOT (cygpath "%s")' % conda_prefix
-                assert third_line == 'set _CONDA_EXE (cygpath "%s")' % win_conda_exe
-                assert fourth_line == 'set -gx CONDA_PYTHON_EXE (cygpath "%s")' % win_py_exe
+                assert lines[0] == 'set -gx CONDA_EXE (cygpath "%s")' % win_conda_exe
+                assert lines[4] == 'set -gx CONDA_PYTHON_EXE (cygpath "%s")' % win_py_exe
+                assert lines[5] == 'set -g _CONDA_EXE (cygpath "%s")' % win_conda_exe
+                assert lines[6] == 'set -g _CONDA_ROOT (cygpath "%s")' % conda_prefix
             else:
-                assert first_line == 'set -gx CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
-                assert second_line == 'set _CONDA_ROOT "%s"' % conda_prefix
-                assert third_line == 'set _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
-                assert fourth_line == 'set -gx CONDA_PYTHON_EXE "%s"' % join(conda_prefix, 'bin', 'python')
+                assert lines[0] == 'set -gx CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert lines[4] == 'set -gx CONDA_PYTHON_EXE "%s"' % join(conda_prefix, 'bin', 'python')
+                assert lines[5] == 'set -g _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert lines[6] == 'set -g _CONDA_ROOT "%s"' % conda_prefix
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d', 'conda.fish')) as fh:
                 original_contents = fh.read()
@@ -445,11 +449,16 @@ class InitializeTests(TestCase):
             with open(target_path) as fh:
                 created_file_contents = fh.read()
 
-            first_line, remainder = created_file_contents.split('\n', 1)
+            *lines, remainder = created_file_contents.split('\n', 5)
             if on_win:
-                assert first_line == '$CONDA_EXE = "%s"' % XonshActivator.path_conversion(join(conda_prefix, 'Scripts', 'conda.exe'))
+                assert lines[0] == '$CONDA_EXE = "%s"' % XonshActivator.path_conversion(join(conda_prefix, 'Scripts', 'conda.exe'))
+                assert lines[4] == '$CONDA_PYTHON_EXE = "%s"' % XonshActivator.path_conversion(join(conda_prefix, 'python.exe'))
             else:
-                assert first_line == '$CONDA_EXE = "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert lines[0] == '$CONDA_EXE = "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert lines[4] == '$CONDA_PYTHON_EXE = "%s"' % join(conda_prefix, 'bin', 'python')
+            assert lines[1] == '$_CE_I = "-I"'
+            assert lines[2] == '$_CE_M = "-m"'
+            assert lines[3] == '$_CE_CONDA = "conda"'
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')) as fh:
                 original_contents = fh.read()
@@ -468,17 +477,20 @@ class InitializeTests(TestCase):
             with open(target_path) as fh:
                 created_file_contents = fh.read()
 
-            first_line, second_line, third_line, fourth_line, remainder = created_file_contents.split('\n', 4)
+            *lines, remainder = created_file_contents.split('\n', 7)
+            assert lines[1] == 'setenv _CE_I "-I"'
+            assert lines[2] == 'setenv _CE_M "-m"'
+            assert lines[3] == 'setenv _CE_CONDA "conda"'
             if on_win:
-                assert first_line == 'setenv CONDA_EXE `cygpath %s`' % join(conda_prefix, 'Scripts', 'conda.exe')
-                assert second_line == 'setenv _CONDA_ROOT `cygpath %s`' % conda_prefix
-                assert third_line == 'setenv _CONDA_EXE `cygpath %s`' % join(conda_prefix, 'Scripts', 'conda.exe')
-                assert fourth_line == 'setenv CONDA_PYTHON_EXE `cygpath %s`' % join(conda_prefix, 'python.exe')
+                assert lines[0] == 'setenv CONDA_EXE `cygpath %s`' % join(conda_prefix, 'Scripts', 'conda.exe')
+                assert lines[4] == 'setenv CONDA_PYTHON_EXE `cygpath %s`' % join(conda_prefix, 'python.exe')
+                assert lines[5] == 'setenv _CONDA_EXE `cygpath %s`' % join(conda_prefix, 'Scripts', 'conda.exe')
+                assert lines[6] == 'setenv _CONDA_ROOT `cygpath %s`' % conda_prefix
             else:
-                assert first_line == 'setenv CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
-                assert second_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
-                assert third_line == 'setenv _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
-                assert fourth_line == 'setenv CONDA_PYTHON_EXE "%s"' % join(conda_prefix, 'bin', 'python')
+                assert lines[0] == 'setenv CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert lines[4] == 'setenv CONDA_PYTHON_EXE "%s"' % join(conda_prefix, 'bin', 'python')
+                assert lines[5] == 'setenv _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert lines[6] == 'setenv _CONDA_ROOT "%s"' % conda_prefix
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.csh')) as fh:
                 original_contents = fh.read()
@@ -721,7 +733,7 @@ class InitializeTests(TestCase):
               export PATH="%(prefix)s/bin:$PATH"
 
             # >>> conda initialize >>>
-            __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+            __conda_setup="$('%(prefix)s/bin/python' '-I' '-m' 'conda' 'shell.bash' 'hook' 2> /dev/null)"
             if [ $? -eq 0 ]; then
             fi
             unset __conda_setup
@@ -752,7 +764,7 @@ class InitializeTests(TestCase):
 
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
-            __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+            __conda_setup="$('%(prefix)s/bin/python' '-I' '-m' 'conda' 'shell.bash' 'hook' 2> /dev/null)"
             if [ $? -eq 0 ]; then
                 eval "$__conda_setup"
             else
@@ -826,7 +838,7 @@ class InitializeTests(TestCase):
             . $(cygpath 'c:\\conda\\Scripts\\activate') root
 
             # >>> conda initialize >>>
-            __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+            __conda_setup="$('%(prefix)s/bin/python' '-I' '-m' 'conda' 'shell.bash' 'hook' 2> /dev/null)"
             if [ $? -eq 0 ]; then
             fi
             unset __conda_setup
@@ -858,8 +870,8 @@ class InitializeTests(TestCase):
 
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
-            if [ -f '%(cygpath_conda_prefix)s/Scripts/conda.exe' ]; then
-                eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' 'shell.bash' 'hook')"
+            if [ -f '%(cygpath_conda_prefix)s/python.exe' ]; then
+                eval "$('%(cygpath_conda_prefix)s/python.exe' '-I' '-m' 'conda' 'shell.bash' 'hook')"
             fi
             # <<< conda initialize <<<
 

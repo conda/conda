@@ -5,7 +5,7 @@
 # Original code licensed under BSD-3-Clause.
 from xonsh.lazyasd import lazyobject
 
-if 'CONDA_EXE' not in ${...}:
+if 'CONDA_PYTHON_EXE' not in ${...}:
     ![python -m conda init --dev out> conda-dev-init.sh]
     source-bash conda-dev-init.sh
     import os
@@ -47,7 +47,7 @@ def _raise_pipeline_error(pipeline):
 def _conda_activate_handler(env_name_or_prefix):
     import os
 
-    __xonsh__.execer.exec($($CONDA_EXE shell.xonsh activate @(env_name_or_prefix)),
+    __xonsh__.execer.exec($($CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA shell.xonsh activate @(env_name_or_prefix)),
                           glbs=__xonsh__.ctx,
                           filename="$(conda shell.xonsh activate " + env_name_or_prefix + ")")
     if $CONDA_DEFAULT_ENV != os.path.split(env_name_or_prefix)[1]:
@@ -61,21 +61,21 @@ def _conda_activate_handler(env_name_or_prefix):
 
 
 def _conda_deactivate_handler():
-    __xonsh__.execer.exec($($CONDA_EXE shell.xonsh deactivate),
+    __xonsh__.execer.exec($($CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA shell.xonsh deactivate),
                           glbs=__xonsh__.ctx,
                           filename="$(conda shell.xonsh deactivate)")
 
 
 def _conda_passthrough_handler(args):
-    pipeline = ![$CONDA_EXE @(args)]
+    pipeline = ![$CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA @(args)]
     _raise_pipeline_error(pipeline)
 
 
 def _conda_reactivate_handler(args, name_or_prefix_given):
-    pipeline = ![$CONDA_EXE @(args)]
+    pipeline = ![$CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA @(args)]
     _raise_pipeline_error(pipeline)
     if not name_or_prefix_given:
-        __xonsh__.execer.exec($($CONDA_EXE shell.xonsh reactivate),
+        __xonsh__.execer.exec($($CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA shell.xonsh reactivate),
                               glbs=__xonsh__.ctx,
                               filename="$(conda shell.xonsh reactivate)")
 
@@ -97,7 +97,7 @@ if 'CONDA_SHLVL' not in ${...}:
     $CONDA_SHLVL = '0'
     import os as _os
     import sys as _sys
-    _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.dirname($CONDA_EXE)), "condabin"))
+    _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.dirname($CONDA_PYTHON_EXE)), "condabin"))
     del _os, _sys
 
 aliases['conda'] = _conda_main

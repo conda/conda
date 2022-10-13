@@ -1,0 +1,957 @@
+WARNING :: Could not check versions.
+============================= test session starts ==============================
+platform linux -- Python 3.9.13, pytest-7.1.2, pluggy-1.0.0 -- /opt/conda/bin/python
+cachedir: .pytest_cache
+rootdir: /opt/conda-src, configfile: setup.cfg
+plugins: split-0.8.0, xprocess-0.20.0, rerunfailures-10.1, forked-1.3.0, cov-3.0.0, xdoctest-1.1.0, timeout-1.4.2, mock-3.7.0, xdist-2.5.0
+collecting ... collected 1 item
+
+tests/test_activate.py::ShellWrapperIntegrationTests::test_legacy_activate_deactivate_bash 
+
+EXECUTING COMMAND >>> $ conda install --dev -p /tmp/9940 3fc0/envs/venusaur git -y -q
+
+
+DEBUG conda.common.io:captured(239): overtaking stderr and stdout
+DEBUG conda.core.solve:solve_final_state(260): solving prefix /tmp/9940 3fc0/envs/venusaur
+  specs_to_remove: frozenset()
+  specs_to_add: frozenset({MatchSpec("git")})
+  prune: Null
+DEBUG conda.gateways.disk.test:file_path_is_writable(28): [Errno 13] Permission denied: '/opt/conda/pkgs/urls.txt'
+DEBUG conda.core.package_cache_data:_check_writable(297): package cache directory '/opt/conda/pkgs' writable: False
+DEBUG conda.core.package_cache_data:_check_writable(297): package cache directory '/home/test_user/.conda/pkgs' writable: True
+DEBUG conda.core.subdir_data:_load(271): Local cache timed out for https://repo.anaconda.com/pkgs/main/linux-64/current_repodata.json at /home/test_user/.conda/pkgs/cache/9e0f62c3.json
+DEBUG conda.core.subdir_data:_load(271): Local cache timed out for https://repo.anaconda.com/pkgs/main/noarch/current_repodata.json at /home/test_user/.conda/pkgs/cache/b35683e8.json
+DEBUG conda.core.subdir_data:_load(271): Local cache timed out for https://repo.anaconda.com/pkgs/r/linux-64/current_repodata.json at /home/test_user/.conda/pkgs/cache/f1f1f480.json
+DEBUG conda.core.subdir_data:_load(271): Local cache timed out for https://repo.anaconda.com/pkgs/r/noarch/current_repodata.json at /home/test_user/.conda/pkgs/cache/227b7582.json
+DEBUG conda.core.subdir_data:fetch_repodata_remote_request(528): 
+>>GET /pkgs/main/linux-64/current_repodata.json HTTPS
+> User-Agent: conda/4.14.0.post73+6bf297d92 requests/2.28.1 CPython/3.9.13 Linux/5.10.25-linuxkit debian/11 glibc/2.31
+> Accept: application/json
+> Accept-Encoding: gzip, deflate, compress, identity
+> Connection: keep-alive
+> If-Modified-Since: Wed, 12 Oct 2022 08:24:09 GMT
+> If-None-Match: W/"0df7a6341412461e21102535e2ef10ec"
+
+<<HTTPS 304 Not Modified
+< Age: 103265
+< Cache-Control: public, max-age=30
+< CF-Cache-Status: HIT
+< CF-RAY: 75984ad1b9f369a3-FRA
+< Date: Thu, 13 Oct 2022 13:06:23 GMT
+< ETag: "0df7a6341412461e21102535e2ef10ec"
+< Expires: Thu, 13 Oct 2022 13:06:53 GMT
+< Last-Modified: Wed, 12 Oct 2022 08:24:09 GMT
+< Server: cloudflare
+< Set-Cookie: __cf_bm=5NKZF.cMvLE5Ele8ZQTz2jczOS4pmS2.VmCAoUumdWQ-1665666383-0-AYtlBIC7BJuYjRrAUFFDeHD9x0GMPlSrpusGumHkYi23CfVB3RYX4TUaUEaDJSqfL9Mui9fN5DTDXbfYYkruOqg=; path=/; expires=Thu, 13-Oct-22 13:36:23 GMT; domain=.anaconda.com; HttpOnly; Secure; SameSite=None
+< Vary: Accept-Encoding
+< x-amz-id-2: +WHhbkNCZuyNeX1Z9FfHpA6Lgtay4nR3KJ/HVjgkkAOS2D9YKJPPN0/pab0a9xN5CbDoeLoqGgw=
+< x-amz-request-id: JYAKNCGM8A9CJDX2
+< x-amz-version-id: ng.EBRq.vESWxaG2brZlYzhlyGHkq1iG
+< Connection: keep-alive
+< Elapsed: 00:00.366981
+
+
+DEBUG conda.core.subdir_data:_load(290): 304 NOT MODIFIED for 'https://repo.anaconda.com/pkgs/main/linux-64/current_repodata.json'. Updating mtime and loading from disk
+DEBUG conda.core.subdir_data:fetch_repodata_remote_request(528): 
+>>GET /pkgs/main/noarch/current_repodata.json HTTPS
+> User-Agent: conda/4.14.0.post73+6bf297d92 requests/2.28.1 CPython/3.9.13 Linux/5.10.25-linuxkit debian/11 glibc/2.31
+> Accept: application/json
+> Accept-Encoding: gzip, deflate, compress, identity
+> Connection: keep-alive
+> If-Modified-Since: Tue, 11 Oct 2022 14:41:56 GMT
+> If-None-Match: W/"39bab90adcdea2e9eaf3c01139690e3a"
+
+<<HTTPS 304 Not Modified
+< Age: 167034
+< Cache-Control: public, max-age=30
+< CF-Cache-Status: HIT
+< CF-RAY: 75984ad1bb0e68e5-FRA
+< Date: Thu, 13 Oct 2022 13:06:23 GMT
+< ETag: "39bab90adcdea2e9eaf3c01139690e3a"
+< Expires: Thu, 13 Oct 2022 13:06:53 GMT
+< Last-Modified: Tue, 11 Oct 2022 14:41:56 GMT
+< Server: cloudflare
+< Set-Cookie: __cf_bm=CcKQrt6bQ2a7eA0F_.F7HfMUSlL7UevhrL5yUc4C4IQ-1665666383-0-AUYV0WcVGN9ion+7PwiP4zdv1rpkweQu9pPxTkwPe0kAktXKhGTvnNb8IqTfDGNUNubi38Rj+/cwgpEFiiyzoyc=; path=/; expires=Thu, 13-Oct-22 13:36:23 GMT; domain=.anaconda.com; HttpOnly; Secure; SameSite=None
+< Vary: Accept-Encoding
+< x-amz-id-2: LXOB9xhFTwJFpKgN4qrOWbbxBXwLp1jGvBT9teckX9SGUj6Uatnq/caIDaGeJkHPgsJxmVYA3Ms=
+< x-amz-request-id: QHRQGG9K28PT0RZ0
+< x-amz-version-id: JhH6VUeo6MPPXUe9Fm5YyzG9pNHyy5MO
+< Connection: keep-alive
+< Elapsed: 00:00.381051
+
+
+DEBUG conda.core.subdir_data:_load(290): 304 NOT MODIFIED for 'https://repo.anaconda.com/pkgs/main/noarch/current_repodata.json'. Updating mtime and loading from disk
+DEBUG conda.core.subdir_data:_read_pickled(355): found pickle file /home/test_user/.conda/pkgs/cache/b35683e8.q
+DEBUG conda.core.subdir_data:fetch_repodata_remote_request(528): 
+>>GET /pkgs/r/noarch/current_repodata.json HTTPS
+> User-Agent: conda/4.14.0.post73+6bf297d92 requests/2.28.1 CPython/3.9.13 Linux/5.10.25-linuxkit debian/11 glibc/2.31
+> Accept: application/json
+> Accept-Encoding: gzip, deflate, compress, identity
+> Connection: keep-alive
+> If-Modified-Since: Fri, 19 Aug 2022 21:27:18 GMT
+> If-None-Match: W/"1c484c8d82487267024f6e00332c5f34"
+
+<<HTTPS 304 Not Modified
+< Age: 1953905
+< Cache-Control: public, max-age=30
+< CF-Cache-Status: HIT
+< CF-RAY: 75984ad1bead5b86-FRA
+< Date: Thu, 13 Oct 2022 13:06:23 GMT
+< ETag: "1c484c8d82487267024f6e00332c5f34"
+< Expires: Thu, 13 Oct 2022 13:06:53 GMT
+< Last-Modified: Fri, 19 Aug 2022 21:27:18 GMT
+< Server: cloudflare
+< Set-Cookie: __cf_bm=JdFMomKlbdLJPn1Fv8W2dsH9OvrSzpLrRGsoev7dYi8-1665666383-0-ASexpaZvvKecJZf6ZKraTGsyMmW1hVrIp1AN/6eYAN3f8qksE4BFZhZ5GYx1o7xZd4/bj3oALdUqVghUeGoceSk=; path=/; expires=Thu, 13-Oct-22 13:36:23 GMT; domain=.anaconda.com; HttpOnly; Secure; SameSite=None
+< Vary: Accept-Encoding
+< x-amz-id-2: 2PGqGCVg0QI8sPDOg8hzwrkH+jGJapqYFws+xuVzp6fGUak0e42xwnp8egMq+juqLDfwWgBFFMg=
+< x-amz-request-id: 5C1FQ4TK3274WXHB
+< x-amz-version-id: 8E_lL7sIzoeAKBxCoBVu9T4T7sxdn8i.
+< Connection: keep-alive
+< Elapsed: 00:00.385588
+
+
+DEBUG conda.core.subdir_data:_load(290): 304 NOT MODIFIED for 'https://repo.anaconda.com/pkgs/r/noarch/current_repodata.json'. Updating mtime and loading from disk
+DEBUG conda.core.subdir_data:fetch_repodata_remote_request(528): 
+>>GET /pkgs/r/linux-64/current_repodata.json HTTPS
+> User-Agent: conda/4.14.0.post73+6bf297d92 requests/2.28.1 CPython/3.9.13 Linux/5.10.25-linuxkit debian/11 glibc/2.31
+> Accept: application/json
+> Accept-Encoding: gzip, deflate, compress, identity
+> Connection: keep-alive
+> If-Modified-Since: Fri, 19 Aug 2022 21:27:15 GMT
+> If-None-Match: W/"84633ac6a6dc2dac561472981416ccb3"
+
+<<HTTPS 304 Not Modified
+< Age: 1953892
+< Cache-Control: public, max-age=30
+< CF-Cache-Status: HIT
+< CF-RAY: 75984ad1ba685c38-FRA
+< Date: Thu, 13 Oct 2022 13:06:23 GMT
+< ETag: "84633ac6a6dc2dac561472981416ccb3"
+< Expires: Thu, 13 Oct 2022 13:06:53 GMT
+< Last-Modified: Fri, 19 Aug 2022 21:27:15 GMT
+< Server: cloudflare
+< Set-Cookie: __cf_bm=Y_4lnRPU6FeO9n_NablYD4e9TYhl6SL01nN38JBrymo-1665666383-0-AZBXYm3i5vJlzqgnwZJMjPOuKnWLTF4/O2daq8gpoj6MrsjalgwPBhQl2JeH+xUMXr0we/PENybaRTyxNvMa6wk=; path=/; expires=Thu, 13-Oct-22 13:36:23 GMT; domain=.anaconda.com; HttpOnly; Secure; SameSite=None
+< Vary: Accept-Encoding
+< x-amz-id-2: kDP118qO77c4HIkmvsr+haSbh4rWPW56R+Vf+rBnrs6M7+96BIwyfn5CxDgFQ/5u7WtJCN+q4cA=
+< x-amz-request-id: 5C1A7RCF89777NN1
+< x-amz-version-id: p18.v3h0K.vD1bhS.t6.sUk8aWcqyfuy
+< Connection: keep-alive
+< Elapsed: 00:00.410711
+
+
+DEBUG conda.core.subdir_data:_load(290): 304 NOT MODIFIED for 'https://repo.anaconda.com/pkgs/r/linux-64/current_repodata.json'. Updating mtime and loading from disk
+DEBUG conda.core.subdir_data:_read_pickled(355): found pickle file /home/test_user/.conda/pkgs/cache/227b7582.q
+DEBUG conda.core.subdir_data:_read_pickled(355): found pickle file /home/test_user/.conda/pkgs/cache/9e0f62c3.q
+DEBUG conda.core.subdir_data:_read_pickled(355): found pickle file /home/test_user/.conda/pkgs/cache/f1f1f480.q
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __linux
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __glibc
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __unix
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __archspec
+DEBUG conda.resolve:get_reduced_index(573): Retrieving packages for: 
+  - git
+DEBUG conda.resolve:filter_group(635): krb5: pruned from 10 -> 1
+DEBUG conda.resolve:filter_group(635): openssl: pruned from 3 -> 2
+DEBUG conda.resolve:filter_group(635): icu: pruned from 4 -> 3
+DEBUG conda.core.solve:_add_specs(675): specs_map with targets: OrderedDict([('__linux', MatchSpec("__linux")), ('__glibc', MatchSpec("__glibc")), ('__unix', MatchSpec("__unix")), ('__archspec', MatchSpec("__archspec"))])
+DEBUG conda.resolve:bad_installed(1118): Checking if the current environment is consistent
+DEBUG conda.core.solve:_find_inconsistent_packages(537): inconsistent precs: None
+DEBUG conda.resolve:get_reduced_index(573): Retrieving packages for: 
+  - __archspec
+  - __glibc
+  - __linux
+  - __unix
+  - git
+DEBUG conda.resolve:filter_group(635): krb5: pruned from 10 -> 1
+DEBUG conda.resolve:filter_group(635): openssl: pruned from 3 -> 2
+DEBUG conda.resolve:filter_group(635): icu: pruned from 4 -> 3
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __glibc
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __unix
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __linux
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __archspec
+DEBUG conda.common._logic:_run_sat(596): Invoking SAT with clause count: 2
+DEBUG conda.resolve:_get_sat_solver_cls(63): Using SAT solver interface 'pycosat'.
+DEBUG conda.resolve:gen_clauses(918): gen_clauses returning with clause count: 354
+DEBUG conda.resolve:generate_spec_constraints(924): generate_spec_constraints returning with clause count: 354
+DEBUG conda.common._logic:_run_sat(596): Invoking SAT with clause count: 359
+DEBUG conda.core.solve:_run_sat(858): final specs to add: 
+  - __archspec
+  - __glibc
+  - __linux
+  - __unix
+  - git
+DEBUG conda.resolve:solve(1255): Solving for: 
+  - 0: git target=None optional=False
+  - 1: __glibc target=None optional=False
+  - 2: __linux target=None optional=False
+  - 3: __archspec target=None optional=False
+  - 4: __unix target=None optional=False
+DEBUG conda.resolve:solve(1261): Solve: Getting reduced index of compliant packages
+DEBUG conda.resolve:get_reduced_index(573): Retrieving packages for: 
+  - __archspec
+  - __glibc
+  - __linux
+  - __unix
+  - git
+DEBUG conda.resolve:filter_group(635): krb5: pruned from 10 -> 1
+DEBUG conda.resolve:filter_group(635): openssl: pruned from 3 -> 2
+DEBUG conda.resolve:filter_group(635): icu: pruned from 4 -> 3
+DEBUG conda.resolve:solve(1290): Solve: determining satisfiability
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __glibc
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __unix
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __linux
+DEBUG conda.resolve:__init__(109): restricting to unmanageable packages: __archspec
+DEBUG conda.resolve:gen_clauses(918): gen_clauses returning with clause count: 354
+DEBUG conda.resolve:generate_spec_constraints(924): generate_spec_constraints returning with clause count: 354
+DEBUG conda.common._logic:_run_sat(596): Invoking SAT with clause count: 359
+DEBUG conda.resolve:solve(1341): Requested specs: 
+  - __archspec
+  - __glibc
+  - __linux
+  - __unix
+  - git
+DEBUG conda.resolve:solve(1342): Optional specs: 
+DEBUG conda.resolve:solve(1343): All other specs: 
+  - _libgcc_mutex
+  - _openmp_mutex
+  - bzip2
+  - c-ares
+  - ca-certificates
+  - curl
+  - expat
+  - gettext
+  - icu
+  - krb5
+  - libcurl
+  - libedit
+  - libev
+  - libgcc-ng
+  - libgomp
+  - libnghttp2
+  - libssh2
+  - libstdcxx-ng
+  - libxml2
+  - ncurses
+  - openssl
+  - pcre2
+  - perl
+  - tk
+  - xz
+  - zlib
+DEBUG conda.resolve:solve(1344): missing specs: 
+  - _libgcc_mutex
+  - _openmp_mutex
+  - bzip2
+  - c-ares
+  - ca-certificates
+  - curl
+  - expat
+  - gettext
+  - icu
+  - krb5
+  - libcurl
+  - libedit
+  - libev
+  - libgcc-ng
+  - libgomp
+  - libnghttp2
+  - libssh2
+  - libstdcxx-ng
+  - libxml2
+  - ncurses
+  - openssl
+  - pcre2
+  - perl
+  - tk
+  - xz
+  - zlib
+DEBUG conda.resolve:solve(1347): Solve: minimize removed packages
+DEBUG conda.resolve:solve(1354): Solve: maximize versions of requested packages
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.resolve:solve(1358): Initial package channel/version metric: 0/0
+DEBUG conda.resolve:solve(1361): Solve: minimize track_feature count
+DEBUG conda.resolve:generate_feature_count(933): generate_feature_count returning with clause count: 359
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.resolve:solve(1364): Track feature count: 0
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.resolve:solve(1375): Package misfeature count: 0
+DEBUG conda.resolve:solve(1378): Solve: maximize build numbers of requested packages
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.resolve:solve(1380): Initial package build metric: 0
+DEBUG conda.resolve:solve(1383): Solve: prefer arch over noarch for requested packages
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.resolve:solve(1385): Noarch metric: 0
+DEBUG conda.resolve:solve(1389): Solve: minimize number of optional installations
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.resolve:solve(1392): Optional package install metric: 0
+DEBUG conda.resolve:solve(1395): Solve: minimize number of necessary upgrades
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.resolve:solve(1398): Dependency update count: 0
+DEBUG conda.resolve:solve(1401): Solve: maximize versions and builds of indirect dependencies.  Prefer arch over noarch where equivalent.
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.common._logic:_run_sat(596): Invoking SAT with clause count: 376
+DEBUG conda.common._logic:minimize(734): Final sum objective: 0
+DEBUG conda.common._logic:_run_sat(596): Invoking SAT with clause count: 391
+DEBUG conda.common._logic:minimize(734): Final peak objective: 0
+DEBUG conda.common._logic:minimize(653): Empty objective, trivial solution
+DEBUG conda.resolve:solve(1408): Additional package channel/version/build/noarch metrics: 0/0/0/0
+DEBUG conda.resolve:solve(1412): Solve: prune unnecessary packages
+DEBUG conda.common._logic:_run_sat(596): Invoking SAT with clause count: 417
+DEBUG conda.common._logic:_run_sat(596): Invoking SAT with clause count: 442
+DEBUG conda.common._logic:minimize(734): Final sum objective: 26
+DEBUG conda.common._logic:minimize(747): New peak objective: 1
+DEBUG conda.resolve:solve(1415): Weak dependency count: 26
+DEBUG conda.common._logic:_run_sat(596): Invoking SAT with clause count: 443
+DEBUG conda.resolve:solve(1423): Looking for alternate solutions
+DEBUG conda.common._logic:_run_sat(596): Invoking SAT with clause count: 443
+DEBUG conda.core.solve:solve_final_state(346): solved prefix /tmp/9940 3fc0/envs/venusaur
+  solved_linked_dists:
+    defaults/linux-64::_libgcc_mutex-0.1-main
+    defaults/linux-64::ca-certificates-2022.07.19-h06a4308_0
+    defaults/linux-64::libstdcxx-ng-11.2.0-h1234567_1
+    defaults/linux-64::libgomp-11.2.0-h1234567_1
+    defaults/linux-64::_openmp_mutex-5.1-1_gnu
+    defaults/linux-64::libgcc-ng-11.2.0-h1234567_1
+    defaults/linux-64::bzip2-1.0.8-h7b6447c_0
+    defaults/linux-64::c-ares-1.18.1-h7f8727e_0
+    defaults/linux-64::expat-2.4.9-h6a678d5_0
+    defaults/linux-64::icu-58.2-he6710b0_3
+    defaults/linux-64::libev-4.33-h7f8727e_1
+    defaults/linux-64::ncurses-6.3-h5eee18b_3
+    defaults/linux-64::openssl-1.1.1q-h7f8727e_0
+    defaults/linux-64::perl-5.26.2-h14c3975_0
+    defaults/linux-64::xz-5.2.6-h5eee18b_0
+    defaults/linux-64::zlib-1.2.12-h5eee18b_3
+    defaults/linux-64::libedit-3.1.20210910-h7f8727e_0
+    defaults/linux-64::libnghttp2-1.46.0-hce63b2e_0
+    defaults/linux-64::libssh2-1.10.0-h8f2d780_0
+    defaults/linux-64::libxml2-2.9.14-h74e7548_0
+    defaults/linux-64::pcre2-10.37-he7ceb23_1
+    defaults/linux-64::tk-8.6.12-h1ccaba5_0
+    defaults/linux-64::gettext-0.21.0-hf68c758_0
+    defaults/linux-64::krb5-1.19.2-hac12032_0
+    defaults/linux-64::libcurl-7.84.0-h91b91d3_0
+    defaults/linux-64::curl-7.84.0-h5eee18b_0
+    defaults/linux-64::git-2.34.1-pl5262hc120c5b_0
+
+INFO conda.core.link:__init__(172): initializing UnlinkLinkTransaction with
+  target_prefix: /tmp/9940 3fc0/envs/venusaur
+  unlink_precs:
+    
+  link_precs:
+    defaults/linux-64::_libgcc_mutex-0.1-main
+    defaults/linux-64::ca-certificates-2022.07.19-h06a4308_0
+    defaults/linux-64::libstdcxx-ng-11.2.0-h1234567_1
+    defaults/linux-64::libgomp-11.2.0-h1234567_1
+    defaults/linux-64::_openmp_mutex-5.1-1_gnu
+    defaults/linux-64::libgcc-ng-11.2.0-h1234567_1
+    defaults/linux-64::bzip2-1.0.8-h7b6447c_0
+    defaults/linux-64::c-ares-1.18.1-h7f8727e_0
+    defaults/linux-64::expat-2.4.9-h6a678d5_0
+    defaults/linux-64::icu-58.2-he6710b0_3
+    defaults/linux-64::libev-4.33-h7f8727e_1
+    defaults/linux-64::ncurses-6.3-h5eee18b_3
+    defaults/linux-64::openssl-1.1.1q-h7f8727e_0
+    defaults/linux-64::perl-5.26.2-h14c3975_0
+    defaults/linux-64::xz-5.2.6-h5eee18b_0
+    defaults/linux-64::zlib-1.2.12-h5eee18b_3
+    defaults/linux-64::libedit-3.1.20210910-h7f8727e_0
+    defaults/linux-64::libnghttp2-1.46.0-hce63b2e_0
+    defaults/linux-64::libssh2-1.10.0-h8f2d780_0
+    defaults/linux-64::libxml2-2.9.14-h74e7548_0
+    defaults/linux-64::pcre2-10.37-he7ceb23_1
+    defaults/linux-64::tk-8.6.12-h1ccaba5_0
+    defaults/linux-64::gettext-0.21.0-hf68c758_0
+    defaults/linux-64::krb5-1.19.2-hac12032_0
+    defaults/linux-64::libcurl-7.84.0-h91b91d3_0
+    defaults/linux-64::curl-7.84.0-h5eee18b_0
+    defaults/linux-64::git-2.34.1-pl5262hc120c5b_0
+
+DEBUG conda.core.package_cache_data:__init__(671): instantiating ProgressiveFetchExtract with
+  defaults/linux-64::libcurl-7.84.0-h91b91d3_0
+  defaults/linux-64::libxml2-2.9.14-h74e7548_0
+  defaults/linux-64::zlib-1.2.12-h5eee18b_3
+  defaults/linux-64::_openmp_mutex-5.1-1_gnu
+  defaults/linux-64::git-2.34.1-pl5262hc120c5b_0
+  defaults/linux-64::ncurses-6.3-h5eee18b_3
+  defaults/linux-64::gettext-0.21.0-hf68c758_0
+  defaults/linux-64::_libgcc_mutex-0.1-main
+  defaults/linux-64::krb5-1.19.2-hac12032_0
+  defaults/linux-64::xz-5.2.6-h5eee18b_0
+  defaults/linux-64::icu-58.2-he6710b0_3
+  defaults/linux-64::libev-4.33-h7f8727e_1
+  defaults/linux-64::libstdcxx-ng-11.2.0-h1234567_1
+  defaults/linux-64::pcre2-10.37-he7ceb23_1
+  defaults/linux-64::curl-7.84.0-h5eee18b_0
+  defaults/linux-64::perl-5.26.2-h14c3975_0
+  defaults/linux-64::expat-2.4.9-h6a678d5_0
+  defaults/linux-64::c-ares-1.18.1-h7f8727e_0
+  defaults/linux-64::libgomp-11.2.0-h1234567_1
+  defaults/linux-64::tk-8.6.12-h1ccaba5_0
+  defaults/linux-64::openssl-1.1.1q-h7f8727e_0
+  defaults/linux-64::libssh2-1.10.0-h8f2d780_0
+  defaults/linux-64::libedit-3.1.20210910-h7f8727e_0
+  defaults/linux-64::ca-certificates-2022.07.19-h06a4308_0
+  defaults/linux-64::bzip2-1.0.8-h7b6447c_0
+  defaults/linux-64::libgcc-ng-11.2.0-h1234567_1
+  defaults/linux-64::libnghttp2-1.46.0-hce63b2e_0
+
+DEBUG conda.gateways.disk.test:file_path_is_writable(28): [Errno 13] Permission denied: '/opt/conda/pkgs/urls.txt'
+DEBUG conda.core.package_cache_data:_check_writable(297): package cache directory '/opt/conda/pkgs' writable: False
+DEBUG conda.core.package_cache_data:_check_writable(297): package cache directory '/home/test_user/.conda/pkgs' writable: True
+DEBUG conda.core.package_cache_data:execute(717): prepared package cache actions:
+  cache_actions:
+    
+  extract_actions:
+    
+
+DEBUG conda.common.signals:signal_handler(41): registering handler for SIGABRT
+DEBUG conda.common.signals:signal_handler(41): registering handler for SIGINT
+DEBUG conda.common.signals:signal_handler(41): registering handler for SIGTERM
+DEBUG conda.common.signals:signal_handler(41): registering handler for SIGQUIT
+DEBUG conda.common.signals:signal_handler(54): de-registering handler for Signals.SIGABRT
+DEBUG conda.common.signals:signal_handler(54): de-registering handler for Signals.SIGINT
+DEBUG conda.common.signals:signal_handler(54): de-registering handler for Signals.SIGTERM
+DEBUG conda.common.signals:signal_handler(54): de-registering handler for Signals.SIGQUIT
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.fecfa07f
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.b8c507e3
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.de6c7db7
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.8dcf0bc7
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.979a32d3
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.a3424f20
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.b1ec4def
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.be933998
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.13f25fc8
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.3adeb845
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.b7c12dcc
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.95d700bd
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.f983ab04
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.37431fca
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.9cd2c044
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.0aac75c1
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.ec20ff4a
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.0d5086ca
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.5776a009
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.f66f5244
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.f60b9094
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.89fdd2ca
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.gateways.disk.permissions:make_writable(36): tried make writable but failed: /tmp/9940 3fc0/envs/venusaur/.tmp.index.json.e52d78a1
+PermissionError(1, 'Operation not permitted')
+DEBUG conda.core.link:_get_python_version(871): no python version found in prefix
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/six-1.16.0-pyhd3eb1b0_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pycosat-0.6.3-py39h27cfd23_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pyopenssl-22.0.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/brotlipy-0.7.0-py39h27cfd23_1003.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pysocks-1.7.1-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/idna-3.3-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pycparser-2.21-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libffi-3.3-he6710b0_2.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/wheel-0.37.1-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/readline-8.1.2-h7f8727e_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/yaml-0.2.5-h7b6447c_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/conda-package-handling-1.8.1-py39h7f8727e_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/_libgcc_mutex-0.1-main.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/charset-normalizer-2.0.4-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/ruamel_yaml-0.15.100-py39h27cfd23_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/zipp-3.8.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/ncurses-6.3-h5eee18b_3.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pycrypto-2.6.1-py39h27cfd23_10.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/xdoctest-1.1.0-pyhd8ed1ab_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/ukkonen-1.0.1-py39hdb19cb5_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/c-ares-1.18.1-h7f8727e_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/krb5-1.19.2-hac12032_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/expat-2.4.4-h295c915_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/perl-5.26.2-h14c3975_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/flake8-4.0.1-pyhd3eb1b0_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/attrs-21.4.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/responses-0.13.3-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/bzip2-1.0.8-h7b6447c_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/traitlets-5.1.1-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/requests-2.28.1-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/backports.tempfile-1.0-pyhd3eb1b0_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/backports.functools_lru_cache-1.6.4-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/backports-1.1-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/jsonschema-4.4.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/cfgv-3.3.1-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libarchive-3.6.1-hab531cd_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/s3transfer-0.6.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/markupsafe-2.0.1-py39h27cfd23_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytest-cov-3.0.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libgcc-ng-11.2.0-h1234567_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/git-2.34.1-pl5262hc120c5b_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pcre2-10.37-he7ceb23_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/toolz-0.11.2-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/tqdm-4.64.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libxml2-2.9.14-h74e7548_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/liblief-0.11.5-h295c915_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pyflakes-2.4.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytest-split-0.8.0-pyhd8ed1ab_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/patch-2.7.6-h7b6447c_1001.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytest-forked-1.3.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/lz4-c-1.9.3-h295c915_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/mccabe-0.7.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pkginfo-1.8.2-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/cryptography-37.0.1-py39h9ce1e76_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pip-22.1.2-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/sqlite-3.39.2-h5082296_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/certifi-2022.6.15-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libev-4.33-h7f8727e_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/anaconda-client-1.11.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pyrsistent-0.18.0-py39heee7806_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/jupyter_core-4.10.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/packaging-21.3-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/click-8.0.4-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/urllib3-1.26.11-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/mock-4.0.3-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/identify-2.5.5-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/glob2-0.7-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/platformdirs-2.5.2-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/conda-build-3.22.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/tzdata-2022c-h04d1e81_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/beautifulsoup4-4.11.1-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/jmespath-0.10.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pyparsing-3.0.9-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/ld_impl_linux-64-2.38-h1181459_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/_openmp_mutex-5.1-1_gnu.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/conda-4.14.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/ca-certificates-2022.07.19-h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/psutil-5.9.0-py39h5eee18b_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytest-7.1.2-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libedit-3.1.20210910-h7f8727e_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/py-1.11.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/soupsieve-2.3.1-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/python-3.9.13-haa1d7c7_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/ripgrep-13.0.0-hbdeaff8_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/importlib-metadata-4.11.3-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytest-timeout-1.4.2-py_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/patchelf-0.13-h295c915_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/virtualenv-20.16.2-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libstdcxx-ng-11.2.0-h1234567_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/zlib-1.2.12-h5eee18b_3.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/zstd-1.5.2-ha4553b6_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/conda-verify-3.4.2-py_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/jinja2-2.11.3-pyhd8ed1ab_2.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/py-lief-0.11.5-py39h295c915_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/xz-5.2.5-h7f8727e_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/execnet-1.9.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytest-mock-3.7.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/cytoolz-0.11.0-py39h27cfd23_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/tomli-2.0.1-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytest-xdist-2.5.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/filelock-3.6.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/python-fastjsonschema-2.16.2-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/toml-0.10.2-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pycodestyle-2.8.0-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/backports.weakref-1.0.post1-py_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libcurl-7.84.0-h91b91d3_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/nodeenv-1.7.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/setuptools-63.4.1-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/python-dateutil-2.8.2-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libnghttp2-1.46.0-hce63b2e_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/future-0.18.2-py39h06a4308_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/distlib-0.3.2-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/ptyprocess-0.7.0-pyhd3eb1b0_2.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pre-commit-2.20.0-py39hf3d152e_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/python-libarchive-c-2.9-pyhd3eb1b0_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pluggy-1.0.0-py39h06a4308_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/chardet-4.0.0-py39h06a4308_1003.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/tk-8.6.12-h1ccaba5_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libgomp-11.2.0-h1234567_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pexpect-4.8.0-pyhd3eb1b0_3.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/clyent-1.2.2-py39h06a4308_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/iniconfig-1.1.1-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pyyaml-6.0-py39h7f8727e_1.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/boto3-1.24.28-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/curl-7.84.0-h5eee18b_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/gettext-0.21.0-hf68c758_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/cffi-1.15.1-py39h74dc2b5_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytest-xprocess-0.20.0-pyhd8ed1ab_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/coverage-6.3.2-py39h7f8727e_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/openssl-1.1.1q-h7f8727e_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytest-rerunfailures-10.1-pyhd3eb1b0_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/icu-58.2-he6710b0_3.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/botocore-1.27.28-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/python_abi-3.9-2_cp39.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/libssh2-1.10.0-h8f2d780_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/nbformat-5.3.0-py39h06a4308_0.json
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /opt/conda/conda-meta/pytz-2022.1-py39h06a4308_0.json
+DEBUG conda.common.signals:signal_handler(41): registering handler for SIGABRT
+DEBUG conda.common.signals:signal_handler(41): registering handler for SIGINT
+DEBUG conda.common.signals:signal_handler(41): registering handler for SIGTERM
+DEBUG conda.common.signals:signal_handler(41): registering handler for SIGQUIT
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::_libgcc_mutex-0.1-main <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/home/test_user/.conda/pkgs/_libgcc_mutex-0.1-main
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::ca-certificates-2022.07.19-h06a4308_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/ca-certificates-2022.07.19-h06a4308_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::libstdcxx-ng-11.2.0-h1234567_1 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/libstdcxx-ng-11.2.0-h1234567_1
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::libgomp-11.2.0-h1234567_1 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/libgomp-11.2.0-h1234567_1
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::_openmp_mutex-5.1-1_gnu <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/home/test_user/.conda/pkgs/_openmp_mutex-5.1-1_gnu
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::libgcc-ng-11.2.0-h1234567_1 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/libgcc-ng-11.2.0-h1234567_1
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::bzip2-1.0.8-h7b6447c_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/bzip2-1.0.8-h7b6447c_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::c-ares-1.18.1-h7f8727e_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/c-ares-1.18.1-h7f8727e_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::expat-2.4.9-h6a678d5_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/home/test_user/.conda/pkgs/expat-2.4.9-h6a678d5_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::icu-58.2-he6710b0_3 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/icu-58.2-he6710b0_3
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::libev-4.33-h7f8727e_1 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/libev-4.33-h7f8727e_1
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::ncurses-6.3-h5eee18b_3 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/ncurses-6.3-h5eee18b_3
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::openssl-1.1.1q-h7f8727e_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/openssl-1.1.1q-h7f8727e_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::perl-5.26.2-h14c3975_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/perl-5.26.2-h14c3975_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::xz-5.2.6-h5eee18b_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/home/test_user/.conda/pkgs/xz-5.2.6-h5eee18b_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::zlib-1.2.12-h5eee18b_3 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/zlib-1.2.12-h5eee18b_3
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::libedit-3.1.20210910-h7f8727e_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/libedit-3.1.20210910-h7f8727e_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::libnghttp2-1.46.0-hce63b2e_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/libnghttp2-1.46.0-hce63b2e_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::libssh2-1.10.0-h8f2d780_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/libssh2-1.10.0-h8f2d780_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::libxml2-2.9.14-h74e7548_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/libxml2-2.9.14-h74e7548_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::pcre2-10.37-he7ceb23_1 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/pcre2-10.37-he7ceb23_1
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::tk-8.6.12-h1ccaba5_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/tk-8.6.12-h1ccaba5_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::gettext-0.21.0-hf68c758_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/gettext-0.21.0-hf68c758_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::krb5-1.19.2-hac12032_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/krb5-1.19.2-hac12032_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::libcurl-7.84.0-h91b91d3_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/libcurl-7.84.0-h91b91d3_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::curl-7.84.0-h5eee18b_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/curl-7.84.0-h5eee18b_0
+
+INFO conda.core.link:_execute_actions(779): ===> LINKING PACKAGE: defaults::git-2.34.1-pl5262hc120c5b_0 <===
+  prefix=/tmp/9940 3fc0/envs/venusaur
+  source=/opt/conda/pkgs/git-2.34.1-pl5262hc120c5b_0
+
+DEBUG conda.core.prefix_data:_load_single_record(168): loading prefix record /tmp/9940 3fc0/envs/venusaur/conda-meta/_libgcc_mutex-0.1-main.json
+DEBUG conda.common.signals:signal_handler(54): de-registering handler for Signals.SIGABRT
+DEBUG conda.common.signals:signal_handler(54): de-registering handler for Signals.SIGINT
+DEBUG conda.common.signals:signal_handler(54): de-registering handler for Signals.SIGTERM
+DEBUG conda.common.signals:signal_handler(54): de-registering handler for Signals.SIGQUIT
+DEBUG conda.common.io:captured(254): stderr and stdout yielding back
+
+Collecting package metadata (current_repodata.json): ...working... done
+Solving environment: ...working... done
+
+## Package Plan ##
+
+  environment location: /tmp/9940 3fc0/envs/venusaur
+
+  added / updated specs:
+    - git
+
+
+The following NEW packages will be INSTALLED:
+
+  _libgcc_mutex      pkgs/main/linux-64::_libgcc_mutex-0.1-main 
+  _openmp_mutex      pkgs/main/linux-64::_openmp_mutex-5.1-1_gnu 
+  bzip2              pkgs/main/linux-64::bzip2-1.0.8-h7b6447c_0 
+  c-ares             pkgs/main/linux-64::c-ares-1.18.1-h7f8727e_0 
+  ca-certificates    pkgs/main/linux-64::ca-certificates-2022.07.19-h06a4308_0 
+  curl               pkgs/main/linux-64::curl-7.84.0-h5eee18b_0 
+  expat              pkgs/main/linux-64::expat-2.4.9-h6a678d5_0 
+  gettext            pkgs/main/linux-64::gettext-0.21.0-hf68c758_0 
+  git                pkgs/main/linux-64::git-2.34.1-pl5262hc120c5b_0 
+  icu                pkgs/main/linux-64::icu-58.2-he6710b0_3 
+  krb5               pkgs/main/linux-64::krb5-1.19.2-hac12032_0 
+  libcurl            pkgs/main/linux-64::libcurl-7.84.0-h91b91d3_0 
+  libedit            pkgs/main/linux-64::libedit-3.1.20210910-h7f8727e_0 
+  libev              pkgs/main/linux-64::libev-4.33-h7f8727e_1 
+  libgcc-ng          pkgs/main/linux-64::libgcc-ng-11.2.0-h1234567_1 
+  libgomp            pkgs/main/linux-64::libgomp-11.2.0-h1234567_1 
+  libnghttp2         pkgs/main/linux-64::libnghttp2-1.46.0-hce63b2e_0 
+  libssh2            pkgs/main/linux-64::libssh2-1.10.0-h8f2d780_0 
+  libstdcxx-ng       pkgs/main/linux-64::libstdcxx-ng-11.2.0-h1234567_1 
+  libxml2            pkgs/main/linux-64::libxml2-2.9.14-h74e7548_0 
+  ncurses            pkgs/main/linux-64::ncurses-6.3-h5eee18b_3 
+  openssl            pkgs/main/linux-64::openssl-1.1.1q-h7f8727e_0 
+  pcre2              pkgs/main/linux-64::pcre2-10.37-he7ceb23_1 
+  perl               pkgs/main/linux-64::perl-5.26.2-h14c3975_0 
+  tk                 pkgs/main/linux-64::tk-8.6.12-h1ccaba5_0 
+  xz                 pkgs/main/linux-64::xz-5.2.6-h5eee18b_0 
+  zlib               pkgs/main/linux-64::zlib-1.2.12-h5eee18b_3 
+
+
+Preparing transaction: ...working... done
+Verifying transaction: ...working... done
+Executing transaction: ...working... done
+
+export CONDA_AUTO_ACTIVATE_BASE='false'
+export PYTHONPATH='/opt/conda-src'
+export PATH='/tmp/6a84 8215/envs/charizard/bin:/opt/conda/condabin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/bin'
+env | sort && echo "$(/opt/conda/bin/python -m conda shell.posix hook --dev)" && eval "$(/opt/conda/bin/python -m conda shell.posix hook --dev)" && env | sort
+conda deactivate
+conda deactivate
+conda deactivate
+conda deactivate
+CHERE_INVOKING=1
+CONDA_AUTO_ACTIVATE_BASE=false
+HOME=/home/test_user
+HOSTNAME=b107e44ad5ca
+LANG=C.UTF-8
+LC_ALL=C.UTF-8
+LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:
+MSYS2_PATH_TYPE=inherit
+PATH=/tmp/6a84 8215/envs/charizard/bin:/opt/conda/condabin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/bin
+PWD=/opt/conda-src
+PYTEST_CURRENT_TEST=tests/test_activate.py::ShellWrapperIntegrationTests::test_legacy_activate_deactivate_bash (call)
+PYTHONPATH=/opt/conda-src
+SHLVL=0
+TERM=xterm
+_=/usr/bin/env
+_CE_CONDA=conda
+_CE_I=
+_CE_M=-m
+export _CONDA_ROOT='/opt/conda-src/conda/shell'
+echo "${_CONDA_ROOT}/bin/activate" --dev "/tmp/9940 3fc0/envs/charizard"
+set -x
+source "${_CONDA_ROOT}/bin/activate" --dev "/tmp/9940 3fc0/envs/charizard"
+echo get_var_start
+echo "$PATH"
+echo get_var_end
+export CONDA_EXE='/opt/conda/bin/python'
+export _CE_I=''
+export _CE_M='-m'
+export _CE_CONDA='conda'
+export CONDA_PYTHON_EXE='/opt/conda/bin/python'
+export PYTHONPATH='/opt/conda-src:/opt/conda-src'
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
+__conda_exe() (
+    "$CONDA_PYTHON_EXE" $_CE_I $_CE_M $_CE_CONDA "$@"
+)
+
+__conda_hashr() {
+    if [ -n "${ZSH_VERSION:+x}" ]; then
+        \rehash
+    elif [ -n "${POSH_VERSION:+x}" ]; then
+        :  # pass
+    else
+        \hash -r
+    fi
+}
+
+__conda_activate() {
+    if [ -n "${CONDA_PS1_BACKUP:+x}" ]; then
+        # Handle transition from shell activated with conda <= 4.3 to a subsequent activation
+        # after conda updated to >= 4.4. See issue #6173.
+        PS1="$CONDA_PS1_BACKUP"
+        \unset CONDA_PS1_BACKUP
+    fi
+    \local ask_conda
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix "$@" 2>&1 )" || \echo "$ask_conda" && \return
+    \eval "$ask_conda"
+    __conda_hashr
+}
+
+__conda_reactivate() {
+    \local ask_conda
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix reactivate)" || \return
+    \eval "$ask_conda"
+    __conda_hashr
+}
+
+conda() {
+    \local cmd="${1-__missing__}"
+    case "$cmd" in
+        activate|deactivate)
+            __conda_activate "$@"
+            ;;
+        install|update|upgrade|remove|uninstall)
+            __conda_exe "$@" || \return
+            __conda_reactivate
+            ;;
+        *)
+            __conda_exe "$@"
+            ;;
+    esac
+}
+
+if [ -z "${CONDA_SHLVL+x}" ]; then
+    \export CONDA_SHLVL=0
+    # In dev-mode CONDA_EXE is python.exe and on Windows
+    # it is in a different relative location to condabin.
+    if [ -n "${_CE_CONDA:+x}" ] && [ -n "${WINDIR+x}" ]; then
+        PATH="$(\dirname "$CONDA_EXE")/condabin${PATH:+":${PATH}"}"
+    else
+        PATH="$(\dirname "$(\dirname "$CONDA_EXE")")/condabin${PATH:+":${PATH}"}"
+    fi
+    \export PATH
+
+    # We're not allowing PS1 to be unbound. It must at least be set.
+    # However, we're not exporting it, which can cause problems when starting a second shell
+    # via a first shell (i.e. starting zsh from bash).
+    if [ -z "${PS1+x}" ]; then
+        PS1=
+    fi
+fi
+CHERE_INVOKING=1
+CONDA_AUTO_ACTIVATE_BASE=false
+CONDA_EXE=/opt/conda/bin/python
+CONDA_PYTHON_EXE=/opt/conda/bin/python
+CONDA_SHLVL=0
+HOME=/home/test_user
+HOSTNAME=b107e44ad5ca
+LANG=C.UTF-8
+LC_ALL=C.UTF-8
+LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:
+MSYS2_PATH_TYPE=inherit
+PATH=/opt/conda/condabin:/tmp/6a84 8215/envs/charizard/bin:/opt/conda/condabin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/bin
+PWD=/opt/conda-src
+PYTEST_CURRENT_TEST=tests/test_activate.py::ShellWrapperIntegrationTests::test_legacy_activate_deactivate_bash (call)
+PYTHONPATH=/opt/conda-src:/opt/conda-src
+SHLVL=0
+TERM=xterm
+_=/usr/bin/env
+_CE_CONDA=conda
+_CE_I=
+_CE_M=-m
+/opt/conda-src/conda/shell/bin/activate --dev /tmp/9940 3fc0/envs/charizard
++ source /opt/conda-src/conda/shell/bin/activate --dev '/tmp/9940 3fc0/envs/charizard'
+++ . /opt/conda-src/conda/shell/etc/profile.d/conda.sh
++++ '[' -z x ']'
+++ conda activate --dev '/tmp/9940 3fc0/envs/charizard'
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate --dev '/tmp/9940 3fc0/envs/charizard'
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate --dev '/tmp/9940 3fc0/envs/charizard'
+Exception encountered: <pexpect.popen_spawn.PopenSpawn object at 0x40297b6760>
+searcher: searcher_re:
+    0: re.compile('get_var_start(.*)get_var_end')
+<pexpect.popen_spawn.PopenSpawn object at 0x40297b6760>
+searcher: searcher_re:
+    0: re.compile('get_var_start(.*)get_var_end')
+FAILED
+
+=================================== FAILURES ===================================
+______ ShellWrapperIntegrationTests.test_legacy_activate_deactivate_bash _______
+Traceback (most recent call last):
+  File "/opt/conda-src/tests/test_activate.py", line 2580, in test_legacy_activate_deactivate_bash
+    PATH0 = shell.get_env_var("PATH")
+  File "/opt/conda-src/tests/test_activate.py", line 1989, in get_env_var
+    self.expect('get_var_start(.*)get_var_end')
+  File "/opt/conda-src/tests/test_activate.py", line 1958, in expect
+    return self.p.expect(pattern, timeout, searchwindowsize, async_)
+  File "/opt/conda/lib/python3.9/site-packages/pexpect/spawnbase.py", line 343, in expect
+    return self.expect_list(compiled_pattern_list,
+  File "/opt/conda/lib/python3.9/site-packages/pexpect/spawnbase.py", line 372, in expect_list
+    return exp.expect_loop(timeout)
+  File "/opt/conda/lib/python3.9/site-packages/pexpect/expect.py", line 181, in expect_loop
+    return self.timeout(e)
+  File "/opt/conda/lib/python3.9/site-packages/pexpect/expect.py", line 144, in timeout
+    raise exc
+pexpect.exceptions.TIMEOUT: <pexpect.popen_spawn.PopenSpawn object at 0x40297b6760>
+searcher: searcher_re:
+    0: re.compile('get_var_start(.*)get_var_end')
+<pexpect.popen_spawn.PopenSpawn object at 0x40297b6760>
+searcher: searcher_re:
+    0: re.compile('get_var_start(.*)get_var_end')
+------------------------------ Captured log call -------------------------------
+WARNING  tests.test_activate:test_activate.py:2050 Installing `git` into /opt/conda because during these tests`conda` uses `git` to get its version, and the gitfound on `PATH` on this system seems to be part ofa conda env. They stack envs which means that thethe original sys.prefix conda env falls off of it.
+DEBUG    urllib3.connectionpool:connectionpool.py:1003 Starting new HTTPS connection (1): repo.anaconda.com:443
+DEBUG    urllib3.connectionpool:connectionpool.py:1003 Starting new HTTPS connection (1): repo.anaconda.com:443
+DEBUG    urllib3.connectionpool:connectionpool.py:1003 Starting new HTTPS connection (1): repo.anaconda.com:443
+DEBUG    urllib3.connectionpool:connectionpool.py:1003 Starting new HTTPS connection (1): repo.anaconda.com:443
+DEBUG    urllib3.connectionpool:connectionpool.py:456 https://repo.anaconda.com:443 "GET /pkgs/main/linux-64/current_repodata.json HTTP/1.1" 304 0
+DEBUG    urllib3.connectionpool:connectionpool.py:456 https://repo.anaconda.com:443 "GET /pkgs/main/noarch/current_repodata.json HTTP/1.1" 304 0
+DEBUG    urllib3.connectionpool:connectionpool.py:456 https://repo.anaconda.com:443 "GET /pkgs/r/noarch/current_repodata.json HTTP/1.1" 304 0
+DEBUG    urllib3.connectionpool:connectionpool.py:456 https://repo.anaconda.com:443 "GET /pkgs/r/linux-64/current_repodata.json HTTP/1.1" 304 0
+-------------- generated xml file: /opt/conda-src/test-report.xml --------------
+============================= slowest 16 durations =============================
+30.29s call     tests/test_activate.py::ShellWrapperIntegrationTests::test_legacy_activate_deactivate_bash
+0.00s setup    tests/test_activate.py::ShellWrapperIntegrationTests::test_legacy_activate_deactivate_bash
+0.00s teardown tests/test_activate.py::ShellWrapperIntegrationTests::test_legacy_activate_deactivate_bash
+=========================== short test summary info ============================
+FAILED tests/test_activate.py::ShellWrapperIntegrationTests::test_legacy_activate_deactivate_bash
+============================== 1 failed in 30.94s ==============================
+pytest-xprocess reminder::Be sure to terminate the started process by running 'pytest --xkill' if you have not explicitly done so in your fixture with 'xprocess.getinfo(<process_name>).terminate()'.

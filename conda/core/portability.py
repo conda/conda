@@ -211,17 +211,16 @@ def generate_shebang_for_entry_point(executable):
     # Following method inspired by `pypa/distlib`
     # https://github.com/pypa/distlib/blob/91aa92e64/distlib/scripts.py#L129
     # Explanation: these lines are both valid Python and shell :)
-    # 1. Python will read it as a triple-quoted multiline string; end of story
+    # 1. Python will read it as a triple-quoted string; end of story
     # 2. The shell will see:
     #       * '' (empty string)
     #       * 'exec' "path/with spaces/to/python" "this file" "arguments"
-    #       * ' ''' (quoted space followed by empty string)
+    #       * # ''' (inline comment with three quotes, ignored by shell)
     if len(shebang) > MAX_SHEBANG_LENGTH or " " in shebang:
         shebang = dals(
             f"""
             #!/bin/sh
-            '''exec' "{executable}" "$0" "$@"
-            ' '''
+            '''exec' "{executable}" "$0" "$@" #'''
             """
         )
 

@@ -1909,7 +1909,7 @@ class InteractiveShell:
 
         p = PopenSpawn(
             quote_for_shell(shell_found, *args),
-            timeout=12,
+            timeout=30,
             maxread=5000,
             searchwindowsize=None,
             logfile=sys.stdout,
@@ -2099,6 +2099,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline("type conda")
         shell.expect(conda_is_a_function)
 
+        _CE_I = shell.get_env_var('_CE_I')
         _CE_M = shell.get_env_var('_CE_M')
         _CE_CONDA = shell.get_env_var('_CE_CONDA')
 
@@ -2111,6 +2112,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.expect(conda_is_a_function)
 
         CONDA_EXE2 = shell.get_env_var('CONDA_EXE')
+        _CE_I2 = shell.get_env_var('_CE_I')
         _CE_M2 = shell.get_env_var('_CE_M')
 
         shell.assert_env_var('PS1', '(base).*')
@@ -2119,6 +2121,7 @@ class ShellWrapperIntegrationTests(TestCase):
         assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         CONDA_EXE = shell.get_env_var('CONDA_EXE')
+        _CE_I = shell.get_env_var('_CE_I')
         _CE_M = shell.get_env_var('_CE_M')
         _CE_CONDA = shell.get_env_var('_CE_CONDA')
 
@@ -2129,11 +2132,14 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.expect(conda_is_a_function)
 
         CONDA_EXE2 = shell.get_env_var('CONDA_EXE')
+        _CE_I2 = shell.get_env_var('_CE_I')
         _CE_M2 = shell.get_env_var('_CE_M')
         _CE_CONDA2 = shell.get_env_var('_CE_CONDA')
         assert CONDA_EXE == CONDA_EXE2, "CONDA_EXE changed by activation procedure\n:From\n{}\nto:\n{}".\
             format(CONDA_EXE, CONDA_EXE2)
-        assert _CE_M2 == _CE_M2, "_CE_M changed by activation procedure\n:From\n{}\nto:\n{}".\
+        assert _CE_I == _CE_I2, "_CE_I changed by activation procedure\n:From\n{}\nto:\n{}".\
+            format(_CE_I, _CE_I2)
+        assert _CE_M == _CE_M2, "_CE_M changed by activation procedure\n:From\n{}\nto:\n{}".\
             format(_CE_M, _CE_M2)
         assert _CE_CONDA == _CE_CONDA2, "_CE_CONDA changed by activation procedure\n:From\n{}\nto:\n{}".\
             format(_CE_CONDA, _CE_CONDA2)
@@ -2167,11 +2173,14 @@ class ShellWrapperIntegrationTests(TestCase):
         assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
         CONDA_EXE2 = shell.get_env_var('CONDA_EXE')
+        _CE_I2 = shell.get_env_var('_CE_I')
         _CE_M2 = shell.get_env_var('_CE_M')
         _CE_CONDA2 = shell.get_env_var('_CE_CONDA')
         assert CONDA_EXE == CONDA_EXE2, "CONDA_EXE changed by stacked activation procedure\n:From\n{}\nto:\n{}".\
             format(CONDA_EXE, CONDA_EXE2)
-        assert _CE_M2 == _CE_M2, "_CE_M changed by stacked activation procedure\n:From\n{}\nto:\n{}".\
+        assert _CE_I == _CE_I2, "_CE_I changed by stacked activation procedure\n:From\n{}\nto:\n{}".\
+            format(_CE_I, _CE_I2)
+        assert _CE_M == _CE_M2, "_CE_M changed by stacked activation procedure\n:From\n{}\nto:\n{}".\
             format(_CE_M, _CE_M2)
         assert _CE_CONDA == _CE_CONDA2, "_CE_CONDA stacked changed by activation procedure\n:From\n{}\nto:\n{}".\
             format(_CE_CONDA, _CE_CONDA2)
@@ -2223,11 +2232,11 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda' + deactivate)
         shell.assert_env_var('CONDA_SHLVL', '0')
 
-        # When fully deactivated, CONDA_EXE, _CE_M and _CE_CONDA must be retained
+        # When fully deactivated, CONDA_EXE, _CE_I, _CE_M and _CE_CONDA must be retained
         # because the conda shell scripts use them and if they are unset activation
         # is not possible.
         CONDA_EXED = shell.get_env_var('CONDA_EXE')
-        assert CONDA_EXED, "A fully deactivated conda shell must retain CONDA_EXE (and _CE_M and _CE_CONDA in dev)\n" \
+        assert CONDA_EXED, "A fully deactivated conda shell must retain CONDA_EXE (and _CE_M, _CE_I and _CE_CONDA in dev)\n" \
                            "  as the shell scripts refer to them."
 
         PATH0 = shell.get_env_var('PATH')

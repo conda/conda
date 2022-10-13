@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 __conda_exe() (
-    "$CONDA_EXE" $_CE_M $_CE_CONDA "$@"
+    "$CONDA_PYTHON_EXE" $_CE_I $_CE_M $_CE_CONDA "$@"
 )
 
 __conda_hashr() {
