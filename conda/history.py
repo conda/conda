@@ -14,10 +14,12 @@ from textwrap import dedent
 import time
 import warnings
 
+from conda.common.iterators import groupby_to_dict as groupby
+
 try:
-    from tlz.itertoolz import groupby, take
+    from tlz.itertoolz import take
 except ImportError:
-    from conda._vendor.toolz.itertoolz import groupby, take
+    from conda._vendor.toolz.itertoolz import take
 
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals

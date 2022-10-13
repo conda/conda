@@ -17,9 +17,11 @@ from tarfile import ReadError
 from functools import partial
 
 try:
-    from tlz.itertoolz import concat, concatv, groupby
+    from tlz.itertoolz import concat, concatv
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+    from conda._vendor.toolz.itertoolz import concat, concatv
+
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler

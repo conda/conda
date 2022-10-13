@@ -9,9 +9,11 @@ import sys
 from textwrap import dedent
 
 try:
-    from tlz.itertoolz import concat, concatv, groupby
+    from tlz.itertoolz import concat, concatv
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+    from conda._vendor.toolz.itertoolz import concat, concatv
+
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction

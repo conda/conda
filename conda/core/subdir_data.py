@@ -19,11 +19,7 @@ from time import time
 
 from genericpath import getmtime, isfile
 
-try:
-    from tlz.itertoolz import groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import groupby
-
+from conda.common.iterators import groupby_to_dict as groupby
 from conda.core.repo import RepoInterface, Response304ContentUnchanged
 
 try:

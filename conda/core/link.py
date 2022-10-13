@@ -91,7 +91,7 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
     )
 
     _all_d = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
-    all_directories = sorted(explode_directories(_all_d, already_split=True), reverse=True)
+    all_directories = sorted(explode_directories(_all_d), reverse=True)
     directory_remove_actions = tuple(UnlinkPathAction(transaction_context, prefix_record,
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)

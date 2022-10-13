@@ -1,21 +1,21 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from functools import lru_cache, reduce
+from itertools import accumulate, chain
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
+from typing import Iterable, Sequence
 from urllib.parse import urlsplit
-
-try:
-    from tlz.itertoolz import accumulate, concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import accumulate, concat
+import warnings
 
 from .compat import on_win
 from .. import CondaError
+from ..auxlib import NULL
 from distutils.spawn import find_executable
 
 
@@ -84,14 +84,13 @@ def tokenized_startswith(test_iterable, startswith_iterable):
     return all(t == sw for t, sw in zip(test_iterable, startswith_iterable))
 
 
-def get_all_directories(files):
+def get_all_directories(files: Iterable[str]) -> list[tuple[str]]:
     return sorted({tuple(f.split("/")[:-1]) for f in files} - {()})
 
 
-def get_leaf_directories(files):
-    # type: (List[str]) -> List[str]
-    # give this function a list of files, and it will hand back a list of leaf directories to
-    #   pass to os.makedirs()
+def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
+    # give this function a list of files, and it will hand back a list of leaf
+    # directories to pass to os.makedirs()
     directories = get_all_directories(files)
     if not directories:
         return ()
@@ -112,12 +111,23 @@ def get_leaf_directories(files):
     return tuple('/'.join(leaf) for leaf in leaves)
 
 
-def explode_directories(child_directories, already_split=False):
+def explode_directories(
+    child_directories: Iterable[tuple[str, ...]],
+    already_split: bool | NULL = NULL,
+) -> set[str]:
     # get all directories including parents
-    # use already_split=True for the result of get_all_directories()
-    maybe_split = lambda x: x if already_split else x.split('/')
-    return set(concat(accumulate(join, maybe_split(directory))
-                      for directory in child_directories if directory))
+    # child_directories must already be split with os.path.split
+    if already_split is not NULL:
+        warnings.warn(
+            "`conda.common.path.explode_directories`'s `already_split` argument is pending "
+            "deprecation and will be removed in a future release.",
+            PendingDeprecationWarning,
+        )
+    return set(
+        chain.from_iterable(
+            accumulate(directory, join) for directory in child_directories if directory
+        )
+    )
 
 
 def pyc_path(py_path, python_major_minor_version):
