@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pluggy
 
-from typing import Callable, NamedTuple, Optional
+from typing import Callable, NamedTuple
 from collections.abc import Iterable
 
 
@@ -35,3 +35,4 @@ def conda_subcommands() -> Iterable[CondaSubcommand]:
 
     :return: An iterable of subcommand entries.
     """
+    ...
