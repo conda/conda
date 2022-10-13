@@ -24,7 +24,7 @@ jobs:
         only-issue-labels: ['type::support', '']
     steps:
       - id: read_yaml
-        uses: conda/actions/read-yaml@v22.2.1
+        uses: conda/actions/read-yaml@v22.9.0
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
       - uses: actions/stale@v4
