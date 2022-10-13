@@ -899,8 +899,8 @@ class XonshActivator(_Activator):
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'del $%s'
-        self.export_var_tmpl = '$%s = "%s"'
-        self.set_var_tmpl = '$%s = "%s"'  # TODO: determine if different than export_var_tmpl
+        self.export_var_tmpl = "$%s = '%s'"
+        self.set_var_tmpl = "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
 
         # 'scripts' really refer to de/activation scripts, not scripts in the language per se
         # xonsh can piggy-back activation scripts from other languages depending on the platform

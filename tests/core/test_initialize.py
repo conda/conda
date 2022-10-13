@@ -451,14 +451,14 @@ class InitializeTests(TestCase):
 
             *lines, remainder = created_file_contents.split('\n', 5)
             if on_win:
-                assert lines[0] == '$CONDA_EXE = "%s"' % XonshActivator.path_conversion(join(conda_prefix, 'Scripts', 'conda.exe'))
-                assert lines[4] == '$CONDA_PYTHON_EXE = "%s"' % XonshActivator.path_conversion(join(conda_prefix, 'python.exe'))
+                assert lines[0] == "$CONDA_EXE = '%s'" % XonshActivator.path_conversion(join(conda_prefix, 'Scripts', 'conda.exe'))
+                assert lines[4] == "$CONDA_PYTHON_EXE = '%s'" % XonshActivator.path_conversion(join(conda_prefix, 'python.exe'))
             else:
-                assert lines[0] == '$CONDA_EXE = "%s"' % join(conda_prefix, 'bin', 'conda')
-                assert lines[4] == '$CONDA_PYTHON_EXE = "%s"' % join(conda_prefix, 'bin', 'python')
-            assert lines[1] == '$_CE_I = "-I"'
-            assert lines[2] == '$_CE_M = "-m"'
-            assert lines[3] == '$_CE_CONDA = "conda"'
+                assert lines[0] == "$CONDA_EXE = '%s'" % join(conda_prefix, 'bin', 'conda')
+                assert lines[4] == "$CONDA_PYTHON_EXE = '%s'" % join(conda_prefix, 'bin', 'python')
+            assert lines[1] == "$_CE_I = '-I'"
+            assert lines[2] == "$_CE_M = '-m'"
+            assert lines[3] == "$_CE_CONDA = 'conda'"
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')) as fh:
                 original_contents = fh.read()
