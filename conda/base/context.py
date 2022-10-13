@@ -405,11 +405,6 @@ class Context(Configuration):
         # Add plugin support
         self._plugin_manager = get_plugin_manager()
 
-    @property
-    @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
-    def plugin_manager(self):
-        return self._plugin_manager
-
     def post_build_validation(self):
         errors = []
         if self.client_ssl_cert_key and not self.client_ssl_cert:

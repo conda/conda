@@ -858,7 +858,9 @@ class InitializeTests(TestCase):
 
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
-            eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' 'shell.bash' 'hook')"
+            if [ -f '%(cygpath_conda_prefix)s/Scripts/conda.exe' ]; then
+                eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' 'shell.bash' 'hook')"
+            fi
             # <<< conda initialize <<<
 
             # . etc/profile.d/conda.sh  # commented out by conda initialize
