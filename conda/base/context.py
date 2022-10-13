@@ -63,7 +63,6 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from .. import CONDA_SOURCE_ROOT
 
 from .. import plugins
-from ..plugins import archspec, cuda, linux, osx, windows
 
 try:
     os.getcwd()
@@ -156,14 +155,10 @@ def ssl_verify_validation(value):
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager():
-    pm = pluggy.PluginManager('conda')
-    pm.register(archspec)
-    pm.register(cuda)
-    pm.register(linux)
-    pm.register(osx)
-    pm.register(windows)
+    pm = pluggy.PluginManager("conda")
+    plugins.virtual_packages.register(pm)
     pm.add_hookspecs(plugins)
-    pm.load_setuptools_entrypoints('conda')
+    pm.load_setuptools_entrypoints("conda")
     return pm
 
 

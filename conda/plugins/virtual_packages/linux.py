@@ -6,7 +6,7 @@ import os
 import platform
 import re
 
-from .. import plugins
+from conda import plugins
 from conda.common._os.linux import linux_get_libc_version
 
 

@@ -5,9 +5,9 @@
 import ctypes
 import functools
 import platform
-
 from contextlib import suppress
-from .. import plugins
+
+from conda import plugins
 from conda.common.decorators import env_override
 
 

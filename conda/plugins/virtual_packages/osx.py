@@ -5,7 +5,7 @@
 import os
 import platform
 
-from .. import plugins
+from conda import plugins
 
 
 @plugins.register
