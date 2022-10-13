@@ -13,7 +13,7 @@ from uuid import uuid4
 
 import pytest
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 from conda.auxlib.ish import dals
 from conda.auxlib.collection import AttrDict
 from conda.base.context import context

@@ -21,7 +21,7 @@ try:
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler

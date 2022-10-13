@@ -13,7 +13,7 @@ try:
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction

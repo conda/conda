@@ -14,7 +14,7 @@ from textwrap import dedent
 import time
 import warnings
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 try:
     from tlz.itertoolz import take

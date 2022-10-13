@@ -25,7 +25,7 @@ try:
 except ImportError:  # pragma: no cover
     from conda._vendor.toolz.itertoolz import concatv  # NOQA
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 
 VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')

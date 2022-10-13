@@ -14,7 +14,7 @@ try:
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .. import CondaError
 from ..auxlib.entity import EntityEncoder

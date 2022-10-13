@@ -6,7 +6,7 @@ import copy
 from functools import lru_cache
 from logging import DEBUG, getLogger
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 try:
     from tlz.itertoolz import concat

@@ -14,7 +14,7 @@ from collections import defaultdict
 from logging import getLogger
 import sys
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 try:
     from tlz.itertoolz import concatv

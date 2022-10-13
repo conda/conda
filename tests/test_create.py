@@ -29,7 +29,7 @@ from uuid import uuid4
 import pytest
 import requests
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from conda import (
     CondaError,

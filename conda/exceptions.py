@@ -14,7 +14,7 @@ from textwrap import dedent
 from traceback import format_exception, format_exception_only
 import getpass
 
-from conda.tlz import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .models.channel import Channel
 from .common.url import join_url, maybe_unquote
