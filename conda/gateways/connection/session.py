@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from threading import local
+from typing import Optional
 
 from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
                extract_cookies_to_jar, get_auth_from_url, get_netrc_auth, Retry)
@@ -14,11 +15,11 @@ from .adapters.s3 import S3Adapter
 from ..anaconda_client import read_binstar_tokens
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
-from ...base.context import context
+from ...base.context import context, get_plugin_manager
 from ...common.compat import iteritems
 from ...common.url import (add_username_and_password, get_proxy_username_and_pass,
                            split_anaconda_token, urlparse)
-from ...exceptions import ProxyError
+from ...exceptions import ProxyError, CondaError
 
 log = getLogger(__name__)
 RETRIES = 3
@@ -61,6 +62,37 @@ class CondaSessionType(type):
         except AttributeError:
             session = cls._thread_local.session = super(CondaSessionType, cls).__call__()
             return session
+
+
+def get_conda_session(channel: Optional[str] = None) -> "CondaSession":
+    """
+    Function that serves as a session manager that will retrieve the CondaSession
+    for us. We do this as a way to make the manager pluggable and allow third parties
+    to override the default CondaSession that gets returned.
+
+    It's important to note that this "manager" isn't actually used anywhere yet, but
+    you could expect this to be placed wherever `CondaSession` is currently being instantiated.
+    The only problem we have is that the `channel` name might not be readily available
+    everywhere it's currently being invoked, so we would have to do some significant
+    refactoring to address this.
+    """
+    pm = get_plugin_manager()
+
+    session_manager = pm.hook.get_conda_session_manager()
+
+    # We only allow one conda_session_manager plugin to exist
+    if len(session_manager) > 1:
+        raise CondaError(
+            "More than a single conda_session_manager plugin has been registered. "
+            "Please ensure you only have a single conda_session_manager by verifying"
+            " your plugins do not conflict with each other."
+        )
+
+    if len(session_manager) > 0:
+        session_manager = session_manager[0]
+        return session_manager(channel)
+
+    return CondaSession()
 
 
 class CondaSession(Session, metaclass=CondaSessionType):

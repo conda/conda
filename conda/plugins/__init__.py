@@ -53,3 +53,25 @@ def conda_cli_register_virtual_packages() -> Iterable[CondaVirtualPackage]:
 
     :return: An iterable of virtual package entries.
     """
+
+
+CondaSessionManager = Callable[[str], "CondaSession"]
+
+
+@_hookspec
+def get_conda_session_manager() -> Iterable[CondaSessionManager]:
+    """Stub hook for defining a conda_session_manager
+
+    :return: CondaSession
+    """
+
+
+CondaContextExtension = Callable[["Context"], None]
+
+
+@_hookspec
+def extend_context() -> Iterable[CondaContextExtension]:
+    """Stub hook for extending the context class definition
+
+    :return: Type (conda.base.context.Context)
+    """

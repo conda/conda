@@ -42,7 +42,7 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from .. import CONDA_SOURCE_ROOT
 
 from .. import plugins
-from ..plugins import archspec, cuda, linux, osx, windows  # noqa: F401
+from ..plugins import archspec, cuda, linux, osx, windows, conda_session_manager  # noqa: F401
 
 try:
     os.getcwd()
@@ -141,6 +141,9 @@ def get_plugin_manager():
     pm.register(plugins.linux)
     pm.register(plugins.osx)
     pm.register(plugins.windows)
+
+    pm.register(plugins.conda_session_manager)
+
     pm.add_hookspecs(plugins)
     pm.load_setuptools_entrypoints('conda')
     return pm
@@ -1556,6 +1559,19 @@ class Context(Configuration):
                 """
             ),
         )
+
+
+def extend_context(context_class: type) -> type:
+    """Function that allows us to extend the default implementation of the Context class"""
+    pm = get_plugin_manager()
+
+    for extend in pm.hook.extend_context():
+        extend(context_class)
+
+    return context_class
+
+
+Context = extend_context(Context)
 
 
 def conda_in_private_env():
