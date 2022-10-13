@@ -140,15 +140,15 @@ class IntegrationTests(BaseTestCase):
             assert package_is_installed(prefix, 'python=3')
 
             run_command(Commands.INSTALL, prefix, 'flask=0.12')
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            assert package_is_installed(prefix, 'flask=2.1.3')
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.12.2')
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=2.1.3')
+            assert package_is_installed(prefix, 'flask=2.1.3')
             assert package_is_installed(prefix, 'python=3')
 
             run_command(Commands.UPDATE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask=0.12.2')
+            assert not package_is_installed(prefix, 'flask=2.1.3')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
@@ -264,20 +264,20 @@ class IntegrationTests(BaseTestCase):
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'flask=0.12', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            assert package_is_installed(prefix, 'flask=2.1.3')
             assert package_is_installed(prefix, 'python=3')
 
             # Test force reinstall
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.12', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            assert package_is_installed(prefix, 'flask=2.1.3')
             assert package_is_installed(prefix, 'python=3')
 
             stdout, stderr, _ = run_command(Commands.UPDATE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert not package_is_installed(prefix, 'flask=0.12.2')
+            assert not package_is_installed(prefix, 'flask=2.1.3')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
@@ -577,8 +577,8 @@ dependencies:
         assert type(path) == type(path2)
         # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
         '''
-        with make_temp_env() as prefix, make_temp_channel(["flask-0.12.2"]) as channel:
-            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.12.2', '--json')
+        with make_temp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=2.1.3', '--json')
             assert package_is_installed(prefix, channel + '::' + 'flask')
             flask_fname = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]['fn']
 
@@ -1923,7 +1923,7 @@ dependencies:
             with make_temp_env(use_restricted_unicode=on_win) as prefix:
                 pkgs_dir = join(prefix, 'pkgs')
                 with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                    with make_temp_channel(['flask-0.12.2']) as channel:
+                    with make_temp_channel(['flask-2.1.3']) as channel:
                         # Clear the index cache.
                         index_cache_dir = create_cache_dir()
                         run_command(Commands.CLEAN, "", "--index-cache", "--yes")
@@ -2123,15 +2123,15 @@ dependencies:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.12.2')
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            run_command(Commands.INSTALL, prefix, 'flask=2.1.3')
+            assert package_is_installed(prefix, 'flask=2.1.3')
 
             from conda.core.path_actions import CreatePrefixRecordAction
             with patch.object(CreatePrefixRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(CondaMultiError):
                     run_command(Commands.INSTALL, prefix, 'flask=1.0.2')
-                assert package_is_installed(prefix, 'flask=0.12.2')
+                assert package_is_installed(prefix, 'flask=2.1.3')
 
     def test_directory_not_a_conda_environment(self):
         prefix = make_temp_prefix(str(uuid4())[:7])

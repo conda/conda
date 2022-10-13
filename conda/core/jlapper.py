@@ -16,12 +16,10 @@ from hashlib import blake2b
 from typing import Iterator
 
 import jsonpatch
+from requests import HTTPError
 
 from conda.base.context import context
-from conda.gateways.connection import (
-    Response,
-    Session,
-)
+from conda.gateways.connection import Response, Session
 from conda.gateways.connection.session import CondaSession
 
 log = logging.getLogger(__name__)
@@ -206,7 +204,8 @@ def download_and_hash(hasher, url, json_path, session: Session):
             hasher.update(block)
             repodata.write(block)
             length += len(block)
-    log.info("Download %d bytes %r", length, response.request.headers)
+    if response.request:
+        log.info("Download %d bytes %r", length, response.request.headers)
 
 
 def request_url_jlap(url, get_place=get_place, full_download=False):
@@ -271,7 +270,7 @@ def request_url_jlap_state(
             need_jlap = False
         except ValueError:
             log.info("Checksum not OK")
-        except requests.HTTPError as e:
+        except HTTPError as e:
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
             if e.response.status_code == 404:
