@@ -16,7 +16,7 @@ from conda.testing.integration import Commands, PYTHON_BINARY, make_temp_env, ma
 class ExportIntegrationTests(TestCase):
 
     def test_basic(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.8") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
@@ -40,7 +40,7 @@ class ExportIntegrationTests(TestCase):
             When try to import from txt
             every package should come from same channel
         """
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.8") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
@@ -68,7 +68,7 @@ class ExportIntegrationTests(TestCase):
             When try to import from txt
             every package should come from same channel
         """
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.8") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 

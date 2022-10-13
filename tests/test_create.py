@@ -136,7 +136,7 @@ class IntegrationTests(BaseTestCase):
                     assert args[i] == line.replace('\r', '')
 
     def test_create_install_update_remove_smoketest(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.8") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
@@ -170,7 +170,7 @@ class IntegrationTests(BaseTestCase):
 
     def test_install_broken_post_install_keeps_existing_folders(self):
         # regression test for https://github.com/conda/conda/issues/8258
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.8") as prefix:
             assert exists(join(prefix, BIN_DIRECTORY))
             assert package_is_installed(prefix, 'python=3')
 
@@ -248,7 +248,7 @@ class IntegrationTests(BaseTestCase):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
 
-            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.5", "--json", "--dry-run", use_exception_handler=True)
+            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json", "--dry-run", use_exception_handler=True)
             assert_json_parsable(stdout)
 
             # regression test for #5825
@@ -257,7 +257,7 @@ class IntegrationTests(BaseTestCase):
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.5", "--json")
+            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json")
             assert_json_parsable(stdout)
             assert not stderr
             json_obj = json.loads(stdout)
@@ -506,8 +506,8 @@ class IntegrationTests(BaseTestCase):
                            if line.lower().startswith("flask"))
 
                 # regression test for #3433
-                run_command(Commands.INSTALL, prefix, "python=3.5", no_capture=True)
-                assert package_is_installed(prefix, 'python=3.5')
+                run_command(Commands.INSTALL, prefix, "python=3.8", no_capture=True)
+                assert package_is_installed(prefix, 'python=3.8')
 
                 # regression test for #5847
                 #   when using rm_rf on a file
@@ -1012,7 +1012,7 @@ dependencies:
                 reset_context()
 
     def test_rpy_search(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.8") as prefix:
             run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show", "--json")
@@ -1139,7 +1139,7 @@ dependencies:
 
             run_command(Commands.UPDATE, prefix, "--all", no_capture=True)
             assert package_is_installed(prefix, "itsdangerous=0.24")
-            # assert not package_is_installed(prefix, "python=3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
+            # assert not package_is_installed(prefix, "python=3.8")  # should be python-3.6, but it's not because of add_defaults_to_specs
             assert package_is_installed(prefix, "python=2.7")
             assert not package_is_installed(prefix, "pytz=2017.3")
             assert package_is_installed(prefix, "pytz")
@@ -1440,11 +1440,11 @@ dependencies:
         #   File "C:\Users\builder\AppData\Local\Temp\f903_固ō한ñђáγßê家ôç_35\lib\site-packages\pip\_vendor\urllib3\util\ssl_.py", line 313, in ssl_wrap_socket
         #     context.load_verify_locations(ca_certs, ca_cert_dir)
         #   TypeError: cafile should be a valid filesystem path
-        with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "six=1.9", "pip=9.0.3", "python=3.5",
+        with make_temp_env("-c", "https://repo.anaconda.com/pkgs/free", "six=1.9", "pip=9.0.3", "python=3.8",
                            use_restricted_unicode=on_win) as prefix:
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "six=1.9.0")
-            assert package_is_installed(prefix, "python=3.5")
+            assert package_is_installed(prefix, "python=3.8")
 
             # On Windows, it's more than prefix.lower(), we get differently shortened paths too.
             # If only we could use pathlib.
@@ -2013,8 +2013,8 @@ dependencies:
             assert path_is_clean(prefix)
 
             # this part also a regression test for #4849
-            run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.1", "python=3.5.6", "--mkdir", no_capture=True)
-            assert package_is_installed(prefix, "python=3.5.6")
+            run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.1", "python=3.8.6", "--mkdir", no_capture=True)
+            assert package_is_installed(prefix, "python=3.8.6")
             assert package_is_installed(prefix, "python-dateutil=2.6.1")
 
         finally:
@@ -2121,7 +2121,7 @@ dependencies:
                 assert not package_is_installed(prefix, 'openssl')
 
     def test_transactional_rollback_upgrade_downgrade(self):
-        with make_temp_env("python=3.5", no_capture=True) as prefix:
+        with make_temp_env("python=3.8", no_capture=True) as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
@@ -2229,11 +2229,11 @@ dependencies:
             assert package_is_installed(prefix, test_pkg)
 
     def test_conda_info_python(self):
-        output, _, _ = run_command(Commands.INFO, None, "python=3.5")
+        output, _, _ = run_command(Commands.INFO, None, "python=3.8")
         assert "python 3.5.4" in output
 
     def test_toolz_cytoolz_package_cache_regression(self):
-        with make_temp_env("python=3.5", use_restricted_unicode=on_win) as prefix:
+        with make_temp_env("python=3.8", use_restricted_unicode=on_win) as prefix:
             pkgs_dir = join(prefix, 'pkgs')
             with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 assert context.pkgs_dirs == (pkgs_dir,)
