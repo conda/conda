@@ -532,9 +532,10 @@ class SubdirData(metaclass=SubdirDataType):
                     )
                     continue
 
-                package_record = PackageRecord(
-                    **dict(info.items()), fn=fn, url=join_url(channel_url, fn)
-                )
+                package_kwargs = dict(info.items())
+                # Python doesn't like duplicate keyword arguments? (PackageRecord(**kwargs, fn=x))
+                package_kwargs.update({"fn":fn, "url":join_url(channel_url, fn)})
+                package_record = PackageRecord(**package_kwargs)
 
                 _package_records.append(package_record)
                 _names_index[package_record.name].append(package_record)
