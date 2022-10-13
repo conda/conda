@@ -28,7 +28,8 @@ from uuid import uuid4
 
 import pytest
 import requests
-from tlz.itertoolz import groupby
+
+from conda.common.iterators import groupby_to_dict as groupby
 
 from conda import (
     CondaError,
@@ -438,7 +439,7 @@ class IntegrationTests(BaseTestCase):
             # way to exclude it, I tried the "nomkl" package but that did not work.
             json_obj["actions"]["LINK"] = [link for link in json_obj["actions"]["LINK"]
                                            if link['name'] not in ('libcxx', 'libcxxabi', 'mkl', 'intel-openmp')]
-            channel_groups = groupby("channel", json_obj["actions"]["LINK"])
+            channel_groups = groupby(lambda x: x["channel"], json_obj["actions"]["LINK"])
             channel_groups = sorted(list(channel_groups))
             assert channel_groups == ["conda-forge",]
 
@@ -451,7 +452,7 @@ class IntegrationTests(BaseTestCase):
             reduced_index = r.get_reduced_index(specs)
             channel_name_groups = {
                 name: {prec.channel.name for prec in group}
-                for name, group in groupby("name", reduced_index).items()
+                for name, group in groupby(lambda x: x["name"], reduced_index).items()
             }
             channel_name_groups = {
                 name: channel_names for name, channel_names in channel_name_groups.items()

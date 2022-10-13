@@ -10,9 +10,11 @@ import sys
 from textwrap import wrap
 
 try:
-    from tlz.itertoolz import concat, groupby
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby
+    from conda._vendor.toolz.itertoolz import concat
+
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .. import CondaError
 from ..auxlib.entity import EntityEncoder

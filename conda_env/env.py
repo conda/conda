@@ -21,9 +21,11 @@ from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
 
 try:
-    from tlz.itertoolz import concatv, groupby
+    from tlz.itertoolz import concatv
 except ImportError:  # pragma: no cover
-    from conda._vendor.toolz.itertoolz import concatv, groupby  # NOQA
+    from conda._vendor.toolz.itertoolz import concatv  # NOQA
+
+from conda.common.iterators import groupby_to_dict as groupby
 
 
 VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')

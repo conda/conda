@@ -14,10 +14,12 @@ from collections import defaultdict
 from logging import getLogger
 import sys
 
+from conda.common.iterators import groupby_to_dict as groupby
+
 try:
-    from tlz.itertoolz import concatv, groupby
+    from tlz.itertoolz import concatv
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concatv, groupby
+    from conda._vendor.toolz.itertoolz import concatv
 
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
