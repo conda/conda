@@ -530,7 +530,8 @@ dependencies:
   - flask=2.0.3""")
             output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
             assert "yaml not found" in output
-            assert "flask found but mismatch. Specification pkg: flask=2.0.3, Running pkg: flask==2.0.2=py36_1" in output
+            # don't match exact py* tag:
+            assert "flask found but mismatch. Specification pkg: flask=2.0.3, Running pkg: flask==2.0.2=py" in output
             rmtree(prefix, ignore_errors=True)
 
     def test_install_tarball_from_local_channel(self):
@@ -552,8 +553,8 @@ dependencies:
         assert type(path) == type(path2)
         # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
         '''
-        with make_temp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
-            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=2.0.1', '--json')
+        with make_temp_env() as prefix, make_temp_channel(["flask-2.0.2"]) as channel:
+            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=2.0.2', '--json')
             assert package_is_installed(prefix, channel + '::' + 'flask')
             flask_fname = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]['fn']
 
