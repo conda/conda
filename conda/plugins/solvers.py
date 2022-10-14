@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from functools import lru_cache
 
-from . import plugins
+from .. import plugins
 from ..auxlib.ish import dals
 from ..common.io import dashlist
 from ..exceptions import PluginError
