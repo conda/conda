@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Add `--mach` and `--arch` options to `dev/start`. (#11851)
