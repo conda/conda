@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: has_local
-        uses: andstor/file-existence-action@v1.0.1
+        uses: andstor/file-existence-action@v1.1.0
         with:
           files: ${{ env.LOCAL }}
       - name: Global Only
