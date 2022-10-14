@@ -136,20 +136,20 @@ class IntegrationTests(BaseTestCase):
                     assert args[i] == line.replace('\r', '')
 
     def test_create_install_update_remove_smoketest(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.9") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.12')
-            assert package_is_installed(prefix, 'flask=2.1.3')
+            run_command(Commands.INSTALL, prefix, 'flask=2.0.1')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=2.1.3')
-            assert package_is_installed(prefix, 'flask=2.1.3')
+            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=2.0.1')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
             run_command(Commands.UPDATE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask=2.1.3')
+            assert not package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
