@@ -246,7 +246,7 @@ class IntegrationTests(BaseTestCase):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
 
-            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.5", "--json", "--dry-run", use_exception_handler=True)
+            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json", "--dry-run", use_exception_handler=True)
             assert_json_parsable(stdout)
 
             # regression test for #5825
@@ -255,37 +255,37 @@ class IntegrationTests(BaseTestCase):
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.5", "--json")
+            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json")
             assert_json_parsable(stdout)
             assert not stderr
             json_obj = json.loads(stdout)
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'flask=0.12', '--json')
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'flask=2.0.1', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=2.1.3')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
             # Test force reinstall
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.12', '--json')
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=2.0.1', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=2.1.3')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
             stdout, stderr, _ = run_command(Commands.UPDATE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert not package_is_installed(prefix, 'flask=2.1.3')
+            assert not package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
             stdout, stderr, _ = run_command(Commands.REMOVE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert not package_is_installed(prefix, 'flask=0.*')
+            assert not package_is_installed(prefix, 'flask=2.*')
             assert package_is_installed(prefix, 'python=3')
 
             # regression test for #5825
