@@ -2120,7 +2120,7 @@ dependencies:
                 assert not package_is_installed(prefix, 'openssl')
 
     def test_transactional_rollback_upgrade_downgrade(self):
-        with make_temp_env("python=3.5", no_capture=True) as prefix:
+        with make_temp_env("python=3.8", no_capture=True) as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
@@ -2131,7 +2131,7 @@ dependencies:
             with patch.object(CreatePrefixRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(CondaMultiError):
-                    run_command(Commands.INSTALL, prefix, 'flask=1.0.2')
+                    run_command(Commands.INSTALL, prefix, 'flask=2.0.1')
                 assert package_is_installed(prefix, 'flask=2.1.3')
 
     def test_directory_not_a_conda_environment(self):
