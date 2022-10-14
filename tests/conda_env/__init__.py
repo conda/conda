@@ -6,5 +6,5 @@ from os.path import dirname, join
 
 def support_file(filename, remote=False):
     if remote:
-        return f"https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/{filename}"
+        return f"http://127.0.0.1:8928/{filename}"
     return join(dirname(__file__), "support", filename)

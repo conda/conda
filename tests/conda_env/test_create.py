@@ -92,7 +92,7 @@ class IntegrationTests(TestCase):
 
                 run_command(Commands.CREATE, env_name, support_file('example/environment_pinned.yml'))
                 assert exists(python_path)
-                assert package_is_installed(prefix, 'flask=0.12.2')
+                assert package_is_installed(prefix, 'flask=2.0.2')
 
                 env_vars = get_env_vars(prefix)
                 assert env_vars['FIXED'] == 'fixed'
@@ -101,38 +101,8 @@ class IntegrationTests(TestCase):
                 assert env_vars.get('NEW_VAR') is None
 
                 run_command(Commands.UPDATE, env_name, support_file('example/environment_pinned_updated.yml'))
-                assert package_is_installed(prefix, 'flask=1.0.2')
-                assert not package_is_installed(prefix, 'flask=0.12.2')
-
-                env_vars = get_env_vars(prefix)
-                assert env_vars['FIXED'] == 'fixed'
-                assert env_vars['CHANGES'] == 'updated_value'
-                assert env_vars['NEW_VAR'] == 'new_var'
-
-                # This ends up sticking around since there is no real way of knowing that an environment
-                # variable _used_ to be in the variables dict, but isn't any more.
-                assert env_vars['GETS_DELETED'] == 'not_actually_removed_though'
-
-    def test_create_update_remote_env_file(self):
-        with make_temp_envs_dir() as envs_dir:
-            with env_var('CONDA_ENVS_DIRS', envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                env_name = str(uuid4())[:8]
-                prefix = join(envs_dir, env_name)
-                python_path = join(prefix, PYTHON_BINARY)
-
-                run_command(Commands.CREATE, env_name, support_file('example/environment_pinned.yml', remote=True))
-                assert exists(python_path)
-                assert package_is_installed(prefix, 'flask=0.12.2')
-
-                env_vars = get_env_vars(prefix)
-                assert env_vars['FIXED'] == 'fixed'
-                assert env_vars['CHANGES'] == 'original_value'
-                assert env_vars['GETS_DELETED'] == 'not_actually_removed_though'
-                assert env_vars.get('NEW_VAR') is None
-
-                run_command(Commands.UPDATE, env_name, support_file('example/environment_pinned_updated.yml', remote=True))
-                assert package_is_installed(prefix, 'flask=1.0.2')
-                assert not package_is_installed(prefix, 'flask=0.12.2')
+                assert package_is_installed(prefix, 'flask=2.0.3')
+                assert not package_is_installed(prefix, 'flask=2.0.2')
 
                 env_vars = get_env_vars(prefix)
                 assert env_vars['FIXED'] == 'fixed'
@@ -153,7 +123,7 @@ class IntegrationTests(TestCase):
 
                 run_command(Commands.CREATE, env_name, support_file('example/environment_host_port.yml'))
                 assert exists(python_path)
-                assert package_is_installed(prefix, 'flask=1.0.2')
+                assert package_is_installed(prefix, 'flask=2.0.2')
 
 
     # This test will not run from an unactivated conda in an IDE. You *will* get complaints about being unable
@@ -237,3 +207,35 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'python=2')
                 assert package_is_installed(prefix, 'pytz')
                 assert not package_is_installed(prefix, 'flask')
+
+
+# removed from class to be able to accept pytest fixture
+def test_create_update_remote_env_file(support_file_server):
+    with make_temp_envs_dir() as envs_dir:
+        with env_var('CONDA_ENVS_DIRS', envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            env_name = str(uuid4())[:8]
+            prefix = join(envs_dir, env_name)
+            python_path = join(prefix, PYTHON_BINARY)
+
+            run_command(Commands.CREATE, env_name, support_file('example/environment_pinned.yml', remote=True))
+            assert exists(python_path)
+            assert package_is_installed(prefix, 'flask=2.0.2')
+
+            env_vars = get_env_vars(prefix)
+            assert env_vars['FIXED'] == 'fixed'
+            assert env_vars['CHANGES'] == 'original_value'
+            assert env_vars['GETS_DELETED'] == 'not_actually_removed_though'
+            assert env_vars.get('NEW_VAR') is None
+
+            run_command(Commands.UPDATE, env_name, support_file('example/environment_pinned_updated.yml', remote=True))
+            assert package_is_installed(prefix, 'flask=2.0.3')
+            assert not package_is_installed(prefix, 'flask=2.0.2')
+
+            env_vars = get_env_vars(prefix)
+            assert env_vars['FIXED'] == 'fixed'
+            assert env_vars['CHANGES'] == 'updated_value'
+            assert env_vars['NEW_VAR'] == 'new_var'
+
+            # This ends up sticking around since there is no real way of knowing that an environment
+            # variable _used_ to be in the variables dict, but isn't any more.
+            assert env_vars['GETS_DELETED'] == 'not_actually_removed_though'

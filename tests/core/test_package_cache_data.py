@@ -138,6 +138,8 @@ def test_tar_bz2_in_pkg_cache_used_instead_of_conda_pkg():
         assert urls_text[0] == zlib_tar_bz2_prec.url
 
 
+# these tests can pass when run individually, but fail when run with the rest of
+# this module.
 @pytest.mark.integration
 def test_tar_bz2_in_pkg_cache_doesnt_overwrite_conda_pkg():
     """

@@ -92,34 +92,6 @@ class IntegrationTests(BaseTestCase):
     def setUp(self):
         PackageCacheData.clear()
 
-    def test_install_python2_and_search(self):
-        with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
-            log.warning(f"Creating empty temporary environment txt file {env_txt}")
-            environment_txt = env_txt.name
-
-        with patch('conda.core.envs_manager.get_user_environments_txt_file',
-                   return_value=environment_txt) as _:
-            with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
-                with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                    assert exists(join(prefix, PYTHON_BINARY))
-                    assert package_is_installed(prefix, 'python=2')
-
-                    run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.continuum.io/pkgs/not-a-channel")
-
-                    # regression test for #4513
-                    run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.continuum.io/pkgs/not-a-channel")
-                    stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "python", "--json")
-                    packages = json.loads(stdout)
-                    assert len(packages) == 1
-
-                    stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "python", "--json", "--envs")
-                    envs_result = json.loads(stdout)
-                    assert any(match['location'] == prefix for match in envs_result)
-
-                    stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "python", "--envs")
-                    assert prefix in stdout
-        os.unlink(environment_txt)
-
     def test_run_preserves_arguments(self):
         with make_temp_env('python=3') as prefix:
             echo_args_py = os.path.join(prefix, "echo-args.py")
@@ -474,7 +446,7 @@ class IntegrationTests(BaseTestCase):
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
             with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==0.10.1",
+                check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==2.0.2",
                            cwd=prefix, shell=True)
                 PrefixData._cache_.clear()
                 stdout, stderr, _ = run_command(Commands.LIST, prefix)
@@ -497,7 +469,7 @@ class IntegrationTests(BaseTestCase):
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
             with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
+                check_call(PYTHON_BINARY + " -m pip install flask==2.0.2",
                            cwd=prefix, shell=True)
                 PrefixData._cache_.clear()
                 stdout, stderr, _ = run_command(Commands.LIST, prefix)
@@ -529,7 +501,7 @@ class IntegrationTests(BaseTestCase):
             assert prefix not in PrefixData._cache_
 
     def test_compare_success(self):
-        with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+        with make_temp_env("python=3.6", "flask=2.0.2", "bzip2=1.0.8") as prefix:
             env_file = join(prefix, 'env.yml')
             touch(env_file)
             with open(env_file, "w") as f:
@@ -539,13 +511,13 @@ channels:
   - defaults
 dependencies:
   - bzip2=1.0.8
-  - flask>=1.0.1,<=1.0.4""")
+  - flask>=2.0.1,<=2.0.4""")
             output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
             assert "Success" in output
             rmtree(prefix, ignore_errors=True)
 
     def test_compare_fail(self):
-        with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+        with make_temp_env("python=3.6", "flask=2.0.2", "bzip2=1.0.8") as prefix:
             env_file = join(prefix, 'env.yml')
             touch(env_file)
             with open(env_file, "w") as f:
@@ -555,10 +527,10 @@ channels:
   - defaults
 dependencies:
   - yaml
-  - flask=1.0.3""")
+  - flask=2.0.3""")
             output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
             assert "yaml not found" in output
-            assert "flask found but mismatch. Specification pkg: flask=1.0.3, Running pkg: flask==1.0.2=py36_1" in output
+            assert "flask found but mismatch. Specification pkg: flask=2.0.3, Running pkg: flask==2.0.2=py36_1" in output
             rmtree(prefix, ignore_errors=True)
 
     def test_install_tarball_from_local_channel(self):
@@ -637,11 +609,11 @@ dependencies:
             assert package_is_installed(prefix, 'bzip2')
 
     def test_tarball_install_and_bad_metadata(self):
-        with make_temp_env("python=3.7.2", "flask=1.0.2", "--json") as prefix:
-            assert package_is_installed(prefix, 'flask==1.0.2')
+        with make_temp_env("python=3.7.2", "flask=2.0.2", "--json") as prefix:
+            assert package_is_installed(prefix, 'flask==2.0.2')
             flask_data = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask==1.0.2')
+            assert not package_is_installed(prefix, 'flask==2.0.2')
             assert package_is_installed(prefix, 'python')
 
             flask_fname = flask_data['fn']
@@ -671,7 +643,7 @@ dependencies:
             # regression test for #2626
             # install tarball with relative path, outside channel
             run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask=1.0.2')
+            assert not package_is_installed(prefix, 'flask=2.0.2')
             tar_new_path = relpath(tar_new_path)
             run_command(Commands.INSTALL, prefix, tar_new_path)
             assert package_is_installed(prefix, 'flask=1')
@@ -1125,7 +1097,7 @@ dependencies:
                 with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
                     assert context.offline
                     assert package_is_installed(clone_prefix, "python=" + flask_python)
-                    assert package_is_installed(clone_prefix, "flask=0.11.1=py_0")
+                    assert package_is_installed(clone_prefix, "flask=2.0.2=py_0")
                     assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
     def test_package_pinning(self):
@@ -2132,7 +2104,7 @@ dependencies:
             with patch.object(CreatePrefixRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(CondaMultiError):
-                    run_command(Commands.INSTALL, prefix, 'flask=1.0.2')
+                    run_command(Commands.INSTALL, prefix, 'flask=2.0.2')
                 assert package_is_installed(prefix, 'flask=2.0.1')
 
     def test_directory_not_a_conda_environment(self):

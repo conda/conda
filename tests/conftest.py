@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from pathlib import Path
 import subprocess
+import sys
 
 import pytest
 
@@ -36,3 +37,15 @@ def clear_cache():
     from conda.core.subdir_data import SubdirData
 
     SubdirData._cache_.clear()
+
+
+@pytest.fixture()
+def support_file_server():
+    """
+    Open a local web server to test remote support files.
+    """
+    base = Path(__file__).parents[0] / "conda_env" / "support"
+    port = "8928"   # randomly chosen
+    proc = subprocess.Popen([sys.executable, "-m", "http.server", "-b", "127.0.0.1", "--directory", base, port])
+    yield
+    proc.kill()
