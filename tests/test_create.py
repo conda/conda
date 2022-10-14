@@ -400,7 +400,7 @@ class IntegrationTests(BaseTestCase):
         with make_temp_env() as prefix:
             stdout, stderr, rc = run_command(
                 Commands.CREATE, prefix,
-                "-c", "conda-forge", "-c", "defaults", "python=3.6", "quaternion",
+                "-c", "conda-forge", "-c", "defaults", "python=3.8", "quaternion",
                 "--strict-channel-priority", "--dry-run", "--json",
                 use_exception_handler=True
             )
@@ -501,7 +501,7 @@ class IntegrationTests(BaseTestCase):
             assert prefix not in PrefixData._cache_
 
     def test_compare_success(self):
-        with make_temp_env("python=3.6", "flask=2.0.2", "bzip2=1.0.8") as prefix:
+        with make_temp_env("python=3.8", "flask=2.0.2", "bzip2=1.0.8") as prefix:
             env_file = join(prefix, 'env.yml')
             touch(env_file)
             with open(env_file, "w") as f:
@@ -517,7 +517,7 @@ dependencies:
             rmtree(prefix, ignore_errors=True)
 
     def test_compare_fail(self):
-        with make_temp_env("python=3.6", "flask=2.0.2", "bzip2=1.0.8") as prefix:
+        with make_temp_env("python=3.8", "flask=2.0.2", "bzip2=1.0.8") as prefix:
             env_file = join(prefix, 'env.yml')
             touch(env_file)
             with open(env_file, "w") as f:
@@ -685,9 +685,9 @@ dependencies:
             assert not package_is_installed(prefix, "python=2.7.12")
 
     def test_pinned_override_with_explicit_spec(self):
-        with make_temp_env("python=3.6") as prefix:
+        with make_temp_env("python=3.8") as prefix:
             run_command(Commands.CONFIG, prefix,
-                        "--add", "pinned_packages", "python=3.6.5")
+                        "--add", "pinned_packages", "python=3.8.5")
             run_command(Commands.INSTALL, prefix, "python=3.7", no_capture=True)
             assert package_is_installed(prefix, "python=3.7")
 
@@ -1121,7 +1121,7 @@ dependencies:
             assert not package_is_installed(prefix, "itsdangerous=0.24")
 
     def test_update_all_updates_pip_pkg(self):
-        with make_temp_env("python=3.6", "pip", "pytz=2018", no_capture=True) as prefix:
+        with make_temp_env("python=3.8", "pip", "pytz=2018", no_capture=True) as prefix:
             pip_ioo, pip_ioe, _ = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
 
             pip_o, pip_e, _ = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous==0.24")
@@ -1149,11 +1149,11 @@ dependencies:
     def test_package_optional_pinning(self):
         with make_temp_env() as prefix:
             run_command(Commands.CONFIG, prefix,
-                        "--add", "pinned_packages", "python=3.6.5")
+                        "--add", "pinned_packages", "python=3.8.5")
             run_command(Commands.INSTALL, prefix, "openssl")
             assert not package_is_installed(prefix, "python")
             run_command(Commands.INSTALL, prefix, "flask")
-            assert package_is_installed(prefix, "python=3.6.5")
+            assert package_is_installed(prefix, "python=3.8.5")
 
     def test_update_deps_flag_absent(self):
         with make_temp_env("python=2", "itsdangerous=0.24") as prefix:
@@ -2275,7 +2275,7 @@ dependencies:
     @pytest.mark.skipif(context.subdir != 'linux-64', reason="lazy; package constraint here only valid on linux-64")
     def test_neutering_of_historic_specs(self):
         with make_temp_env('psutil=5.6.3=py37h7b6447c_0') as prefix:
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.8")
             with open(os.path.join(prefix, 'conda-meta', 'history')) as f:
                 d = f.read()
             assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
