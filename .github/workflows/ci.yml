@@ -147,6 +147,7 @@ jobs:
         # Equivalent to locally run:
         #   `docker run --privileged --rm tonistiigi/binfmt --install all`
 
+      # TODO ensure tests/requirements.txt is installed
       - name: Python linux-${{ matrix.platform }} ${{ matrix.python-version }} tests
         run: >
           docker run
@@ -156,6 +157,7 @@ jobs:
           -e TEST_GROUP
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
           bash -c "source /opt/conda/etc/profile.d/conda.sh; \
+                   python -m pip install flask\>2.2; \
                    pytest -k test_DepsModifier_contract"
 
       - name: Upload test results
