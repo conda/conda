@@ -1,15 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import datetime
 import json
 from os.path import abspath, basename, dirname, join
 
 import pytest
 
-from conda import CondaError
+from conda import CondaError, CondaMultiError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
-from conda.common.io import env_vars, env_var
+from conda.common.compat import on_win
+from conda.common.io import env_vars
+from conda.core import package_cache_data
 from conda.core.index import get_index
 from conda.core import package_cache_data
 from conda.core.package_cache_data import (
@@ -25,8 +28,6 @@ from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
 from conda.testing.integration import make_temp_package_cache
-from conda.common.compat import on_win
-import datetime
 
 CHANNEL_DIR = abspath(join(dirname(__file__), "..", "data", "conda_format_repo"))
 CONDA_PKG_REPO = url_path(CHANNEL_DIR)
@@ -90,7 +91,9 @@ def test_ProgressiveFetchExtract_prefers_conda_v2_format():
             if rec.name == "zlib" and rec.version == "1.2.11":
                 break
         cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(rec)
+    assert cache_action
     assert cache_action.target_package_basename.endswith(".conda")
+    assert extract_action
     assert extract_action.source_full_path.endswith(".conda")
 
 
@@ -414,7 +417,7 @@ def test_cover_reverse():
 
     exceptions = []
 
-    package_cache_data.done_callback(f(), (action(),), progress(), exceptions)
+    package_cache_data.done_callback(f(), (action(),), progress(), exceptions)  # type: ignore
     package_cache_data.do_cache_action("dummy", None, None)
     package_cache_data.do_extract_action("dummy", None, None)
 
@@ -456,15 +459,27 @@ def test_cover_get_entry_to_link():
 
     with make_temp_package_cache() as pkgs_dir:
         first_writable = PackageCacheData(pkgs_dir)
+        assert first_writable._package_cache_records is not None
         first_writable._package_cache_records[exists] = exists
         PackageCacheData.get_entry_to_link(exists_record)
         del first_writable._package_cache_records[exists]
 
 
 def test_cover_fetch_not_exists():
-    with pytest.raises(CondaHTTPError):
+    """
+    Conda collects all exceptions raised during ProgressiveFetchExtract into a
+    CondaMultiError. TODO: Is this necessary?
+    """
+    with pytest.raises(CondaMultiError):
         ProgressiveFetchExtract(
-            [MatchSpec(url="http://localhost:8080/conda-test/fakepackage-1.2.12-testing_3.conda")]
+            [
+                MatchSpec(
+                    url="http://localhost:8080/conda-test/fakepackage-1.2.12-testing_3.conda"
+                ),
+                MatchSpec(
+                    url="http://localhost:8080/conda-test/phonypackage-0.0.1-testing_3.conda"
+                ),
+            ]
         ).execute()
 
 

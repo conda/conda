@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add LD_PRELOAD to env variable list
 
 ### Bug fixes
 
