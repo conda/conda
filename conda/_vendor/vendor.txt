@@ -5,4 +5,4 @@ appdirs==1.2.0
 py-cpuinfo==8.0.0
 distro==1.0.4
 frozendict==1.2
-six==1.10.0
+six==1.16.0
