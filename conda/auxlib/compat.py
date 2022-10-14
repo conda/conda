@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 
 
 NoneType = type(None)
-primitive_types = tuple(str, int, float, complex, bool, NoneType)
+primitive_types = (str, int, float, complex, bool, NoneType)
 
 
 def isiterable(obj):
