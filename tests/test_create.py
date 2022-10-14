@@ -335,20 +335,20 @@ class IntegrationTests(BaseTestCase):
             assert not isfile(join(prefix, pyc_file))
 
     def test_noarch_python_package_reinstall_on_pyver_change(self):
-        with make_temp_env("-c", "conda-test", "itsdangerous=0.24", "python=3", use_restricted_unicode=on_win) as prefix:
+        with make_temp_env("-c", "conda-test", "itsdangerous=0.24", "python=3.9", use_restricted_unicode=on_win) as prefix:
             py_ver = get_python_version_for_prefix(prefix)
-            assert py_ver.startswith('3')
+            assert py_ver.startswith('3.9')
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/itsdangerous.py"
             pyc_file_py3 = pyc_path(py_file, py_ver).replace('/', os.sep)
             assert isfile(join(prefix, py_file))
             assert isfile(join(prefix, pyc_file_py3))
 
-            run_command(Commands.INSTALL, prefix, "python=2")
+            run_command(Commands.INSTALL, prefix, "python=3.8")
             assert not isfile(join(prefix, pyc_file_py3))  # python3 pyc file should be gone
 
             py_ver = get_python_version_for_prefix(prefix)
-            assert py_ver.startswith('2')
+            assert py_ver.startswith('3.8')
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/itsdangerous.py"
             pyc_file_py2 = pyc_path(py_file, py_ver).replace('/', os.sep)
@@ -439,7 +439,7 @@ class IntegrationTests(BaseTestCase):
         # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
         # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
         # We elect to test the more complex of the two options.
-        py_ver = "3.7"
+        py_ver = "3.9"
         with make_temp_env("python="+py_ver, "pip") as prefix:
             evs = dict({"PYTHONUTF8": "1"})
             # This test does not activate the env.
@@ -462,7 +462,7 @@ class IntegrationTests(BaseTestCase):
 
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
-        py_ver = "3.7"
+        py_ver = "3.9"
         with make_temp_env("python="+py_ver, "pip") as prefix:
             evs = dict({"PYTHONUTF8": "1"})
             # This test does not activate the env.
