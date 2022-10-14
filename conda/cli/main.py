@@ -31,7 +31,6 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 """
-
 from .conda_argparse import generate_parser
 
 import sys

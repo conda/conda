@@ -256,7 +256,7 @@ class PackageRecord(DictSafeMixin, Entity):
     sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
 
     metadata_signature_status = StringField(
-        default=None, required=False, nullable=True, default_in_dump=False
+        default="", required=False, nullable=True, default_in_dump=False
     )
 
     @property
