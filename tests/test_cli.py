@@ -5,6 +5,7 @@ import json
 import unittest
 import uuid
 import os
+import re
 import stat
 from unittest.mock import patch
 
@@ -167,7 +168,7 @@ class TestJson(unittest.TestCase):
             )
             result = stdout.replace("Loading channels: ...working... done", "")
 
-            assert "nose                           1.3.7          py37_2  pkgs/main" in result
+            assert re.search(r"nose\s*1\.3\.7\s.*\bpkgs/main\b", result, re.MULTILINE)
 
     @pytest.mark.integration
     def test_search_3(self):
