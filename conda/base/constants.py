@@ -251,23 +251,8 @@ class SatSolverChoice(ValueEnum):
     PYSAT = 'pysat'
 
 
-class SolverChoiceMeta(EnumMeta):
-
-    def __new__(metaclass, name, bases, classdict, **kwargs):
-        from conda.plugins import solvers
-        for solver in solvers.get_available_solvers():
-            classdict[solver.name.upper()] = solver.name
-        return super().__new__(metaclass, name, bases, classdict)
-
-
-class SolverChoice(ValueEnum, metaclass=EnumMeta):
-    """
-    The solver choices dynamically populated using the conda solvers plugins.
-    """
-
-
-# TODO: Remove in a later release - compatibility alias
-ExperimentalSolverChoice = SolverChoice
+#: The name of the default solver, currently "classic"
+DEFAULT_SOLVER = CLASSIC_SOLVER = "classic"
 
 
 class NoticeLevel(ValueEnum):

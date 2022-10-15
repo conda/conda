@@ -37,6 +37,7 @@ from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
+from ..plugins.manager import get_plugin_manager
 from ..plugins.solvers import get_available_solvers
 from ..resolve import Resolve
 
@@ -49,12 +50,13 @@ def _get_solver_class(key=None):
 
     See ``context.solver`` for more details.
     """
-    solvers = get_available_solvers()
-    key = (key or context.solver.value).lower()
+    pm = get_plugin_manager()
+    solvers = get_available_solvers(pm)
+    key = (key or context.solver).lower()
 
     solvers_mapping = {}
     for solver in solvers:
-        solvers_mapping[solver.name.lower()] = solvers.backend
+        solvers_mapping[solver.name.lower()] = solver.backend
 
     if key in solvers_mapping:
         return solvers_mapping[key]

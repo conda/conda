@@ -3,7 +3,6 @@
 
 from collections import OrderedDict
 
-import functools
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
@@ -11,11 +10,9 @@ from typing import Optional
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
-import pluggy
 import sys
 import struct
 from contextlib import contextmanager
-from datetime import datetime
 import warnings
 
 try:
@@ -32,6 +29,7 @@ from .constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNEL_ALIAS,
     DEFAULT_CUSTOM_CHANNELS,
+    DEFAULT_SOLVER,
     DepsModifier,
     ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
@@ -41,7 +39,6 @@ from .constants import (
     SEARCH_PATH,
     SafetyChecks,
     SatSolverChoice,
-    SolverChoice,
     UpdateModifier,
     CONDA_LOGS_DIR,
     PREFIX_NAME_DISALLOWED_CHARS,
@@ -60,8 +57,7 @@ from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
-from .. import CONDA_SOURCE_ROOT, DEFAULT_SOLVER
-
+from .. import CONDA_SOURCE_ROOT
 
 try:
     os.getcwd()
@@ -341,7 +337,7 @@ class Context(Configuration):
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
     solver_ignore_timestamps = ParameterLoader(PrimitiveParameter(False))
     solver = ParameterLoader(
-        PrimitiveParameter(DEFAULT_SOLVER, element_type=SolverChoice),
+        PrimitiveParameter(DEFAULT_SOLVER),
         aliases=("experimental_solver",),
     )
 
@@ -837,17 +833,17 @@ class Context(Configuration):
         builder.append("%s/%s" % self.os_distribution_name_version)
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
-        if self.solver.value != "classic":
+        if self.solver != "classic":
             from ..core.solve import _get_solver_class
 
-            user_agent_str = "solver/%s" % self.solver.value
+            user_agent_str = "solver/%s" % self.solver
             try:
                 # Solver.user_agent has to be a static or class method
                 user_agent_str += f" {_get_solver_class().user_agent()}"
             except Exception as exc:
                 log.debug(
                     "User agent could not be fetched from solver class '%s'.",
-                    self.solver.value,
+                    self.solver,
                     exc_info=exc
                 )
             builder.append(user_agent_str)

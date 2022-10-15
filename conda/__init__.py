@@ -148,7 +148,3 @@ def _default(self, obj):
 
 _default.default = JSONEncoder().default
 JSONEncoder.default = _default
-
-
-#: The name of the default solver, currently "classic"
-DEFAULT_SOLVER = CLASSIC_SOLVER = "classic"

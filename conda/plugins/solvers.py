@@ -5,10 +5,10 @@ from functools import lru_cache
 
 from .. import plugins
 from ..auxlib.ish import dals
+from ..base.constants import CLASSIC_SOLVER
 from ..common.io import dashlist
 from ..exceptions import PluginError
-
-from conda.models.plugins import CondaSolver
+from ..models.plugins import CondaSolver
 
 
 def register(pm: pluggy.PluginManager) -> None:
@@ -33,12 +33,10 @@ def conda_solvers():
 
 # FUTURE: Python 3.8+, replace with functools.cached_property
 @lru_cache(maxsize=None)
-def get_available_solvers():
+def get_available_solvers(pm):
     """
+    Given the provided plugin manager, return all registered solvers.
     """
-    from conda.plugins.manager import get_plugin_manager
-
-    pm = get_plugin_manager()
     solvers = sorted(
         (
             solver
@@ -48,7 +46,7 @@ def get_available_solvers():
         key=lambda solver: solver.name,
     )
     # Check for conflicts
-    seen = {}
+    seen = set()
     conflicts = [
         solver
         for solver in solvers

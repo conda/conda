@@ -33,8 +33,6 @@ Additional help for each command can be accessed by using:
 """
 from .conda_argparse import generate_parser
 
-from .conda_argparse import generate_parser
-
 import sys
 
 
