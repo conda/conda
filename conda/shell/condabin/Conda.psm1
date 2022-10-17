@@ -26,7 +26,7 @@ function Get-CondaEnvironment {
     process {
         # NB: the JSON output of conda env list does not include the names
         #     of each env, so we need to parse the fragile output instead.
-        & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA env list | `
+        & $Env:CONDA_PYTHON_EXE $Env:_CE_I $Env:_CE_M $Env:_CE_CONDA env list | `
             Where-Object { -not $_.StartsWith("#") } | `
             Where-Object { -not $_.Trim().Length -eq 0 } | `
             ForEach-Object {
@@ -67,9 +67,9 @@ function Enter-CondaEnvironment {
 
     begin {
         If ($Stack) {
-            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
+            $activateCommand = (& $Env:CONDA_PYTHON_EXE $Env:_CE_I $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
         } Else {
-            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
+            $activateCommand = (& $Env:CONDA_PYTHON_EXE $Env:_CE_I $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
         }
 
         Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
@@ -97,7 +97,7 @@ function Exit-CondaEnvironment {
     param();
 
     begin {
-        $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate | Out-String);
+        $deactivateCommand = (& $Env:CONDA_PYTHON_EXE $Env:_CE_I $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate | Out-String);
 
         # If deactivate returns an empty string, we have nothing more to do,
         # so return early.
@@ -129,7 +129,7 @@ function Invoke-Conda() {
     # so that we can capture everything, INCLUDING short options (e.g. -n).
     if ($Args.Count -eq 0) {
         # No args, just call the underlying conda executable.
-        & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA;
+        & $Env:CONDA_PYTHON_EXE $Env:_CE_I $Env:_CE_M $Env:_CE_CONDA;
     }
     else {
         $Command = $Args[0];
@@ -150,7 +150,7 @@ function Invoke-Conda() {
                 # There may be a command we don't know want to handle
                 # differently in the shell wrapper, pass it through
                 # verbatim.
-                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
+                & $Env:CONDA_PYTHON_EXE $Env:_CE_I $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
             }
         }
     }

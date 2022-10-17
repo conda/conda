@@ -12,7 +12,7 @@
 @IF [%1]==[activate]   "%~dp0_conda_activate" %*
 @IF [%1]==[deactivate] "%~dp0_conda_activate" %*
 
-@SET CONDA_EXES="%CONDA_EXE%" %_CE_M% %_CE_CONDA%
+@SET CONDA_EXES="%CONDA_PYTHON_EXE%" %_CE_I% %_CE_M% %_CE_CONDA%
 @CALL %CONDA_EXES% %*
 
 @IF %errorlevel% NEQ 0 EXIT /B %errorlevel%
