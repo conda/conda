@@ -181,6 +181,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     unset_env_vars = (
         'CONDA_DEFAULT_ENV',
         'CONDA_EXE',
+        '_CE_I',
         '_CE_M',
         '_CE_CONDA',
         'CONDA_PREFIX',
@@ -999,6 +1000,7 @@ def install_conda_hook_ps1(target_path, conda_prefix):
     file_content = PowerShellActivator().hook(auto_activate_base=False)
     return _install_file(target_path, file_content)
 
+
 def install_conda_xsh(target_path, conda_prefix):
     # target_path: join(site_packages_dir, 'xonsh', 'conda.xsh')
     file_content = XonshActivator().hook(auto_activate_base=False)
@@ -1229,8 +1231,6 @@ def _bashrc_content(conda_prefix, shell):
             endif
             # <<< conda initialize <<<
             """) % {
-                'python_exe': python_exe,
-                'shell': shell,
                 'conda_bin': dirname(python_exe),
                 'conda_prefix': conda_prefix,
             }
@@ -1533,6 +1533,7 @@ def _powershell_profile_content(conda_prefix):
     """.format(python_exe=python_exe))
 
     return conda_powershell_module
+
 
 def init_powershell_user(target_path, conda_prefix, reverse):
     # target_path: $PROFILE
