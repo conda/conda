@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import pathlib
-from typing import Optional
 
 from . import jlapper
 from .repo import RepodataIsNone, RepoInterface, conda_http_errors
@@ -25,7 +24,7 @@ except ImportError:
 
 
 class CondaRepoJLAP(RepoInterface):
-    def __init__(self, url: str, repodata_fn: Optional[str], **kwargs) -> None:
+    def __init__(self, url: str, repodata_fn: str | None, **kwargs) -> None:
         log.debug("Using CondaRepoJLAP")
 
         self._url = url
@@ -42,7 +41,7 @@ class CondaRepoJLAP(RepoInterface):
         console.print_json(data=state)
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
-        jlap_url = f"{self._url}/{self._repodata_fn}"[: -len(".json")] + ".jlap"
+        # jlap_url = f"{self._url}/{self._repodata_fn}"[: -len(".json")] + ".jlap"
 
         def get_place(url, extra=""):
             if url == repodata_url and extra == "":

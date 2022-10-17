@@ -10,7 +10,6 @@ import pprint
 import re
 import sys
 import time
-from concurrent.futures import process
 from contextlib import contextmanager
 from hashlib import blake2b
 from typing import Iterator
@@ -174,7 +173,8 @@ def apply_patches(data, apply):
     while apply:
         patch = apply.pop()
         print(
-            f"{hf(patch['from'])} \N{RIGHTWARDS ARROW} {hf(patch['to'])}, {len(patch['patch'])} steps"
+            f"{hf(patch['from'])} \N{RIGHTWARDS ARROW} {hf(patch['to'])}, "
+            f"{len(patch['patch'])} steps"
         )
         data = jsonpatch.JsonPatch(patch["patch"]).apply(data, in_place=True)
 
@@ -249,14 +249,14 @@ def request_url_jlap_state(
             # otherwise we re-download every time, if jlap is unavailable.
             download_and_hash(hasher, withext(url, ".json"), json_path, session=session)
 
-        have = have_hash = state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
+        have = state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
 
         # trick code even though there is no jlap yet? buffer with zero patches.
         buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1, b"", ""]]
 
     else:
         have = state[NOMINAL_HASH]
-        have_hash = state.get(ON_DISK_HASH)
+        # have_hash = state.get(ON_DISK_HASH)
 
         need_jlap = True
         try:

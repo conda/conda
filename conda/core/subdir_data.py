@@ -39,7 +39,7 @@ from ..base.context import context
 from ..common.compat import ensure_binary
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.path import url_to_path
-from ..common.url import join_url, maybe_unquote
+from ..common.url import join_url
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import CondaUpgradeError, NotWritableError, UnavailableInvalidChannel
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
@@ -171,7 +171,7 @@ class SubdirData(metaclass=SubdirDataType):
         self._key_mgr = None
 
     @property
-    def _repo(self):
+    def _repo(self) -> RepoInterface:
         # XXX one for `current_repodata.json` and one for `repodata.json`
         return CondaRepoInterface(
             self.url_w_credentials,
@@ -534,7 +534,7 @@ class SubdirData(metaclass=SubdirDataType):
 
                 package_kwargs = dict(info.items())
                 # Python doesn't like duplicate keyword arguments? (PackageRecord(**kwargs, fn=x))
-                package_kwargs.update({"fn":fn, "url":join_url(channel_url, fn)})
+                package_kwargs.update({"fn": fn, "url": join_url(channel_url, fn)})
                 package_record = PackageRecord(**package_kwargs)
 
                 _package_records.append(package_record)
