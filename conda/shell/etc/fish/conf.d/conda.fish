@@ -12,6 +12,15 @@ if not set -q CONDA_SHLVL
     set -gx PATH $_CONDA_ROOT/condabin $PATH
 end
 
+if not set -q _CONDA_PS1_PASSTHROUGH
+    and set -q PS1
+    # Some Linux distros drop PS1, but let other variables pass
+    # We sneak PS1 through this proxy variable for some entry points
+    # We only define it if it wasn't defined already! Otherwise the
+    # PS1 prompt keeps growing every time you source bashrc et al.
+    set -gx _CONDA_PS1_PASSTHROUGH "$PS1"
+fi
+
 function __conda_add_prompt
     if set -q CONDA_PROMPT_MODIFIER
         set_color -o green
@@ -61,20 +70,20 @@ function fish_right_prompt
 end
 
 
-function conda --inherit-variable CONDA_EXE
+function conda --inherit-variable CONDA_PYTHON_EXE --inherit-variable _CE_I --inherit-variable _CE_M --inherit-variable _CE_CONDA
     if [ (count $argv) -lt 1 ]
-        $CONDA_EXE
+        $CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA
     else
         set -l cmd $argv[1]
         set -e argv[1]
         switch $cmd
             case activate deactivate
-                eval ($CONDA_EXE shell.fish $cmd $argv)
+                eval ($CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA shell.fish $cmd $argv)
             case install update upgrade remove uninstall
-                $CONDA_EXE $cmd $argv
-                and eval ($CONDA_EXE shell.fish reactivate)
+                $CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA $cmd $argv
+                and eval ($CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA shell.fish reactivate)
             case '*'
-                $CONDA_EXE $cmd $argv
+                $CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA $cmd $argv
         end
     end
 end

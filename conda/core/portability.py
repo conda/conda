@@ -203,25 +203,31 @@ def replace_long_shebang(mode, data):
     return data
 
 
-def generate_shebang_for_entry_point(executable):
+def generate_shebang_for_entry_point(executable, ps1_workaround=False):
     shebang = f"#!{executable}\n"
     # In principle, this shebang ^ will work as long as the path
     # to the python executable does not contain spaces AND it's not
-    # longer than 127 characters. But if it does, we can fix it.
-    # Following method inspired by `pypa/distlib`
+    # longer than 127 characters. But if it does, we can fix it
+    # following a method inspired by `pypa/distlib` 
     # https://github.com/pypa/distlib/blob/91aa92e64/distlib/scripts.py#L129
     # Explanation: these lines are both valid Python and shell :)
     # 1. Python will read it as a triple-quoted string; end of story
     # 2. The shell will see:
-    #       * '' (empty string)
-    #       * 'exec' "path/with spaces/to/python" "this file" "arguments"
-    #       * # ''' (inline comment with three quotes, ignored by shell)
+    #    * '' (empty string)
+    #    * 'exec' "path/with spaces/to/python" "this file" "arguments"
+    #    * # ''' (inline comment with three quotes, ignored by shell)
+    if "/_h_env_placehold" in executable:
+        # This is being used during a conda-build process,
+        # which uses long prefixes on purpose. This will be replaced
+        # with the real environment prefix at install time. Do not
+        # do nothing for now.
+        return shebang
     if len(shebang) > MAX_SHEBANG_LENGTH or " " in shebang:
+        ps1 = ' /usr/bin/env PS1="${PS1:-$_CONDA_PS1_PASSTHROUGH}"' if ps1_workaround else ""
         shebang = dals(
             f"""
             #!/bin/sh
-            '''exec' "{executable}" "$0" "$@" #'''
+            '''exec'{ps1} "{executable}" "$0" "$@" #'''
             """
         )
-
     return shebang

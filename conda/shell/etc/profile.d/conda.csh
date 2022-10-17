@@ -9,6 +9,16 @@ else
   endif
 endif
 
+if (! $?_CONDA_PS1_PASSTHROUGH) then
+    if ($?PS1) then
+        # Some Linux distros drop PS1, but let other variables pass
+        # We sneak PS1 through this proxy variable for some entry points
+        # We only define it if it wasn't defined already! Otherwise the
+        # PS1 prompt keeps growing every time you source bashrc et al.
+        setenv _CONDA_PS1_PASSTHROUGH="${PS1}"
+    endif
+endif
+
 if ("`alias conda`" == "") then
     if ($?_CONDA_EXE) then
         # _CONDA_PFX is named so as not to cause confusion with CONDA_PREFIX
