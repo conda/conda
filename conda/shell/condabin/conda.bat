@@ -7,8 +7,11 @@
 @REM echo CONDA_EXE is %CONDA_EXE%
 
 @IF NOT DEFINED _CE_CONDA (
-  @SET _CE_M=
+  @SET _CE_I=-I
+  @SET _CE_M=-m
+  @SET _CE_CONDA=conda
   @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
+  @SET "CONDA_PYTHON_EXE=%~dp0..\python.exe"
 )
 @IF [%1]==[activate]   "%~dp0_conda_activate" %*
 @IF [%1]==[deactivate] "%~dp0_conda_activate" %*
