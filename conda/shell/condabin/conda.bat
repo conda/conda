@@ -7,7 +7,8 @@
 @REM echo CONDA_EXE is %CONDA_EXE%
 
 @IF NOT DEFINED _CE_CONDA (
-  @SET _CE_I=-I
+  @REM This is dev mode, allow PYTHON* env vars by not setting -I ## CHECK!
+  @SET _CE_I=
   @SET _CE_M=-m
   @SET _CE_CONDA=conda
   @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"

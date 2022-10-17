@@ -1826,17 +1826,22 @@ class InteractiveShell:
 #            'init_command': 'set "CONDA_SHLVL=" '
 #                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat {} '
 #                            '&& set CONDA_EXE={}'
-#                            '&& set _CE_M='
-#                            '&& set _CE_CONDA='
+#                            '&& set CONDA_PYTHON_EXE={}'
+#                            '&& set _CE_I=-I'  # main difference
+#                            '&& set _CE_M=-m'
+#                            '&& set _CE_CONDA=conda'
 #                            .format(CONDA_PACKAGE_ROOT, dev_arg,
-#                                    join(sys.prefix, "Scripts", "conda.exe")),
+#                                    join(sys.prefix, "Scripts", "conda.exe"),
+#                                    sys.executable),
 
             'init_command': 'set "CONDA_SHLVL=" '
                             '&& @CALL {}\\shell\\condabin\\conda_hook.bat {}'
                             '&& set CONDA_EXE={}'
+                            '&& set CONDA_PYTHON_EXE={}'
+                            '&& set _CE_I='
                             '&& set _CE_M=-m'
                             '&& set _CE_CONDA=conda'.format(CONDA_PACKAGE_ROOT, dev_arg,
-                                                             sys.executable),
+                                                             sys.executable, sys.executable),
 
             'print_env_var': '@echo %%%s%%',
         },
@@ -2463,7 +2468,9 @@ class ShellWrapperIntegrationTests(TestCase):
 
                 shell.assert_env_var('_CE_CONDA', 'conda\r')
                 shell.assert_env_var('_CE_M', '-m\r')
+                # shell.assert_env_var('_CE_I', '\r')
                 shell.assert_env_var('CONDA_EXE', escape(sys.executable) + '\r')
+                shell.assert_env_var('CONDA_PYTHON_EXE', escape(sys.executable) + '\r')
 
                 # We use 'PowerShell' here because 'where conda' returns all of them and
                 # p.expect_exact does not do what you would think it does given its name.

@@ -482,10 +482,12 @@ class InitializeTests(TestCase):
             assert lines[2] == 'setenv _CE_M "-m"'
             assert lines[3] == 'setenv _CE_CONDA "conda"'
             if on_win:
-                assert lines[0] == 'setenv CONDA_EXE `cygpath %s`' % join(conda_prefix, 'Scripts', 'conda.exe')
-                assert lines[4] == 'setenv CONDA_PYTHON_EXE `cygpath %s`' % join(conda_prefix, 'python.exe')
-                assert lines[5] == 'setenv _CONDA_EXE `cygpath %s`' % join(conda_prefix, 'Scripts', 'conda.exe')
-                assert lines[6] == 'setenv _CONDA_ROOT `cygpath %s`' % conda_prefix
+                # Quote command substitution in case it contains spaces
+                # https://www.ibm.com/docs/en/aix/7.2?topic=commands-command-substitution-in-c-shell
+                assert lines[0] == 'setenv CONDA_EXE "`cygpath %s`"' % join(conda_prefix, 'Scripts', 'conda.exe')
+                assert lines[4] == 'setenv CONDA_PYTHON_EXE "`cygpath %s`"' % join(conda_prefix, 'python.exe')
+                assert lines[5] == 'setenv _CONDA_EXE "`cygpath %s`"' % join(conda_prefix, 'Scripts', 'conda.exe')
+                assert lines[6] == 'setenv _CONDA_ROOT "`cygpath %s`"' % conda_prefix
             else:
                 assert lines[0] == 'setenv CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
                 assert lines[4] == 'setenv CONDA_PYTHON_EXE "%s"' % join(conda_prefix, 'bin', 'python')

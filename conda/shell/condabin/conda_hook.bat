@@ -11,6 +11,7 @@
 @SET "CONDA_BAT=%__condabin_dir%\conda.bat"
 @FOR %%F in ("%__condabin_dir%") do @SET "__conda_root=%%~dpF"
 @SET "CONDA_EXE=%__conda_root%Scripts\conda.exe"
+@SET "CONDA_PYTHON_EXE=%__conda_root%python.exe"
 @SET __condabin_dir=
 @SET __conda_root=
 

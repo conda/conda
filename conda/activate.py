@@ -980,8 +980,10 @@ class FishActivator(_Activator):
         }
         for key, value in env_vars.items():
             if on_win and key in self._path_keys:
-                value = f'(cygpath "{value}")'
-            if key in ('_CONDA_EXE', '_CONDA_ROOT'):
+                # no quotes around fish command subtitution!
+                # https://fishshell.com/docs/current/tutorial.html#command-substitutions
+                lines.append(f'set -gx {key} (cygpath "{value}")')
+            elif key in ('_CONDA_EXE', '_CONDA_ROOT'):
                 lines.append(self.set_var_tmpl % (key, value))
             else:
                 lines.append(self.export_var_tmpl % (key, value))
