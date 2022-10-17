@@ -15,7 +15,7 @@ if '_CONDA_PS1_PASSTHROUGH' not in ${...} and 'PS1' in ${...}:
     # Some Linux distros drop PS1, but let other variables pass
     # We sneak PS1 through this proxy variable for some entry points
     # We only define it if it wasn't defined already! Otherwise the
-    # PS1 prompt keeps growing every time you source bashrc et al.
+    # PS1 prompt keeps growing every time you source bashrc et al.
     $_CONDA_PS1_PASSTHROUGH="$PS1"
 
 _REACTIVATE_COMMANDS = ('install', 'update', 'upgrade', 'remove', 'uninstall')

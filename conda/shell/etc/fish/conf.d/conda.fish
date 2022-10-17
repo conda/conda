@@ -17,7 +17,7 @@ if not set -q _CONDA_PS1_PASSTHROUGH
     # Some Linux distros drop PS1, but let other variables pass
     # We sneak PS1 through this proxy variable for some entry points
     # We only define it if it wasn't defined already! Otherwise the
-    # PS1 prompt keeps growing every time you source bashrc et al.
+    # PS1 prompt keeps growing every time you source bashrc et al.
     set -gx _CONDA_PS1_PASSTHROUGH "$PS1"
 fi
 
