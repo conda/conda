@@ -665,10 +665,10 @@ class Context(Configuration):
         A dict so the vars can refer to each other if necessary.
         None means unset it.
 
-        These are used by the initialization scripts to fill in
-        the templates. PR#XXX changed default use of CONDA_EXE
-        (the entry point) to 'CONDA_PYTHON_EXE -I -m conda $@'
-        to avoid shebang issues.
+        These are used by the initialization logic 
+        (conda.core.initialize) to fill in the templates. 
+        PR#11970 changed default use of CONDA_EXE (the entry point) to 
+        'CONDA_PYTHON_EXE -I -m conda $@' to avoid shebang issues.
 
         Note some Activator classes may extend this on their own
         with _CONDA_EXE and _CONDA_ROOT (legacy variables). Adding
