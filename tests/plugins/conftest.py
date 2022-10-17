@@ -6,15 +6,15 @@ import sys
 
 import conda.cli
 
-from conda import plugins
+from conda.plugins import hooks
 
 
 @pytest.fixture
 def plugin_manager(mocker):
     pm = pluggy.PluginManager('conda')
-    pm.add_hookspecs(plugins)
+    pm.add_hookspecs(hooks)
     mocker.patch("conda.base.context.get_plugin_manager", return_value=pm)
-    mocker.patch("conda.base.context.Context.plugin_manager", new=pm)
+    # mocker.patch("conda.base.context.Context.plugin_manager", new=pm)
     return pm
 
 

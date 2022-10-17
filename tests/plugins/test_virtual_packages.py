@@ -5,25 +5,25 @@ import conda.core.index
 from conda.exceptions import PluginError
 from conda.base.context import context
 from conda.testing.solver_helpers import package_dict
-from conda import plugins
-from conda.plugins import cuda
+from conda.plugins import hooks
+from conda.plugins.virtual_packages import cuda
 
 import pytest
 import re
 
 
 class VirtualPackagesPlugin:
-    @plugins.register
+    @hooks.register
     def conda_virtual_packages(self):
-        yield plugins.CondaVirtualPackage(
+        yield hooks.CondaVirtualPackage(
             name="abc",
             version="123",
         )
-        yield plugins.CondaVirtualPackage(
+        yield hooks.CondaVirtualPackage(
             name="def",
             version="456",
         )
-        yield plugins.CondaVirtualPackage(
+        yield hooks.CondaVirtualPackage(
             name="ghi",
             version="789",
         )

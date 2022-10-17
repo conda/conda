@@ -1,7 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
-from conda import plugins
+from conda.plugins import hooks
 
 
 class SubcommandPlugin:
@@ -12,9 +12,9 @@ class SubcommandPlugin:
     def custom_command(self, args):
         pass
 
-    @plugins.register
+    @hooks.register
     def conda_subcommands(self):
-        yield plugins.CondaSubcommand(
+        yield hooks.CondaSubcommand(
             name="custom",
             summary="test custom command",
             action=self.custom_command,

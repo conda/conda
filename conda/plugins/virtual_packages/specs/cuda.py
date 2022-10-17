@@ -6,7 +6,7 @@ import functools
 import platform
 from contextlib import suppress
 
-from conda import plugins
+from conda.plugins import hooks
 from conda.common.decorators import env_override
 
 
@@ -77,12 +77,12 @@ def cuda_version():
 
 @functools.lru_cache(maxsize=None)
 def cached_cuda_version():
-    """"
+    """ "
     A cached version of the cuda detection system.
     """
     return cuda_version()
 
 
-@plugins.register
+@hooks.register
 def conda_virtual_packages():
-    yield plugins.CondaVirtualPackage("cuda", cached_cuda_version())
+    yield hooks.CondaVirtualPackage("cuda", cached_cuda_version())
