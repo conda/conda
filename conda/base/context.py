@@ -692,7 +692,6 @@ class Context(Configuration):
             # with ; or : delimiters.
             pythonpath = os.pathsep.join((CONDA_SOURCE_ROOT, os.environ.get("PYTHONPATH", "")))
             env_vars["PYTHONPATH"] = pythonpath
-            # env_vars["CONDA_EXE"] = sys.executable
             # In dev mode, disable -I to allow PYTHONPATH to be read
             env_vars["_CE_I"] = ""
         return env_vars

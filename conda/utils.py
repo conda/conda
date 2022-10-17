@@ -381,11 +381,13 @@ def wrap_subprocess_call(
                 from . import CONDA_SOURCE_ROOT
 
                 fh.write(f"{silencer}SET CONDA_DEV=1\n")
-                # In dev mode, conda is really:
-                # 'python -m conda'
-                # *with* PYTHONPATH set.
+                # In dev mode, conda's entry point gets called as 
+                # 'python -m conda' instead of `python -I -m conda`
+                # so PYTHONPATH can be read.
                 fh.write(f"{silencer}SET PYTHONPATH={CONDA_SOURCE_ROOT}\n")
-                fh.write(f"{silencer}SET CONDA_EXE={sys.executable}\n")
+                fh.write(f"{silencer}SET CONDA_EXE={join(root_prefix, 'Scripts', 'conda.exe')}\n")
+                fh.write(f"{silencer}SET CONDA_PYTHON_EXE={sys.executable}\n")
+                fh.write(f"{silencer}SET _CE_I=\n")
                 fh.write(f"{silencer}SET _CE_M=-m\n")
                 fh.write(f"{silencer}SET _CE_CONDA=conda\n")
             if debug_wrapper_scripts:
@@ -431,7 +433,7 @@ def wrap_subprocess_call(
             dev_arg = '--dev'
             dev_args = [dev_arg]
         else:
-            conda_exe = [environ.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))]
+            conda_exe = [abspath(join(root_prefix, 'bin', 'python')), '-I', '-m', 'conda']
             dev_arg = ''
             dev_args = []
         with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:

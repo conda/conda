@@ -1835,13 +1835,17 @@ class InteractiveShell:
 #                                    sys.executable),
 
             'init_command': 'set "CONDA_SHLVL=" '
-                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat {}'
-                            '&& set CONDA_EXE={}'
-                            '&& set CONDA_PYTHON_EXE={}'
+                            '&& @CALL "{root}\\shell\\condabin\\conda_hook.bat" {args}'
+                            '&& set "CONDA_EXE={conda_exe}"'
+                            '&& set "CONDA_PYTHON_EXE={python_exe}"'
                             '&& set _CE_I='
                             '&& set _CE_M=-m'
-                            '&& set _CE_CONDA=conda'.format(CONDA_PACKAGE_ROOT, dev_arg,
-                                                             sys.executable, sys.executable),
+                            '&& set _CE_CONDA=conda'.format(
+                                root=CONDA_PACKAGE_ROOT, 
+                                args=dev_arg,
+                                conda_exe=join(sys.prefix, 'Scripts', 'conda.exe'),
+                                python_exe=sys.executable
+                            ),
 
             'print_env_var': '@echo %%%s%%',
         },
@@ -1854,7 +1858,7 @@ class InteractiveShell:
             # pexpect.exceptions.EOF: End Of File (EOF).
             # 'args': ('-x',),
             'init_command': 'set _CONDA_EXE=\"{CPR}/shell/bin/conda\"; '
-                            'source {CPR}/shell/etc/profile.d/conda.csh; '.format(CPR=CONDA_PACKAGE_ROOT),
+                            'source "{CPR}/shell/etc/profile.d/conda.csh"; '.format(CPR=CONDA_PACKAGE_ROOT),
             'print_env_var': 'echo "$%s"',
         },
         'tcsh': {
@@ -2241,8 +2245,11 @@ class ShellWrapperIntegrationTests(TestCase):
         # because the conda shell scripts use them and if they are unset activation
         # is not possible.
         CONDA_EXED = shell.get_env_var('CONDA_EXE')
-        assert CONDA_EXED, "A fully deactivated conda shell must retain CONDA_EXE (and _CE_M, _CE_I and _CE_CONDA in dev)\n" \
-                           "  as the shell scripts refer to them."
+        CONDA_PYTHON_EXED = shell.get_env_var('CONDA_PYTHON_EXE')
+        assert CONDA_EXED and CONDA_PYTHON_EXED, (
+            "A fully deactivated conda shell must retain CONDA_EXE, CONDA_PYTHON_EXE"
+            "_CE_M, _CE_I and _CE_CONDA as the shell scripts refer to them."
+        )
 
         PATH0 = shell.get_env_var('PATH')
 
@@ -2461,6 +2468,7 @@ class ShellWrapperIntegrationTests(TestCase):
     def test_cmd_exe_basic_integration(self):
         charizard = join(self.prefix, 'envs', 'charizard')
         conda_bat = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
+        conda_exe = join(sys.prefix, 'Scripts', 'conda.exe')
         with env_vars({'PATH': "C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"},
                       stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with InteractiveShell('cmd.exe') as shell:
@@ -2469,7 +2477,7 @@ class ShellWrapperIntegrationTests(TestCase):
                 shell.assert_env_var('_CE_CONDA', 'conda\r')
                 shell.assert_env_var('_CE_M', '-m\r')
                 # shell.assert_env_var('_CE_I', '\r')
-                shell.assert_env_var('CONDA_EXE', escape(sys.executable) + '\r')
+                shell.assert_env_var('CONDA_EXE', escape(conda_exe) + '\r')
                 shell.assert_env_var('CONDA_PYTHON_EXE', escape(sys.executable) + '\r')
 
                 # We use 'PowerShell' here because 'where conda' returns all of them and
@@ -2493,7 +2501,8 @@ class ShellWrapperIntegrationTests(TestCase):
 
                 shell.assert_env_var('_CE_CONDA', 'conda\r')
                 shell.assert_env_var('_CE_M', '-m\r')
-                shell.assert_env_var('CONDA_EXE', escape(sys.executable) + '\r')
+                shell.assert_env_var('CONDA_EXE', escape(conda_exe) + '\r')
+                shell.assert_env_var('CONDA_PYTHON_EXE', escape(sys.executable) + '\r')
                 shell.assert_env_var('CONDA_PREFIX', charizard, True)
                 PATH2 = shell.get_env_var('PATH', '').split(os.pathsep)
                 print(PATH2)
@@ -2504,7 +2513,8 @@ class ShellWrapperIntegrationTests(TestCase):
                 shell.sendline('conda activate --dev "%s"' % self.prefix)
                 shell.assert_env_var('_CE_CONDA', 'conda\r')
                 shell.assert_env_var('_CE_M', '-m\r')
-                shell.assert_env_var('CONDA_EXE', escape(sys.executable) + '\r')
+                shell.assert_env_var('CONDA_EXE', escape(conda_exe) + '\r')
+                shell.assert_env_var('CONDA_PYTHON_EXE', escape(sys.executable) + '\r')
                 shell.assert_env_var('CONDA_SHLVL', '2\r')
                 shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
 
