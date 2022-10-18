@@ -85,6 +85,7 @@ def tokenized_startswith(test_iterable, startswith_iterable):
 
 
 def get_all_directories(files: Iterable[str]) -> list[tuple[str]]:
+
     return sorted({tuple(f.split("/")[:-1]) for f in files} - {()})
 
 
