@@ -1819,35 +1819,34 @@ class InteractiveShell:
         # It should be noted here that we use the latest hook with whatever conda.exe is installed
         # in sys.prefix (and we will activate all of those PATH entries).  We will set PYTHONPATH
         # though, so there is that.  What I'm getting at is that this is a huge mixup and a mess.
-        'cmd.exe': {
-            'activator': 'cmd.exe',
-
-# For non-dev-mode you'd have:
-#            'init_command': 'set "CONDA_SHLVL=" '
-#                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat {} '
-#                            '&& set CONDA_EXE={}'
-#                            '&& set CONDA_PYTHON_EXE={}'
-#                            '&& set _CE_I=-I'  # main difference
-#                            '&& set _CE_M=-m'
-#                            '&& set _CE_CONDA=conda'
-#                            .format(CONDA_PACKAGE_ROOT, dev_arg,
-#                                    join(sys.prefix, "Scripts", "conda.exe"),
-#                                    sys.executable),
-
-            'init_command': 'set "CONDA_SHLVL=" '
-                            '&& @CALL "{root}\\shell\\condabin\\conda_hook.bat" {args}'
-                            '&& set "CONDA_EXE={conda_exe}"'
-                            '&& set "CONDA_PYTHON_EXE={python_exe}"'
-                            '&& set _CE_I='
-                            '&& set _CE_M=-m'
-                            '&& set _CE_CONDA=conda'.format(
-                                root=CONDA_PACKAGE_ROOT, 
-                                args=dev_arg,
-                                conda_exe=join(sys.prefix, 'Scripts', 'conda.exe'),
-                                python_exe=sys.executable
-                            ),
-
-            'print_env_var': '@echo %%%s%%',
+        "cmd.exe": {
+            "activator": "cmd.exe",
+            # For non-dev-mode you'd have:
+            #            'init_command': 'set "CONDA_SHLVL=" '
+            #                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat {} '
+            #                            '&& set CONDA_EXE={}'
+            #                            '&& set CONDA_PYTHON_EXE={}'
+            #                            '&& set _CE_I=-I'  # main difference
+            #                            '&& set _CE_M=-m'
+            #                            '&& set _CE_CONDA=conda'
+            #                            .format(CONDA_PACKAGE_ROOT, dev_arg,
+            #                                    join(sys.prefix, "Scripts", "conda.exe"),
+            #                                    sys.executable),
+            "init_command": (
+                'set "CONDA_SHLVL="'
+                ' && @CALL "{root}\\shell\\condabin\\conda_hook.bat" {args}'
+                ' && set "CONDA_EXE={conda_exe}"'
+                ' && set "CONDA_PYTHON_EXE={python_exe}"'
+                " && set _CE_I="
+                " && set _CE_M=-m"
+                " && set _CE_CONDA=conda".format(
+                    root=CONDA_PACKAGE_ROOT,
+                    args=dev_arg,
+                    conda_exe=join(sys.prefix, "Scripts", "conda.exe"),
+                    python_exe=sys.executable,
+                )
+            ),
+            "print_env_var": "@echo %%%s%%",
         },
         'csh': {
             'activator': 'csh',

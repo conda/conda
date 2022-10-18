@@ -7,7 +7,6 @@ import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, exists
 import re
 import sys
-from textwrap import dedent
 
 try:
     from tlz.itertoolz import concatv
@@ -983,7 +982,7 @@ class FishActivator(_Activator):
                 # no quotes around fish command subtitution!
                 # https://fishshell.com/docs/current/tutorial.html#command-substitutions
                 if key in ('_CONDA_EXE', '_CONDA_ROOT'):
-                    # These are global but not exported 
+                    # These are global but not exported
                     lines.append(f'set -g {key} (cygpath "{value}")')
                 else:
                     # These are global and exported

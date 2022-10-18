@@ -1206,56 +1206,54 @@ def init_xonsh_user(target_path, conda_prefix, reverse):
 def _bashrc_content(conda_prefix, shell):
     if on_win:
         from ..activate import native_path_to_unix
-        python_exe = native_path_to_unix(join(conda_prefix, 'python.exe'))
-        conda_initialize_content = dals("""
-        # >>> conda initialize >>>
-        # !! Contents within this block are managed by 'conda init' !!
-        if [ -f '%(python_exe)s' ]; then
-            eval "$('%(python_exe)s' '-I' '-m' 'conda' 'shell.%(shell)s' 'hook')"
-        fi
-        # <<< conda initialize <<<
-        """) % {
-            'python_exe': python_exe,
-            'shell': shell,
-        }
-    else:
-        python_exe = join(conda_prefix, 'bin', 'python')
-        if shell in ("csh", "tcsh"):
-            conda_initialize_content = dals("""
+
+        python_exe = native_path_to_unix(join(conda_prefix, "python.exe"))
+        conda_initialize_content = dals(
+            f"""
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
-            if ( -f "%(conda_prefix)s/etc/profile.d/conda.csh" ) then
-                source "%(conda_prefix)s/etc/profile.d/conda.csh"
-            else
-                setenv PATH "%(conda_bin)s:$PATH"
-            endif
-            # <<< conda initialize <<<
-            """) % {
-                'conda_bin': dirname(python_exe),
-                'conda_prefix': conda_prefix,
-            }
-        else:
-            conda_initialize_content = dals("""
-            # >>> conda initialize >>>
-            # !! Contents within this block are managed by 'conda init' !!
-            __conda_setup="$('%(python_exe)s' '-I' '-m' 'conda' 'shell.%(shell)s' 'hook' 2> /dev/null)"
-            if [ $? -eq 0 ]; then
-                eval "$__conda_setup"
-            else
-                if [ -f "%(conda_prefix)s/etc/profile.d/conda.sh" ]; then
-                    . "%(conda_prefix)s/etc/profile.d/conda.sh"
-                else
-                    export PATH="%(conda_bin)s:$PATH"
-                fi
+            if [ -f '{python_exe}' ]; then
+                eval "$('{python_exe}' '-I' '-m' 'conda' 'shell.{shell}' 'hook')"
             fi
-            unset __conda_setup
             # <<< conda initialize <<<
-            """) % {
-                'python_exe': python_exe,
-                'shell': shell,
-                'conda_bin': dirname(python_exe),
-                'conda_prefix': conda_prefix,
-            }
+            """
+        )
+    else:
+        conda_bin = join(conda_prefix, "bin")
+        python_exe = join(conda_bin, "python")
+        if shell in ("csh", "tcsh"):
+            conda_initialize_content = dals(
+                f"""
+                # >>> conda initialize >>>
+                # !! Contents within this block are managed by 'conda init' !!
+                if ( -f "{conda_prefix}/etc/profile.d/conda.csh" ) then
+                    source "{conda_prefix}/etc/profile.d/conda.csh"
+                else
+                    setenv PATH "{conda_bin}:$PATH"
+                endif
+                # <<< conda initialize <<<
+                """
+            )
+        else:
+            conda_initialize_content = dals(
+                f"""
+                # >>> conda initialize >>>
+                # !! Contents within this block are managed by 'conda init' !!
+                __conda_setup="$('{python_exe}' -I -m conda 'shell.{shell}' hook 2> /dev/null)"
+                if [ $? -eq 0 ]; then
+                    eval "$__conda_setup"
+                else
+                    if [ -f "{conda_prefix}/etc/profile.d/conda.sh" ]; then
+                        . "{conda_prefix}/etc/profile.d/conda.sh"
+                    else
+                        export PATH="{conda_bin}:$PATH"
+                    fi
+                fi
+                unset __conda_setup
+                # <<< conda initialize <<<
+                """
+            )
+
     return conda_initialize_content
 
 
@@ -1517,20 +1515,26 @@ def init_long_path(target_path):
                   'the fall 2016 "Anniversary update" or newer.')
             return Result.NO_CHANGE
 
+
 def _powershell_profile_content(conda_prefix):
     if on_win:
         python_exe = join(conda_prefix, 'python.exe')
     else:
         python_exe = join(conda_prefix, 'bin', 'python')
 
-    conda_powershell_module = dals("""
+    conda_powershell_module = dals(
+        """
     #region conda initialize
     # !! Contents within this block are managed by 'conda init' !!
     If (Test-Path "{python_exe}") {{
-        (& "{python_exe}" "-I" "-m" "conda" "shell.powershell" "hook") | Out-String | ?{{$_}} | Invoke-Expression
+        (& "{python_exe}" "-I" "-m" "conda" "shell.powershell" "hook") |
+        Out-String | ?{{$_}} | Invoke-Expression
     }}
     #endregion
-    """.format(python_exe=python_exe))
+    """.format(
+            python_exe=python_exe
+        )
+    )
 
     return conda_powershell_module
 

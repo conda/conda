@@ -381,7 +381,7 @@ def wrap_subprocess_call(
                 from . import CONDA_SOURCE_ROOT
 
                 fh.write(f"{silencer}SET CONDA_DEV=1\n")
-                # In dev mode, conda's entry point gets called as 
+                # In dev mode, conda's entry point gets called as
                 # 'python -m conda' instead of `python -I -m conda`
                 # so PYTHONPATH can be read.
                 fh.write(f"{silencer}SET PYTHONPATH={CONDA_SOURCE_ROOT}\n")

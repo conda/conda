@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections import OrderedDict
-
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
@@ -661,32 +659,32 @@ class Context(Configuration):
 
     @property
     def conda_exe_vars_dict(self):
-        '''
+        """
         A dict so the vars can refer to each other if necessary.
         None means unset it.
 
-        These are used by the initialization logic 
-        (conda.core.initialize) to fill in the templates. 
-        PR#11970 changed default use of CONDA_EXE (the entry point) to 
+        These are used by the initialization logic
+        (conda.core.initialize) to fill in the templates.
+        PR#11970 changed default use of CONDA_EXE (the entry point) to
         'CONDA_PYTHON_EXE -I -m conda $@' to avoid shebang issues.
 
         Note some Activator classes may extend this on their own
         with _CONDA_EXE and _CONDA_ROOT (legacy variables). Adding
         those here causes legacy test breakage because they inject
         their own _CONDA_ROOT variables.
-        '''
-        bin_dir = 'Scripts' if on_win else 'bin'
-        exe = 'conda.exe' if on_win else 'conda'
+        """
+        bin_dir = "Scripts" if on_win else "bin"
+        exe = "conda.exe" if on_win else "conda"
         env_vars = {
             "CONDA_EXE": os.path.join(sys.prefix, bin_dir, exe),
             # -I enables 'isolated' mode: no local or user paths are searched
             # for modules (only in $PREFIX/lib/pythonX.Y/*); it also ignores
-            # all PYTHON* env vars
+            # all PYTHON* env vars
             "_CE_I": "-I",
             "_CE_M": "-m",
             "_CE_CONDA": "conda",
             "CONDA_PYTHON_EXE": sys.executable,
-            }
+        }
         if context.dev:
             # [warning] Do not confuse with os.path.join, we are joining paths
             # with ; or : delimiters.

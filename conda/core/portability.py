@@ -208,7 +208,7 @@ def generate_shebang_for_entry_point(executable, ps1_workaround=False):
     # In principle, this shebang ^ will work as long as the path
     # to the python executable does not contain spaces AND it's not
     # longer than 127 characters. But if it does, we can fix it
-    # following a method inspired by `pypa/distlib` 
+    # following a method inspired by `pypa/distlib`
     # https://github.com/pypa/distlib/blob/91aa92e64/distlib/scripts.py#L129
     # Explanation: these lines are both valid Python and shell :)
     # 1. Python will read it as a triple-quoted string; end of story
