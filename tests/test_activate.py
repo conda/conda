@@ -1837,9 +1837,9 @@ class InteractiveShell:
                 ' && @CALL "{root}\\shell\\condabin\\conda_hook.bat" {args}'
                 ' && set "CONDA_EXE={conda_exe}"'
                 ' && set "CONDA_PYTHON_EXE={python_exe}"'
-                " && set _CE_I="
-                " && set _CE_M=-m"
-                " && set _CE_CONDA=conda".format(
+                ' && set "_CE_I="'
+                ' && set "_CE_M=-m"'
+                ' && set "_CE_CONDA=conda"'.format(
                     root=CONDA_PACKAGE_ROOT,
                     args=dev_arg,
                     conda_exe=join(sys.prefix, "Scripts", "conda.exe"),
