@@ -8,8 +8,8 @@
 
 if not set -q CONDA_SHLVL
     set -gx CONDA_SHLVL 0
-    set -g _CONDA_ROOT (dirname (dirname $CONDA_EXE))
-    set -gx PATH $_CONDA_ROOT/condabin $PATH
+    set -g _CONDA_ROOT (dirname (dirname "$CONDA_EXE"))
+    set -gx PATH "$_CONDA_ROOT/condabin" $PATH
 end
 
 if not set -q _CONDA_PS1_PASSTHROUGH
@@ -72,18 +72,18 @@ end
 
 function conda --inherit-variable CONDA_PYTHON_EXE --inherit-variable _CE_I --inherit-variable _CE_M --inherit-variable _CE_CONDA
     if [ (count $argv) -lt 1 ]
-        $CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA
+        "$CONDA_PYTHON_EXE" $_CE_I $_CE_M $_CE_CONDA
     else
         set -l cmd $argv[1]
         set -e argv[1]
         switch $cmd
             case activate deactivate
-                eval ($CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA shell.fish $cmd $argv)
+                eval ("$CONDA_PYTHON_EXE" $_CE_I $_CE_M $_CE_CONDA shell.fish $cmd $argv)
             case install update upgrade remove uninstall
-                $CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA $cmd $argv
-                and eval ($CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA shell.fish reactivate)
+                "$CONDA_PYTHON_EXE" $_CE_I $_CE_M $_CE_CONDA $cmd $argv
+                and eval ("$CONDA_PYTHON_EXE" $_CE_I $_CE_M $_CE_CONDA shell.fish reactivate)
             case '*'
-                $CONDA_PYTHON_EXE $_CE_I $_CE_M $_CE_CONDA $cmd $argv
+                "$CONDA_PYTHON_EXE" $_CE_I $_CE_M $_CE_CONDA $cmd $argv
         end
     end
 end
@@ -96,7 +96,7 @@ end
 
 # Faster but less tested (?)
 function __fish_conda_commands
-    string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
+    string replace -r '.*_([a-z]+)\.py$' '$1' "$_CONDA_ROOT"/lib/python*/site-packages/conda/cli/main_*.py
     for f in $_CONDA_ROOT/bin/conda-*
         if test -x "$f" -a ! -d "$f"
             string replace -r '^.*/conda-' '' "$f"
@@ -107,7 +107,7 @@ function __fish_conda_commands
 end
 
 function __fish_conda_env_commands
-    string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
+    string replace -r '.*_([a-z]+)\.py$' '$1' "$_CONDA_ROOT"/lib/python*/site-packages/conda_env/cli/main_*.py
 end
 
 function __fish_conda_envs

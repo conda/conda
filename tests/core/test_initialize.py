@@ -728,28 +728,28 @@ class InitializeTests(TestCase):
     def test_init_sh_user_unix(self):
         with tempdir() as conda_temp_prefix:
             target_path = join(conda_temp_prefix, '.bashrc')
+            prefix = win_path_backout(abspath(conda_temp_prefix))
+            initial_content = dals(
+                f"""
+                export PATH="/some/other/conda/bin:$PATH"
+                export PATH="{prefix}/bin:$PATH"
+                export PATH="{prefix}/bin:$PATH"
 
-            initial_content = dals("""
-            export PATH="/some/other/conda/bin:$PATH"
-            export PATH="%(prefix)s/bin:$PATH"
-              export PATH="%(prefix)s/bin:$PATH"
+                # >>> conda initialize >>>
+                __conda_setup="$('{prefix}/bin/python' -I -m conda 'shell.bash' hook 2> /dev/null)"
+                if [ $? -eq 0 ]; then
+                fi
+                unset __conda_setup
+                # <<< conda initialize <<<
 
-            # >>> conda initialize >>>
-            __conda_setup="$('%(prefix)s/bin/python' '-I' '-m' 'conda' 'shell.bash' 'hook' 2> /dev/null)"
-            if [ $? -eq 0 ]; then
-            fi
-            unset __conda_setup
-            # <<< conda initialize <<<
+                . etc/profile.d/conda.sh
+                . etc/profile.d/coda.sh
+                . /somewhere/etc/profile.d/conda.sh
+                source /etc/profile.d/conda.sh
 
-            . etc/profile.d/conda.sh
-            . etc/profile.d/coda.sh
-            . /somewhere/etc/profile.d/conda.sh
-            source /etc/profile.d/conda.sh
-
-            \t source %(prefix)s/etc/profile.d/conda.sh
-            """) % {
-                'prefix': win_path_backout(abspath(conda_temp_prefix)),
-            }
+                \t source {prefix}/etc/profile.d/conda.sh
+                """
+            )
 
             with open(target_path, 'w') as fh:
                 fh.write(initial_content)
