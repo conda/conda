@@ -107,7 +107,7 @@ class MultipleKeysError(ValidationError):
         self.source = source
         self.keys = keys
         msg = ("Multiple aliased keys in file %s:\n"
-               "%s"
+               "%s\n"
                "Must declare only one. Prefer '%s'" % (source, pretty_list(keys), preferred_key))
         super().__init__(preferred_key, None, source, msg=msg)
 

@@ -24,7 +24,7 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
-                              ExperimentalSolverChoice)
+                              SolverChoice)
 from ..base.context import context
 from ..common.compat import odict
 from ..common.constants import NULL
@@ -47,14 +47,14 @@ def _get_solver_class(key=None):
     """
     Temporary function to load the correct solver backend.
 
-    See ``context.experimental_solver`` and
-    ``base.constants.ExperimentalSolverChoice`` for more details.
+    See ``context.solver`` and
+    ``base.constants.SolverChoice`` for more details.
 
     TODO: This should be replaced by the plugin mechanism in the future.
     """
-    key = (key or context.experimental_solver.value).lower()
+    key = (key or context.solver.value).lower()
 
-    # These keys match conda.base.constants.ExperimentalSolverChoice
+    # These keys match conda.base.constants.SolverChoice
     if key == "classic":
         return Solver
 
@@ -74,7 +74,7 @@ def _get_solver_class(key=None):
     raise ValueError(
         f"You have chosen a non-default solver backend ({key}) "
         f"but it was not recognized. Choose one of "
-        f"{[v.value for v in ExperimentalSolverChoice]}"
+        f"{[v.value for v in SolverChoice]}"
     )
 
 
