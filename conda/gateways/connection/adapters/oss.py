@@ -38,11 +38,13 @@ class OSSAdapter(BaseAdapter):
         self._endpoint = endpoint
         http_proxy = os.environ.get("all_proxy") or os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
         https_proxy = os.environ.get("ALL_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
-        self._proxies = {}
+        self._proxies, self._common_proxies = {}, {}
         if http_proxy and len(http_proxy) > 0:
             self._proxies["http"] = http_proxy.split("://")[1]
+            self._common_proxies["http_proxy"] = http_proxy.split("://")[1]
         if https_proxy and len(https_proxy) > 0:
             self._proxies["https"] = https_proxy.split("://")[1]
+            self._common_proxies["https_proxy"] = https_proxy.split("://")[1]
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
         resp = Response()
@@ -73,7 +75,7 @@ class OSSAdapter(BaseAdapter):
                         ram_role = p["ram_role_name"]
             credentials = requests.get(
                 url=f"http://100.100.100.200/latest/meta-data/ram/security-credentials/{ram_role}",
-                proxies=self._proxies).json()
+                proxies=self._common_proxies).json()
             if credentials["Code"] != "Success":
                 raise ValueError("\nCan not get STS token.")
             auth = oss2.StsAuth(
@@ -81,7 +83,9 @@ class OSSAdapter(BaseAdapter):
                 credentials["AccessKeySecret"],
                 credentials["SecurityToken"]
             )
-            bucket = oss2.Bucket(auth, self._endpoint, bucket_name, proxies=self._proxies)
+            bucket = oss2.Bucket(auth, self._endpoint, bucket_name)
+            if len(self._common_proxies) > 0:
+                bucket = oss2.Bucket(auth, self._endpoint, bucket_name, proxies=self._common_proxies)
             headers = bucket.head_object(key_string[1:])
             fh = SpooledTemporaryFile()
             resp = bucket.get_object(key_string[1:])
@@ -153,7 +157,6 @@ class OSSAdapter(BaseAdapter):
             "Content-Length": key_headers['content-length'],
             "Last-Modified": key_headers['last-modified'],
         })
-        print(resp.headers)
 
         resp.raw = self._write_tempfile(key.download_fileobj)
         resp.close = resp.raw.close
