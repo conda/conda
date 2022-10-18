@@ -13,8 +13,7 @@ from conda.plugins import hooks
 def plugin_manager(mocker):
     pm = pluggy.PluginManager('conda')
     pm.add_hookspecs(hooks)
-    mocker.patch("conda.base.context.get_plugin_manager", return_value=pm)
-    # mocker.patch("conda.base.context.Context.plugin_manager", new=pm)
+    mocker.patch("conda.core.index.context.plugin_manager", new=pm)
     return pm
 
 
