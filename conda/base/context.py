@@ -692,6 +692,10 @@ class Context(Configuration):
             env_vars["PYTHONPATH"] = pythonpath
             # In dev mode, disable -I to allow PYTHONPATH to be read
             env_vars["_CE_I"] = ""
+        elif os.environ.get('CONDA_BUILD'):
+            # Workaround needed when packaging a newer conda (after PR#11995) with
+            # older one (<=22.9) installed next to conda-build
+            env_vars["_CE_I"] = ""
         return env_vars
 
     @memoizedproperty

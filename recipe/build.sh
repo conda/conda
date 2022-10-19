@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euxo pipefail
+
 echo $PKG_VERSION > conda/.version
 $PYTHON setup.py install --single-version-externally-managed --record record.txt
 if [[ ! $(uname) =~ MINGW* ]]; then
