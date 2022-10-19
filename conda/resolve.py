@@ -6,10 +6,12 @@ import copy
 from functools import lru_cache
 from logging import DEBUG, getLogger
 
+from conda.common.iterators import groupby_to_dict as groupby
+
 try:
-    from tlz.itertoolz import concat, groupby
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby
+    from conda._vendor.toolz.itertoolz import concat
 
 from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
@@ -100,7 +102,7 @@ class Resolve:
         self._channel_priority = context.channel_priority
         self._solver_ignore_timestamps = context.solver_ignore_timestamps
 
-        groups = groupby("name", index.values())
+        groups = groupby(lambda x: x.name, index.values())
         trackers = defaultdict(list)
 
         for name in groups:

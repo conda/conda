@@ -1,16 +1,15 @@
-name: Libmamba Solver Feedback (Experimental Feature)
-description: Create a report for the experimental solver
+name: Libmamba Solver Feedback
+description: Create a report for the solver
 labels:
   - solver::libmamba
-  - tag::experimental
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for helping conda! 🐍
 
-        You are trying out an experimental feature. If you are encountering blocking issues we
-        first suggest removing the experimental solver by typing the following code into your
+        You are trying out a new feature. If you are encountering blocking issues we
+        first suggest removing the new solver by typing the following code into your
         terminal:
 
         ```bash
@@ -92,14 +91,3 @@ body:
         conda list --show-channel-urls
         ```
       render: Shell
-
-  - type: textarea
-    attributes:
-      label: Log file & additional context
-      description: |
-        Please attach the associated log file (drag and drop the file into the textbox
-        below). The logfile path is printed to the command line when running commands with
-        the experimental solver enabled.
-
-        Please also include any additional context information or screenshots you think are
-        useful here.

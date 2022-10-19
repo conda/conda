@@ -12,15 +12,15 @@ from unittest import TestCase
 from uuid import uuid4
 
 import pytest
-from tlz.itertoolz import groupby
 
+from conda.common.iterators import groupby_to_dict as groupby
 from conda.auxlib.ish import dals
 from conda.auxlib.collection import AttrDict
 from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.path import get_bin_directory_short_path, get_python_noarch_target_path, \
     get_python_short_path, get_python_site_packages_short_path, parse_entry_point_def, pyc_path, \
-    win_path_ok
+    win_path_ok, explode_directories
 from conda.core.path_actions import CompileMultiPycAction, CreatePythonEntryPointAction, LinkPathAction
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -543,3 +543,29 @@ class PathActionsTests(TestCase):
     #                     axn.execute()
     #             axn.reverse()
     #             assert not lexists(axn.target_full_path)
+
+
+def test_explode_directories():
+    try:
+        import tlz as toolz
+    except:
+        import conda._vendor.toolz as toolz
+
+    def old_explode_directories(child_directories, already_split=False):
+        # get all directories including parents
+        # use already_split=True for the result of get_all_directories()
+        maybe_split = lambda x: x if already_split else x.split("/")
+        return set(
+            toolz.concat(
+                toolz.accumulate(join, maybe_split(directory))
+                for directory in child_directories
+                if directory
+            )
+        )
+
+    old_version = old_explode_directories(
+        (os.path.split(path) for path in sys.path), already_split=True
+    )
+    new_version = explode_directories(os.path.split(path) for path in sys.path)
+
+    assert new_version == old_version
