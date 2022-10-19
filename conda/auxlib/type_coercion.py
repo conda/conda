@@ -5,7 +5,7 @@ from re import IGNORECASE, compile
 
 from enum import Enum
 
-from .compat import NoneType, integer_types, isiterable
+from .compat import NoneType, isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
@@ -14,8 +14,8 @@ __all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
 BOOLISH_TRUE = ("true", "yes", "on", "y")
 BOOLISH_FALSE = ("false", "off", "n", "no", "non", "none", "")
 NULL_STRINGS = ("none", "~", "null", "\0")
-BOOL_COERCEABLE_TYPES = (*integer_types, bool, float, complex, list, set, dict, tuple)
-NUMBER_TYPES = (*integer_types, float, complex)
+BOOL_COERCEABLE_TYPES = (int, bool, float, complex, list, set, dict, tuple)
+NUMBER_TYPES = (int, float, complex)
 NUMBER_TYPES_SET = {*NUMBER_TYPES}
 STRING_TYPES_SET = {str}
 

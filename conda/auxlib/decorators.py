@@ -2,7 +2,8 @@ from collections.abc import Hashable
 from types import GeneratorType
 import warnings
 
-from .._vendor.six import wraps
+from functools import wraps
+
 
 # TODO: spend time filling out functionality and make these more robust
 

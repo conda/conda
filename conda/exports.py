@@ -10,7 +10,6 @@ import threading
 import warnings
 
 # necessary for conda-build
-from ._vendor.six import PY3, iteritems, string_types, text_type  # noqa: F401
 from io import StringIO  # noqa: F401
 from builtins import input  # noqa: F401
 
@@ -110,6 +109,15 @@ from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F
 from .core.subdir_data import cache_fn_url  # noqa: F401
 from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
 from .exceptions import CondaHTTPError, LockError, UnsatisfiableError  # noqa: F401
+
+# Replacements for six exports for compatibility
+PY3 = True  # noqa: F401
+string_types = str  # noqa: F401
+text_type = str  # noqa: F401
+
+
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
 
 
 class Completer:  # pragma: no cover
