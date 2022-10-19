@@ -223,7 +223,7 @@ def generate_shebang_for_entry_point(executable, ps1_workaround=False):
         # do nothing for now.
         return shebang
     if len(shebang) > MAX_SHEBANG_LENGTH or " " in shebang:
-        ps1 = ' /usr/bin/env PS1="${PS1:-$_CONDA_PS1_PASSTHROUGH}"' if ps1_workaround else ""
+        ps1 = ' /usr/bin/env PS1="${PS1:-${_CONDA_PS1_PASSTHROUGH:-}}"' if ps1_workaround else ""
         shebang = dals(
             f"""
             #!/bin/sh
