@@ -163,10 +163,12 @@ def test_rename_with_force(env_one, env_two):
     # Do a force rename
     run(f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_2} --force", disallow_stderr=False)
 
+    (_, _, exit_code), _ = list_envs()
 
     assert locate_prefix_by_name(TEST_ENV_NAME_2)
     with pytest.raises(EnvironmentNameNotFound):
         locate_prefix_by_name(TEST_ENV_NAME_1)
+    assert exit_code is None
 
     # Clean up
     run(f"conda rename -n {TEST_ENV_NAME_2} {TEST_ENV_NAME_1}", disallow_stderr=False)
@@ -191,7 +193,8 @@ def test_rename_with_force_with_errors(env_one, env_two):
     # Make sure both environments still exist
     assert locate_prefix_by_name(TEST_ENV_NAME_2)
     assert locate_prefix_by_name(TEST_ENV_NAME_1)
-
+    (_, _, exit_code), _ = list_envs()
+    assert exit_code is None
 
 def test_rename_with_force_with_errors_prefix(env_prefix_one):
     """
