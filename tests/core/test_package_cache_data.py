@@ -14,16 +14,15 @@ from conda.common.compat import on_win
 from conda.common.io import env_vars
 from conda.core import package_cache_data
 from conda.core.index import get_index
-from conda.core import package_cache_data
 from conda.core.package_cache_data import (
     PackageCacheData,
-    ProgressiveFetchExtract,
-    PackageRecord,
     PackageCacheRecord,
+    PackageRecord,
+    ProgressiveFetchExtract,
 )
 from conda.core.path_actions import CacheUrlAction
-from conda.exceptions import CondaHTTPError
-from conda.exports import url_path, MatchSpec
+from conda.exports import MatchSpec, url_path
+
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines

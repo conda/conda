@@ -40,7 +40,7 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -61,7 +61,7 @@ jobs:
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
 
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
@@ -92,7 +92,7 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -105,7 +105,7 @@ jobs:
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
           /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
@@ -138,7 +138,7 @@ jobs:
       OS: linux-${{ matrix.platform }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -184,19 +184,9 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      # - name: Cache conda
-      #   uses: actions/cache@v2
-      #   env:
-      #     # Increase this value to reset cache if tests/requirements.txt has not changed
-      #     CACHE_NUMBER: 0
-      #   with:
-      #     path: ~/conda_pkgs_dir
-      #     key:
-      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('tests/requirements.txt') }}
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
@@ -215,7 +205,7 @@ jobs:
         run: |
           ./dev/macos/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
