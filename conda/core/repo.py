@@ -45,43 +45,6 @@ class RepodataIsNone(Exception):
     pass
 
 
-try:
-    from typing import TypedDict  # since Python 3.8
-
-    Repodata = TypedDict(
-        "Repodata",
-        {  # TODO: Use more specific types
-            "info": TypedDict(
-                "RepodataInfo",
-                {
-                    "subdir": str,
-                },
-            ),
-            "packages": Dict[
-                str,  # filename
-                TypedDict(
-                    "RepodataPackage",
-                    {
-                        "build": str,
-                        "build_number": int,
-                        "depends": List[str],
-                        "license": str,
-                        "md5": str,
-                        "name": str,
-                        "sha256": str,
-                        "size": int,
-                        "subdir": str,
-                        "timestamp": int,
-                        "version": str,
-                    },
-                ),
-            ],
-        },
-    )
-except ImportError:
-    pass
-
-
 class RepoInterface(abc.ABC):
     # TODO: Support async operations
     # TODO: Support progress bars
