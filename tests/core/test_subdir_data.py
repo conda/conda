@@ -95,11 +95,11 @@ class GetRepodataIntegrationTests(TestCase):
         # (test will not pass on newer platforms with default CONDA_PLATFORM =
         # 'osx-arm64' etc.)
         with env_vars(
-            {"CONDA_OFFLINE": "yes", "CONDA_PLATFORM": "linux-64"},
+            {"CONDA_OFFLINE": "yes", "CONDA_PLATFORM": platform},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             local_channel = Channel(
-                join(dirname(__file__), "..", "data", "conda_format_repo", context.subdir)
+                join(dirname(__file__), "..", "data", "conda_format_repo", platform)
             )
             sd = SubdirData(channel=local_channel)
             assert len(sd.query_all("zlib", channels=[local_channel])) > 0
