@@ -21,9 +21,9 @@ from time import time
 from genericpath import getmtime, isfile
 
 from conda.common.iterators import groupby_to_dict as groupby
-from conda.core.repo import RepoInterface, Response304ContentUnchanged
+from conda.gateways.repodata import RepoInterface, Response304ContentUnchanged
 
-from conda.core.repo import CondaRepoInterface
+from conda.gateways.repodata import CondaRepoInterface
 
 import pickle
 
