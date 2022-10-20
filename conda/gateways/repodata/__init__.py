@@ -7,7 +7,6 @@ import bz2
 import logging
 import warnings
 from contextlib import contextmanager
-from typing import Dict, List, Optional
 from os.path import dirname
 
 from conda.auxlib.logz import stringify
@@ -57,7 +56,7 @@ class Response304ContentUnchanged(Exception):
 
 
 class CondaRepoInterface(RepoInterface):
-    def __init__(self, url: str, repodata_fn: Optional[str], **kwargs) -> None:
+    def __init__(self, url: str, repodata_fn: str | None, **kwargs) -> None:
         self._url = url
         self._repodata_fn = repodata_fn
 
@@ -190,7 +189,7 @@ Exception: {e}
             channel = Channel(url)
             if channel.token:
                 help_message = """\
-The token '%s' given for the URL is invalid.
+The token '{}' given for the URL is invalid.
 
 If this token was pulled from anaconda-client, you will need to use
 anaconda-client to reauthenticate.
@@ -199,8 +198,8 @@ If you supplied this token to conda directly, you will need to adjust your
 conda configuration to proceed.
 
 Use `conda config --show` to view your configuration's current state.
-Further configuration help can be found at <%s>.
-""" % (
+Further configuration help can be found at <{}>.
+""".format(
                     channel.token,
                     join_url(CONDA_HOMEPAGE_URL, "docs/config.html"),
                 )
