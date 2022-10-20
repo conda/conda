@@ -388,6 +388,8 @@ def make_temp_channel(packages):
             f.write(json.dumps(repodata, cls=EntityEncoder))
         with open(join(noarch_dir, "repodata.json"), "w") as f:
             f.write(json.dumps({}, cls=EntityEncoder))
+        with open(join(noarch_dir, "repodata.json.bz2"), "w") as f:
+            f.write("required")
 
         yield channel
 
