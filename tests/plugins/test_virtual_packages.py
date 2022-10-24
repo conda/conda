@@ -75,7 +75,7 @@ def test_cuda_detection(request):
 
 def test_cuda_override():
     with env_var('CONDA_OVERRIDE_CUDA', '4.5'):
-        version = cuda.cuda_version()
+        version = cuda.cached_cuda_version()
         assert version == '4.5'
 
 
