@@ -181,8 +181,11 @@ def _supplement_index_with_system(index):
                 "you don't have any incompatible plugins installed."
             )
         registered_names.append(package.name)
+
         rec = _make_virtual_package(f"__{package.name}", package.version)
-        index[rec] = rec
+
+        if package.version is not None:
+            index[rec] = rec
 
 
 def get_archspec_name():

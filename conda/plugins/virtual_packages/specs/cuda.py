@@ -10,7 +10,6 @@ from conda.plugins import hooks
 from conda.common.decorators import env_override
 
 
-@env_override("CONDA_OVERRIDE_CUDA", convert_empty_to_none=True)
 def cuda_version():
     """
     Attempt to detect the version of CUDA present in the operating system.
@@ -75,9 +74,10 @@ def cuda_version():
         return None
 
 
+@env_override("CONDA_OVERRIDE_CUDA", convert_empty_to_none=True)
 @functools.lru_cache(maxsize=None)
 def cached_cuda_version():
-    """ "
+    """
     A cached version of the cuda detection system.
     """
     return cuda_version()

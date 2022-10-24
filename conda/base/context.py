@@ -62,8 +62,7 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
 from .. import CONDA_SOURCE_ROOT
 
-from ..plugins import hooks
-from ..plugins.virtual_packages.main import register
+from ..plugins import hooks, virtual_packages
 
 try:
     os.getcwd()
@@ -157,8 +156,8 @@ def ssl_verify_validation(value):
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager():
     pm = pluggy.PluginManager("conda")
-    register(pm)
     pm.add_hookspecs(hooks)
+    virtual_packages.register(pm)
     pm.load_setuptools_entrypoints("conda")
     return pm
 
@@ -962,6 +961,16 @@ class Context(Configuration):
         # DANGER: This is rather slow
         info = _get_cpu_info()
         return info['flags']
+
+    @memoizedproperty
+    def cuda_version(self) -> Optional[str]:
+        """
+        Retrieves the current cuda version.
+        """
+        conda_virtual_package = virtual_packages.find_virtual_package(self.plugin_manager, "cuda")
+
+        if conda_virtual_package is not None:
+            return conda_virtual_package.version
 
     @property
     def category_map(self):
