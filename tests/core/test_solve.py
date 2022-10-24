@@ -189,7 +189,7 @@ def test_cuda_fail_1(tmpdir):
     if sys.platform == "darwin":
         plat = "osx-64"
     elif sys.platform == "linux":
-        plat = f"linux-{platform.machine()}"
+        plat = "linux-64"
     elif sys.platform == "win32":
         if platform.architecture()[0] == "32bit":
             plat = "win-32"
