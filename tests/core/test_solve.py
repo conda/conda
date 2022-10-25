@@ -22,6 +22,7 @@ from conda.resolve import MatchSpec
 from conda.testing.helpers import add_subdir_to_iter, get_solver, get_solver_2, get_solver_4, \
     get_solver_aggregate_1, get_solver_aggregate_2, get_solver_cuda, get_solver_must_unfreeze, \
     convert_to_dist_str, CHANNEL_DIR
+from conda.plugins.virtual_packages import cuda
 
 try:
     from unittest.mock import Mock, patch
@@ -138,6 +139,8 @@ def test_virtual_package_solver(tmpdir):
                     assert '__cuda' in pkgs.depends[0]
             assert ssc.r.bad_installed(ssc.solution_precs, ())[1] is None
 
+            cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
+
 
 def test_solve_msgs_exclude_vp(tmpdir):
     # Sovler hints should exclude virtual packages that are not dependencies
@@ -147,6 +150,8 @@ def test_solve_msgs_exclude_vp(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
+
+                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     assert "__cuda==10.0" not in str(exc.value).strip()
 
@@ -163,6 +168,8 @@ def test_cuda_1(tmpdir):
             ))
             assert convert_to_dist_str(final_state) == order
 
+            cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
+
 
 def test_cuda_2(tmpdir):
     specs = MatchSpec("cudatoolkit"),
@@ -176,6 +183,8 @@ def test_cuda_2(tmpdir):
             ))
             assert convert_to_dist_str(final_state) == order
 
+            cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
+
 
 def test_cuda_fail_1(tmpdir):
     specs = MatchSpec("cudatoolkit"),
@@ -185,6 +194,7 @@ def test_cuda_fail_1(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
+                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     if sys.platform == "darwin":
         plat = "osx-64"
@@ -214,6 +224,8 @@ def test_cuda_fail_2(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
+                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
+
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
@@ -234,6 +246,8 @@ def test_cuda_constrain_absent(tmpdir):
             ))
             assert convert_to_dist_str(final_state) == order
 
+            cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
+
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 def test_cuda_constrain_sat(tmpdir):
@@ -248,6 +262,8 @@ def test_cuda_constrain_sat(tmpdir):
             ))
             assert convert_to_dist_str(final_state) == order
 
+            cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
+
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 def test_cuda_constrain_unsat(tmpdir):
@@ -258,6 +274,7 @@ def test_cuda_constrain_unsat(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
+                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
@@ -280,6 +297,8 @@ def test_cuda_glibc_sat(tmpdir):
             ))
             assert convert_to_dist_str(final_state) == order
 
+            cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
+
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
@@ -290,6 +309,8 @@ def test_cuda_glibc_unsat_depend(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
+
+                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
@@ -308,6 +329,7 @@ def test_cuda_glibc_unsat_constrain(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
+                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
 
 def test_prune_1(tmpdir):

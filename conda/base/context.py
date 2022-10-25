@@ -966,11 +966,12 @@ class Context(Configuration):
     def cuda_version(self) -> Optional[str]:
         """
         Retrieves the current cuda version.
-        """
-        conda_virtual_package = virtual_packages.find_virtual_package(self.plugin_manager, "cuda")
 
-        if conda_virtual_package is not None:
-            return conda_virtual_package.version
+        TODO: mark this for deprecation
+        """
+        from conda.plugins.virtual_packages import cuda
+
+        return cuda.cuda_version()
 
     @property
     def category_map(self):
