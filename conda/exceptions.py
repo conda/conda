@@ -468,9 +468,7 @@ class UnavailableInvalidChannel(ChannelError):
             reason = reason.upper()
 
         super().__init__(
-            f"""HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>\n\n"""
-            # message may include newlines
-            + message,
+            f"HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>\n\n{message}",
             channel_name=channel_name,
             channel_url=channel_url,
             status_code=status_code,
