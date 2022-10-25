@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Several user facing crashes were identified by fuzzing efforts (#11999).
+Apply minimal fixes to deal with these (and similar) crashes.
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

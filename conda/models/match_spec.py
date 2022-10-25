@@ -821,11 +821,16 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
         super().__init__(value)
         self._re_match = None
 
-        if value.startswith('^') and value.endswith('$'):
-            self._re_match = re.compile(value).match
-        elif '*' in value:
-            value = re.escape(value).replace('\\*', r'.*')
-            self._re_match = re.compile(r'^(?:%s)$' % value).match
+        try:
+            if value.startswith('^') and value.endswith('$'):
+                self._re_match = re.compile(value).match
+            elif '*' in value:
+                value = re.escape(value).replace('\\*', r'.*')
+                self._re_match = re.compile(r'^(?:%s)$' % value).match
+        except re.error as e:
+            raise InvalidMatchSpec(value,
+                                   'Contains an invalid regular expression. "%s"' % e)
+            pass
 
     def match(self, other):
         try:
@@ -936,13 +941,17 @@ class ChannelMatch(GlobStrMatch):
     def __init__(self, value):
         self._re_match = None
 
-        if isinstance(value, str):
-            if value.startswith('^') and value.endswith('$'):
-                self._re_match = re.compile(value).match
-            elif '*' in value:
-                self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
-            else:
-                value = Channel(value)
+        try:
+            if isinstance(value, str):
+                if value.startswith('^') and value.endswith('$'):
+                    self._re_match = re.compile(value).match
+                elif '*' in value:
+                    self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
+                else:
+                    value = Channel(value)
+        except re.error as e:
+            raise InvalidMatchSpec(value,
+                                   'Contains an invalid regular expression. "%s"' % e)
 
         super(GlobStrMatch, self).__init__(value)
 
