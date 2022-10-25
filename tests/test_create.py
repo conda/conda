@@ -92,18 +92,21 @@ class IntegrationTests(BaseTestCase):
     def setUp(self):
         PackageCacheData.clear()
 
-    def test_install_python3_and_search(self):
+    @pytest.mark.skipif(
+        context.subdir not in ["linux-64", "osx-64", "win-32", "win-64", "linux-32"],
+        reason="Skip unsupported platforms",
+    )
+    def test_install_python2_and_search(self):
         with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
             log.warning(f"Creating empty temporary environment txt file {env_txt}")
             environment_txt = env_txt.name
 
         with patch('conda.core.envs_manager.get_user_environments_txt_file',
                    return_value=environment_txt) as _:
-            with make_temp_env("python=3", use_restricted_unicode=on_win) as prefix:
+            with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
                 with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     assert exists(join(prefix, PYTHON_BINARY))
-                    assert package_is_installed(prefix, "python=3")
-
+                    assert package_is_installed(prefix, "python=2")
                     run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.continuum.io/pkgs/not-a-channel")
 
                     # regression test for #4513
