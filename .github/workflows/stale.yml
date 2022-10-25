@@ -27,7 +27,7 @@ jobs:
         uses: conda/actions/read-yaml@v22.10.0
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
-      - uses: actions/stale@v4
+      - uses: actions/stale@v6
         id: stale
         with:
           # Idle number of days before marking issues stale (default: 60)
