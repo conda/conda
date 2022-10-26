@@ -22,7 +22,6 @@ from conda.core.package_cache_data import (
 )
 from conda.core.path_actions import CacheUrlAction
 from conda.exports import MatchSpec, url_path
-
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Improve CLI warning about updating conda
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add `--mach` and `--arch` options to `dev/start`. (#11851)
+* <news item>

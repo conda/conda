@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Add LD_PRELOAD to env variable list
+* Remove vendored six.py.
 
 ### Bug fixes
 
-* <news item>
+* Fix importlib warnings when importing conda.cli.python_api on python=3.10. (#11975)
 
 ### Deprecations
 

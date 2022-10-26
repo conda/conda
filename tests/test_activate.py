@@ -1680,7 +1680,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({prompt: prompt_value}):
             # use a file as output stream to simulate PY2 default stdout
             with tempdir() as td:
-                with open(join(td, "stdout"), "wt") as stdout:
+                with open(join(td, "stdout"), "w") as stdout:
                     with captured(stdout=stdout) as c:
                         rc = main_sourced(shell, *activate_args, self.prefix)
 

@@ -447,6 +447,22 @@ def make_install_plan(conda_prefix):
 
 def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt,
                          reverse=False):
+    """
+    Creates a plan for initializing conda in shells.
+
+    Bash:
+    On Linux, when opening the terminal, .bashrc is sourced (because it is an interactive shell).
+    On macOS on the other hand, the .bash_profile gets sourced by default when executing it in
+    Terminal.app. Some other programs do the same on macOS so that's why we're initializing conda
+    in .bash_profile.
+    On Windows, there are multiple ways to open bash depending on how it was installed. Git Bash,
+    Cygwin, and MSYS2 all use .bash_profile by default.
+
+    PowerShell:
+    There's several places PowerShell can store its path, depending on if it's Windows PowerShell,
+    PowerShell Core on Windows, or PowerShell Core on macOS/Linux. The easiest way to resolve it
+    is to just ask different possible installations of PowerShell where their profiles are.
+    """
     plan = make_install_plan(conda_prefix)
     shells = set(shells)
     if shells & {'bash', 'zsh'}:
@@ -555,11 +571,6 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
         if for_system:
             profile = '$PROFILE.AllUsersAllHosts'
 
-        # There's several places PowerShell can store its path, depending
-        # on if it's Windows PowerShell, PowerShell Core on Windows, or
-        # PowerShell Core on macOS/Linux. The easiest way to resolve it is to
-        # just ask different possible installations of PowerShell where their
-        # profiles are.
         def find_powershell_paths(*exe_names):
             for exe_name in exe_names:
                 try:
