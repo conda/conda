@@ -1031,17 +1031,21 @@ class Solver:
                 latest_version = conda_newer_precs[-1].version
                 # If conda comes from defaults, ensure we're giving instructions to users
                 # that should resolve release timing issues between defaults and conda-forge.
-                print(dedent("""
+                print(dedent(f"""
 
                 ==> WARNING: A newer version of conda exists. <==
-                  current version: %s
-                  latest version: %s
+                  current version: {CONDA_VERSION}
+                  latest version: {latest_version}
 
                 Please update conda by running
 
-                    $ conda update -n base -c %s conda
+                    $ conda update -n base -c {channel_name} conda
 
-                """) % (CONDA_VERSION, latest_version, channel_name), file=sys.stderr)
+                Or to minimize the number of packages updated during conda update use
+
+                     conda install conda={latest_version}
+
+                """), file=sys.stderr)
 
     def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further
