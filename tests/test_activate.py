@@ -1912,7 +1912,7 @@ class InteractiveShell:
             timeout=12,
             maxread=10000,
             searchwindowsize=None,
-            logfile=sys.stdout,
+            logfile=sys.stderr,
             cwd=os.getcwd(),
             env=env,
             encoding="utf-8",
