@@ -965,12 +965,16 @@ class Context(Configuration):
     @memoizedproperty
     def cuda_version(self) -> Optional[str]:
         """
-        Retrieves the current cuda version.
-
-        TODO: mark this for deprecation
+        Retrieves the current cuda version. Pending deprecation.
         """
         from conda.plugins.virtual_packages import cuda
 
+        warnings.warn(
+            "`conda.base.context.cuda_version` is pending deprecation and "
+            "will be removed in a future release. Please use "
+            "`conda.plugins.virtual_packages.cuda.cuda_version` instead.",
+            PendingDeprecationWarning,
+        )
         return cuda.cuda_version()
 
     @property
