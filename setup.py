@@ -33,6 +33,7 @@ source.
 
 """
 install_requires = [
+    "pluggy >=1.0.0",
     "pycosat >=0.6.3",
     "requests >=2.20.1",
     "ruamel.yaml >=0.11.14",
