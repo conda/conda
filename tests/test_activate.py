@@ -1986,8 +1986,9 @@ class InteractiveShell:
             self.sendline('echo get_var_start')
             self.sendline(self.print_env_var % env_var)
             self.sendline('echo get_var_end')
-            self.expect('get_var_start(.*)get_var_end')
-            value = self.p.match.groups()[0]
+            self.expect('get_var_start\n')
+            value = self.p.readline()
+            self.expect('get_var_end')
         if value is None:
             return default
         return ensure_text_type(value).strip()
