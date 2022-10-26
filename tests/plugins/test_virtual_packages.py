@@ -76,10 +76,12 @@ def test_cuda_detection(request):
 def test_cuda_override():
     with env_var('CONDA_OVERRIDE_CUDA', '4.5'):
         version = cuda.cached_cuda_version()
-        assert version == '4.5'
+        assert version == "4.5"
+        cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
 
 def test_cuda_override_none():
     with env_var('CONDA_OVERRIDE_CUDA', ''):
         version = cuda.cuda_version()
         assert version is None
+        cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
