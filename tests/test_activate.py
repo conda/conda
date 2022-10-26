@@ -1910,7 +1910,7 @@ class InteractiveShell:
         p = PopenSpawn(
             quote_for_shell(shell_found, *args),
             timeout=12,
-            maxread=10000,
+            # maxread=10000,
             searchwindowsize=None,
             logfile=sys.stderr,
             cwd=os.getcwd(),
