@@ -9,9 +9,9 @@ import sys
 from textwrap import dedent
 
 try:
-    from tlz.itertoolz import concat, concatv
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv
+    from conda._vendor.toolz.itertoolz import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -462,11 +462,11 @@ class Solver:
                     or prec.subdir == 'pypi'):
                 ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
 
-        prepared_specs = set(concatv(
-            self.specs_to_remove,
-            self.specs_to_add,
-            ssc.specs_from_history_map.values(),
-        ))
+        prepared_specs = {
+            *self.specs_to_remove,
+            *self.specs_to_add,
+            *ssc.specs_from_history_map.values(),
+        }
 
         index, r = self._prepare(prepared_specs)
         ssc.set_repository_metadata(index, r)
@@ -612,7 +612,7 @@ class Solver:
 
         conflict_specs = (
             ssc.r.get_conflicting_specs(
-                tuple(concatv(_.to_match_spec() for _ in ssc.prefix_data.iter_records())),
+                tuple(record.to_match_spec() for record in ssc.prefix_data.iter_records()),
                 self.specs_to_add,
             )
             or tuple()
@@ -786,11 +786,13 @@ class Solver:
 
     @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
-        final_environment_specs = IndexedSet(concatv(
-            ssc.specs_map.values(),
-            ssc.track_features_specs,
-            # pinned specs removed here - added to specs_map in _add_specs instead
-        ))
+        final_environment_specs = IndexedSet(
+            (
+                *ssc.specs_map.values(),
+                *ssc.track_features_specs,
+                # pinned specs removed here - added to specs_map in _add_specs instead
+            )
+        )
 
         absent_specs = [s for s in ssc.specs_map.values() if not ssc.r.find_matches(s)]
         if absent_specs:
@@ -950,11 +952,12 @@ class Solver:
 
             # Add back packages that are already in the prefix.
             specs_to_remove_names = {spec.name for spec in self.specs_to_remove}
-            add_back = tuple(ssc.prefix_data.get(node.name, None) for node in removed_nodes
-                             if node.name not in specs_to_remove_names)
-            ssc.solution_precs = tuple(
-                PrefixGraph(concatv(graph.graph, filter(None, add_back))).graph
+            add_back = tuple(
+                ssc.prefix_data.get(node.name, None)
+                for node in removed_nodes
+                if node.name not in specs_to_remove_names
             )
+            ssc.solution_precs = tuple(PrefixGraph((*graph.graph, *filter(None, add_back))).graph)
 
             # TODO: check if solution is satisfiable, and emit warning if it's not
 
@@ -1160,8 +1163,7 @@ def get_pinned_specs(prefix):
     else:
         from_file = ()
 
-    return tuple(MatchSpec(s, optional=True) for s in
-                 concatv(context.pinned_packages, from_file))
+    return tuple(MatchSpec(spec, optional=True) for spec in (*context.pinned_packages, *from_file))
 
 
 def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reinstall=NULL):
@@ -1222,7 +1224,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #                                        solved_linked_dists)
 #
 #     specs_from_history = _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add)
-#     augmented_specs_to_add = augment_specs(prefix, concatv(specs_from_history, specs_to_add))
+#     augmented_specs_to_add = augment_specs(prefix, (*specs_from_history, *specs_to_add))
 #
 #     log.debug("final specs to add:\n    %s\n",
 #               "\n    ".join(str(s) for s in augmented_specs_to_add))
@@ -1398,7 +1400,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #         unlink_link_map = odict()
 #
 #         # solve all needed preferred_env prefixes
-#         for env_name in set(concatv(env_add_map, env_remove_map)):
+#         for env_name in {*env_add_map, *env_remove_map}:
 #             specs_to_add = env_add_map[env_name]
 #             spec_to_remove = env_remove_map[env_name]
 #             pfx = ed.preferred_env_to_prefix(env_name)
@@ -1410,7 +1412,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #
 #         # now solve root prefix
 #         # we have to solve root a second time in all cases, because this time we don't prune
-#         root_specs_to_add = set(concatv(requested_root_specs_to_add, forced_root_specs_to_add))
+#         root_specs_to_add = {*requested_root_specs_to_add, *forced_root_specs_to_add}
 #         root_unlink, root_link = solve_for_actions(context.root_prefix, root_r,
 #                                                    specs_to_remove=root_specs_to_remove,
 #                                                    specs_to_add=root_specs_to_add)
