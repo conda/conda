@@ -28,11 +28,9 @@ import sys
 try:
     from tlz.itertoolz import concat, concatv, unique
     from tlz.dicttoolz import merge, merge_with
-    from tlz.functoolz import excepts
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, concatv, unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
-    from conda._vendor.toolz import excepts
 
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL
@@ -341,16 +339,18 @@ class YamlRawParameter(RawParameter):
         except (AttributeError, KeyError):
             return None
 
-    @staticmethod
-    def _get_yaml_list_comments(value):
-        items = value.ca.items
-        raw_comment_lines = tuple(excepts((AttributeError, IndexError, KeyError, TypeError),
-                                          lambda q: YamlRawParameter._get_yaml_list_comment_item(
-                                              items[q]),
-                                          lambda _: None  # default value on exception
-                                          )(q)
-                                  for q in range(len(value)))
-        return raw_comment_lines
+    @classmethod
+    def _get_yaml_list_comments(cls, value):
+        # value is a ruamel.yaml CommentedSeq, len(value) is the number of lines in the sequence,
+        # value.ca is the comment object for the sequence and the comments themselves are stored as
+        # a sparse dict
+        list_comments = []
+        for i in range(len(value)):
+            try:
+                list_comments.append(cls._get_yaml_list_comment_item(value.ca.items[i]))
+            except (AttributeError, IndexError, KeyError, TypeError):
+                list_comments.append(None)
+        return tuple(list_comments)
 
     @staticmethod
     def _get_yaml_list_comment_item(item):
@@ -363,14 +363,13 @@ class YamlRawParameter(RawParameter):
 
     @staticmethod
     def _get_yaml_map_comments(value):
-        return {
-            key: excepts(
-                (AttributeError, KeyError),
-                lambda k: value.ca.items[k][2].value.strip() or None,
-                lambda _: None,  # default value on exception
-            )(key)
-            for key in value
-        }
+        map_comments = {}
+        for key in value:
+            try:
+                map_comments[key] = value.ca.items[key][2].value.strip() or None
+            except (AttributeError, KeyError):
+                map_comments[key] = None
+        return map_comments
 
     @classmethod
     def make_raw_parameters(cls, source, from_map):

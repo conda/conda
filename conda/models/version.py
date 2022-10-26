@@ -1,14 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from logging import getLogger
 import operator as op
 import re
 from itertools import zip_longest
-
-try:
-    from tlz.functoolz import excepts
-except ImportError:
-    from conda._vendor.toolz.functoolz import excepts
 
 from ..exceptions import InvalidVersionSpec
 
@@ -663,8 +660,11 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
         return '|'.join(options)
 
     @property
-    def exact_value(self):
-        return excepts(ValueError, int(self.raw_value))
+    def exact_value(self) -> int | None:
+        try:
+            return int(self.raw_value)
+        except ValueError:
+            return None
 
     def __str__(self):
         return str(self.spec)
