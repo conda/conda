@@ -6,8 +6,7 @@ TEST_SPLITS="${TEST_SPLITS:-1}"
 TEST_GROUP="${TEST_GROUP:-1}"
 
 # TODO: once #11865 is merged this can be updated
-SCRIPT="$(sudo /Users/runner/miniconda3/bin/conda init bash --dev)"
-eval "${SCRIPT}" >/dev/null
+eval "$(sudo python -m conda init bash --dev)"
 conda info
 conda clean -ayq
 

@@ -5,8 +5,7 @@ echo "Factory config is:"
 grep -e "conda location" -e "conda version" -e "python version" <(conda info -a) | sed 's/^\s*/  /'
 
 # TODO: once #11865 is merged this can be updated
-SCRIPT="$(sudo conda init bash --dev)"
-eval "${SCRIPT}" >/dev/null
+eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 if [[ $RUNNING_ON_DEVCONTAINER == 1 ]]; then
     conda init
 fi
