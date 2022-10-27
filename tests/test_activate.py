@@ -6,7 +6,7 @@ import json
 import os
 import platform
 import sys
-import tempfile
+import time
 from collections import OrderedDict
 from enum import Enum
 from functools import lru_cache
@@ -1919,9 +1919,9 @@ class InteractiveShell:
         p = PopenSpawn(
             quote_for_shell(shell_found, *args),
             timeout=12,
-            # maxread=10000,
+            maxread=5000,
             searchwindowsize=None,
-            logfile=sys.stderr,
+            logfile=sys.stdout,
             cwd=os.getcwd(),
             env=env,
             encoding="utf-8",
@@ -1996,12 +1996,18 @@ class InteractiveShell:
                 self.expect(f"\\$Env:{env_var}\n")
                 value = self.p.readline()
         else:
-            self.sendline('echo get_var_start')
-            self.expect('get_var_start\n')
-            self.sendline(self.print_env_var % env_var)
-            value = self.p.readline()
-            self.sendline('echo get_var_end')
-            self.expect('get_var_end\n')
+            # tempfile would be faster if we figure out Windows portability re
+            # locking
+            with tempdir() as td:
+                varfile = Path(td, env_var)
+                self.sendline((self.print_env_var % env_var) + f" > {varfile}")
+                value = None
+                for i in range(20):
+                    try:
+                        value = varfile.read_text()
+                        break
+                    except OSError:
+                        time.sleep(.05)
         if value is None:
             return default
         return ensure_text_type(value).strip()
