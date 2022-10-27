@@ -53,7 +53,7 @@ jobs:
           path: "C:\\conda_bin\\envs\\conda-test-env\\pkgs"
           key:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
-            hashFiles('conda.recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
+            hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
 
       - name: Set temp dirs correctly
         # https://github.com/actions/virtual-environments/issues/712
