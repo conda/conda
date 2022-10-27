@@ -208,7 +208,7 @@ jobs:
           path: ~/conda_pkgs_dir
           key:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
-            hashFiles('conda.recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
+            hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
       - name: Cache minio
         uses: actions/cache@v3
