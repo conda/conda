@@ -1980,7 +1980,7 @@ class InteractiveShell:
             value = self.p.match.groups()[0]
         elif self.shell_name in ('powershell', 'pwsh'):
             self.sendline(self.print_env_var % env_var)
-            self.expect(rf"\$Env:{env_var}\n")
+            self.expect(f"\\$Env:{env_var}\n")
             value = self.p.readline()
         else:
             self.sendline('echo get_var_start')
