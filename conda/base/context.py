@@ -953,13 +953,15 @@ class Context(Configuration):
         """
         Retrieves the current cuda version.
         """
+        from conda.plugins.virtual_packages import cuda
+
         warnings.warn(
-            "`context.cuda_version` is pending deprecation and will be removed in a "
-            "future release. Please use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
+            "`context.cuda_version` is pending deprecation and "
+            "will be removed in a future release. Please use "
+            "`conda.plugins.virtual_packages.cuda.cuda_version` instead.",
             PendingDeprecationWarning,
         )
-        from conda.plugins.virtual_packages.cuda import cuda_version
-        return cuda_version()
+        return cuda.cuda_version()
 
     @property
     def category_map(self):

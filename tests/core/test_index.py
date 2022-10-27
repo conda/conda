@@ -18,6 +18,7 @@ from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
+from conda.plugins.virtual_packages import cuda
 from tests.core.test_subdir_data import platform_in_record
 
 log = getLogger(__name__)
@@ -44,6 +45,7 @@ def test_check_allowlist():
 
 def test_supplement_index_with_system_cuda():
     index = {}
+    cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
     with env_vars({'CONDA_OVERRIDE_CUDA': '3.2'}):
         _supplement_index_with_system(index)
 

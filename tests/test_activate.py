@@ -2548,6 +2548,7 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline("conda activate -h blah blah")
             shell.expect('usage: conda activate')
 
+    @pytest.mark.flaky(reruns=5)
     @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_legacy_activate_deactivate_bash(self):
         with InteractiveShell('bash') as shell:
