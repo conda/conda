@@ -6,7 +6,6 @@ import ntpath
 import os
 from os.path import abspath, dirname, isfile, join, realpath
 import sys
-from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
@@ -356,29 +355,25 @@ def test_make_entry_point(verbose):
         if on_win:
             assert ep_contents == dals(
                 """
-            # -*- coding: utf-8 -*-
-            import sys
+                # -*- coding: utf-8 -*-
+                import sys
 
-            if __name__ == '__main__':
-                from conda.entry.point import run
-                sys.exit(run())
-            """
+                if __name__ == '__main__':
+                    from conda.entry.point import run
+                    sys.exit(run())
+                """
             )
         else:
-            assert (
-                ep_contents
-                == dals(
-                    """
-            #!%s/bin/python
-            # -*- coding: utf-8 -*-
-            import sys
+            assert ep_contents == dals(
+                f"""
+                #!{conda_prefix}/bin/python
+                # -*- coding: utf-8 -*-
+                import sys
 
-            if __name__ == '__main__':
-                from conda.entry.point import run
-                sys.exit(run())
-            """
-                )
-                % conda_prefix
+                if __name__ == '__main__':
+                    from conda.entry.point import run
+                    sys.exit(run())
+                """
             )
 
         result = make_entry_point(conda_exe_path, conda_prefix, "conda.entry.point", "run")
@@ -774,31 +769,27 @@ def test_init_sh_user_unix(verbose):
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, ".bashrc")
 
-        initial_content = (
-            dals(
-                """
-        export PATH="/some/other/conda/bin:$PATH"
-        export PATH="%(prefix)s/bin:$PATH"
-          export PATH="%(prefix)s/bin:$PATH"
+        prefix = win_path_backout(abspath(conda_temp_prefix))
+        initial_content = dals(
+            f"""
+            export PATH="/some/other/conda/bin:$PATH"
+            export PATH="{prefix}/bin:$PATH"
+            export PATH="{prefix}/bin:$PATH"
 
-        # >>> conda initialize >>>
-        __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-        if [ $? -eq 0 ]; then
-        fi
-        unset __conda_setup
-        # <<< conda initialize <<<
+            # >>> conda initialize >>>
+            __conda_setup="$('{prefix}/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+            if [ $? -eq 0 ]; then
+            fi
+            unset __conda_setup
+            # <<< conda initialize <<<
 
-        . etc/profile.d/conda.sh
-        . etc/profile.d/coda.sh
-        . /somewhere/etc/profile.d/conda.sh
-        source /etc/profile.d/conda.sh
+            . etc/profile.d/conda.sh
+            . etc/profile.d/coda.sh
+            . /somewhere/etc/profile.d/conda.sh
+            source /etc/profile.d/conda.sh
 
-        \t source %(prefix)s/etc/profile.d/conda.sh
-        """
-            )
-            % {
-                "prefix": win_path_backout(abspath(conda_temp_prefix)),
-            }
+            \t source {prefix}/etc/profile.d/conda.sh
+            """
         )
 
         with open(target_path, "w") as fh:
@@ -809,61 +800,51 @@ def test_init_sh_user_unix(verbose):
         with open(target_path) as fh:
             new_content = fh.read()
 
-        expected_new_content = (
-            dals(
-                """
-        export PATH="/some/other/conda/bin:$PATH"
-        # export PATH="%(prefix)s/bin:$PATH"  # commented out by conda initialize
-        # export PATH="%(prefix)s/bin:$PATH"  # commented out by conda initialize
+        expected_new_content = dals(
+            f"""
+            export PATH="/some/other/conda/bin:$PATH"
+            # export PATH="{prefix}/bin:$PATH"  # commented out by conda initialize
+            # export PATH="{prefix}/bin:$PATH"  # commented out by conda initialize
 
-        # >>> conda initialize >>>
-        # !! Contents within this block are managed by 'conda init' !!
-        __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-        if [ $? -eq 0 ]; then
-            eval "$__conda_setup"
-        else
-            if [ -f "%(prefix)s/etc/profile.d/conda.sh" ]; then
-                . "%(prefix)s/etc/profile.d/conda.sh"
+            # >>> conda initialize >>>
+            # !! Contents within this block are managed by 'conda init' !!
+            __conda_setup="$('{prefix}/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+            if [ $? -eq 0 ]; then
+                eval "$__conda_setup"
             else
-                export PATH="%(prefix)s/bin:$PATH"
+                if [ -f "{prefix}/etc/profile.d/conda.sh" ]; then
+                    . "{prefix}/etc/profile.d/conda.sh"
+                else
+                    export PATH="{prefix}/bin:$PATH"
+                fi
             fi
-        fi
-        unset __conda_setup
-        # <<< conda initialize <<<
+            unset __conda_setup
+            # <<< conda initialize <<<
 
-        # . etc/profile.d/conda.sh  # commented out by conda initialize
-        . etc/profile.d/coda.sh
-        # . /somewhere/etc/profile.d/conda.sh  # commented out by conda initialize
-        # source /etc/profile.d/conda.sh  # commented out by conda initialize
+            # . etc/profile.d/conda.sh  # commented out by conda initialize
+            . etc/profile.d/coda.sh
+            # . /somewhere/etc/profile.d/conda.sh  # commented out by conda initialize
+            # source /etc/profile.d/conda.sh  # commented out by conda initialize
 
-        # source %(prefix)s/etc/profile.d/conda.sh  # commented out by conda initialize
-        """
-            )
-            % {
-                "prefix": win_path_backout(abspath(conda_temp_prefix)),
-            }
+            # source {prefix}/etc/profile.d/conda.sh  # commented out by conda initialize
+            """
         )
         print(new_content)
         assert new_content == expected_new_content
 
-        expected_reversed_content = (
-            dals(
-                """
-        export PATH="/some/other/conda/bin:$PATH"
-        export PATH="%(prefix)s/bin:$PATH"
-        export PATH="%(prefix)s/bin:$PATH"
+        expected_reversed_content = dals(
+            f"""
+            export PATH="/some/other/conda/bin:$PATH"
+            export PATH="{prefix}/bin:$PATH"
+            export PATH="{prefix}/bin:$PATH"
 
-        . etc/profile.d/conda.sh
-        . etc/profile.d/coda.sh
-        . /somewhere/etc/profile.d/conda.sh
-        source /etc/profile.d/conda.sh
+            . etc/profile.d/conda.sh
+            . etc/profile.d/coda.sh
+            . /somewhere/etc/profile.d/conda.sh
+            source /etc/profile.d/conda.sh
 
-        source %(prefix)s/etc/profile.d/conda.sh
-        """
-            )
-            % {
-                "prefix": win_path_backout(abspath(conda_temp_prefix)),
-            }
+            source {prefix}/etc/profile.d/conda.sh
+            """
         )
 
         init_sh_user(target_path, conda_temp_prefix, "bash", reverse=True)
@@ -897,30 +878,26 @@ def test_init_sh_user_windows(verbose):
         conda_prefix = "c:\\Users\\Lars\\miniconda"
         cygpath_conda_prefix = "/c/Users/Lars/miniconda"
 
-        initial_content = (
-            dals(
-                """
-        source /c/conda/Scripts/activate root
-        . $(cygpath 'c:\\conda\\Scripts\\activate') root
+        prefix = win_path_ok(abspath(conda_prefix))
+        initial_content = dals(
+            f"""
+            source /c/conda/Scripts/activate root
+            . $(cygpath 'c:\\conda\\Scripts\\activate') root
 
-        # >>> conda initialize >>>
-        __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-        if [ $? -eq 0 ]; then
-        fi
-        unset __conda_setup
-        # <<< conda initialize <<<
+            # >>> conda initialize >>>
+            __conda_setup="$('{prefix}/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+            if [ $? -eq 0 ]; then
+            fi
+            unset __conda_setup
+            # <<< conda initialize <<<
 
-        . etc/profile.d/conda.sh
-        . etc/profile.d/coda.sh
-        . /somewhere/etc/profile.d/conda.sh
-        source /etc/profile.d/conda.sh
+            . etc/profile.d/conda.sh
+            . etc/profile.d/coda.sh
+            . /somewhere/etc/profile.d/conda.sh
+            source /etc/profile.d/conda.sh
 
-        \t source %(prefix)s/etc/profile.d/conda.sh
-        """
-            )
-            % {
-                "prefix": win_path_ok(abspath(conda_prefix)),
-            }
+            \t source {prefix}/etc/profile.d/conda.sh
+            """
         )
 
         with open(target_path, "w") as fh:
@@ -933,52 +910,41 @@ def test_init_sh_user_windows(verbose):
 
         print(new_content)
 
-        expected_new_content = (
-            dals(
-                """
-        # source /c/conda/Scripts/activate root  # commented out by conda initialize
-        # . $(cygpath 'c:\\conda\\Scripts\\activate') root  # commented out by conda initialize
+        expected_new_content = dals(
+            f"""
+            # source /c/conda/Scripts/activate root  # commented out by conda initialize
+            # . $(cygpath 'c:\\conda\\Scripts\\activate') root  # commented out by conda initialize
 
-        # >>> conda initialize >>>
-        # !! Contents within this block are managed by 'conda init' !!
-        if [ -f '%(cygpath_conda_prefix)s/Scripts/conda.exe' ]; then
-            eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' 'shell.bash' 'hook')"
-        fi
-        # <<< conda initialize <<<
+            # >>> conda initialize >>>
+            # !! Contents within this block are managed by 'conda init' !!
+            if [ -f '{cygpath_conda_prefix}/Scripts/conda.exe' ]; then
+                eval "$('{cygpath_conda_prefix}/Scripts/conda.exe' 'shell.bash' 'hook')"
+            fi
+            # <<< conda initialize <<<
 
-        # . etc/profile.d/conda.sh  # commented out by conda initialize
-        . etc/profile.d/coda.sh
-        # . /somewhere/etc/profile.d/conda.sh  # commented out by conda initialize
-        # source /etc/profile.d/conda.sh  # commented out by conda initialize
+            # . etc/profile.d/conda.sh  # commented out by conda initialize
+            . etc/profile.d/coda.sh
+            # . /somewhere/etc/profile.d/conda.sh  # commented out by conda initialize
+            # source /etc/profile.d/conda.sh  # commented out by conda initialize
 
-        # source %(prefix)s/etc/profile.d/conda.sh  # commented out by conda initialize
-        """
-            )
-            % {
-                "prefix": win_path_ok(abspath(conda_prefix)),
-                "cygpath_conda_prefix": cygpath_conda_prefix,
-            }
+            # source {prefix}/etc/profile.d/conda.sh  # commented out by conda initialize
+            """
         )
 
         assert new_content == expected_new_content
 
-        expected_reversed_content = (
-            dals(
-                """
-        source /c/conda/Scripts/activate root
-        . $(cygpath 'c:\\conda\\Scripts\\activate') root
+        expected_reversed_content = dals(
+            f"""
+            source /c/conda/Scripts/activate root
+            . $(cygpath 'c:\\conda\\Scripts\\activate') root
 
-        . etc/profile.d/conda.sh
-        . etc/profile.d/coda.sh
-        . /somewhere/etc/profile.d/conda.sh
-        source /etc/profile.d/conda.sh
+            . etc/profile.d/conda.sh
+            . etc/profile.d/coda.sh
+            . /somewhere/etc/profile.d/conda.sh
+            source /etc/profile.d/conda.sh
 
-        source %(prefix)s/etc/profile.d/conda.sh
-        """
-            )
-            % {
-                "prefix": win_path_ok(abspath(conda_prefix)),
-            }
+            source {prefix}/etc/profile.d/conda.sh
+            """
         )
 
         init_sh_user(target_path, conda_temp_prefix, "bash", reverse=True)
