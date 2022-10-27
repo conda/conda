@@ -13,11 +13,11 @@ import warnings
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
-from urllib.parse import (
+from urllib.parse import (  # NOQA
     quote,
     quote_plus,
     unquote,
-    unquote_plus,  # NOQA
+    unquote_plus,
     urlparse as _urlparse,
     urlunparse as _urlunparse,
     ParseResult,
