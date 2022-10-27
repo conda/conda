@@ -3,12 +3,13 @@
 
 import platform
 
-from conda.plugins import hooks
+from conda import plugins
+from conda.models.plugins import CondaVirtualPackage
 
 
-@hooks.register
+@plugins.hookimpl
 def conda_virtual_packages():
     if platform.system() != "Windows":
         return
 
-    yield hooks.CondaVirtualPackage("win", None)
+    yield CondaVirtualPackage("win", None)

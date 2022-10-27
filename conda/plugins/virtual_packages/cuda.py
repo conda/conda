@@ -6,8 +6,9 @@ import functools
 import platform
 from contextlib import suppress
 
-from conda.plugins import hooks
+from conda import plugins
 from conda.common.decorators import env_override
+from conda.models.plugins import CondaVirtualPackage
 
 
 @env_override("CONDA_OVERRIDE_CUDA", convert_empty_to_none=True)
@@ -83,6 +84,6 @@ def cached_cuda_version():
     return cuda_version()
 
 
-@hooks.register
+@plugins.hookimpl
 def conda_virtual_packages():
-    yield hooks.CondaVirtualPackage("cuda", cached_cuda_version())
+    yield CondaVirtualPackage("cuda", cached_cuda_version())

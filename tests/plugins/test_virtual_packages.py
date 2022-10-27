@@ -1,30 +1,31 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import re
+
+import pytest
 
 import conda.core.index
 from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.base.context import context
+from conda.models.plugins import CondaVirtualPackage
 from conda.testing.solver_helpers import package_dict
-from conda.plugins import hooks
+from conda import plugins
 from conda.plugins.virtual_packages import cuda
-
-import pytest
-import re
 
 
 class VirtualPackagesPlugin:
-    @hooks.register
+    @plugins.hookimpl
     def conda_virtual_packages(self):
-        yield hooks.CondaVirtualPackage(
+        yield CondaVirtualPackage(
             name="abc",
             version="123",
         )
-        yield hooks.CondaVirtualPackage(
+        yield CondaVirtualPackage(
             name="def",
             version="456",
         )
-        yield hooks.CondaVirtualPackage(
+        yield CondaVirtualPackage(
             name="ghi",
             version="789",
         )
@@ -67,7 +68,7 @@ def test_duplicated(plugin_manager, cli_main, capsys):
         )
 
 
-def test_cuda_detection(request):
+def test_cuda_detection():
     # confirm that CUDA detection doesn't raise exception
     version = cuda.cuda_version()
     assert version is None or isinstance(version, str)

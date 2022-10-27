@@ -62,8 +62,6 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
 from .. import CONDA_SOURCE_ROOT
 
-from ..plugins import hooks, virtual_packages
-
 try:
     os.getcwd()
 except OSError as e:
@@ -151,15 +149,6 @@ def ssl_verify_validation(value):
                     "certificate bundle file, or a path to a directory containing "
                     "certificates of trusted CAs." % value)
     return True
-
-
-@functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
-def get_plugin_manager():
-    pm = pluggy.PluginManager("conda")
-    pm.add_hookspecs(hooks)
-    virtual_packages.register(pm)
-    pm.load_setuptools_entrypoints("conda")
-    return pm
 
 
 class Context(Configuration):
@@ -412,9 +401,6 @@ class Context(Configuration):
                                                                              argparse_args)
 
         super().__init__(search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args)
-
-        # Add plugin support
-        self.plugin_manager = get_plugin_manager()
 
     def post_build_validation(self):
         errors = []
@@ -966,12 +952,14 @@ class Context(Configuration):
     def cuda_version(self) -> Optional[str]:
         """
         Retrieves the current cuda version.
-
-        TODO: mark this for deprecation
         """
-        from conda.plugins.virtual_packages import cuda
-
-        return cuda.cuda_version()
+        warnings.warn(
+            "`context.cuda_version` is pending deprecation and will be removed in a "
+            "future release. Please use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
+            PendingDeprecationWarning,
+        )
+        from conda.plugins.virtual_packages.cuda import cuda_version
+        return cuda_version()
 
     @property
     def category_map(self):

@@ -4,15 +4,16 @@
 import os
 import platform
 
-from conda.plugins import hooks
+from conda import plugins
+from conda.models.plugins import CondaVirtualPackage
 
 
-@hooks.register
+@plugins.hookimpl
 def conda_virtual_packages():
     if platform.system() != "Darwin":
         return
 
-    yield hooks.CondaVirtualPackage("unix", None)
+    yield CondaVirtualPackage("unix", None)
 
     dist_version = os.environ.get("CONDA_OVERRIDE_OSX", platform.mac_ver()[0])
-    yield hooks.CondaVirtualPackage("osx", dist_version)
+    yield CondaVirtualPackage("osx", dist_version)
