@@ -3,7 +3,6 @@
 
 from collections import OrderedDict
 
-import functools
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
@@ -11,7 +10,6 @@ from typing import Optional
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
-import pluggy
 import sys
 import struct
 from contextlib import contextmanager
