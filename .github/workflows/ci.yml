@@ -196,7 +196,7 @@ jobs:
         with:
           path: ~/conda_pkgs_dir
           key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
             hashFiles('conda.recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
       - name: Cache minio
@@ -207,7 +207,7 @@ jobs:
         with:
           path: minio
           key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}-${{
             hashFiles('conda.recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
       - uses: conda-incubator/setup-miniconda@v2
