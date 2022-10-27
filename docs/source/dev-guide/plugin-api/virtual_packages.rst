@@ -31,7 +31,7 @@ Example
        print("Example command!")
 
 
-   @conda.plugins.register
+   @conda.plugins.hookimpl
    def conda_virtual_packages(self):
        yield plugins.CondaVirtualPackage(
            name="my_custom_os",
