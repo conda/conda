@@ -1911,8 +1911,8 @@ class InteractiveShell:
 
         p = PopenSpawn(
             quote_for_shell(shell_found, *args),
-            maxread=5000,
             timeout=12,
+            maxread=5000,
             searchwindowsize=None,
             logfile=sys.stdout,
             cwd=os.getcwd(),
@@ -1981,7 +1981,9 @@ class InteractiveShell:
         elif self.shell_name in ('powershell', 'pwsh'):
             self.sendline(self.print_env_var % env_var)
             self.expect(f"\\$Env:{env_var}\n")
-            value = self.p.readline()
+            value = "\\$Env"    # does windows echo twice?
+            while "\\$Env" in value:
+                value = self.p.readline()
         else:
             self.sendline('echo get_var_start')
             self.sendline(self.print_env_var % env_var)
