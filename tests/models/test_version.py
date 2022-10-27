@@ -301,6 +301,19 @@ class TestVersionSpec(unittest.TestCase):
             VersionSpec("~")
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("^")
+        # Test for previously mishandled uses of local version separator '+'
+        # uncovered by fuzzing efforts
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("1.2+")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("+1.2")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("+1.2+")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("++")
+        # Fuzzer-identified crasher:
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("c +, 0/|0 *")
 
     def test_compatible_release_versions(self):
         assert VersionSpec("~=1.10").match("1.11.0")
