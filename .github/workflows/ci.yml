@@ -191,7 +191,7 @@ jobs:
       - name: Cache conda packages
         uses: actions/cache@v3
         env:
-          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          # Increase this value to reset cache
           CACHE_NUMBER: 0
         with:
           path: ~/conda_pkgs_dir
@@ -202,7 +202,7 @@ jobs:
       - name: Cache minio
         uses: actions/cache@v3
         env:
-          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          # Increase this value to reset cache
           CACHE_NUMBER: 0
         with:
           path: minio
