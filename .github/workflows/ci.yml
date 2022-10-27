@@ -218,8 +218,7 @@ jobs:
         with:
           path: minio
           key:
-            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}-${{
-            hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
+            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
