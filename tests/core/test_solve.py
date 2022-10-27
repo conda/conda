@@ -120,9 +120,8 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
-def test_virtual_package_solver(tmpdir):
+def test_virtual_package_solver(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
-    cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
@@ -142,7 +141,7 @@ def test_virtual_package_solver(tmpdir):
             assert ssc.r.bad_installed(ssc.solution_precs, ())[1] is None
 
 
-def test_solve_msgs_exclude_vp(tmpdir):
+def test_solve_msgs_exclude_vp(tmpdir, clear_cuda_version):
     # Sovler hints should exclude virtual packages that are not dependencies
     specs = MatchSpec("python =2.7.5"), MatchSpec("readline =5.0"),
 
@@ -151,14 +150,11 @@ def test_solve_msgs_exclude_vp(tmpdir):
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
 
-                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
-
     assert "__cuda==10.0" not in str(exc.value).strip()
 
 
-def test_cuda_1(tmpdir):
+def test_cuda_1(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
-    cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     with env_var('CONDA_OVERRIDE_CUDA', '9.2'):
         with get_solver_cuda(tmpdir, specs) as solver:
@@ -170,9 +166,8 @@ def test_cuda_1(tmpdir):
             assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_2(tmpdir):
+def test_cuda_2(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
-    cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
@@ -184,9 +179,8 @@ def test_cuda_2(tmpdir):
             assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_fail_1(tmpdir):
+def test_cuda_fail_1(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
-    cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     # No cudatoolkit in index for CUDA 8.0
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
@@ -217,9 +211,8 @@ def test_cuda_fail_1(tmpdir):
 Your installed version is: 8.0""".format(plat))
 
 
-def test_cuda_fail_2(tmpdir):
+def test_cuda_fail_2(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
-    cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     # No CUDA on system
     with env_var('CONDA_OVERRIDE_CUDA', ''):
@@ -234,7 +227,7 @@ def test_cuda_fail_2(tmpdir):
 Your installed version is: not available""")
 
 
-def test_cuda_constrain_absent(tmpdir):
+def test_cuda_constrain_absent(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-constrain"),
 
     with env_var('CONDA_OVERRIDE_CUDA', ''):
@@ -246,11 +239,9 @@ def test_cuda_constrain_absent(tmpdir):
             ))
             assert convert_to_dist_str(final_state) == order
 
-            cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
-
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_sat(tmpdir):
+def test_cuda_constrain_sat(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-constrain"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
@@ -262,11 +253,9 @@ def test_cuda_constrain_sat(tmpdir):
             ))
             assert convert_to_dist_str(final_state) == order
 
-            cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
-
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_unsat(tmpdir):
+def test_cuda_constrain_unsat(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-constrain"),
 
     # No cudatoolkit in index for CUDA 8.0
@@ -274,7 +263,6 @@ def test_cuda_constrain_unsat(tmpdir):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
-                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
@@ -285,9 +273,8 @@ Your installed version is: 8.0""".format(context.subdir))
 
 
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_sat(tmpdir):
+def test_cuda_glibc_sat(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-glibc"),
-    cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
         with get_solver_cuda(tmpdir, specs) as solver:
@@ -301,15 +288,13 @@ def test_cuda_glibc_sat(tmpdir):
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_unsat_depend(tmpdir):
+def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-glibc"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
-
-                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
@@ -321,14 +306,13 @@ Your installed version is: 8.0""".format(context.subdir))
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_unsat_constrain(tmpdir):
+def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-glibc"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.12'):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 final_state = solver.solve_final_state()
-                cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
 
 
 def test_prune_1(tmpdir):

@@ -68,21 +68,19 @@ def test_duplicated(plugin_manager, cli_main, capsys):
         )
 
 
-def test_cuda_detection():
+def test_cuda_detection(clear_cuda_version):
     # confirm that CUDA detection doesn't raise exception
     version = cuda.cuda_version()
     assert version is None or isinstance(version, str)
 
 
-def test_cuda_override():
-    cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
+def test_cuda_override(clear_cuda_version):
     with env_var('CONDA_OVERRIDE_CUDA', '4.5'):
         version = cuda.cached_cuda_version()
         assert version == "4.5"
 
 
-def test_cuda_override_none():
-    cuda.cached_cuda_version.cache_clear()  # prevents test from receiving stale value
+def test_cuda_override_none(clear_cuda_version):
     with env_var('CONDA_OVERRIDE_CUDA', ''):
         version = cuda.cuda_version()
         assert version is None
