@@ -24,7 +24,7 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import (DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN,
-                              ExperimentalSolverChoice)
+                              SolverChoice)
 from ..base.context import context
 from ..common.compat import odict
 from ..common.constants import NULL
@@ -47,14 +47,14 @@ def _get_solver_class(key=None):
     """
     Temporary function to load the correct solver backend.
 
-    See ``context.experimental_solver`` and
-    ``base.constants.ExperimentalSolverChoice`` for more details.
+    See ``context.solver`` and
+    ``base.constants.SolverChoice`` for more details.
 
     TODO: This should be replaced by the plugin mechanism in the future.
     """
-    key = (key or context.experimental_solver.value).lower()
+    key = (key or context.solver.value).lower()
 
-    # These keys match conda.base.constants.ExperimentalSolverChoice
+    # These keys match conda.base.constants.SolverChoice
     if key == "classic":
         return Solver
 
@@ -74,7 +74,7 @@ def _get_solver_class(key=None):
     raise ValueError(
         f"You have chosen a non-default solver backend ({key}) "
         f"but it was not recognized. Choose one of "
-        f"{[v.value for v in ExperimentalSolverChoice]}"
+        f"{[v.value for v in SolverChoice]}"
     )
 
 
@@ -1031,17 +1031,21 @@ class Solver:
                 latest_version = conda_newer_precs[-1].version
                 # If conda comes from defaults, ensure we're giving instructions to users
                 # that should resolve release timing issues between defaults and conda-forge.
-                print(dedent("""
+                print(dedent(f"""
 
                 ==> WARNING: A newer version of conda exists. <==
-                  current version: %s
-                  latest version: %s
+                  current version: {CONDA_VERSION}
+                  latest version: {latest_version}
 
                 Please update conda by running
 
-                    $ conda update -n base -c %s conda
+                    $ conda update -n base -c {channel_name} conda
 
-                """) % (CONDA_VERSION, latest_version, channel_name), file=sys.stderr)
+                Or to minimize the number of packages updated during conda update use
+
+                     conda install conda={latest_version}
+
+                """), file=sys.stderr)
 
     def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further

@@ -50,8 +50,8 @@ def generate_parser():
 
 
 def init_loggers(context=None):
-    from logging import CRITICAL, getLogger, DEBUG
-    from ..gateways.logging import initialize_logging, set_verbosity, set_file_logging
+    from logging import CRITICAL, getLogger
+    from ..gateways.logging import initialize_logging, set_verbosity
     initialize_logging()
     if context and context.json:
         # Silence logging info to avoid interfering with JSON output
@@ -61,8 +61,6 @@ def init_loggers(context=None):
     if context:
         if context.verbosity:
             set_verbosity(context.verbosity)
-        if context.experimental_solver.value != "classic":
-            set_file_logging(logger_name="conda", level=DEBUG, path=context._logfile_path)
 
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):

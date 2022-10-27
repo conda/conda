@@ -1,0 +1,23 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* `context.experimental_solver` is now marked for pending deprecation.
+  It is replaced by `context.solver`. The same applies to the `--experimental-solver` flag,
+  the `CONDA_EXPERIMENTAL_SOLVER` environment variable, and the `ExperimentalSolverChoice` enum,
+  which will be replaced by `--solver`, `EXPERIMENTAL_SOLVER` and `SolverChoice`, respectively.
+  (#11889)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

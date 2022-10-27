@@ -54,7 +54,7 @@ jobs:
           fetch-depth: 0
 
       - name: Create and upload review build
-        uses: conda/actions/canary-release@v22.9.0
+        uses: conda/actions/canary-release@v22.10.0
         with:
           package-name: conda
           subdir: ${{ matrix.subdir }}

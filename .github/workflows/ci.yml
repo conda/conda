@@ -44,6 +44,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache conda packages
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache
+          CACHE_NUMBER: 0
+        with:
+          path: "C:\\conda_bin\\envs\\conda-test-env\\pkgs"
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
+            hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
+
       - name: Set temp dirs correctly
         # https://github.com/actions/virtual-environments/issues/712
         run: |
@@ -188,6 +199,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache conda packages
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
+            hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
+
+      - name: Cache minio
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache
+          CACHE_NUMBER: 0
+        with:
+          path: minio
+          key:
+            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
+
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: conda-test-env
@@ -241,7 +273,7 @@ jobs:
           retention-days: 90  # default: 90
 
       - name: Test Summary
-        uses: test-summary/action@v1
+        uses: test-summary/action@v2
         with:
           paths: ./test-results-${{ github.sha }}-**/test-report*.xml
 
