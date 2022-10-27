@@ -11,15 +11,11 @@ from collections import OrderedDict
 from enum import Enum
 from functools import lru_cache
 from itertools import chain
-import json
 from logging import getLogger
-import os
 from os.path import dirname, isdir, join
 from pathlib import Path
 from re import escape
 from subprocess import CalledProcessError, check_output
-import platform
-import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
@@ -27,9 +23,8 @@ from uuid import uuid4
 import pytest
 from tlz.itertoolz import concatv
 
-from conda import __version__ as conda_version
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
-from conda.auxlib.ish import dals
+from conda import __version__ as conda_version
 from conda.activate import (
     CmdExeActivator,
     CshActivator,
@@ -37,17 +32,18 @@ from conda.activate import (
     PosixActivator,
     PowerShellActivator,
     XonshActivator,
-    activator_map,
     _build_activator_cls,
+    activator_map,
     native_path_to_unix,
 )
+from conda.auxlib.ish import dals
 from conda.base.constants import (
-    ROOT_ENV_NAME,
-    PREFIX_STATE_FILE,
-    PACKAGE_ENV_VARS_DIR,
     CONDA_ENV_VARS_UNSET_VAR,
+    PACKAGE_ENV_VARS_DIR,
+    PREFIX_STATE_FILE,
+    ROOT_ENV_NAME,
 )
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.main import main_sourced
 from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
@@ -56,9 +52,13 @@ from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFoun
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
-
 from conda.testing.helpers import tempdir
-from conda.testing.integration import Commands, run_command, SPACER_CHARACTER, make_temp_env
+from conda.testing.integration import (
+    SPACER_CHARACTER,
+    Commands,
+    make_temp_env,
+    run_command,
+)
 
 log = getLogger(__name__)
 
@@ -1908,6 +1908,7 @@ class InteractiveShell:
         for var_name in remove_these:
             del env[var_name]
         from conda.utils import quote_for_shell
+
         # 1. shell='cmd.exe' is deliberate. We are not, at this time, running bash, we
         #    are launching it (from `cmd.exe` most likely).
         # 2. For some reason, passing just self.shell_name (which is `bash`) runs WSL
