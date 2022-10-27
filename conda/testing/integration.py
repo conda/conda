@@ -335,7 +335,8 @@ def make_temp_env(*packages, **kwargs):
             name_path = pathlib.Path(req_tempdir, f"req-{name}.txt")
             if name_path.exists():
                 print("It does exist!")
-                run_command(Commands.CREATE, prefix, "-C", "--file", str(name_path))
+                # --no-deps may be the biggest time saver
+                run_command(Commands.CREATE, prefix, "-C", "--no-deps", "--file", str(name_path))
             else:
                 print("Better luck next time")
                 run_command(Commands.CREATE, prefix, *packages, **kwargs)
