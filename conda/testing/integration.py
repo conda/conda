@@ -302,7 +302,8 @@ def run_command(command, prefix, *arguments, **kwargs):
     return stdout, stderr, result
 
 import tempfile
-req_tempdir = tempfile.TemporaryDirectory().__enter__()  # type: ignore
+_req_tempdir = tempfile.TemporaryDirectory()    # hold reference
+req_tempdir = _req_tempdir.__enter__()  # type: ignore
 
 @contextmanager
 def make_temp_env(*packages, **kwargs):
