@@ -1975,11 +1975,11 @@ class InteractiveShell:
             self.sendline("@echo %%%s%%" % env_var)
             self.expect("@echo %%%s%%\r\n([^\r]*)\r" % env_var)
             value = self.p.match.groups()[0]
-        elif self.shell_name == 'powershell':
+        elif self.shell_name in ('powershell', 'pwsh'):
             self.sendline(self.print_env_var % env_var)
             # The \r\n\( is the newline after the env var and the start of the prompt.
             # If we knew the active env we could add that in as well as the closing )
-            self.expect(rf"\$Env:{env_var}\r\n([^\r]*)(\r\n).*")
+            self.expect(rf"\$Env:{env_var}\n([^\r]*)(\n).*")
             value = self.p.match.groups()[0]
         else:
             self.sendline('echo get_var_start')
