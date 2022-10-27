@@ -301,6 +301,8 @@ def run_command(command, prefix, *arguments, **kwargs):
         reset_context([os.path.join(prefix + os.sep, "condarc")], args)
     return stdout, stderr, result
 
+import tempfile
+req_tempdir = tempfile.TemporaryDirectory().__enter__()  # type: ignore
 
 @contextmanager
 def make_temp_env(*packages, **kwargs):
@@ -323,7 +325,23 @@ def make_temp_env(*packages, **kwargs):
             #            of env_{var,vars,unmodified} and, when used in conjunction
             #            with that code, this *must* be called first.
             reset_context([os.path.join(prefix + os.sep, "condarc")])
-            run_command(Commands.CREATE, prefix, *packages, **kwargs)
+
+            # store solved environment for quicker? testing
+            import hashlib
+            import json
+            import pathlib
+            name = hashlib.sha256(json.dumps({"packages":packages, **kwargs}).encode("utf-8")).hexdigest()[:8]
+
+            name_path = pathlib.Path(req_tempdir, f"req-{name}.txt")
+            if name_path.exists():
+                print("It does exist!")
+                run_command(Commands.CREATE, prefix, "-C", "--file", str(name_path))
+            else:
+                print("Better luck next time")
+                run_command(Commands.CREATE, prefix, *packages, **kwargs)
+                stdout, stderr, stdwhat = run_command(Commands.LIST, prefix, "--export")
+                name_path.write_text(stdout)
+
             yield prefix
         finally:
             if "CONDA_TEST_SAVE_TEMPS" not in os.environ:
