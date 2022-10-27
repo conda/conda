@@ -888,35 +888,11 @@ class UnlinkLinkTransaction:
         )
         create_nonadmin_actions = CreateNonadminAction.create_actions(*required_quad)
 
-        # if requested_spec:
-        #     application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
-        #         *required_quad
-        #     )
-        #     application_softlink_actions = CreateApplicationSoftlinkAction.create_actions(
-        #         *required_quad
-        #     )
-        # else:
-        #     application_entry_point_actions = ()
-        #     application_softlink_actions = ()
-        # leased_paths = tuple(axn.leased_path_entry for axn in (
-        #     *application_entry_point_actions,
-        #     *application_softlink_actions,
-        # ))
-
-        # if requested_spec:
-        #     register_private_env_actions = RegisterPrivateEnvAction.create_actions(
-        #         transaction_context, package_info, target_prefix, requested_spec, leased_paths
-        #     )
-        # else:
-        #     register_private_env_actions = ()
-
         # the ordering here is significant
         return (
             *create_directory_actions,
             *file_link_actions,
             *create_nonadmin_actions,
-            # *application_entry_point_actions,
-            # *register_private_env_actions,
         )
 
     @staticmethod
