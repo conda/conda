@@ -2,20 +2,19 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-import json
-import os
-import platform
-import sys
-import time
 from collections import OrderedDict
 from enum import Enum
 from functools import lru_cache
 from itertools import chain
+import json
 from logging import getLogger
+import os
 from os.path import dirname, isdir, join
 from pathlib import Path
 from re import escape
 from subprocess import CalledProcessError, check_output
+import platform
+import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
@@ -23,8 +22,9 @@ from uuid import uuid4
 import pytest
 from tlz.itertoolz import concatv
 
-from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda import __version__ as conda_version
+from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
+from conda.auxlib.ish import dals
 from conda.activate import (
     CmdExeActivator,
     CshActivator,
@@ -32,18 +32,17 @@ from conda.activate import (
     PosixActivator,
     PowerShellActivator,
     XonshActivator,
-    _build_activator_cls,
     activator_map,
+    _build_activator_cls,
     native_path_to_unix,
 )
-from conda.auxlib.ish import dals
 from conda.base.constants import (
-    CONDA_ENV_VARS_UNSET_VAR,
-    PACKAGE_ENV_VARS_DIR,
-    PREFIX_STATE_FILE,
     ROOT_ENV_NAME,
+    PREFIX_STATE_FILE,
+    PACKAGE_ENV_VARS_DIR,
+    CONDA_ENV_VARS_UNSET_VAR,
 )
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.main import main_sourced
 from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
@@ -52,13 +51,9 @@ from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFoun
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
+
 from conda.testing.helpers import tempdir
-from conda.testing.integration import (
-    SPACER_CHARACTER,
-    Commands,
-    make_temp_env,
-    run_command,
-)
+from conda.testing.integration import Commands, run_command, SPACER_CHARACTER, make_temp_env
 
 log = getLogger(__name__)
 
@@ -1908,7 +1903,6 @@ class InteractiveShell:
         for var_name in remove_these:
             del env[var_name]
         from conda.utils import quote_for_shell
-
         # 1. shell='cmd.exe' is deliberate. We are not, at this time, running bash, we
         #    are launching it (from `cmd.exe` most likely).
         # 2. For some reason, passing just self.shell_name (which is `bash`) runs WSL
@@ -1953,10 +1947,7 @@ class InteractiveShell:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            log.exception("Exception encountered", exc_info=exc_val)
-            print("before:{", self.p.before, "}")
-            print("after:{", self.p.after, "}")
-            print("buffer:{", self.p.buffer, "}")
+            print(f"Exception encountered: {exc_val}")
         if self.p:
             if self.exit_cmd:
                 self.sendline(self.exit_cmd)
@@ -1975,7 +1966,7 @@ class InteractiveShell:
         try:
             if use_exact:
                 self.p.expect_exact(value)
-                self.expect('\n')
+                self.expect('.*\n')
             else:
                 self.expect('%s\n' % value)
         except:
@@ -1999,19 +1990,12 @@ class InteractiveShell:
                 self.expect(f"\\$Env:{env_var}\n")
                 value = self.p.readline()
         else:
-            # tempfile would be faster if we figure out Windows portability re
-            # locking
-            with tempdir() as td:
-                varfile = Path(td, env_var)
-                self.sendline((self.print_env_var % env_var) + f" > {varfile}")
-                value = None
-                time.sleep(0.1)
-                for i in range(20):
-                    try:
-                        value = varfile.read_text()
-                        break
-                    except OSError:
-                        time.sleep(.05)
+            self.sendline('echo get_var_start')
+            self.sendline(self.print_env_var % env_var)
+            self.sendline('echo get_var_end')
+            self.expect('get_var_start\n')
+            value = self.p.readline()
+            self.expect('get_var_end')
         if value is None:
             return default
         return ensure_text_type(value).strip()
@@ -2100,7 +2084,7 @@ class ShellWrapperIntegrationTests(TestCase):
         prefix3_p = activator.path_conversion(self.prefix3)
 
         PATH0 = shell.get_env_var('PATH', '')
-        assert any(p.endswith("condabin") for p in PATH0.split(":")), f"'{PATH0}'"
+        assert any(p.endswith("condabin") for p in PATH0.split(":"))
 
         # calling bash -l, as we do for MSYS2, may cause conda activation.
         shell.sendline('conda deactivate')
@@ -2111,7 +2095,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH0 = shell.get_env_var('PATH', '')
-        assert len([p for p in PATH0.split(":") if p.endswith("condabin")]) > 0, f"'{PATH0}'"
+        assert len([p for p in PATH0.split(":") if p.endswith("condabin")]) > 0
         # Remove sys.prefix from PATH. It interferes with path entry count tests.
         # We can no longer check this since we'll replace e.g. between 1 and N path
         # entries with N of them in _replace_prefix_in_path() now. It is debatable
@@ -2140,7 +2124,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH', '')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':')), (PATH0, PATH1)
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         CONDA_EXE = shell.get_env_var('CONDA_EXE')
         _CE_M = shell.get_env_var('_CE_M')
@@ -2259,13 +2243,13 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda' + activate + '"%s"' % prefix2_p)
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':')), (PATH0, PATH1)
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         shell.sendline('conda' + activate + '"%s" --stack' % self.prefix3)
         shell.assert_env_var('CONDA_SHLVL', '2')
         PATH2 = shell.get_env_var('PATH')
-        assert 'charizard' in PATH2, PATH2
-        assert 'venusaur' in PATH2, PATH2
+        assert 'charizard' in PATH2
+        assert 'venusaur' in PATH2
         assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH2.split(':'))
 
         shell.sendline('conda' + activate + '"%s"' % prefix_p)
