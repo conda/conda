@@ -40,9 +40,6 @@ from conda.models.enums import LinkType
 from conda.testing.helpers import tempdir
 
 
-log = getLogger(__name__)
-
-
 @pytest.fixture
 def verbose():
     orig_verbosity = os.environ.get("CONDA_VERBOSITY")
