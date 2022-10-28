@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 from errno import ENOENT
 import json
 import os
@@ -8,11 +10,7 @@ from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, j
 import re
 import sys
 from textwrap import dedent
-
-try:
-    from tlz.itertoolz import concatv
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concatv
+from typing import Iterable
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -49,17 +47,19 @@ class _Activator:
     # The following instance variables must be defined by each implementation.
     pathsep_join = None
     sep = None
-    path_conversion = None
+    def path_conversion(self, paths: Iterable[str]):
+        # override in subclass
+        raise NotImplementedError()
     script_extension = None
     tempfile_extension = None  # None means write instructions to stdout rather than a temp file
-    command_join = None
+    command_join: str
 
     unset_var_tmpl = None
     export_var_tmpl = None
     set_var_tmpl = None
     run_script_tmpl = None
 
-    hook_source_path = None
+    hook_source_path: str
 
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
@@ -120,7 +120,7 @@ class _Activator:
         return script_export_vars or '', script_unset_vars or ''
 
     def _finalize(self, commands, ext):
-        commands = concatv(commands, ('',))  # add terminating newline
+        commands = (*commands, '') # add terminating newline
         if ext is None:
             return self.command_join.join(commands)
         elif ext:
@@ -1124,7 +1124,7 @@ class JSONFormatMixin(_Activator):
         }
 
 
-activator_map = {
+activator_map: dict[str, type[_Activator]] = {
     'posix': PosixActivator,
     'ash': PosixActivator,
     'bash': PosixActivator,
