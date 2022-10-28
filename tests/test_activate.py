@@ -13,6 +13,7 @@ from os.path import dirname, isdir, join
 from pathlib import Path
 from re import escape
 from subprocess import CalledProcessError, check_output
+import platform
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
@@ -107,6 +108,8 @@ PKG_B_ENV_VARS = '''
     "PKG_B_ENV": "berp"
 }
 '''
+
+HDF5_VERSION = "1.12.1"
 
 @lru_cache(maxsize=None)
 def bash_unsupported_because():
@@ -1976,18 +1979,23 @@ class InteractiveShell:
             self.sendline("@echo %%%s%%" % env_var)
             self.expect("@echo %%%s%%\r\n([^\r]*)\r" % env_var)
             value = self.p.match.groups()[0]
-        elif self.shell_name == 'powershell':
+        elif self.shell_name in ('powershell', 'pwsh'):
             self.sendline(self.print_env_var % env_var)
-            # The \r\n\( is the newline after the env var and the start of the prompt.
-            # If we knew the active env we could add that in as well as the closing )
-            self.expect(rf"\$Env:{env_var}\r\n([^\r]*)(\r\n).*")
-            value = self.p.match.groups()[0]
+            if platform.system() == "Windows":
+                # The \r\n\( is the newline after the env var and the start of the prompt.
+                # If we knew the active env we could add that in as well as the closing )
+                self.expect(rf"\$Env:{env_var}\r\n([^\r]*)(\r\n).*")
+                value = self.p.match.groups()[0]
+            else:
+                self.expect(f"\\$Env:{env_var}\n")
+                value = self.p.readline()
         else:
             self.sendline('echo get_var_start')
             self.sendline(self.print_env_var % env_var)
             self.sendline('echo get_var_end')
-            self.expect('get_var_start(.*)get_var_end')
-            value = self.p.match.groups()[0]
+            self.expect('get_var_start\n')
+            value = self.p.readline()
+            self.expect('get_var_end')
         if value is None:
             return default
         return ensure_text_type(value).strip()
@@ -2176,12 +2184,12 @@ class ShellWrapperIntegrationTests(TestCase):
         assert _CE_CONDA == _CE_CONDA2, "_CE_CONDA stacked changed by activation procedure\n:From\n{}\nto:\n{}".\
             format(_CE_CONDA, _CE_CONDA2)
 
-        shell.sendline('conda' + install + '-yq hdf5=1.10.2')
+        shell.sendline('conda' + install + f'-yq hdf5={HDF5_VERSION}')
         shell.expect('Executing transaction: ...working... done.*\n', timeout=60)
         shell.assert_env_var('?', '0', use_exact=True)
 
         shell.sendline('h5stat --version')
-        shell.expect(r'.*h5stat: Version 1.10.2.*')
+        shell.expect(fr'.*h5stat: Version {HDF5_VERSION}.*')
 
         # TODO: assert that reactivate worked correctly
 
@@ -2189,7 +2197,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.expect(conda_is_a_function)
 
         shell.sendline(f"conda run {dev_arg} h5stat --version")
-        shell.expect(r".*h5stat: Version 1.10.2.*")
+        shell.expect(fr'.*h5stat: Version {HDF5_VERSION}.*')
 
         # regression test for #6840
         shell.sendline('conda' + install + '--blah')
@@ -2393,7 +2401,7 @@ class ShellWrapperIntegrationTests(TestCase):
             assert 'charizard' in PATH
 
             print('## [PowerShell integration] Installing.')
-            shell.sendline('conda install -yq hdf5=1.10.2')
+            shell.sendline(f'conda install -yq hdf5={HDF5_VERSION}')
             shell.expect('Executing transaction: ...working... done.*\n', timeout=100)
             shell.sendline('$LASTEXITCODE')
             shell.expect('0')
@@ -2401,12 +2409,12 @@ class ShellWrapperIntegrationTests(TestCase):
 
             print('## [PowerShell integration] Checking installed version.')
             shell.sendline('h5stat --version')
-            shell.expect(r'.*h5stat: Version 1.10.2.*')
+            shell.expect(fr'.*h5stat: Version {HDF5_VERSION}.*')
 
             # conda run integration test
             print("## [PowerShell integration] Checking conda run.")
             shell.sendline(f"conda run {dev_arg} h5stat --version")
-            shell.expect(r".*h5stat: Version 1.10.2.*")
+            shell.expect(fr'.*h5stat: Version {HDF5_VERSION}.*')
 
             print('## [PowerShell integration] Deactivating')
             shell.sendline('conda deactivate')
@@ -2499,18 +2507,18 @@ class ShellWrapperIntegrationTests(TestCase):
                 #       not require an old or incompatible version of any
                 #       library critical to the correct functioning of
                 #       Python (e.g. OpenSSL).
-                shell.sendline('conda install -yq hdf5=1.10.2')
+                shell.sendline(f'conda install -yq hdf5={HDF5_VERSION}')
                 shell.expect('Executing transaction: ...working... done.*\n', timeout=100)
                 shell.assert_env_var('errorlevel', '0', True)
                 # TODO: assert that reactivate worked correctly
 
                 shell.sendline('h5stat --version')
-                shell.expect(r'.*h5stat: Version 1.10.2.*')
+                shell.expect(fr'.*h5stat: Version {HDF5_VERSION}.*')
 
                 # conda run integration test
                 shell.sendline(f"conda run {dev_arg} h5stat --version")
 
-                shell.expect(r'.*h5stat: Version 1.10.2.*')
+                shell.expect(fr'.*h5stat: Version {HDF5_VERSION}.*')
 
                 shell.sendline('conda deactivate --dev')
                 shell.assert_env_var('CONDA_SHLVL', '1\r')

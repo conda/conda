@@ -4,6 +4,7 @@ import pytest
 from conda import plugins
 from conda.models.plugins import CondaSubcommand
 
+
 class SubcommandPlugin:
     def __init__(self):
         self.invoked = False
@@ -23,7 +24,7 @@ class SubcommandPlugin:
 
 @pytest.fixture()
 def plugin(mocker, plugin_manager):
-    mocker.patch.object(SubcommandPlugin, 'custom_command')
+    mocker.patch.object(SubcommandPlugin, "custom_command")
 
     plugin = SubcommandPlugin()
     plugin_manager.register(plugin)
@@ -31,13 +32,13 @@ def plugin(mocker, plugin_manager):
 
 
 def test_invoked(plugin, cli_main):
-    cli_main('custom', 'some-arg', 'some-other-arg')
+    cli_main("custom", "some-arg", "some-other-arg")
 
-    plugin.custom_command.assert_called_with(['some-arg', 'some-other-arg'])
+    plugin.custom_command.assert_called_with(["some-arg", "some-other-arg"])
 
 
 def test_help(plugin, cli_main, capsys):
-    cli_main('--help')
+    cli_main("--help")
 
     stdout, stderr = capsys.readouterr()
 
