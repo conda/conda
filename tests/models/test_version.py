@@ -315,6 +315,15 @@ class TestVersionSpec(unittest.TestCase):
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("c +, 0/|0 *")
 
+        # Test for mishandling of '==' without a version number
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("==")
+        # Additional tests based on the above
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec(">=")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("<=")
+
     def test_compatible_release_versions(self):
         assert VersionSpec("~=1.10").match("1.11.0")
         assert not VersionSpec("~=1.10.0").match("1.11.0")
