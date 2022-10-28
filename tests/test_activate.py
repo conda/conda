@@ -1954,9 +1954,9 @@ class InteractiveShell:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
             log.exception("Exception encountered", exc_info=exc_val)
-            print("before:", self.p.before)
-            print("after:", self.p.after)
-            print("buffer:", self.p.buffer)
+            print("before:{", self.p.before, "}")
+            print("after:{", self.p.after, "}")
+            print("buffer:{", self.p.buffer, "}")
         if self.p:
             if self.exit_cmd:
                 self.sendline(self.exit_cmd)
@@ -2100,7 +2100,7 @@ class ShellWrapperIntegrationTests(TestCase):
         prefix3_p = activator.path_conversion(self.prefix3)
 
         PATH0 = shell.get_env_var('PATH', '')
-        assert any(p.endswith("condabin") for p in PATH0.split(":")), PATH0
+        assert any(p.endswith("condabin") for p in PATH0.split(":")), f"'{PATH0}'"
 
         # calling bash -l, as we do for MSYS2, may cause conda activation.
         shell.sendline('conda deactivate')
@@ -2111,7 +2111,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH0 = shell.get_env_var('PATH', '')
-        assert len([p for p in PATH0.split(":") if p.endswith("condabin")]) > 0, PATH0
+        assert len([p for p in PATH0.split(":") if p.endswith("condabin")]) > 0, f"'{PATH0}'"
         # Remove sys.prefix from PATH. It interferes with path entry count tests.
         # We can no longer check this since we'll replace e.g. between 1 and N path
         # entries with N of them in _replace_prefix_in_path() now. It is debatable
