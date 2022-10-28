@@ -159,6 +159,7 @@ def _make_virtual_package(name, version=None, build_string='0'):
             fn=name,
     )
 
+
 def _supplement_index_with_features(index, features=()):
     for feature in chain(context.track_features, features):
         rec = make_feature_record(feature)
