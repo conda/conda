@@ -1954,6 +1954,8 @@ class InteractiveShell:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
             print(f"Exception encountered: {exc_val}")
+            print("before:", self.p.before)
+            print("after:", self.p.after)
         if self.p:
             if self.exit_cmd:
                 self.sendline(self.exit_cmd)
@@ -1972,7 +1974,7 @@ class InteractiveShell:
         try:
             if use_exact:
                 self.p.expect_exact(value)
-                self.expect('.*\n')
+                self.expect('\n')
             else:
                 self.expect('%s\n' % value)
         except:
@@ -2002,6 +2004,7 @@ class InteractiveShell:
                 varfile = Path(td, env_var)
                 self.sendline((self.print_env_var % env_var) + f" > {varfile}")
                 value = None
+                time.sleep(0.1)
                 for i in range(20):
                     try:
                         value = varfile.read_text()
@@ -2096,7 +2099,7 @@ class ShellWrapperIntegrationTests(TestCase):
         prefix3_p = activator.path_conversion(self.prefix3)
 
         PATH0 = shell.get_env_var('PATH', '')
-        assert any(p.endswith("condabin") for p in PATH0.split(":"))
+        assert any(p.endswith("condabin") for p in PATH0.split(":")), PATH0
 
         # calling bash -l, as we do for MSYS2, may cause conda activation.
         shell.sendline('conda deactivate')
@@ -2107,7 +2110,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH0 = shell.get_env_var('PATH', '')
-        assert len([p for p in PATH0.split(":") if p.endswith("condabin")]) > 0
+        assert len([p for p in PATH0.split(":") if p.endswith("condabin")]) > 0, PATH0
         # Remove sys.prefix from PATH. It interferes with path entry count tests.
         # We can no longer check this since we'll replace e.g. between 1 and N path
         # entries with N of them in _replace_prefix_in_path() now. It is debatable
@@ -2136,7 +2139,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH', '')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':')), (PATH0, PATH1)
 
         CONDA_EXE = shell.get_env_var('CONDA_EXE')
         _CE_M = shell.get_env_var('_CE_M')
@@ -2255,13 +2258,13 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda' + activate + '"%s"' % prefix2_p)
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':')), (PATH0, PATH1)
 
         shell.sendline('conda' + activate + '"%s" --stack' % self.prefix3)
         shell.assert_env_var('CONDA_SHLVL', '2')
         PATH2 = shell.get_env_var('PATH')
-        assert 'charizard' in PATH2
-        assert 'venusaur' in PATH2
+        assert 'charizard' in PATH2, PATH2
+        assert 'venusaur' in PATH2, PATH2
         assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH2.split(':'))
 
         shell.sendline('conda' + activate + '"%s"' % prefix_p)
