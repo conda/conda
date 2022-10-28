@@ -20,7 +20,6 @@ from unittest import TestCase
 from uuid import uuid4
 
 import pytest
-from tlz.itertoolz import concatv
 
 from conda import __version__ as conda_version
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
@@ -1183,7 +1182,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
+            'PATH': os.pathsep.join(*new_path_parts, *(os.environ['PATH'],)),
         }):
             activator = PosixActivator()
             with captured() as c:
@@ -1278,7 +1277,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
+            'PATH': os.pathsep.join(*new_path_parts, *(os.environ['PATH'],)),
         }):
             activator = CmdExeActivator()
             with captured() as c:
@@ -1365,7 +1364,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
+            'PATH': os.pathsep.join(*new_path_parts, *(os.environ['PATH'],)),
         }):
             activator = CshActivator()
             with captured() as c:
@@ -1457,7 +1456,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
+            'PATH': os.pathsep.join(*new_path_parts, *(os.environ['PATH'],)),
         }):
             activator = XonshActivator()
             with captured() as c:
@@ -1552,7 +1551,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
+            'PATH': os.pathsep.join((*new_path_parts, *(os.environ['PATH'],))),
         }):
             activator = FishActivator()
             with captured() as c:
@@ -1631,7 +1630,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
+            'PATH': os.pathsep.join((*new_path_parts, os.environ['PATH'])),
         }):
             activator = PowerShellActivator()
             with captured() as c:
@@ -1728,7 +1727,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
+            'PATH': os.pathsep.join((*new_path_parts, os.environ['PATH'])),
         }):
             activator = _build_activator_cls('posix+json')()
             with captured() as c:
@@ -1787,7 +1786,6 @@ class ShellWrapperUnitTests(TestCase):
 
 
 class InteractiveShell:
-    activator = None
     init_command = None
     print_env_var = None
     from conda.utils import quote_for_shell
@@ -1892,7 +1890,13 @@ class InteractiveShell:
         self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
 
     def __enter__(self):
-        from pexpect.popen_spawn import PopenSpawn
+        # Different timeout difficulties - probably superior to popen_spawn if we use correctly
+        # try:
+        #     from pexpect.pty_spawn import spawn
+        # except ImportError:
+        #     assert platform.system() == "Windows", "pty_spawn unavailable on a non-Windows platform"
+
+        from pexpect.popen_spawn import PopenSpawn as spawn
 
         # remove all CONDA_ env vars
         # this ensures that PATH is shared with any msys2 bash shell, rather than starting fresh
@@ -1910,7 +1914,7 @@ class InteractiveShell:
         shell_found = which(self.shell_name) or self.shell_name
         args = list(self.args) if hasattr(self, 'args') else list()
 
-        p = PopenSpawn(
+        p = spawn(
             quote_for_shell(shell_found, *args),
             timeout=12,
             maxread=5000,
@@ -1924,7 +1928,10 @@ class InteractiveShell:
 
         # set state for context
         joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
-        PATH = joiner(self.activator.path_conversion(concatv(
+        activator = self.activator
+        assert activator is not None
+        assert joiner is not None
+        PATH = joiner(self.activator.path_conversion(chain(
             self.activator._get_starting_path_list(),
             (dirname(which(self.shell_name)),),
         )))
@@ -2294,8 +2301,7 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' not in PATH3
         assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
 
-    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
-    def test_bash_basic_integration(self):
+
         with InteractiveShell('bash') as shell:
             self.basic_posix(shell)
 
