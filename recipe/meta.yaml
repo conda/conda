@@ -38,7 +38,6 @@ requirements:
     - python
     - conda-package-handling >=1.3.0
     - menuinst >=1.4.11,<2         # [win]
-    - pluggy >=1.0.0
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
     - requests >=2.18.4,<3
