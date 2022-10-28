@@ -333,16 +333,19 @@ def make_temp_env(*packages, **kwargs):
             import pathlib
             name = hashlib.sha256(json.dumps({"packages":packages, **kwargs}).encode("utf-8")).hexdigest()[:8]
 
+            # conda arguments passed in packages array
+            eligible = not any(package.startswith("--") for package in packages)
             name_path = pathlib.Path(req_tempdir, f"req-{name}.txt")
-            if name_path.exists():
+            if eligible and name_path.exists():
                 print("It does exist!")
                 # --no-deps may be the biggest time saver
-                run_command(Commands.CREATE, prefix, "-C", "--no-deps", "--file", str(name_path))
+                run_command(Commands.CREATE, prefix, "-C", "--file", str(name_path))
             else:
                 print("Better luck next time")
                 run_command(Commands.CREATE, prefix, *packages, **kwargs)
-                stdout, stderr, stdwhat = run_command(Commands.LIST, prefix, "--export")
-                name_path.write_text(stdout)
+                if eligible:
+                    stdout, stderr, stdwhat = run_command(Commands.LIST, prefix, "--export")
+                    name_path.write_text(stdout)
 
             yield prefix
         finally:
