@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "noarch_entry_points"
+version = "1.0"
+description = "Test noarch=python with entry_points"
+requires-python = ">=3.7"
+dependencies = ["conda"]
+
+[tools.setuptools]
+py_modules=["noarch_entry_points"]
+
+[project.scripts]
+noarch_entry_points = "noarch_entry_points:main"

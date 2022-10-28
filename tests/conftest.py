@@ -31,6 +31,11 @@ def pre_link_messages_package():
     return _conda_build_recipe("pre_link_messages_package")
 
 
+@pytest.fixture(scope="session")
+def noarch_entry_points():
+    return _conda_build_recipe("noarch_entry_points")
+
+
 @pytest.fixture
 def clear_cache():
     from conda.core.subdir_data import SubdirData

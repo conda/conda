@@ -1,0 +1,22 @@
+package:
+  name: noarch_entry_points
+  version: 1.0
+
+source:
+  path: ./src
+
+build:
+  number: 0
+  noarch: python
+  script: python -m pip install . -vv
+  entry_points:
+    - noarch_entry_points = noarch_entry_points:main
+
+requirements:
+  host:
+    - python
+  run:
+    - python
+
+about:
+  summary: Test noarch=python with entry_points
