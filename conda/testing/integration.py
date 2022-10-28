@@ -339,12 +339,17 @@ def make_temp_env(*packages, **kwargs):
             if eligible and name_path.exists():
                 print("It does exist!")
                 # --no-deps may be the biggest time saver
-                run_command(Commands.CREATE, prefix, "-C", "--file", str(name_path))
+                nodeps = () # or ("--no-deps",)
+                run_command(Commands.CREATE, prefix, "-C", *nodeps, "--file", str(name_path))
             else:
                 print("Better luck next time")
                 run_command(Commands.CREATE, prefix, *packages, **kwargs)
                 if eligible:
                     stdout, stderr, stdwhat = run_command(Commands.LIST, prefix, "--export")
+                    lines = []
+                    for line in stdout.splitlines():
+                        # drop version numbers?
+                        lines.append(line.split("==", 1)[0])
                     name_path.write_text(stdout)
 
             yield prefix
