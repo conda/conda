@@ -1,7 +1,7 @@
 import warnings
 warnings.warn(
     "`conda._vendor.tqdm` is pending deprecation and will be removed in a future "
-    "release. Please depend on `tqdm`/`tqdm` instead.",
+    "release. Please depend on `tqdm` instead.",
     PendingDeprecationWarning,
 )
 
