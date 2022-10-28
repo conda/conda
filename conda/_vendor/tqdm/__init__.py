@@ -1,3 +1,10 @@
+import warnings
+warnings.warn(
+    "`conda._vendor.tqdm` is pending deprecation and will be removed in a future "
+    "release. Please depend on `tqdm`/`tqdm` instead.",
+    PendingDeprecationWarning,
+)
+
 from ._monitor import TMonitor, TqdmSynchronisationWarning
 from .cli import main  # TODO: remove in v5.0.0
 from .std import (
