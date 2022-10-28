@@ -1953,9 +1953,10 @@ class InteractiveShell:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print(f"Exception encountered: {exc_val}")
+            log.exception("Exception encountered", exc_info=exc_val)
             print("before:", self.p.before)
             print("after:", self.p.after)
+            print("buffer:", self.p.buffer)
         if self.p:
             if self.exit_cmd:
                 self.sendline(self.exit_cmd)
