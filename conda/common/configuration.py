@@ -780,8 +780,8 @@ class SequenceLoadedParameter(LoadedParameter):
         # coming earlier will ultimately be last
         bottom_lines = tuple(
             concat(
-                get_marked_lines(m, ParameterFlag.bottom)
-                for m, _ in reversed(relevant_matches_and_values)
+                get_marked_lines(match, ParameterFlag.bottom)
+                for match, _ in reversed(relevant_matches_and_values)
             )
         )
 
