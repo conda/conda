@@ -1182,7 +1182,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(*new_path_parts, *(os.environ['PATH'],)),
+            'PATH': os.pathsep.join((*new_path_parts, os.environ['PATH'])),
         }):
             activator = PosixActivator()
             with captured() as c:
@@ -1277,7 +1277,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(*new_path_parts, *(os.environ['PATH'],)),
+            'PATH': os.pathsep.join((*new_path_parts, os.environ['PATH'])),
         }):
             activator = CmdExeActivator()
             with captured() as c:
@@ -1364,7 +1364,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(*new_path_parts, *(os.environ['PATH'],)),
+            'PATH': os.pathsep.join((*new_path_parts, os.environ['PATH'])),
         }):
             activator = CshActivator()
             with captured() as c:
@@ -1456,7 +1456,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(*new_path_parts, *(os.environ['PATH'],)),
+            'PATH': os.pathsep.join((*new_path_parts, os.environ['PATH'])),
         }):
             activator = XonshActivator()
             with captured() as c:
@@ -1551,7 +1551,7 @@ class ShellWrapperUnitTests(TestCase):
         with env_vars({
             'CONDA_PREFIX': self.prefix,
             'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join((*new_path_parts, *(os.environ['PATH'],))),
+            'PATH': os.pathsep.join((*new_path_parts, os.environ['PATH'])),
         }):
             activator = FishActivator()
             with captured() as c:
