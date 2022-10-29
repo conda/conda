@@ -12,6 +12,7 @@ Features include:
 Easily extensible to other source formats, e.g. json and ini
 
 """
+from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -24,6 +25,7 @@ from os import environ, scandir, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
+from typing import Sequence, Union
 
 try:
     from tlz.itertoolz import concat, concatv, unique
@@ -206,7 +208,7 @@ class RawParameter(metaclass=ABCMeta):
         return str(vars(self))
 
     @abstractmethod
-    def value(self, parameter_obj):
+    def value(self, parameter_obj=None):
         raise NotImplementedError()
 
     @abstractmethod
@@ -227,7 +229,7 @@ class RawParameter(metaclass=ABCMeta):
 class EnvRawParameter(RawParameter):
     source = 'envvars'
 
-    def value(self, parameter_obj):
+    def value(self, parameter_obj=None):
         # note: this assumes that EnvRawParameters will only have flat configuration of either
         # primitive or sequential type
         if hasattr(parameter_obj, 'string_delimiter'):
@@ -269,7 +271,7 @@ class EnvRawParameter(RawParameter):
 class ArgParseRawParameter(RawParameter):
     source = 'cmd_line'
 
-    def value(self, parameter_obj):
+    def value(self, parameter_obj=None):
         # note: this assumes ArgParseRawParameter will only have flat configuration of either
         # primitive or sequential type
         if isiterable(self._raw_value):
@@ -323,7 +325,7 @@ class YamlRawParameter(RawParameter):
             print(type(self._raw_value), self._raw_value, file=sys.stderr)
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
-    def value(self, parameter_obj):
+    def value(self, parameter_obj=None):
         return self._value
 
     def keyflag(self):
@@ -432,7 +434,7 @@ class DefaultValueRawParameter(RawParameter):
         else:
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
-    def value(self, parameter_obj):
+    def value(self, parameter_obj=None):
         return self._value
 
     def keyflag(self):
@@ -744,6 +746,7 @@ class SequenceLoadedParameter(LoadedParameter):
             element_type (Parameter): The Parameter type that is held in the sequence.
             value_flags (Sequence): Sequence of priority value_flags.
         """
+        self.name = name
         self._element_type = element_type
         super().__init__(name, value, key_flag, value_flags, validation)
 
@@ -802,6 +805,58 @@ class SequenceLoadedParameter(LoadedParameter):
             self.key_flag,
             self.value_flags,
             validation=self._validation)
+
+
+class UnionSequenceLoadedParameter(SequenceLoadedParameter):
+    """
+    Implements the loader for the UnionSequenceParameter
+    """
+
+    def __init__(
+        self,
+        name,
+        value,
+        element_types: dict[str, UnionElementTypes],
+        key_flag,
+        value_flags,
+        validation=None,
+    ):
+        """
+        Args:
+            value (Sequence): Object with LoadedParameter fields.
+            element_types: The Parameter types that are held in the sequence.
+            value_flags (Sequence): Sequence of priority value_flags.
+        """
+        # TODO: _element_types should have a default implementation
+        self._element_types = element_types
+        self._valid_types = ",".join(typ.__class__.__name__ for typ in self._element_types)
+        super().__init__(name, value, None, key_flag, value_flags, validation)
+
+    def _get_element_type(self, source: str) -> UnionElementTypes:
+        """
+        Returns the appropriate element type to use.
+        We base this on what is contained in the `value` property.
+        """
+        element_type = None
+
+        if isinstance(self.value, primitive_types):
+            element_type = self._element_types.get("primitive")
+        elif isinstance(self.value, Mapping):
+            element_type = self._element_types.get("map")
+        elif isiterable(self.value):
+            element_type = self._element_types.get("sequence")
+
+        if element_type is None:
+            raise InvalidElementTypeError(
+                self.name, self.value, source, self.value.__class__.__name__, self._valid_types, 0
+            )
+
+        return element_type
+
+    def typify(self, source):
+        """We override this to account for handling multiple parameter types"""
+        self._element_type = self._get_element_type(source)
+        super().typify(source)
 
 
 class ObjectLoadedParameter(LoadedParameter):
@@ -1095,6 +1150,99 @@ class SequenceParameter(Parameter):
             self._element_type,
             match.keyflag(),
             match.valueflags(self._element_type),
+            validation=self._validation,
+        )
+
+
+#: These are the allowable types for a UnionSequenceParameter
+UnionElementTypes = Union[MapParameter, SequenceParameter, PrimitiveParameter]
+
+
+class UnionSequenceParameter(Parameter):
+    """
+    YAML sequence values can be heterogeneous. This class allows us to define multiple
+    "element_types" for YAML sequences. The big difference between this parameter type
+    and the others is that element_types is a sequence of allowable types rather than
+    just a single type.
+
+    Here's a typical example what that looks like in the YAML format:
+
+    ```yaml
+    channels:
+      - defaults  # <-- will be parsed as a PrimitiveParameter
+      - http://localhost:  # <-- will be parsed as a MapParameter
+          type: local-channel
+    ```
+    """
+
+    def __init__(
+        self,
+        element_types: dict[str, UnionElementTypes],
+        default: Sequence | None = None,
+        validation=None,
+    ):
+        # TODO: _element_types should have a default implementation, see context._channels
+        self._element_types = element_types
+        self._valid_types = ",".join(typ.__class__.__name__ for typ in self._element_types)
+        super().__init__(default, validation)
+
+    def _get_element_type_from_value(
+        self, name: str, match: RawParameter, index: int
+    ) -> UnionElementTypes:
+        """
+        Based on the raw value of an element, return the appropriate Parameter object
+        to parse it.
+        """
+        element_type = None
+        raw_value = match.value()
+
+        if isinstance(raw_value, primitive_types):
+            element_type = self._element_types.get("primitive")
+        elif isinstance(raw_value, Mapping):
+            element_type = self._element_types.get("map")
+        elif isiterable(raw_value):
+            element_type = self._element_types.get("sequence")
+
+        if element_type is None:
+            raise InvalidElementTypeError(
+                name,
+                raw_value,
+                match.source,
+                raw_value.__class__.__name__,
+                self._valid_types,
+                index,
+            )
+        return element_type
+
+    def load(self, name: str, match: RawParameter):
+        value = match.value()
+        if value is None:
+            return UnionSequenceLoadedParameter(
+                name,
+                tuple(),
+                self._element_types,
+                match.keyflag(),
+                tuple(),
+                validation=self._validation,
+            )
+
+        if not isiterable(value):
+            raise InvalidTypeError(
+                name, value, match.source, value.__class__.__name__, self._valid_types
+            )
+
+        loaded_sequence = []
+        for index, child_value in enumerate(value):
+            element_type = self._get_element_type_from_value(name, child_value, index)
+            loaded_child_value = element_type.load(name, child_value)
+            loaded_sequence.append(loaded_child_value)
+
+        return UnionSequenceLoadedParameter(
+            name,
+            tuple(loaded_sequence),
+            self._element_types,
+            match.keyflag(),
+            match.valueflags(self._element_types),
             validation=self._validation)
 
 

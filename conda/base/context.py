@@ -1,12 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from collections import OrderedDict
+from collections.abc import Mapping
 
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
-from typing import Optional
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
@@ -51,9 +52,16 @@ from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from ..common.compat import NoneType, odict, on_win
-from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
-                                    ParameterLoader, PrimitiveParameter, SequenceParameter,
-                                    ValidationError)
+from ..common.configuration import (
+    Configuration,
+    ConfigurationLoadError,
+    MapParameter,
+    ParameterLoader,
+    PrimitiveParameter,
+    SequenceParameter,
+    ValidationError,
+    UnionSequenceParameter,
+)
 from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
@@ -275,8 +283,14 @@ class Context(Configuration):
         expandvars=True)
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
-        SequenceParameter(PrimitiveParameter(
-            "", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)),
+        UnionSequenceParameter(
+            {
+                "sequence": SequenceParameter(PrimitiveParameter("", element_type=str)),
+                "primitive": PrimitiveParameter("", element_type=str),
+                "map": MapParameter(MapParameter(PrimitiveParameter("", element_type=str))),
+            },
+            default=(DEFAULTS_CHANNEL_NAME,),
+        ),
         aliases=('channels', 'channel',),
         expandvars=True)  # channel for args.channel
     _custom_channels = ParameterLoader(
@@ -476,19 +490,19 @@ class Context(Configuration):
         return _platform_map.get(sys.platform, 'unknown')
 
     @property
-    def default_threads(self) -> Optional[int]:
+    def default_threads(self) -> int | None:
         return self._default_threads if self._default_threads else None
 
     @property
-    def repodata_threads(self) -> Optional[int]:
+    def repodata_threads(self) -> int | None:
         return self._repodata_threads if self._repodata_threads else self.default_threads
 
     @property
-    def fetch_threads(self) -> Optional[int]:
+    def fetch_threads(self) -> int | None:
         return self._fetch_threads if self._fetch_threads else self.default_threads
 
     @property
-    def verify_threads(self) -> Optional[int]:
+    def verify_threads(self) -> int | None:
         if self._verify_threads:
             threads = self._verify_threads
         elif self.default_threads:
@@ -805,7 +819,45 @@ class Context(Configuration):
                 return tuple(IndexedSet(concatv(local_add, argparse_channels,
                                                 (DEFAULTS_CHANNEL_NAME,))))
 
-        return tuple(IndexedSet(concatv(local_add, self._channels)))
+        channels = self._get_channel_names()
+
+        return tuple(IndexedSet(concatv(local_add, channels)))
+
+    def _get_channel_names(self) -> tuple[str, ...]:
+        """
+        Iterates through the self._channel property to retrieve  just
+        the names of the channels. This is necessary because channels
+        can appear as either strings or mappings in the config file.
+        """
+        channel_names = []
+
+        for channel in self._channels:
+            if isinstance(channel, Mapping):
+                keys = channel.keys()
+                if len(keys) > 0:
+                    name, *_ = keys
+                    channel_names.append(name)
+            else:
+                channel_names.append(channel)
+
+        return tuple(channel_names)
+
+    @property
+    def channel_parameters(self) -> frozendict:
+        """
+        Return parameters associated with all channels if there are any.
+        It will be an empty frozendict if there are no parameters.
+        """
+        channel_params = {}
+        channel_names = self._get_channel_names()
+
+        for name, raw_value in zip(channel_names, self._channels):
+            if isinstance(raw_value, Mapping):
+                channel_params[name] = raw_value.get(name)
+            else:
+                channel_params[name] = frozendict()
+
+        return frozendict(channel_params)
 
     @property
     def config_files(self):
