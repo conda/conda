@@ -856,7 +856,7 @@ class UnionSequenceLoadedParameter(SequenceLoadedParameter):
     def typify(self, source):
         """We override this to account for handling multiple parameter types"""
         self._element_type = self._get_element_type(source)
-        super().typify(source)
+        return super().typify(source)
 
 
 class ObjectLoadedParameter(LoadedParameter):
