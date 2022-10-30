@@ -743,7 +743,7 @@ class SequenceLoadedParameter(LoadedParameter):
         """
         Args:
             value (Sequence): Sequence of LoadedParameter values.
-            element_type (Parameter): The Parameter type that is held in the sequence.
+            element_type (Parameter | None): The Parameter type that is held in the sequence.
             value_flags (Sequence): Sequence of priority value_flags.
         """
         self.name = name
@@ -816,7 +816,7 @@ class UnionSequenceLoadedParameter(SequenceLoadedParameter):
         self,
         name,
         value,
-        element_types: dict[str, UnionElementTypes],
+        element_type_map: dict[str, UnionElementTypes],
         key_flag,
         value_flags,
         validation=None,
@@ -824,12 +824,12 @@ class UnionSequenceLoadedParameter(SequenceLoadedParameter):
         """
         Args:
             value (Sequence): Object with LoadedParameter fields.
-            element_types: The Parameter types that are held in the sequence.
+            element_type_map: The Parameter types that appear in the sequence.
             value_flags (Sequence): Sequence of priority value_flags.
         """
-        # TODO: _element_types should have a default implementation
-        self._element_types = element_types
-        self._valid_types = ",".join(typ.__class__.__name__ for typ in self._element_types)
+        # TODO: should _element_type_map have a default value?
+        self._element_type_map = element_type_map
+        self._valid_types = ",".join(typ.__class__.__name__ for typ in self._element_type_map)
         super().__init__(name, value, None, key_flag, value_flags, validation)
 
     def _get_element_type(self, source: str) -> UnionElementTypes:
@@ -840,11 +840,11 @@ class UnionSequenceLoadedParameter(SequenceLoadedParameter):
         element_type = None
 
         if isinstance(self.value, primitive_types):
-            element_type = self._element_types.get("primitive")
+            element_type = self._element_type_map.get("primitive")
         elif isinstance(self.value, Mapping):
-            element_type = self._element_types.get("map")
+            element_type = self._element_type_map.get("map")
         elif isiterable(self.value):
-            element_type = self._element_types.get("sequence")
+            element_type = self._element_type_map.get("sequence")
 
         if element_type is None:
             raise InvalidElementTypeError(
@@ -1183,6 +1183,7 @@ class UnionSequenceParameter(Parameter):
     ):
         # TODO: _element_types should have a default implementation, see context._channels
         self._element_types = element_types
+        self._element_type = tuple(element for _, element in self._element_types.items())
         self._valid_types = ",".join(typ.__class__.__name__ for typ in self._element_types)
         super().__init__(default, validation)
 
@@ -1570,7 +1571,10 @@ class Configuration(metaclass=ConfigurationType):
         if not isiterable(et):
             et = [et]
 
-        if isinstance(parameter._element_type, Parameter):
+        # If it doesn't have  a __name__ attribute it's an object not a class
+        has_name = all(hasattr(element, "__name__") for element in et)
+
+        if isinstance(parameter._element_type, Parameter) or not has_name:
             element_types = tuple(
                 _et.__class__.__name__.lower().replace("parameter", "") for _et in et)
         else:

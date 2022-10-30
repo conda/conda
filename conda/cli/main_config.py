@@ -263,8 +263,11 @@ def execute_config(args, parser):
                                  context.list_parameters())
     primitive_parameters = grouped_paramaters['primitive']
     sequence_parameters = grouped_paramaters['sequence']
-    map_parameters = grouped_paramaters['map']
-    all_parameters = primitive_parameters + sequence_parameters + map_parameters
+    union_sequence_parameters = grouped_paramaters["unionsequence"]
+    map_parameters = grouped_paramaters["map"]
+    all_parameters = (
+        primitive_parameters + sequence_parameters + map_parameters + union_sequence_parameters
+    )
 
     # Get
     if args.get is not None:
@@ -317,7 +320,7 @@ def execute_config(args, parser):
             key, subkey = key.split('.', 1) if '.' in key else (key, None)
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
-            if key in sequence_parameters:
+            if key in sequence_parameters or key in union_sequence_parameters:
                 arglist = rc_config.setdefault(key, [])
             elif key in map_parameters:
                 arglist = rc_config.setdefault(key, {}).setdefault(subkey, [])
