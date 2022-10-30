@@ -5,12 +5,14 @@ from __future__ import annotations
 from collections import OrderedDict
 from collections.abc import Mapping
 
+import functools
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
+import pluggy
 import sys
 import struct
 from contextlib import contextmanager
@@ -68,6 +70,8 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..common.decorators import env_override
 
 from .. import CONDA_SOURCE_ROOT
+
+from .. import plugins
 
 try:
     os.getcwd()
@@ -156,6 +160,14 @@ def ssl_verify_validation(value):
                     "certificate bundle file, or a path to a directory containing "
                     "certificates of trusted CAs." % value)
     return True
+
+
+@functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
+def get_plugin_manager():
+    pm = pluggy.PluginManager('conda')
+    pm.add_hookspecs(plugins)
+    pm.load_setuptools_entrypoints('conda')
+    return pm
 
 
 class Context(Configuration):
@@ -414,6 +426,9 @@ class Context(Configuration):
                                                                              argparse_args)
 
         super().__init__(search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args)
+
+        # Add plugin support
+        self._plugin_manager = get_plugin_manager()
 
     def post_build_validation(self):
         errors = []

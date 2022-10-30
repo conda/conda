@@ -22,9 +22,12 @@ import warnings
 from .. import __version__
 from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
+from ..base import context
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier, SolverChoice
 from ..common.constants import NULL
+from ..common.io import dashlist
+from ..exceptions import PluginError
 
 log = getLogger(__name__)
 
@@ -113,6 +116,42 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
+        pm = context.get_plugin_manager()
+        self._subcommands = sorted(
+            (
+                subcommand
+                for subcommands in pm.hook.conda_subcommands()
+                for subcommand in subcommands
+            ),
+            key=lambda subcommand: subcommand.name,
+        )
+
+        # Check for conflicts
+        seen = set()
+        conflicts = [
+            subcommand
+            for subcommand in self._subcommands
+            if subcommand.name in seen or seen.add(subcommand.name)
+        ]
+        if conflicts:
+            raise PluginError(
+                dals(
+                    f"""
+                    Conflicting entries found for the following subcommands:
+                    {dashlist(conflicts)}
+                    Multiple conda plugins are registering these subcommands via the
+                    `conda_subcommands` hook; please make sure that
+                    you do not have any incompatible plugins installed.
+                    """
+                )
+            )
+
+        if self._subcommands:
+            self.epilog = 'conda commands available from other packages:' + ''.join(
+                f'\n {subcommand.name} - {subcommand.summary}'
+                for subcommand in self._subcommands
+            )
+
     def _get_action_from_name(self, name):
         """Given a name, get the Action instance registered with this parser.
         If only it were made available in the ArgumentError object. It is
@@ -148,6 +187,18 @@ class ArgumentParser(ArgumentParserBase):
                         self.print_help()
                         sys.exit(0)
                     else:
+                        # Run the subcommand from plugins
+                        for subcommand in self._subcommands:
+                            if cmd == subcommand.name:
+                                sys.exit(subcommand.action(sys.argv[2:]))
+                        # Run the subcommand from executables; legacy path
+                        warnings.warn(
+                            (
+                                "Loading conda subcommands via executables is "
+                                "pending deprecation in favor of the plugin system. "
+                            ),
+                            PendingDeprecationWarning,
+                        )
                         executable = find_executable('conda-' + cmd)
                         if not executable:
                             from ..exceptions import CommandNotFoundError
@@ -166,7 +217,7 @@ class ArgumentParser(ArgumentParserBase):
             other_commands = find_commands()
             if other_commands:
                 builder = ['']
-                builder.append("conda commands available from other packages:")
+                builder.append("conda commands available from other packages (legacy):")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
 
