@@ -6,7 +6,7 @@ from logging import getLogger
 
 import pytest
 
-from conda.cli.main import generate_parser
+from conda.cli.conda_argparse import generate_parser
 from conda.cli.python_api import Commands, run_command
 from conda.exceptions import CommandNotFoundError, EnvironmentLocationNotFound
 
