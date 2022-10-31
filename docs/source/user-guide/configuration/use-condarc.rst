@@ -178,7 +178,6 @@ General configuration
 =====================
 
 * :ref:`config-channels`
-* :ref:`allow-other-channels`
 * :ref:`default-channels`
 * :ref:`auto-update-conda`
 * :ref:`always-yes`
@@ -223,36 +222,6 @@ home directory and the environment is named "flowers", the
 path may be::
 
   ~/miniconda3/envs/flowers/.condarc
-
-.. _allow-other-channels:
-
-Allow other channels (allow_other_channels)
--------------------------------------------
-
-The system-level ``.condarc`` file may specify a set of allowed
-channels, and it may allow users to install packages from other
-channels with the boolean flag ``allow_other_channels``. The default
-is ``True``.
-
-If ``allow_other_channels`` is set to ``False``, only those channels
-explicitly specified in the system ``.condarc`` file are allowed:
-
-.. code-block:: yaml
-
-  allow_other_channels: False
-
-When ``allow_other_channels`` is set to ``True`` or not specified,
-each user has access to the default channels and to any channels
-that the user specifies in their local ``.condarc`` file. When
-``allow_other_channels`` is set to ``false``, if the user specifies
-other channels, the other channels are blocked and the user
-receives a message reporting that channels are blocked. For more
-information, see :ref:`admin-inst`.
-
-If the system ``.condarc`` file specifies a ``channel_alias``,
-it overrides any channel aliases set in a user's ``.condarc``
-file. See :ref:`channel-alias`.
-
 
 .. _default-channels:
 
@@ -727,6 +696,7 @@ Conda-build configuration
 
 * :ref:`specify-root-dir`
 * :ref:`specify-output-folder`
+* :ref:`pkg_format`
 * :ref:`auto-upload`
 * :ref:`anaconda-token`
 * :ref:`quiet`
@@ -774,6 +744,18 @@ the root build directory (``root-dir``).
 
    conda-build:
        output_folder: conda-bld
+
+.. pkg_format:
+
+Specify conda-build package version (pkg_version)
+-------------------------------------------------
+
+Conda package version to create. Use ``2`` for ``.conda`` packages. If not set, conda-build defaults to ``.tar.bz2``.
+
+.. code-block:: yaml
+
+   conda-build:
+      pkg_format: 2
 
 .. _auto-upload:
 
@@ -985,7 +967,7 @@ These are:
 - ``pkgs_dirs``
 - ``proxy_servers``
 - ``verify_ssl``
-- ``whitelist_channels``
+- ``allowlist_channels``
 
 This allows you to store the credentials of a private repository in an
 environment variable, like so:

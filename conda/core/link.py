@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import itertools
 from collections import defaultdict, namedtuple
@@ -14,6 +12,11 @@ from traceback import format_exception_only
 from textwrap import indent
 import warnings
 
+try:
+    from tlz.itertoolz import concat, concatv, interleave
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, interleave
+
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
@@ -24,7 +27,6 @@ from .prefix_data import PrefixData, get_python_version_for_prefix
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.ish import dals
-from .._vendor.toolz import concat, concatv, interleave
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
 from ..cli.common import confirm_yn
@@ -44,7 +46,6 @@ from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, is_conda_environment, softlink_supported
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
-from ..models.enums import MetadataSignatureStatus
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
@@ -78,16 +79,19 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
             extracted_package_dir = basename(prefix_record.link.source)
         except AttributeError:
             # for backward compatibility only
-            extracted_package_dir = '%s-%s-%s' % (prefix_record.name, prefix_record.version,
-                                                  prefix_record.build)
+            extracted_package_dir = "{}-{}-{}".format(
+                prefix_record.name, prefix_record.version, prefix_record.build
+            )
 
-    meta_short_path = '%s/%s' % ('conda-meta', extracted_package_dir + '.json')
-    remove_conda_meta_actions = (RemoveLinkedPackageRecordAction(transaction_context,
-                                                                 prefix_record,
-                                                                 target_prefix, meta_short_path),)
+    meta_short_path = "{}/{}".format("conda-meta", extracted_package_dir + ".json")
+    remove_conda_meta_actions = (
+        RemoveLinkedPackageRecordAction(
+            transaction_context, prefix_record, target_prefix, meta_short_path
+        ),
+    )
 
     _all_d = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
-    all_directories = sorted(explode_directories(_all_d, already_split=True), reverse=True)
+    all_directories = sorted(explode_directories(_all_d), reverse=True)
     directory_remove_actions = tuple(UnlinkPathAction(transaction_context, prefix_record,
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
@@ -158,7 +162,7 @@ ChangeReport = namedtuple("ChangeReport", (
 ))
 
 
-class UnlinkLinkTransaction(object):
+class UnlinkLinkTransaction:
 
     def __init__(self, *setups):
         self.prefix_setups = odict((stp.target_prefix, stp) for stp in setups)
@@ -301,7 +305,7 @@ class UnlinkLinkTransaction(object):
         if not isdir(target_prefix):
             try:
                 mkdir_p(target_prefix)
-            except (IOError, OSError) as e:
+            except OSError as e:
                 log.debug(repr(e))
                 raise CondaError("Unable to create prefix directory '%s'.\n"
                                  "Check that you have sufficient permissions."
@@ -467,10 +471,12 @@ class UnlinkLinkTransaction(object):
         prefix_record_groups = prefix_action_group.prefix_record_groups
 
         lower_on_win = lambda p: p.lower() if on_win else p
-        unlink_paths = set(lower_on_win(axn.target_short_path)
-                           for grp in unlink_action_groups
-                           for axn in grp.actions
-                           if isinstance(axn, UnlinkPathAction))
+        unlink_paths = {
+            lower_on_win(axn.target_short_path)
+            for grp in unlink_action_groups
+            for axn in grp.actions
+            if isinstance(axn, UnlinkPathAction)
+        }
         # we can get all of the paths being linked by looking only at the
         #   CreateLinkedPackageRecordAction actions
         create_lpr_actions = (axn
@@ -601,7 +607,7 @@ class UnlinkLinkTransaction(object):
             try:
                 dir_existed = mkdir_p(dirname(test_path))
                 open(test_path, "a").close()
-            except EnvironmentError:
+            except OSError:
                 if dir_existed is False:
                     rm_rf(dirname(test_path))
                 yield EnvironmentNotWritableError(prefix_setup.target_prefix)
@@ -727,9 +733,11 @@ class UnlinkLinkTransaction(object):
                 prec = axngroup.pkg_data
 
                 if prec:
-                    log.error("An error occurred while %s package '%s'." % (
-                            'uninstalling' if is_unlink else 'installing',
-                            prec.dist_str()))
+                    log.error(
+                        "An error occurred while {} package '{}'.".format(
+                            "uninstalling" if is_unlink else "installing", prec.dist_str()
+                        )
+                    )
 
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
@@ -931,7 +939,7 @@ class UnlinkLinkTransaction(object):
             actions = defaultdict(list)
             if q == 0:
                 self._pfe.prepare()
-                download_urls = set(axn.url for axn in self._pfe.cache_actions)
+                download_urls = {axn.url for axn in self._pfe.cache_actions}
                 actions['FETCH'].extend(prec for prec in self._pfe.link_precs
                                         if prec.url in download_urls)
 
@@ -951,7 +959,7 @@ class UnlinkLinkTransaction(object):
     def print_transaction_summary(self):
         legacy_action_groups = self._make_legacy_action_groups()
 
-        download_urls = set(axn.url for axn in self._pfe.cache_actions)
+        download_urls = {axn.url for axn in self._pfe.cache_actions}
 
         for actions, (prefix, stp) in zip(legacy_action_groups, self.prefix_setups.items()):
             change_report = self._calculate_change_report(prefix, stp.unlink_precs, stp.link_precs,
@@ -1057,66 +1065,54 @@ class UnlinkLinkTransaction(object):
                 left_str = left_str[:37] + "~"
             builder.append("  %-18s %38s --> %s" % (display_key, left_str, right_str))
 
-        def fmt_sig_status(prec):
-            if not context.extra_safety_checks:
-                return ""
-
-            status = getattr(prec, "metadata_signature_status", None)
-            if not context.extra_safety_checks or status is None:
-                # TODO (AV): deal with virtual packages more sensibly
-                status_str = ""
-            elif status == MetadataSignatureStatus.verified:
-                # TODO (AV): replaced hard-coded signer name with data from key
-                status_str = " (INFO: package metadata is signed by Anaconda and trusted)"
-            elif status == MetadataSignatureStatus.unsigned:
-                status_str = ""
-            else:
-                status_str = " (WARNING: metadata signature verification failed)"
-            return status_str
-
         if change_report.new_precs:
             builder.append("\nThe following NEW packages will be INSTALLED:\n")
             for namekey in sorted(change_report.new_precs, key=convert_namekey):
                 link_prec = change_report.new_precs[namekey]
-                display_key = strip_global(namekey)
-                display_str = link_prec.record_id() + fmt_sig_status(link_prec)
-                add_single(display_key, display_str)
+                add_single(
+                    strip_global(namekey),
+                    f"{link_prec.record_id()} {link_prec['metadata_signature_status']}",
+                )
 
         if change_report.removed_precs:
             builder.append("\nThe following packages will be REMOVED:\n")
             for namekey in sorted(change_report.removed_precs, key=convert_namekey):
                 unlink_prec = change_report.removed_precs[namekey]
-                builder.append("  " + "-".join(
-                    (unlink_prec.name, unlink_prec.version, unlink_prec.build)
-                ))
+                builder.append(f"  {unlink_prec.name}-{unlink_prec.version}-{unlink_prec.build}")
 
         if change_report.updated_precs:
             builder.append("\nThe following packages will be UPDATED:\n")
             for namekey in sorted(change_report.updated_precs, key=convert_namekey):
                 unlink_prec, link_prec = change_report.updated_precs[namekey]
-                display_key = strip_global(namekey)
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
-                right_str += fmt_sig_status(link_prec)
-                add_double(display_key, left_str, right_str)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {link_prec['metadata_signature_status']}",
+                )
 
         if change_report.superseded_precs:
             builder.append("\nThe following packages will be SUPERSEDED "
                            "by a higher-priority channel:\n")
             for namekey in sorted(change_report.superseded_precs, key=convert_namekey):
                 unlink_prec, link_prec = change_report.superseded_precs[namekey]
-                display_key = strip_global(namekey)
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
-                right_str += fmt_sig_status(link_prec)
-                add_double(display_key, left_str, right_str)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {link_prec['metadata_signature_status']}",
+                )
 
         if change_report.downgraded_precs:
             builder.append("\nThe following packages will be DOWNGRADED:\n")
             for namekey in sorted(change_report.downgraded_precs, key=convert_namekey):
                 unlink_prec, link_prec = change_report.downgraded_precs[namekey]
-                display_key = strip_global(namekey)
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
-                right_str += fmt_sig_status(link_prec)
-                add_double(display_key, left_str, right_str)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {link_prec['metadata_signature_status']}",
+                )
         builder.append('')
         builder.append('')
         return "\n".join(builder)
@@ -1159,7 +1155,7 @@ class UnlinkLinkTransaction(object):
             else:
                 superseded_precs[namekey] = (unlink_prec, link_prec)
 
-        fetch_precs = set(prec for prec in link_precs if prec.url in download_urls)
+        fetch_precs = {prec for prec in link_precs if prec.url in download_urls}
         change_report = ChangeReport(prefix, specs_to_remove, specs_to_add, removed_precs,
                                      new_precs, updated_precs, downgraded_precs, superseded_precs,
                                      fetch_precs)
@@ -1171,9 +1167,11 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
-    path = join(prefix,
-                'Scripts' if on_win else 'bin',
-                '.%s-%s.%s' % (prec.name, action, 'bat' if on_win else 'sh'))
+    path = join(
+        prefix,
+        "Scripts" if on_win else "bin",
+        ".{}-{}.{}".format(prec.name, action, "bat" if on_win else "sh"),
+    )
     if not isfile(path):
         return True
 
@@ -1248,7 +1246,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
                 if 'openssl' in prec.dist_str():
                     # this is a hack for conda-build string parsing in the conda_build/build.py
                     #   create_env function
-                    message = "%s failed for: %s" % (action, prec)
+                    message = f"{action} failed for: {prec}"
                 else:
                     message = dals("""
                     %s script failed for package %s

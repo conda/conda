@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
 import json
 import os
-import yaml
+import tempfile
 
 import pytest
 import unittest
@@ -12,8 +11,7 @@ import unittest
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
-from conda.cli.conda_argparse import do_call
-from conda.cli.main import generate_parser
+from conda.cli.conda_argparse import do_call, generate_parser
 from conda.common.compat import odict
 from conda.common.io import captured
 from conda.common.serialize import yaml_safe_load
@@ -23,6 +21,7 @@ from conda.exceptions import (
     CondaEnvException,
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
+    SpecNotFound,
 )
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
@@ -175,11 +174,11 @@ def run_conda_command(command, prefix, *arguments):
     if arguments:
         arguments = list(map(escape_for_winpath, arguments))
     if command is Commands.INFO:    # INFO
-        command_line = "{0} {1}".format(command, " ".join(arguments))
+        command_line = "{} {}".format(command, " ".join(arguments))
     elif command is Commands.LIST:  # LIST
-        command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
+        command_line = "{} -n {} {}".format(command, prefix, " ".join(arguments))
     else:  # CREATE
-        command_line = "{0} -y -q -n {1} {2}".format(command, prefix, " ".join(arguments))
+        command_line = "{} -y -q -n {} {}".format(command, prefix, " ".join(arguments))
 
     from conda.auxlib.compat import shlex_split_unicode
     commands = shlex_split_unicode(command_line)
@@ -209,7 +208,7 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
         for env_nb in range(1, 6):
-            run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
+            run_env_command(Commands.ENV_REMOVE, f"envjson-{env_nb}")
 
     def tearDown(self):
         rm_rf("environment.yml")
@@ -217,7 +216,7 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
         for env_nb in range(1, 6):
-             run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
+            run_env_command(Commands.ENV_REMOVE, f"envjson-{env_nb}")
 
     def test_conda_env_create_no_file(self):
         '''
@@ -279,7 +278,7 @@ class IntegrationTests(unittest.TestCase):
         else:
             pytest.fail("Didn't find YAML data in output")
 
-        output = yaml.safe_load('\n'.join(lines[lineno:]))
+        output = yaml_safe_load('\n'.join(lines[lineno:]))
         assert output['name'] == 'env-1'
         assert len(output['dependencies']) > 0
 
@@ -314,6 +313,18 @@ class IntegrationTests(unittest.TestCase):
             len([env for env in parsed["envs"] if env.endswith(TEST_ENV_NAME_1)]), 0
         )
 
+    def test_conda_env_create_empty_file(self):
+        """
+        Test `conda env create --file=file_name.yml` where file_name.yml is empty
+        """
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".yml", delete=False)
+
+        with self.assertRaises(SpecNotFound):
+            run_env_command(Commands.ENV_CREATE, None, "--file", tmp_file.name)
+
+        tmp_file.close()
+        os.unlink(tmp_file.name)
+
     @pytest.mark.integration
     def test_conda_env_create_http(self):
         '''
@@ -322,8 +333,8 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(
             Commands.ENV_CREATE,
             None,
-            '--file',
-            'https://raw.githubusercontent.com/conda/conda/master/tests/conda_env/support/simple.yml',
+            "--file",
+            "https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/simple.yml",
         )
         try:
             self.assertTrue(env_is_created("nlp"))

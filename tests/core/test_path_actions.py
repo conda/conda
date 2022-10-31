@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import importlib.util
 from logging import getLogger
@@ -15,22 +13,21 @@ from uuid import uuid4
 
 import pytest
 
+from conda.common.iterators import groupby_to_dict as groupby
+from conda.auxlib.ish import dals
 from conda.auxlib.collection import AttrDict
-from conda._vendor.toolz.itertoolz import groupby
 from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.path import get_bin_directory_short_path, get_python_noarch_target_path, \
     get_python_short_path, get_python_site_packages_short_path, parse_entry_point_def, pyc_path, \
-    win_path_ok
+    win_path_ok, explode_directories
 from conda.core.path_actions import CompileMultiPycAction, CreatePythonEntryPointAction, LinkPathAction
-from conda.exceptions import ParseError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
 from conda.gateways.disk.test import softlink_supported
-from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.records import PathDataV1
 
@@ -204,9 +201,9 @@ class PathActionsTests(TestCase):
         command, module, func = parse_entry_point_def('command1=some.module:main')
         assert command == 'command1'
         if on_win:
-            target_short_path = "%s\\%s-script.py" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}-script.py"
         else:
-            target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}/{command}"
         assert py_ep_axn.target_full_path == join(self.prefix, target_short_path)
         assert py_ep_axn.module == module == 'some.module'
         assert py_ep_axn.func == func == 'main'
@@ -217,12 +214,24 @@ class PathActionsTests(TestCase):
         if not on_win:
             assert is_executable(py_ep_axn.target_full_path)
         with open(py_ep_axn.target_full_path) as fh:
-            lines = fh.readlines()
-            first_line = lines[0].strip()
-            last_line = lines[-1].strip()
+            lines = fh.read()
+            last_line = lines.splitlines()[-1].strip()
         if not on_win:
             python_full_path = join(self.prefix, get_python_short_path(target_python_version))
-            assert first_line == "#!%s" % python_full_path
+            if " " in self.prefix:
+                # spaces in prefix break shebang! we use this python/shell workaround
+                # also seen in virtualenv
+                assert lines.startswith(
+                    dals(
+                        f"""
+                        #!/bin/sh
+                        '''exec' "{python_full_path}" "$0" "$@"
+                        ' '''
+                        """
+                    )
+                )
+            else:
+                assert lines.startswith(f"#!{python_full_path}\n")
         assert last_line == "sys.exit(%s())" % func
 
         py_ep_axn.reverse()
@@ -230,7 +239,7 @@ class PathActionsTests(TestCase):
 
         if on_win:
             windows_exe_axn = windows_exe_axns[0]
-            target_short_path = "%s\\%s.exe" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}.exe"
             assert windows_exe_axn.target_full_path == join(self.prefix, target_short_path)
 
             mkdir_p(dirname(windows_exe_axn.target_full_path))
@@ -534,3 +543,29 @@ class PathActionsTests(TestCase):
     #                     axn.execute()
     #             axn.reverse()
     #             assert not lexists(axn.target_full_path)
+
+
+def test_explode_directories():
+    try:
+        import tlz as toolz
+    except:
+        import conda._vendor.toolz as toolz
+
+    def old_explode_directories(child_directories, already_split=False):
+        # get all directories including parents
+        # use already_split=True for the result of get_all_directories()
+        maybe_split = lambda x: x if already_split else x.split("/")
+        return set(
+            toolz.concat(
+                toolz.accumulate(join, maybe_split(directory))
+                for directory in child_directories
+                if directory
+            )
+        )
+
+    old_version = old_explode_directories(
+        (os.path.split(path) for path in sys.path), already_split=True
+    )
+    new_version = explode_directories(os.path.split(path) for path in sys.path)
+
+    assert new_version == old_version

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib
 from logging import DEBUG, getLogger
@@ -18,8 +16,15 @@ from ...auxlib.ish import dals
 from ...auxlib.logz import stringify
 from ...base.context import context
 from ...common.io import time_recorder
-from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
-                           ChecksumMismatchError, maybe_raise, ProxyError)
+from ...exceptions import (
+    BasicClobberError,
+    CondaDependencyError,
+    CondaHTTPError,
+    CondaSSLError,
+    ChecksumMismatchError,
+    maybe_raise,
+    ProxyError,
+)
 
 log = getLogger(__name__)
 
@@ -68,7 +73,7 @@ def download(
                     streamed_bytes = resp.raw.tell()
                     try:
                         fh.write(chunk)
-                    except IOError as e:
+                    except OSError as e:
                         message = "Failed to write to %(target_path)s\n  errno: %(errno)d"
                         # TODO: make this CondaIOError
                         raise CondaError(message, target_path=target_full_path, errno=e.errno)
@@ -93,7 +98,7 @@ def download(
                                  content_length=content_length,
                                  downloaded_bytes=streamed_bytes)
 
-        except (IOError, OSError) as e:
+        except OSError as e:
             if e.errno == 104:
                 # Connection reset by peer
                 log.debug("%s, trying again" % e)
@@ -128,7 +133,33 @@ def download(
         else:
             raise
 
-    except (ConnectionError, HTTPError, SSLError) as e:
+    except SSLError as e:
+        # SSLError: either an invalid certificate or OpenSSL is unavailable
+        try:
+            import ssl  # noqa: F401
+        except ImportError:
+            raise CondaSSLError(
+                dals(
+                    f"""
+                    OpenSSL appears to be unavailable on this machine. OpenSSL is required to
+                    download and install packages.
+
+                    Exception: {e}
+                    """
+                )
+            )
+        else:
+            raise CondaSSLError(
+                dals(
+                    f"""
+                    Encountered an SSL error. Most likely a certificate verification issue.
+
+                    Exception: {e}
+                    """
+                )
+            )
+
+    except (ConnectionError, HTTPError) as e:
         help_message = dals("""
         An HTTP error occurred when trying to retrieve this URL.
         HTTP errors are often intermittent, and a simple retry will get you on your way.
@@ -187,7 +218,7 @@ def download_text(url):
     return response.text
 
 
-class TmpDownload(object):
+class TmpDownload:
     """
     Context manager to handle downloads to a tempfile
     """

@@ -76,7 +76,7 @@ Installing PyPy
 
 To use the PyPy builds you can do the following::
 
-    conda config conda config --add channels conda-forge
+    conda config --add channels conda-forge
     conda config --set channel_priority strict
     conda create -n pypy pypy
     conda activate pypy

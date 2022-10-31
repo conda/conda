@@ -1,3 +1,10 @@
+import warnings
+warnings.warn(
+    "`conda._vendor.toolz` is pending deprecation and will be removed in a future "
+    "release. Please depend on `toolz`/`cytoolz` instead.",
+    PendingDeprecationWarning,
+)
+
 try:
     from cytoolz import __version__ as cytoolz_version
     if tuple(int(x) for x in cytoolz_version.split(".")) < (0, 8, 2):

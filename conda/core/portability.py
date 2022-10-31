@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import annotations
 
 from logging import getLogger
 from os.path import realpath
@@ -10,9 +9,10 @@ import struct
 import subprocess
 import sys
 
+from ..auxlib.ish import dals
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import on_win
+from ..common.compat import on_win, on_linux
 from ..exceptions import CondaIOError, BinaryPrefixReplacementError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
@@ -27,24 +27,43 @@ SHEBANG_REGEX = (br'^(#!'  # pretty much the whole match string
                  br'(.*)'  # the rest of the line can contain option flags
                  br')$')  # end whole_shebang group
 
+MAX_SHEBANG_LENGTH = 127 if on_linux else 512  # Not used on Windows
+
+# These are the most common file encodings that we run across when having to replace our
+# PREFIX_PLACEHOLDER string. They apply to binary and text formats.
+# More information/discussion: https://github.com/conda/conda/pull/9946
+POPULAR_ENCODINGS = (
+    "utf-8",
+    "utf-16-le",
+    "utf-16-be",
+    "utf-32-le",
+    "utf-32-be",
+)
+
 
 class _PaddingError(Exception):
     pass
 
 
-def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text,
-                  subdir=context.subdir):
+def update_prefix(
+    path,
+    new_prefix,
+    placeholder=PREFIX_PLACEHOLDER,
+    mode=FileMode.text,
+    subdir=context.subdir,
+):
     if on_win and mode == FileMode.text:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
-        new_prefix = new_prefix.replace('\\', '/')
+        new_prefix = new_prefix.replace("\\", "/")
 
     def _update_prefix(original_data):
 
         # Step 1. do all prefix replacement
         data = replace_prefix(mode, original_data, placeholder, new_prefix)
 
-        # Step 2. if the shebang is too long, shorten it using /usr/bin/env trick
+        # Step 2. if the shebang is too long or the new prefix contains spaces, shorten it using
+        # /usr/bin/env trick -- NOTE: this trick assumes the environment WILL BE activated
         if not on_win:
             data = replace_long_shebang(mode, data)
 
@@ -67,44 +86,84 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
         subprocess.run(['/usr/bin/codesign', '-s', '-', '-f', realpath(path)], capture_output=True)
 
 
-def replace_prefix(mode, data, placeholder, new_prefix):
-    if mode == FileMode.text:
-        data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
-    elif mode == FileMode.binary:
-        data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
-    else:
-        raise CondaIOError("Invalid mode: %r" % mode)
+def replace_prefix(mode: FileMode, data: bytes, placeholder: str, new_prefix: str) -> bytes:
+    """
+    Replaces `placeholder` text with the `new_prefix` provided. The `mode` provided can
+    either be text or binary.
+
+    We use the `POPULAR_ENCODINGS` module level constant defined above to make several
+    passes at replacing the placeholder. We do this to account for as many encodings as
+    possible. If this causes any performance problems in the future, it could potentially
+    be removed (i.e. just using the most popular "utf-8" encoding").
+
+    More information/discussion available here: https://github.com/conda/conda/pull/9946
+    """
+    for encoding in POPULAR_ENCODINGS:
+        if mode == FileMode.text:
+            if not on_win:
+                # if new_prefix contains spaces, it might break the shebang!
+                # handle this by escaping the spaces early, which will trigger a
+                # /usr/bin/env replacement later on
+                newline_pos = data.find(b"\n")
+                if newline_pos > -1:
+                    shebang_line, rest_of_data = data[:newline_pos], data[newline_pos:]
+                    shebang_placeholder = f"#!{placeholder}".encode(encoding)
+                    if shebang_placeholder in shebang_line:
+                        escaped_shebang = f"#!{new_prefix}".replace(" ", "\\ ").encode(encoding)
+                        shebang_line = shebang_line.replace(shebang_placeholder, escaped_shebang)
+                        data = shebang_line + rest_of_data
+            # the rest of the file can be replaced normally
+            data = data.replace(placeholder.encode(encoding), new_prefix.encode(encoding))
+        elif mode == FileMode.binary:
+            data = binary_replace(
+                data, placeholder.encode(encoding), new_prefix.encode(encoding), encoding=encoding
+            )
+        else:
+            raise CondaIOError("Invalid mode: %r" % mode)
     return data
 
 
-def binary_replace(data, a, b):
+def binary_replace(
+    data: bytes, search: bytes, replacement: bytes, encoding: str = "utf-8"
+) -> bytes:
     """
-    Perform a binary replacement of `data`, where the placeholder `a` is
-    replaced with `b` and the remaining string is padded with null characters.
+    Perform a binary replacement of `data`, where the placeholder `search` is
+    replaced with `replacement` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
+
+    Parameters
+    ----------
+    data:
+        The bytes object that will be searched and replaced
+    search:
+        The bytes object to find
+    replacement:
+        The bytes object that will replace `search`
+    encoding: str
+        The encoding of the expected string in the binary.
     """
+    zeros = "\0".encode(encoding)
     if on_win:
         # on Windows for binary files, we currently only replace a pyzzer-type entry point
         #   we skip all other prefix replacement
         if has_pyzzer_entry_point(data):
-            return replace_pyzzer_entry_point_shebang(data, a, b)
+            return replace_pyzzer_entry_point_shebang(data, search, replacement)
         else:
             return data
 
     def replace(match):
-        occurrences = match.group().count(a)
-        padding = (len(a) - len(b)) * occurrences
+        occurrences = match.group().count(search)
+        padding = (len(search) - len(replacement)) * occurrences
         if padding < 0:
             raise _PaddingError
-        return match.group().replace(a, b) + b'\0' * padding
+        return match.group().replace(search, replacement) + b"\0" * padding
 
     original_data_len = len(data)
-    pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
+    pat = re.compile(re.escape(search) + b"(?:(?!(?:" + zeros + b")).)*" + zeros)
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
 
     return data
-
 
 def has_pyzzer_entry_point(data):
     pos = data.rfind(b'PK\x05\x06')
@@ -165,19 +224,44 @@ def replace_long_shebang(mode, data):
     if mode == FileMode.text:
         if not isinstance(data, bytes):
             try:
-                data = bytes(data, encoding='utf-8')
+                data = bytes(data, encoding="utf-8")
             except:
-                data = data.encode('utf-8')
+                data = data.encode("utf-8")
 
         shebang_match = re.match(SHEBANG_REGEX, data, re.MULTILINE)
         if shebang_match:
             whole_shebang, executable, options = shebang_match.groups()
-            if len(whole_shebang) > 127:
-                executable_name = executable.decode('utf-8').split('/')[-1]
-                new_shebang = '#!/usr/bin/env %s%s' % (executable_name, options.decode('utf-8'))
-                data = data.replace(whole_shebang, new_shebang.encode('utf-8'))
+            prefix, executable_name = executable.decode("utf-8").rsplit("/", 1)
+            if len(whole_shebang) > MAX_SHEBANG_LENGTH or "\\ " in prefix:
+                new_shebang = f"#!/usr/bin/env {executable_name}{options.decode('utf-8')}"
+                data = data.replace(whole_shebang, new_shebang.encode("utf-8"))
 
     else:
         # TODO: binary shebangs exist; figure this out in the future if text works well
         pass
     return data
+
+
+def generate_shebang_for_entry_point(executable):
+    shebang = f"#!{executable}\n"
+    # In principle, this shebang ^ will work as long as the path
+    # to the python executable does not contain spaces AND it's not
+    # longer than 127 characters. But if it does, we can fix it.
+    # Following method inspired by `pypa/distlib`
+    # https://github.com/pypa/distlib/blob/91aa92e64/distlib/scripts.py#L129
+    # Explanation: these lines are both valid Python and shell :)
+    # 1. Python will read it as a triple-quoted multiline string; end of story
+    # 2. The shell will see:
+    #       * '' (empty string)
+    #       * 'exec' "path/with spaces/to/python" "this file" "arguments"
+    #       * ' ''' (quoted space followed by empty string)
+    if len(shebang) > MAX_SHEBANG_LENGTH or " " in shebang:
+        shebang = dals(
+            f"""
+            #!/bin/sh
+            '''exec' "{executable}" "$0" "$@"
+            ' '''
+            """
+        )
+
+    return shebang

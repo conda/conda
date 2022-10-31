@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import print_function
 
 from argparse import RawDescriptionHelpFormatter
 import json
@@ -12,7 +10,7 @@ import textwrap
 from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
-    add_parser_prefix, add_parser_networking, add_parser_experimental_solver
+    add_parser_prefix, add_parser_networking, add_parser_solver
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import SpecNotFound
 from conda.gateways.disk.delete import rm_rf
@@ -23,17 +21,27 @@ from .. import specs
 from ..installers.base import InvalidInstaller, get_installer
 
 description = """
-Create an environment based on an environment file
+Create an environment based on an environment definition file.
+
+If using an environment.yml file (the default), you can name the
+environment in the first line of the file with 'name: envname' or
+you can specify the environment name in the CLI command using the
+-n/--name argument. The name specified in the CLI will override
+the name specified in the environment.yml file.
+
+Unless you are in the directory containing the environment definition
+file, use -f to specify the file path of the environment definition
+file you want to use.
 """
 
 example = """
 examples:
     conda env create
-    conda env create -n name
-    conda env create vader/deathstar
-    conda env create -f=/path/to/environment.yml
-    conda env create -f=/path/to/requirements.txt -n deathstar
-    conda env create -f=/path/to/requirements.txt -p /home/user/software/deathstar
+    conda env create -n envname
+    conda env create folder/envname
+    conda env create -f /path/to/environment.yml
+    conda env create -f /path/to/requirements.txt -n envname
+    conda env create -f /path/to/requirements.txt -p /home/user/envname
 """
 
 
@@ -48,7 +56,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-f', '--file',
         action='store',
-        help='environment definition file (default: environment.yml)',
+        help='Environment definition file (default: environment.yml)',
         default='environment.yml',
     )
 
@@ -60,27 +68,28 @@ def configure_parser(sub_parsers):
 
     p.add_argument(
         'remote_definition',
-        help='remote environment definition / IPython notebook',
+        help='Remote environment definition / IPython notebook',
         action='store',
         default=None,
         nargs='?'
     )
     p.add_argument(
         '--force',
-        help=('force creation of environment (removing a previously existing '
+        help=('Force creation of environment (removing a previously-existing '
               'environment of the same name).'),
         action='store_true',
         default=False,
     )
     p.add_argument(
         '-d', '--dry-run',
-        help='Only display what would have been done.',
+        help='Only display what can be done with the current command, arguments, '
+             'and other flags. Remove this flag to actually run the command.',
         action='store_true',
         default=False
     )
     add_parser_default_packages(p)
     add_parser_json(p)
-    add_parser_experimental_solver(p)
+    add_parser_solver(p)
     p.set_defaults(func='.main_create.execute')
 
 

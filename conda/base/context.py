@@ -1,20 +1,27 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
 
+import functools
 from errno import ENOENT
+from functools import lru_cache
 from logging import getLogger
+from typing import Optional
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
+import pluggy
 import sys
 import struct
 from contextlib import contextmanager
 from datetime import datetime
 import warnings
+
+try:
+    from tlz.itertoolz import concat, concatv, unique
+except ImportError:
+    from conda._vendor.toolz.itertoolz import concat, concatv, unique
 
 from .constants import (
     APP_NAME,
@@ -34,18 +41,17 @@ from .constants import (
     SEARCH_PATH,
     SafetyChecks,
     SatSolverChoice,
-    ExperimentalSolverChoice,
+    SolverChoice,
     UpdateModifier,
     CONDA_LOGS_DIR,
     PREFIX_NAME_DISALLOWED_CHARS,
 )
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
-from ..auxlib.decorators import memoize, memoizedproperty
+from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
-from .._vendor.toolz import concat, concatv, unique
 from ..common.compat import NoneType, odict, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
@@ -57,9 +63,11 @@ from ..common.decorators import env_override
 
 from .. import CONDA_SOURCE_ROOT
 
+from .. import plugins
+
 try:
     os.getcwd()
-except (IOError, OSError) as e:
+except OSError as e:
     if e.errno == ENOENT:
         # FileNotFoundError can occur when cwd has been deleted out from underneath the process.
         # To resolve #6584, let's go with setting cwd to sys.prefix, and see how far we get.
@@ -146,6 +154,14 @@ def ssl_verify_validation(value):
     return True
 
 
+@functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
+def get_plugin_manager():
+    pm = pluggy.PluginManager('conda')
+    pm.add_hookspecs(plugins)
+    pm.load_setuptools_entrypoints('conda')
+    return pm
+
+
 class Context(Configuration):
 
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
@@ -176,10 +192,16 @@ class Context(Configuration):
     # multithreading in various places
     _default_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                        aliases=('default_threads',))
+    # download repodata
     _repodata_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                         aliases=('repodata_threads',))
-    _verify_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
-                                      aliases=('verify_threads',))
+    # download packages; determined experimentally
+    _fetch_threads = ParameterLoader(
+        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
+    )
+    _verify_threads = ParameterLoader(
+        PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
+    )
     # this one actually defaults to 1 - that is handled in the property below
     _execute_threads = ParameterLoader(PrimitiveParameter(0, element_type=int),
                                        aliases=('execute_threads',))
@@ -290,8 +312,9 @@ class Context(Configuration):
     override_channels_enabled = ParameterLoader(PrimitiveParameter(True))
     show_channel_urls = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     use_local = ParameterLoader(PrimitiveParameter(False))
-    whitelist_channels = ParameterLoader(
+    allowlist_channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str)),
+        aliases=("whitelist_channels",),
         expandvars=True)
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
@@ -327,9 +350,20 @@ class Context(Configuration):
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
     solver_ignore_timestamps = ParameterLoader(PrimitiveParameter(False))
-    experimental_solver = ParameterLoader(
-        PrimitiveParameter(ExperimentalSolverChoice.CLASSIC, element_type=ExperimentalSolverChoice)
+    solver = ParameterLoader(
+        PrimitiveParameter(SolverChoice.CLASSIC, element_type=SolverChoice),
+        aliases=('experimental_solver',),
     )
+
+    @property
+    def experimental_solver(self):
+        # TODO: Remove in a later release
+        warnings.warn(
+            "'context.experimental_solver' is pending deprecation and will be removed. "
+            "Please consider use 'context.solver' instead.",
+            PendingDeprecationWarning
+        )
+        return self.solver
 
     # # CLI-only
     # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
@@ -377,8 +411,10 @@ class Context(Configuration):
                         os.environ['CONDA_PREFIX'] = determine_target_prefix(context,
                                                                              argparse_args)
 
-        super(Context, self).__init__(search_path=search_path, app_name=APP_NAME,
-                                      argparse_args=argparse_args)
+        super().__init__(search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args)
+
+        # Add plugin support
+        self._plugin_manager = get_plugin_manager()
 
     def post_build_validation(self):
         errors = []
@@ -455,15 +491,19 @@ class Context(Configuration):
         return _platform_map.get(sys.platform, 'unknown')
 
     @property
-    def default_threads(self):
+    def default_threads(self) -> Optional[int]:
         return self._default_threads if self._default_threads else None
 
     @property
-    def repodata_threads(self):
+    def repodata_threads(self) -> Optional[int]:
         return self._repodata_threads if self._repodata_threads else self.default_threads
 
     @property
-    def verify_threads(self):
+    def fetch_threads(self) -> Optional[int]:
+        return self._fetch_threads if self._fetch_threads else self.default_threads
+
+    @property
+    def verify_threads(self) -> Optional[int]:
         if self._verify_threads:
             threads = self._verify_threads
         elif self.default_threads:
@@ -488,9 +528,9 @@ class Context(Configuration):
             return self._subdir
         m = platform.machine()
         if m in non_x86_machines:
-            return '%s-%s' % (self.platform, m)
-        elif self.platform == 'zos':
-            return 'zos-z'
+            return f"{self.platform}-{m}"
+        elif self.platform == "zos":
+            return "zos-z"
         else:
             return '%s-%d' % (self.platform, self.bits)
 
@@ -523,7 +563,7 @@ class Context(Configuration):
         if isfile(path):
             try:
                 fh = open(path, 'a+')
-            except (IOError, OSError) as e:
+            except OSError as e:
                 log.debug(e)
                 return False
             else:
@@ -819,23 +859,23 @@ class Context(Configuration):
 
     @memoizedproperty
     def user_agent(self):
-        builder = ["conda/%s requests/%s" % (CONDA_VERSION, self.requests_version)]
+        builder = [f"conda/{CONDA_VERSION} requests/{self.requests_version}"]
         builder.append("%s/%s" % self.python_implementation_name_version)
         builder.append("%s/%s" % self.platform_system_release)
         builder.append("%s/%s" % self.os_distribution_name_version)
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
-        if self.experimental_solver.value != "classic":
+        if self.solver.value != "classic":
             from ..core.solve import _get_solver_class
 
-            user_agent_str = "solver/%s" % self.experimental_solver.value
+            user_agent_str = "solver/%s" % self.solver.value
             try:
                 # Solver.user_agent has to be a static or class method
                 user_agent_str += f" {_get_solver_class().user_agent()}"
             except Exception as exc:
                 log.debug(
                     "User agent could not be fetched from solver class '%s'.",
-                    self.experimental_solver.value,
+                    self.solver.value,
                     exc_info=exc
                 )
             builder.append(user_agent_str)
@@ -936,7 +976,7 @@ class Context(Configuration):
                 "channel_alias",
                 "default_channels",
                 "override_channels_enabled",
-                "whitelist_channels",
+                "allowlist_channels",
                 "custom_channels",
                 "custom_multichannels",
                 "migrated_channel_aliases",
@@ -947,6 +987,7 @@ class Context(Configuration):
                 "repodata_fns",
                 "use_only_tar_bz2",
                 "repodata_threads",
+                "fetch_threads",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -975,7 +1016,7 @@ class Context(Configuration):
                 "pinned_packages",
                 "pip_interop_enabled",
                 "track_features",
-                "experimental_solver",
+                "solver",
             ),
             "Package Linking and Install-time Configuration": (
                 "allow_softlinks",
@@ -1291,6 +1332,12 @@ class Context(Configuration):
                 see much benefit here.
                 """
             ),
+            fetch_threads=dals(
+                """
+                Threads to use when downloading packages.  When not set,
+                defaults to None, which uses the default ThreadPoolExecutor behavior.
+                """
+            ),
             force_reinstall=dals(
                 """
                 Ensure that any user-requested package for the current operation is uninstalled
@@ -1540,7 +1587,7 @@ class Context(Configuration):
                 defaults to 1.
                 """
             ),
-            whitelist_channels=dals(
+            allowlist_channels=dals(
                 """
                 The exclusive list of channels allowed to be used on the system. Use of any
                 other channels will result in an error. If conda-build channels are to be
@@ -1563,7 +1610,7 @@ class Context(Configuration):
                 longer the generation of the unsat hint will take. Defaults to 3.
                 """
             ),
-            experimental_solver=dals(
+            solver=dals(
                 """
                 A string to choose between the different solver logics implemented in
                 conda. A solver logic takes care of turning your requested packages into a
@@ -1610,7 +1657,7 @@ def fresh_context(env=None, search_path=SEARCH_PATH, argparse_args=None, **kwarg
         reset_context()
 
 
-class ContextStackObject(object):
+class ContextStackObject:
 
     def __init__(self, search_path=SEARCH_PATH, argparse_args=None):
         self.set_value(search_path, argparse_args)
@@ -1623,7 +1670,7 @@ class ContextStackObject(object):
         reset_context(self.search_path, self.argparse_args)
 
 
-class ContextStack(object):
+class ContextStack:
 
     def __init__(self):
         self._stack = [ContextStackObject() for _ in range(3)]
@@ -1692,7 +1739,8 @@ def replace_context_default(pushing=None, argparse_args=None):
 # and not to stack_context_default.
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
-@memoize
+
+@lru_cache(maxsize=None)
 def _get_cpu_info():
     # DANGER: This is rather slow
     from .._vendor.cpuinfo import get_cpu_info
@@ -1814,7 +1862,7 @@ def _first_writable_envs_dir():
             try:
                 open(envs_dir_magic_file, 'a').close()
                 return envs_dir
-            except (IOError, OSError):
+            except OSError:
                 log.trace("Tried envs_dir but not writable: %s", envs_dir)
         else:
             from ..gateways.disk.create import create_envs_directory

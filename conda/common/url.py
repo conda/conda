@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
 from collections import namedtuple
+from functools import lru_cache
 from getpass import getpass
 from os.path import abspath, expanduser
 import re
@@ -13,23 +12,16 @@ import warnings
 
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
-from ..auxlib.decorators import memoize
 
-try:  # pragma: py2 no cover
-    # Python 3
-    from urllib.parse import (
-        quote,
-        quote_plus,
-        unquote,
-        unquote_plus,  # NOQA
-        urlparse as _urlparse,
-        urlunparse as _urlunparse,
-        ParseResult,
-    )
-except ImportError:  # pragma: py3 no cover
-    # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus,  # NOQA
-                        urlparse as _urlparse, urlunparse as _urlunparse)
+from urllib.parse import (  # NOQA
+    quote,
+    quote_plus,
+    unquote,
+    unquote_plus,
+    urlparse as _urlparse,
+    urlunparse as _urlunparse,
+    ParseResult,
+)
 
 
 def hex_octal_to_int(ho):
@@ -42,7 +34,7 @@ def hex_octal_to_int(ho):
     return res
 
 
-@memoize
+@lru_cache(maxsize=None)
 def percent_decode(path):
 
     # This is not fast so avoid when we can.
@@ -91,7 +83,7 @@ def url_to_path(url):
 """
 
 
-@memoize
+@lru_cache(maxsize=None)
 def path_to_url(path):
     if not path:
         raise ValueError('Not allowed: %r' % path)
@@ -171,7 +163,7 @@ class Url(namedtuple("Url", url_attrs)):
             scheme = scheme.lower()
         if hostname:
             hostname = hostname.lower()
-        return super(Url, cls).__new__(
+        return super().__new__(
             cls, scheme, path, query, fragment, username, password, hostname, port
         )
 
@@ -223,7 +215,7 @@ class Url(namedtuple("Url", url_attrs)):
         return cls(**values)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def urlparse(url: str) -> Url:
     if on_win and url.startswith('file:'):
         url.replace('\\', '/')
@@ -272,7 +264,7 @@ def is_ipv4_address(string_ip):
     """
     try:
         socket.inet_aton(string_ip)
-    except socket.error:
+    except OSError:
         return False
     return string_ip.count('.') == 3
 
@@ -287,7 +279,7 @@ def is_ipv6_address(string_ip):
     """
     try:
         socket.inet_pton(socket.AF_INET6, string_ip)
-    except socket.error:
+    except OSError:
         return False
     return True
 
@@ -370,7 +362,7 @@ def split_platform(known_subdirs, url):
     return cleaned_url.rstrip('/'), platform
 
 
-@memoize
+@lru_cache(maxsize=None)
 def _split_platform_re(known_subdirs):
     _platform_match_regex = r'/(%s)(?:/|$)' % r'|'.join(r'%s' % d for d in known_subdirs)
     return re.compile(_platform_match_regex, re.IGNORECASE)
@@ -429,7 +421,7 @@ def split_conda_url_easy_parts(known_subdirs, url):
     )
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_proxy_username_and_pass(scheme):
     username = input("\n%s proxy username: " % scheme)
     passwd = getpass("Password: ")

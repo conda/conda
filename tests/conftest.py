@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from pathlib import Path
@@ -8,6 +7,7 @@ import pytest
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
+    "conda.testing.gateways.fixtures",
     "conda.testing.notices.fixtures",
     "conda.testing.fixtures",
 )

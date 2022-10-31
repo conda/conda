@@ -1,11 +1,9 @@
-from __future__ import absolute_import, division, print_function
-try:
-    from collections.abc import Hashable
-except ImportError:
-    from collections import Hashable
+from collections.abc import Hashable
 from types import GeneratorType
+import warnings
 
-from .._vendor.six import wraps
+from functools import wraps
+
 
 # TODO: spend time filling out functionality and make these more robust
 
@@ -48,6 +46,13 @@ def memoize(func):
     Traceback (most recent call last):
     TypeError: Can't memoize a generator or non-hashable object!
     """
+    warnings.warn(
+        "The `conda.auxlib.decorators.memoize` decorator is pending deprecation and will be "
+        "removed in a future release. Please use `functools.lru_cache` instead.",
+        PendingDeprecationWarning,
+        stacklevel=2,
+    )
+
     func._result_cache = {}  # pylint: disable-msg=W0212
 
     @wraps(func)
@@ -306,7 +311,8 @@ def memoizedproperty(func):
 #
 #     return property(fget_memoized)
 
-class classproperty(object):  # pylint: disable=C0103
+
+class classproperty:  # pylint: disable=C0103
     # from celery.five
 
     def __init__(self, getter=None, setter=None):

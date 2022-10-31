@@ -1,5 +1,147 @@
 [//]: # (current developments)
 
+## 22.9.0 (2022-09-14)
+
+### Special announcement
+
+If you have been following the conda project previously, you will notice a change in our version number for this release. We have officially switched to the [CalVer](https://calver.org/) versioning system as agreed upon in [CEP 8](https://github.com/conda-incubator/ceps/blob/main/cep-8.md) (Conda Enhancement Proposal).
+
+Please read that CEP for more information, but here is a quick synopsis. We hope that this versioning system and our release schedule will help make our releases more predictable and transparent to the community going forward. We are now committed to making at least one release every two months, but keep in mind that we can (and most likely will) be making minor version releases within this window.
+
+### Enhancements
+
+* Replace vendored toolz with toolz dependency. (#11589, #11700)
+* Update bundled Python launchers for Windows (`conda/shell/cli-*.exe`) to match the ones found in conda-build. (#11676)
+* Add `win-arm64` as a known platform (subdir). (#11778)
+
+### Bug fixes
+
+* Remove extra prefix injection related to the shell interface breaking `conda run`. (#11666)
+* Better support for shebang instructions in prefixes with spaces. (#11676)
+* Fix `noarch` entry points in Unicode-containing prefixes on Windows. (#11694)
+* Ensure that exceptions that are raised show up properly instead of resulting in a blank `[y/N]` prompt. (#11746)
+
+### Deprecations
+
+* Mark `conda._vendor.toolz` as pending deprecation. (#11704)
+* Removes vendored version of urllib3. (#11705)
+
+### Docs
+
+* Added conda capitalization standards to CONTRIBUTING file. (#11712)
+
+### Other
+
+* Add arm64 support to development script `. ./dev/start`. (#11752)
+* Update canary-release version to resolve canary build issue. (#11761)
+* Renamed canary recipe from `conda.recipe` to `recipe`. (#11774)
+
+### Contributors
+
+* @beeankha
+* @chenghlee
+* @conda-bot
+* @dholth
+* @isuruf
+* @jaimergp
+* @jezdez
+* @razzlestorm made their first contribution in https://github.com/conda/conda/pull/11736
+* @jakirkham
+* @kathatherine
+* @kenodegard
+* @scdub made their first contribution in https://github.com/conda/conda/pull/11816
+* @travishathaway
+* @pre-commit-ci[bot]
+
+
+## 4.14.0 (2022-08-02)
+
+### Enhancements
+
+* Only star activated environment in `conda info --envs`/`conda env list`. (#10764)
+* Adds new sub-command, `conda notices`, for retrieving channel notices. (#11462)
+* Notices will be intermittently shown after running, `install`, `create`, `update`, `env create` or `env update`. New notices will only be shown once. (#11462)
+* Implementation of a new `rename` subcommand. (#11496)
+* Split `SSLError` from `HTTPError` to help resolve HTTP 000 errors. (#11564)
+* Include the invalid package name in the error message. (#11601)
+* Bump requests version (`>=2.20.1`) and drop monkeypatching. (#11643)
+* Rename `whitelist_channels` to `allowlist_channels`. (#11647)
+* Always mention channel when notifying about a new conda update. (#11671)
+
+### Bug fixes
+
+
+* Correct a misleading `conda --help` error message. (#11625)
+* Fix support for CUDA version detection on WSL2. (#11626)
+* Fixed the bug when providing empty environment.yml to `conda env create` command. (#11556, #11630)
+* Fix MD5 hash generation for FIPS-enabled systems. (#11658)
+* Fixed `TypeError` encountered when logging is set to DEBUG and the package's JSON cannot be read. (#11679)
+
+### Deprecations
+
+
+* `conda.cli.common.ensure_name_or_prefix` is pending deprecation in a future release. (#11490)
+* Mark `conda.lock` as pending deprecation. (#11571)
+* Remove lgtm.com config. (#11572)
+* Remove Python 2.7 `conda.common.url.is_ipv6_address_win_py27` implementation. (#11573)
+* Remove redundant `conda.resolve.dashlist` definition. (#11578)
+* Mark `conda_env.cli.common.get_prefix` and `conda.base.context.get_prefix` as pending deprecation in favor of `conda.base.context.determine_target_prefix`. (#11594)
+* Mark `conda_env.cli.common.stdout_json` as pending deprecation in favor of `conda.cli.common.stdout_json`. (#11595)
+* Mark `conda_env.cli.common.find_prefix_name` as pending deprecation. (#11596)
+* Mark `conda.auxlib.decorators.memoize` as pending deprecation in favor of `functools.lru_cache`. (#11597)
+* Mark `conda.exports.memoized` as pending deprecation in favor of `functools.lru_cache`. (#11597)
+* Mark `conda.exports.handle_proxy_407` as pending deprecation. (#11597)
+* Refactor `conda.activate._Activator.get_export_unset_vars` to use `**kwargs` instead of `OrderedDict`. (#11649)
+* Mark `conda.another_to_unicode` as pending deprecation. (#11678)
+
+### Docs
+
+* Corresponding documentation of `notices` subcommand. (#11462)
+* Corresponding documentation of `rename` subcommand. (#11496)
+* Correct docs URL to https://docs.conda.io. (#11508)
+* Updated the list of environment variables that can now expand in the [Use Condarc](https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#expansion-of-environment-variables) section. (#11514)
+* Include notice that the "All Users" installation option in the Anaconda Installer is no longer available due to [security concerns](https://github.com/ContinuumIO/anaconda-distribution-installer/commit/301e84f84b63d654045d4d7871b726de39fc9bb5). (#11528)
+* Update [`conda-zsh-completeion` link](https://github.com/conda-incubator/conda-zsh-completion). (#11541)
+* Missing `pip` as a dependency when including a pip-installed dependency. (#11543)
+* Convert `README.rst` to `README.md`. (#11544)
+* Updated docs and CLI help to include information on `conda init` arguments. (#11574)
+* Added docs for writing integration tests. (#11604)
+* Updated `conda env create` CLI documentation description and examples to be more helpful. (#11611)
+
+### Other
+
+
+* Display tests summary in CI. (#11558)
+* Update `Dockerfile` and `ci-images.yml` flow to build multi arch images. (#11560)
+* Rename master branch to main. (#11570)
+
+### Contributors
+
+* @drewja made their first contribution in #11614
+* @beeankha
+* @topherocity made their first contribution in #11658
+* @conda-bot
+* @dandv made their first contribution in #11636
+* @dbast
+* @dholth
+* @deepyaman made their first contribution in #11598
+* @dogukanteber made their first contribution in #11556/#11630
+* @jaimergp
+* @kathatherine
+* @kenodegard
+* @nps1ngh made their first contribution in #10764
+* @pseudoyim made their first contribution in #11528
+* @SamStudio8 made their first contribution in #11679
+* @SamuelWN made their first contribution in #11543
+* @spencermathews made their first contribution in #11508
+* @timgates42
+* @timhoffm made their first contribution in #11601
+* @travishathaway
+* @esc
+* @pre-commit-ci[bot]
+
+
+
 ## 4.13.0 (2022-05-19)
 
 ### Enhancements

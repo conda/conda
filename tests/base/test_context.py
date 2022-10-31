@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
 import os
@@ -12,10 +10,10 @@ from tempfile import gettempdir
 from unittest import TestCase, mock
 
 import pytest
+from tlz.itertoolz import concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda._vendor.toolz.itertoolz import concat
 from conda.base.constants import PathConflict, ChannelPriority
 from conda.base.context import (
     context,
@@ -121,7 +119,7 @@ class ContextCustomRcTests(TestCase):
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
-        assert len(context.default_channels) is 0
+        assert len(context.default_channels) == 0
         assert context.signing_metadata_url_base is None
 
 
@@ -457,7 +455,7 @@ class ContextCustomRcTests(TestCase):
         for attr in [
             "channels",
             "default_channels",
-            "whitelist_channels",
+            "allowlist_channels",
         ]:
             value = _get_expandvars_context(attr, "['${TEST_VAR}']", "foo")
             assert value == ("foo",)

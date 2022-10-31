@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from distutils.sysconfig import get_python_lib
 from logging import getLogger
@@ -33,7 +31,7 @@ from conda.testing.helpers import tempdir
 try:
     from unittest.mock import Mock, patch
 except ImportError:
-    from mock import Mock, patch
+    from unittest.mock import Mock, patch
 
 
 log = getLogger(__name__)
@@ -860,7 +858,9 @@ class InitializeTests(TestCase):
 
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
-            eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' 'shell.bash' 'hook')"
+            if [ -f '%(cygpath_conda_prefix)s/Scripts/conda.exe' ]; then
+                eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' 'shell.bash' 'hook')"
+            fi
             # <<< conda initialize <<<
 
             # . etc/profile.d/conda.sh  # commented out by conda initialize

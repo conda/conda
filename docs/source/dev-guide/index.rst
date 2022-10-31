@@ -7,8 +7,10 @@ Developer guide
 
    contributing
    development-environment
+   writing-tests/index.rst
    releasing
    ../architecture
+   plugin-api/index
    deep-dive-install
    deep-dive-activation
    deep-dive-context

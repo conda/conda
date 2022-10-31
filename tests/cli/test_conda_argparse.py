@@ -1,14 +1,12 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 
 import pytest
 
-from conda.cli.main import generate_parser
+from conda.cli.conda_argparse import generate_parser
 from conda.cli.python_api import Commands, run_command
 from conda.exceptions import CommandNotFoundError, EnvironmentLocationNotFound
 

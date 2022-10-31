@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,6 +26,7 @@ def cuda_detect():
             'libcuda.so',  # check library path first
             '/usr/lib64/nvidia/libcuda.so',  # Redhat/CentOS/Fedora
             '/usr/lib/x86_64-linux-gnu/libcuda.so',  # Ubuntu
+            '/usr/lib/wsl/lib/libcuda.so',  # WSL
         ]
     elif system == 'Windows':
         lib_filenames = ['nvcuda.dll']

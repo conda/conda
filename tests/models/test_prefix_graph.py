@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import lru_cache
 from pprint import pprint
 
-from conda.auxlib.decorators import memoize
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import CyclicalDependencyError
@@ -21,9 +19,10 @@ import pytest
 try:
     from unittest.mock import Mock, patch
 except ImportError:
-    from mock import Mock, patch
+    from unittest.mock import Mock, patch
 
-@memoize
+
+@lru_cache(maxsize=None)
 def get_conda_build_record_set(tmpdir):
     specs = MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("intel-openmp"),
     with get_solver_4(tmpdir, specs) as solver:
@@ -31,7 +30,7 @@ def get_conda_build_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_pandas_record_set(tmpdir):
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.13")
     with get_solver_4(tmpdir, specs) as solver:
@@ -39,7 +38,7 @@ def get_pandas_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_windows_conda_build_record_set(tmpdir):
     specs = (MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("affine"),
              MatchSpec("colour"), MatchSpec("uses-spiffy-test-app"),)
@@ -48,7 +47,7 @@ def get_windows_conda_build_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_sqlite_cyclical_record_set(tmpdir):
     # sqlite-3.20.1-haaaaaaa_4
     specs = MatchSpec("sqlite=3.20.1[build_number=4]"), MatchSpec("flask"),
@@ -222,10 +221,14 @@ def test_prefix_graph_1(tmpdir):
     )
     assert nodes == order
 
-    spec_matches = add_subdir_to_iter({
-        'channel-4::intel-openmp-2018.0.3-0': {'intel-openmp'},
-    })
-    assert {node.dist_str(): set(str(ms) for ms in specs) for node, specs in graph.spec_matches.items()} == spec_matches
+    spec_matches = add_subdir_to_iter(
+        {
+            "channel-4::intel-openmp-2018.0.3-0": {"intel-openmp"},
+        }
+    )
+    assert {
+        node.dist_str(): {str(ms) for ms in specs} for node, specs in graph.spec_matches.items()
+    } == spec_matches
 
     removed_nodes = graph.prune()
     nodes = tuple(rec.dist_str() for rec in graph.records)

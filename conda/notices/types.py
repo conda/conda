@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
 from datetime import datetime
+import hashlib
 from pathlib import Path
-from urllib import parse
 from typing import NamedTuple, Optional, Sequence
 
 from ..base.constants import NoticeLevel
@@ -22,6 +21,22 @@ class ChannelNotice(NamedTuple):
     created_at: Optional[datetime]
     expired_at: Optional[datetime]
     interval: Optional[int]
+
+
+class ChannelNoticeResultSet(NamedTuple):
+    """
+    Represents a list of a channel notices, plus some accompanying
+    metadata such as `viewed_channel_notices`.
+    """
+
+    #: Channel notices that are included in this particular set
+    channel_notices: Sequence[ChannelNotice]
+
+    #: Total number of channel notices; not just the ones that will be displayed
+    total_number_channel_notices: int
+
+    #: The number of channel notices that have already been viewed
+    viewed_channel_notices: int
 
 
 class ChannelNoticeResponse(NamedTuple):
@@ -75,9 +90,12 @@ class ChannelNoticeResponse(NamedTuple):
             return None
 
     @classmethod
-    def get_cache_key(cls, url: str, name: str, cache_dir: Path) -> Path:
-        """Returns the place where this channel response will be stored as cache"""
-        url_obj = parse.urlparse(url)
-        path = url_obj.path.replace("/", "-")
-        cache_filename = f"{name}{path}"
+    def get_cache_key(cls, url: str, cache_dir: Path) -> Path:
+        """
+        Returns the place where this channel response will be stored as cache by hashing the url.
+        """
+        bytes_filename = url.encode()
+        sha256_hash = hashlib.sha256(bytes_filename)
+        cache_filename = f"{sha256_hash.hexdigest()}.json"
+
         return cache_dir.joinpath(cache_filename)

@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
 Helpers for the tests
 """
-from __future__ import absolute_import, division, print_function
 
 from contextlib import contextmanager
+from functools import lru_cache
 import json
 import os
 from os.path import dirname, join, abspath
@@ -17,18 +16,9 @@ import sys
 from tempfile import gettempdir, mkdtemp
 from uuid import uuid4
 from pathlib import Path
-
-# Some modules import from this one so they don't
-# have to try/except all the time.
-try:
-    from unittest import mock  # noqa: F401
-    from unittest.mock import patch  # noqa: F401
-except ImportError:
-    import mock  # noqa: F401
-    from mock import patch  # noqa: F401
+from unittest.mock import patch
 
 from .. import cli
-from ..auxlib.decorators import memoize
 from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from ..common.compat import encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
@@ -117,12 +107,12 @@ def set_active_prefix(prefix: str) -> None:
 
 
 def assert_equals(a, b, output=""):
-    output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
+    output = f"{a.lower()!r} != {b.lower()!r}" + "\n\n" + output
     assert a.lower() == b.lower(), output
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "%s %r should not be found in %r" % (
+    assert a.lower() not in b.lower(), "{} {!r} should not be found in {!r}".format(
         output,
         a.lower(),
         b.lower(),
@@ -130,7 +120,9 @@ def assert_not_in(a, b, output=""):
 
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
+    assert a.lower() in b.lower(), "{} {!r} cannot be found in {!r}".format(
+        output, a.lower(), b.lower()
+    )
 
 
 def run_inprocess_conda_command(command, disallow_stderr: bool = True):
@@ -194,7 +186,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
     platform = repodata_info.get("platform")
     subdir = repodata_info.get("subdir")
     if not subdir:
-        subdir = "%s-%s" % (repodata_info["platform"], repodata_info["arch"])
+        subdir = "{}-{}".format(repodata_info["platform"], repodata_info["arch"])
     auth = channel.auth
     for fn, info in repodata["packages"].items():
         rec = PackageRecord.from_objects(
@@ -314,7 +306,7 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
     subdir_data._mtime = float("inf")
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_r_1(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index.json")) as fi:
         packages = json.load(fi)
@@ -344,7 +336,7 @@ def get_index_r_1(subdir=context.subdir):
     return index, r
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_r_2(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index2.json")) as fi:
         packages = json.load(fi)
@@ -373,7 +365,7 @@ def get_index_r_2(subdir=context.subdir):
     return index, r
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_r_4(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index4.json")) as fi:
         packages = json.load(fi)
@@ -402,7 +394,7 @@ def get_index_r_4(subdir=context.subdir):
     return index, r
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_r_5(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index5.json")) as fi:
         packages = json.load(fi)
@@ -431,7 +423,7 @@ def get_index_r_5(subdir=context.subdir):
     return index, r
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_index_must_unfreeze(subdir=context.subdir):
     repodata = {
         "info": {
