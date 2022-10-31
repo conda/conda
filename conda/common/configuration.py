@@ -1180,11 +1180,13 @@ class UnionSequenceParameter(Parameter):
         element_types: dict[str, UnionElementTypes],
         default: Sequence | None = None,
         validation=None,
+        string_delimiter: str = ",",
     ):
         # TODO: _element_types should have a default implementation, see context._channels
         self._element_types = element_types
         self._element_type = tuple(element for _, element in self._element_types.items())
         self._valid_types = ",".join(typ.__class__.__name__ for typ in self._element_types)
+        self.string_delimiter = string_delimiter
         super().__init__(default, validation)
 
     def _get_element_type_from_value(
@@ -1216,7 +1218,7 @@ class UnionSequenceParameter(Parameter):
         return element_type
 
     def load(self, name: str, match: RawParameter):
-        value = match.value()
+        value = match.value(self)
         if value is None:
             return UnionSequenceLoadedParameter(
                 name,
