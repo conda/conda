@@ -19,12 +19,6 @@ from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
-
-try:
-    from tlz.itertoolz import concatv
-except ImportError:  # pragma: no cover
-    from conda._vendor.toolz.itertoolz import concatv  # NOQA
-
 from conda.common.iterators import groupby_to_dict as groupby
 
 
@@ -108,18 +102,24 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
 
     precs = tuple(PrefixGraph(pd.iter_records()).graph)
     grouped_precs = groupby(lambda x: x.package_type, precs)
-    conda_precs = sorted(concatv(
-        grouped_precs.get(None, ()),
-        grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
-        grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
-    ), key=lambda x: x.name)
+    conda_precs = sorted(
+        (
+            *grouped_precs.get(None, ()),
+            *grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
+            *grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
+        ),
+        key=lambda x: x.name,
+    )
 
-    pip_precs = sorted(concatv(
-        grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
-        grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
-        grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
-        # grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
-    ), key=lambda x: x.name)
+    pip_precs = sorted(
+        (
+            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
+            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
+            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
+            # *grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
+        ),
+        key=lambda x: x.name,
+    )
 
     if no_builds:
         dependencies = ['='.join((a.name, a.version)) for a in conda_precs]

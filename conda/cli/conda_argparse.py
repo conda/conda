@@ -336,7 +336,7 @@ def configure_parser_clean(sub_parsers):
     removal_target_options.add_argument(
         "-a", "--all",
         action="store_true",
-        help="Remove index cache, lock files, unused cache packages, and tarballs.",
+        help="Remove index cache, lock files, unused cache packages, tarballs, and logfiles.",
     )
     removal_target_options.add_argument(
         "-i", "--index-cache",
