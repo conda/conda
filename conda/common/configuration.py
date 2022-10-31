@@ -27,10 +27,8 @@ import sys
 
 try:
     from tlz.itertoolz import concat, unique
-    from tlz.dicttoolz import merge, merge_with
 except ImportError:
     from conda._vendor.toolz.itertoolz import concat, unique
-    from conda._vendor.toolz.dicttoolz import merge, merge_with
 
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL
@@ -702,30 +700,31 @@ class MapLoadedParameter(LoadedParameter):
                 raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
                                        self._type.__name__)
 
-        # map keys with important values
-        def key_is_important(match, key):
-            return match.value_flags.get(key) == ParameterFlag.final
+        # map keys with important values,
+        # first key has higher precedence than later ones
+        important_maps = {
+            key: value
+            for match, match_value in reversed(relevant_matches_and_values)
+            for key, value in match_value.items()
+            if match.value_flags.get(key) == ParameterFlag.final
+        }
 
-        important_maps = tuple(
-            {k: v for k, v in match_value.items() if key_is_important(match, k)}
-            for match, match_value in relevant_matches_and_values
-        )
-
-        # map each value by recursively calling merge on any entries with the same key
-        merged_values = frozendict(merge_with(
-            lambda value_matches: value_matches[0].merge(value_matches),
-            (match_value for _, match_value in relevant_matches_and_values)))
+        # map each value by recursively calling merge on any entries with the same key,
+        # last key has higher precedence than earlier ones
+        grouped_values = {}
+        for _, match_value in relevant_matches_and_values:
+            for k, v in match_value.items():
+                grouped_values.setdefault(k, []).append(v)
+        merged_values = {k: v[0].merge(v) for k, v in grouped_values.items()}
 
         # dump all matches in a dict
         # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(
-            merge((merged_values, *reversed(important_maps)))
-        )
+        merged_values_important_overwritten = {**merged_values, **important_maps}
 
         # create new parameter for the merged values
         return MapLoadedParameter(
             self._name,
-            merged_values_important_overwritten,
+            frozendict(merged_values_important_overwritten),
             self._element_type,
             self.key_flag,
             self.value_flags,
@@ -850,25 +849,26 @@ class ObjectLoadedParameter(LoadedParameter):
                 raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
                                        self._type.__name__)
 
-        # map keys with important values
-        def key_is_important(match, key):
-            return match.value_flags.get(key) == ParameterFlag.final
+        # map keys with important values,
+        # first key has higher precedence than later ones
+        important_maps = {
+            key: value
+            for match, match_value in reversed(relevant_matches_and_values)
+            for key, value in match_value.items()
+            if match.value_flags.get(key) == ParameterFlag.final
+        }
 
-        important_maps = tuple(
-            {k: v for k, v in match_value.items() if key_is_important(match, k)}
-            for match, match_value in relevant_matches_and_values
-        )
-
-        # map each value by recursively calling merge on any entries with the same key
-        merged_values = frozendict(merge_with(
-            lambda value_matches: value_matches[0].merge(value_matches),
-            (match_value for _, match_value in relevant_matches_and_values)))
+        # map each value by recursively calling merge on any entries with the same key,
+        # last key has higher precedence than earlier ones
+        grouped_values = {}
+        for _, match_value in relevant_matches_and_values:
+            for k, v in match_value.items():
+                grouped_values.setdefault(k, []).append(v)
+        merged_values = {k: v[0].merge(v) for k, v in grouped_values.items()}
 
         # dump all matches in a dict
         # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(
-            merge((merged_values, *reversed(important_maps)))
-        )
+        merged_values_important_overwritten = {**merged_values, **important_maps}
 
         # copy object and replace Parameter with LoadedParameter fields
         object_copy = copy.deepcopy(self._element_type)
