@@ -11,9 +11,9 @@ from os.path import basename
 import re
 
 try:
-    from tlz.itertoolz import concat, concatv
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv
+    from conda._vendor.toolz.itertoolz import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -479,7 +479,7 @@ class MatchSpec(metaclass=MatchSpecType):
             merged_specs.append(
                 reduce(lambda x, y: x._merge(y, union), group) if len(group) > 1 else group[0]
             )
-        return tuple(concatv(merged_specs, unmergeable))
+        return (*merged_specs, *unmergeable)
 
     @classmethod
     def union(cls, match_specs):
