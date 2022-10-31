@@ -328,7 +328,8 @@ class IntegrationTests(BaseTestCase):
             assert conda_error.value.message.startswith("Invalid spec for 'conda update'")
 
     def test_noarch_python_package_with_entry_points(self):
-        with make_temp_env("-c", "conda-test", "flask") as prefix:
+        # this channel has an ancient flask that is incompatible with jinja2>=3.1.0
+        with make_temp_env("-c", "conda-test", "flask", "jinja2<3.1") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/flask/__init__.py"
