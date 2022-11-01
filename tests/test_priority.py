@@ -57,7 +57,7 @@ class PriorityIntegrationTests(TestCase):
         """
             This case will fail now
         """
-        with make_temp_env("python=3.6.5", "pycosat") as prefix:
+        with make_temp_env("python=3.8", "pycosat") as prefix:
             assert package_is_installed(prefix, 'python')
 
             # add conda-forge channel

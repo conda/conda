@@ -56,3 +56,10 @@ def support_file_server():
 @pytest.fixture
 def support_file_server_port(support_file_server):
     return support_file_server.socket.getsockname()[1]
+
+
+@pytest.fixture
+def clear_cuda_version():
+    from conda.plugins.virtual_packages import cuda
+
+    cuda.cached_cuda_version.cache_clear()
