@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new plugin hook for virtual packages and convert existing code for virtual packages (from index.py) into plugins. (#11854)
+* Switch to `tqdm` as a real dependency and add a pending deprecation warning for when importing it from `conda._vendor`. (#12005)
 
 ### Bug fixes
 
