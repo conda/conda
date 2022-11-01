@@ -1,7 +1,4 @@
-# NOTE: jobs in this workflow are required checks (see https://github.com/conda/conda/settings/branch_protection_rules/773550)
-# remember to mirror changes here in ci-skip.yml to circumvent skipped required checks issue
-# https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
-name: CI tests
+name: Tests
 
 on:
   # NOTE: github.event context is push payload:
@@ -9,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - feature/**
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
@@ -263,8 +261,8 @@ jobs:
           retention-days: 1
 
   analyze:
-    needs: [windows, linux, linux-qemu, macos]
     name: Analyze test results
+    needs: [windows, linux, linux-qemu, macos]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -289,3 +287,45 @@ jobs:
         uses: re-actors/alls-green@release/v1
         with:
           jobs: ${{ toJSON(needs) }}
+
+  build:
+    name: Canary Build
+    needs: [analyze]
+    # only build canary build if
+    # - prior steps succeeded,
+    # - this is the main repo, and
+    # - we are on the main (or feature) branch
+    if: >-
+      success()
+      && !github.event.repository.fork
+      && (
+        github.ref_name == 'main'
+        || startsWith(github.ref_name, 'feature/')
+      )
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            subdir: linux-64
+          - runner: macos-latest
+            subdir: osx-64
+          - runner: windows-latest
+            subdir: win-64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      # Clean checkout of specific git ref needed for package metadata version
+      # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+          clean: true
+          fetch-depth: 0
+
+      - name: Create and upload canary build
+        uses: conda/actions/canary-release@v22.10.0
+        with:
+          package-name: ${{ github.event.repository.name }}
+          subdir: ${{ matrix.subdir }}
+          anaconda-org-channel: conda-canary
+          anaconda-org-label: ${{ github.ref_name }}
+          anaconda-org-token: ${{ secrets.ANACONDA_ORG_TOKEN }}

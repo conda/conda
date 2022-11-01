@@ -3,7 +3,6 @@
 
 from collections import OrderedDict
 
-import functools
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
@@ -11,7 +10,6 @@ from typing import Optional
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
-import pluggy
 import sys
 import struct
 from contextlib import contextmanager
@@ -59,11 +57,8 @@ from ..common.configuration import (Configuration, ConfigurationLoadError, MapPa
 from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-from ..common.decorators import env_override
 
 from .. import CONDA_SOURCE_ROOT
-
-from .. import plugins
 
 try:
     os.getcwd()
@@ -152,14 +147,6 @@ def ssl_verify_validation(value):
                     "certificate bundle file, or a path to a directory containing "
                     "certificates of trusted CAs." % value)
     return True
-
-
-@functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
-def get_plugin_manager():
-    pm = pluggy.PluginManager('conda')
-    pm.add_hookspecs(plugins)
-    pm.load_setuptools_entrypoints('conda')
-    return pm
 
 
 class Context(Configuration):
@@ -412,9 +399,6 @@ class Context(Configuration):
                                                                              argparse_args)
 
         super().__init__(search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args)
-
-        # Add plugin support
-        self._plugin_manager = get_plugin_manager()
 
     def post_build_validation(self):
         errors = []
@@ -963,10 +947,19 @@ class Context(Configuration):
         return info['flags']
 
     @memoizedproperty
-    @env_override('CONDA_OVERRIDE_CUDA', convert_empty_to_none=True)
-    def cuda_version(self):
-        from conda.common.cuda import cuda_detect
-        return cuda_detect()
+    def cuda_version(self) -> Optional[str]:
+        """
+        Retrieves the current cuda version.
+        """
+        from conda.plugins.virtual_packages import cuda
+
+        warnings.warn(
+            "`context.cuda_version` is pending deprecation and "
+            "will be removed in a future release. Please use "
+            "`conda.plugins.virtual_packages.cuda.cuda_version` instead.",
+            PendingDeprecationWarning,
+        )
+        return cuda.cuda_version()
 
     @property
     def category_map(self):

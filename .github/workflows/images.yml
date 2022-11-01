@@ -1,4 +1,4 @@
-name: CI images
+name: Images
 
 on:
   schedule:
@@ -9,7 +9,7 @@ on:
   pull_request:
     paths:
       - 'Dockerfile'
-      - '.github/workflows/ci-images.yml'
+      - '.github/workflows/images.yml'
       - 'tests/requirements.txt'
 
   # NOTE: github.event context is push payload:
@@ -17,7 +17,7 @@ on:
   push:
     paths:
       - 'Dockerfile'
-      - '.github/workflows/ci-images.yml'
+      - '.github/workflows/images.yml'
       - 'tests/requirements.txt'
 
   # NOTE: github.event context is workflow_dispatch payload:
