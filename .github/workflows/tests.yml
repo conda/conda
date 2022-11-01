@@ -283,7 +283,7 @@ jobs:
   build:
     name: Canary Build
     needs: [analyze]
-    # only build canary build iff
+    # only build canary build if
     # - prior steps succeeded,
     # - this is the main repo, and
     # - we are on the main (or feature) branch
