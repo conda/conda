@@ -9,9 +9,9 @@ at runtime (e.g., OS information).
 Reference
 ---------
 
-.. automethod:: ~conda.plugins.hookspec.CondaSpecs.conda_virtual_packages
+.. automethod:: conda.plugins.hookspec.CondaSpecs.conda_virtual_packages
 
-.. autoclass:: ~conda.models.plugins.CondaVirtualPackage
+.. autoclass:: conda.models.plugins.CondaVirtualPackage
    :members:
    :undoc-members:
 

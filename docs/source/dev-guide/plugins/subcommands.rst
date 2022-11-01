@@ -9,9 +9,9 @@ command.
 Reference
 ---------
 
-.. automethod:: ~conda.plugins.hookspec.CondaSpecs.conda_subcommands
+.. automethod:: conda.plugins.hookspec.CondaSpecs.conda_subcommands
 
-.. autoclass:: ~conda.models.plugins.CondaSubcommand
+.. autoclass:: conda.models.plugins.CondaSubcommand
    :members:
    :undoc-members:
 
