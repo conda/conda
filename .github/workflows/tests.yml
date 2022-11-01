@@ -291,8 +291,8 @@ jobs:
       success()
       && !github.event.repository.fork
       && (
-        github.ref_name == "main"
-        || startsWith(github.ref_name, "feature/")
+        github.ref_name == 'main'
+        || startsWith(github.ref_name, 'feature/')
       )
     strategy:
       matrix:
