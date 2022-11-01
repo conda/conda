@@ -21,7 +21,7 @@ def register(pm: pluggy.PluginManager) -> None:
     pm.register(sys.modules[__name__])
 
 
-@plugins.hookimpl
+@plugins.hookimpl(tryfirst=True)  # make sure the classic solver can't be overwritten
 def conda_solvers():
     """
     The classic solver as shipped by default in conda.
