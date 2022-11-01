@@ -847,7 +847,7 @@ class Context(Configuration):
 
         channels = self._get_channel_names()
 
-        return tuple(IndexedSet((*local_add, *channels)))
+        return tuple(IndexedSet((*local_add, *channels, DEFAULTS_CHANNEL_NAME)))
 
     def _get_channel_names(self) -> tuple[str, ...]:
         """
