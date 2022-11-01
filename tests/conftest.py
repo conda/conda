@@ -36,3 +36,10 @@ def clear_cache():
     from conda.core.subdir_data import SubdirData
 
     SubdirData._cache_.clear()
+
+
+@pytest.fixture
+def clear_cuda_version():
+    from conda.plugins.virtual_packages import cuda
+
+    cuda.cached_cuda_version.cache_clear()

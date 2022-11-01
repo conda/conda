@@ -2,7 +2,7 @@
 Plugins
 =======
 
-As of version ``4.14.0``, ``conda`` has support for user plugins, enabling extension and/or
+As of version ``22.11.0``, ``conda`` has support for user plugins, enabling extension and/or
 alterations to some of its functionality.
 
 An overview of ``pluggy``
@@ -37,7 +37,7 @@ Below is an example of a very basic plugin "hook":
    import conda.plugins
 
 
-   @conda.plugins.register
+   @conda.plugins.hookimpl
    def conda_subcommands():
        ...
 
@@ -98,28 +98,16 @@ For more information on which license to use for your custom plugin, please refe
 the `"Choose an Open Source License"`_ site.
 
 
-Tutorials
----------
-
-.. py:module:: conda.plugins
-
-
-.. toctree::
-   :maxdepth: 1
-
-   subcommand_guide
-
-
 API reference
 -------------
 
 .. py:module:: conda.plugins
 
-
 .. toctree::
    :maxdepth: 1
 
    subcommands
+   virtual_packages
 
 
 .. _Pluggy: https://pluggy.readthedocs.io/en/stable/
