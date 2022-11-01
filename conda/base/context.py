@@ -3,6 +3,7 @@
 
 from collections import OrderedDict
 
+import functools
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
@@ -10,6 +11,7 @@ from typing import Optional
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 import platform
+import pluggy
 import sys
 import struct
 from contextlib import contextmanager
@@ -17,9 +19,9 @@ from datetime import datetime
 import warnings
 
 try:
-    from tlz.itertoolz import concat, concatv, unique
+    from tlz.itertoolz import concat, unique
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, unique
+    from conda._vendor.toolz.itertoolz import concat, unique
 
 from .constants import (
     APP_NAME,
@@ -61,6 +63,8 @@ from ..common.decorators import env_override
 
 from .. import CONDA_SOURCE_ROOT
 
+from .. import plugins
+
 try:
     os.getcwd()
 except OSError as e:
@@ -100,18 +104,18 @@ sys_rc_path = join(sys.prefix, '.condarc')
 
 def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
     if root_writable:
-        fixed_dirs = (
+        fixed_dirs = [
             join(root_prefix, 'envs'),
             join('~', '.conda', 'envs'),
-        )
+        ]
     else:
-        fixed_dirs = (
+        fixed_dirs = [
             join('~', '.conda', 'envs'),
             join(root_prefix, 'envs'),
-        )
+        ]
     if on_win:
-        fixed_dirs += join(user_data_dir(APP_NAME, APP_NAME), 'envs'),
-    return tuple(IndexedSet(expand(p) for p in concatv(_envs_dirs, fixed_dirs)))
+        fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
+    return tuple(IndexedSet(expand(path) for path in (*_envs_dirs, *fixed_dirs)))
 
 
 def channel_alias_validation(value):
@@ -148,6 +152,14 @@ def ssl_verify_validation(value):
                     "certificate bundle file, or a path to a directory containing "
                     "certificates of trusted CAs." % value)
     return True
+
+
+@functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
+def get_plugin_manager():
+    pm = pluggy.PluginManager('conda')
+    pm.add_hookspecs(plugins)
+    pm.load_setuptools_entrypoints('conda')
+    return pm
 
 
 class Context(Configuration):
@@ -401,6 +413,9 @@ class Context(Configuration):
 
         super().__init__(search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args)
 
+        # Add plugin support
+        self._plugin_manager = get_plugin_manager()
+
     def post_build_validation(self):
         errors = []
         if self.client_ssl_cert_key and not self.client_ssl_cert:
@@ -525,7 +540,7 @@ class Context(Configuration):
 
     @memoizedproperty
     def known_subdirs(self):
-        return frozenset(concatv(KNOWN_SUBDIRS, self.subdirs))
+        return frozenset((*KNOWN_SUBDIRS, *self.subdirs))
 
     @property
     def bits(self):
@@ -749,27 +764,28 @@ class Context(Configuration):
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls)
              ) for name, urls in self._custom_multichannels.items()
         )
-        all_multichannels = odict(
+        return odict(
             (name, channels)
-            for name, channels in concatv(
-                custom_multichannels.items(),
-                reserved_multichannels.items(),  # order maters, reserved overrides custom
+            for name, channels in (
+                *custom_multichannels.items(),
+                *reserved_multichannels.items(),  # order maters, reserved overrides custom
             )
         )
-        return all_multichannels
 
     @memoizedproperty
     def custom_channels(self):
         from ..models.channel import Channel
-        custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
-                           for name, url in self._custom_channels.items())
-        channels_from_multichannels = concat(channel for channel
-                                             in self.custom_multichannels.values())
-        all_channels = odict((x.name, x) for x in (ch for ch in concatv(
-            channels_from_multichannels,
-            custom_channels,
-        )))
-        return all_channels
+
+        return odict(
+            (channel.name, channel)
+            for channel in (
+                *concat(channel for channel in self.custom_multichannels.values()),
+                *(
+                    Channel.make_simple_channel(self.channel_alias, url, name)
+                    for name, url in self._custom_channels.items()
+                ),
+            )
+        )
 
     @property
     def channels(self):
@@ -789,7 +805,7 @@ class Context(Configuration):
                     "--override-channels."
                 )
             else:
-                return tuple(IndexedSet(concatv(local_add, self._argparse_args['channel'])))
+                return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
 
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and 'channel' in self._argparse_args:
@@ -802,10 +818,9 @@ class Context(Configuration):
             channel_in_config_files = any('channels' in context.raw_data[rc_file].keys()
                                           for rc_file in self.config_files)
             if argparse_channels and not channel_in_config_files:
-                return tuple(IndexedSet(concatv(local_add, argparse_channels,
-                                                (DEFAULTS_CHANNEL_NAME,))))
+                return tuple(IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME)))
 
-        return tuple(IndexedSet(concatv(local_add, self._channels)))
+        return tuple(IndexedSet((*local_add, *self._channels)))
 
     @property
     def config_files(self):

@@ -2,9 +2,12 @@
 set -ex
 
 # Download the Minio server, needed for S3 tests
-curl -LO https://dl.minio.io/server/minio/release/darwin-amd64/minio
+if [[ ! -f minio ]]
+then
+    curl -LO https://dl.minio.io/server/minio/release/darwin-amd64/minio
+fi
 chmod +x minio
-sudo mv minio /usr/local/bin/minio
+sudo cp minio /usr/local/bin/minio
 
 # restoring the default for changeps1 to have parity with dev
 conda config --set changeps1 true
