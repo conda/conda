@@ -623,6 +623,7 @@ def configure_parser_config(sub_parsers):
         "--clear",
         action="append",
         help="Clear a list key. This clears out all values for the key.",
+        default=[],
         metavar="KEY",
     )
     config_modifiers.add_argument(
