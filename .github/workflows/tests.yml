@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - feature/**
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
@@ -290,8 +291,8 @@ jobs:
       success()
       && !github.event.repository.fork
       && (
-        github.head_ref == "main"
-        || startsWith(github.head_ref, "feature/")
+        github.ref_name == "main"
+        || startsWith(github.ref_name, "feature/")
       )
     strategy:
       matrix:
@@ -318,5 +319,5 @@ jobs:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
           anaconda-org-channel: conda-canary
-          anaconda-org-label: dev
+          anaconda-org-label: ${{ github.ref_name }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_TOKEN }}
