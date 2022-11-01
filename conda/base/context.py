@@ -802,6 +802,17 @@ class Context(Configuration):
 
     @property
     def channels(self):
+        """
+        Determines which channels are currently configured. How we do this differs
+        based on the options we set at runtime:
+
+        - "--override-channels" makes it so that we only use channels specified as runtime
+          options
+        - "--use-local" adds our default "local" channel location
+
+        Additionally, if no channels are found in any configuration files or runtime options,
+        the "defaults" channel is added.
+        """
         local_add = ('local',) if self.use_local else ()
         if (self._argparse_args and 'override_channels' in self._argparse_args
                 and self._argparse_args['override_channels']):
@@ -824,9 +835,9 @@ class Context(Configuration):
         if self._argparse_args and 'channel' in self._argparse_args:
             # TODO: it's args.channel right now, not channels
             argparse_channels = tuple(self._argparse_args['channel'] or ())
-            # Add condition to make sure that sure that we add the 'defaults'
+            # Add condition to make sure that we add the 'defaults'
             # channel only when no channels are defined in condarc
-            # We needs to get the config_files and then check that they
+            # We need to get the config_files and then check that they
             # don't define channels
             channel_in_config_files = any('channels' in context.raw_data[rc_file].keys()
                                           for rc_file in self.config_files)
@@ -840,9 +851,10 @@ class Context(Configuration):
 
     def _get_channel_names(self) -> tuple[str, ...]:
         """
-        Iterates through the self._channel property to retrieve  just
-        the names of the channels. This is necessary because channels
-        can appear as either strings or mappings in the config file.
+        Iterates through the self._channel property to retrieve  just the names of the
+        channels. This is necessary because channels can appear as either strings or
+        mappings in the config file. When they are set  as mappings, we grab the first
+        key (there should only be one key) and use that as the channel name.
         """
         channel_names = []
 
@@ -1123,6 +1135,7 @@ class Context(Configuration):
                 "allow_cycles",  # allow cyclical dependencies, or raise
                 "allow_conda_downgrades",
                 "add_pip_as_python_dependency",
+                "channel_parameters",
                 "debug",
                 "dev",
                 "default_python",
