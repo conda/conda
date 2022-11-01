@@ -684,6 +684,51 @@ def test_initialize_dev_bash(verbose):
     assert "unset CONDA_SHLVL" in c.stdout
 
 
+def test_initialize_dev_bash_fd_fallback(capsys):
+    fd = 3
+    with tempdir() as conda_temp_prefix:
+        new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
+        mkdir_p(dirname(new_py))
+        create_link(
+            abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink
+        )
+        with pytest.warns(UserWarning, match=rf"The file descriptor \({fd}\) hasn't been opened"):
+            initialize_dev(
+                "bash",
+                fd=fd,
+                dev_env_prefix=conda_temp_prefix,
+                conda_source_root=CONDA_SOURCE_ROOT,
+            )
+
+    stdout, stderr = capsys.readouterr()
+    assert "unset CONDA_DEFAULT_ENV" in stdout
+    assert "export PYTHON_MAJOR_VERSION=" in stdout
+    assert "conda shell.bash hook" in stdout
+    assert not stderr
+
+
+def test_initialize_dev_bash_fd(capsys):
+    fd = 1
+    with tempdir() as conda_temp_prefix:
+        new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
+        mkdir_p(dirname(new_py))
+        create_link(
+            abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink
+        )
+        initialize_dev(
+            "bash",
+            fd=fd,
+            dev_env_prefix=conda_temp_prefix,
+            conda_source_root=CONDA_SOURCE_ROOT,
+        )
+
+    stdout, stderr = capsys.readouterr()
+    assert "unset CONDA_DEFAULT_ENV" in stdout
+    assert "export PYTHON_MAJOR_VERSION=" in stdout
+    assert "conda shell.bash hook" in stdout
+    assert not stderr
+
+
 def test_initialize_dev_cmd_exe(verbose):
     with env_vars(
         {"CONDA_DRY_RUN": "true", "CONDA_VERBOSITY": "0"},
