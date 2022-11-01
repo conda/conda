@@ -45,6 +45,7 @@ requirements:
     - setuptools >=31.0.1
     - toolz >=0.8.1
     - pluggy >=1.0.0
+    - tqdm >=4
   run_constrained:
     - conda-build >=3
     - conda-env >=2.6

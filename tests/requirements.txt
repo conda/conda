@@ -34,3 +34,4 @@ requests
 responses
 ruamel.yaml
 toolz
+tqdm
