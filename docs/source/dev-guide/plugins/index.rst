@@ -103,7 +103,6 @@ API reference
 
 .. py:module:: conda.plugins
 
-
 .. toctree::
    :maxdepth: 1
 

@@ -6,24 +6,17 @@ Conda allows for the registering of virtual packages in the index data via the p
 mechanism lets users write plugins that provide version identification for proprieties only known
 at runtime (e.g., OS information).
 
-
 Reference
 ---------
 
+.. automethod:: ~conda.plugins.hookspec.CondaSpecs.conda_virtual_packages
 
-.. py:module:: conda.plugins
-   :noindex:
-
-.. autofunction:: conda_virtual_packages
-
-.. autoclass:: CondaVirtualPackage
+.. autoclass:: ~conda.models.plugins.CondaVirtualPackage
    :members:
    :undoc-members:
 
-
 Example
 -------
-
 
 .. code-block:: python
 

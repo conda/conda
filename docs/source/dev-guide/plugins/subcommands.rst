@@ -6,24 +6,17 @@ The Conda CLI can be extended with the ``conda_subcommands`` plugin
 hook. Registered subcommands will be available under the ``conda <subcommand>``
 command.
 
-
 Reference
 ---------
 
+.. automethod:: ~conda.plugins.hookspec.CondaSpecs.conda_subcommands
 
-.. py:module:: conda.plugins
-   :noindex:
-
-.. autofunction:: conda_subcommands
-
-.. autoclass:: CondaSubcommand
+.. autoclass:: ~conda.models.plugins.CondaSubcommand
    :members:
    :undoc-members:
 
-
 Example
 -------
-
 
 .. code-block:: python
 
