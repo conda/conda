@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new plugin hook for virtual packages. (#11854)
+* Add a new plugin hook for virtual packages and convert existing code for virtual packages (from index.py) into plugins. (#11854)
 
 ### Bug fixes
 
