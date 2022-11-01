@@ -262,7 +262,7 @@ def generate_shebang_for_entry_point(executable, with_usr_bin_env=False):
     # In principle, the naive shebang will work as long as the path
     # to the python executable does not contain spaces AND it's not
     # longer than 127 characters. Otherwise, we must fix it
-    if len(shebang) > MAX_SHEBANG_LENGTH or " " in shebang:
+    if len(shebang) > MAX_SHEBANG_LENGTH or " " in executable:
         if with_usr_bin_env:
             # This approach works well for all cases BUT it requires
             # the executable to be in PATH. In other words, the environment
