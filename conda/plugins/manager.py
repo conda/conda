@@ -15,3 +15,4 @@ def get_plugin_manager() -> pluggy.PluginManager:
     solvers.register(pm)
     virtual_packages.register(pm)
     pm.load_setuptools_entrypoints(spec_name)
+    return pm
