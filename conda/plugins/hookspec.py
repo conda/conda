@@ -22,6 +22,29 @@ class CondaSpecs:
         Register solvers in conda.
 
         :return: An iterable of solvers entries.
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.core import solve
+            from conda.models.plugins import CondaSolver
+
+            class VerboseSolver(solve.Solver):
+
+                def solve_final_state(self, *args, **kwargs):
+                    log.info("My verbose solver!")
+                    return super().solve_final_state(*args, **kwargs)
+
+
+            @plugins.hookimpl
+            def conda_solvers(self):
+                yield CondaSolver(
+                    name="verbose-classic",
+                    backend=VerboseSolver,
+                )
+
         """
 
     @_hookspec

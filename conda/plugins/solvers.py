@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from functools import lru_cache
 
+import pluggy
+
 from .. import plugins
 from ..auxlib.ish import dals
 from ..base.constants import CLASSIC_SOLVER

@@ -7,7 +7,7 @@ from typing import Callable, NamedTuple
 
 class CondaSubcommand(NamedTuple):
     """
-    Conda subcommand entry.
+    A conda subcommand.
 
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
@@ -23,7 +23,7 @@ class CondaSubcommand(NamedTuple):
 
 class CondaVirtualPackage(NamedTuple):
     """
-    Conda subcommand entry.
+    A conda subcommand.
 
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
@@ -34,7 +34,7 @@ class CondaVirtualPackage(NamedTuple):
 
 class CondaSolver(NamedTuple):
     """
-    Conda solver.
+    A conda solver.
 
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param backend: Callable that will instantiated as the solver backend.
