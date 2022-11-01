@@ -21,7 +21,6 @@ from unittest import TestCase
 from uuid import uuid4
 
 import pytest
-from tlz.itertoolz import concatv
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda import __version__ as conda_version
@@ -1163,7 +1162,9 @@ class ShellWrapperUnitTests(TestCase):
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
 
-        e_activate_data = dals("""
+        e_activate_data = (
+            dals(
+                """
         PS1='%(ps1)s'
         %(conda_exe_unset)s
         export PATH='%(new_path)s'
@@ -1173,23 +1174,31 @@ class ShellWrapperUnitTests(TestCase):
         export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
         %(conda_exe_export)s
         . "%(activate1)s"
-        """) % {
-            'native_prefix': self.prefix,
-            'new_path': activator.pathsep_join(new_path_parts),
-            'sys_executable': activator.path_conversion(sys.executable),
-            'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh')),
-            'ps1': '(%s) ' % self.prefix + os.environ.get('PS1', ''),
-            'conda_exe_unset': conda_exe_unset,
-            'conda_exe_export': conda_exe_export,
-        }
+        """
+            )
+            % {
+                "native_prefix": self.prefix,
+                "new_path": activator.pathsep_join(new_path_parts),
+                "sys_executable": activator.path_conversion(sys.executable),
+                "activate1": activator.path_conversion(
+                    join(self.prefix, "etc", "conda", "activate.d", "activate1.sh")
+                ),
+                "ps1": "(%s) " % self.prefix + os.environ.get("PS1", ""),
+                "conda_exe_unset": conda_exe_unset,
+                "conda_exe_export": conda_exe_export,
+            }
+        )
         import re
-        assert activate_data == re.sub(r'\n\n+', '\n', e_activate_data)
 
-        with env_vars({
-            'CONDA_PREFIX': self.prefix,
-            'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
-        }):
+        assert activate_data == re.sub(r"\n\n+", "\n", e_activate_data)
+
+        with env_vars(
+            {
+                "CONDA_PREFIX": self.prefix,
+                "CONDA_SHLVL": "1",
+                "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
+            }
+        ):
             activator = PosixActivator()
             with captured() as c:
                 rc = main_sourced("shell.posix", *reactivate_args)
@@ -1198,21 +1207,30 @@ class ShellWrapperUnitTests(TestCase):
             reactivate_data = c.stdout
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
-            e_reactivate_data = dals("""
+            e_reactivate_data = (
+                dals(
+                    """
             . "%(deactivate1)s"
             PS1='%(ps1)s'
             export PATH='%(new_path)s'
             export CONDA_SHLVL='1'
             export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
             . "%(activate1)s"
-            """) % {
-                'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh')),
-                'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh')),
-                'native_prefix': self.prefix,
-                'new_path': activator.pathsep_join(new_path_parts),
-                'ps1': '(%s) ' % self.prefix + os.environ.get('PS1', ''),
-            }
-            assert reactivate_data == re.sub(r'\n\n+', '\n', e_reactivate_data)
+            """
+                )
+                % {
+                    "activate1": activator.path_conversion(
+                        join(self.prefix, "etc", "conda", "activate.d", "activate1.sh")
+                    ),
+                    "deactivate1": activator.path_conversion(
+                        join(self.prefix, "etc", "conda", "deactivate.d", "deactivate1.sh")
+                    ),
+                    "native_prefix": self.prefix,
+                    "new_path": activator.pathsep_join(new_path_parts),
+                    "ps1": "(%s) " % self.prefix + os.environ.get("PS1", ""),
+                }
+            )
+            assert reactivate_data == re.sub(r"\n\n+", "\n", e_reactivate_data)
 
             with captured() as c:
                 rc = main_sourced("shell.posix", *deactivate_args)
@@ -1262,7 +1280,9 @@ class ShellWrapperUnitTests(TestCase):
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
 
-        e_activate_data = dals("""
+        e_activate_data = (
+            dals(
+                """
         @SET "PATH=%(new_path)s"
         @SET "CONDA_PREFIX=%(converted_prefix)s"
         @SET "CONDA_SHLVL=1"
@@ -1270,21 +1290,28 @@ class ShellWrapperUnitTests(TestCase):
         @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
         %(conda_exe_export)s
         @CALL "%(activate1)s"
-        """) % {
-            'converted_prefix': activator.path_conversion(self.prefix),
-            'native_prefix': self.prefix,
-            'new_path': activator.pathsep_join(new_path_parts),
-            'sys_executable': activator.path_conversion(sys.executable),
-            'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat')),
-            'conda_exe_export': conda_exe_export,
-        }
+        """
+            )
+            % {
+                "converted_prefix": activator.path_conversion(self.prefix),
+                "native_prefix": self.prefix,
+                "new_path": activator.pathsep_join(new_path_parts),
+                "sys_executable": activator.path_conversion(sys.executable),
+                "activate1": activator.path_conversion(
+                    join(self.prefix, "etc", "conda", "activate.d", "activate1.bat")
+                ),
+                "conda_exe_export": conda_exe_export,
+            }
+        )
         assert activate_data == e_activate_data
 
-        with env_vars({
-            'CONDA_PREFIX': self.prefix,
-            'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
-        }):
+        with env_vars(
+            {
+                "CONDA_PREFIX": self.prefix,
+                "CONDA_SHLVL": "1",
+                "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
+            }
+        ):
             activator = CmdExeActivator()
             with captured() as c:
                 assert main_sourced("shell.cmd.exe", "reactivate") == 0
@@ -1296,18 +1323,28 @@ class ShellWrapperUnitTests(TestCase):
             rm_rf(reactivate_result)
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
-            assert reactivate_data == dals("""
+            assert (
+                reactivate_data
+                == dals(
+                    """
             @CALL "%(deactivate1)s"
             @SET "PATH=%(new_path)s"
             @SET "CONDA_SHLVL=1"
             @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
             @CALL "%(activate1)s"
-            """) % {
-                'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat')),
-                'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat')),
-                'native_prefix': self.prefix,
-                'new_path': activator.pathsep_join(new_path_parts),
-            }
+            """
+                )
+                % {
+                    "activate1": activator.path_conversion(
+                        join(self.prefix, "etc", "conda", "activate.d", "activate1.bat")
+                    ),
+                    "deactivate1": activator.path_conversion(
+                        join(self.prefix, "etc", "conda", "deactivate.d", "deactivate1.bat")
+                    ),
+                    "native_prefix": self.prefix,
+                    "new_path": activator.pathsep_join(new_path_parts),
+                }
+            )
 
             with captured() as c:
                 assert main_sourced("shell.cmd.exe", "deactivate") == 0
@@ -1347,7 +1384,9 @@ class ShellWrapperUnitTests(TestCase):
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
 
-        e_activate_data = dals("""
+        e_activate_data = (
+            dals(
+                """
         set prompt='%(prompt)s';
         setenv PATH "%(new_path)s";
         setenv CONDA_PREFIX "%(native_prefix)s";
@@ -1356,22 +1395,29 @@ class ShellWrapperUnitTests(TestCase):
         setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
         %(conda_exe_export)s;
         source "%(activate1)s";
-        """) % {
-            'converted_prefix': activator.path_conversion(self.prefix),
-            'native_prefix': self.prefix,
-            'new_path': activator.pathsep_join(new_path_parts),
-            'sys_executable': activator.path_conversion(sys.executable),
-            'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.csh')),
-            'prompt': '(%s) ' % self.prefix + os.environ.get('prompt', ''),
-            'conda_exe_export': conda_exe_export,
-        }
+        """
+            )
+            % {
+                "converted_prefix": activator.path_conversion(self.prefix),
+                "native_prefix": self.prefix,
+                "new_path": activator.pathsep_join(new_path_parts),
+                "sys_executable": activator.path_conversion(sys.executable),
+                "activate1": activator.path_conversion(
+                    join(self.prefix, "etc", "conda", "activate.d", "activate1.csh")
+                ),
+                "prompt": "(%s) " % self.prefix + os.environ.get("prompt", ""),
+                "conda_exe_export": conda_exe_export,
+            }
+        )
         assert activate_data == e_activate_data
 
-        with env_vars({
-            'CONDA_PREFIX': self.prefix,
-            'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
-        }):
+        with env_vars(
+            {
+                "CONDA_PREFIX": self.prefix,
+                "CONDA_SHLVL": "1",
+                "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
+            }
+        ):
             activator = CshActivator()
             with captured() as c:
                 rc = main_sourced("shell.csh", *reactivate_args)
@@ -1380,20 +1426,29 @@ class ShellWrapperUnitTests(TestCase):
             reactivate_data = c.stdout
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
-            e_reactivate_data = dals("""
+            e_reactivate_data = (
+                dals(
+                    """
             source "%(deactivate1)s";
             set prompt='%(prompt)s';
             setenv PATH "%(new_path)s";
             setenv CONDA_SHLVL "1";
             setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
             source "%(activate1)s";
-            """) % {
-                'prompt': '(%s) ' % self.prefix + os.environ.get('prompt', ''),
-                'new_path': activator.pathsep_join(new_path_parts),
-                'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.csh')),
-                'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.csh')),
-                'native_prefix': self.prefix,
-            }
+            """
+                )
+                % {
+                    "prompt": "(%s) " % self.prefix + os.environ.get("prompt", ""),
+                    "new_path": activator.pathsep_join(new_path_parts),
+                    "activate1": activator.path_conversion(
+                        join(self.prefix, "etc", "conda", "activate.d", "activate1.csh")
+                    ),
+                    "deactivate1": activator.path_conversion(
+                        join(self.prefix, "etc", "conda", "deactivate.d", "deactivate1.csh")
+                    ),
+                    "native_prefix": self.prefix,
+                }
+            )
             assert reactivate_data == e_reactivate_data
             with captured() as c:
                 rc = main_sourced("shell.csh", *deactivate_args)
@@ -1444,26 +1499,32 @@ class ShellWrapperUnitTests(TestCase):
         %(sourcer)s "%(activate1)s"
         """)
         e_activate_info = {
-            'converted_prefix': activator.path_conversion(self.prefix),
-            'native_prefix': self.prefix,
-            'new_path': activator.pathsep_join(new_path_parts),
-            'sys_executable': activator.path_conversion(sys.executable),
-            'conda_exe_export': conda_exe_export,
+            "converted_prefix": activator.path_conversion(self.prefix),
+            "native_prefix": self.prefix,
+            "new_path": activator.pathsep_join(new_path_parts),
+            "sys_executable": activator.path_conversion(sys.executable),
+            "conda_exe_export": conda_exe_export,
         }
         if on_win:
-            e_activate_info['sourcer'] = 'source-cmd --suppress-skip-message'
-            e_activate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat'))
+            e_activate_info["sourcer"] = "source-cmd --suppress-skip-message"
+            e_activate_info["activate1"] = activator.path_conversion(
+                join(self.prefix, "etc", "conda", "activate.d", "activate1.bat")
+            )
         else:
-            e_activate_info['sourcer'] = 'source-bash --suppress-skip-message'
-            e_activate_info['activate1'] = activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh'))
+            e_activate_info["sourcer"] = "source-bash --suppress-skip-message"
+            e_activate_info["activate1"] = activator.path_conversion(
+                join(self.prefix, "etc", "conda", "activate.d", "activate1.sh")
+            )
         e_activate_data = e_activate_template % e_activate_info
         assert activate_data == e_activate_data
 
-        with env_vars({
-            'CONDA_PREFIX': self.prefix,
-            'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
-        }):
+        with env_vars(
+            {
+                "CONDA_PREFIX": self.prefix,
+                "CONDA_SHLVL": "1",
+                "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
+            }
+        ):
             activator = XonshActivator()
             with captured() as c:
                 rc = main_sourced("shell.xonsh", *reactivate_args)
@@ -1472,13 +1533,15 @@ class ShellWrapperUnitTests(TestCase):
             reactivate_data = c.stdout
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
-            e_reactivate_template = dals("""
+            e_reactivate_template = dals(
+                """
             %(sourcer)s "%(deactivate1)s"
             $PATH = '%(new_path)s'
             $CONDA_SHLVL = '1'
             $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
             %(sourcer)s "%(activate1)s"
-            """)
+            """
+            )
             e_reactivate_info = {
                 'new_path': activator.pathsep_join(new_path_parts),
                 'native_prefix': self.prefix,
@@ -1536,7 +1599,9 @@ class ShellWrapperUnitTests(TestCase):
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
-        e_activate_data = dals("""
+        e_activate_data = (
+            dals(
+                """
         set -gx PATH "%(new_path)s";
         set -gx CONDA_PREFIX "%(native_prefix)s";
         set -gx CONDA_SHLVL "1";
@@ -1544,21 +1609,28 @@ class ShellWrapperUnitTests(TestCase):
         set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
         %(conda_exe_export)s;
         source "%(activate1)s";
-        """) % {
-            'converted_prefix': activator.path_conversion(self.prefix),
-            'native_prefix': self.prefix,
-            'new_path': activator.pathsep_join(new_path_parts),
-            'sys_executable': activator.path_conversion(sys.executable),
-            'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.fish')),
-            'conda_exe_export': conda_exe_export,
-        }
+        """
+            )
+            % {
+                "converted_prefix": activator.path_conversion(self.prefix),
+                "native_prefix": self.prefix,
+                "new_path": activator.pathsep_join(new_path_parts),
+                "sys_executable": activator.path_conversion(sys.executable),
+                "activate1": activator.path_conversion(
+                    join(self.prefix, "etc", "conda", "activate.d", "activate1.fish")
+                ),
+                "conda_exe_export": conda_exe_export,
+            }
+        )
         assert activate_data == e_activate_data
 
-        with env_vars({
-            'CONDA_PREFIX': self.prefix,
-            'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
-        }):
+        with env_vars(
+            {
+                "CONDA_PREFIX": self.prefix,
+                "CONDA_SHLVL": "1",
+                "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
+            }
+        ):
             activator = FishActivator()
             with captured() as c:
                 rc = main_sourced("shell.fish", *reactivate_args)
@@ -1567,18 +1639,27 @@ class ShellWrapperUnitTests(TestCase):
             reactivate_data = c.stdout
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
-            e_reactivate_data = dals("""
+            e_reactivate_data = (
+                dals(
+                    """
             source "%(deactivate1)s";
             set -gx PATH "%(new_path)s";
             set -gx CONDA_SHLVL "1";
             set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
             source "%(activate1)s";
-            """) % {
-                'new_path': activator.pathsep_join(new_path_parts),
-                'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.fish')),
-                'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.fish')),
-                'native_prefix': self.prefix,
-            }
+            """
+                )
+                % {
+                    "new_path": activator.pathsep_join(new_path_parts),
+                    "activate1": activator.path_conversion(
+                        join(self.prefix, "etc", "conda", "activate.d", "activate1.fish")
+                    ),
+                    "deactivate1": activator.path_conversion(
+                        join(self.prefix, "etc", "conda", "deactivate.d", "deactivate1.fish")
+                    ),
+                    "native_prefix": self.prefix,
+                }
+            )
             assert reactivate_data == e_reactivate_data
 
             with captured() as c:
@@ -1616,7 +1697,9 @@ class ShellWrapperUnitTests(TestCase):
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
-        e_activate_data = dals("""
+        e_activate_data = (
+            dals(
+                """
         $Env:PATH = "%(new_path)s"
         $Env:CONDA_PREFIX = "%(prefix)s"
         $Env:CONDA_SHLVL = "1"
@@ -1624,20 +1707,25 @@ class ShellWrapperUnitTests(TestCase):
         $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
         %(conda_exe_export)s
         . "%(activate1)s"
-        """) % {
-            'prefix': self.prefix,
-            'new_path': activator.pathsep_join(new_path_parts),
-            'sys_executable': sys.executable,
-            'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.ps1'),
-            'conda_exe_export': conda_exe_export,
-        }
+        """
+            )
+            % {
+                "prefix": self.prefix,
+                "new_path": activator.pathsep_join(new_path_parts),
+                "sys_executable": sys.executable,
+                "activate1": join(self.prefix, "etc", "conda", "activate.d", "activate1.ps1"),
+                "conda_exe_export": conda_exe_export,
+            }
+        )
         assert activate_data == e_activate_data
 
-        with env_vars({
-            'CONDA_PREFIX': self.prefix,
-            'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
-        }):
+        with env_vars(
+            {
+                "CONDA_PREFIX": self.prefix,
+                "CONDA_SHLVL": "1",
+                "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
+            }
+        ):
             activator = PowerShellActivator()
             with captured() as c:
                 rc = main_sourced("shell.powershell", *reactivate_args)
@@ -1646,18 +1734,26 @@ class ShellWrapperUnitTests(TestCase):
             reactivate_data = c.stdout
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
-            assert reactivate_data == dals("""
+            assert (
+                reactivate_data
+                == dals(
+                    """
             . "%(deactivate1)s"
             $Env:PATH = "%(new_path)s"
             $Env:CONDA_SHLVL = "1"
             $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
             . "%(activate1)s"
-            """) % {
-                'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.ps1'),
-                'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.ps1'),
-                'prefix': self.prefix,
-                'new_path': activator.pathsep_join(new_path_parts),
-            }
+            """
+                )
+                % {
+                    "activate1": join(self.prefix, "etc", "conda", "activate.d", "activate1.ps1"),
+                    "deactivate1": join(
+                        self.prefix, "etc", "conda", "deactivate.d", "deactivate1.ps1"
+                    ),
+                    "prefix": self.prefix,
+                    "new_path": activator.pathsep_join(new_path_parts),
+                }
+            )
 
             with captured() as c:
                 rc = main_sourced("shell.powershell", *deactivate_args)
@@ -1723,19 +1819,23 @@ class ShellWrapperUnitTests(TestCase):
             },
             "scripts": {
                 "activate": [
-                    activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh')),
+                    activator.path_conversion(
+                        join(self.prefix, "etc", "conda", "activate.d", "activate1.sh")
+                    ),
                 ],
                 "deactivate": [],
-            }
+            },
         }
         assert json.loads(activate_data) == e_activate_data
 
-        with env_vars({
-            'CONDA_PREFIX': self.prefix,
-            'CONDA_SHLVL': '1',
-            'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
-        }):
-            activator = _build_activator_cls('posix+json')()
+        with env_vars(
+            {
+                "CONDA_PREFIX": self.prefix,
+                "CONDA_SHLVL": "1",
+                "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
+            }
+        ):
+            activator = _build_activator_cls("posix+json")()
             with captured() as c:
                 rc = main_sourced("shell.posix+json", *reactivate_args)
             assert not c.stderr
@@ -1929,19 +2029,28 @@ class InteractiveShell:
         )
 
         # set state for context
-        joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
-        PATH = joiner(self.activator.path_conversion(concatv(
-            self.activator._get_starting_path_list(),
-            (dirname(which(self.shell_name)),),
-        )))
+        joiner = os.pathsep.join if self.shell_name == "fish" else self.activator.pathsep_join
+        PATH = joiner(
+            self.activator.path_conversion(
+                (
+                    *self.activator._get_starting_path_list(),
+                    dirname(which(self.shell_name)),
+                )
+            )
+        )
         self.original_path = PATH
         env = {
             "CONDA_AUTO_ACTIVATE_BASE": "false",
             "PYTHONPATH": self.activator.path_conversion(CONDA_SOURCE_ROOT),
             "PATH": PATH,
         }
-        for ev in ('CONDA_TEST_SAVE_TEMPS', 'CONDA_TEST_TMPDIR', 'CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE'):
-            if ev in os.environ: env[ev] = os.environ[ev]
+        for ev in (
+            "CONDA_TEST_SAVE_TEMPS",
+            "CONDA_TEST_TMPDIR",
+            "CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE",
+        ):
+            if ev in os.environ:
+                env[ev] = os.environ[ev]
 
         for name, val in env.items():
             p.sendline(self.activator.export_var_tmpl % (name, val))

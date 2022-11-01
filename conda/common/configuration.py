@@ -26,10 +26,10 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 try:
-    from tlz.itertoolz import concat, concatv, unique
+    from tlz.itertoolz import concat, unique
     from tlz.dicttoolz import merge, merge_with
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, unique
+    from conda._vendor.toolz.itertoolz import concat, unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
 
 from .compat import isiterable, odict, primitive_types
@@ -718,8 +718,9 @@ class MapLoadedParameter(LoadedParameter):
 
         # dump all matches in a dict
         # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(merge(
-            concatv([merged_values], reversed(important_maps))))
+        merged_values_important_overwritten = frozendict(
+            merge((merged_values, *reversed(important_maps)))
+        )
 
         # create new parameter for the merged values
         return MapLoadedParameter(
@@ -777,23 +778,27 @@ class SequenceLoadedParameter(LoadedParameter):
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
-        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom) for m, _ in
-                              reversed(relevant_matches_and_values))
+        bottom_lines = tuple(
+            concat(
+                get_marked_lines(match, ParameterFlag.bottom)
+                for match, _ in reversed(relevant_matches_and_values)
+            )
+        )
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
         all_lines = concat(v for _, v in reversed(relevant_matches_and_values))
 
         # stack top_lines + all_lines, then de-dupe
-        top_deduped = tuple(unique(concatv(top_lines, all_lines)))
+        top_deduped = tuple(unique((*top_lines, *all_lines)))
 
         # take the top-deduped lines, reverse them, and concat with reversed bottom_lines
         # this gives us the reverse of the order we want, but almost there
         # NOTE: for a line value marked both top and bottom, the bottom marker will win out
         #       for the top marker to win out, we'd need one additional de-dupe step
-        bottom_deduped = unique(concatv(reversed(tuple(bottom_lines)), reversed(top_deduped)))
+        bottom_deduped = tuple(unique((*reversed(bottom_lines), *reversed(top_deduped))))
         # just reverse, and we're good to go
-        merged_values = tuple(reversed(tuple(bottom_deduped)))
+        merged_values = tuple(reversed(bottom_deduped))
 
         return SequenceLoadedParameter(
             self._name,
@@ -861,8 +866,9 @@ class ObjectLoadedParameter(LoadedParameter):
 
         # dump all matches in a dict
         # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(merge(
-            concatv([merged_values], reversed(important_maps))))
+        merged_values_important_overwritten = frozendict(
+            merge((merged_values, *reversed(important_maps)))
+        )
 
         # copy object and replace Parameter with LoadedParameter fields
         object_copy = copy.deepcopy(self._element_type)

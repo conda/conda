@@ -13,21 +13,15 @@ import warnings
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
-try:  # pragma: py2 no cover
-    # Python 3
-    from urllib.parse import (
-        quote,
-        quote_plus,
-        unquote,
-        unquote_plus,  # NOQA
-        urlparse as _urlparse,
-        urlunparse as _urlunparse,
-        ParseResult,
-    )
-except ImportError:  # pragma: py3 no cover
-    # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus,  # NOQA
-                        urlparse as _urlparse, urlunparse as _urlunparse)
+from urllib.parse import (  # NOQA
+    quote,
+    quote_plus,
+    unquote,
+    unquote_plus,
+    urlparse as _urlparse,
+    urlunparse as _urlunparse,
+    ParseResult,
+)
 
 
 def hex_octal_to_int(ho):

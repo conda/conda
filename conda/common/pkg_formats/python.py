@@ -17,9 +17,9 @@ import sys
 import warnings
 
 try:
-    from tlz.itertoolz import concat, concatv
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv
+    from conda._vendor.toolz.itertoolz import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -276,7 +276,7 @@ class PythonDistribution:
             missing_pyc_files = (ff for ff in (
                 _pyc_path(f, py_ver_mm) for f in files_set if _py_file_re.match(f)
             ) if ff not in files_set)
-            records = sorted(concatv(records, ((pf, None, None) for pf in missing_pyc_files)))
+            records = sorted((*records, *((pf, None, None) for pf in missing_pyc_files)))
             return records
 
         return []
