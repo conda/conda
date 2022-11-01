@@ -1135,7 +1135,6 @@ class Context(Configuration):
                 "allow_cycles",  # allow cyclical dependencies, or raise
                 "allow_conda_downgrades",
                 "add_pip_as_python_dependency",
-                "channel_parameters",
                 "debug",
                 "dev",
                 "default_python",
