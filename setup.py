@@ -38,6 +38,7 @@ install_requires = [
     "requests >=2.20.1",
     "ruamel.yaml >=0.11.14",
     "menuinst ; platform_system=='Windows'",
+    "tqdm >=4",
 ]
 
 def package_files(*root_directories):
