@@ -8,9 +8,9 @@ import sys
 import warnings
 
 try:
-    from tlz.itertoolz import concat, concatv
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv
+    from conda._vendor.toolz.itertoolz import concat
 
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
@@ -301,7 +301,7 @@ def get_reduced_index(prefix, channels, subdirs, specs, repodata_fn):
     # add feature records for the solver
     known_features = set()
     for rec in reduced_index.values():
-        known_features.update(concatv(rec.track_features, rec.features))
+        known_features.update((*rec.track_features, *rec.features))
     known_features.update(context.track_features)
     for ftr_str in known_features:
         rec = make_feature_record(ftr_str)
