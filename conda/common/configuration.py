@@ -1195,6 +1195,14 @@ class UnionSequenceParameter(Parameter):
         self.string_delimiter = string_delimiter
         super().__init__(default, validation)
 
+    def get_all_matches(self, name, names, instance):
+        """
+        Copied from the SequenceParameter.get_all_matches
+        """
+        matches, exceptions = super().get_all_matches(name, names, instance)
+        matches = tuple(m for m in matches if m._raw_value is not None)
+        return matches, exceptions
+
     def _get_element_type_from_value(
         self, name: str, match: RawParameter, index: int
     ) -> UnionElementTypes:
