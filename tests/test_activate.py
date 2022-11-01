@@ -1887,6 +1887,7 @@ class ShellWrapperUnitTests(TestCase):
 
 
 class InteractiveShell:
+    activator = None
     init_command = None
     print_env_var = None
     from conda.utils import quote_for_shell
@@ -1991,13 +1992,7 @@ class InteractiveShell:
         self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
 
     def __enter__(self):
-        # Different timeout difficulties - probably superior to popen_spawn if we use correctly
-        # try:
-        #     from pexpect.pty_spawn import spawn
-        # except ImportError:
-        #     assert platform.system() == "Windows", "pty_spawn unavailable on a non-Windows platform"
-
-        from pexpect.popen_spawn import PopenSpawn as spawn
+        from pexpect.popen_spawn import PopenSpawn
 
         # remove all CONDA_ env vars
         # this ensures that PATH is shared with any msys2 bash shell, rather than starting fresh
@@ -2015,7 +2010,7 @@ class InteractiveShell:
         shell_found = which(self.shell_name) or self.shell_name
         args = list(self.args) if hasattr(self, 'args') else list()
 
-        p = spawn(
+        p = PopenSpawn(
             quote_for_shell(shell_found, *args),
             timeout=12,
             maxread=5000,
@@ -2408,7 +2403,8 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' not in PATH3
         assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
 
-
+    @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
+    def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
             self.basic_posix(shell)
 
