@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from logging import getLogger
 from os.path import realpath, basename
+import os
 import re
 import struct
 import subprocess
@@ -251,7 +252,7 @@ def generate_shebang_for_entry_point(executable, with_usr_bin_env=False):
     - conda init uses it to create its own entry point during conda-build
     """
     shebang = f"#!{executable}\n"
-    if "/_h_env_placehold" in executable:
+    if os.environ.get("CONDA_BUILD") == "1" and "/_h_env_placehold" in executable:
         # This is being used during a conda-build process,
         # which uses long prefixes on purpose. This will be replaced
         # with the real environment prefix at install time. Do not
