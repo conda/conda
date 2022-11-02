@@ -12,6 +12,7 @@ Features include:
 Easily extensible to other source formats, e.g. json and ini
 
 """
+from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -24,6 +25,10 @@ from os import environ, scandir, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Sequence
 
 try:
     from tlz.itertoolz import concat, unique
@@ -688,7 +693,7 @@ class MapLoadedParameter(LoadedParameter):
                 errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
-    def merge(self, parameters: Sequence[MapLoadedParameter]):
+    def merge(self, parameters: Sequence[MapLoadedParameter]) -> MapLoadedParameter:
         # get all values up to and including first important_match
         # but if no important_match, then all matches are important_matches
         parameters = LoadedParameter._first_important_matches(parameters)
@@ -837,7 +842,7 @@ class ObjectLoadedParameter(LoadedParameter):
                     errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
-    def merge(self, parameters: Sequence[ObjectLoadedParameter]):
+    def merge(self, parameters: Sequence[ObjectLoadedParameter]) -> ObjectLoadedParameter:
         # get all parameters up to and including first important_match
         # but if no important_match, then all parameters are important_matches
         parameters = LoadedParameter._first_important_matches(parameters)
