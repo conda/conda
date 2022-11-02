@@ -146,7 +146,7 @@ class SubdirData(metaclass=SubdirDataType):
         if isinstance(param, MatchSpec):
             if param.get_exact_value('name'):
                 package_name = param.get_exact_value('name')
-                for prec in self._names_index[package_name]:
+                for prec in self._iter_records_by_name(package_name):
                     if param.match(prec):
                         yield prec
             elif param.get_exact_value('track_features'):
@@ -157,7 +157,7 @@ class SubdirData(metaclass=SubdirDataType):
                     if param.match(prec):
                         yield prec
             else:
-                for prec in self._package_records:
+                for prec in self.iter_records():
                     if param.match(prec):
                         yield prec
         else:
@@ -225,7 +225,17 @@ class SubdirData(metaclass=SubdirDataType):
     def iter_records(self):
         if not self._loaded:
             self.load()
-        return iter(self._package_records)
+        for i, record in enumerate(self._package_records):
+            if not isinstance(record, PackageRecord):
+                self._package_records[i] = record = PackageRecord(**record)
+            yield record
+
+    def _iter_records_by_name(self, name):
+        for i in self._names_index[name]:
+            record = self._package_records[i]
+            if not isinstance(record, PackageRecord):
+                self._package_records[i] = record = PackageRecord(**record)
+            yield record
 
     def _load(self):
         try:
@@ -322,7 +332,7 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _read_local_repdata(self, etag, mod_stamp):
         # first try reading pickled data
-        _pickled_state = self._read_pickled(etag, mod_stamp)
+        _pickled_state = False # self._read_pickled(etag, mod_stamp)
         if _pickled_state:
             return _pickled_state
 
@@ -467,12 +477,13 @@ class SubdirData(metaclass=SubdirDataType):
                               info["record_version"], info['url'])
                     continue
 
-                package_record = PackageRecord(**info)
-
-                _package_records.append(package_record)
-                _names_index[package_record.name].append(package_record)
-                for ftr_name in package_record.track_features:
-                    _track_features_index[ftr_name].append(package_record)
+                # make lazy
+                # package_record = PackageRecord(**info)
+                _package_records.append(info)
+                record_index = len(_package_records) - 1
+                _names_index[info["name"]].append(record_index)
+                for ftr_name in info.get("track_features", []):
+                    _track_features_index[ftr_name].append(record_index)
 
         self._internal_state = _internal_state
         return _internal_state

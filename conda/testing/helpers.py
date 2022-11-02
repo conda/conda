@@ -328,7 +328,7 @@ def get_index_r_1(subdir=context.subdir):
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
 
@@ -358,7 +358,7 @@ def get_index_r_2(subdir=context.subdir):
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     r = Resolve(index, channels=(channel,))
 
     _patch_for_local_exports("channel-2", sd, channel, index)
@@ -387,7 +387,7 @@ def get_index_r_4(subdir=context.subdir):
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     r = Resolve(index, channels=(channel,))
 
     _patch_for_local_exports("channel-4", sd, channel, index)
@@ -416,7 +416,7 @@ def get_index_r_5(subdir=context.subdir):
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     r = Resolve(index, channels=(channel,))
 
     _patch_for_local_exports("channel-5", sd, channel, index)
@@ -514,7 +514,7 @@ def get_index_must_unfreeze(subdir=context.subdir):
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     r = Resolve(index, channels=(channel,))
 
     _patch_for_local_exports("channel-freeze", sd, channel, index)
@@ -541,7 +541,7 @@ def get_index_cuda(subdir=context.subdir):
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
 
     add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
