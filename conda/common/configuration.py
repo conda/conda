@@ -724,7 +724,7 @@ class MapLoadedParameter(LoadedParameter):
         for parameter in parameters:
             for key, value in parameter.value.items():
                 grouped_map.setdefault(key, []).append(value)
-        merged_map = {key: values[0].merge(values) for key, values in grouped_values.items()}
+        merged_map = {key: values[0].merge(values) for key, values in grouped_map.items()}
 
         # update merged_map with final_map values
         merged_value = frozendict({**merged_map, **final_map})
@@ -852,10 +852,10 @@ class ObjectLoadedParameter(LoadedParameter):
         final_map = {
             key: value
             for parameter in reversed(parameters)
-            for key, value in vars(parameter.value)
+            for key, value in vars(parameter.value).items()
             if (
                 isinstance(value, LoadedParameter)
-                and match.value_flags.get(key) == ParameterFlag.final
+                and parameter.value_flags.get(key) == ParameterFlag.final
             )
         }
 
@@ -863,12 +863,12 @@ class ObjectLoadedParameter(LoadedParameter):
         # last key has higher precedence than earlier ones
         grouped_map = {}
         for parameter in parameters:
-            for key, value in vars(parameter.value):
+            for key, value in vars(parameter.value).items():
                 grouped_map.setdefault(key, []).append(value)
         merged_map = {key: values[0].merge(values) for key, values in grouped_map.items()}
 
         # update merged_map with final_map values
-        merged_value = self._type()
+        merged_value = copy.deepcopy(self._element_type)
         for key, value in {**merged_map, **final_map}.items():
             merged_value.__setattr__(key, value)
 
