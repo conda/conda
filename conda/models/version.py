@@ -195,13 +195,20 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
         if len(version) == 1:
             # no local version
             self.local = []
+        # Case 2: We have a local version component in version[1]
         elif len(version) == 2:
             # local version given
             self.local = version[1].replace('_', '.').split('.')
         else:
             raise InvalidVersionSpec(vstr, "duplicated local version separator '+'")
 
-        # split version
+        # Error Case: Version is empty because the version string started with +.
+        # e.g. "+", "1.2", "+a", "+1".
+        # This is an error because specifying only a local version is invalid.
+        # version[0] is empty because vstr.split("+") returns something like ['', '1.2']
+        if version[0] == '':
+            raise InvalidVersionSpec(vstr, "Missing version before local version separator '+'")
+
         if version[0][-1] == "_":
             # If the last character of version is "-" or "_", don't split that out
             # individually. Implements the instructions for openssl-like versions
