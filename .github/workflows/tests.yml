@@ -56,7 +56,10 @@ jobs:
           # Increase this value to reset cache
           CACHE_NUMBER: 2
         with:
-          path: "C:\\conda_bin\\envs\\conda-test-env\\pkgs"
+          # setup.bat makes a directory junction from \conda_bin to
+          # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
+          # at this stage.
+          path: C:\Miniconda\envs\conda-test-env\pkgs
           key:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
             hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
