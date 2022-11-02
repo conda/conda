@@ -688,43 +688,46 @@ class MapLoadedParameter(LoadedParameter):
                 errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
-    def merge(self, matches):
-
-        # get matches up to and including first important_match
+    def merge(self, parameters: Sequence[MapLoadedParameter]):
+        # get all values up to and including first important_match
         # but if no important_match, then all matches are important_matches
-        relevant_matches_and_values = tuple((match, match.value) for match in
-                                            LoadedParameter._first_important_matches(matches))
+        parameters = LoadedParameter._first_important_matches(parameters)
 
-        for match, value in relevant_matches_and_values:
-            if not isinstance(value, Mapping):
-                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
-                                       self._type.__name__)
+        # ensure all parameter values are Mappings
+        for parameter in parameters:
+            if not isinstance(parameter.value, Mapping):
+                raise InvalidTypeError(
+                    self.name,
+                    parameter.value,
+                    parameter.source,
+                    parameter.value.__class__.__name__,
+                    self._type.__name__,
+                )
 
-        # map keys with important values,
+        # map keys with final values,
         # first key has higher precedence than later ones
-        important_maps = {
+        final_map = {
             key: value
-            for match, match_value in reversed(relevant_matches_and_values)
-            for key, value in match_value.items()
-            if match.value_flags.get(key) == ParameterFlag.final
+            for parameter in reversed(parameters)
+            for key, value in parameter.value.items()
+            if parameter.value_flags.get(key) == ParameterFlag.final
         }
 
         # map each value by recursively calling merge on any entries with the same key,
         # last key has higher precedence than earlier ones
-        grouped_values = {}
-        for _, match_value in relevant_matches_and_values:
-            for k, v in match_value.items():
-                grouped_values.setdefault(k, []).append(v)
-        merged_values = {k: v[0].merge(v) for k, v in grouped_values.items()}
+        grouped_map = {}
+        for parameter in parameters:
+            for key, value in parameter.value.items():
+                grouped_map.setdefault(key, []).append(value)
+        merged_map = {key: values[0].merge(values) for key, values in grouped_values.items()}
 
-        # dump all matches in a dict
-        # then overwrite with important matches
-        merged_values_important_overwritten = {**merged_values, **important_maps}
+        # update merged_map with final_map values
+        merged_value = frozendict({**merged_map, **final_map})
 
         # create new parameter for the merged values
         return MapLoadedParameter(
             self._name,
-            frozendict(merged_values_important_overwritten),
+            merged_value,
             self._element_type,
             self.key_flag,
             self.value_flags,
@@ -810,7 +813,7 @@ class SequenceLoadedParameter(LoadedParameter):
 
 class ObjectLoadedParameter(LoadedParameter):
     """
-    LoadedParameter type that holds a sequence (i.e. list) of LoadedParameters.
+    LoadedParameter type that holds a mapping (i.e. object) of LoadedParameters.
     """
     _type = object
 
@@ -834,51 +837,40 @@ class ObjectLoadedParameter(LoadedParameter):
                     errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
-    def merge(self, matches):
-        # get matches up to and including first important_match
-        # but if no important_match, then all matches are important_matches
-        relevant_matches_and_values = tuple((match,
-                                             {k: v for k, v
-                                              in vars(match.value).items()
-                                              if isinstance(v, LoadedParameter)})
-                                            for match
-                                            in LoadedParameter._first_important_matches(matches))
+    def merge(self, parameters: Sequence[ObjectLoadedParameter]):
+        # get all parameters up to and including first important_match
+        # but if no important_match, then all parameters are important_matches
+        parameters = LoadedParameter._first_important_matches(parameters)
 
-        for match, value in relevant_matches_and_values:
-            if not isinstance(value, Mapping):
-                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
-                                       self._type.__name__)
-
-        # map keys with important values,
+        # map keys with final values,
         # first key has higher precedence than later ones
-        important_maps = {
+        final_map = {
             key: value
-            for match, match_value in reversed(relevant_matches_and_values)
-            for key, value in match_value.items()
-            if match.value_flags.get(key) == ParameterFlag.final
+            for parameter in reversed(parameters)
+            for key, value in vars(parameter.value)
+            if (
+                isinstance(value, LoadedParameter)
+                and match.value_flags.get(key) == ParameterFlag.final
+            )
         }
 
         # map each value by recursively calling merge on any entries with the same key,
         # last key has higher precedence than earlier ones
-        grouped_values = {}
-        for _, match_value in relevant_matches_and_values:
-            for k, v in match_value.items():
-                grouped_values.setdefault(k, []).append(v)
-        merged_values = {k: v[0].merge(v) for k, v in grouped_values.items()}
+        grouped_map = {}
+        for parameter in parameters:
+            for key, value in vars(parameter.value):
+                grouped_map.setdefault(key, []).append(value)
+        merged_map = {key: values[0].merge(values) for key, values in grouped_map.items()}
 
-        # dump all matches in a dict
-        # then overwrite with important matches
-        merged_values_important_overwritten = {**merged_values, **important_maps}
-
-        # copy object and replace Parameter with LoadedParameter fields
-        object_copy = copy.deepcopy(self._element_type)
-        for attr_name, loaded_child_parameter in merged_values_important_overwritten.items():
-            object_copy.__setattr__(attr_name, loaded_child_parameter)
+        # update merged_map with final_map values
+        merged_value = self._type()
+        for key, value in {**merged_map, **final_map}.items():
+            merged_value.__setattr__(key, value)
 
         # create new parameter for the merged values
         return ObjectLoadedParameter(
             self._name,
-            object_copy,
+            merged_value,
             self._element_type,
             self.key_flag,
             self.value_flags,
