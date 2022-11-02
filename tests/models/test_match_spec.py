@@ -1003,3 +1003,9 @@ class MatchSpecMergeTests(TestCase):
         assert str(merged[0]) in str_specs
         assert str(merged[1]) in str_specs
         assert str(merged[0]) != str(merged[1])
+
+    def test_catch_invalid_regexes(self):
+        # Crashing case via fuzzing found via fuzzing. Reported here: https://github.com/conda/conda/issues/11999
+        self.assertRaises(InvalidMatchSpec, MatchSpec, ("*/lin(ux-65::f/o>=>1y"))
+        # Inspired by above crasher
+        self.assertRaises(InvalidMatchSpec, MatchSpec, ("^(aaaa$"))
