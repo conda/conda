@@ -36,14 +36,6 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-class RepodataIsNone(Exception):
-    """
-    Adapt context manager to old "raw repodata string is None" result.
-    """
-
-    pass
-
-
 class RepoInterface(abc.ABC):
     # TODO: Support async operations
     # TODO: Support progress bars
@@ -79,15 +71,13 @@ class CondaRepoInterface(RepoInterface):
         filename = self._repodata_fn
 
         url = join_url(self._url, filename)
-        try:
-            with conda_http_errors(self._url, filename):
-                timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-                resp = session.get(url, headers=headers, proxies=session.proxies, timeout=timeout)
-                if self._log.isEnabledFor(logging.DEBUG):
-                    self._log.debug(stringify(resp, content_max_len=256))
-                resp.raise_for_status()
-        except RepodataIsNone:
-            return None
+
+        with conda_http_errors(self._url, filename):
+            timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+            resp = session.get(url, headers=headers, proxies=session.proxies, timeout=timeout)
+            if self._log.isEnabledFor(logging.DEBUG):
+                self._log.debug(stringify(resp, content_max_len=256))
+            resp.raise_for_status()
 
         if resp.status_code == 304:
             raise Response304ContentUnchanged()
@@ -101,19 +91,19 @@ class CondaRepoInterface(RepoInterface):
 
         # We explictly no longer add these tags to the large `resp.content` json
         saved_fields = {"_url": self._url}
-        self._add_http_value_to_dict(resp, "Etag", saved_fields, "_etag")
-        self._add_http_value_to_dict(resp, "Last-Modified", saved_fields, "_mod")
-        self._add_http_value_to_dict(resp, "Cache-Control", saved_fields, "_cache_control")
+        _add_http_value_to_dict(resp, "Etag", saved_fields, "_etag")
+        _add_http_value_to_dict(resp, "Last-Modified", saved_fields, "_mod")
+        _add_http_value_to_dict(resp, "Cache-Control", saved_fields, "_cache_control")
 
         state.clear()
         state.update(saved_fields)
 
         return json_str
 
-    def _add_http_value_to_dict(self, resp, http_key, d, dict_key):
-        value = resp.headers.get(http_key)
-        if value:
-            d[dict_key] = value
+def _add_http_value_to_dict(resp, http_key, d, dict_key):
+    value = resp.headers.get(http_key)
+    if value:
+        d[dict_key] = value
 
 
 @contextmanager
@@ -169,7 +159,11 @@ Exception: {e}
                     status_code,
                     url + "/" + repodata_fn,
                 )
-                raise RepodataIsNone()
+                raise UnavailableInvalidChannel(
+                    Channel(dirname(url)),
+                    status_code,
+                    response=e.response,
+                )
             else:
                 if context.allow_non_channel_urls:
                     stderrlog.warning(
@@ -177,7 +171,11 @@ Exception: {e}
                         status_code,
                         url + "/" + repodata_fn,
                     )
-                    raise RepodataIsNone()
+                    raise UnavailableInvalidChannel(
+                        Channel(dirname(url)),
+                        status_code,
+                        response=e.response,
+                    )
                 else:
                     raise UnavailableInvalidChannel(
                         Channel(dirname(url)),
