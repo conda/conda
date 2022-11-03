@@ -42,13 +42,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      # for cache
+      - if: ${{ runner.os == 'Windows' }}
+        name: Use GNU tar
+        shell: cmd
+        run: |
+          echo "Adding GNU tar to PATH"
+          echo C:\Program Files\Git\usr\bin>>"%GITHUB_PATH%"
+
       - name: Cache conda packages
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 0
+          CACHE_NUMBER: 2
         with:
-          path: "C:\\conda_bin\\envs\\conda-test-env\\pkgs"
+          # setup.bat makes a directory junction from \conda_bin to
+          # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
+          # at this stage.
+          path: C:\Miniconda\envs\conda-test-env\pkgs
           key:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
             hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
