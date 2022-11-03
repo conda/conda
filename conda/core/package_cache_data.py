@@ -763,12 +763,17 @@ class ProgressiveFetchExtract:
             for completed_future in as_completed(futures):
                 try:
                     prec_or_spec = completed_future.result()
-                except Exception:
+                except BaseException as e:
                     # Special handling for exceptions thrown inside future, not
                     # by futures handling code. Cancel any download that has not
                     # been started. In-progress futures will continue.
+                    # Could use executor.shutdown(cancel_futures=True) instead?
                     for future in futures:
                         future.cancel()
+
+                    # faster handling of KeyboardInterrupt e.g.
+                    if not isinstance(e, Exception):
+                        raise
 
                     # break, not raise. CondaMultiError() raised if exceptions.
                     break
