@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import
 
 import os
 import os.path as op
@@ -49,7 +47,8 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         requirements.write('\n'.join(specs))
         requirements.close()
         # pip command line...
-        pip_cmd = ['install', '-U', '-r', requirements.name]
+        # see https://pip.pypa.io/en/stable/cli/pip/#exists-action-option
+        pip_cmd = ['install', '-U', '-r', requirements.name, '--exists-action=b']
         stdout, stderr = pip_subprocess(pip_cmd, prefix, cwd=pip_workdir)
     finally:
         # Win/Appveyor does not like it if we use context manager + delete=True.

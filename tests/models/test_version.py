@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, print_function
 
 from copy import copy
 from random import shuffle
@@ -303,6 +301,28 @@ class TestVersionSpec(unittest.TestCase):
             VersionSpec("~")
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("^")
+        # Test for previously mishandled uses of local version separator '+'
+        # uncovered by fuzzing efforts
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("1.2+")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("+1.2")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("+1.2+")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("++")
+        # Fuzzer-identified crasher:
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("c +, 0/|0 *")
+
+        # Test for mishandling of '==' without a version number
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("==")
+        # Additional tests based on the above
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec(">=")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("<=")
 
     def test_compatible_release_versions(self):
         assert VersionSpec("~=1.10").match("1.11.0")

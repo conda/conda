@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
 from configparser import ConfigParser
@@ -19,9 +17,11 @@ import sys
 import warnings
 
 try:
-    from tlz.itertoolz import concat, concatv, groupby
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+    from conda._vendor.toolz.itertoolz import concat
+
+from conda.common.iterators import groupby_to_dict as groupby
 
 from ... import CondaError
 from ..compat import odict, open
@@ -62,7 +62,7 @@ class MetadataWarning(Warning):
 
 # Dist classes
 # -----------------------------------------------------------------------------
-class PythonDistribution(object):
+class PythonDistribution:
     """
     Base object describing a python distribution based on path to anchor file.
     """
@@ -138,7 +138,7 @@ class PythonDistribution(object):
 
         if lines and not (lines[0].startswith('[') and lines[0].endswith(']')):
             # Add dummy section for unsectioned items
-            lines = ['[{}]'.format(global_section)] + lines
+            lines = [f"[{global_section}]"] + lines
 
         # Parse sections
         for line in lines:
@@ -166,7 +166,7 @@ class PythonDistribution(object):
             else:
                 # The section is an extra, i.e. "docs", or "tests"...
                 extras.append(section)
-                marker = '; extra == "{}"'.format(section)
+                marker = f'; extra == "{section}"'
                 new_values = [v+marker for v in values]
                 reqs.extend(new_values)
 
@@ -200,7 +200,7 @@ class PythonDistribution(object):
         for fname in self.REQUIRES_FILES:
             fpath = join(self._metadata_dir_full_path, fname)
             if isfile(fpath):
-                with open(fpath, 'r') as fh:
+                with open(fpath) as fh:
                     data = fh.read()
 
                 requires, extras = self._parse_requires_file_data(data)
@@ -245,7 +245,7 @@ class PythonDistribution(object):
                 seen = []
                 records = []
                 for row in reader:
-                    cleaned_path = posix_normpath("%s%s%s" % (sp_dir, path_prepender, row[0]))
+                    cleaned_path = posix_normpath(f"{sp_dir}{path_prepender}{row[0]}")
                     if len(row) == 3:
                         checksum, size = row[1:]
                         if checksum:
@@ -269,14 +269,14 @@ class PythonDistribution(object):
                 record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                 # format of each record is (path, checksum, size)
                 records = process_csv_row(record_reader)
-            files_set = set(record[0] for record in records)
+            files_set = {record[0] for record in records}
 
             _pyc_path, _py_file_re = pyc_path, PY_FILE_RE
             py_ver_mm = get_major_minor_version(python_version, with_dot=False)
             missing_pyc_files = (ff for ff in (
                 _pyc_path(f, py_ver_mm) for f in files_set if _py_file_re.match(f)
             ) if ff not in files_set)
-            records = sorted(concatv(records, ((pf, None, None) for pf in missing_pyc_files)))
+            records = sorted((*records, *((pf, None, None) for pf in missing_pyc_files)))
             return records
 
         return []
@@ -323,12 +323,12 @@ class PythonDistribution(object):
 
         def pyspec_to_norm_req(pyspec):
             conda_name = pypi_name_to_conda_name(norm_package_name(pyspec.name))
-            return "%s %s" % (conda_name, pyspec.constraints) if pyspec.constraints else conda_name
+            return f"{conda_name} {pyspec.constraints}" if pyspec.constraints else conda_name
 
         reqs = self.get_dist_requirements()
         pyspecs = tuple(parse_specification(req) for req in reqs)
         marker_groups = groupby(lambda ps: ps.marker.split("==", 1)[0].strip(), pyspecs)
-        depends = set(pyspec_to_norm_req(pyspec) for pyspec in marker_groups.pop("", ()))
+        depends = {pyspec_to_norm_req(pyspec) for pyspec in marker_groups.pop("", ())}
         extras = marker_groups.pop("extra", ())
         execution_context = {
             "python_version": self.python_version,
@@ -337,7 +337,7 @@ class PythonDistribution(object):
             pyspec_to_norm_req(pyspec) for pyspec in concat(marker_groups.values())
             if interpret(pyspec.marker, execution_context)
         )
-        constrains = set(pyspec_to_norm_req(pyspec) for pyspec in extras if pyspec.constraints)
+        constrains = {pyspec_to_norm_req(pyspec) for pyspec in extras if pyspec.constraints}
         depends.add(python_spec)
 
         return sorted(depends), sorted(constrains)
@@ -351,7 +351,7 @@ class PythonDistribution(object):
         for fname in self.ENTRY_POINTS_FILES:
             fpath = join(self._metadata_dir_full_path, fname)
             if isfile(fpath):
-                with open(fpath, 'r') as fh:
+                with open(fpath) as fh:
                     data = fh.read()
         return self._parse_entries_file_data(data)
 
@@ -391,7 +391,7 @@ class PythonInstalledDistribution(PythonDistribution):
 
     def __init__(self, prefix_path, anchor_file, python_version):
         anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        super(PythonInstalledDistribution, self).__init__(anchor_full_path, python_version)
+        super().__init__(anchor_full_path, python_version)
         self.sp_reference = basename(dirname(anchor_file))
 
 
@@ -409,7 +409,7 @@ class PythonEggInfoDistribution(PythonDistribution):
     ENTRY_POINTS_FILES = ('entry_points.txt', )
 
     def __init__(self, anchor_full_path, python_version, sp_reference):
-        super(PythonEggInfoDistribution, self).__init__(anchor_full_path, python_version)
+        super().__init__(anchor_full_path, python_version)
         self.sp_reference = sp_reference
 
     @property
@@ -426,14 +426,13 @@ class PythonEggLinkDistribution(PythonEggInfoDistribution):
     def __init__(self, prefix_path, anchor_file, python_version):
         anchor_full_path = get_dist_file_from_egg_link(anchor_file, prefix_path)
         sp_reference = None  # This can be None in case the egg-info is no longer there
-        super(PythonEggLinkDistribution, self).__init__(anchor_full_path, python_version,
-                                                        sp_reference)
+        super().__init__(anchor_full_path, python_version, sp_reference)
 
 
 # Python distribution/eggs metadata
 # -----------------------------------------------------------------------------
 
-class PythonDistributionMetadata(object):
+class PythonDistributionMetadata:
     """
     Object representing the metada of a Python Distribution given by anchor
     file (or directory) path.
@@ -875,21 +874,23 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
     for entry in scandir(site_packages_path):
         fname = entry.name
         anchor_file = None
-        if fname.endswith('.dist-info'):
-            anchor_file = "%s/%s/%s" % (site_packages_dir, fname, 'RECORD')
+        if fname.endswith(".dist-info"):
+            anchor_file = "{}/{}/{}".format(site_packages_dir, fname, "RECORD")
         elif fname.endswith(".egg-info"):
             if isfile(join(site_packages_path, fname)):
-                anchor_file = "%s/%s" % (site_packages_dir, fname)
+                anchor_file = f"{site_packages_dir}/{fname}"
             else:
-                anchor_file = "%s/%s/%s" % (site_packages_dir, fname, "PKG-INFO")
+                anchor_file = "{}/{}/{}".format(site_packages_dir, fname, "PKG-INFO")
         elif fname.endswith(".egg"):
             if isdir(join(site_packages_path, fname)):
-                anchor_file = "%s/%s/%s/%s" % (site_packages_dir, fname, "EGG-INFO", "PKG-INFO")
+                anchor_file = "{}/{}/{}/{}".format(
+                    site_packages_dir, fname, "EGG-INFO", "PKG-INFO"
+                )
             # FIXME: If it is a .egg file, we need to unzip the content to be
             # able. Do this once and leave the directory, and remove the egg
             # (which is a zip file in disguise?)
         elif fname.endswith('.egg-link'):
-            anchor_file = "%s/%s" % (site_packages_dir, fname)
+            anchor_file = f"{site_packages_dir}/{fname}"
         elif fname.endswith('.pth'):
             continue
         else:
@@ -943,7 +944,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
             egg_info_full_path = join(egg_info_full_path, "PKG-INFO")
 
     if egg_info_full_path is None:
-        raise EnvironmentError(ENOENT, strerror(ENOENT), egg_link_contents)
+        raise OSError(ENOENT, strerror(ENOENT), egg_link_contents)
 
     return egg_info_full_path
 
@@ -1063,7 +1064,7 @@ def _is_literal(o):
     return o[0] in '\'"'
 
 
-class Evaluator(object):
+class Evaluator:
     """
     This class is used to evaluate marker expressions.
     """
@@ -1099,11 +1100,11 @@ class Evaluator(object):
             assert isinstance(expr, dict)
             op = expr['op']
             if op not in self.operations:
-                raise NotImplementedError('op not implemented: %s' % op)
-            elhs = expr['lhs']
-            erhs = expr['rhs']
-            if _is_literal(expr['lhs']) and _is_literal(expr['rhs']):
-                raise SyntaxError('invalid comparison: %s %s %s' % (elhs, op, erhs))
+                raise NotImplementedError("op not implemented: %s" % op)
+            elhs = expr["lhs"]
+            erhs = expr["rhs"]
+            if _is_literal(expr["lhs"]) and _is_literal(expr["rhs"]):
+                raise SyntaxError(f"invalid comparison: {elhs} {op} {erhs}")
 
             lhs = self.evaluate(elhs, context)
             rhs = self.evaluate(erhs, context)
@@ -1127,7 +1128,7 @@ def get_default_marker_context():
     """Return the default context dictionary to use when parsing markers."""
 
     def format_full_version(info):
-        version = '%s.%s.%s' % (info.major, info.minor, info.micro)
+        version = f"{info.major}.{info.minor}.{info.micro}"
         kind = info.releaselevel
         if kind != 'final':
             version += kind[0] + str(info.serial)
@@ -1182,10 +1183,10 @@ def interpret(marker, execution_context=None):
     try:
         expr, rest = parse_marker(marker)
     except Exception as e:
-        raise SyntaxError('Unable to interpret marker syntax: %s: %s' % (marker, e))
+        raise SyntaxError(f"Unable to interpret marker syntax: {marker}: {e}")
 
-    if rest and rest[0] != '#':
-        raise SyntaxError('unexpected trailing data in marker: %s: %s' % (marker, rest))
+    if rest and rest[0] != "#":
+        raise SyntaxError(f"unexpected trailing data in marker: {marker}: {rest}")
 
     context = DEFAULT_MARKER_CONTEXT.copy()
     if execution_context:

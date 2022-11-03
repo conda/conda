@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -10,27 +9,22 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 from logging import getLogger
 import sys
 
-try:
-    from tlz.itertoolz import concatv, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concatv, groupby
-
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, stack_context_default
 from .common.io import dashlist, env_vars, time_recorder
+from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
 from .exceptions import CondaIndexError, PackagesNotFoundError
 from .history import History
-from .instructions import (FETCH, LINK, SYMLINK_CONDA, UNLINK)
+from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
@@ -158,7 +152,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         for pkg in packages:
             # That's right. I'm using old-style string formatting to generate a
             # string with new-style string formatting.
-            oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
+            oldfmt[pkg] = f"{{pkg:<{maxpkg}}} {{vers[0]:<{maxoldver}}}"
             if maxoldchannels:
                 oldfmt[pkg] += ' {channels[0]:<%s}' % maxoldchannels
             if features[pkg][0]:
@@ -348,13 +342,13 @@ def _plan_from_actions(actions, index):  # pragma: no cover
     axn = actions.get('ACTION') or None
     specs = actions.get('SPECS', [])
 
-    log.debug("Adding plans for operations: {0}".format(op_order))
+    log.debug(f"Adding plans for operations: {op_order}")
     for op in op_order:
         if op not in actions:
-            log.trace("action {0} not in actions".format(op))
+            log.trace(f"action {op} not in actions")
             continue
         if not actions[op]:
-            log.trace("action {0} has None value".format(op))
+            log.trace(f"action {op} has None value")
             continue
         if '_' not in op:
             plan.append((PRINT, '%sing packages ...' % op.capitalize()))
@@ -363,7 +357,7 @@ def _plan_from_actions(actions, index):  # pragma: no cover
         if op in PROGRESS_COMMANDS:
             plan.append((PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
-            log.debug("appending value {0} for action {1}".format(arg, op))
+            log.debug(f"appending value {arg} for action {op}")
             plan.append((op, arg))
 
     plan = _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs)
@@ -413,20 +407,20 @@ def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     # unlink
     menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        unlink_dists = tuple(concatv(
-            unlink_dists[:menuinst_idx],
-            unlink_dists[menuinst_idx+1:],
-            unlink_dists[menuinst_idx:menuinst_idx+1],
-        ))
+        unlink_dists = (
+            *unlink_dists[:menuinst_idx],
+            *unlink_dists[menuinst_idx + 1 :],
+            *unlink_dists[menuinst_idx : menuinst_idx + 1],
+        )
 
     # link
     menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        link_dists = tuple(concatv(
-            link_dists[menuinst_idx:menuinst_idx+1],
-            link_dists[:menuinst_idx],
-            link_dists[menuinst_idx+1:],
-        ))
+        link_dists = (
+            *link_dists[menuinst_idx : menuinst_idx + 1],
+            *link_dists[:menuinst_idx],
+            *link_dists[menuinst_idx + 1 :],
+        )
 
     return unlink_dists, link_dists
 

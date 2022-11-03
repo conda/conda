@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +6,6 @@ These helpers were originally defined in tests/test_create.py,
 but were refactored here so downstream projects can benefit from
 them too.
 """
-from __future__ import unicode_literals
 
 from contextlib import contextmanager
 from functools import lru_cache
@@ -144,7 +142,7 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
 
     try:
         link(src, dst)
-    except (IOError, OSError):
+    except OSError:
         print(
             "\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
             "           not on the same FS as `sys.prefix`:\n           {}\n"
@@ -331,7 +329,7 @@ def make_temp_env(*packages, **kwargs):
             if "CONDA_TEST_SAVE_TEMPS" not in os.environ:
                 rmtree(prefix, ignore_errors=True)
             else:
-                log.warning("CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {}".format(prefix))
+                log.warning(f"CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {prefix}")
 
 
 @contextmanager

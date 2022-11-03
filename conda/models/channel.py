@@ -1,16 +1,14 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import copy
 from itertools import chain
 from logging import getLogger
 
 try:
-    from tlz.itertoolz import concat, concatv
+    from tlz.itertoolz import concat
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv
+    from conda._vendor.toolz.itertoolz import concat
 
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
@@ -48,7 +46,7 @@ class ChannelType(type):
                                  for _kwargs in kwargs['channels'])
                 return MultiChannel(name, channels)
             else:
-                return super(ChannelType, cls).__call__(*args, **kwargs)
+                return super().__call__(*args, **kwargs)
 
 
 class Channel(metaclass=ChannelType):
@@ -158,18 +156,22 @@ class Channel(metaclass=ChannelType):
                 cn = self.__canonical_name = self.name
                 return cn
 
-        if any(c.location == self.location for c in concatv(
-                (context.channel_alias,),
-                context.migrated_channel_aliases,
-        )):
+        if any(
+            alias.location == self.location
+            for alias in (
+                context.channel_alias,
+                *context.migrated_channel_aliases,
+            )
+        ):
             cn = self.__canonical_name = self.name
             return cn
 
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
-            cn = self.__canonical_name = "%s://%s" % (self.scheme,
-                                                      join_url(self.location, self.name))
+            cn = self.__canonical_name = "{}://{}".format(
+                self.scheme, join_url(self.location, self.name)
+            )
             return cn
         else:
             cn = self.__canonical_name = join_url(self.location, self.name).lstrip('/')
@@ -196,14 +198,13 @@ class Channel(metaclass=ChannelType):
                 if self.platform != 'noarch':
                     yield 'noarch'
             else:
-                for subdir in subdirs:
-                    yield subdir
+                yield from subdirs
 
         bases = (join_url(base, p) for p in _platforms())
         if with_credentials and self.auth:
-            return ["%s://%s@%s" % (self.scheme, self.auth, b) for b in bases]
+            return [f"{self.scheme}://{self.auth}@{b}" for b in bases]
         else:
-            return ["%s://%s" % (self.scheme, b) for b in bases]
+            return [f"{self.scheme}://{b}" for b in bases]
 
     def url(self, with_credentials=False):
         if self.canonical_name == UNKNOWN_CHANNEL:
@@ -224,15 +225,15 @@ class Channel(metaclass=ChannelType):
         base = join_url(*base)
 
         if with_credentials and self.auth:
-            return "%s://%s@%s" % (self.scheme, self.auth, base)
+            return f"{self.scheme}://{self.auth}@{base}"
         else:
-            return "%s://%s" % (self.scheme, base)
+            return f"{self.scheme}://{base}"
 
     @property
     def base_url(self):
         if self.canonical_name == UNKNOWN_CHANNEL:
             return None
-        return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+        return f"{self.scheme}://{join_url(self.location, self.name)}"
 
     @property
     def base_urls(self):

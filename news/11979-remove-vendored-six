@@ -1,0 +1,19 @@
+### Enhancements
+
+* Remove vendored six.py.
+
+### Bug fixes
+
+* Fix importlib warnings when importing conda.cli.python_api on python=3.10. (#11975)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

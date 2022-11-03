@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
 import os
@@ -121,7 +119,7 @@ class ContextCustomRcTests(TestCase):
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
-        assert len(context.default_channels) is 0
+        assert len(context.default_channels) == 0
         assert context.signing_metadata_url_base is None
 
 
@@ -292,21 +290,6 @@ class ContextCustomRcTests(TestCase):
 
     def test_channel_priority(self):
         assert context.channel_priority == ChannelPriority.DISABLED
-
-    def test_cuda_detection(self):
-        # confirm that CUDA detection doesn't raise exception
-        version = context.cuda_version
-        assert version is None or isinstance(version, str)
-
-    def test_cuda_override(self):
-        with env_var('CONDA_OVERRIDE_CUDA', '4.5'):
-            version = context.cuda_version
-            assert version == '4.5'
-
-    def test_cuda_override_none(self):
-        with env_var('CONDA_OVERRIDE_CUDA', ''):
-            version = context.cuda_version
-            assert version is None
 
     def test_threads(self):
         default_value = None

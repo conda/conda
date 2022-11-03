@@ -15,11 +15,11 @@ conda-verify
 filelock
 flake8
 git
-mock
 nbformat
 perl
 pexpect
 pip
+pluggy
 pkginfo
 pycosat
 pycrypto
@@ -34,4 +34,5 @@ requests
 responses
 ruamel.yaml
 toolz
-jaimergp/label/menuinst_dev::menuinst
+tqdm
+jaimergp/label/menuinst_dev::menuinst  # temporary

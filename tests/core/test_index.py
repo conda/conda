@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from unittest import TestCase
+from unittest.mock import patch
 
+import os
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
@@ -19,11 +19,6 @@ from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from tests.core.test_subdir_data import platform_in_record
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
 
 log = getLogger(__name__)
 
@@ -47,7 +42,7 @@ def test_check_allowlist():
     check_allowlist(("conda-canary",))
 
 
-def test_supplement_index_with_system_cuda():
+def test_supplement_index_with_system_cuda(clear_cuda_version):
     index = {}
     with env_vars({'CONDA_OVERRIDE_CUDA': '3.2'}):
         _supplement_index_with_system(index)
@@ -59,13 +54,13 @@ def test_supplement_index_with_system_cuda():
 
 @pytest.mark.skipif(not on_mac, reason="osx-only test")
 def test_supplement_index_with_system_osx():
-      index = {}
-      with env_vars({'CONDA_OVERRIDE_OSX': '0.15'}):
-          _supplement_index_with_system(index)
+    index = {}
+    with env_vars({"CONDA_OVERRIDE_OSX": "0.15"}):
+        _supplement_index_with_system(index)
 
-      osx_pkg = next(iter(_ for _ in index if _.name == '__osx'))
-      assert osx_pkg.version == '0.15'
-      assert osx_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+    osx_pkg = next(iter(_ for _ in index if _.name == "__osx"))
+    assert osx_pkg.version == "0.15"
+    assert osx_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
 @pytest.mark.skipif(not on_linux, reason="linux-only test")

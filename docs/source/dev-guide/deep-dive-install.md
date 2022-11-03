@@ -321,6 +321,8 @@ can be changed through the following `context` settings:
 * `default_threads`
 * `verify_threads`
 * `execute_threads`
+* `repodata_threads`
+* `fetch_threads`
 ```
 
 There's only one class of transaction in `conda`:
