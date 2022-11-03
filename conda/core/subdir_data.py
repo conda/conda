@@ -344,7 +344,7 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _read_local_repdata(self, etag, mod_stamp):
         # first try reading pickled data
-        _pickled_state = False # self._read_pickled(etag, mod_stamp)
+        _pickled_state = False  # self._read_pickled(etag, mod_stamp)
         if _pickled_state:
             return _pickled_state
 
