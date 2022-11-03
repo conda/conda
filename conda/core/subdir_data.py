@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import bz2
-from collections import defaultdict
+from collections import UserList, defaultdict
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
@@ -96,6 +96,21 @@ class SubdirDataType(type):
         subdir_data_instance._mtime = now
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
+
+
+class LazyPackageRecords(UserList):
+    """
+    Lazily convert dicts to PackageRecord.
+    """
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return self.__class__(self.data[i])
+        else:
+            record = self.data[i]
+            if not isinstance(record, PackageRecord):
+                record = PackageRecord(**record)
+                self.data[i] = record
+            return record
 
 
 class SubdirData(metaclass=SubdirDataType):
@@ -225,17 +240,13 @@ class SubdirData(metaclass=SubdirDataType):
     def iter_records(self):
         if not self._loaded:
             self.load()
-        for i, record in enumerate(self._package_records):
-            if not isinstance(record, PackageRecord):
-                self._package_records[i] = record = PackageRecord(**record)
-            yield record
+        return iter(self._package_records)
+        # could replace self._package_records with fully-converted UserList.data
+        # after going through entire list
 
     def _iter_records_by_name(self, name):
         for i in self._names_index[name]:
-            record = self._package_records[i]
-            if not isinstance(record, PackageRecord):
-                self._package_records[i] = record = PackageRecord(**record)
-            yield record
+            yield self._package_records[i]
 
     def _load(self):
         try:
@@ -322,6 +333,7 @@ class SubdirData(metaclass=SubdirDataType):
             return _internal_state
 
     def _pickle_me(self):
+        return
         try:
             log.debug("Saving pickled state for %s at %s", self.url_w_repodata_fn,
                       self.cache_path_pickle)
@@ -398,7 +410,7 @@ class SubdirData(metaclass=SubdirDataType):
         add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
 
-        self._package_records = _package_records = []
+        self._package_records = _package_records = LazyPackageRecords()
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
