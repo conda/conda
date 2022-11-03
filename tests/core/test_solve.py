@@ -18,10 +18,12 @@ from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.models.enums import PackageType
+from conda.plugins.virtual_packages import cuda
 from conda.resolve import MatchSpec
 from conda.testing.helpers import add_subdir_to_iter, get_solver, get_solver_2, get_solver_4, \
     get_solver_aggregate_1, get_solver_aggregate_2, get_solver_cuda, get_solver_must_unfreeze, \
     convert_to_dist_str, CHANNEL_DIR
+from conda._vendor.cpuinfo import get_cpu_info
 
 try:
     from unittest.mock import Mock, patch
@@ -118,7 +120,7 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
-def test_virtual_package_solver(tmpdir):
+def test_virtual_package_solver(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
@@ -139,7 +141,7 @@ def test_virtual_package_solver(tmpdir):
             assert ssc.r.bad_installed(ssc.solution_precs, ())[1] is None
 
 
-def test_solve_msgs_exclude_vp(tmpdir):
+def test_solve_msgs_exclude_vp(tmpdir, clear_cuda_version):
     # Sovler hints should exclude virtual packages that are not dependencies
     specs = MatchSpec("python =2.7.5"), MatchSpec("readline =5.0"),
 
@@ -151,7 +153,7 @@ def test_solve_msgs_exclude_vp(tmpdir):
     assert "__cuda==10.0" not in str(exc.value).strip()
 
 
-def test_cuda_1(tmpdir):
+def test_cuda_1(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '9.2'):
@@ -164,7 +166,7 @@ def test_cuda_1(tmpdir):
             assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_2(tmpdir):
+def test_cuda_2(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
@@ -177,7 +179,7 @@ def test_cuda_2(tmpdir):
             assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_fail_1(tmpdir):
+def test_cuda_fail_1(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     # No cudatoolkit in index for CUDA 8.0
@@ -187,7 +189,10 @@ def test_cuda_fail_1(tmpdir):
                 final_state = solver.solve_final_state()
 
     if sys.platform == "darwin":
-        plat = "osx-64"
+        if "ARM_8" in get_cpu_info()["arch"]:
+            plat = "osx-arm64"
+        else:
+            plat = "osx-64"
     elif sys.platform == "linux":
         plat = "linux-64"
     elif sys.platform == "win32":
@@ -206,7 +211,7 @@ def test_cuda_fail_1(tmpdir):
 Your installed version is: 8.0""".format(plat))
 
 
-def test_cuda_fail_2(tmpdir):
+def test_cuda_fail_2(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     # No CUDA on system
@@ -222,7 +227,7 @@ def test_cuda_fail_2(tmpdir):
 Your installed version is: not available""")
 
 
-def test_cuda_constrain_absent(tmpdir):
+def test_cuda_constrain_absent(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-constrain"),
 
     with env_var('CONDA_OVERRIDE_CUDA', ''):
@@ -236,7 +241,7 @@ def test_cuda_constrain_absent(tmpdir):
 
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_sat(tmpdir):
+def test_cuda_constrain_sat(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-constrain"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
@@ -250,7 +255,7 @@ def test_cuda_constrain_sat(tmpdir):
 
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_unsat(tmpdir):
+def test_cuda_constrain_unsat(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-constrain"),
 
     # No cudatoolkit in index for CUDA 8.0
@@ -268,7 +273,7 @@ Your installed version is: 8.0""".format(context.subdir))
 
 
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_sat(tmpdir):
+def test_cuda_glibc_sat(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-glibc"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
@@ -283,7 +288,7 @@ def test_cuda_glibc_sat(tmpdir):
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_unsat_depend(tmpdir):
+def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-glibc"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
@@ -301,7 +306,7 @@ Your installed version is: 8.0""".format(context.subdir))
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_unsat_constrain(tmpdir):
+def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-glibc"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.12'):

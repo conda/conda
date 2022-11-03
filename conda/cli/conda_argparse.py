@@ -22,12 +22,12 @@ import warnings
 from .. import __version__
 from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
-from ..base import context
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier, SolverChoice
 from ..common.constants import NULL
 from ..common.io import dashlist
 from ..exceptions import PluginError
+from ..plugins.manager import get_plugin_manager
 
 log = getLogger(__name__)
 
@@ -116,7 +116,7 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
-        pm = context.get_plugin_manager()
+        pm = get_plugin_manager()
         self._subcommands = sorted(
             (
                 subcommand
