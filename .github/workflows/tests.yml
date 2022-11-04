@@ -331,4 +331,4 @@ jobs:
           subdir: ${{ matrix.subdir }}
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ github.ref_name == 'main' && 'dev' || github.ref_name }}
-          anaconda-org-token: ${{ secrets.ANACONDA_ORG_TOKEN }}
+          anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
