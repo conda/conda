@@ -655,6 +655,30 @@ class SpecStrParsingTests(TestCase):
             "build": "3",
         }
 
+        # Ensure 'name' within brackets can't override the name specified outside of brackets
+        assert _parse_spec_str(
+            "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]"
+        ) == {
+            "_original_spec_str": "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]",
+            "name": "tensorflow",
+            "version": "*",
+            "md5": "253b922ecdb5a30884875948b8904983",
+        }
+        assert _parse_spec_str("tensorflow[name=pytorch]") == {
+            "_original_spec_str": "tensorflow[name=pytorch]",
+            "name": "tensorflow",
+        }
+
+        assert _parse_spec_str(
+            "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']"
+        ) == {
+            "_original_spec_str": "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']",
+            "channel": "anaconda",
+            "name": "numpy",
+            "version": ">=1.8,<2|1.9",
+            "build": "3",
+        }
+
     def test_star_name(self):
         assert _parse_spec_str("* 2.7.4") == {
             "_original_spec_str": "* 2.7.4",
