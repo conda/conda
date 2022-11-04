@@ -36,7 +36,7 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_subcommands(self):
+            def conda_subcommands():
                 yield CondaSubcommand(
                     name="example",
                     summary="example command",
@@ -60,7 +60,7 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_virtual_packages(self):
+            def conda_virtual_packages():
                 yield CondaVirtualPackage(
                     name="my_custom_os",
                     version="1.2.3",
