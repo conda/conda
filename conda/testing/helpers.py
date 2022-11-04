@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 """
 Helpers for the tests
@@ -17,11 +18,13 @@ from tempfile import gettempdir, mkdtemp
 from uuid import uuid4
 from pathlib import Path
 from unittest.mock import patch
+from collections.abc import Generator
 
 from .. import cli
-from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol, Context
 from ..common.compat import encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
+from ..common.configuration import YamlRawParameter, yaml_round_trip_load
 from ..core.prefix_data import PrefixData
 from ..core.solve import _get_solver_class
 from ..core.subdir_data import SubdirData, make_feature_record
@@ -837,3 +840,20 @@ def convert_to_dist_str(solution):
 @pytest.fixture()
 def solver_class():
     return _get_solver_class()
+
+
+@contextmanager
+def temp_context(condarc: str) -> Generator[Context, None, None]:
+    """
+    Context manager that resets the context with the provide `condarc` string.
+    This string should be in the YAML format.
+    """
+    context_obj = reset_context(())
+    rd = dict(
+        testdata=YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(condarc))
+    )
+    context._set_raw_data(rd)
+
+    yield context_obj
+
+    reset_context()

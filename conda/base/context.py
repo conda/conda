@@ -283,11 +283,8 @@ class Context(Configuration):
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         UnionSequenceParameter(
-            {
-                "sequence": SequenceParameter(PrimitiveParameter("", element_type=str)),
-                "primitive": PrimitiveParameter("", element_type=str),
-                "map": MapParameter(MapParameter(PrimitiveParameter("", element_type=str))),
-            },
+            primitive_type=PrimitiveParameter("", element_type=str),
+            map_type=PrimitiveParameter("", element_type=str),
             default=(DEFAULTS_CHANNEL_NAME,),
         ),
         aliases=('channels', 'channel',),

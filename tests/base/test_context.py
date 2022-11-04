@@ -22,7 +22,7 @@ from conda.base.context import (
     validate_prefix_name,
 )
 from conda.common.compat import odict, on_win
-from conda.common.configuration import ValidationError, YamlRawParameter
+from conda.common.configuration import ValidationError, YamlRawParameter, InvalidTypeError
 from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
@@ -37,7 +37,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
-from conda.testing.helpers import tempdir
+from conda.testing.helpers import tempdir, temp_context
 
 
 class ContextCustomRcTests(TestCase):
@@ -530,3 +530,68 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         else:
             actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
+
+
+#: Valid condarc file containing extra configuration parameters
+VALID_CONDARC_WITH_CHANNEL_PARAMETERS = """
+channels:
+  - defaults
+  - conda-forge
+  - http://localhost:
+      authentication: test-auth
+      test_param: test-value
+"""
+
+#: Invalid condarc contain bad values for the parameters, specifically "bad_param"
+INVALID_CONDARC_WITH_CHANNEL_PARAMETERS_1 = """
+channels:
+  - defaults
+  - conda-forge
+  - http://localhost:
+      bad_param:
+        - test_one  # <-- lists are not allowed here
+        - test_two
+"""
+
+
+def test_reading_channel_parameters_valid_parameters():
+    """
+    Tests the retrieval of channel_parameters from context object with a valid
+    condarc file.
+    """
+    with temp_context(VALID_CONDARC_WITH_CHANNEL_PARAMETERS) as context_obj:
+        assert context_obj.channels == ("defaults", "conda-forge", "http://localhost")
+
+        local_channel_params = context_obj.channel_parameters.get("http://localhost")
+
+        assert local_channel_params is not None
+
+        assert local_channel_params["authentication"] == "test-auth"
+        assert local_channel_params["test_param"] == "test-value"
+
+
+@pytest.mark.skip("Fails for now, but we need to revisit to give this a better error message.")
+def test_condarc_file_with_bad_parameters():
+    """
+    Tests that the appropriate error is thrown when reading a condarc file that
+    has channel parameters defined in an incorrect way. The goal here is to give users
+    a semi-actionable error message or at least make it easier to troubleshoot.
+    """
+    with temp_context(INVALID_CONDARC_WITH_CHANNEL_PARAMETERS_1) as context_obj:
+        valid_types = "UnionSequence[PrimitiveParameter],UnionSequence[MapParameter]"
+        with pytest.raises(InvalidTypeError) as exc_info:
+            getattr(context_obj, "channels")
+        assert exc_info.value.valid_types == valid_types
+
+
+def test_condarc_file_with_single_channel():
+    """
+    Tests the case where "channels" is defined as a single string value
+    """
+    condarc = "channels: testing"
+
+    with temp_context(condarc) as context_obj:
+        valid_types = "UnionSequence[PrimitiveParameter],UnionSequence[MapParameter]"
+        with pytest.raises(InvalidTypeError) as exc_info:
+            getattr(context_obj, "channels")
+        assert exc_info.value.valid_types == valid_types

@@ -25,7 +25,7 @@ from os import environ, scandir, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
-from typing import Sequence, Union
+from typing import Sequence, Union, Callable
 
 try:
     from tlz.itertoolz import concat, unique
@@ -814,54 +814,27 @@ class SequenceLoadedParameter(LoadedParameter):
 
 class UnionSequenceLoadedParameter(SequenceLoadedParameter):
     """
-    Implements the loader for the UnionSequenceParameter
+    Implements the loader for the UnionSequenceParameter.
     """
 
     def __init__(
         self,
-        name,
-        value,
-        element_type_map: dict[str, UnionElementTypes],
-        key_flag,
-        value_flags,
-        validation=None,
+        name: str,
+        value: Sequence,
+        element_type: Sequence[UnionElementTypes],
+        key_flag: ParameterFlag,
+        value_flags: Sequence,
+        validation: Callable = None,
     ):
         """
         Args:
-            value (Sequence): Object with LoadedParameter fields.
-            element_type_map: The Parameter types that appear in the sequence.
-            value_flags (Sequence): Sequence of priority value_flags.
+            value: Object with LoadedParameter fields.
+            element_type: Sequence of valid element types.
+            value_flags: Sequence of priority value_flags.
         """
-        # TODO: should _element_type_map have a default value?
-        self._element_type_map = element_type_map
-        self._valid_types = ",".join(typ.__class__.__name__ for typ in self._element_type_map)
+        self._element_type = element_type
+        self._valid_types = ",".join(typ.__class__.__name__ for typ in element_type)
         super().__init__(name, value, None, key_flag, value_flags, validation)
-
-    def _get_element_type(self, source: str) -> UnionElementTypes:
-        """
-        Returns the appropriate element type to use.
-        We base this on what is contained in the `value` property.
-        """
-        element_type = None
-
-        if isinstance(self.value, primitive_types):
-            element_type = self._element_type_map.get("primitive")
-        elif isinstance(self.value, Mapping):
-            element_type = self._element_type_map.get("map")
-        elif isiterable(self.value):
-            element_type = self._element_type_map.get("sequence")
-
-        if element_type is None:
-            raise InvalidElementTypeError(
-                self.name, self.value, source, self.value.__class__.__name__, self._valid_types, 0
-            )
-
-        return element_type
-
-    def typify(self, source):
-        """We override this to account for handling multiple parameter types"""
-        self._element_type = self._get_element_type(source)
-        return super().typify(source)
 
 
 class ObjectLoadedParameter(LoadedParameter):
@@ -1161,7 +1134,7 @@ class SequenceParameter(Parameter):
 
 
 #: These are the allowable types for a UnionSequenceParameter
-UnionElementTypes = Union[MapParameter, SequenceParameter, PrimitiveParameter]
+UnionElementTypes = Union[MapParameter, PrimitiveParameter]
 
 
 class UnionSequenceParameter(Parameter):
@@ -1183,16 +1156,37 @@ class UnionSequenceParameter(Parameter):
 
     def __init__(
         self,
-        element_types: dict[str, UnionElementTypes],
-        default: Sequence | None = None,
+        default: Sequence,
+        primitive_type: PrimitiveParameter = None,
+        map_type: PrimitiveParameter = None,
         validation=None,
         string_delimiter: str = ",",
     ):
-        # TODO: _element_types should have a default implementation, see context._channels
-        self._element_types = element_types
-        self._element_type = tuple(element for _, element in self._element_types.items())
-        self._valid_types = ",".join(typ.__class__.__name__ for typ in self._element_types)
-        self.string_delimiter = string_delimiter
+        """
+        Creates a UnionSequenceParameter. Here is what a typical invocation of this
+        class looks like:
+
+        class MyConfig(Configuration):
+            my_config_param = ParameterLoader(
+                UnionSequenceParameter(  # <-- this is where the class is used
+                    primitive_type=PrimitiveParameter("", element_type=str),
+                    map_type=PrimitiveParameter("", element_type=str),
+                    default=("My default parameter value", )
+                )
+            )
+
+        The above example will allow you to define a sequence parameter hold both string
+        values and mappings that hold their own mappings with string values.
+        """
+        self.primitive_type = primitive_type or PrimitiveParameter("", element_type=str)
+        if map_type is None:
+            self.map_type = MapParameter(MapParameter(PrimitiveParameter("", element_type=str)))
+        else:
+            self.map_type = MapParameter(MapParameter(map_type))
+        self._element_type = (self.primitive_type, self.map_type)
+        self._set_valid_types_str(self._element_type)
+        self.string_delimiter = string_delimiter  # This is need for parsing environment variables
+
         super().__init__(default, validation)
 
     def get_all_matches(self, name, names, instance):
@@ -1201,7 +1195,16 @@ class UnionSequenceParameter(Parameter):
         """
         matches, exceptions = super().get_all_matches(name, names, instance)
         matches = tuple(m for m in matches if m._raw_value is not None)
+
         return matches, exceptions
+
+    def _set_valid_types_str(self, element_types: Sequence[UnionElementTypes]) -> None:
+        """
+        Returns a string representation for the valid types this parameter accepts.
+        This is primarily used for error messages.
+        """
+        valid_types = tuple(f"UnionSequence[{typ.__class__.__name__}]" for typ in element_types)
+        self._valid_types = ",".join(valid_types)
 
     def _get_element_type_from_value(
         self, name: str, match: RawParameter, index: int
@@ -1214,11 +1217,9 @@ class UnionSequenceParameter(Parameter):
         raw_value = match.value()
 
         if isinstance(raw_value, primitive_types):
-            element_type = self._element_types.get("primitive")
+            element_type = self.primitive_type
         elif isinstance(raw_value, Mapping):
-            element_type = self._element_types.get("map")
-        elif isiterable(raw_value):
-            element_type = self._element_types.get("sequence")
+            element_type = self.map_type
 
         if element_type is None:
             raise InvalidElementTypeError(
@@ -1232,12 +1233,16 @@ class UnionSequenceParameter(Parameter):
         return element_type
 
     def load(self, name: str, match: RawParameter):
+        """
+        Validates incoming RawParameter and then creates and returns a
+        UnionSequenceLoadedParameter.
+        """
         value = match.value(self)
         if value is None:
             return UnionSequenceLoadedParameter(
                 name,
                 tuple(),
-                self._element_types,
+                self._element_type,
                 match.keyflag(),
                 tuple(),
                 validation=self._validation,
@@ -1257,9 +1262,9 @@ class UnionSequenceParameter(Parameter):
         return UnionSequenceLoadedParameter(
             name,
             tuple(loaded_sequence),
-            self._element_types,
+            self._element_type,
             match.keyflag(),
-            match.valueflags(self._element_types),
+            match.valueflags(self._element_type),
             validation=self._validation)
 
 
